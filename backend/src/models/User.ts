@@ -1,29 +1,22 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
+/**
+ * User Model - For Admin and Store Admin accounts only
+ * For customer accounts, use the Customer model
+ */
 export interface IUser extends Document {
     email: string;
     password: string;
     firstName: string;
     lastName: string;
     phone?: string;
-    role: 'customer' | 'admin' | 'store_admin';
+    role: 'admin' | 'store_admin' | 'super_admin';
     storeId?: mongoose.Types.ObjectId;
     isActive: boolean;
     emailVerified: boolean;
-    addresses: Array<{
-        type: 'billing' | 'shipping';
-        firstName: string;
-        lastName: string;
-        address1: string;
-        address2?: string;
-        city: string;
-        state: string;
-        country: string;
-        postalCode: string;
-        phone: string;
-        isDefault: boolean;
-    }>;
+    permissions?: string[]; // For granular permissions
+    lastLogin?: Date;
     createdAt: Date;
     updatedAt: Date;
     comparePassword(candidatePassword: string): Promise<boolean>;
@@ -37,11 +30,12 @@ const UserSchema = new Schema<IUser>(
             unique: true,
             lowercase: true,
             trim: true,
+            index: true,
         },
         password: {
             type: String,
             required: true,
-            minlength: 6,
+            minlength: 8,
         },
         firstName: {
             type: String,
@@ -59,12 +53,14 @@ const UserSchema = new Schema<IUser>(
         },
         role: {
             type: String,
-            enum: ['customer', 'admin', 'store_admin'],
-            default: 'customer',
+            enum: ['admin', 'store_admin', 'super_admin'],
+            default: 'admin',
+            required: true,
         },
         storeId: {
             type: Schema.Types.ObjectId,
             ref: 'Store',
+            // Required for store_admin, optional for super_admin
         },
         isActive: {
             type: Boolean,
@@ -74,25 +70,13 @@ const UserSchema = new Schema<IUser>(
             type: Boolean,
             default: false,
         },
-        addresses: [
-            {
-                type: {
-                    type: String,
-                    enum: ['billing', 'shipping'],
-                    required: true,
-                },
-                firstName: { type: String, required: true },
-                lastName: { type: String, required: true },
-                address1: { type: String, required: true },
-                address2: String,
-                city: { type: String, required: true },
-                state: { type: String, required: true },
-                country: { type: String, required: true },
-                postalCode: { type: String, required: true },
-                phone: { type: String, required: true },
-                isDefault: { type: Boolean, default: false },
-            },
-        ],
+        permissions: {
+            type: [String],
+            default: [],
+        },
+        lastLogin: {
+            type: Date,
+        },
     },
     {
         timestamps: true,
@@ -104,7 +88,7 @@ UserSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
 
     try {
-        const salt = await bcrypt.genSalt(10);
+        const salt = await bcrypt.genSalt(12); // Increased salt rounds for admin accounts
         this.password = await bcrypt.hash(this.password, salt);
         next();
     } catch (error: any) {
@@ -118,9 +102,10 @@ UserSchema.methods.comparePassword = async function (candidatePassword: string):
 };
 
 // Indexes
-UserSchema.index({ email: 1 });
+UserSchema.index({ email: 1 }, { unique: true });
 UserSchema.index({ role: 1 });
 UserSchema.index({ storeId: 1 });
+UserSchema.index({ isActive: 1 });
 
 const User = mongoose.model<IUser>('User', UserSchema);
 
