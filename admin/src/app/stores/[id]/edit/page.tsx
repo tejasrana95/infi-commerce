@@ -1,0 +1,100 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { Box, Button, Paper, Typography } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import api from '@/lib/api';
+import StoreForm from '@/components/organisms/StoreForm';
+import { LoadingSpinner } from '@/components/atoms';
+import { useNotification } from '@/contexts/NotificationContext';
+import { Store } from '@/types';
+
+export default function EditStorePage() {
+    const router = useRouter();
+    const params = useParams();
+    const id = params.id as string;
+    const [store, setStore] = useState<Store | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { showNotification } = useNotification();
+
+    useEffect(() => {
+        fetchStore();
+    }, [id]);
+
+    const fetchStore = async () => {
+        try {
+            const response = await api.get(`/stores/${id}`);
+            setStore(response.data.store || response.data.data);
+        } catch (err) {
+            showNotification('Failed to load store', 'error');
+            router.push('/stores');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSubmit = async (data: any) => {
+        setIsSubmitting(true);
+        try {
+            await api.put(`/stores/${id}`, data);
+            showNotification('Store updated successfully', 'success');
+            router.push('/stores');
+        } catch (err: any) {
+            showNotification(err.response?.data?.message || 'Failed to update store', 'error');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    if (loading) return <LoadingSpinner message="Loading store..." />;
+
+    return (
+        <Box>
+            <Box display="flex" alignItems="center" gap={2} mb={3}>
+                <Button
+                    startIcon={<ArrowBackIcon />}
+                    onClick={() => router.back()}
+                    variant="outlined"
+                >
+                    Back
+                </Button>
+                <Box>
+                    <Typography variant="h4" fontWeight={600}>
+                        Edit Store
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        Update store information
+                    </Typography>
+                </Box>
+            </Box>
+
+            <Paper sx={{ p: 3 }}>
+                <StoreForm
+                    initialData={store || undefined}
+                    onSubmit={handleSubmit}
+                    isSubmitting={isSubmitting}
+                />
+
+                <Box display="flex" gap={2} justifyContent="flex-end" mt={3}>
+                    <Button
+                        variant="outlined"
+                        onClick={() => router.back()}
+                        disabled={isSubmitting}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        type="submit"
+                        form="store-form"
+                        variant="contained"
+                        disabled={isSubmitting}
+                    >
+                        {isSubmitting ? 'Updating...' : 'Update Store'}
+                    </Button>
+                </Box>
+            </Paper>
+        </Box>
+    );
+}

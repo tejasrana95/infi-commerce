@@ -1,50 +1,73 @@
+import { memo } from 'react';
 import { Box, Typography, Button, Paper } from '@mui/material';
 import InboxIcon from '@mui/icons-material/Inbox';
 import Link from 'next/link';
 
 interface EmptyStateProps {
-  title?: string;
   message: string;
   actionLabel?: string;
   actionHref?: string;
   onAction?: () => void;
+  icon?: React.ReactNode;
 }
 
-export default function EmptyState({ 
-  title = 'No data found',
-  message, 
-  actionLabel, 
+const EmptyState = memo(({
+  message,
+  actionLabel,
   actionHref,
-  onAction 
-}: EmptyStateProps) {
+  onAction,
+  icon
+}: EmptyStateProps) => {
   return (
     <Paper
       sx={{
-        p: 6,
+        p: 4,
         textAlign: 'center',
-        border: '2px dashed',
-        borderColor: 'divider',
         bgcolor: 'background.paper',
+        borderRadius: 2,
       }}
     >
-      <InboxIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-      <Typography variant="h6" gutterBottom>
-        {title}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" mb={3}>
+      <Box
+        sx={{
+          display: 'inline-flex',
+          p: 2,
+          borderRadius: '50%',
+          bgcolor: 'action.hover',
+          color: 'text.secondary',
+          mb: 2,
+        }}
+      >
+        {icon || <InboxIcon sx={{ fontSize: 40 }} />}
+      </Box>
+      <Typography variant="h6" gutterBottom fontWeight={600}>
         {message}
       </Typography>
       {(actionLabel && (actionHref || onAction)) && (
-        actionHref ? (
-          <Button component={Link} href={actionHref} variant="contained">
-            {actionLabel}
-          </Button>
-        ) : (
-          <Button variant="contained" onClick={onAction}>
-            {actionLabel}
-          </Button>
-        )
+        <Box mt={2}>
+          {actionHref ? (
+            <Button
+              component={Link}
+              href={actionHref}
+              variant="contained"
+              size="medium"
+            >
+              {actionLabel}
+            </Button>
+          ) : (
+            <Button
+              variant="contained"
+              onClick={onAction}
+              size="medium"
+            >
+              {actionLabel}
+            </Button>
+          )}
+        </Box>
       )}
     </Paper>
   );
-}
+});
+
+EmptyState.displayName = 'EmptyState';
+
+export default EmptyState;

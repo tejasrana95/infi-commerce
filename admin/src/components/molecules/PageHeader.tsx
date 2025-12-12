@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Box, Typography, Button } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import Link from 'next/link';
@@ -10,28 +11,33 @@ interface PageHeaderProps {
   onAction?: () => void;
 }
 
-export default function PageHeader({ 
-  title, 
-  subtitle, 
-  actionLabel, 
+const PageHeader = memo(({
+  title,
+  subtitle,
+  actionLabel,
   actionHref,
-  onAction 
-}: PageHeaderProps) {
+  onAction
+}: PageHeaderProps) => {
   return (
     <Box
       display="flex"
       justifyContent="space-between"
-      alignItems="flex-start"
-      mb={3}
+      alignItems="center"
+      mb={2}
       flexWrap="wrap"
-      gap={2}
+      gap={1.5}
     >
       <Box>
-        <Typography variant="h4" component="h1" gutterBottom>
+        <Typography
+          variant="h5"
+          component="h1"
+          fontWeight={700}
+          sx={{ mb: subtitle ? 0.5 : 0 }}
+        >
           {title}
         </Typography>
         {subtitle && (
-          <Typography variant="body1" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" fontSize="0.875rem">
             {subtitle}
           </Typography>
         )}
@@ -43,7 +49,11 @@ export default function PageHeader({
             href={actionHref}
             variant="contained"
             startIcon={<AddIcon />}
-            sx={{ minWidth: { xs: '100%', sm: 'auto' } }}
+            size="medium"
+            sx={{
+              minWidth: { xs: '100%', sm: 'auto' },
+              height: 36,
+            }}
           >
             {actionLabel}
           </Button>
@@ -52,7 +62,11 @@ export default function PageHeader({
             variant="contained"
             startIcon={<AddIcon />}
             onClick={onAction}
-            sx={{ minWidth: { xs: '100%', sm: 'auto' } }}
+            size="medium"
+            sx={{
+              minWidth: { xs: '100%', sm: 'auto' },
+              height: 36,
+            }}
           >
             {actionLabel}
           </Button>
@@ -60,4 +74,8 @@ export default function PageHeader({
       )}
     </Box>
   );
-}
+});
+
+PageHeader.displayName = 'PageHeader';
+
+export default PageHeader;

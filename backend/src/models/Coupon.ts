@@ -35,6 +35,12 @@ export interface ICoupon extends Document {
 
     createdAt: Date;
     updatedAt: Date;
+
+    // Methods
+    isCurrentlyValid(): boolean;
+    canCustomerUse(customerId: string): boolean;
+    calculateDiscount(cartValue: number, applicableAmount: number): number;
+    incrementUsage(customerId?: string): Promise<void>;
 }
 
 const CouponSchema = new Schema<ICoupon>(

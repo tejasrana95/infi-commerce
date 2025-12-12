@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import api from '@/lib/api';
 import { Category, Store } from '@/types';
-import styles from '../product-form.module.scss';
 
 export default function EditProductPage() {
   const router = useRouter();
@@ -103,19 +102,19 @@ export default function EditProductPage() {
   };
 
   if (fetchLoading) {
-    return <div className={styles.container}>Loading...</div>;
+    return <div>Loading...</div>;
   }
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
+    <div>
+      <div>
         <h2>Edit Product</h2>
         <p>Update product information</p>
       </div>
 
-      <form onSubmit={handleSubmit} className={styles.form}>
-        <div className={styles.formGrid}>
-          <div className={styles.formGroup}>
+      <form onSubmit={handleSubmit} >
+        <div>
+          <div>
             <label htmlFor="name">Product Name *</label>
             <input
               id="name"
@@ -127,7 +126,7 @@ export default function EditProductPage() {
             />
           </div>
 
-          <div className={styles.formGroup}>
+          <div>
             <label htmlFor="sku">SKU *</label>
             <input
               id="sku"
@@ -139,7 +138,7 @@ export default function EditProductPage() {
             />
           </div>
 
-          <div className={styles.formGroup}>
+          <div>
             <label htmlFor="price">Price *</label>
             <input
               id="price"
@@ -152,7 +151,7 @@ export default function EditProductPage() {
             />
           </div>
 
-          <div className={styles.formGroup}>
+          <div>
             <label htmlFor="salePrice">Sale Price</label>
             <input
               id="salePrice"
@@ -164,7 +163,7 @@ export default function EditProductPage() {
             />
           </div>
 
-          <div className={styles.formGroup}>
+          <div>
             <label htmlFor="cost">Cost</label>
             <input
               id="cost"
@@ -176,7 +175,7 @@ export default function EditProductPage() {
             />
           </div>
 
-          <div className={styles.formGroup}>
+          <div>
             <label htmlFor="stock">Stock *</label>
             <input
               id="stock"
@@ -188,7 +187,7 @@ export default function EditProductPage() {
             />
           </div>
 
-          <div className={styles.formGroup}>
+          <div>
             <label htmlFor="category">Category</label>
             <select
               id="category"
@@ -205,7 +204,7 @@ export default function EditProductPage() {
             </select>
           </div>
 
-          <div className={styles.formGroup}>
+          <div>
             <label htmlFor="store">Store</label>
             <select
               id="store"
@@ -223,7 +222,7 @@ export default function EditProductPage() {
           </div>
         </div>
 
-        <div className={styles.formGroup}>
+        <div>
           <label htmlFor="description">Description</label>
           <textarea
             id="description"
@@ -234,8 +233,8 @@ export default function EditProductPage() {
           />
         </div>
 
-        <div className={styles.formGroup}>
-          <label className={styles.checkbox}>
+        <div>
+          <label>
             <input
               type="checkbox"
               name="isActive"
@@ -246,16 +245,16 @@ export default function EditProductPage() {
           </label>
         </div>
 
-        <div className={styles.actions}>
+        <div>
           <button
             type="button"
             onClick={() => router.back()}
-            className={styles.cancelBtn}
+            
             disabled={loading}
           >
             Cancel
           </button>
-          <button type="submit" className={styles.submitBtn} disabled={loading}>
+          <button type="submit"  disabled={loading}>
             {loading ? 'Updating...' : 'Update Product'}
           </button>
         </div>

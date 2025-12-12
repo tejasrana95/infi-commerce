@@ -1,62 +1,45 @@
 import { Router } from 'express';
 import {
-    createCountry,
-    getCountries,
-    getCountryByCode,
-    updateCountry,
-    deleteCountry,
-    addStates,
-    getStates,
-    addCities,
-    getCities,
-    createGeoValidation,
+    createGeo,
+    getGeos,
+    getGeoById,
+    updateGeo,
+    deleteGeo,
+    getCountriesHierarchical,
+    getStatesByCountry,
+    getCitiesByState,
 } from '../controllers/geo.controller';
 import { authenticate, authorize } from '../middleware/auth';
-import { validate } from '../middleware/validation';
 
 const router = Router();
 
 // Public routes
-router.get('/countries', getCountries);
-router.get('/countries/:code', getCountryByCode);
-router.get('/countries/:code/states', getStates);
-router.get('/countries/:code/states/:stateCode/cities', getCities);
+router.get('/', getGeos);
+router.get('/countries', getCountriesHierarchical); // For backward compatibility with frontend
+router.get('/:id', getGeoById);
+router.get('/countries/:countryId/states', getStatesByCountry); // Get states for a country
+router.get('/states/:stateId/cities', getCitiesByState); // Get cities for a state
 
 // Protected routes (admin only)
 router.post(
-    '/countries',
+    '/',
     authenticate,
     authorize('admin', 'super_admin'),
-    validate(createGeoValidation),
-    createCountry
+    createGeo
 );
 
 router.put(
-    '/countries/:code',
+    '/:id',
     authenticate,
     authorize('admin', 'super_admin'),
-    updateCountry
+    updateGeo
 );
 
 router.delete(
-    '/countries/:code',
+    '/:id',
     authenticate,
     authorize('admin', 'super_admin'),
-    deleteCountry
-);
-
-router.post(
-    '/countries/:code/states',
-    authenticate,
-    authorize('admin', 'super_admin'),
-    addStates
-);
-
-router.post(
-    '/countries/:code/states/:stateCode/cities',
-    authenticate,
-    authorize('admin', 'super_admin'),
-    addCities
+    deleteGeo
 );
 
 export default router;

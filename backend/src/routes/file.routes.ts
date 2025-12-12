@@ -1,0 +1,93 @@
+import { Router } from 'express';
+import {
+    uploadFiles,
+    listFiles,
+    getFileById,
+    renameFile,
+    deleteFile,
+    moveFile,
+    createFolder,
+    renameFolder,
+    deleteFolder,
+    getFolderContents,
+    syncFilesystem,
+    uploadValidation,
+    renameValidation,
+    deleteValidation,
+    moveValidation,
+    createFolderValidation,
+    renameFolderValidation,
+    deleteFolderValidation,
+    getFolderContentsValidation,
+} from '../controllers/file.controller';
+import { authenticate } from '../middleware/auth';
+import { upload } from '../middleware/upload';
+
+const router = Router();
+
+// Sync endpoint
+router.post('/sync', authenticate, syncFilesystem);
+
+// File operations
+router.post(
+    '/upload',
+    authenticate,
+    upload.array('files', 10),
+    uploadValidation,
+    uploadFiles
+);
+
+router.get('/', listFiles);
+
+router.get('/:id', getFileById);
+
+router.put(
+    '/:id/rename',
+    authenticate,
+    renameValidation,
+    renameFile
+);
+
+router.delete(
+    '/:id',
+    authenticate,
+    deleteValidation,
+    deleteFile
+);
+
+router.post(
+    '/:id/move',
+    authenticate,
+    moveValidation,
+    moveFile
+);
+
+// Folder operations
+router.post(
+    '/folders',
+    authenticate,
+    createFolderValidation,
+    createFolder
+);
+
+router.put(
+    '/folders/:id/rename',
+    authenticate,
+    renameFolderValidation,
+    renameFolder
+);
+
+router.delete(
+    '/folders/:id',
+    authenticate,
+    deleteFolderValidation,
+    deleteFolder
+);
+
+router.get(
+    '/folders/:id/contents',
+    getFolderContentsValidation,
+    getFolderContents
+);
+
+export default router;

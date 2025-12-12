@@ -445,10 +445,6 @@ const swaggerDefinition = {
             description: 'Admin authentication and profile management (for admin users only)',
         },
         {
-            name: 'Users',
-            description: 'User management endpoints (admin)',
-        },
-        {
             name: 'Stores',
             description: 'Store/Shop management endpoints',
         },
@@ -487,10 +483,6 @@ const swaggerDefinition = {
         {
             name: 'Cart',
             description: 'Shopping cart endpoints',
-        },
-        {
-            name: 'Payments',
-            description: 'Payment processing endpoints',
         },
         {
             name: 'Shipping',

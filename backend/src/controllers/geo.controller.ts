@@ -1,20 +1,14 @@
 import { Response } from 'express';
-import { body, param } from 'express-validator';
+import { body } from 'express-validator';
 import Geo from '../models/Geo';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 
-// Validation rules
-export const createGeoValidation = [
-    body('countryCode').trim().notEmpty().isLength({ min: 2, max: 2 }).withMessage('Country code must be 2 characters'),
-    body('countryName').trim().notEmpty().withMessage('Country name is required'),
-];
-
 /**
  * @swagger
- * /api/geo/countries:
+ * /api/geo:
  *   post:
- *     summary: Add a new country
+ *     summary: Create a new geo location (country, state, or city)
  *     tags: [Geo]
  *     security:
  *       - bearerAuth: []
@@ -25,259 +19,151 @@ export const createGeoValidation = [
  *           schema:
  *             type: object
  *             required:
- *               - countryCode
- *               - countryName
+ *               - name
+ *               - type
  *             properties:
- *               countryCode:
+ *               name:
  *                 type: string
- *                 example: US
- *               countryName:
+ *               type:
  *                 type: string
- *                 example: United States
+ *                 enum: [country, state, city]
+ *               code:
+ *                 type: string
+ *               parentId:
+ *                 type: string
+ *               isActive:
+ *                 type: boolean
  *               isShippingAvailable:
  *                 type: boolean
  *     responses:
  *       201:
- *         description: Country added successfully
+ *         description: Geo location created successfully
  */
-export const createCountry = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { countryCode, countryName, isShippingAvailable } = req.body;
+export const createGeo = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { name, type, code, parentId, isActive, isShippingAvailable } = req.body;
 
-    // Check if country already exists
-    const existingCountry = await Geo.findOne({ countryCode: countryCode.toUpperCase() });
-    if (existingCountry) {
-        throw new AppError('Country already exists', 400);
+    // Validate parent for states and cities
+    if (type === 'state' && !parentId) {
+        throw new AppError('Parent country is required for states', 400);
+    }
+    if (type === 'city' && !parentId) {
+        throw new AppError('Parent state is required for cities', 400);
     }
 
-    // Create country
-    const country = await Geo.create({
-        countryCode: countryCode.toUpperCase(),
-        countryName,
-        isShippingAvailable: isShippingAvailable !== undefined ? isShippingAvailable : true,
+    // Verify parent exists
+    if (parentId) {
+        const parent = await Geo.findById(parentId);
+        if (!parent) {
+            throw new AppError('Parent location not found', 404);
+        }
+
+        // Validate parent type
+        if (type === 'state' && parent.type !== 'country') {
+            throw new AppError('State parent must be a country', 400);
+        }
+        if (type === 'city' && parent.type !== 'state') {
+            throw new AppError('City parent must be a state', 400);
+        }
+    }
+
+    const geo = await Geo.create({
+        name,
+        type,
+        code: code?.toUpperCase(),
+        parentId: parentId || null,
+        isActive: isActive ?? true,
+        isShippingAvailable: type === 'country' ? (isShippingAvailable ?? true) : undefined,
     });
 
     res.status(201).json({
-        message: 'Country added successfully',
-        country,
+        message: 'Geo location created successfully',
+        data: geo,
     });
 });
 
 /**
  * @swagger
- * /api/geo/countries:
+ * /api/geo:
  *   get:
- *     summary: Get all countries
+ *     summary: Get all geo locations
  *     tags: [Geo]
  *     parameters:
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [country, state, city]
+ *       - in: query
+ *         name: parentId
+ *         schema:
+ *           type: string
  *       - in: query
  *         name: isActive
  *         schema:
  *           type: boolean
- *       - in: query
- *         name: isShippingAvailable
- *         schema:
- *           type: boolean
  *     responses:
  *       200:
- *         description: Countries retrieved successfully
+ *         description: Geo locations retrieved successfully
  */
-export const getCountries = asyncHandler(async (req: AuthRequest, res: Response) => {
+export const getGeos = asyncHandler(async (req: AuthRequest, res: Response) => {
     const filter: any = {};
+
+    if (req.query.type) {
+        filter.type = req.query.type;
+    }
+
+    if (req.query.parentId) {
+        filter.parentId = req.query.parentId;
+    } else if (req.query.parentId === 'null') {
+        filter.parentId = null;
+    }
 
     if (req.query.isActive !== undefined) {
         filter.isActive = req.query.isActive === 'true';
     }
 
-    if (req.query.isShippingAvailable !== undefined) {
-        filter.isShippingAvailable = req.query.isShippingAvailable === 'true';
-    }
+    const geos = await Geo.find(filter)
+        .populate('parentId', 'name type code')
+        .sort({ type: 1, name: 1 });
 
-    const countries = await Geo.find(filter).sort({ countryName: 1 });
-
-    res.json({ countries });
+    res.json({ data: geos });
 });
 
 /**
  * @swagger
- * /api/geo/countries/{code}:
+ * /api/geo/{id}:
  *   get:
- *     summary: Get country by code
+ *     summary: Get geo location by ID
  *     tags: [Geo]
  *     parameters:
  *       - in: path
- *         name: code
+ *         name: id
  *         required: true
  *         schema:
  *           type: string
  *     responses:
  *       200:
- *         description: Country retrieved successfully
- *       404:
- *         description: Country not found
+ *         description: Geo location retrieved successfully
  */
-export const getCountryByCode = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const country = await Geo.findOne({ countryCode: req.params.code.toUpperCase() });
+export const getGeoById = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const geo = await Geo.findById(req.params.id).populate('parentId', 'name type code');
 
-    if (!country) {
-        throw new AppError('Country not found', 404);
+    if (!geo) {
+        throw new AppError('Geo location not found', 404);
     }
 
-    res.json({ country });
+    res.json({ data: geo });
 });
 
 /**
  * @swagger
- * /api/geo/countries/{code}:
- *   put:
- *     summary: Update country
- *     tags: [Geo]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: code
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *     responses:
- *       200:
- *         description: Country updated successfully
- */
-export const updateCountry = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const updates = req.body;
-
-    const country = await Geo.findOne({ countryCode: req.params.code.toUpperCase() });
-    if (!country) {
-        throw new AppError('Country not found', 404);
-    }
-
-    // Update country
-    Object.assign(country, updates);
-    await country.save();
-
-    res.json({
-        message: 'Country updated successfully',
-        country,
-    });
-});
-
-/**
- * @swagger
- * /api/geo/countries/{code}:
- *   delete:
- *     summary: Delete country
- *     tags: [Geo]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: code
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Country deleted successfully
- */
-export const deleteCountry = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const country = await Geo.findOneAndDelete({ countryCode: req.params.code.toUpperCase() });
-
-    if (!country) {
-        throw new AppError('Country not found', 404);
-    }
-
-    res.json({
-        message: 'Country deleted successfully',
-    });
-});
-
-/**
- * @swagger
- * /api/geo/countries/{code}/states:
- *   post:
- *     summary: Add states to country
- *     tags: [Geo]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: code
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - states
- *             properties:
- *               states:
- *                 type: array
- *                 items:
- *                   type: object
- *                   properties:
- *                     code:
- *                       type: string
- *                     name:
- *                       type: string
- *     responses:
- *       200:
- *         description: States added successfully
- */
-export const addStates = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { states } = req.body;
-
-    const country = await Geo.findOne({ countryCode: req.params.code.toUpperCase() });
-    if (!country) {
-        throw new AppError('Country not found', 404);
-    }
-
-    if (!Array.isArray(states)) {
-        throw new AppError('States must be an array', 400);
-    }
-
-    // Add states
-    if (!country.states) {
-        country.states = [];
-    }
-
-    states.forEach((state: any) => {
-        const existing = country.states?.find((s) => s.code === state.code.toUpperCase());
-        if (!existing) {
-            country.states?.push({
-                code: state.code.toUpperCase(),
-                name: state.name,
-                cities: state.cities || [],
-            });
-        }
-    });
-
-    await country.save();
-
-    res.json({
-        message: 'States added successfully',
-        country,
-    });
-});
-
-/**
- * @swagger
- * /api/geo/countries/{code}/states:
+ * /api/geo/countries/{countryId}/states:
  *   get:
- *     summary: Get states for a country
+ *     summary: Get all states for a specific country
  *     tags: [Geo]
  *     parameters:
  *       - in: path
- *         name: code
+ *         name: countryId
  *         required: true
  *         schema:
  *           type: string
@@ -285,36 +171,51 @@ export const addStates = asyncHandler(async (req: AuthRequest, res: Response) =>
  *       200:
  *         description: States retrieved successfully
  */
-export const getStates = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const country = await Geo.findOne({ countryCode: req.params.code.toUpperCase() });
+export const getStatesByCountry = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const states = await Geo.find({
+        type: 'state',
+        parentId: req.params.countryId
+    }).sort({ name: 1 });
 
-    if (!country) {
-        throw new AppError('Country not found', 404);
-    }
-
-    res.json({
-        countryCode: country.countryCode,
-        countryName: country.countryName,
-        states: country.states || [],
-    });
+    res.json({ data: states });
 });
 
 /**
  * @swagger
- * /api/geo/countries/{code}/states/{stateCode}/cities:
- *   post:
- *     summary: Add cities to state
+ * /api/geo/states/{stateId}/cities:
+ *   get:
+ *     summary: Get all cities for a specific state
+ *     tags: [Geo]
+ *     parameters:
+ *       - in: path
+ *         name: stateId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Cities retrieved successfully
+ */
+export const getCitiesByState = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const cities = await Geo.find({
+        type: 'city',
+        parentId: req.params.stateId
+    }).sort({ name: 1 });
+
+    res.json({ data: cities });
+});
+
+/**
+ * @swagger
+ * /api/geo/{id}:
+ *   put:
+ *     summary: Update geo location
  *     tags: [Geo]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: code
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: stateCode
+ *         name: id
  *         required: true
  *         schema:
  *           type: string
@@ -324,89 +225,122 @@ export const getStates = asyncHandler(async (req: AuthRequest, res: Response) =>
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - cities
  *             properties:
- *               cities:
- *                 type: array
- *                 items:
- *                   type: string
+ *               name:
+ *                 type: string
+ *               code:
+ *                 type: string
+ *               isActive:
+ *                 type: boolean
+ *               isShippingAvailable:
+ *                 type: boolean
  *     responses:
  *       200:
- *         description: Cities added successfully
+ *         description: Geo location updated successfully
  */
-export const addCities = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { cities } = req.body;
+export const updateGeo = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { name, code, isActive, isShippingAvailable } = req.body;
 
-    const country = await Geo.findOne({ countryCode: req.params.code.toUpperCase() });
-    if (!country) {
-        throw new AppError('Country not found', 404);
+    const geo = await Geo.findById(req.params.id);
+    if (!geo) {
+        throw new AppError('Geo location not found', 404);
     }
 
-    const state = country.states?.find((s) => s.code === req.params.stateCode.toUpperCase());
-    if (!state) {
-        throw new AppError('State not found', 404);
+    if (name !== undefined) geo.name = name;
+    if (code !== undefined) geo.code = code.toUpperCase();
+    if (isActive !== undefined) geo.isActive = isActive;
+    if (isShippingAvailable !== undefined && geo.type === 'country') {
+        geo.isShippingAvailable = isShippingAvailable;
     }
 
-    if (!Array.isArray(cities)) {
-        throw new AppError('Cities must be an array', 400);
-    }
-
-    // Add cities
-    if (!state.cities) {
-        state.cities = [];
-    }
-
-    cities.forEach((city: string) => {
-        if (!state.cities?.includes(city)) {
-            state.cities?.push(city);
-        }
-    });
-
-    await country.save();
+    await geo.save();
 
     res.json({
-        message: 'Cities added successfully',
-        state,
+        message: 'Geo location updated successfully',
+        data: geo,
     });
 });
 
 /**
  * @swagger
- * /api/geo/countries/{code}/states/{stateCode}/cities:
- *   get:
- *     summary: Get cities for a state
+ * /api/geo/{id}:
+ *   delete:
+ *     summary: Delete geo location
  *     tags: [Geo]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: code
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: stateCode
+ *         name: id
  *         required: true
  *         schema:
  *           type: string
  *     responses:
  *       200:
- *         description: Cities retrieved successfully
+ *         description: Geo location deleted successfully
  */
-export const getCities = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const country = await Geo.findOne({ countryCode: req.params.code.toUpperCase() });
-    if (!country) {
-        throw new AppError('Country not found', 404);
+export const deleteGeo = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const geo = await Geo.findById(req.params.id);
+    if (!geo) {
+        throw new AppError('Geo location not found', 404);
     }
 
-    const state = country.states?.find((s) => s.code === req.params.stateCode.toUpperCase());
-    if (!state) {
-        throw new AppError('State not found', 404);
+    // Check if there are children
+    const childrenCount = await Geo.countDocuments({ parentId: req.params.id });
+    if (childrenCount > 0) {
+        throw new AppError(`Cannot delete ${geo.type} with ${childrenCount} child locations. Delete children first.`, 400);
     }
 
-    res.json({
-        countryCode: country.countryCode,
-        stateCode: state.code,
-        stateName: state.name,
-        cities: state.cities || [],
+    await geo.deleteOne();
+
+    res.json({ message: 'Geo location deleted successfully' });
+});
+
+/**
+ * @swagger
+ * /api/geo/countries:
+ *   get:
+ *     summary: Get all countries with their states and cities (hierarchical)
+ *     tags: [Geo]
+ *     responses:
+ *       200:
+ *         description: Countries retrieved successfully
+ */
+export const getCountriesHierarchical = asyncHandler(async (req: AuthRequest, res: Response) => {
+    // Get all countries
+    const countries = await Geo.find({ type: 'country' }).sort({ name: 1 });
+
+    // Get all states and cities
+    const states = await Geo.find({ type: 'state' }).sort({ name: 1 });
+    const cities = await Geo.find({ type: 'city' }).sort({ name: 1 });
+
+    // Build hierarchy
+    const result = countries.map(country => {
+        const countryStates = states
+            .filter(state => state.parentId?.toString() === country._id.toString())
+            .map(state => ({
+                _id: state._id,
+                code: state.code,
+                name: state.name,
+                isActive: state.isActive,
+                cities: cities
+                    .filter(city => city.parentId?.toString() === state._id.toString())
+                    .map(city => ({
+                        _id: city._id,
+                        name: city.name,
+                        isActive: city.isActive,
+                    })),
+            }));
+
+        return {
+            _id: country._id,
+            countryCode: country.code,
+            countryName: country.name,
+            isActive: country.isActive,
+            isShippingAvailable: country.isShippingAvailable,
+            states: countryStates,
+        };
     });
+
+    res.json({ countries: result });
 });

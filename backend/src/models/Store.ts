@@ -6,10 +6,36 @@ export interface IStore extends Document {
     domain: string;
     description?: string;
     logo?: string;
+    favicon?: string;
     currency: string;
     timezone: string;
     isActive: boolean;
-    settings: Record<string, any>;
+
+    // SEO Fields
+    seo: {
+        metaTitle?: string;
+        metaDescription?: string;
+        metaKeywords?: string[];
+        ogImage?: string;
+        ogTitle?: string;
+        ogDescription?: string;
+    };
+
+    // Store Configuration
+    settings: {
+        emailNotifications?: boolean;
+        orderNotifications?: boolean;
+        maintenanceMode?: boolean;
+        allowGuestCheckout?: boolean;
+        requireEmailVerification?: boolean;
+        minOrderAmount?: number;
+        maxOrderAmount?: number;
+        taxEnabled?: boolean;
+        taxRate?: number;
+        shippingEnabled?: boolean;
+        [key: string]: any;
+    };
+
     createdAt: Date;
     updatedAt: Date;
 }
@@ -42,6 +68,9 @@ const StoreSchema = new Schema<IStore>(
         logo: {
             type: String,
         },
+        favicon: {
+            type: String,
+        },
         currency: {
             type: String,
             required: true,
@@ -59,9 +88,25 @@ const StoreSchema = new Schema<IStore>(
             required: true,
             default: true,
         },
+        seo: {
+            metaTitle: { type: String, trim: true },
+            metaDescription: { type: String, trim: true },
+            metaKeywords: [{ type: String, trim: true }],
+            ogImage: { type: String },
+            ogTitle: { type: String, trim: true },
+            ogDescription: { type: String, trim: true },
+        },
         settings: {
             type: Schema.Types.Mixed,
-            default: {},
+            default: {
+                emailNotifications: true,
+                orderNotifications: true,
+                maintenanceMode: false,
+                allowGuestCheckout: true,
+                requireEmailVerification: false,
+                taxEnabled: false,
+                shippingEnabled: true,
+            },
         },
     },
     {

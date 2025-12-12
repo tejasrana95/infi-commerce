@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { Category, Store } from '@/types';
-import styles from './product-form.module.scss';
+
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -76,16 +76,16 @@ export default function NewProductPage() {
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <h2>Add New Product</h2>
-        <p>Create a new product in your catalog</p>
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
+      <div style={{ marginBottom: '24px' }}>
+        <h2 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '8px' }}>Add New Product</h2>
+        <p style={{ color: '#6b7280', fontSize: '14px' }}>Create a new product in your catalog</p>
       </div>
 
-      <form onSubmit={handleSubmit} className={styles.form}>
-        <div className={styles.formGrid}>
-          <div className={styles.formGroup}>
-            <label htmlFor="name">Product Name *</label>
+      <form onSubmit={handleSubmit} style={{ backgroundColor: 'white', padding: '24px', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '20px' }}>
+          <div>
+            <label htmlFor="name" style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>Product Name *</label>
             <input
               id="name"
               name="name"
@@ -93,11 +93,12 @@ export default function NewProductPage() {
               value={formData.name}
               onChange={handleChange}
               required
+              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '14px' }}
             />
           </div>
 
-          <div className={styles.formGroup}>
-            <label htmlFor="sku">SKU *</label>
+          <div>
+            <label htmlFor="sku" style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>SKU *</label>
             <input
               id="sku"
               name="sku"
@@ -105,11 +106,12 @@ export default function NewProductPage() {
               value={formData.sku}
               onChange={handleChange}
               required
+              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '14px' }}
             />
           </div>
 
-          <div className={styles.formGroup}>
-            <label htmlFor="price">Price *</label>
+          <div>
+            <label htmlFor="price" style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>Price *</label>
             <input
               id="price"
               name="price"
@@ -118,11 +120,12 @@ export default function NewProductPage() {
               value={formData.price}
               onChange={handleChange}
               required
+              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '14px' }}
             />
           </div>
 
-          <div className={styles.formGroup}>
-            <label htmlFor="salePrice">Sale Price</label>
+          <div>
+            <label htmlFor="salePrice" style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>Sale Price</label>
             <input
               id="salePrice"
               name="salePrice"
@@ -130,11 +133,12 @@ export default function NewProductPage() {
               step="0.01"
               value={formData.salePrice}
               onChange={handleChange}
+              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '14px' }}
             />
           </div>
 
-          <div className={styles.formGroup}>
-            <label htmlFor="cost">Cost</label>
+          <div>
+            <label htmlFor="cost" style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>Cost</label>
             <input
               id="cost"
               name="cost"
@@ -142,11 +146,12 @@ export default function NewProductPage() {
               step="0.01"
               value={formData.cost}
               onChange={handleChange}
+              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '14px' }}
             />
           </div>
 
-          <div className={styles.formGroup}>
-            <label htmlFor="stock">Stock *</label>
+          <div>
+            <label htmlFor="stock" style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>Stock *</label>
             <input
               id="stock"
               name="stock"
@@ -154,16 +159,18 @@ export default function NewProductPage() {
               value={formData.stock}
               onChange={handleChange}
               required
+              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '14px' }}
             />
           </div>
 
-          <div className={styles.formGroup}>
-            <label htmlFor="category">Category</label>
+          <div>
+            <label htmlFor="category" style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>Category</label>
             <select
               id="category"
               name="category"
               value={formData.category}
               onChange={handleChange}
+              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '14px' }}
             >
               <option value="">Select Category</option>
               {categories.map((cat) => (
@@ -174,13 +181,14 @@ export default function NewProductPage() {
             </select>
           </div>
 
-          <div className={styles.formGroup}>
-            <label htmlFor="store">Store</label>
+          <div>
+            <label htmlFor="store" style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>Store</label>
             <select
               id="store"
               name="store"
               value={formData.store}
               onChange={handleChange}
+              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '14px' }}
             >
               <option value="">Select Store</option>
               {stores.map((store) => (
@@ -192,39 +200,44 @@ export default function NewProductPage() {
           </div>
         </div>
 
-        <div className={styles.formGroup}>
-          <label htmlFor="description">Description</label>
+        <div style={{ marginBottom: '20px' }}>
+          <label htmlFor="description" style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>Description</label>
           <textarea
             id="description"
             name="description"
             value={formData.description}
             onChange={handleChange}
             rows={4}
+            style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '14px' }}
           />
         </div>
 
-        <div className={styles.formGroup}>
-          <label className={styles.checkbox}>
+        <div style={{ marginBottom: '24px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
             <input
               type="checkbox"
               name="isActive"
               checked={formData.isActive}
               onChange={handleChange}
             />
-            <span>Active</span>
+            <span style={{ fontSize: '14px', fontWeight: 500 }}>Active</span>
           </label>
         </div>
 
-        <div className={styles.actions}>
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
           <button
             type="button"
             onClick={() => router.back()}
-            className={styles.cancelBtn}
             disabled={loading}
+            style={{ padding: '8px 16px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', fontWeight: 500, cursor: 'pointer', backgroundColor: 'white' }}
           >
             Cancel
           </button>
-          <button type="submit" className={styles.submitBtn} disabled={loading}>
+          <button
+            type="submit"
+            disabled={loading}
+            style={{ padding: '8px 16px', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: 500, cursor: 'pointer', backgroundColor: '#4f46e5', color: 'white' }}
+          >
             {loading ? 'Creating...' : 'Create Product'}
           </button>
         </div>

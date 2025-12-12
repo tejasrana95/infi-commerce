@@ -167,8 +167,8 @@ export const getCurrencyByCode = asyncHandler(async (req: AuthRequest, res: Resp
  */
 export const updateCurrency = asyncHandler(async (req: AuthRequest, res: Response) => {
     const updates = req.body;
-
-    const currency = await Currency.findOne({ code: req.params.code.toUpperCase() });
+    console.log('req.params', req.params);
+    const currency = await Currency.findOne({ _id: req.params.id });
     if (!currency) {
         throw new AppError('Currency not found', 404);
     }
@@ -207,7 +207,7 @@ export const updateCurrency = asyncHandler(async (req: AuthRequest, res: Respons
  *         description: Currency deleted successfully
  */
 export const deleteCurrency = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const currency = await Currency.findOne({ code: req.params.code.toUpperCase() });
+    const currency = await Currency.findOne({ _id: req.params.id });
 
     if (!currency) {
         throw new AppError('Currency not found', 404);
@@ -314,7 +314,7 @@ export const updateExchangeRate = asyncHandler(async (req: AuthRequest, res: Res
         throw new AppError('Valid exchange rate is required', 400);
     }
 
-    const currency = await Currency.findOne({ code: req.params.code.toUpperCase() });
+    const currency = await Currency.findOne({ _id: req.params.id });
     if (!currency) {
         throw new AppError('Currency not found', 404);
     }

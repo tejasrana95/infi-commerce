@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import api from '@/lib/api';
-import styles from '../products/product-form.module.scss';
 
 export default function EditSalePage() {
   const router = useRouter();
@@ -48,47 +47,47 @@ export default function EditSalePage() {
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}><h2>Edit Sale</h2></div>
-      <form onSubmit={handleSubmit} className={styles.form}>
-        <div className={styles.formGrid}>
-          <div className={styles.formGroup}>
+    <div>
+      <div><h2>Edit Sale</h2></div>
+      <form onSubmit={handleSubmit} >
+        <div>
+          <div>
             <label>Name *</label>
             <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
           </div>
-          <div className={styles.formGroup}>
+          <div>
             <label>Discount Type *</label>
             <select value={formData.discountType} onChange={(e) => setFormData({...formData, discountType: e.target.value})} required>
               <option value="percentage">Percentage</option>
               <option value="fixed">Fixed Amount</option>
             </select>
           </div>
-          <div className={styles.formGroup}>
+          <div>
             <label>Discount Value *</label>
             <input type="number" step="0.01" value={formData.discountValue} onChange={(e) => setFormData({...formData, discountValue: e.target.value})} required />
           </div>
-          <div className={styles.formGroup}>
+          <div>
             <label>Start Date *</label>
             <input type="date" value={formData.startDate} onChange={(e) => setFormData({...formData, startDate: e.target.value})} required />
           </div>
-          <div className={styles.formGroup}>
+          <div>
             <label>End Date *</label>
             <input type="date" value={formData.endDate} onChange={(e) => setFormData({...formData, endDate: e.target.value})} required />
           </div>
         </div>
-        <div className={styles.formGroup}>
+        <div>
           <label>Description</label>
           <textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} rows={4} />
         </div>
-        <div className={styles.formGroup}>
-          <label className={styles.checkbox}>
+        <div>
+          <label>
             <input type="checkbox" checked={formData.isActive} onChange={(e) => setFormData({...formData, isActive: e.target.checked})} />
             <span>Active</span>
           </label>
         </div>
-        <div className={styles.actions}>
-          <button type="button" onClick={() => router.back()} className={styles.cancelBtn}>Cancel</button>
-          <button type="submit" className={styles.submitBtn} disabled={loading}>{loading ? 'Updating...' : 'Update Sale'}</button>
+        <div>
+          <button type="button" onClick={() => router.back()} >Cancel</button>
+          <button type="submit"  disabled={loading}>{loading ? 'Updating...' : 'Update Sale'}</button>
         </div>
       </form>
     </div>

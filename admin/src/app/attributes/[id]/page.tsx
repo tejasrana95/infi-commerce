@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import api from '@/lib/api';
-import styles from '../products/product-form.module.scss';
 
 export default function EditAttributePage() {
   const router = useRouter();
@@ -48,17 +47,17 @@ export default function EditAttributePage() {
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
+    <div>
+      <div>
         <h2>Edit Attribute</h2>
       </div>
-      <form onSubmit={handleSubmit} className={styles.form}>
-        <div className={styles.formGrid}>
-          <div className={styles.formGroup}>
+      <form onSubmit={handleSubmit} >
+        <div>
+          <div>
             <label>Name *</label>
             <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
           </div>
-          <div className={styles.formGroup}>
+          <div>
             <label>Type *</label>
             <select value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})} required>
               <option value="text">Text</option>
@@ -68,19 +67,19 @@ export default function EditAttributePage() {
             </select>
           </div>
         </div>
-        <div className={styles.formGroup}>
+        <div>
           <label>Values (comma-separated)</label>
           <input type="text" value={formData.values} onChange={(e) => setFormData({...formData, values: e.target.value})} />
         </div>
-        <div className={styles.formGroup}>
-          <label className={styles.checkbox}>
+        <div>
+          <label>
             <input type="checkbox" checked={formData.isRequired} onChange={(e) => setFormData({...formData, isRequired: e.target.checked})} />
             <span>Required</span>
           </label>
         </div>
-        <div className={styles.actions}>
-          <button type="button" onClick={() => router.back()} className={styles.cancelBtn}>Cancel</button>
-          <button type="submit" className={styles.submitBtn} disabled={loading}>
+        <div>
+          <button type="button" onClick={() => router.back()} >Cancel</button>
+          <button type="submit"  disabled={loading}>
             {loading ? 'Updating...' : 'Update Attribute'}
           </button>
         </div>

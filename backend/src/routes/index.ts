@@ -11,6 +11,11 @@ import geoRoutes from './geo.routes';
 import geoGroupRoutes from './geo-group.routes';
 import cartRoutes from './cart.routes';
 import shippingRoutes from './shipping.routes';
+import couponRoutes from './coupon.routes';
+import orderRoutes from './order.routes';
+import paymentGatewayRoutes from './payment-gateway.routes';
+import webhookRoutes from './webhook.routes';
+import fileRoutes from './file.routes';
 
 const router = Router();
 
@@ -49,7 +54,19 @@ router.use('/cart', cartRoutes);
 // Mount shipping routes
 router.use('/shipping', shippingRoutes);
 
-// TODO: Add more routes
-// router.use('/orders', orderRoutes);
+// Mount coupon routes
+router.use('/coupons', couponRoutes);
+
+// Mount order routes
+router.use('/orders', orderRoutes);
+
+// Mount payment gateway routes
+router.use('/payment-gateways', paymentGatewayRoutes);
+
+// Mount webhook routes
+router.use('/webhooks', webhookRoutes);
+
+// Mount file routes
+router.use('/files', fileRoutes);
 
 export default router;

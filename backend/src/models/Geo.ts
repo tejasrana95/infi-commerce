@@ -1,51 +1,42 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 /**
- * Country/Geo Model - For shipping and geo-restrictions
+ * Flat Geo Model - Each country, state, and city is a separate document
  */
 export interface IGeo extends Document {
-    countryCode: string; // ISO 3166-1 alpha-2 (US, CA, GB, etc.)
-    countryName: string;
-    states?: Array<{
-        code: string;
-        name: string;
-        cities?: string[];
-    }>;
+    name: string;
+    type: 'country' | 'state' | 'city';
+    code?: string; // ISO code for countries/states
+    parentId?: mongoose.Types.ObjectId; // Reference to parent geo (country for state, state for city)
     isActive: boolean;
-    isShippingAvailable: boolean;
+    isShippingAvailable?: boolean; // Only for countries
     createdAt: Date;
     updatedAt: Date;
 }
 
 const GeoSchema = new Schema<IGeo>(
     {
-        countryCode: {
+        name: {
             type: String,
             required: true,
-            unique: true,
+            trim: true,
+        },
+        type: {
+            type: String,
+            enum: ['country', 'state', 'city'],
+            required: true,
+        },
+        code: {
+            type: String,
             uppercase: true,
             trim: true,
-            length: 2,
+            sparse: true, // Allows multiple null values
         },
-        countryName: {
-            type: String,
-            required: true,
-            trim: true,
+        parentId: {
+            type: Schema.Types.ObjectId,
+            ref: 'Geo',
+            default: null,
         },
-        states: [
-            {
-                code: {
-                    type: String,
-                    uppercase: true,
-                    trim: true,
-                },
-                name: {
-                    type: String,
-                    trim: true,
-                },
-                cities: [String],
-            },
-        ],
         isActive: {
             type: Boolean,
             default: true,
@@ -60,9 +51,11 @@ const GeoSchema = new Schema<IGeo>(
     }
 );
 
-GeoSchema.index({ countryCode: 1 });
-GeoSchema.index({ isActive: 1 });
-GeoSchema.index({ isShippingAvailable: 1 });
+// Indexes
+GeoSchema.index({ type: 1, isActive: 1 });
+GeoSchema.index({ parentId: 1 });
+GeoSchema.index({ code: 1, type: 1 }, { unique: true, sparse: true });
+GeoSchema.index({ name: 1, type: 1 });
 
 const Geo = mongoose.model<IGeo>('Geo', GeoSchema);
 

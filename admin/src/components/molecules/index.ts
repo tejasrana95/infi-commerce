@@ -1,6 +1,9 @@
-// Molecules - Combinations of atoms
-export { default as PageHeader } from './PageHeader';
 export { default as DataTable } from './DataTable';
-export { default as FormField } from './FormField';
 export { default as EmptyState } from './EmptyState';
+export { default as FormField } from './FormField';
+export { default as PageHeader } from './PageHeader';
 export { default as StatCard } from './StatCard';
+export { default as FormContainer } from './FormContainer';
+export { default as MetricCard } from './MetricCard';
+export { default as ChartCard } from './ChartCard';
+export { default as SearchFilterBar } from './SearchFilterBar';

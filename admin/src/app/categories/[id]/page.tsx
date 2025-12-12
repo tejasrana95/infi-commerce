@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import api from '@/lib/api';
 import { Category } from '@/types';
-import styles from '../products/product-form.module.scss';
 
 export default function EditCategoryPage() {
   const router = useRouter();
@@ -79,19 +78,19 @@ export default function EditCategoryPage() {
   };
 
   if (fetchLoading) {
-    return <div className={styles.container}>Loading...</div>;
+    return <div>Loading...</div>;
   }
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
+    <div>
+      <div>
         <h2>Edit Category</h2>
         <p>Update category information</p>
       </div>
 
-      <form onSubmit={handleSubmit} className={styles.form}>
-        <div className={styles.formGrid}>
-          <div className={styles.formGroup}>
+      <form onSubmit={handleSubmit} >
+        <div>
+          <div>
             <label htmlFor="name">Category Name *</label>
             <input
               id="name"
@@ -103,7 +102,7 @@ export default function EditCategoryPage() {
             />
           </div>
 
-          <div className={styles.formGroup}>
+          <div>
             <label htmlFor="slug">Slug *</label>
             <input
               id="slug"
@@ -115,7 +114,7 @@ export default function EditCategoryPage() {
             />
           </div>
 
-          <div className={styles.formGroup}>
+          <div>
             <label htmlFor="parentCategory">Parent Category</label>
             <select
               id="parentCategory"
@@ -133,7 +132,7 @@ export default function EditCategoryPage() {
           </div>
         </div>
 
-        <div className={styles.formGroup}>
+        <div>
           <label htmlFor="description">Description</label>
           <textarea
             id="description"
@@ -144,8 +143,8 @@ export default function EditCategoryPage() {
           />
         </div>
 
-        <div className={styles.formGroup}>
-          <label className={styles.checkbox}>
+        <div>
+          <label>
             <input
               type="checkbox"
               name="isActive"
@@ -156,16 +155,16 @@ export default function EditCategoryPage() {
           </label>
         </div>
 
-        <div className={styles.actions}>
+        <div>
           <button
             type="button"
             onClick={() => router.back()}
-            className={styles.cancelBtn}
+            
             disabled={loading}
           >
             Cancel
           </button>
-          <button type="submit" className={styles.submitBtn} disabled={loading}>
+          <button type="submit"  disabled={loading}>
             {loading ? 'Updating...' : 'Update Category'}
           </button>
         </div>

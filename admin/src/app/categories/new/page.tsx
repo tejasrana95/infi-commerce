@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { Category } from '@/types';
-import styles from '../../products/product-form.module.scss';
 
 export default function NewCategoryPage() {
   const router = useRouter();
@@ -65,15 +64,15 @@ export default function NewCategoryPage() {
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
+    <div>
+      <div>
         <h2>Add New Category</h2>
         <p>Create a new product category</p>
       </div>
 
-      <form onSubmit={handleSubmit} className={styles.form}>
-        <div className={styles.formGrid}>
-          <div className={styles.formGroup}>
+      <form onSubmit={handleSubmit} >
+        <div>
+          <div>
             <label htmlFor="name">Category Name *</label>
             <input
               id="name"
@@ -86,7 +85,7 @@ export default function NewCategoryPage() {
             />
           </div>
 
-          <div className={styles.formGroup}>
+          <div>
             <label htmlFor="slug">Slug *</label>
             <input
               id="slug"
@@ -98,7 +97,7 @@ export default function NewCategoryPage() {
             />
           </div>
 
-          <div className={styles.formGroup}>
+          <div>
             <label htmlFor="parentCategory">Parent Category</label>
             <select
               id="parentCategory"
@@ -116,7 +115,7 @@ export default function NewCategoryPage() {
           </div>
         </div>
 
-        <div className={styles.formGroup}>
+        <div>
           <label htmlFor="description">Description</label>
           <textarea
             id="description"
@@ -127,8 +126,8 @@ export default function NewCategoryPage() {
           />
         </div>
 
-        <div className={styles.formGroup}>
-          <label className={styles.checkbox}>
+        <div>
+          <label>
             <input
               type="checkbox"
               name="isActive"
@@ -139,16 +138,16 @@ export default function NewCategoryPage() {
           </label>
         </div>
 
-        <div className={styles.actions}>
+        <div>
           <button
             type="button"
             onClick={() => router.back()}
-            className={styles.cancelBtn}
+            
             disabled={loading}
           >
             Cancel
           </button>
-          <button type="submit" className={styles.submitBtn} disabled={loading}>
+          <button type="submit"  disabled={loading}>
             {loading ? 'Creating...' : 'Create Category'}
           </button>
         </div>

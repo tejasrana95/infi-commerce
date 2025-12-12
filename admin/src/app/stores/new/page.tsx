@@ -2,66 +2,71 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Box, Button, Paper, Typography } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import api from '@/lib/api';
-import styles from '../products/product-form.module.scss';
+import StoreForm from '@/components/organisms/StoreForm';
+import { useNotification } from '@/contexts/NotificationContext';
 
 export default function NewStorePage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    domain: '',
-    currency: 'USD',
-    isActive: true,
-  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { showNotification } = useNotification();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const handleSubmit = async (data: any) => {
+    setIsSubmitting(true);
     try {
-      await api.post('/stores', formData);
+      await api.post('/stores', data);
+      showNotification('Store created successfully', 'success');
       router.push('/stores');
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to create store');
+      showNotification(err.response?.data?.message || 'Failed to create store', 'error');
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}><h2>Add New Store</h2></div>
-      <form onSubmit={handleSubmit} className={styles.form}>
-        <div className={styles.formGrid}>
-          <div className={styles.formGroup}>
-            <label>Name *</label>
-            <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Domain *</label>
-            <input type="text" value={formData.domain} onChange={(e) => setFormData({...formData, domain: e.target.value})} required />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Currency *</label>
-            <input type="text" value={formData.currency} onChange={(e) => setFormData({...formData, currency: e.target.value})} required />
-          </div>
-        </div>
-        <div className={styles.formGroup}>
-          <label>Description</label>
-          <textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} rows={4} />
-        </div>
-        <div className={styles.formGroup}>
-          <label className={styles.checkbox}>
-            <input type="checkbox" checked={formData.isActive} onChange={(e) => setFormData({...formData, isActive: e.target.checked})} />
-            <span>Active</span>
-          </label>
-        </div>
-        <div className={styles.actions}>
-          <button type="button" onClick={() => router.back()} className={styles.cancelBtn}>Cancel</button>
-          <button type="submit" className={styles.submitBtn} disabled={loading}>{loading ? 'Creating...' : 'Create Store'}</button>
-        </div>
-      </form>
-    </div>
+    <Box>
+      <Box display="flex" alignItems="center" gap={2} mb={3}>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => router.back()}
+          variant="outlined"
+        >
+          Back
+        </Button>
+        <Box>
+          <Typography variant="h4" fontWeight={600}>
+            Add New Store
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Create a new store for your platform
+          </Typography>
+        </Box>
+      </Box>
+
+      <Paper sx={{ p: 3 }}>
+        <StoreForm onSubmit={handleSubmit} isSubmitting={isSubmitting} />
+
+        <Box display="flex" gap={2} justifyContent="flex-end" mt={3}>
+          <Button
+            variant="outlined"
+            onClick={() => router.back()}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            form="store-form"
+            variant="contained"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Creating...' : 'Create Store'}
+          </Button>
+        </Box>
+      </Paper>
+    </Box>
   );
 }

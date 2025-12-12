@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { User } from '@/types';
@@ -10,6 +10,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,39 +24,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Check if user is logged in
     const token = localStorage.getItem('accesstoken');
     const savedUser = localStorage.getItem('adminUser');
-    
+
     if (token && savedUser) {
-      setUser(JSON.parse(savedUser));
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch (error) {
+        console.error('Failed to parse saved user:', error);
+        localStorage.removeItem('adminUser');
+      }
     }
     setLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     try {
       const response = await api.post('/auth/admin/login', { email, password });
       const { accessToken, user, refreshToken } = response.data;
-      
+
       localStorage.setItem('accesstoken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
       localStorage.setItem('adminUser', JSON.stringify(user));
       setUser(user);
-      
+
       router.push('/dashboard');
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Login failed');
     }
-  };
+  }, [router]);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('accesstoken');
     localStorage.removeItem('adminUser');
     localStorage.removeItem('refreshToken');
     setUser(null);
     router.push('/login');
-  };
+  }, [router]);
+
+  const value = useMemo(() => ({
+    user,
+    loading,
+    login,
+    logout,
+    isAuthenticated: !!user,
+  }), [user, loading, login, logout]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

@@ -31,21 +31,21 @@ router.post(
 );
 
 router.put(
-    '/:code',
+    '/:id',
     authenticate,
     authorize('admin', 'super_admin'),
     updateCurrency
 );
 
 router.delete(
-    '/:code',
+    '/:id',
     authenticate,
     authorize('admin', 'super_admin'),
     deleteCurrency
 );
 
 router.put(
-    '/:code/rate',
+    '/:id/rate',
     authenticate,
     authorize('admin', 'super_admin'),
     updateExchangeRate

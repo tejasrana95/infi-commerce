@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
 import swaggerUi from 'swagger-ui-express';
+import path from 'path';
 import { config } from './config';
 import { connectDatabase } from './config/database';
 import { swaggerSpec } from './config/swagger';
@@ -12,7 +13,9 @@ import apiRoutes from './routes';
 const app: Express = express();
 
 // Middleware
-app.use(helmet()); // Security headers
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow cross-origin resource loading
+})); // Security headers
 app.use(compression()); // Compress responses
 app.use(morgan(config.env === 'development' ? 'dev' : 'combined')); // Logging
 
@@ -27,6 +30,10 @@ app.use(
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Serve uploaded files statically
+const uploadsDir = process.env.UPLOAD_DIR || path.join(__dirname, '..', '..', 'uploads');
+app.use('/uploads', express.static(uploadsDir));
 
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {

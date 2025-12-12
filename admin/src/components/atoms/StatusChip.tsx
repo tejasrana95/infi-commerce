@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Chip } from '@mui/material';
 
 interface StatusChipProps {
@@ -6,17 +7,29 @@ interface StatusChipProps {
   inactiveLabel?: string;
 }
 
-export default function StatusChip({ 
-  active, 
-  activeLabel = 'Active', 
-  inactiveLabel = 'Inactive' 
-}: StatusChipProps) {
+const StatusChip = memo(({
+  active,
+  activeLabel = 'Active',
+  inactiveLabel = 'Inactive'
+}: StatusChipProps) => {
   return (
     <Chip
       label={active ? activeLabel : inactiveLabel}
       color={active ? 'success' : 'default'}
       size="small"
-      sx={{ fontWeight: 600 }}
+      sx={{
+        height: 22,
+        fontSize: '0.75rem',
+        fontWeight: 600,
+        '& .MuiChip-label': {
+          px: 1,
+          py: 0,
+        },
+      }}
     />
   );
-}
+});
+
+StatusChip.displayName = 'StatusChip';
+
+export default StatusChip;

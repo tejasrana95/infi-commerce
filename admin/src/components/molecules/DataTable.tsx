@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react';
 import {
   Table,
   TableBody,
@@ -6,7 +7,7 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Button,
+  IconButton,
   Box,
   useTheme,
   useMediaQuery,
@@ -14,6 +15,7 @@ import {
   CardContent,
   Typography,
   Stack,
+  Tooltip,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -24,6 +26,7 @@ export interface Column {
   label: string;
   render?: (row: unknown) => React.ReactNode;
   align?: 'left' | 'right' | 'center';
+  width?: string | number;
 }
 
 interface DataTableProps {
@@ -33,21 +36,23 @@ interface DataTableProps {
   onDelete?: (id: string) => void;
   editPath?: string;
   idField?: string;
+  dense?: boolean;
 }
 
-export default function DataTable({ 
-  columns, 
-  data = [], 
-  onEdit, 
+const DataTable = memo(({
+  columns,
+  data = [],
+  onEdit,
   onDelete,
   editPath,
-  idField = '_id'
-}: DataTableProps) {
+  idField = '_id',
+  dense = true
+}: DataTableProps) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // Ensure data is always an array
-  const safeData = Array.isArray(data) ? data : [];
+  const safeData = useMemo(() => Array.isArray(data) ? data : [], [data]);
 
   const handleEdit = (row: any) => {
     if (onEdit) {
@@ -64,55 +69,49 @@ export default function DataTable({
   // Mobile card view
   if (isMobile) {
     return (
-      <Stack spacing={2}>
+      <Stack spacing={1.5}>
         {safeData.map((row, index) => (
-          <Card key={row[idField] || index}>
-            <CardContent>
+          <Card key={row[idField] || index} variant="outlined">
+            <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
               {columns.map((column) => (
-                <Box key={column.id} mb={1}>
-                  <Typography variant="caption" color="text.secondary" display="block">
+                <Box key={column.id} mb={0.75}>
+                  <Typography variant="caption" color="text.secondary" display="block" fontSize="0.688rem">
                     {column.label}
                   </Typography>
-                  <Typography variant="body2">
+                  <Typography variant="body2" fontSize="0.875rem">
                     {column.render ? column.render(row) : row[column.id]}
                   </Typography>
                 </Box>
               ))}
-              <Box display="flex" gap={1} mt={2}>
+              <Box display="flex" gap={0.5} mt={1}>
                 {(onEdit || editPath) && (
                   editPath ? (
-                    <Button
+                    <IconButton
                       component={Link}
                       href={`${editPath}/${row[idField]}`}
                       size="small"
-                      variant="outlined"
                       color="primary"
-                      startIcon={<EditIcon />}
                     >
-                      Edit
-                    </Button>
+                      <EditIcon fontSize="small" />
+                    </IconButton>
                   ) : (
-                    <Button
+                    <IconButton
                       size="small"
-                      variant="outlined"
                       color="primary"
-                      startIcon={<EditIcon />}
                       onClick={() => handleEdit(row)}
                     >
-                      Edit
-                    </Button>
+                      <EditIcon fontSize="small" />
+                    </IconButton>
                   )
                 )}
                 {onDelete && (
-                  <Button
+                  <IconButton
                     size="small"
-                    variant="outlined"
                     color="error"
-                    startIcon={<DeleteIcon />}
                     onClick={() => handleDelete(row)}
                   >
-                    Delete
-                  </Button>
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
                 )}
               </Box>
             </CardContent>
@@ -122,67 +121,111 @@ export default function DataTable({
     );
   }
 
-  // Desktop table view
+  // Desktop table view - compact and dense
   return (
-    <TableContainer component={Paper}>
-      <Table>
+    <TableContainer
+      component={Paper}
+      variant="outlined"
+      sx={{
+        borderRadius: 2,
+        '& .MuiTable-root': {
+          minWidth: 650,
+        }
+      }}
+    >
+      <Table size={dense ? 'small' : 'medium'}>
         <TableHead>
           <TableRow>
             {columns.map((column) => (
-              <TableCell key={column.id} align={column.align || 'left'}>
+              <TableCell
+                key={column.id}
+                align={column.align || 'left'}
+                width={column.width}
+                sx={{
+                  fontWeight: 700,
+                  fontSize: '0.813rem',
+                  py: 1.5,
+                }}
+              >
                 {column.label}
               </TableCell>
             ))}
             {(onEdit || onDelete || editPath) && (
-              <TableCell align="right">Actions</TableCell>
+              <TableCell
+                align="right"
+                width={100}
+                sx={{
+                  fontWeight: 700,
+                  fontSize: '0.813rem',
+                  py: 1.5,
+                }}
+              >
+                Actions
+              </TableCell>
             )}
           </TableRow>
         </TableHead>
         <TableBody>
           {safeData.map((row, index) => (
-            <TableRow key={row[idField] || index} hover>
+            <TableRow
+              key={row[idField] || index}
+              hover
+              sx={{
+                '&:last-child td': { borderBottom: 0 },
+              }}
+            >
               {columns.map((column) => (
-                <TableCell key={column.id} align={column.align || 'left'}>
+                <TableCell
+                  key={column.id}
+                  align={column.align || 'left'}
+                  sx={{
+                    fontSize: '0.875rem',
+                    py: 1.25,
+                  }}
+                >
                   {column.render ? column.render(row) : row[column.id]}
                 </TableCell>
               ))}
               {(onEdit || onDelete || editPath) && (
-                <TableCell align="right">
-                  <Box display="flex" gap={1} justifyContent="flex-end">
+                <TableCell
+                  align="right"
+                  sx={{ py: 1 }}
+                >
+                  <Box display="flex" gap={0.5} justifyContent="flex-end">
                     {(onEdit || editPath) && (
                       editPath ? (
-                        <Button
-                          component={Link}
-                          href={`${editPath}/${row[idField]}`}
-                          size="small"
-                          variant="outlined"
-                          color="primary"
-                          startIcon={<EditIcon />}
-                        >
-                          Edit
-                        </Button>
+                        <Tooltip title="Edit">
+                          <IconButton
+                            component={Link}
+                            href={`${editPath}/${row[idField]}`}
+                            size="small"
+                            color="primary"
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
                       ) : (
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          color="primary"
-                          startIcon={<EditIcon />}
-                          onClick={() => handleEdit(row)}
-                        >
-                          Edit
-                        </Button>
+                        <Tooltip title="Edit">
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => handleEdit(row)}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
                       )
                     )}
                     {onDelete && (
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        color="error"
-                        startIcon={<DeleteIcon />}
-                        onClick={() => handleDelete(row)}
-                      >
-                        Delete
-                      </Button>
+                      <Tooltip title="Delete">
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleDelete(row)}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     )}
                   </Box>
                 </TableCell>
@@ -193,4 +236,8 @@ export default function DataTable({
       </Table>
     </TableContainer>
   );
-}
+});
+
+DataTable.displayName = 'DataTable';
+
+export default DataTable;

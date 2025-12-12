@@ -2,7 +2,8 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IOrder extends Document {
     storeId: mongoose.Types.ObjectId;
-    userId: mongoose.Types.ObjectId;
+    userId?: mongoose.Types.ObjectId; // Optional for guest checkout
+    guestEmail?: string; // Email for guest orders
     orderNumber: string;
 
     // Items
@@ -30,6 +31,7 @@ export interface IOrder extends Document {
     shippingAddress: {
         firstName: string;
         lastName: string;
+        email?: string; // Guest email can also be here
         address1: string;
         address2?: string;
         city: string;
@@ -43,6 +45,7 @@ export interface IOrder extends Document {
     billingAddress: {
         firstName: string;
         lastName: string;
+        email?: string;
         address1: string;
         address2?: string;
         city: string;
@@ -84,7 +87,13 @@ const OrderSchema = new Schema<IOrder>(
         userId: {
             type: Schema.Types.ObjectId,
             ref: 'User',
-            required: true,
+            required: false, // Optional for guest checkout
+        },
+        guestEmail: {
+            type: String,
+            required: false,
+            lowercase: true,
+            trim: true,
         },
         orderNumber: {
             type: String,
