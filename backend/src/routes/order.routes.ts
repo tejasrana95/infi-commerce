@@ -10,8 +10,12 @@ import {
     handlePaymentSuccess,
     handlePaymentFailed,
     trackOrder,
+    adminCreateOrder,
+    adminUpdateOrder,
     createOrderValidation,
     updateOrderStatusValidation,
+    adminCreateOrderValidation,
+    adminUpdateOrderValidation,
 } from '../controllers/order.controller';
 import { authenticate, authorize, optionalAuth } from '../middleware/auth';
 import { validate } from '../middleware/validation';
@@ -86,6 +90,119 @@ const router = Router();
  *         description: Unauthorized
  */
 router.post('/create', optionalAuth, validate(createOrderValidation), createOrder);
+
+/**
+ * @swagger
+ * /api/orders/admin/create:
+ *   post:
+ *     summary: Create order directly (Admin only)
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - storeId
+ *               - items
+ *               - shippingAddress
+ *             properties:
+ *               storeId:
+ *                 type: string
+ *               guestEmail:
+ *                 type: string
+ *               items:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     productId:
+ *                       type: string
+ *                     variantId:
+ *                       type: string
+ *                     quantity:
+ *                       type: integer
+ *               shippingAddress:
+ *                 type: object
+ *               billingAddress:
+ *                 type: object
+ *               paymentMethod:
+ *                 type: string
+ *               paymentStatus:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Order created successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ */
+router.post(
+    '/admin/create',
+    authenticate,
+    authorize('admin', 'store_admin', 'super_admin'),
+    validate(adminCreateOrderValidation),
+    adminCreateOrder
+);
+
+/**
+ * @swagger
+ * /api/orders/admin/{id}:
+ *   put:
+ *     summary: Update order (Admin only)
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               items:
+ *                 type: array
+ *               shippingAddress:
+ *                 type: object
+ *               billingAddress:
+ *                 type: object
+ *               paymentMethod:
+ *                 type: string
+ *               paymentStatus:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *               shippingCost:
+ *                 type: number
+ *               tax:
+ *                 type: number
+ *               discount:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Order updated successfully
+ *       404:
+ *         description: Order not found
+ */
+router.put(
+    '/admin/:id',
+    authenticate,
+    authorize('admin', 'store_admin', 'super_admin'),
+    validate(adminUpdateOrderValidation),
+    adminUpdateOrder
+);
+
 
 /**
  * @swagger
@@ -211,7 +328,7 @@ router.get('/user/me', authenticate, getUserOrders);
  *       403:
  *         description: Forbidden
  */
-router.get('/', authenticate, authorize('admin', 'store_admin'), getAllOrders);
+router.get('/', authenticate, authorize('admin', 'store_admin', 'super_admin'), getAllOrders);
 
 /**
  * @swagger
@@ -302,7 +419,7 @@ router.get('/:id', authenticate, getOrderById);
 router.put(
     '/:id/status',
     authenticate,
-    authorize('admin', 'store_admin'),
+    authorize('admin', 'store_admin', 'super_admin'),
     validate(updateOrderStatusValidation),
     updateOrderStatus
 );

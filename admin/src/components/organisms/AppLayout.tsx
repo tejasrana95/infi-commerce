@@ -40,11 +40,16 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import FolderIcon from '@mui/icons-material/Folder';
+import LabelImportantIcon from '@mui/icons-material/LabelImportant';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { getInitials, getRole, nameBuilder } from '@/utils/nameBuilder';
-
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import DiscountIcon from '@mui/icons-material/Discount';
+import PaymentIcon from '@mui/icons-material/Payment';
+import PeopleIcon from '@mui/icons-material/People';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 const drawerWidth = 260;
 
 interface NavItem {
@@ -57,13 +62,16 @@ interface NavItem {
 
 const navigationItems: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: <DashboardIcon /> },
+  { name: 'Orders', href: '/orders', icon: <ShoppingCartIcon /> },
+  { name: 'Customers', href: '/customers', icon: <PeopleIcon /> },
   {
     name: 'Catalog',
     icon: <InventoryIcon />,
     children: [
-      { name: 'Products', href: '/products', icon: <InventoryIcon />, badge: 125 },
+      { name: 'Products', href: '/products', icon: <InventoryIcon /> },
       { name: 'Categories', href: '/categories', icon: <CategoryIcon /> },
       { name: 'Attributes', href: '/attributes', icon: <StyleIcon /> },
+      { name: 'Brands', href: '/brands', icon: <LabelImportantIcon /> },
     ],
   },
   {
@@ -71,6 +79,7 @@ const navigationItems: NavItem[] = [
     icon: <LocalOfferIcon />,
     children: [
       { name: 'Sales', href: '/sales', icon: <LocalOfferIcon /> },
+      { name: 'Coupons', href: '/coupons', icon: <DiscountIcon /> },
       { name: 'Stores', href: '/stores', icon: <StoreIcon /> },
     ],
   },
@@ -78,10 +87,12 @@ const navigationItems: NavItem[] = [
     name: 'Settings',
     icon: <SettingsOutlinedIcon />,
     children: [
+      { name: 'Admin Users', href: '/admins', icon: <AdminPanelSettingsIcon /> },
       { name: 'Currencies', href: '/currencies', icon: <CurrencyExchangeIcon /> },
       { name: 'Geo', href: '/geo', icon: <PublicIcon /> },
       { name: 'Geo Groups', href: '/geo-groups', icon: <GroupWorkIcon /> },
       { name: 'Shipping', href: '/shipping', icon: <LocalShippingIcon /> },
+      { name: 'Payment Gateways', href: '/payment-gateways', icon: <PaymentIcon /> },
       { name: 'Files', href: '/files', icon: <FolderIcon /> },
     ],
   },
@@ -103,8 +114,10 @@ const NavItemComponent = memo(({
   onNavigate: () => void;
 }) => {
   const hasChildren = item.children && item.children.length > 0;
-  const isActive = item.href === pathname;
-  const isParentActive = item.children?.some(child => child.href === pathname);
+  const isActive = item.href ? (pathname === item.href || pathname.startsWith(`${item.href}/`)) : false;
+  const isParentActive = item.children?.some(child =>
+    child.href && (pathname === child.href || pathname.startsWith(`${child.href}/`))
+  );
 
   // Keep menu open if any child is active
   const [open, setOpen] = useState(isParentActive || false);

@@ -1,157 +1,83 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Box, Button, Paper, Typography } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import api from '@/lib/api';
-import { Category } from '@/types';
+import CategoryForm from '@/components/organisms/CategoryForm';
+import { useNotification } from '@/contexts/NotificationContext';
 
 export default function NewCategoryPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [formData, setFormData] = useState({
-    name: '',
-    slug: '',
-    description: '',
-    parentCategory: '',
-    isActive: true,
-  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { showNotification } = useNotification();
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  const fetchCategories = async () => {
+  const handleSubmit = async (data: any) => {
+    setIsSubmitting(true);
     try {
-      const response = await api.get('/categories');
-      setCategories(response.data.data || response.data);
-    } catch (err) {
-      console.error('Failed to fetch categories');
-    }
-  };
+      // Clean up empty optional fields
+      const cleanedData = {
+        ...data,
+        parentCategory: data.parentCategory || undefined,
+        image: data.image || undefined,
+        seo: {
+          ...data.seo,
+          ogImage: data.seo?.ogImage || undefined,
+        },
+      };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      await api.post('/categories', {
-        ...formData,
-        parentCategory: formData.parentCategory || undefined,
-      });
+      await api.post('/categories', cleanedData);
+      showNotification('Category created successfully', 'success');
       router.push('/categories');
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to create category');
+      showNotification(err.response?.data?.message || 'Failed to create category', 'error');
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    setFormData({
-      ...formData,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
-    });
-  };
-
-  const generateSlug = () => {
-    const slug = formData.name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
-    setFormData({ ...formData, slug });
   };
 
   return (
-    <div>
-      <div>
-        <h2>Add New Category</h2>
-        <p>Create a new product category</p>
-      </div>
+    <Box>
+      <Box display="flex" alignItems="center" gap={2} mb={3}>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => router.back()}
+          variant="outlined"
+        >
+          Back
+        </Button>
+        <Box>
+          <Typography variant="h4" fontWeight={600}>
+            Add New Category
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Create a new product category
+          </Typography>
+        </Box>
+      </Box>
 
-      <form onSubmit={handleSubmit} >
-        <div>
-          <div>
-            <label htmlFor="name">Category Name *</label>
-            <input
-              id="name"
-              name="name"
-              type="text"
-              value={formData.name}
-              onChange={handleChange}
-              onBlur={generateSlug}
-              required
-            />
-          </div>
+      <Paper sx={{ p: 3 }}>
+        <CategoryForm onSubmit={handleSubmit} isSubmitting={isSubmitting} />
 
-          <div>
-            <label htmlFor="slug">Slug *</label>
-            <input
-              id="slug"
-              name="slug"
-              type="text"
-              value={formData.slug}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div>
-            <label htmlFor="parentCategory">Parent Category</label>
-            <select
-              id="parentCategory"
-              name="parentCategory"
-              value={formData.parentCategory}
-              onChange={handleChange}
-            >
-              <option value="">None (Top Level)</option>
-              {categories.map((cat) => (
-                <option key={cat._id} value={cat._id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label htmlFor="description">Description</label>
-          <textarea
-            id="description"
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            rows={4}
-          />
-        </div>
-
-        <div>
-          <label>
-            <input
-              type="checkbox"
-              name="isActive"
-              checked={formData.isActive}
-              onChange={handleChange}
-            />
-            <span>Active</span>
-          </label>
-        </div>
-
-        <div>
-          <button
-            type="button"
+        <Box display="flex" gap={2} justifyContent="flex-end" mt={3}>
+          <Button
+            variant="outlined"
             onClick={() => router.back()}
-            
-            disabled={loading}
+            disabled={isSubmitting}
           >
             Cancel
-          </button>
-          <button type="submit"  disabled={loading}>
-            {loading ? 'Creating...' : 'Create Category'}
-          </button>
-        </div>
-      </form>
-    </div>
+          </Button>
+          <Button
+            type="submit"
+            form="category-form"
+            variant="contained"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Creating...' : 'Create Category'}
+          </Button>
+        </Box>
+      </Paper>
+    </Box>
   );
 }

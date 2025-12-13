@@ -1,7 +1,9 @@
 import { Response } from 'express';
-import { body } from 'express-validator';
+import { body, param } from 'express-validator';
 import ShippingRule from '../models/ShippingRule';
+import GeoGroup from '../models/GeoGroup';
 import Cart from '../models/Cart';
+import Product from '../models/Product';
 import Store from '../models/Store';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
@@ -13,6 +15,10 @@ export const createShippingRuleValidation = [
     body('rateType').isIn(['flat', 'per_kg', 'free', 'percentage']).withMessage('Invalid rate type'),
     body('rate').isFloat({ min: 0 }).withMessage('Rate must be a positive number'),
     body('currency').isLength({ min: 3, max: 3 }).withMessage('Currency must be 3 characters'),
+];
+
+export const updateShippingRuleValidation = [
+    param('id').isMongoId().withMessage('Valid shipping rule ID is required'),
 ];
 
 export const calculateShippingValidation = [
@@ -28,45 +34,6 @@ export const calculateShippingValidation = [
  *     tags: [Shipping]
  *     security:
  *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - name
- *               - storeId
- *               - rateType
- *               - rate
- *               - currency
- *             properties:
- *               name:
- *                 type: string
- *                 example: Standard Shipping
- *               storeId:
- *                 type: string
- *               rateType:
- *                 type: string
- *                 enum: [flat, per_kg, free, percentage]
- *               rate:
- *                 type: number
- *                 example: 10
- *               currency:
- *                 type: string
- *                 example: USD
- *               conditions:
- *                 type: object
- *                 properties:
- *                   countries:
- *                     type: array
- *                     items:
- *                       type: string
- *                   minOrderValue:
- *                     type: number
- *     responses:
- *       201:
- *         description: Shipping rule created successfully
  */
 export const createShippingRule = asyncHandler(async (req: AuthRequest, res: Response) => {
     const ruleData = req.body;
@@ -77,11 +44,20 @@ export const createShippingRule = asyncHandler(async (req: AuthRequest, res: Res
         throw new AppError('Store not found', 404);
     }
 
+    // Verify geoGroup if provided
+    if (ruleData.geoGroupId) {
+        const geoGroup = await GeoGroup.findById(ruleData.geoGroupId);
+        if (!geoGroup) {
+            throw new AppError('GeoGroup not found', 404);
+        }
+    }
+
     const shippingRule = await ShippingRule.create(ruleData);
 
     res.status(201).json({
+        success: true,
         message: 'Shipping rule created successfully',
-        shippingRule,
+        data: shippingRule,
     });
 });
 
@@ -91,20 +67,6 @@ export const createShippingRule = asyncHandler(async (req: AuthRequest, res: Res
  *   get:
  *     summary: Get all shipping rules
  *     tags: [Shipping]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: storeId
- *         schema:
- *           type: string
- *       - in: query
- *         name: isActive
- *         schema:
- *           type: boolean
- *     responses:
- *       200:
- *         description: Shipping rules retrieved successfully
  */
 export const getShippingRules = asyncHandler(async (req: AuthRequest, res: Response) => {
     const filter: any = {};
@@ -117,11 +79,20 @@ export const getShippingRules = asyncHandler(async (req: AuthRequest, res: Respo
         filter.isActive = req.query.isActive === 'true';
     }
 
+    if (req.query.search) {
+        filter.name = { $regex: req.query.search, $options: 'i' };
+    }
+
     const shippingRules = await ShippingRule.find(filter)
         .populate('storeId', 'name slug')
+        .populate('geoGroupId', 'name countries')
+        .populate('categoryIds', 'title')
         .sort({ priority: -1, createdAt: -1 });
 
-    res.json({ shippingRules });
+    res.json({
+        success: true,
+        data: shippingRules
+    });
 });
 
 /**
@@ -130,26 +101,21 @@ export const getShippingRules = asyncHandler(async (req: AuthRequest, res: Respo
  *   get:
  *     summary: Get shipping rule by ID
  *     tags: [Shipping]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Shipping rule retrieved successfully
  */
 export const getShippingRuleById = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const shippingRule = await ShippingRule.findById(req.params.id).populate('storeId', 'name slug');
+    const shippingRule = await ShippingRule.findById(req.params.id)
+        .populate('storeId', 'name slug')
+        .populate('geoGroupId', 'name countries')
+        .populate('categoryIds', 'title');
 
     if (!shippingRule) {
         throw new AppError('Shipping rule not found', 404);
     }
 
-    res.json({ shippingRule });
+    res.json({
+        success: true,
+        data: shippingRule
+    });
 });
 
 /**
@@ -158,37 +124,24 @@ export const getShippingRuleById = asyncHandler(async (req: AuthRequest, res: Re
  *   put:
  *     summary: Update shipping rule
  *     tags: [Shipping]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *     responses:
- *       200:
- *         description: Shipping rule updated successfully
  */
 export const updateShippingRule = asyncHandler(async (req: AuthRequest, res: Response) => {
     const shippingRule = await ShippingRule.findByIdAndUpdate(req.params.id, req.body, {
         new: true,
         runValidators: true,
-    });
+    })
+        .populate('storeId', 'name slug')
+        .populate('geoGroupId', 'name countries')
+        .populate('categoryIds', 'title');
 
     if (!shippingRule) {
         throw new AppError('Shipping rule not found', 404);
     }
 
     res.json({
+        success: true,
         message: 'Shipping rule updated successfully',
-        shippingRule,
+        data: shippingRule,
     });
 });
 
@@ -198,17 +151,6 @@ export const updateShippingRule = asyncHandler(async (req: AuthRequest, res: Res
  *   delete:
  *     summary: Delete shipping rule
  *     tags: [Shipping]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Shipping rule deleted successfully
  */
 export const deleteShippingRule = asyncHandler(async (req: AuthRequest, res: Response) => {
     const shippingRule = await ShippingRule.findByIdAndDelete(req.params.id);
@@ -218,9 +160,53 @@ export const deleteShippingRule = asyncHandler(async (req: AuthRequest, res: Res
     }
 
     res.json({
+        success: true,
         message: 'Shipping rule deleted successfully',
     });
 });
+
+/**
+ * Calculate total weight and value from cart items
+ * Properly handles variant weights and prices
+ */
+const calculateCartTotals = async (cartItems: any[]) => {
+    let totalWeight = 0;
+    let totalValue = 0;
+    const itemCategories: string[] = [];
+
+    for (const item of cartItems) {
+        const product = await Product.findById(item.productId);
+        if (!product) continue;
+
+        let itemWeight = product.weight || 0;
+        let itemPrice = product.salePrice || product.price;
+
+        // If it's a variable product with variant, get variant-specific values
+        if (item.variantId && product.variants && product.variants.length > 0) {
+            const variant = product.variants.find((v: any) => v._id.toString() === item.variantId);
+            if (variant) {
+                if (variant.weight) itemWeight = variant.weight;
+                if (variant.salePrice) itemPrice = variant.salePrice;
+                else if (variant.price) itemPrice = variant.price;
+            }
+        }
+
+        totalWeight += itemWeight * item.quantity;
+        totalValue += itemPrice * item.quantity;
+
+        // Collect category IDs
+        if (product.categoryIds) {
+            product.categoryIds.forEach((catId: any) => {
+                const catIdStr = catId.toString();
+                if (!itemCategories.includes(catIdStr)) {
+                    itemCategories.push(catIdStr);
+                }
+            });
+        }
+    }
+
+    return { totalWeight, totalValue, itemCategories };
+};
 
 /**
  * @swagger
@@ -228,115 +214,89 @@ export const deleteShippingRule = asyncHandler(async (req: AuthRequest, res: Res
  *   post:
  *     summary: Calculate shipping cost for cart
  *     tags: [Shipping]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - country
- *               - storeId
- *             properties:
- *               country:
- *                 type: string
- *                 example: US
- *               state:
- *                 type: string
- *                 example: CA
- *               city:
- *                 type: string
- *               storeId:
- *                 type: string
- *               cartId:
- *                 type: string
- *     responses:
- *       200:
- *         description: Shipping cost calculated successfully
  */
 export const calculateShipping = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { country, state, city, storeId, cartId } = req.body;
+    const { country, storeId, cartId, items } = req.body;
     const userId = req.user?.id;
     const sessionId = req.headers['x-session-id'] as string;
 
-    // Get cart
-    let cart;
-    if (cartId) {
-        cart = await Cart.findById(cartId).populate('items.productId');
+    let cartItems: any[] = [];
+    let orderValue = 0;
+
+    // Get cart or use provided items
+    if (items && Array.isArray(items)) {
+        // Direct items from order creation
+        cartItems = items;
+        orderValue = items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
     } else {
-        const filter: any = userId ? { userId } : { sessionId };
-        cart = await Cart.findOne(filter).populate('items.productId');
-    }
-
-    if (!cart || cart.items.length === 0) {
-        throw new AppError('Cart is empty', 400);
-    }
-
-    // Calculate total weight and order value
-    let totalWeight = 0;
-    const orderValue = cart.subtotal;
-
-    for (const item of cart.items) {
-        const product = item.productId as any;
-        if (product && product.weight) {
-            totalWeight += product.weight * item.quantity;
+        // Get from cart
+        let cart;
+        if (cartId) {
+            cart = await Cart.findById(cartId).populate('items.productId');
+        } else if (userId) {
+            cart = await Cart.findOne({ userId, storeId }).populate('items.productId');
+        } else if (sessionId) {
+            cart = await Cart.findOne({ sessionId, storeId }).populate('items.productId');
         }
+
+        if (!cart || cart.items.length === 0) {
+            throw new AppError('Cart is empty', 400);
+        }
+
+        cartItems = cart.items;
+        orderValue = cart.subtotal;
     }
+
+    // Calculate totals from cart items
+    const { totalWeight, totalValue, itemCategories } = await calculateCartTotals(cartItems);
+    const finalOrderValue = totalValue || orderValue;
 
     // Find applicable shipping rules
     const shippingRules = await ShippingRule.find({
         storeId,
         isActive: true,
-    }).sort({ priority: -1 });
+    })
+        .populate('geoGroupId')
+        .sort({ priority: -1 });
 
     const applicableRules: any[] = [];
 
     for (const rule of shippingRules) {
         let isApplicable = true;
 
-        // Check country
-        if (rule.conditions.countries && rule.conditions.countries.length > 0) {
-            if (!rule.conditions.countries.includes(country.toUpperCase())) {
+        // Check GeoGroup (country matching)
+        if (rule.geoGroupId) {
+            const geoGroup = rule.geoGroupId as any;
+            if (geoGroup.countries && geoGroup.countries.length > 0) {
+                if (!geoGroup.countries.includes(country.toUpperCase())) {
+                    isApplicable = false;
+                }
+            }
+        }
+
+        // Check category restrictions
+        if (isApplicable && rule.categoryIds && rule.categoryIds.length > 0) {
+            const ruleCategoryIds = rule.categoryIds.map((id: any) => id.toString());
+            const hasMatchingCategory = itemCategories.some(catId => ruleCategoryIds.includes(catId));
+            if (!hasMatchingCategory) {
                 isApplicable = false;
             }
         }
 
-        // Check state
-        if (isApplicable && rule.conditions.states && rule.conditions.states.length > 0) {
-            if (!state || !rule.conditions.states.includes(state.toUpperCase())) {
-                isApplicable = false;
-            }
+        // Check weight conditions
+        if (isApplicable && rule.minWeight !== undefined) {
+            if (totalWeight < rule.minWeight) isApplicable = false;
+        }
+        if (isApplicable && rule.maxWeight !== undefined) {
+            if (totalWeight > rule.maxWeight) isApplicable = false;
         }
 
-        // Check city
-        if (isApplicable && rule.conditions.cities && rule.conditions.cities.length > 0) {
-            if (!city || !rule.conditions.cities.includes(city)) {
-                isApplicable = false;
-            }
+        // Check order value conditions
+        if (isApplicable && rule.minOrderValue !== undefined) {
+            if (finalOrderValue < rule.minOrderValue) isApplicable = false;
         }
-
-        // Check weight
-        if (isApplicable && rule.conditions.minWeight !== undefined) {
-            if (totalWeight < rule.conditions.minWeight) {
-                isApplicable = false;
-            }
-        }
-        if (isApplicable && rule.conditions.maxWeight !== undefined) {
-            if (totalWeight > rule.conditions.maxWeight) {
-                isApplicable = false;
-            }
-        }
-
-        // Check order value
-        if (isApplicable && rule.conditions.minOrderValue !== undefined) {
-            if (orderValue < rule.conditions.minOrderValue) {
-                isApplicable = false;
-            }
-        }
-        if (isApplicable && rule.conditions.maxOrderValue !== undefined) {
-            if (orderValue > rule.conditions.maxOrderValue) {
-                isApplicable = false;
-            }
+        if (isApplicable && rule.maxOrderValue !== undefined) {
+            if (finalOrderValue > rule.maxOrderValue) isApplicable = false;
         }
 
         if (isApplicable) {
@@ -348,13 +308,15 @@ export const calculateShipping = asyncHandler(async (req: AuthRequest, res: Resp
                     cost = rule.rate;
                     break;
                 case 'per_kg':
+                    // Rate per kg multiplied by total weight
                     cost = rule.rate * totalWeight;
                     break;
                 case 'free':
                     cost = 0;
                     break;
                 case 'percentage':
-                    cost = (orderValue * rule.rate) / 100;
+                    // Percentage of order value
+                    cost = (finalOrderValue * rule.rate) / 100;
                     break;
             }
 
@@ -365,21 +327,32 @@ export const calculateShipping = asyncHandler(async (req: AuthRequest, res: Resp
                 cost: parseFloat(cost.toFixed(2)),
                 currency: rule.currency,
                 rateType: rule.rateType,
-                estimatedDays: '3-5 business days', // Can be customized per rule
+                rate: rule.rate,
             });
         }
     }
 
     if (applicableRules.length === 0) {
-        throw new AppError('No shipping options available for this location', 400);
+        // Return empty options instead of error
+        res.json({
+            success: true,
+            shippingOptions: [],
+            orderSummary: {
+                subtotal: finalOrderValue,
+                totalWeight,
+                itemCount: cartItems.length,
+            },
+        });
+        return;
     }
 
     res.json({
+        success: true,
         shippingOptions: applicableRules,
         orderSummary: {
-            subtotal: cart.subtotal,
+            subtotal: finalOrderValue,
             totalWeight,
-            itemCount: cart.items.reduce((sum, item) => sum + item.quantity, 0),
+            itemCount: cartItems.length,
         },
     });
 });
@@ -390,45 +363,17 @@ export const calculateShipping = asyncHandler(async (req: AuthRequest, res: Resp
  *   post:
  *     summary: Apply shipping method to cart
  *     tags: [Shipping]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - shippingRuleId
- *               - shippingCost
- *               - shippingAddress
- *             properties:
- *               shippingRuleId:
- *                 type: string
- *               shippingCost:
- *                 type: number
- *               shippingAddress:
- *                 type: object
- *                 properties:
- *                   country:
- *                     type: string
- *                   state:
- *                     type: string
- *                   city:
- *                     type: string
- *                   postalCode:
- *                     type: string
- *                   addressLine1:
- *                     type: string
- *     responses:
- *       200:
- *         description: Shipping applied to cart
  */
 export const applyShippingToCart = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { shippingRuleId, shippingCost, shippingAddress } = req.body;
+    const { shippingRuleId, shippingCost, shippingAddress, storeId } = req.body;
     const userId = req.user?.id;
     const sessionId = req.headers['x-session-id'] as string;
 
     // Get cart
-    const filter: any = userId ? { userId } : { sessionId };
+    const filter: any = { storeId };
+    if (userId) filter.userId = userId;
+    else filter.sessionId = sessionId;
+
     const cart = await Cart.findOne(filter);
 
     if (!cart) {
@@ -454,8 +399,9 @@ export const applyShippingToCart = asyncHandler(async (req: AuthRequest, res: Re
     await cart.save();
 
     res.json({
+        success: true,
         message: 'Shipping applied to cart',
-        cart,
+        data: cart,
     });
 });
 
@@ -465,15 +411,17 @@ export const applyShippingToCart = asyncHandler(async (req: AuthRequest, res: Re
  *   get:
  *     summary: Get cart summary with shipping
  *     tags: [Shipping]
- *     responses:
- *       200:
- *         description: Cart summary retrieved
  */
 export const getCartSummary = asyncHandler(async (req: AuthRequest, res: Response) => {
     const userId = req.user?.id;
     const sessionId = req.headers['x-session-id'] as string;
+    const storeId = req.query.storeId;
 
-    const filter: any = userId ? { userId } : { sessionId };
+    const filter: any = {};
+    if (storeId) filter.storeId = storeId;
+    if (userId) filter.userId = userId;
+    else filter.sessionId = sessionId;
+
     const cart = await Cart.findOne(filter).populate('items.productId', 'name images');
 
     if (!cart) {
@@ -481,7 +429,8 @@ export const getCartSummary = asyncHandler(async (req: AuthRequest, res: Respons
     }
 
     res.json({
-        summary: {
+        success: true,
+        data: {
             subtotal: cart.subtotal,
             shippingCost: cart.shippingCost || 0,
             tax: cart.tax || 0,
@@ -490,6 +439,305 @@ export const getCartSummary = asyncHandler(async (req: AuthRequest, res: Respons
             shippingMethod: cart.shippingMethod,
             shippingAddress: cart.shippingAddress,
         },
-        cart,
+    });
+});
+
+/**
+ * Validation for smart shipping calculation
+ */
+export const calculateSmartShippingValidation = [
+    body('country').trim().notEmpty().withMessage('Country is required'),
+    body('storeId').isMongoId().withMessage('Valid store ID is required'),
+    body('items').isArray({ min: 1 }).withMessage('At least one item is required'),
+    body('items.*.productId').isMongoId().withMessage('Valid product ID is required'),
+    body('items.*.quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
+];
+
+/**
+ * @swagger
+ * /api/shipping/calculate-smart:
+ *   post:
+ *     summary: Calculate shipping with split calculation (category priority > geo > fallback)
+ *     tags: [Shipping]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               storeId: { type: string }
+ *               country: { type: string }
+ *               items: { type: array, items: { type: object, properties: { productId: { type: string }, variantId: { type: string }, quantity: { type: integer } } } }
+ */
+export const calculateSmartShipping = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { country, storeId, items, currency = 'INR' } = req.body;
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+        throw new AppError('Items are required', 400);
+    }
+
+    // Step 1: Fetch all products with their categories and weights
+    interface ItemDetails {
+        productId: string;
+        variantId?: string;
+        quantity: number;
+        weight: number;
+        price: number;
+        categoryIds: string[];
+        product: any;
+    }
+
+    const itemDetails: ItemDetails[] = [];
+    let totalSubtotal = 0;
+
+    for (const item of items) {
+        const product = await Product.findById(item.productId);
+        if (!product) {
+            throw new AppError(`Product not found: ${item.productId}`, 404);
+        }
+
+        let itemWeight = product.weight || 0;
+        let itemPrice = product.salePrice || product.price;
+
+        // Handle variant-specific values
+        if (item.variantId && product.variants && product.variants.length > 0) {
+            const variant = product.variants.find((v: any) => v._id.toString() === item.variantId);
+            if (variant) {
+                if (variant.weight) itemWeight = variant.weight;
+                if (variant.salePrice) itemPrice = variant.salePrice;
+                else if (variant.price) itemPrice = variant.price;
+            }
+        }
+
+        const categoryIds = product.categoryIds?.map((id: any) => id.toString()) || [];
+
+        itemDetails.push({
+            productId: item.productId,
+            variantId: item.variantId,
+            quantity: item.quantity,
+            weight: itemWeight * item.quantity,
+            price: itemPrice * item.quantity,
+            categoryIds,
+            product,
+        });
+
+        totalSubtotal += itemPrice * item.quantity;
+    }
+
+    // Step 2: Fetch all active shipping rules for the store
+    const shippingRules = await ShippingRule.find({
+        storeId,
+        isActive: true,
+    })
+        .populate('geoGroupId')
+        .sort({ priority: -1 });
+
+    if (shippingRules.length === 0) {
+        res.json({
+            success: true,
+            message: 'No shipping rules configured',
+            shippingCost: 0,
+            breakdown: [],
+            orderSummary: { subtotal: totalSubtotal, totalWeight: itemDetails.reduce((sum, i) => sum + i.weight, 0) },
+        });
+        return;
+    }
+
+    // Step 3: Categorize rules into category-specific and geo-based
+    interface RuleInfo {
+        rule: any;
+        categoryIds: string[];
+        matchesGeo: boolean;
+        isUniversal: boolean; // No category or geo restriction
+    }
+
+    const categorizedRules: RuleInfo[] = [];
+
+    for (const rule of shippingRules) {
+        let matchesGeo = true;
+
+        // Check geo matching
+        if (rule.geoGroupId) {
+            const geoGroup = rule.geoGroupId as any;
+            if (geoGroup.countries && geoGroup.countries.length > 0) {
+                matchesGeo = geoGroup.countries.includes(country.toUpperCase());
+            }
+        }
+
+        const ruleCategories = rule.categoryIds?.map((id: any) => id.toString()) || [];
+        const hasCategories = ruleCategories.length > 0;
+        const hasGeo = !!rule.geoGroupId;
+
+        // Only include rules that match geo (or have no geo restriction)
+        if (!hasGeo || matchesGeo) {
+            categorizedRules.push({
+                rule,
+                categoryIds: ruleCategories,
+                matchesGeo,
+                isUniversal: !hasCategories && !hasGeo,
+            });
+        }
+    }
+
+    // Step 4: Apply split calculation with priority
+    interface ShippingBreakdown {
+        itemProductIds: string[];
+        ruleName: string;
+        ruleId: string;
+        ruleType: 'category' | 'geo' | 'universal';
+        weight: number;
+        value: number;
+        cost: number;
+        rateType: string;
+        rate: number;
+    }
+
+    const breakdown: ShippingBreakdown[] = [];
+    const processedItems = new Set<number>();
+
+    // Helper function to calculate cost for a group of items
+    const calculateCostForItems = (
+        itemsToProcess: ItemDetails[],
+        rule: any
+    ): number => {
+        const groupWeight = itemsToProcess.reduce((sum, item) => sum + item.weight, 0);
+        const groupValue = itemsToProcess.reduce((sum, item) => sum + item.price, 0);
+
+        let cost = 0;
+        switch (rule.rateType) {
+            case 'flat':
+                cost = rule.rate;
+                break;
+            case 'per_kg':
+                cost = rule.rate * groupWeight;
+                break;
+            case 'free':
+                cost = 0;
+                break;
+            case 'percentage':
+                cost = (groupValue * rule.rate) / 100;
+                break;
+        }
+
+        return parseFloat(cost.toFixed(2));
+    };
+
+    // Priority 1: Category-specific rules (most specific)
+    const categoryRules = categorizedRules.filter(r => r.categoryIds.length > 0);
+
+    for (const ruleInfo of categoryRules) {
+        const matchingItems: { item: ItemDetails; index: number }[] = [];
+
+        itemDetails.forEach((item, idx) => {
+            if (processedItems.has(idx)) return;
+
+            // Check if any of item's categories match rule's categories
+            const hasMatchingCategory = item.categoryIds.some(catId =>
+                ruleInfo.categoryIds.includes(catId)
+            );
+
+            if (hasMatchingCategory) {
+                matchingItems.push({ item, index: idx });
+            }
+        });
+
+        if (matchingItems.length > 0) {
+            const itemsToProcess = matchingItems.map(m => m.item);
+            const cost = calculateCostForItems(itemsToProcess, ruleInfo.rule);
+
+            breakdown.push({
+                itemProductIds: itemsToProcess.map(i => i.productId),
+                ruleName: ruleInfo.rule.name,
+                ruleId: ruleInfo.rule._id.toString(),
+                ruleType: 'category',
+                weight: itemsToProcess.reduce((sum, i) => sum + i.weight, 0),
+                value: itemsToProcess.reduce((sum, i) => sum + i.price, 0),
+                cost,
+                rateType: ruleInfo.rule.rateType,
+                rate: ruleInfo.rule.rate,
+            });
+
+            // Mark items as processed
+            matchingItems.forEach(m => processedItems.add(m.index));
+        }
+    }
+
+    // Priority 2: Geo-based rules (for remaining items)
+    const geoRules = categorizedRules.filter(r => r.categoryIds.length === 0 && r.matchesGeo && !r.isUniversal);
+
+    const remainingItems = itemDetails.filter((_, idx) => !processedItems.has(idx));
+
+    if (remainingItems.length > 0 && geoRules.length > 0) {
+        // Use highest priority geo rule
+        const geoRule = geoRules[0];
+        const cost = calculateCostForItems(remainingItems, geoRule.rule);
+
+        breakdown.push({
+            itemProductIds: remainingItems.map(i => i.productId),
+            ruleName: geoRule.rule.name,
+            ruleId: geoRule.rule._id.toString(),
+            ruleType: 'geo',
+            weight: remainingItems.reduce((sum, i) => sum + i.weight, 0),
+            value: remainingItems.reduce((sum, i) => sum + i.price, 0),
+            cost,
+            rateType: geoRule.rule.rateType,
+            rate: geoRule.rule.rate,
+        });
+
+        remainingItems.forEach((_, idx) => {
+            const originalIdx = itemDetails.findIndex(item =>
+                item === remainingItems[idx]
+            );
+            processedItems.add(originalIdx);
+        });
+    }
+
+    // Priority 3: Universal fallback rules (no category, no geo - store default)
+    const stillRemaining = itemDetails.filter((_, idx) => !processedItems.has(idx));
+    const universalRules = categorizedRules.filter(r => r.isUniversal);
+
+    if (stillRemaining.length > 0 && universalRules.length > 0) {
+        const universalRule = universalRules[0];
+        const cost = calculateCostForItems(stillRemaining, universalRule.rule);
+
+        breakdown.push({
+            itemProductIds: stillRemaining.map(i => i.productId),
+            ruleName: universalRule.rule.name,
+            ruleId: universalRule.rule._id.toString(),
+            ruleType: 'universal',
+            weight: stillRemaining.reduce((sum, i) => sum + i.weight, 0),
+            value: stillRemaining.reduce((sum, i) => sum + i.price, 0),
+            cost,
+            rateType: universalRule.rule.rateType,
+            rate: universalRule.rule.rate,
+        });
+    }
+
+    // Calculate total shipping cost
+    const totalShippingCost = breakdown.reduce((sum, b) => sum + b.cost, 0);
+    const totalWeight = itemDetails.reduce((sum, i) => sum + i.weight, 0);
+
+    // Items without any applicable rule
+    const itemsWithoutRule = itemDetails.filter((_, idx) => !processedItems.has(idx));
+
+    res.json({
+        success: true,
+        shippingCost: parseFloat(totalShippingCost.toFixed(2)),
+        currency,
+        breakdown,
+        itemsWithoutShipping: itemsWithoutRule.length > 0 ? itemsWithoutRule.map(i => ({
+            productId: i.productId,
+            productName: i.product.name,
+        })) : [],
+        orderSummary: {
+            subtotal: totalSubtotal,
+            totalWeight: parseFloat(totalWeight.toFixed(2)),
+            itemCount: items.length,
+            shippingCost: parseFloat(totalShippingCost.toFixed(2)),
+            total: parseFloat((totalSubtotal + totalShippingCost).toFixed(2)),
+        },
+        calculationMethod: 'split_with_priority',
+        priorityExplanation: 'Category-specific rules applied first, then geo-based rules for remaining items, then universal fallback rules.',
     });
 });

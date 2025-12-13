@@ -60,7 +60,10 @@ export const createGeoGroup = asyncHandler(async (req: AuthRequest, res: Respons
     // Verify all countries exist
     if (countries && countries.length > 0) {
         const upperCountries = countries.map((c: string) => c.toUpperCase());
-        const existingCountries = await Geo.find({ countryCode: { $in: upperCountries } });
+        const existingCountries = await Geo.find({
+            code: { $in: upperCountries },
+            type: 'country'
+        });
 
         if (existingCountries.length !== countries.length) {
             throw new AppError('One or more countries not found', 400);
@@ -148,7 +151,10 @@ export const getGeoGroupById = asyncHandler(async (req: AuthRequest, res: Respon
     }
 
     // Get country details
-    const countries = await Geo.find({ countryCode: { $in: geoGroup.countries } });
+    const countries = await Geo.find({
+        code: { $in: geoGroup.countries },
+        type: 'country'
+    });
 
     res.json({
         geoGroup,
@@ -192,7 +198,10 @@ export const updateGeoGroup = asyncHandler(async (req: AuthRequest, res: Respons
     // Verify countries if being updated
     if (updates.countries && updates.countries.length > 0) {
         const upperCountries = updates.countries.map((c: string) => c.toUpperCase());
-        const existingCountries = await Geo.find({ countryCode: { $in: upperCountries } });
+        const existingCountries = await Geo.find({
+            code: { $in: upperCountries },
+            type: 'country'
+        });
 
         if (existingCountries.length !== updates.countries.length) {
             throw new AppError('One or more countries not found', 400);
@@ -286,7 +295,10 @@ export const addCountries = asyncHandler(async (req: AuthRequest, res: Response)
 
     // Verify countries exist
     const upperCountries = countries.map((c: string) => c.toUpperCase());
-    const existingCountries = await Geo.find({ countryCode: { $in: upperCountries } });
+    const existingCountries = await Geo.find({
+        code: { $in: upperCountries },
+        type: 'country'
+    });
 
     if (existingCountries.length !== countries.length) {
         throw new AppError('One or more countries not found', 400);

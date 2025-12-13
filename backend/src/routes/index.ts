@@ -5,6 +5,7 @@ import storeRoutes from './store.routes';
 import categoryRoutes from './category.routes';
 import productRoutes from './product.routes';
 import attributeRoutes from './attribute.routes';
+import brandRoutes from './brand.routes';
 import saleRoutes from './sale.routes';
 import currencyRoutes from './currency.routes';
 import geoRoutes from './geo.routes';
@@ -16,6 +17,8 @@ import orderRoutes from './order.routes';
 import paymentGatewayRoutes from './payment-gateway.routes';
 import webhookRoutes from './webhook.routes';
 import fileRoutes from './file.routes';
+import customerRoutes from './customer.routes';
+import adminRoutes from './admin.routes';
 
 const router = Router();
 
@@ -35,6 +38,9 @@ router.use('/products', productRoutes);
 
 // Mount attribute routes
 router.use('/attributes', attributeRoutes);
+
+// Mount brand routes
+router.use('/brands', brandRoutes);
 
 // Mount sale routes
 router.use('/sales', saleRoutes);
@@ -69,4 +75,11 @@ router.use('/webhooks', webhookRoutes);
 // Mount file routes
 router.use('/files', fileRoutes);
 
+// Mount customer management routes
+router.use('/customers', customerRoutes);
+
+// Mount admin management routes
+router.use('/admins', adminRoutes);
+
 export default router;
+

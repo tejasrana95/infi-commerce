@@ -19,6 +19,8 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import ClearIcon from '@mui/icons-material/Clear';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import { useDebounce } from '@/hooks';
+import StoreAutocomplete from './StoreAutocomplete';
+import CategoryAutocomplete from './CategoryAutocomplete';
 
 export interface FilterOption {
     value: string;
@@ -49,6 +51,14 @@ interface SearchFilterBarProps {
     onSortChange?: (sort: string) => void;
     onExport?: () => void;
     showExport?: boolean;
+    // Custom filter options
+    showStoreFilter?: boolean;
+    storeFilterValue?: string;
+    onStoreFilterChange?: (value: string) => void;
+    showCategoryFilter?: boolean;
+    categoryFilterValue?: string;
+    categoryFilterStoreId?: string;
+    onCategoryFilterChange?: (value: string) => void;
 }
 
 const SearchFilterBar = memo(({
@@ -63,6 +73,13 @@ const SearchFilterBar = memo(({
     onSortChange,
     onExport,
     showExport = false,
+    showStoreFilter = false,
+    storeFilterValue = '',
+    onStoreFilterChange,
+    showCategoryFilter = false,
+    categoryFilterValue = '',
+    categoryFilterStoreId = '',
+    onCategoryFilterChange,
 }: SearchFilterBarProps) => {
     const [localSearch, setLocalSearch] = useState(searchValue);
     const debouncedSearch = useDebounce(localSearch, 300);
@@ -101,9 +118,16 @@ const SearchFilterBar = memo(({
         if (onFilterChange) {
             onFilterChange({});
         }
+        // Clear custom filters
+        if (onStoreFilterChange) {
+            onStoreFilterChange('');
+        }
+        if (onCategoryFilterChange) {
+            onCategoryFilterChange('');
+        }
     };
 
-    const hasActiveFilters = Object.keys(activeFilters).length > 0 || localSearch;
+    const hasActiveFilters = Object.keys(activeFilters).length > 0 || localSearch || storeFilterValue || categoryFilterValue;
 
     return (
         <Paper
@@ -154,8 +178,6 @@ const SearchFilterBar = memo(({
                     }}
                 />
 
-                <Box sx={{ flex: 1 }} />
-
                 {/* Sort */}
                 {sortOptions.length > 0 && onSortChange && (
                     <FormControl size="small" sx={{ minWidth: 150 }}>
@@ -200,50 +222,80 @@ const SearchFilterBar = memo(({
                         Clear All
                     </Button>
                 )}
-            </Box>
 
-            {/* Bottom Row - Filters */}
-            {filters.length > 0 && (
-                <Box
-                    sx={{
-                        display: 'flex',
-                        gap: 1.5,
-                        flexWrap: 'wrap',
-                        alignItems: 'center',
-                    }}
-                >
-                    <Box display="flex" alignItems="center" gap={0.5}>
-                        <FilterListIcon fontSize="small" color="action" />
-                        <Box component="span" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
-                            Filters:
-                        </Box>
-                    </Box>
 
-                    {filters.map((filter) => (
-                        <FormControl key={filter.id} size="small" sx={{ minWidth: 150 }}>
-                            <InputLabel>{filter.label}</InputLabel>
-                            <Select
-                                multiple={filter.type === 'multiselect'}
-                                value={activeFilters[filter.id] || (filter.type === 'multiselect' ? [] : '')}
-                                label={filter.label}
-                                onChange={(e: SelectChangeEvent<string | string[]>) =>
-                                    handleFilterChange(filter.id, e.target.value)
-                                }
-                            >
-                                <MenuItem value="">
-                                    <em>All</em>
-                                </MenuItem>
-                                {filter.options.map((option) => (
-                                    <MenuItem key={option.value} value={option.value}>
-                                        {option.label}
+                {/* Bottom Row - Filters */}
+                {(filters.length > 0 || showStoreFilter || showCategoryFilter) && (
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            gap: 1.5,
+                            flexWrap: 'wrap',
+                            alignItems: 'center',
+                        }}
+                    >
+                        {(filters.length > 0 || showStoreFilter || showCategoryFilter) && (
+                            <Box display="flex" alignItems="center" gap={0.5}>
+                                <FilterListIcon fontSize="small" color="action" />
+                                <Box component="span" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
+                                    Filters:
+                                </Box>
+                            </Box>
+                        )}
+
+                        {/* Standard select filters */}
+                        {filters.map((filter) => (
+                            <FormControl key={filter.id} size="small" sx={{ minWidth: 150 }}>
+                                <InputLabel>{filter.label}</InputLabel>
+                                <Select
+                                    multiple={filter.type === 'multiselect'}
+                                    value={activeFilters[filter.id] || (filter.type === 'multiselect' ? [] : '')}
+                                    label={filter.label}
+                                    onChange={(e: SelectChangeEvent<string | string[]>) =>
+                                        handleFilterChange(filter.id, e.target.value)
+                                    }
+                                >
+                                    <MenuItem value="">
+                                        <em>All</em>
                                     </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                    ))}
-                </Box>
-            )}
+                                    {filter.options.map((option) => (
+                                        <MenuItem key={option.value} value={option.value}>
+                                            {option.label}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        ))}
 
+                        {/* Store filter */}
+                        {showStoreFilter && onStoreFilterChange && (
+                            <Box sx={{ minWidth: 200 }}>
+                                <StoreAutocomplete
+                                    value={storeFilterValue || null}
+                                    onChange={(value) => onStoreFilterChange(typeof value === 'string' ? value : '')}
+                                    label="Filter by Store"
+                                    minimal
+                                />
+                            </Box>
+                        )}
+
+                        {/* Category filter */}
+                        {showCategoryFilter && onCategoryFilterChange && (
+                            <Tooltip title={!categoryFilterStoreId ? 'Select a store first' : ''}>
+                                <Box sx={{ minWidth: 200 }}>
+                                    <CategoryAutocomplete
+                                        value={categoryFilterValue || null}
+                                        onChange={(value) => onCategoryFilterChange(value || '')}
+                                        storeId={categoryFilterStoreId}
+                                        label="Filter by Parent"
+                                        minimal
+                                    />
+                                </Box>
+                            </Tooltip>
+                        )}
+                    </Box>
+                )}
+            </Box>
             {/* Active Filter Chips */}
             {Object.keys(activeFilters).length > 0 && (
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1.5 }}>

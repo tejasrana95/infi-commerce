@@ -8,6 +8,7 @@ import {
     DialogContent,
     DialogActions,
     IconButton,
+    Box,
 } from '@mui/material';
 import { Close, AttachFile } from '@mui/icons-material';
 import FileManager from '@/components/organisms/FileManager';
@@ -23,6 +24,7 @@ interface FileManagerButtonProps {
     variant?: 'contained' | 'outlined' | 'text';
     size?: 'small' | 'medium' | 'large';
     fullWidth?: boolean;
+    trigger?: React.ReactNode;
 }
 
 export default function FileManagerButton({
@@ -35,6 +37,7 @@ export default function FileManagerButton({
     variant = 'outlined',
     size = 'medium',
     fullWidth = false,
+    trigger,
 }: FileManagerButtonProps) {
     const [open, setOpen] = useState(false);
     const [selectedFiles, setSelectedFiles] = useState<FileItem[]>([]);
@@ -56,15 +59,21 @@ export default function FileManagerButton({
 
     return (
         <>
-            <Button
-                variant={variant}
-                size={size}
-                fullWidth={fullWidth}
-                startIcon={<AttachFile />}
-                onClick={handleOpen}
-            >
-                {label}
-            </Button>
+            {trigger ? (
+                <Box onClick={handleOpen} sx={{ display: 'inline-block', cursor: 'pointer' }}>
+                    {trigger}
+                </Box>
+            ) : (
+                <Button
+                    variant={variant}
+                    size={size}
+                    fullWidth={fullWidth}
+                    startIcon={<AttachFile />}
+                    onClick={handleOpen}
+                >
+                    {label}
+                </Button>
+            )}
 
             <Dialog
                 open={open}

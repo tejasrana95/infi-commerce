@@ -19,10 +19,12 @@ import {
 } from '@mui/material';
 import { Geo, GeoGroup } from '@/types';
 import CountryAutocomplete from '@/components/molecules/CountryAutocomplete';
+import StoreAutocomplete from '@/components/molecules/StoreAutocomplete';
 
 // Validation Schema
 const schema = z.object({
     name: z.string().min(1, 'Name is required'),
+    storeId: z.string().min(1, 'Store is required'),
     description: z.string().optional(),
     countries: z.array(z.string()),
     isActive: z.boolean(),
@@ -39,6 +41,7 @@ interface GeoGroupFormProps {
 
 const defaultValues: FormData = {
     name: '',
+    storeId: '',
     description: '',
     countries: [],
     isActive: true,
@@ -63,8 +66,14 @@ export default function GeoGroupForm({ initialData, onSubmit, availableCountries
 
     useEffect(() => {
         if (initialData) {
+            // Handle storeId - it might be populated as an object or just a string
+            const storeId = typeof initialData.storeId === 'object' && initialData.storeId !== null
+                ? (initialData.storeId as any)._id
+                : initialData.storeId || '';
+
             reset({
                 name: initialData.name || '',
+                storeId: storeId,
                 description: initialData.description || '',
                 countries: initialData.countries || initialData.geos || [],
                 isActive: initialData.isActive ?? true,
@@ -88,6 +97,22 @@ export default function GeoGroupForm({ initialData, onSubmit, availableCountries
                                 fullWidth
                                 error={!!errors.name}
                                 helperText={errors.name?.message}
+                            />
+                        )}
+                    />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                    <Controller
+                        name="storeId"
+                        control={control}
+                        render={({ field: { onChange, value } }) => (
+                            <StoreAutocomplete
+                                value={value || null}
+                                onChange={onChange}
+                                label="Store"
+                                error={!!errors.storeId}
+                                helperText={errors.storeId?.message}
+                                required
                             />
                         )}
                     />

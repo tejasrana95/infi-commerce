@@ -19,6 +19,8 @@ import {
 } from '@mui/material';
 import { Store } from '@/types';
 import CurrencyAutocomplete from '@/components/molecules/CurrencyAutocomplete';
+import FileManagerButton from '@/components/molecules/FileManagerButton';
+import { FileItem } from '@/types/file';
 
 // Common timezones
 const TIMEZONES = [
@@ -277,14 +279,34 @@ export default function StoreForm({ initialData, onSubmit, isSubmitting = false 
                             name="logo"
                             control={control}
                             render={({ field }) => (
-                                <TextField
-                                    {...field}
-                                    label="Logo URL"
-                                    fullWidth
-                                    error={!!errors.logo}
-                                    helperText={errors.logo?.message}
-                                    placeholder="https://example.com/logo.png"
-                                />
+                                <Box>
+                                    <TextField
+                                        {...field}
+                                        label="Logo URL"
+                                        fullWidth
+                                        error={!!errors.logo}
+                                        helperText={errors.logo?.message}
+                                        placeholder="https://example.com/logo.png"
+                                        slotProps={{
+                                            input: {
+                                                endAdornment: (
+                                                    <FileManagerButton
+                                                        label="Browse"
+                                                        variant="outlined"
+                                                        size="small"
+                                                        accept="image/*"
+                                                        category="images"
+                                                        onSelect={(files: FileItem[]) => {
+                                                            if (files.length > 0) {
+                                                                field.onChange(files[0].url);
+                                                            }
+                                                        }}
+                                                    />
+                                                ),
+                                            },
+                                        }}
+                                    />
+                                </Box>
                             )}
                         />
                     </Grid>
@@ -294,14 +316,34 @@ export default function StoreForm({ initialData, onSubmit, isSubmitting = false 
                             name="favicon"
                             control={control}
                             render={({ field }) => (
-                                <TextField
-                                    {...field}
-                                    label="Favicon URL"
-                                    fullWidth
-                                    error={!!errors.favicon}
-                                    helperText={errors.favicon?.message}
-                                    placeholder="https://example.com/favicon.ico"
-                                />
+                                <Box>
+                                    <TextField
+                                        {...field}
+                                        label="Favicon URL"
+                                        fullWidth
+                                        error={!!errors.favicon}
+                                        helperText={errors.favicon?.message}
+                                        placeholder="https://example.com/favicon.ico"
+                                        slotProps={{
+                                            input: {
+                                                endAdornment: (
+                                                    <FileManagerButton
+                                                        label="Browse"
+                                                        variant="outlined"
+                                                        size="small"
+                                                        accept="image/*"
+                                                        category="images"
+                                                        onSelect={(files: FileItem[]) => {
+                                                            if (files.length > 0) {
+                                                                field.onChange(files[0].url);
+                                                            }
+                                                        }}
+                                                    />
+                                                ),
+                                            },
+                                        }}
+                                    />
+                                </Box>
                             )}
                         />
                     </Grid>
@@ -453,14 +495,34 @@ export default function StoreForm({ initialData, onSubmit, isSubmitting = false 
                             name="seo.ogImage"
                             control={control}
                             render={({ field }) => (
-                                <TextField
-                                    {...field}
-                                    label="Open Graph Image URL"
-                                    fullWidth
-                                    error={!!errors.seo?.ogImage}
-                                    helperText={errors.seo?.ogImage?.message || 'Recommended: 1200x630px'}
-                                    placeholder="https://example.com/og-image.jpg"
-                                />
+                                <Box>
+                                    <TextField
+                                        {...field}
+                                        label="Open Graph Image URL"
+                                        fullWidth
+                                        error={!!errors.seo?.ogImage}
+                                        helperText={errors.seo?.ogImage?.message || 'Recommended: 1200x630px'}
+                                        placeholder="https://example.com/og-image.jpg"
+                                        slotProps={{
+                                            input: {
+                                                endAdornment: (
+                                                    <FileManagerButton
+                                                        label="Browse"
+                                                        variant="outlined"
+                                                        size="small"
+                                                        accept="image/*"
+                                                        category="images"
+                                                        onSelect={(files: FileItem[]) => {
+                                                            if (files.length > 0) {
+                                                                field.onChange(files[0].url);
+                                                            }
+                                                        }}
+                                                    />
+                                                ),
+                                            },
+                                        }}
+                                    />
+                                </Box>
                             )}
                         />
                     </Grid>

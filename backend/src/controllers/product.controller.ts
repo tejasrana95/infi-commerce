@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { body, param, query } from 'express-validator';
+import { body, param } from 'express-validator';
 import Product from '../models/Product';
 import Store from '../models/Store';
 import Category from '../models/Category';
@@ -178,14 +178,18 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
     }
 
     if (req.query.search) {
-        filter.$text = { $search: req.query.search as string };
+        const searchRegex = { $regex: req.query.search as string, $options: 'i' };
+        filter.$or = [
+            { name: searchRegex },
+            { sku: searchRegex },
+            { 'variants.sku': searchRegex },
+        ];
     }
 
     // Attribute filters (e.g., ?attr_color=red&attr_size=L)
     const attrFilters: any = {};
     Object.keys(req.query).forEach((key) => {
         if (key.startsWith('attr_')) {
-            const attrName = key.replace('attr_', '');
             attrFilters[`attributes.values`] = req.query[key];
         }
     });
@@ -269,8 +273,11 @@ export const getProductById = asyncHandler(async (req: AuthRequest, res: Respons
     }
 
     // Increment view count
-    product.views += 1;
-    await product.save();
+    // Increment view count atomically to prevent version conflicts
+    await Product.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } });
+
+    // We don't save the product instance here to avoid race conditions with other updates
+    // The previous findById already returned the product data we need
 
     // Get active sales for this product
     const sales = await (Sale as any).getActiveSalesForProduct(product._id, product.categoryIds);
@@ -316,9 +323,11 @@ export const getProductBySlug = asyncHandler(async (req: AuthRequest, res: Respo
         throw new AppError('Product not found', 404);
     }
 
-    // Increment view count
-    product.views += 1;
-    await product.save();
+    // Increment view count atomically to prevent version conflicts
+    await Product.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } });
+
+    // We don't save the product instance here to avoid race conditions with other updates
+    // The previous findById already returned the product data we need
 
     res.json({ product });
 });
@@ -380,6 +389,11 @@ export const updateProduct = asyncHandler(async (req: AuthRequest, res: Response
         }
     }
 
+    // Remove system fields that shouldn't be updated manually
+    delete updates._id;
+    delete updates.__v;
+    delete updates.createdAt;
+    delete updates.updatedAt;
     // Update product
     Object.assign(product, updates);
     await product.save();

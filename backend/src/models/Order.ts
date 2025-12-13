@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IOrder extends Document {
     storeId: mongoose.Types.ObjectId;
-    userId?: mongoose.Types.ObjectId; // Optional for guest checkout
+    customerId?: mongoose.Types.ObjectId; // Optional for guest checkout
     guestEmail?: string; // Email for guest orders
     orderNumber: string;
 
@@ -84,9 +84,9 @@ const OrderSchema = new Schema<IOrder>(
             ref: 'Store',
             required: true,
         },
-        userId: {
+        customerId: {
             type: Schema.Types.ObjectId,
-            ref: 'User',
+            ref: 'Customer',
             required: false, // Optional for guest checkout
         },
         guestEmail: {
@@ -200,7 +200,7 @@ const OrderSchema = new Schema<IOrder>(
 
 // Indexes
 OrderSchema.index({ storeId: 1, orderNumber: 1 });
-OrderSchema.index({ userId: 1 });
+OrderSchema.index({ customerId: 1 });
 OrderSchema.index({ status: 1 });
 OrderSchema.index({ paymentStatus: 1 });
 OrderSchema.index({ createdAt: -1 });

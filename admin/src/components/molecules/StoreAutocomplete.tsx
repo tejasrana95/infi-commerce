@@ -22,6 +22,7 @@ interface StoreAutocompleteProps {
     disabled?: boolean;
     required?: boolean;
     placeholder?: string;
+    minimal?: boolean; // For compact filter display
 }
 
 export default function StoreAutocomplete({
@@ -34,6 +35,7 @@ export default function StoreAutocomplete({
     disabled = false,
     required = false,
     placeholder,
+    minimal = false,
 }: StoreAutocompleteProps) {
     const [stores, setStores] = useState<StoreOption[]>([]);
     const [loading, setLoading] = useState(true);
@@ -102,6 +104,7 @@ export default function StoreAutocomplete({
                     helperText={helperText}
                     required={required}
                     placeholder={placeholder}
+                    size={minimal ? 'small' : 'medium'}
                     InputProps={{
                         ...params.InputProps,
                         endAdornment: (

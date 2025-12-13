@@ -2,72 +2,72 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Box, Button, Paper } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import api from '@/lib/api';
+import { PageHeader } from '@/components/molecules';
+import AttributeForm from '@/components/organisms/AttributeForm';
+import { useNotification } from '@/contexts/NotificationContext';
 
 export default function NewAttributePage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    type: 'text',
-    values: '',
-    isRequired: false,
-  });
+  const { showNotification } = useNotification();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const handleSubmit = async (data: any) => {
+    setIsSubmitting(true);
     try {
-      await api.post('/attributes', {
-        ...formData,
-        values: formData.values.split(',').map(v => v.trim()).filter(v => v),
-      });
+      await api.post('/attributes', data);
+      showNotification('Attribute created successfully', 'success');
       router.push('/attributes');
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to create attribute');
+      showNotification(err.response?.data?.message || 'Failed to create attribute', 'error');
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
+  const handleCancel = () => {
+    router.push('/attributes');
+  };
+
   return (
-    <div>
-      <div>
-        <h2>Add New Attribute</h2>
-      </div>
-      <form onSubmit={handleSubmit} >
-        <div>
-          <div>
-            <label>Name *</label>
-            <input type="text" name="name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
-          </div>
-          <div>
-            <label>Type *</label>
-            <select name="type" value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})} required>
-              <option value="text">Text</option>
-              <option value="select">Select</option>
-              <option value="number">Number</option>
-              <option value="boolean">Boolean</option>
-            </select>
-          </div>
-        </div>
-        <div>
-          <label>Values (comma-separated)</label>
-          <input type="text" name="values" value={formData.values} onChange={(e) => setFormData({...formData, values: e.target.value})} placeholder="Red, Blue, Green" />
-        </div>
-        <div>
-          <label>
-            <input type="checkbox" checked={formData.isRequired} onChange={(e) => setFormData({...formData, isRequired: e.target.checked})} />
-            <span>Required</span>
-          </label>
-        </div>
-        <div>
-          <button type="button" onClick={() => router.back()} >Cancel</button>
-          <button type="submit"  disabled={loading}>
-            {loading ? 'Creating...' : 'Create Attribute'}
-          </button>
-        </div>
-      </form>
-    </div>
+    <Box>
+      <Button
+        startIcon={<ArrowBackIcon />}
+        onClick={handleCancel}
+        sx={{ mb: 2 }}
+      >
+        Back to Attributes
+      </Button>
+
+      <PageHeader
+        title="Add New Attribute"
+        subtitle="Create a new product attribute"
+      />
+
+      <AttributeForm
+        onSubmit={handleSubmit}
+        isSubmitting={isSubmitting}
+      />
+
+      <Paper sx={{ p: 2, mt: 3, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+        <Button
+          variant="outlined"
+          onClick={handleCancel}
+          disabled={isSubmitting}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          variant="contained"
+          disabled={isSubmitting}
+          form="attribute-form"
+        >
+          {isSubmitting ? 'Creating...' : 'Create Attribute'}
+        </Button>
+      </Paper>
+    </Box>
   );
 }

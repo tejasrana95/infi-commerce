@@ -10,6 +10,7 @@ export interface CountryOption {
     _id: string;
     code: string;
     name: string;
+    minimal?: boolean;
 }
 
 interface CountryAutocompleteProps {
@@ -22,6 +23,7 @@ interface CountryAutocompleteProps {
     disabled?: boolean;
     required?: boolean;
     placeholder?: string;
+    minimal?: boolean;
 }
 
 export default function CountryAutocomplete({
@@ -34,6 +36,7 @@ export default function CountryAutocomplete({
     disabled = false,
     required = false,
     placeholder,
+    minimal = false,
 }: CountryAutocompleteProps) {
     const [countries, setCountries] = useState<CountryOption[]>([]);
     const [loading, setLoading] = useState(true);
@@ -93,15 +96,17 @@ export default function CountryAutocomplete({
             loading={loading}
             disabled={disabled || loading}
             getOptionLabel={(option) => option.label}
+
             isOptionEqualToValue={(option, value) => option.value === value?.value}
             renderInput={(params) => (
                 <TextField
                     {...params}
                     label={label}
                     error={error}
-                    helperText={helperText}
+                    helperText={minimal ? undefined : helperText}
                     required={required}
                     placeholder={placeholder}
+                    size={minimal ? 'small' : 'medium'}
                     InputProps={{
                         ...params.InputProps,
                         endAdornment: (

@@ -8,16 +8,12 @@ export interface IShippingRule extends Document {
     priority: number;
 
     // Conditions
-    conditions: {
-        countries?: string[]; // ISO country codes
-        states?: string[];
-        cities?: string[];
-        categoryIds?: mongoose.Types.ObjectId[];
-        minWeight?: number;
-        maxWeight?: number;
-        minOrderValue?: number;
-        maxOrderValue?: number;
-    };
+    geoGroupId?: mongoose.Types.ObjectId; // Reference to GeoGroup for country matching
+    categoryIds?: mongoose.Types.ObjectId[]; // Specific categories this rule applies to
+    minWeight?: number;
+    maxWeight?: number;
+    minOrderValue?: number;
+    maxOrderValue?: number;
 
     // Rate calculation
     rateType: 'flat' | 'per_kg' | 'free' | 'percentage';
@@ -53,21 +49,22 @@ const ShippingRuleSchema = new Schema<IShippingRule>(
             default: 0,
             comment: 'Higher priority rules are evaluated first',
         },
-        conditions: {
-            countries: [String],
-            states: [String],
-            cities: [String],
-            categoryIds: [
-                {
-                    type: Schema.Types.ObjectId,
-                    ref: 'Category',
-                },
-            ],
-            minWeight: Number,
-            maxWeight: Number,
-            minOrderValue: Number,
-            maxOrderValue: Number,
+        // Conditions - simplified to geoGroupId
+        geoGroupId: {
+            type: Schema.Types.ObjectId,
+            ref: 'GeoGroup',
         },
+        categoryIds: [
+            {
+                type: Schema.Types.ObjectId,
+                ref: 'Category',
+            },
+        ],
+        minWeight: Number,
+        maxWeight: Number,
+        minOrderValue: Number,
+        maxOrderValue: Number,
+        // Rate calculation
         rateType: {
             type: String,
             enum: ['flat', 'per_kg', 'free', 'percentage'],
@@ -93,6 +90,7 @@ const ShippingRuleSchema = new Schema<IShippingRule>(
 // Indexes
 ShippingRuleSchema.index({ storeId: 1, isActive: 1 });
 ShippingRuleSchema.index({ priority: -1 });
+ShippingRuleSchema.index({ geoGroupId: 1 });
 
 const ShippingRule = mongoose.model<IShippingRule>('ShippingRule', ShippingRuleSchema);
 

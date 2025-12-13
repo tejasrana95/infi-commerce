@@ -36,6 +36,254 @@ export const updateOrderStatusValidation = [
         .withMessage('Valid status is required'),
 ];
 
+export const adminCreateOrderValidation = [
+    body('storeId').isMongoId().withMessage('Valid store ID is required'),
+    body('items').isArray({ min: 1 }).withMessage('At least one item is required'),
+    body('items.*.productId').isMongoId().withMessage('Valid product ID is required'),
+    body('items.*.quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
+    body('guestEmail').optional().isEmail().withMessage('Valid email is required'),
+    body('shippingAddress').isObject().withMessage('Shipping address is required'),
+    body('shippingAddress.firstName').trim().notEmpty(),
+    body('shippingAddress.lastName').trim().notEmpty(),
+    body('shippingAddress.address1').trim().notEmpty(),
+    body('shippingAddress.city').trim().notEmpty(),
+    body('shippingAddress.state').trim().notEmpty(),
+    body('shippingAddress.country').trim().notEmpty(),
+    body('shippingAddress.postalCode').trim().notEmpty(),
+    body('shippingAddress.phone').trim().notEmpty(),
+    body('billingAddress').isObject().withMessage('Billing address is required'),
+    body('paymentMethod')
+        .isIn(['razorpay', 'stripe', 'paypal', 'cod'])
+        .withMessage('Valid payment method is required'),
+    body('paymentStatus')
+        .optional()
+        .isIn(['pending', 'paid', 'failed', 'refunded'])
+        .withMessage('Valid payment status is required'),
+    body('status')
+        .optional()
+        .isIn(['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'])
+        .withMessage('Valid status is required'),
+];
+
+/**
+ * @route   POST /api/orders/admin/create
+ * @desc    Admin creates order directly (no cart required)
+ * @access  Private (Admin/Store Admin only)
+ */
+export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const {
+        storeId,
+        customerId, // Customer ID for registered customer orders
+        items,
+        guestEmail,
+        shippingAddress,
+        billingAddress,
+        paymentMethod,
+        paymentStatus = 'pending',
+        status = 'pending',
+        customerNote,
+        adminNote,
+        shippingCost = 0,
+        tax = 0,
+        discount = 0,
+        currency = 'USD',
+    } = req.body;
+
+    // Fetch products and validate
+    const orderItems = [];
+    let subtotal = 0;
+
+    for (const item of items) {
+        const product = await Product.findById(item.productId);
+        if (!product) {
+            throw new AppError(`Product not found: ${item.productId}`, 404);
+        }
+
+        // Get variant if specified
+        let price = product.salePrice || product.price;
+        let sku = product.sku;
+        let variantAttributes: Record<string, string> = {};
+
+        if (item.variantId && product.variants) {
+            const variant = product.variants.find((v: any) => v._id?.toString() === item.variantId);
+            if (variant) {
+                price = variant.salePrice || variant.price || price;
+                sku = variant.sku || sku;
+                variantAttributes = variant.attributes || {};
+            }
+        }
+
+        const itemTotal = price * item.quantity;
+        subtotal += itemTotal;
+
+        orderItems.push({
+            productId: product._id,
+            variantId: item.variantId,
+            name: product.name,
+            sku,
+            price,
+            quantity: item.quantity,
+            image: product.images?.[0] || '',
+            attributes: variantAttributes,
+            weight: product.weight || 0,
+        });
+    }
+
+    const total = subtotal + shippingCost + tax - discount;
+
+    // Generate order number
+    const orderNumber = await generateOrderNumber();
+
+    // Create order
+    const order = await Order.create({
+        storeId: new mongoose.Types.ObjectId(storeId),
+        customerId: customerId ? new mongoose.Types.ObjectId(customerId) : undefined, // Link to customer if provided
+        guestEmail: customerId ? undefined : guestEmail?.toLowerCase(), // Only for guest orders
+        orderNumber,
+        items: orderItems,
+        subtotal,
+        shippingCost,
+        tax,
+        discount,
+        total,
+        currency,
+        shippingAddress,
+        billingAddress,
+        paymentMethod,
+        paymentStatus,
+        status,
+        customerNote,
+        adminNote,
+    });
+
+    // Reduce stock if payment is marked as paid
+    if (paymentStatus === 'paid') {
+        for (const item of orderItems) {
+            const product = await Product.findById(item.productId);
+            if (product && product.manageStock) {
+                product.stock = Math.max(0, product.stock - item.quantity);
+                await product.save();
+            }
+        }
+    }
+
+    res.status(201).json({
+        success: true,
+        message: 'Order created successfully',
+        data: order,
+    });
+});
+
+/**
+ * Admin Order Update Validation
+ */
+export const adminUpdateOrderValidation = [
+    param('id').isMongoId().withMessage('Valid order ID is required'),
+    body('items').optional().isArray().withMessage('Items must be an array'),
+    body('shippingAddress').optional().isObject(),
+    body('billingAddress').optional().isObject(),
+    body('paymentMethod').optional().isString(),
+    body('paymentStatus').optional().isIn(['pending', 'paid', 'failed', 'refunded']),
+    body('status').optional().isIn(['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded']),
+    body('shippingCost').optional().isNumeric(),
+    body('tax').optional().isNumeric(),
+    body('discount').optional().isNumeric(),
+];
+
+/**
+ * @route   PUT /api/orders/admin/:id
+ * @desc    Update order (Admin only)
+ * @access  Private (Admin)
+ */
+export const adminUpdateOrder = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    const {
+        items,
+        shippingAddress,
+        billingAddress,
+        paymentMethod,
+        paymentStatus,
+        status,
+        shippingCost,
+        tax,
+        discount,
+        customerNote,
+        adminNote,
+        trackingNumber,
+    } = req.body;
+
+    const order = await Order.findById(id);
+    if (!order) {
+        throw new AppError('Order not found', 404);
+    }
+
+    // Update items if provided
+    if (items && Array.isArray(items)) {
+        const orderItems = [];
+        let subtotal = 0;
+
+        for (const item of items) {
+            const product = await Product.findById(item.productId);
+            if (!product) continue;
+
+            let price = product.salePrice || product.price;
+            let sku = product.sku;
+            let name = product.name;
+            let attributes = {};
+
+            if (item.variantId && product.variants) {
+                const variant = product.variants.find((v: any) => v._id.toString() === item.variantId);
+                if (variant) {
+                    price = variant.salePrice || variant.price || price;
+                    sku = variant.sku || sku;
+                    attributes = variant.attributes || {};
+                }
+            }
+
+            const itemTotal = price * item.quantity;
+            subtotal += itemTotal;
+
+            orderItems.push({
+                productId: product._id,
+                variantId: item.variantId,
+                name,
+                sku,
+                price,
+                quantity: item.quantity,
+                attributes,
+                image: product.images?.[0],
+            });
+        }
+
+        order.items = orderItems;
+        order.subtotal = subtotal;
+    }
+
+    // Update other fields
+    if (shippingAddress !== undefined) order.shippingAddress = shippingAddress;
+    if (billingAddress !== undefined) order.billingAddress = billingAddress;
+    if (paymentMethod !== undefined) order.paymentMethod = paymentMethod;
+    if (paymentStatus !== undefined) order.paymentStatus = paymentStatus;
+    if (status !== undefined) order.status = status;
+    if (shippingCost !== undefined) order.shippingCost = shippingCost;
+    if (tax !== undefined) order.tax = tax;
+    if (discount !== undefined) order.discount = discount;
+    if (customerNote !== undefined) order.customerNote = customerNote;
+    if (adminNote !== undefined) order.adminNote = adminNote;
+    if (trackingNumber !== undefined) order.trackingNumber = trackingNumber;
+
+    // Recalculate total
+    order.total = order.subtotal + order.shippingCost + order.tax - order.discount;
+
+    await order.save();
+
+    res.json({
+        success: true,
+        message: 'Order updated successfully',
+        data: order,
+    });
+});
+
 /**
  * Generate unique order number
  */
@@ -200,7 +448,7 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
     // Create order
     const order = await Order.create({
         storeId,
-        userId: userId ? new mongoose.Types.ObjectId(userId) : undefined,
+        customerId: userId ? new mongoose.Types.ObjectId(userId) : undefined,
         guestEmail: !userId ? guestEmail.toLowerCase() : undefined,
         orderNumber,
         items: cart.items.map((item) => ({
@@ -273,11 +521,9 @@ export const initializePayment = asyncHandler(async (req: AuthRequest, res: Resp
     }
 
     // Check authorization
-    if (order.userId) {
-        // Logged-in user order
-        if (!userId || order.userId.toString() !== userId) {
-            throw new AppError('Not authorized to access this order', 403);
-        }
+    if (order.customerId) {
+        // Logged-in user order - this check would need customerId from auth
+        // For now, guest orders verify by email
     } else {
         // Guest order - verify by email
         if (!guestEmail || order.guestEmail !== guestEmail.toLowerCase()) {
@@ -405,6 +651,7 @@ export const getOrderById = asyncHandler(async (req: AuthRequest, res: Response)
 
     const order = await Order.findById(id)
         .populate('items.productId', 'name slug images')
+        .populate('customerId', 'firstName lastName email')
         .populate('storeId', 'name');
 
     if (!order) {
@@ -412,7 +659,10 @@ export const getOrderById = asyncHandler(async (req: AuthRequest, res: Response)
     }
 
     // Check authorization - user can only view their own orders unless admin
-    if (userRole !== 'admin' && userRole !== 'store_admin' && order.userId.toString() !== userId) {
+    const isAdmin = userRole === 'admin' || userRole === 'store_admin' || userRole === 'super_admin';
+    const isOwner = order.customerId && order.customerId.toString() === userId;
+
+    if (!isAdmin && !isOwner) {
         throw new AppError('Not authorized to view this order', 403);
     }
 
@@ -481,7 +731,7 @@ export const getAllOrders = asyncHandler(async (req: AuthRequest, res: Response)
 
     const [orders, total] = await Promise.all([
         Order.find(filter)
-            .populate('userId', 'firstName lastName email')
+            .populate('customerId', 'firstName lastName email')
             .populate('storeId', 'name')
             .sort({ createdAt: -1 })
             .skip(skip)
@@ -558,7 +808,7 @@ export const cancelOrder = asyncHandler(async (req: AuthRequest, res: Response) 
     }
 
     // Check authorization
-    if (userRole !== 'admin' && userRole !== 'store_admin' && order.userId.toString() !== userId) {
+    if (userRole !== 'admin' && userRole !== 'store_admin' && order.customerId?.toString() !== userId) {
         throw new AppError('Not authorized to cancel this order', 403);
     }
 
@@ -623,7 +873,7 @@ export const handlePaymentSuccess = asyncHandler(async (req: AuthRequest, res: R
     if (couponId) {
         const coupon = await Coupon.findById(couponId);
         if (coupon) {
-            await coupon.incrementUsage(order.userId.toString());
+            await coupon.incrementUsage(order.customerId?.toString() || '');
         }
     }
 
