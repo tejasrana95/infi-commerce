@@ -22,6 +22,7 @@ import StoreAutocomplete from '@/components/molecules/StoreAutocomplete';
 import CategoryAutocomplete from '@/components/molecules/CategoryAutocomplete';
 import FileManagerButton from '@/components/molecules/FileManagerButton';
 import { FileItem } from '@/types/file';
+import RichTextEditor from '../molecules/RichTextEditor';
 
 // Validation Schema
 const schema = z.object({
@@ -221,15 +222,15 @@ export default function CategoryForm({ initialData, onSubmit, isSubmitting = fal
                             name="description"
                             control={control}
                             render={({ field }) => (
-                                <TextField
-                                    {...field}
+
+                                <RichTextEditor
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
                                     label="Description"
-                                    fullWidth
-                                    multiline
-                                    rows={4}
+                                    variant="standard"
                                     error={!!errors.description}
                                     helperText={errors.description?.message}
-                                    placeholder="Category description..."
+                                    minHeight={200}
                                 />
                             )}
                         />

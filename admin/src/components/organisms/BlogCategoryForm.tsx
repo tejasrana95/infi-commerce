@@ -21,6 +21,7 @@ import { BlogCategory } from '@/types';
 import StoreAutocomplete from '@/components/molecules/StoreAutocomplete';
 import BlogCategoryAutocomplete from '@/components/molecules/BlogCategoryAutocomplete';
 import FileManagerButton from '@/components/molecules/FileManagerButton';
+import RichTextEditor from '@/components/molecules/RichTextEditor';
 import { FileItem } from '@/types/file';
 
 // Validation Schema
@@ -212,19 +213,20 @@ export default function BlogCategoryForm({ initialData, onSubmit, isSubmitting =
                         />
                     </Grid>
 
+
                     <Grid size={{ xs: 12 }}>
                         <Controller
                             name="description"
                             control={control}
                             render={({ field }) => (
-                                <TextField
-                                    {...field}
+                                <RichTextEditor
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
                                     label="Description"
-                                    fullWidth
-                                    multiline
-                                    rows={4}
+                                    variant="standard"
                                     error={!!errors.description}
                                     helperText={errors.description?.message}
+                                    minHeight={200}
                                 />
                             )}
                         />

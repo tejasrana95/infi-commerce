@@ -35,6 +35,7 @@ import DownloadFilesField from './ProductForm/DownloadFilesField';
 import ProductOptionManager from './ProductForm/ProductOptionManager';
 import SpecificationManager from './ProductForm/SpecificationManager';
 import VariantManager from './ProductForm/VariantManager';
+import RichTextEditor from '../molecules/RichTextEditor';
 
 
 // Validation schema
@@ -457,15 +458,14 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
                                 name="description"
                                 control={control}
                                 render={({ field }) => (
-                                    <TextField
-                                        {...field}
+                                    <RichTextEditor
+                                        value={field.value || ''}
+                                        onChange={field.onChange}
                                         label="Description"
-                                        fullWidth
-                                        required
-                                        multiline
-                                        rows={6}
+                                        variant="standard"
                                         error={!!errors.description}
                                         helperText={errors.description?.message}
+                                        minHeight={200}
                                     />
                                 )}
                             />
