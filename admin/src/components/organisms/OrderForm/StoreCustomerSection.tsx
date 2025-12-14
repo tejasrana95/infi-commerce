@@ -5,7 +5,9 @@ import { Grid, FormControl, InputLabel, Select, MenuItem, Box, Typography, Alert
 import { useOrderForm } from './OrderFormContext';
 import { CustomerAutoComplete } from '@/components/molecules';
 import { CustomerOption } from '@/components/molecules/CustomerAutoComplete';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import api from '@/lib/api';
+import CurrencyAutocomplete from '@/components/molecules/CurrencyAutocomplete';
 
 export default function StoreCustomerSection() {
     const {
@@ -19,6 +21,8 @@ export default function StoreCustomerSection() {
         isEditing,
     } = useOrderForm();
 
+    const { baseCurrency } = useCurrency();
+
     useEffect(() => {
         const fetchStores = async () => {
             try {
@@ -30,6 +34,13 @@ export default function StoreCustomerSection() {
         };
         fetchStores();
     }, [setStores]);
+
+    // Set default currency to base currency when loaded
+    useEffect(() => {
+        if (baseCurrency && !currency) {
+            setCurrency(baseCurrency.code);
+        }
+    }, [baseCurrency, currency, setCurrency]);
 
     const handleCustomerChange = (newCustomer: CustomerOption | null) => {
         setCustomer(newCustomer);
@@ -78,6 +89,10 @@ export default function StoreCustomerSection() {
         }
     };
 
+    const handleCurrencyChange = (value: string | string[] | null) => {
+        setCurrency((value as string) || '');
+    };
+
     return (
         <Box>
             <Typography variant="h6" gutterBottom>Store & Customer</Typography>
@@ -97,15 +112,11 @@ export default function StoreCustomerSection() {
                     </FormControl>
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
-                    <FormControl fullWidth>
-                        <InputLabel>Currency</InputLabel>
-                        <Select value={currency} label="Currency" onChange={(e) => setCurrency(e.target.value)}>
-                            <MenuItem value="USD">USD</MenuItem>
-                            <MenuItem value="EUR">EUR</MenuItem>
-                            <MenuItem value="GBP">GBP</MenuItem>
-                            <MenuItem value="INR">INR</MenuItem>
-                        </Select>
-                    </FormControl>
+                    <CurrencyAutocomplete
+                        value={currency}
+                        onChange={handleCurrencyChange}
+                        label="Currency"
+                    />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
                     <CustomerAutoComplete

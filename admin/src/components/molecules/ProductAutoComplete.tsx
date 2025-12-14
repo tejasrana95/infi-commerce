@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Autocomplete, TextField, CircularProgress, Box, Typography, Avatar } from '@mui/material';
 import api from '@/lib/api';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 export interface ProductOption {
     _id: string;
@@ -37,6 +38,7 @@ interface ProductAutoCompleteProps {
     placeholder?: string;
     size?: 'small' | 'medium';
     excludeIds?: string[];
+    currency?: string; // Optional: currency code for price display
 }
 
 export default function ProductAutoComplete({
@@ -51,10 +53,22 @@ export default function ProductAutoComplete({
     placeholder = 'Type to search products...',
     size = 'medium',
     excludeIds = [],
+    currency,
 }: ProductAutoCompleteProps) {
     const [options, setOptions] = useState<ProductOption[]>([]);
     const [loading, setLoading] = useState(false);
     const [inputValue, setInputValue] = useState('');
+
+    const { formatPrice, convertPrice, baseCurrency } = useCurrency();
+
+    // Format and convert price based on selected currency
+    const formatConvertedPrice = (amount: number) => {
+        if (!currency || currency === baseCurrency?.code) {
+            return formatPrice(amount);
+        }
+        const converted = convertPrice(amount, currency);
+        return formatPrice(converted, currency);
+    };
 
     const searchProducts = useCallback(async (query: string) => {
         if (!storeId || query.length < 2) {
@@ -83,9 +97,9 @@ export default function ProductAutoComplete({
     useEffect(() => {
         const timer = setTimeout(() => {
             searchProducts(inputValue);
-        }, 300);
+        }, 500);
         return () => clearTimeout(timer);
-    }, [inputValue, searchProducts]);
+    }, [inputValue]);
 
     return (
         <Autocomplete
@@ -114,7 +128,7 @@ export default function ProductAutoComplete({
                                 {option.name}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
-                                SKU: {option.sku} | ${option.salePrice || option.price}
+                                SKU: {option.sku} | {formatConvertedPrice(option.salePrice || option.price)}
                                 {option.stock !== undefined && ` | Stock: ${option.stock}`}
                             </Typography>
                         </Box>
@@ -144,3 +158,4 @@ export default function ProductAutoComplete({
         />
     );
 }
+

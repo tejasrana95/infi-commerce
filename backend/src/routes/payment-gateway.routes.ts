@@ -109,7 +109,7 @@ router.post('/available', getAvailableGateways);
 router.post(
     '/',
     authenticate,
-    authorize('admin', 'store_admin'),
+    authorize('admin', 'store_admin', 'super_admin'),
     validate(createGatewayConfigValidation),
     createGatewayConfig
 );
@@ -139,7 +139,7 @@ router.post(
  *       200:
  *         description: List of gateway configurations
  */
-router.get('/', authenticate, authorize('admin', 'store_admin'), getGatewayConfigs);
+router.get('/', authenticate, authorize('admin', 'store_admin', 'super_admin'), getGatewayConfigs);
 
 /**
  * @swagger
@@ -170,7 +170,7 @@ router.get('/', authenticate, authorize('admin', 'store_admin'), getGatewayConfi
 router.post(
     '/test-connection',
     authenticate,
-    authorize('admin', 'store_admin'),
+    authorize('admin', 'store_admin', 'super_admin'),
     testGatewayConnection
 );
 
@@ -192,7 +192,7 @@ router.post(
  *       200:
  *         description: Gateway configuration details
  */
-router.get('/:id', authenticate, authorize('admin', 'store_admin'), getGatewayConfigById);
+router.get('/:id', authenticate, authorize('admin', 'store_admin', 'super_admin'), getGatewayConfigById);
 
 /**
  * @swagger
@@ -221,7 +221,7 @@ router.get('/:id', authenticate, authorize('admin', 'store_admin'), getGatewayCo
 router.put(
     '/:id',
     authenticate,
-    authorize('admin', 'store_admin'),
+    authorize('admin', 'store_admin', 'super_admin'),
     validate(updateGatewayConfigValidation),
     updateGatewayConfig
 );
@@ -244,6 +244,6 @@ router.put(
  *       200:
  *         description: Gateway configuration deleted
  */
-router.delete('/:id', authenticate, authorize('admin', 'store_admin'), deleteGatewayConfig);
+router.delete('/:id', authenticate, authorize('admin', 'store_admin', 'super_admin'), deleteGatewayConfig);
 
 export default router;

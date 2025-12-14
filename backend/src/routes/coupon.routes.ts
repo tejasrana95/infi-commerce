@@ -91,7 +91,7 @@ const router = Router();
 router.post(
     '/',
     authenticate,
-    authorize('admin', 'store_admin'),
+    authorize('admin', 'store_admin', 'super_admin'),
     validate(createCouponValidation),
     createCoupon
 );
@@ -129,7 +129,7 @@ router.post(
  *       401:
  *         description: Unauthorized
  */
-router.get('/', authenticate, authorize('admin', 'store_admin'), getCoupons);
+router.get('/', authenticate, authorize('admin', 'store_admin', 'super_admin'), getCoupons);
 
 /**
  * @swagger
@@ -201,7 +201,7 @@ router.get('/store/:storeId/active', getActiveCoupons);
  *       404:
  *         description: Coupon not found
  */
-router.get('/:id', authenticate, authorize('admin', 'store_admin'), getCouponById);
+router.get('/:id', authenticate, authorize('admin', 'store_admin', 'super_admin'), getCouponById);
 
 /**
  * @swagger
@@ -232,7 +232,7 @@ router.get('/:id', authenticate, authorize('admin', 'store_admin'), getCouponByI
 router.put(
     '/:id',
     authenticate,
-    authorize('admin', 'store_admin'),
+    authorize('admin', 'store_admin', 'super_admin'),
     validate(updateCouponValidation),
     updateCoupon
 );
@@ -257,7 +257,7 @@ router.put(
  *       404:
  *         description: Coupon not found
  */
-router.delete('/:id', authenticate, authorize('admin', 'store_admin'), deleteCoupon);
+router.delete('/:id', authenticate, authorize('admin', 'store_admin', 'super_admin'), deleteCoupon);
 
 /**
  * @swagger

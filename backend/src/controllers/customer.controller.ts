@@ -96,7 +96,7 @@ export const getCustomerById = asyncHandler(async (req: AuthRequest, res: Respon
  * @access  Private (Admin)
  */
 export const createCustomer = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { email, password, firstName, lastName, phone, isActive = true, emailVerified = false } = req.body;
+    const { email, password, firstName, lastName, phone, isActive = true, emailVerified = false, addresses = [] } = req.body;
 
     // Check if email already exists
     const existingCustomer = await Customer.findOne({ email: email.toLowerCase() });
@@ -112,6 +112,7 @@ export const createCustomer = asyncHandler(async (req: AuthRequest, res: Respons
         phone,
         isActive,
         emailVerified,
+        addresses,
     });
 
     // Remove password from response

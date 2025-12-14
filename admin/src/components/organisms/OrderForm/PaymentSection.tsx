@@ -5,6 +5,7 @@ import { Box, Typography, Grid, TextField, FormControl, InputLabel, Select, Menu
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useOrderForm } from './OrderFormContext';
 import { PaymentMethod, PaymentStatus, OrderStatus } from '@/types/order';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import api from '@/lib/api';
 
 interface ShippingBreakdown {
@@ -56,6 +57,8 @@ export default function PaymentSection() {
         currency,
     } = useOrderForm();
 
+    const { formatPrice, convertPrice, baseCurrency } = useCurrency();
+
     const [calculatingShipping, setCalculatingShipping] = useState(false);
     const [shippingResult, setShippingResult] = useState<ShippingCalculationResult | null>(null);
     const [shippingError, setShippingError] = useState<string | null>(null);
@@ -106,8 +109,15 @@ export default function PaymentSection() {
         }
     }, [storeId, shippingAddress.country]);
 
+    // Convert from base currency to selected currency and format
     const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
+        // If same as base or no currency selected, just format
+        if (!currency || currency === baseCurrency?.code) {
+            return formatPrice(amount);
+        }
+        // Convert and format
+        const converted = convertPrice(amount, currency);
+        return formatPrice(converted, currency);
     };
 
     const getRuleTypeColor = (ruleType: string) => {

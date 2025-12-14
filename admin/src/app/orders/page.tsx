@@ -11,7 +11,7 @@ import { PageHeader, SearchFilterBar } from '@/components/molecules';
 import { LoadingSpinner } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
 import { createDataGridStyles } from '@/utils/styles';
-
+import { useCurrency } from '@/contexts/CurrencyContext';
 export default function OrdersPage() {
     const router = useRouter();
     const theme = useTheme();
@@ -24,7 +24,7 @@ export default function OrdersPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState<string>('');
     const [filterPaymentStatus, setFilterPaymentStatus] = useState<string>('');
-
+    const { convertAndFormat } = useCurrency();
     useEffect(() => {
         fetchOrders();
     }, []);
@@ -112,13 +112,6 @@ export default function OrdersPage() {
         return order.guestEmail || '';
     };
 
-    const formatCurrency = (amount: number, currency: string): string => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: currency || 'USD'
-        }).format(amount);
-    };
-
     const columns: GridColDef[] = [
         {
             field: 'orderNumber',
@@ -167,7 +160,7 @@ export default function OrdersPage() {
             width: 120,
             renderCell: (params: GridRenderCellParams) => (
                 <Typography variant="body2" fontWeight={600}>
-                    {formatCurrency(params.row.total, params.row.currency)}
+                    {convertAndFormat(params.row.total, params.row.currency)}
                 </Typography>
             ),
         },

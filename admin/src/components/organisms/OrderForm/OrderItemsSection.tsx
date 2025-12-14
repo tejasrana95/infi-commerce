@@ -30,6 +30,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { useOrderForm } from './OrderFormContext';
 import { ProductAutoComplete } from '@/components/molecules';
 import { ProductOption } from '@/components/molecules/ProductAutoComplete';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 interface Variant {
     _id: string;
@@ -51,6 +52,8 @@ export default function OrderItemsSection() {
         subtotal,
         currency,
     } = useOrderForm();
+
+    const { formatPrice, convertPrice, baseCurrency } = useCurrency();
 
     // Variant selection dialog state
     const [variantDialogOpen, setVariantDialogOpen] = useState(false);
@@ -112,8 +115,15 @@ export default function OrderItemsSection() {
         );
     };
 
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
+    // Convert from base currency to selected currency and format
+    const formatConvertedPrice = (amount: number) => {
+        // If same as base or no currency selected, just format
+        if (!currency || currency === baseCurrency?.code) {
+            return formatPrice(amount);
+        }
+        // Convert and format
+        const converted = convertPrice(amount, currency);
+        return formatPrice(converted, currency);
     };
 
     const selectedVariant = getSelectedVariant();
@@ -128,6 +138,7 @@ export default function OrderItemsSection() {
                 onChange={handleProductSelect}
                 label="Add Product"
                 placeholder="Search products by name or SKU..."
+                currency={currency}
             />
 
             {items.length === 0 ? (
@@ -159,7 +170,7 @@ export default function OrderItemsSection() {
                                         </Typography>
                                     </TableCell>
                                     <TableCell align="right">
-                                        {formatCurrency(item.price)}
+                                        {formatConvertedPrice(item.price)}
                                     </TableCell>
                                     <TableCell align="center">
                                         <TextField
@@ -173,7 +184,7 @@ export default function OrderItemsSection() {
                                     </TableCell>
                                     <TableCell align="right">
                                         <Typography fontWeight={500}>
-                                            {formatCurrency(item.price * item.quantity)}
+                                            {formatConvertedPrice(item.price * item.quantity)}
                                         </Typography>
                                     </TableCell>
                                     <TableCell>
@@ -192,7 +203,7 @@ export default function OrderItemsSection() {
             <Paper sx={{ mt: 2, p: 2, bgcolor: 'grey.50' }}>
                 <Box display="flex" justifyContent="space-between">
                     <Typography variant="subtitle1" fontWeight={500}>Subtotal ({items.length} items):</Typography>
-                    <Typography variant="subtitle1" fontWeight={600}>{formatCurrency(subtotal)}</Typography>
+                    <Typography variant="subtitle1" fontWeight={600}>{formatConvertedPrice(subtotal)}</Typography>
                 </Box>
                 <Typography variant="caption" color="text.secondary">
                     Shipping, tax, and discount will be calculated in the Payment step
@@ -226,7 +237,7 @@ export default function OrderItemsSection() {
                                                     {formatVariantLabel(variant)}
                                                 </Typography>
                                                 <Typography variant="caption" color="text.secondary">
-                                                    SKU: {variant.sku} | Price: {formatCurrency(variant.salePrice || variant.price || selectedProduct.price)}
+                                                    SKU: {variant.sku} | Price: {formatConvertedPrice(variant.salePrice || variant.price || selectedProduct.price)}
                                                     {variant.stock !== undefined && ` | Stock: ${variant.stock}`}
                                                 </Typography>
                                             </Box>
@@ -246,7 +257,7 @@ export default function OrderItemsSection() {
                                         <Grid size={{ xs: 6 }}>
                                             <Typography variant="caption" color="text.secondary">Price</Typography>
                                             <Typography variant="body2" fontWeight={600}>
-                                                {formatCurrency(selectedVariant.salePrice || selectedVariant.price || selectedProduct?.price || 0)}
+                                                {formatConvertedPrice(selectedVariant.salePrice || selectedVariant.price || selectedProduct?.price || 0)}
                                             </Typography>
                                         </Grid>
                                         {selectedVariant.weight && (

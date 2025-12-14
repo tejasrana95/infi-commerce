@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.scss";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
+import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import MUIThemeProvider from "@/theme/MUIThemeProvider";
 
 const geistSans = Geist({
@@ -31,7 +32,9 @@ export default function RootLayout({
         <MUIThemeProvider>
           <NotificationProvider>
             <AuthProvider>
-              {children}
+              <CurrencyProvider>
+                {children}
+              </CurrencyProvider>
             </AuthProvider>
           </NotificationProvider>
         </MUIThemeProvider>
@@ -39,3 +42,4 @@ export default function RootLayout({
     </html>
   );
 }
+

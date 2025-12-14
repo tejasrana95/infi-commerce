@@ -32,14 +32,13 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import EditIcon from '@mui/icons-material/Edit';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
-import AssignmentIcon from '@mui/icons-material/Assignment';
 import PaymentIcon from '@mui/icons-material/Payment';
 import PersonIcon from '@mui/icons-material/Person';
-import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { Order, OrderStatus } from '@/types/order';
 import LoadingSpinner from '@/components/atoms/LoadingSpinner';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 export default function OrderDetailPage() {
     const { id } = useParams();
@@ -48,7 +47,7 @@ export default function OrderDetailPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [actionLoading, setActionLoading] = useState(false);
-
+    const { convertAndFormat } = useCurrency();
     // Status update state
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -221,11 +220,11 @@ export default function OrderDetailPage() {
                                                 </Box>
                                             </TableCell>
                                             <TableCell align="right">
-                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: order.currency }).format(item.price)}
+                                                {convertAndFormat(item.price, order.currency)}
                                             </TableCell>
                                             <TableCell align="right">{item.quantity}</TableCell>
                                             <TableCell align="right" sx={{ fontWeight: 500 }}>
-                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: order.currency }).format(item.price * item.quantity)}
+                                                {convertAndFormat(item.price * item.quantity, order.currency)}
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -239,27 +238,29 @@ export default function OrderDetailPage() {
                         <Paper sx={{ width: '100%', maxWidth: 400, p: 2 }}>
                             <Box display="flex" justifyContent="space-between" mb={1}>
                                 <Typography color="text.secondary">Subtotal</Typography>
-                                <Typography>{new Intl.NumberFormat('en-US', { style: 'currency', currency: order.currency }).format(order.subtotal)}</Typography>
+                                <Typography>
+                                    {convertAndFormat(order.subtotal, order.currency)}
+                                </Typography>
                             </Box>
                             <Box display="flex" justifyContent="space-between" mb={1}>
                                 <Typography color="text.secondary">Shipping</Typography>
-                                <Typography>{new Intl.NumberFormat('en-US', { style: 'currency', currency: order.currency }).format(order.shippingCost)}</Typography>
+                                <Typography>{convertAndFormat(order.shippingCost, order.currency)}</Typography>
                             </Box>
                             <Box display="flex" justifyContent="space-between" mb={1}>
                                 <Typography color="text.secondary">Tax</Typography>
-                                <Typography>{new Intl.NumberFormat('en-US', { style: 'currency', currency: order.currency }).format(order.tax)}</Typography>
+                                <Typography>{convertAndFormat(order.tax, order.currency)}</Typography>
                             </Box>
                             {order.discount > 0 && (
                                 <Box display="flex" justifyContent="space-between" mb={1} color="success.main">
                                     <Typography>Discount</Typography>
-                                    <Typography>-{new Intl.NumberFormat('en-US', { style: 'currency', currency: order.currency }).format(order.discount)}</Typography>
+                                    <Typography>-{convertAndFormat(order.discount, order.currency)}</Typography>
                                 </Box>
                             )}
                             <Divider sx={{ my: 2 }} />
                             <Box display="flex" justifyContent="space-between" alignItems="center">
                                 <Typography variant="h6" fontWeight="bold">Total</Typography>
                                 <Typography variant="h6" fontWeight="bold" color="primary.main">
-                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: order.currency }).format(order.total)}
+                                    {convertAndFormat(order.total, order.currency)}
                                 </Typography>
                             </Box>
                         </Paper>

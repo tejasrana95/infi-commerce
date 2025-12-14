@@ -11,6 +11,7 @@ import { Product } from '@/types';
 import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules';
 import { LoadingSpinner, StatusChip } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { createDataGridStyles } from '@/utils/styles';
 
 export default function ProductsPage() {
@@ -19,6 +20,7 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const { showNotification } = useNotification();
+  const { formatPrice } = useCurrency();
   const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
 
   // Filter states
@@ -193,11 +195,11 @@ export default function ProductsPage() {
       renderCell: (params: GridRenderCellParams) => (
         <Box>
           <Typography variant="body2" fontWeight={600}>
-            ${params.row.price}
+            {formatPrice(params.row.price)}
           </Typography>
           {params.row.salePrice && (
             <Typography variant="caption" color="error">
-              Sale: ${params.row.salePrice}
+              Sale: {formatPrice(params.row.salePrice)}
             </Typography>
           )}
         </Box>

@@ -110,7 +110,7 @@ export const getCoupons = asyncHandler(async (req: AuthRequest, res: Response) =
 
     const [coupons, total] = await Promise.all([
         Coupon.find(filter)
-            .populate('categoryIds', 'name slug')
+            .populate('categoryIds', 'title slug')
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(Number(limit)),
@@ -137,7 +137,7 @@ export const getCoupons = asyncHandler(async (req: AuthRequest, res: Response) =
 export const getCouponById = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
 
-    const coupon = await Coupon.findById(id).populate('categoryIds', 'name slug');
+    const coupon = await Coupon.findById(id).populate('categoryIds', 'title slug');
 
     if (!coupon) {
         throw new AppError('Coupon not found', 404);
@@ -174,7 +174,7 @@ export const updateCoupon = asyncHandler(async (req: AuthRequest, res: Response)
     const coupon = await Coupon.findByIdAndUpdate(id, updateData, {
         new: true,
         runValidators: true,
-    }).populate('categoryIds', 'name slug');
+    }).populate('categoryIds', 'title slug');
 
     if (!coupon) {
         throw new AppError('Coupon not found', 404);
@@ -220,7 +220,7 @@ export const validateCoupon = asyncHandler(async (req: AuthRequest, res: Respons
     const coupon = await Coupon.findOne({
         code: code.toUpperCase(),
         storeId,
-    }).populate('categoryIds', 'name slug');
+    }).populate('categoryIds', 'title slug');
 
     if (!coupon) {
         throw new AppError('Invalid coupon code', 404);
