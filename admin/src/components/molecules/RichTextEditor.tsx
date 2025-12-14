@@ -426,7 +426,7 @@ export default function RichTextEditor({
                         outline: 'none',
                         minHeight: minHeight,
                     },
-                    '& .ProseMirror p.is-editor-empty:first-child::before': {
+                    '& .ProseMirror p.is-editor-empty:first-of-type::before': {
                         color: theme.palette.text.disabled,
                         content: 'attr(data-placeholder)',
                         float: 'left',

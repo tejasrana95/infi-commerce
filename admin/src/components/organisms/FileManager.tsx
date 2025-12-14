@@ -456,6 +456,8 @@ export default function FileManager({
                                     cursor: 'pointer',
                                     border: selectedFiles.find(f => f._id === file._id) ? 2 : 0,
                                     borderColor: 'primary.main',
+                                    position: 'relative',
+
                                 }}
                                 onClick={() => handleFileClick(file)}
                                 onContextMenu={(e) => handleContextMenu(e, file)}
@@ -495,7 +497,10 @@ export default function FileManager({
                                 </CardContent>
                                 <IconButton
                                     size="small"
-                                    sx={{ position: 'absolute', top: 4, right: 4 }}
+                                    sx={{
+                                        position: 'absolute', top: 4, right: 4, backgroundColor: 'primary.main', color: 'primary.contrastText', borderRadius: 50,
+                                        '&:hover': { backgroundColor: 'primary.dark' }
+                                    }}
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         handleContextMenu(e, file);
