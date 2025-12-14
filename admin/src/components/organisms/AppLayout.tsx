@@ -52,6 +52,10 @@ import PeopleIcon from '@mui/icons-material/People';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import ChecklistIcon from '@mui/icons-material/Checklist';
 import CommentIcon from '@mui/icons-material/Comment';
+import WebIcon from '@mui/icons-material/Web';
+import DashboardCustomizeIcon from '@mui/icons-material/DashboardCustomize';
+import ArticleIcon from '@mui/icons-material/Article';
+import RssFeedIcon from '@mui/icons-material/RssFeed';
 const drawerWidth = 260;
 
 interface NavItem {
@@ -85,6 +89,23 @@ const navigationItems: NavItem[] = [
       { name: 'Sales', href: '/sales', icon: <LocalOfferIcon /> },
       { name: 'Coupons', href: '/coupons', icon: <DiscountIcon /> },
       { name: 'Stores', href: '/stores', icon: <StoreIcon /> },
+    ],
+  },
+  {
+    name: 'Storefront',
+    icon: <WebIcon />,
+    children: [
+      { name: 'Layouts', href: '/layouts', icon: <DashboardCustomizeIcon /> },
+      { name: 'Menus', href: '/menus', icon: <MenuIcon /> },
+      { name: 'Pages', href: '/pages', icon: <ArticleIcon /> },
+      {
+        name: 'Blog',
+        icon: <RssFeedIcon />,
+        children: [
+          { name: 'Posts', href: '/blog/posts', icon: <ArticleIcon /> },
+          { name: 'Categories', href: '/blog/categories', icon: <CategoryIcon /> },
+        ],
+      },
     ],
   },
   {

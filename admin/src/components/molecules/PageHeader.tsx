@@ -1,6 +1,7 @@
 import { memo } from 'react';
-import { Box, Typography, Button } from '@mui/material';
+import { Box, Typography, Button, IconButton } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Link from 'next/link';
 
 interface PageHeaderProps {
@@ -9,6 +10,7 @@ interface PageHeaderProps {
   actionLabel?: string;
   actionHref?: string;
   onAction?: () => void;
+  backUrl?: string;
 }
 
 const PageHeader = memo(({
@@ -16,7 +18,8 @@ const PageHeader = memo(({
   subtitle,
   actionLabel,
   actionHref,
-  onAction
+  onAction,
+  backUrl
 }: PageHeaderProps) => {
   return (
     <Box
@@ -27,20 +30,32 @@ const PageHeader = memo(({
       flexWrap="wrap"
       gap={1.5}
     >
-      <Box>
-        <Typography
-          variant="h5"
-          component="h1"
-          fontWeight={700}
-          sx={{ mb: subtitle ? 0.5 : 0 }}
-        >
-          {title}
-        </Typography>
-        {subtitle && (
-          <Typography variant="body2" color="text.secondary" fontSize="0.875rem">
-            {subtitle}
-          </Typography>
+      <Box display="flex" alignItems="center">
+        {backUrl && (
+          <IconButton
+            component={Link}
+            href={backUrl}
+            edge="start"
+            sx={{ mr: 1.5, color: 'text.secondary' }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
         )}
+        <Box>
+          <Typography
+            variant="h5"
+            component="h1"
+            fontWeight={700}
+            sx={{ mb: subtitle ? 0.5 : 0 }}
+          >
+            {title}
+          </Typography>
+          {subtitle && (
+            <Typography variant="body2" color="text.secondary" fontSize="0.875rem">
+              {subtitle}
+            </Typography>
+          )}
+        </Box>
       </Box>
       {(actionLabel && (actionHref || onAction)) && (
         actionHref ? (

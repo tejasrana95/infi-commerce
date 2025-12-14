@@ -295,3 +295,145 @@ export interface PaginatedResponse<T> {
   limit: number;
   totalPages: number;
 }
+
+export interface Theme {
+  _id: string;
+  name: string;
+  slug: string;
+  version: string;
+  description?: string;
+  thumbnail?: string;
+  author: string;
+  isSystem: boolean;
+  isActive: boolean;
+  colors: Record<string, string>;
+  typography: {
+    headings: { fontFamily: string; fontWeight: string };
+    body: { fontFamily: string; fontWeight: string };
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Layout {
+  _id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  type: 'page' | 'template';
+  template?: string | { _id: string; name: string };
+  sections: any[];
+  isActive: boolean;
+  isDefault: boolean;
+  storeId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MenuItem {
+  title: string;
+  type: 'link' | 'category' | 'product' | 'page' | 'custom';
+  url?: string;
+  referenceId?: string;
+  target: '_self' | '_blank';
+  children: MenuItem[];
+  // Mega menu fields
+  megaMenu?: {
+    enabled: boolean;
+    columns: any[];
+    featuredImage?: string;
+  };
+}
+
+export interface Menu {
+  _id: string;
+  name: string;
+  slug: string;
+  locations: string[];
+  items: MenuItem[];
+  isActive: boolean;
+  storeId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Page {
+  _id: string;
+  title: string;
+  slug: string;
+  contentMode: 'builder' | 'richtext';
+  layout?: string | Layout;
+  content?: string;
+  summary?: string;
+  status: 'published' | 'draft' | 'archived';
+  visibility: 'public' | 'private' | 'password';
+  publishedAt?: string;
+  seo?: {
+    metaTitle?: string;
+    metaDescription?: string;
+    keywords?: string[];
+    ogImage?: string;
+  };
+  storeId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BlogCategory {
+  _id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  parentCategory?: string | BlogCategory;
+  level: number;
+  path: string;
+  postCount: number;
+  isActive: boolean;
+  seo?: {
+    metaTitle?: string;
+    metaDescription?: string;
+    keywords?: string[];
+  };
+  storeId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BlogPost {
+  _id: string;
+  title: string;
+  slug: string;
+  content: string;
+  excerpt?: string;
+  featuredImage?: string;
+  categoryIds: (string | BlogCategory)[];
+  tags?: string[];
+  author?: {
+    name: string;
+    avatar?: string;
+    bio?: string;
+    userId?: string;
+  };
+  status: 'draft' | 'published' | 'archived' | 'scheduled';
+  publishedAt?: string;
+  scheduledAt?: string;
+  allowComments: boolean;
+  isFeatured: boolean;
+  isPinned: boolean;
+  seo?: {
+    metaTitle?: string;
+    metaDescription?: string;
+    keywords?: string[];
+    ogImage?: string;
+    ogTitle?: string;
+    ogDescription?: string;
+  };
+  stats: {
+    views: number;
+    likes: number;
+    comments: number;
+  };
+  storeId: string;
+  createdAt: string;
+  updatedAt: string;
+}

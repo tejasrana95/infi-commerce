@@ -387,11 +387,11 @@
 - [ ] Storefront public APIs
 
 #### Admin Panel - Basic Management (Week 2)
-- [ ] Layouts list page
-- [ ] Menus list page
-- [ ] Pages list & CRUD
-- [ ] Blog categories list & CRUD
-- [ ] Blog posts list & CRUD
+- [x] Layouts list page
+- [x] Menus list page
+- [/] Pages list & CRUD
+- [x] Blog categories list & CRUD
+- [x] Blog posts list & CRUD
 - [ ] Rich Text Editor component (TipTap)
 
 #### Admin Panel - Layout Designer UI (Week 3-4)

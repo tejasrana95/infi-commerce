@@ -66,12 +66,27 @@ export const getBlogCategories = asyncHandler(async (req: AuthRequest, res: Resp
     const filter: any = {};
     if (req.query.storeId) {
         filter.storeId = req.query.storeId;
-    } else {
-        throw new AppError('Store ID is required', 400);
+    } else if (req.user?.storeId) {
+        filter.storeId = req.user.storeId;
     }
 
     const categories = await BlogCategory.find(filter).sort({ sortOrder: 1, name: 1 });
     res.json({ categories });
+});
+
+/**
+ * @swagger
+ * /api/blog/categories/{id}:
+ *   get:
+ *     summary: Get blog category by ID
+ *     tags: [Blog]
+ */
+export const getBlogCategoryById = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const category = await BlogCategory.findById(req.params.id);
+    if (!category) {
+        throw new AppError('Category not found', 404);
+    }
+    res.json({ category });
 });
 
 /**
@@ -216,11 +231,13 @@ export const createBlogPost = asyncHandler(async (req: AuthRequest, res: Respons
 export const getBlogPosts = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { storeId, status, categoryId, tag, limit = 10, page = 1 } = req.query;
 
-    if (!storeId) {
-        throw new AppError('Store ID is required', 400);
+    const filter: any = {};
+    if (storeId) {
+        filter.storeId = storeId;
+    } else if (req.user?.storeId) {
+        filter.storeId = req.user.storeId;
     }
 
-    const filter: any = { storeId };
     if (status) filter.status = status;
     if (categoryId) filter.categoryIds = categoryId;
     if (tag) filter.tags = tag;
