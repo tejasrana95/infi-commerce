@@ -7,11 +7,25 @@ import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import api from '@/lib/api';
-import { Attribute } from '@/types';
 import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules';
 import { LoadingSpinner } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
 import { createDataGridStyles } from '@/utils/styles';
+
+interface Attribute {
+  _id: string;
+  name: string;
+  slug: string;
+  type: 'select' | 'multiselect' | 'checkbox' | 'text' | 'number';
+  options?: string[];
+  unit?: string;
+  isFilterable: boolean;
+  isComparable: boolean;
+  isRequired: boolean;
+  categoryIds?: { _id: string; name: string }[];
+  sortOrder: number;
+  storeId: { _id: string; name: string } | string;
+}
 
 export default function AttributesPage() {
   const router = useRouter();
@@ -21,7 +35,6 @@ export default function AttributesPage() {
   const { showNotification } = useNotification();
   const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
 
-  // Filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStore, setFilterStore] = useState<string>('');
   const [filterType, setFilterType] = useState<string>('');
@@ -33,10 +46,10 @@ export default function AttributesPage() {
   const fetchAttributes = async () => {
     try {
       const response = await api.get('/attributes');
-      setAttributes(response.data.attributes || response.data.data || []);
+      setAttributes(response.data.data || response.data.attributes || []);
     } catch (err) {
       console.error('Failed to fetch attributes');
-      showNotification('Failed to load attributes', 'error');
+      showNotification('Failed to load specifications', 'error');
       setAttributes([]);
     } finally {
       setLoading(false);
@@ -44,11 +57,11 @@ export default function AttributesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this attribute?')) return;
+    if (!confirm('Are you sure you want to delete this specification?')) return;
     try {
       await api.delete(`/attributes/${id}`);
       setAttributes(attributes.filter(a => a._id !== id));
-      showNotification('Attribute deleted successfully', 'success');
+      showNotification('Specification deleted successfully', 'success');
     } catch (err: any) {
       showNotification(err.response?.data?.message || 'Failed to delete', 'error');
     }
@@ -62,47 +75,40 @@ export default function AttributesPage() {
     router.push('/attributes/new');
   };
 
-  const handleStoreFilterChange = (value: string) => {
-    setFilterStore(value);
-  };
-
   const filteredRows = attributes.filter((attribute) => {
     const query = searchQuery.toLowerCase();
-
-    // Search filter
-    const matchesSearch = !searchQuery || (
-      (attribute.name && attribute.name.toLowerCase().includes(query)) ||
-      (attribute.slug && attribute.slug.toLowerCase().includes(query))
-    );
-
-    // Store filter
-    const attributeStoreId = typeof attribute.storeId === 'object' && attribute.storeId !== null
-      ? attribute.storeId._id
-      : attribute.storeId;
+    const matchesSearch = !searchQuery || attribute.name.toLowerCase().includes(query) || attribute.slug.toLowerCase().includes(query);
+    const attributeStoreId = typeof attribute.storeId === 'object' ? attribute.storeId._id : attribute.storeId;
     const matchesStore = !filterStore || attributeStoreId === filterStore;
-
-    // Type filter
     const matchesType = !filterType || attribute.type === filterType;
-
     return matchesSearch && matchesStore && matchesType;
   });
 
   const getStoreName = (storeId: any) => {
-    if (typeof storeId === 'object' && storeId !== null) {
-      return storeId.name;
-    }
+    if (typeof storeId === 'object' && storeId !== null) return storeId.name;
     return '-';
   };
 
   const getTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
-      select: 'Select',
+      select: 'Dropdown',
       multiselect: 'Multi-Select',
+      checkbox: 'Checkbox',
       text: 'Text',
-      color: 'Color',
-      size: 'Size',
+      number: 'Number',
     };
     return labels[type] || type;
+  };
+
+  const getTypeColor = (type: string): 'primary' | 'secondary' | 'success' | 'info' | 'warning' => {
+    const colors: Record<string, 'primary' | 'secondary' | 'success' | 'info' | 'warning'> = {
+      select: 'primary',
+      multiselect: 'secondary',
+      checkbox: 'success',
+      text: 'info',
+      number: 'warning',
+    };
+    return colors[type] || 'primary';
   };
 
   const columns: GridColDef[] = [
@@ -126,10 +132,24 @@ export default function AttributesPage() {
         <Chip
           label={getTypeLabel(params.value as string)}
           size="small"
-          color="primary"
+          color={getTypeColor(params.value as string)}
           variant="outlined"
         />
       ),
+    },
+    {
+      field: 'options',
+      headerName: 'Options/Unit',
+      width: 150,
+      renderCell: (params: GridRenderCellParams) => {
+        const attr = params.row as Attribute;
+        if (attr.type === 'select' || attr.type === 'multiselect') {
+          return <Typography variant="body2" color="text.secondary">{attr.options?.length || 0} options</Typography>;
+        } else if (attr.type === 'number' && attr.unit) {
+          return <Typography variant="body2" color="text.secondary">Unit: {attr.unit}</Typography>;
+        }
+        return <Typography variant="body2" color="text.secondary">-</Typography>;
+      },
     },
     {
       field: 'storeId',
@@ -140,39 +160,19 @@ export default function AttributesPage() {
       ),
     },
     {
-      field: 'values',
-      headerName: 'Values',
-      width: 100,
-      renderCell: (params: GridRenderCellParams) => (
-        <Typography variant="body2" color="text.secondary">
-          {params.row.values?.length || 0} values
-        </Typography>
-      ),
-    },
-    {
       field: 'isFilterable',
       headerName: 'Filterable',
-      width: 100,
+      width: 90,
       renderCell: (params: GridRenderCellParams) => (
-        <Chip
-          label={params.value ? 'Yes' : 'No'}
-          size="small"
-          color={params.value ? 'success' : 'default'}
-          variant={params.value ? 'filled' : 'outlined'}
-        />
+        <Chip label={params.value ? 'Yes' : 'No'} size="small" color={params.value ? 'success' : 'default'} variant={params.value ? 'filled' : 'outlined'} />
       ),
     },
     {
-      field: 'isVariation',
-      headerName: 'Variation',
-      width: 100,
+      field: 'isComparable',
+      headerName: 'Compare',
+      width: 90,
       renderCell: (params: GridRenderCellParams) => (
-        <Chip
-          label={params.value ? 'Yes' : 'No'}
-          size="small"
-          color={params.value ? 'info' : 'default'}
-          variant={params.value ? 'filled' : 'outlined'}
-        />
+        <Chip label={params.value ? 'Yes' : 'No'} size="small" color={params.value ? 'info' : 'default'} variant={params.value ? 'filled' : 'outlined'} />
       ),
     },
     {
@@ -197,15 +197,15 @@ export default function AttributesPage() {
     },
   ];
 
-  if (loading) return <LoadingSpinner message="Loading attributes..." />;
+  if (loading) return <LoadingSpinner message="Loading specifications..." />;
 
   if (attributes.length === 0 && !searchQuery && !filterStore && !filterType) {
     return (
       <Box>
-        <PageHeader title="Attributes" subtitle="Manage product attributes" />
+        <PageHeader title="Product Specifications" subtitle="Manage product specifications for display and comparison" />
         <EmptyState
-          message="No attributes found. Create your first attribute!"
-          actionLabel="Add Attribute"
+          message="No specifications found. Create your first specification attribute!"
+          actionLabel="Add Specification"
           onAction={handleCreate}
         />
       </Box>
@@ -215,14 +215,14 @@ export default function AttributesPage() {
   return (
     <Box>
       <PageHeader
-        title="Attributes"
-        subtitle="Manage product attributes"
-        actionLabel="Add Attribute"
+        title="Product Specifications"
+        subtitle="Manage product specifications for display and comparison"
+        actionLabel="Add Specification"
         onAction={handleCreate}
       />
 
       <SearchFilterBar
-        searchPlaceholder="Search attributes..."
+        searchPlaceholder="Search specifications..."
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
         filters={[
@@ -231,11 +231,11 @@ export default function AttributesPage() {
             label: 'Type',
             type: 'select',
             options: [
-              { value: 'select', label: 'Select' },
+              { value: 'select', label: 'Dropdown' },
               { value: 'multiselect', label: 'Multi-Select' },
+              { value: 'checkbox', label: 'Checkbox' },
               { value: 'text', label: 'Text' },
-              { value: 'color', label: 'Color' },
-              { value: 'size', label: 'Size' },
+              { value: 'number', label: 'Number' },
             ],
           },
         ]}
@@ -243,7 +243,7 @@ export default function AttributesPage() {
         onFilterChange={(filters) => setFilterType(filters.type as string || '')}
         showStoreFilter
         storeFilterValue={filterStore}
-        onStoreFilterChange={handleStoreFilterChange}
+        onStoreFilterChange={setFilterStore}
       />
 
       <Box sx={{ height: 600, width: '100%' }}>

@@ -10,8 +10,7 @@ export const createAttributeValidation = [
     body('name').trim().notEmpty().withMessage('Attribute name is required'),
     body('slug').trim().notEmpty().matches(/^[a-z0-9-]+$/).withMessage('Invalid slug format'),
     body('storeId').isMongoId().withMessage('Valid store ID is required'),
-    body('type').isIn(['select', 'multiselect', 'text', 'color', 'size']).withMessage('Invalid attribute type'),
-    body('values').isArray().withMessage('Values must be an array'),
+    body('type').isIn(['select', 'multiselect', 'checkbox', 'text', 'number']).withMessage('Invalid attribute type'),
 ];
 
 export const updateAttributeValidation = [
@@ -24,55 +23,13 @@ export const updateAttributeValidation = [
  * @swagger
  * /api/attributes:
  *   post:
- *     summary: Create a new attribute
+ *     summary: Create a new product attribute (for specifications)
  *     tags: [Attributes]
  *     security:
  *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - name
- *               - slug
- *               - storeId
- *               - type
- *               - values
- *             properties:
- *               name:
- *                 type: string
- *                 example: Color
- *               slug:
- *                 type: string
- *                 example: color
- *               storeId:
- *                 type: string
- *               type:
- *                 type: string
- *                 enum: [select, multiselect, text, color, size]
- *               values:
- *                 type: array
- *                 items:
- *                   type: object
- *                   properties:
- *                     label:
- *                       type: string
- *                     value:
- *                       type: string
- *                     colorCode:
- *                       type: string
- *               isFilterable:
- *                 type: boolean
- *               isVariation:
- *                 type: boolean
- *     responses:
- *       201:
- *         description: Attribute created successfully
  */
 export const createAttribute = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { name, slug, storeId, type, values, isFilterable, isVariation, sortOrder } = req.body;
+    const { name, slug, storeId, type, options, unit, isFilterable, isComparable, isRequired, categoryIds, sortOrder } = req.body;
 
     // Verify store exists
     const store = await Store.findById(storeId);
@@ -92,15 +49,19 @@ export const createAttribute = asyncHandler(async (req: AuthRequest, res: Respon
         slug,
         storeId,
         type,
-        values,
+        options: options || [],
+        unit,
         isFilterable: isFilterable !== undefined ? isFilterable : true,
-        isVariation: isVariation !== undefined ? isVariation : false,
+        isComparable: isComparable !== undefined ? isComparable : true,
+        isRequired: isRequired !== undefined ? isRequired : false,
+        categoryIds: categoryIds || [],
         sortOrder: sortOrder || 0,
     });
 
     res.status(201).json({
+        success: true,
         message: 'Attribute created successfully',
-        attribute,
+        data: attribute,
     });
 });
 
@@ -108,24 +69,8 @@ export const createAttribute = asyncHandler(async (req: AuthRequest, res: Respon
  * @swagger
  * /api/attributes:
  *   get:
- *     summary: Get all attributes
+ *     summary: Get all product attributes
  *     tags: [Attributes]
- *     parameters:
- *       - in: query
- *         name: storeId
- *         schema:
- *           type: string
- *       - in: query
- *         name: isFilterable
- *         schema:
- *           type: boolean
- *       - in: query
- *         name: isVariation
- *         schema:
- *           type: boolean
- *     responses:
- *       200:
- *         description: Attributes retrieved successfully
  */
 export const getAttributes = asyncHandler(async (req: AuthRequest, res: Response) => {
     const filter: any = {};
@@ -138,15 +83,27 @@ export const getAttributes = asyncHandler(async (req: AuthRequest, res: Response
         filter.isFilterable = req.query.isFilterable === 'true';
     }
 
-    if (req.query.isVariation !== undefined) {
-        filter.isVariation = req.query.isVariation === 'true';
+    if (req.query.isComparable !== undefined) {
+        filter.isComparable = req.query.isComparable === 'true';
+    }
+
+    if (req.query.categoryId) {
+        filter.categoryIds = req.query.categoryId;
+    }
+
+    if (req.query.type) {
+        filter.type = req.query.type;
     }
 
     const attributes = await Attribute.find(filter)
         .populate('storeId', 'name slug')
+        .populate('categoryIds', 'name slug')
         .sort({ sortOrder: 1, name: 1 });
 
-    res.json({ attributes });
+    res.json({
+        success: true,
+        data: attributes,
+    });
 });
 
 /**
@@ -155,26 +112,20 @@ export const getAttributes = asyncHandler(async (req: AuthRequest, res: Response
  *   get:
  *     summary: Get attribute by ID
  *     tags: [Attributes]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Attribute retrieved successfully
- *       404:
- *         description: Attribute not found
  */
 export const getAttributeById = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const attribute = await Attribute.findById(req.params.id).populate('storeId', 'name slug');
+    const attribute = await Attribute.findById(req.params.id)
+        .populate('storeId', 'name slug')
+        .populate('categoryIds', 'name slug');
 
     if (!attribute) {
         throw new AppError('Attribute not found', 404);
     }
 
-    res.json({ attribute });
+    res.json({
+        success: true,
+        data: attribute,
+    });
 });
 
 /**
@@ -183,23 +134,6 @@ export const getAttributeById = asyncHandler(async (req: AuthRequest, res: Respo
  *   put:
  *     summary: Update attribute
  *     tags: [Attributes]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *     responses:
- *       200:
- *         description: Attribute updated successfully
  */
 export const updateAttribute = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
@@ -227,8 +161,9 @@ export const updateAttribute = asyncHandler(async (req: AuthRequest, res: Respon
     await attribute.save();
 
     res.json({
+        success: true,
         message: 'Attribute updated successfully',
-        attribute,
+        data: attribute,
     });
 });
 
@@ -238,17 +173,6 @@ export const updateAttribute = asyncHandler(async (req: AuthRequest, res: Respon
  *   delete:
  *     summary: Delete attribute
  *     tags: [Attributes]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Attribute deleted successfully
  */
 export const deleteAttribute = asyncHandler(async (req: AuthRequest, res: Response) => {
     const attribute = await Attribute.findByIdAndDelete(req.params.id);
@@ -258,6 +182,7 @@ export const deleteAttribute = asyncHandler(async (req: AuthRequest, res: Respon
     }
 
     res.json({
+        success: true,
         message: 'Attribute deleted successfully',
     });
 });
@@ -268,117 +193,122 @@ export const deleteAttribute = asyncHandler(async (req: AuthRequest, res: Respon
  *   get:
  *     summary: Get filterable attributes for product filters
  *     tags: [Attributes]
- *     parameters:
- *       - in: query
- *         name: storeId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Filterable attributes retrieved
  */
 export const getFilterableAttributes = asyncHandler(async (req: AuthRequest, res: Response) => {
     if (!req.query.storeId) {
         throw new AppError('Store ID is required', 400);
     }
 
-    const attributes = await Attribute.find({
+    const filter: any = {
         storeId: req.query.storeId,
         isFilterable: true,
-    }).sort({ sortOrder: 1, name: 1 });
+    };
 
-    res.json({ attributes });
-});
-
-/**
- * @swagger
- * /api/attributes/{id}/values:
- *   post:
- *     summary: Add value to attribute
- *     tags: [Attributes]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               label:
- *                 type: string
- *               value:
- *                 type: string
- *               colorCode:
- *                 type: string
- *     responses:
- *       200:
- *         description: Value added successfully
- */
-export const addAttributeValue = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const attribute = await Attribute.findById(req.params.id);
-    if (!attribute) {
-        throw new AppError('Attribute not found', 404);
+    // Filter by category if provided
+    if (req.query.categoryId) {
+        filter.$or = [
+            { categoryIds: { $size: 0 } }, // No category restriction
+            { categoryIds: req.query.categoryId }, // Matches the category
+        ];
     }
 
-    const { label, value, colorCode, image } = req.body;
-
-    // Check if value already exists
-    const existingValue = attribute.values.find((v) => v.value === value);
-    if (existingValue) {
-        throw new AppError('Value already exists for this attribute', 400);
-    }
-
-    attribute.values.push({ label, value, colorCode, image });
-    await attribute.save();
+    const attributes = await Attribute.find(filter).sort({ sortOrder: 1, name: 1 });
 
     res.json({
-        message: 'Value added successfully',
-        attribute,
+        success: true,
+        data: attributes,
     });
 });
 
 /**
  * @swagger
- * /api/attributes/{id}/values/{valueId}:
- *   delete:
- *     summary: Remove value from attribute
+ * /api/attributes/comparable:
+ *   get:
+ *     summary: Get comparable attributes for product comparison
  *     tags: [Attributes]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: valueId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Value removed successfully
  */
-export const removeAttributeValue = asyncHandler(async (req: AuthRequest, res: Response) => {
+export const getComparableAttributes = asyncHandler(async (req: AuthRequest, res: Response) => {
+    if (!req.query.storeId) {
+        throw new AppError('Store ID is required', 400);
+    }
+
+    const filter: any = {
+        storeId: req.query.storeId,
+        isComparable: true,
+    };
+
+    if (req.query.categoryId) {
+        filter.$or = [
+            { categoryIds: { $size: 0 } },
+            { categoryIds: req.query.categoryId },
+        ];
+    }
+
+    const attributes = await Attribute.find(filter).sort({ sortOrder: 1, name: 1 });
+
+    res.json({
+        success: true,
+        data: attributes,
+    });
+});
+
+/**
+ * @swagger
+ * /api/attributes/{id}/options:
+ *   post:
+ *     summary: Add option to select/multiselect attribute
+ *     tags: [Attributes]
+ */
+export const addAttributeOption = asyncHandler(async (req: AuthRequest, res: Response) => {
     const attribute = await Attribute.findById(req.params.id);
     if (!attribute) {
         throw new AppError('Attribute not found', 404);
     }
 
-    attribute.values = attribute.values.filter((v: any) => v._id.toString() !== req.params.valueId);
+    if (!['select', 'multiselect'].includes(attribute.type)) {
+        throw new AppError('Options can only be added to select or multiselect attributes', 400);
+    }
+
+    const { option } = req.body;
+
+    if (!option || typeof option !== 'string') {
+        throw new AppError('Option value is required', 400);
+    }
+
+    if (attribute.options?.includes(option)) {
+        throw new AppError('Option already exists', 400);
+    }
+
+    attribute.options = [...(attribute.options || []), option];
     await attribute.save();
 
     res.json({
-        message: 'Value removed successfully',
-        attribute,
+        success: true,
+        message: 'Option added successfully',
+        data: attribute,
+    });
+});
+
+/**
+ * @swagger
+ * /api/attributes/{id}/options/{option}:
+ *   delete:
+ *     summary: Remove option from attribute
+ *     tags: [Attributes]
+ */
+export const removeAttributeOption = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const attribute = await Attribute.findById(req.params.id);
+    if (!attribute) {
+        throw new AppError('Attribute not found', 404);
+    }
+
+    const optionToRemove = decodeURIComponent(req.params.option);
+    attribute.options = attribute.options?.filter(opt => opt !== optionToRemove) || [];
+    await attribute.save();
+
+    res.json({
+        success: true,
+        message: 'Option removed successfully',
+        data: attribute,
     });
 });

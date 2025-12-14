@@ -53,11 +53,24 @@ export interface IProduct extends Document {
     downloadLimit?: number;
     downloadExpiry?: number; // days
 
-    // Attributes (linked to Attribute model for filters)
+    // Product Options (for variants - linked to ProductOption model)
+    productOptions?: Array<{
+        optionId: mongoose.Types.ObjectId;
+        values: string[]; // Selected values from option
+        isVariation: boolean; // Used for variations
+    }>;
+
+    // Legacy Attributes (for backward compatibility)
     attributes?: Array<{
         attributeId: mongoose.Types.ObjectId;
-        values: string[]; // Selected values from attribute
-        isVariation: boolean; // Used for variations
+        values: string[];
+        isVariation: boolean;
+    }>;
+
+    // Specifications (for product details - linked to new Attribute model)
+    specifications?: Array<{
+        attributeId: mongoose.Types.ObjectId;
+        value: any; // Can be string, number, boolean, or array
     }>;
 
     // Variable product variants
@@ -252,7 +265,22 @@ const ProductSchema = new Schema<IProduct>(
         downloadLimit: Number,
         downloadExpiry: Number,
 
-        // Attributes (linked to Attribute model)
+        // Product Options (for variants - linked to ProductOption model)
+        productOptions: [
+            {
+                optionId: {
+                    type: Schema.Types.ObjectId,
+                    ref: 'ProductOption',
+                },
+                values: [String],
+                isVariation: {
+                    type: Boolean,
+                    default: true,
+                },
+            },
+        ],
+
+        // Legacy Attributes (for backward compatibility)
         attributes: [
             {
                 attributeId: {
@@ -264,6 +292,17 @@ const ProductSchema = new Schema<IProduct>(
                     type: Boolean,
                     default: false,
                 },
+            },
+        ],
+
+        // Specifications (for product details)
+        specifications: [
+            {
+                attributeId: {
+                    type: Schema.Types.ObjectId,
+                    ref: 'Attribute',
+                },
+                value: Schema.Types.Mixed, // Can be string, number, boolean, or array
             },
         ],
 

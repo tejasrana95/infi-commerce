@@ -288,25 +288,29 @@ export const adminUpdateOrder = asyncHandler(async (req: AuthRequest, res: Respo
  * Generate unique order number
  */
 const generateOrderNumber = async (): Promise<string> => {
-    const date = new Date();
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const prefix = `ORD-${year}${month}`;
 
-    // Find the last order of the day
-    const startOfDay = new Date(date.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(date.setHours(23, 59, 59, 999));
+    // Find the last order of the current month by searching for order numbers with this prefix
+    const startOfMonth = new Date(year, now.getMonth(), 1, 0, 0, 0, 0);
+    const endOfMonth = new Date(year, now.getMonth() + 1, 0, 23, 59, 59, 999);
 
     const lastOrder = await Order.findOne({
-        createdAt: { $gte: startOfDay, $lte: endOfDay },
-    }).sort({ createdAt: -1 });
+        orderNumber: { $regex: `^${prefix}` },
+        createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+    }).sort({ orderNumber: -1 });
 
     let sequence = 1;
     if (lastOrder && lastOrder.orderNumber) {
         const lastSequence = parseInt(lastOrder.orderNumber.split('-').pop() || '0');
-        sequence = lastSequence + 1;
+        if (!isNaN(lastSequence)) {
+            sequence = lastSequence + 1;
+        }
     }
 
-    return `ORD-${year}${month}-${String(sequence).padStart(6, '0')}`;
+    return `${prefix}-${String(sequence).padStart(6, '0')}`;
 };
 
 /**

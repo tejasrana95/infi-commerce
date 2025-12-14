@@ -6,8 +6,9 @@ import {
     updateAttribute,
     deleteAttribute,
     getFilterableAttributes,
-    addAttributeValue,
-    removeAttributeValue,
+    getComparableAttributes,
+    addAttributeOption,
+    removeAttributeOption,
     createAttributeValidation,
     updateAttributeValidation,
 } from '../controllers/attribute.controller';
@@ -16,9 +17,10 @@ import { validate } from '../middleware/validation';
 
 const router = Router();
 
-// Public routes
+// Public routes - for product filtering and comparison
 router.get('/', getAttributes);
 router.get('/filterable', getFilterableAttributes);
+router.get('/comparable', getComparableAttributes);
 router.get('/:id', getAttributeById);
 
 // Protected routes (admin only)
@@ -45,18 +47,19 @@ router.delete(
     deleteAttribute
 );
 
+// Option management for select/multiselect attributes
 router.post(
-    '/:id/values',
+    '/:id/options',
     authenticate,
     authorize('admin', 'store_admin', 'super_admin'),
-    addAttributeValue
+    addAttributeOption
 );
 
 router.delete(
-    '/:id/values/:valueId',
+    '/:id/options/:option',
     authenticate,
     authorize('admin', 'store_admin', 'super_admin'),
-    removeAttributeValue
+    removeAttributeOption
 );
 
 export default router;

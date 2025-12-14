@@ -32,7 +32,8 @@ import FileManagerButton from '../molecules/FileManagerButton';
 import VideosField from './ProductForm/VideosField';
 import GeoLimitsField from './ProductForm/GeoLimitsField';
 import DownloadFilesField from './ProductForm/DownloadFilesField';
-import AttributeManager from './ProductForm/AttributeManager';
+import ProductOptionManager from './ProductForm/ProductOptionManager';
+import SpecificationManager from './ProductForm/SpecificationManager';
 import VariantManager from './ProductForm/VariantManager';
 
 
@@ -89,11 +90,22 @@ const schema = z.object({
         title: z.string().optional(),
     })).optional(),
 
-    // Attributes & Variants
+    // Product Options & Variants (for variable products)
+    productOptions: z.array(z.object({
+        optionId: z.string(),
+        values: z.array(z.string()),
+        isVariation: z.boolean(),
+    })).optional(),
+    // Legacy attributes field for backward compatibility
     attributes: z.array(z.object({
         attributeId: z.string(),
         values: z.array(z.string()),
         isVariation: z.boolean(),
+    })).optional(),
+    // Product Specifications (for product details)
+    specifications: z.array(z.object({
+        attributeId: z.string(),
+        value: z.any(),
     })).optional(),
     variants: z.array(z.object({
         sku: z.string(),
@@ -193,7 +205,9 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
             images: [],
             featuredImage: '',
             videos: [],
+            productOptions: [],
             attributes: [],
+            specifications: [],
             variants: [],
             downloadFiles: [],
             downloadLimit: undefined,
@@ -272,9 +286,17 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
             setValue('images', initialData.images || []);
             setValue('featuredImage', initialData.featuredImage || '');
             setValue('videos', initialData.videos || []);
+            setValue('productOptions', initialData.productOptions?.map((opt: any) => ({
+                ...opt,
+                optionId: typeof opt.optionId === 'object' ? opt.optionId._id : opt.optionId
+            })) || []);
             setValue('attributes', initialData.attributes?.map((attr: any) => ({
                 ...attr,
                 attributeId: typeof attr.attributeId === 'object' ? attr.attributeId._id : attr.attributeId
+            })) || []);
+            setValue('specifications', initialData.specifications?.map((spec: any) => ({
+                ...spec,
+                attributeId: typeof spec.attributeId === 'object' ? spec.attributeId._id : spec.attributeId
             })) || []);
             setValue('variants', initialData.variants || []);
             setValue('downloadFiles', initialData.downloadFiles || []);
@@ -330,11 +352,12 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
     return (
         <Box component="form" id="product-form" onSubmit={handleSubmit(handleFormSubmit, (errors) => console.error('Form Errors:', errors))}>
             <Paper sx={{ mb: 3 }}>
-                <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
+                <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)} variant="scrollable" scrollButtons="auto">
                     <Tab label="Basic Info" />
                     <Tab label="Pricing & Inventory" />
                     <Tab label="Media" />
                     <Tab label="Variants & Downloads" />
+                    <Tab label="Specifications" />
                     <Tab label="SEO & Settings" />
                     <Tab label="Other" />
                 </Tabs>
@@ -977,7 +1000,7 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
                         {/* Variable Product Section */}
                         {watchType === 'variable' && (
                             <>
-                                <AttributeManager control={control} watchStoreId={watchStoreId} />
+                                <ProductOptionManager control={control} watchStoreId={watchStoreId} />
                                 <VariantManager control={control} watch={watch} />
                             </>
                         )}
@@ -996,8 +1019,17 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
                 </Paper>
             )}
 
-            {/* SEO & Settings Tab */}
+            {/* Specifications Tab */}
             {activeTab === 4 && (
+                <Paper sx={{ p: 3 }}>
+                    <Grid container spacing={3}>
+                        <SpecificationManager control={control} watchStoreId={watchStoreId} />
+                    </Grid>
+                </Paper>
+            )}
+
+            {/* SEO & Settings Tab */}
+            {activeTab === 5 && (
                 <Paper sx={{ p: 3 }}>
                     <Grid container spacing={3}>
                         <Grid size={{ xs: 12 }}>
@@ -1202,7 +1234,7 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
             )}
 
             {/* Other Tab */}
-            {activeTab === 5 && (
+            {activeTab === 6 && (
                 <Paper sx={{ p: 3 }}>
                     <Grid container spacing={3}>
                         <GeoLimitsField control={control} watch={watch} />

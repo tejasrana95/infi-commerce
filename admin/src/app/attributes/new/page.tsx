@@ -18,10 +18,10 @@ export default function NewAttributePage() {
     setIsSubmitting(true);
     try {
       await api.post('/attributes', data);
-      showNotification('Attribute created successfully', 'success');
+      showNotification('Specification created successfully', 'success');
       router.push('/attributes');
     } catch (err: any) {
-      showNotification(err.response?.data?.message || 'Failed to create attribute', 'error');
+      showNotification(err.response?.data?.message || 'Failed to create specification', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -38,12 +38,12 @@ export default function NewAttributePage() {
         onClick={handleCancel}
         sx={{ mb: 2 }}
       >
-        Back to Attributes
+        Back to Specifications
       </Button>
 
       <PageHeader
-        title="Add New Attribute"
-        subtitle="Create a new product attribute"
+        title="Add Product Specification"
+        subtitle="Create a new specification for product details (e.g., Screen Size, Weight, Material)"
       />
 
       <AttributeForm
@@ -65,7 +65,7 @@ export default function NewAttributePage() {
           disabled={isSubmitting}
           form="attribute-form"
         >
-          {isSubmitting ? 'Creating...' : 'Create Attribute'}
+          {isSubmitting ? 'Creating...' : 'Create Specification'}
         </Button>
       </Paper>
     </Box>

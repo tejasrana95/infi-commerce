@@ -7,28 +7,28 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import api from '@/lib/api';
 import { PageHeader } from '@/components/molecules';
 import { LoadingSpinner } from '@/components/atoms';
-import AttributeForm from '@/components/organisms/AttributeForm';
+import ProductOptionForm from '@/components/organisms/ProductOptionForm';
 import { useNotification } from '@/contexts/NotificationContext';
 
-export default function EditAttributePage() {
+export default function EditProductOptionPage() {
     const router = useRouter();
     const params = useParams();
     const { showNotification } = useNotification();
-    const [attribute, setAttribute] = useState<any>(null);
+    const [productOption, setProductOption] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        fetchAttribute();
+        fetchProductOption();
     }, []);
 
-    const fetchAttribute = async () => {
+    const fetchProductOption = async () => {
         try {
-            const response = await api.get(`/attributes/${params.id}`);
-            setAttribute(response.data.data || response.data.attribute);
+            const response = await api.get(`/product-options/${params.id}`);
+            setProductOption(response.data.productOption || response.data.data);
         } catch (err) {
-            showNotification('Failed to load specification', 'error');
-            router.push('/attributes');
+            showNotification('Failed to load product option', 'error');
+            router.push('/product-options');
         } finally {
             setLoading(false);
         }
@@ -37,21 +37,21 @@ export default function EditAttributePage() {
     const handleSubmit = async (data: any) => {
         setIsSubmitting(true);
         try {
-            await api.put(`/attributes/${params.id}`, data);
-            showNotification('Specification updated successfully', 'success');
-            router.push('/attributes');
+            await api.put(`/product-options/${params.id}`, data);
+            showNotification('Product option updated successfully', 'success');
+            router.push('/product-options');
         } catch (err: any) {
-            showNotification(err.response?.data?.message || 'Failed to update specification', 'error');
+            showNotification(err.response?.data?.message || 'Failed to update product option', 'error');
         } finally {
             setIsSubmitting(false);
         }
     };
 
     const handleCancel = () => {
-        router.push('/attributes');
+        router.push('/product-options');
     };
 
-    if (loading) return <LoadingSpinner message="Loading specification..." />;
+    if (loading) return <LoadingSpinner message="Loading product option..." />;
 
     return (
         <Box>
@@ -60,16 +60,16 @@ export default function EditAttributePage() {
                 onClick={handleCancel}
                 sx={{ mb: 2 }}
             >
-                Back to Specifications
+                Back to Product Options
             </Button>
 
             <PageHeader
-                title={`Edit: ${attribute?.name || 'Specification'}`}
-                subtitle="Update product specification"
+                title={`Edit: ${productOption?.name || 'Product Option'}`}
+                subtitle="Update product variant option"
             />
 
-            <AttributeForm
-                initialData={attribute}
+            <ProductOptionForm
+                initialData={productOption}
                 onSubmit={handleSubmit}
                 isSubmitting={isSubmitting}
             />
@@ -86,7 +86,7 @@ export default function EditAttributePage() {
                     type="submit"
                     variant="contained"
                     disabled={isSubmitting}
-                    form="attribute-form"
+                    form="product-option-form"
                 >
                     {isSubmitting ? 'Saving...' : 'Save Changes'}
                 </Button>

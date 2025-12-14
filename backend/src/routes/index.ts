@@ -5,6 +5,7 @@ import storeRoutes from './store.routes';
 import categoryRoutes from './category.routes';
 import productRoutes from './product.routes';
 import attributeRoutes from './attribute.routes';
+import productOptionRoutes from './productOption.routes';
 import brandRoutes from './brand.routes';
 import saleRoutes from './sale.routes';
 import currencyRoutes from './currency.routes';
@@ -36,7 +37,10 @@ router.use('/categories', categoryRoutes);
 // Mount product routes
 router.use('/products', productRoutes);
 
-// Mount attribute routes
+// Mount product option routes (for variants - formerly attributes)
+router.use('/product-options', productOptionRoutes);
+
+// Mount attribute routes (legacy - will be replaced with new attribute system)
 router.use('/attributes', attributeRoutes);
 
 // Mount brand routes

@@ -14,46 +14,46 @@ interface VariantManagerProps {
 }
 
 export default function VariantManager({ control, watch }: VariantManagerProps) {
-    const [allAttributes, setAllAttributes] = useState<any[]>([]);
-    const formAttributes = watch('attributes') || [];
+    const [allProductOptions, setAllProductOptions] = useState<any[]>([]);
+    const formProductOptions = watch('productOptions') || [];
     const watchStoreId = watch('storeId');
 
-    // Filter only attributes marked for variation
-    const variationAttributes = formAttributes.filter((a: any) => a.isVariation);
+    // Filter only options marked for variation
+    const variationOptions = formProductOptions.filter((o: any) => o.isVariation);
 
-    // Fetch all attributes to get names
+    // Fetch all product options to get names and values
     useEffect(() => {
-        const fetchAttributes = async () => {
+        const fetchProductOptions = async () => {
             if (watchStoreId) {
                 try {
-                    const response = await api.get('/attributes', {
+                    const response = await api.get('/product-options', {
                         params: { storeId: watchStoreId }
                     });
-                    setAllAttributes(response.data.attributes || []);
+                    setAllProductOptions(response.data.productOptions || []);
                 } catch (err) {
-                    console.error('Failed to fetch attributes');
+                    console.error('Failed to fetch product options');
                 }
             }
         };
-        fetchAttributes();
+        fetchProductOptions();
     }, [watchStoreId]);
 
-    const getAttributeName = (attrId: any) => {
-        if (typeof attrId === 'object' && attrId?.name) return attrId.name;
-        return allAttributes.find(a => a._id === attrId)?.name || 'Attribute';
+    const getOptionName = (optionId: any) => {
+        if (typeof optionId === 'object' && optionId?.name) return optionId.name;
+        return allProductOptions.find(o => o._id === optionId)?.name || 'Option';
     };
 
-    const getAttributeId = (attr: any) => {
-        return typeof attr.attributeId === 'object' ? attr.attributeId._id : attr.attributeId;
+    const getOptionId = (opt: any) => {
+        return typeof opt.optionId === 'object' ? opt.optionId._id : opt.optionId;
     };
 
     return (
         <Grid size={{ xs: 12 }}>
             <Typography variant="h6" sx={{ mb: 2, mt: 4 }}>Product Variants</Typography>
 
-            {variationAttributes.length === 0 ? (
+            {variationOptions.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
-                    No attributes marked for variation. Go to "Product Attributes" and select "Use for variations" on at least one attribute.
+                    No product options marked for variation. Go to "Product Options" above and select "Use for variations" on at least one option.
                 </Typography>
             ) : (
                 <Controller
@@ -71,7 +71,7 @@ export default function VariantManager({ control, watch }: VariantManagerProps) 
                                     stock: 0,
                                     weight: 0,
                                     images: [],
-                                    attributes: {}, // Will be filled by selects
+                                    attributes: {}, // Store option values here for variants
                                     dimensions: { length: 0, width: 0, height: 0 }
                                 }
                             ]);
@@ -87,13 +87,13 @@ export default function VariantManager({ control, watch }: VariantManagerProps) 
                             field.onChange(updated);
                         };
 
-                        const handleAttributeChange = (index: number, attrId: string, value: string) => {
+                        const handleOptionChange = (index: number, optionId: string, value: string) => {
                             const updated = [...variants];
                             updated[index] = {
                                 ...updated[index],
                                 attributes: {
                                     ...updated[index].attributes,
-                                    [attrId]: value // Use ID as key
+                                    [optionId]: value // Use ID as key
                                 }
                             };
                             field.onChange(updated);
@@ -106,8 +106,8 @@ export default function VariantManager({ control, watch }: VariantManagerProps) 
                                         <TableHead>
                                             <TableRow>
                                                 <TableCell width={60}>Image</TableCell>
-                                                {variationAttributes.map((attr: any) => (
-                                                    <TableCell key={getAttributeId(attr)}>{getAttributeName(attr.attributeId)}</TableCell>
+                                                {variationOptions.map((opt: any) => (
+                                                    <TableCell key={getOptionId(opt)}>{getOptionName(opt.optionId)}</TableCell>
                                                 ))}
                                                 <TableCell width={150}>SKU</TableCell>
                                                 <TableCell width={120}>Price</TableCell>
@@ -167,23 +167,23 @@ export default function VariantManager({ control, watch }: VariantManagerProps) 
                                                             />
                                                         </Box>
                                                     </TableCell>
-                                                    {variationAttributes.map((attr: any) => {
-                                                        const attrId = getAttributeId(attr);
-                                                        const attrName = getAttributeName(attr.attributeId);
+                                                    {variationOptions.map((opt: any) => {
+                                                        const optionId = getOptionId(opt);
+                                                        const optionName = getOptionName(opt.optionId);
                                                         // Check both ID and Name for legacy support
-                                                        const selectedValue = variant.attributes?.[attrId] || variant.attributes?.[attrName] || '';
+                                                        const selectedValue = variant.attributes?.[optionId] || variant.attributes?.[optionName] || '';
 
                                                         return (
-                                                            <TableCell key={attrId}>
+                                                            <TableCell key={optionId}>
                                                                 <Select
                                                                     value={selectedValue}
-                                                                    onChange={(e) => handleAttributeChange(index, attrId, e.target.value)}
+                                                                    onChange={(e) => handleOptionChange(index, optionId, e.target.value)}
                                                                     fullWidth
                                                                     size="small"
                                                                     displayEmpty
                                                                 >
-                                                                    <MenuItem value="" disabled>Select {attrName}</MenuItem>
-                                                                    {attr.values.map((val: string) => (
+                                                                    <MenuItem value="" disabled>Select {optionName}</MenuItem>
+                                                                    {opt.values.map((val: string) => (
                                                                         <MenuItem key={val} value={val}>{val}</MenuItem>
                                                                     ))}
                                                                 </Select>
