@@ -71,6 +71,15 @@ const schema = z.object({
         taxEnabled: z.boolean().optional(),
         taxRate: z.number().min(0).max(100).optional(),
         shippingEnabled: z.boolean().optional(),
+        // Review settings
+        reviewSettings: z.object({
+            allowReviews: z.boolean().optional(),
+            allowGuestReviews: z.boolean().optional(),
+            requireGuestEmailVerification: z.boolean().optional(),
+            requireApproval: z.boolean().optional(),
+            allowImages: z.boolean().optional(),
+            maxImagesPerReview: z.number().min(1).max(10).optional(),
+        }).optional(),
     }).optional(),
 });
 
@@ -108,6 +117,14 @@ const defaultValues: FormData = {
         requireEmailVerification: false,
         taxEnabled: false,
         shippingEnabled: true,
+        reviewSettings: {
+            allowReviews: true,
+            allowGuestReviews: true,
+            requireGuestEmailVerification: false,
+            requireApproval: true,
+            allowImages: true,
+            maxImagesPerReview: 5,
+        },
     },
 };
 
@@ -151,6 +168,14 @@ export default function StoreForm({ initialData, onSubmit, isSubmitting = false 
                     taxEnabled: initialData.settings?.taxEnabled ?? false,
                     taxRate: initialData.settings?.taxRate,
                     shippingEnabled: initialData.settings?.shippingEnabled ?? true,
+                    reviewSettings: {
+                        allowReviews: initialData.settings?.reviewSettings?.allowReviews ?? true,
+                        allowGuestReviews: initialData.settings?.reviewSettings?.allowGuestReviews ?? true,
+                        requireGuestEmailVerification: initialData.settings?.reviewSettings?.requireGuestEmailVerification ?? false,
+                        requireApproval: initialData.settings?.reviewSettings?.requireApproval ?? true,
+                        allowImages: initialData.settings?.reviewSettings?.allowImages ?? true,
+                        maxImagesPerReview: initialData.settings?.reviewSettings?.maxImagesPerReview ?? 5,
+                    },
                 },
             });
         } else {
@@ -680,6 +705,89 @@ export default function StoreForm({ initialData, onSubmit, isSubmitting = false 
                                 <FormControlLabel
                                     control={<Switch checked={field.value} onChange={field.onChange} />}
                                     label="Maintenance Mode"
+                                />
+                            )}
+                        />
+                    </Grid>
+
+                    {/* Review Settings Section */}
+                    <Grid size={{ xs: 12 }}>
+                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>Reviews</Typography>
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <Controller
+                            name="settings.reviewSettings.allowReviews"
+                            control={control}
+                            render={({ field }) => (
+                                <FormControlLabel
+                                    control={<Switch checked={field.value} onChange={field.onChange} />}
+                                    label="Allow Reviews"
+                                />
+                            )}
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <Controller
+                            name="settings.reviewSettings.allowGuestReviews"
+                            control={control}
+                            render={({ field }) => (
+                                <FormControlLabel
+                                    control={<Switch checked={field.value} onChange={field.onChange} />}
+                                    label="Allow Guest Reviews"
+                                />
+                            )}
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <Controller
+                            name="settings.reviewSettings.requireGuestEmailVerification"
+                            control={control}
+                            render={({ field }) => (
+                                <FormControlLabel
+                                    control={<Switch checked={field.value} onChange={field.onChange} />}
+                                    label="Require Guest Email Verification"
+                                />
+                            )}
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <Controller
+                            name="settings.reviewSettings.requireApproval"
+                            control={control}
+                            render={({ field }) => (
+                                <FormControlLabel
+                                    control={<Switch checked={field.value} onChange={field.onChange} />}
+                                    label="Require Approval Before Publishing"
+                                />
+                            )}
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <Controller
+                            name="settings.reviewSettings.allowImages"
+                            control={control}
+                            render={({ field }) => (
+                                <FormControlLabel
+                                    control={<Switch checked={field.value} onChange={field.onChange} />}
+                                    label="Allow Images in Reviews"
+                                />
+                            )}
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <Controller
+                            name="settings.reviewSettings.maxImagesPerReview"
+                            control={control}
+                            render={({ field: { onChange, value, ...field } }) => (
+                                <TextField
+                                    {...field}
+                                    value={value || ''}
+                                    onChange={(e) => onChange(e.target.value ? Number(e.target.value) : undefined)}
+                                    label="Max Images Per Review"
+                                    type="number"
+                                    fullWidth
+                                    slotProps={{ htmlInput: { min: 1, max: 10 } }}
+                                    helperText="Maximum number of images allowed per review (1-10)"
                                 />
                             )}
                         />

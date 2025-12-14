@@ -20,6 +20,15 @@ import webhookRoutes from './webhook.routes';
 import fileRoutes from './file.routes';
 import customerRoutes from './customer.routes';
 import adminRoutes from './admin.routes';
+import reviewRoutes from './review.routes';
+
+// Layout Designer Routes
+import themeRoutes from './theme.routes';
+import menuRoutes from './menu.routes';
+import layoutRoutes from './layout.routes';
+import pageRoutes from './page.routes';
+import blogRoutes from './blog.routes';
+import globalElementsRoutes from './global-elements.routes';
 
 const router = Router();
 
@@ -85,5 +94,28 @@ router.use('/customers', customerRoutes);
 // Mount admin management routes
 router.use('/admins', adminRoutes);
 
+// Mount review routes
+router.use('/reviews', reviewRoutes);
+
+// --- Layout Designer Routes ---
+// Mount theme routes
+router.use('/themes', themeRoutes);
+
+// Mount menu routes
+router.use('/menus', menuRoutes);
+
+// Mount layout routes
+router.use('/layouts', layoutRoutes);
+
+// Mount page routes
+router.use('/pages', pageRoutes);
+
+// Mount blog routes
+router.use('/blog', blogRoutes);
+
+// Mount global elements routes
+router.use('/global', globalElementsRoutes);
+
 export default router;
+
 

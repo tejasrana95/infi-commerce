@@ -51,6 +51,7 @@ import PaymentIcon from '@mui/icons-material/Payment';
 import PeopleIcon from '@mui/icons-material/People';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import ChecklistIcon from '@mui/icons-material/Checklist';
+import CommentIcon from '@mui/icons-material/Comment';
 const drawerWidth = 260;
 
 interface NavItem {
@@ -74,6 +75,7 @@ const navigationItems: NavItem[] = [
       { name: 'Product Options', href: '/product-options', icon: <StyleIcon /> },
       { name: 'Specifications', href: '/attributes', icon: <ChecklistIcon /> },
       { name: 'Brands', href: '/brands', icon: <LabelImportantIcon /> },
+      { name: 'Reviews', href: '/reviews', icon: <CommentIcon /> },
     ],
   },
   {

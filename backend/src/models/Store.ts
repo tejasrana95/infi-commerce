@@ -106,6 +106,17 @@ const StoreSchema = new Schema<IStore>(
                 requireEmailVerification: false,
                 taxEnabled: false,
                 shippingEnabled: true,
+                // Review settings
+                reviewSettings: {
+                    allowReviews: true,
+                    allowGuestReviews: true,
+                    requireGuestEmailVerification: false,
+                    requireApproval: true,
+                    minRating: 1,
+                    maxRating: 5,
+                    allowImages: true,
+                    maxImagesPerReview: 5,
+                },
             },
         },
     },

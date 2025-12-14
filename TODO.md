@@ -1,7 +1,7 @@
 # Multi-Store Ecommerce Platform - TODO Tracker
 
-**Last Updated**: 2025-12-11  
-**Overall Progress**: 25% Complete
+**Last Updated**: 2025-12-14  
+**Overall Progress**: 70% Complete
 
 ---
 
@@ -9,16 +9,16 @@
 
 | Component | Progress | Status |
 |-----------|----------|--------|
-| Backend API | 40% | 🟡 In Progress |
+| Backend API | 90% | � Nearly Complete |
 | Frontend | 5% | 🔴 Not Started |
-| Admin Panel | 5% | 🔴 Not Started |
+| Admin Panel | 85% | � Nearly Complete |
 | DevOps & Deployment | 0% | 🔴 Not Started |
 
 ---
 
 ## 🔧 Backend API
 
-### ✅ Completed (40%)
+### ✅ Completed (90%)
 
 - [x] Project structure setup
 - [x] TypeScript configuration
@@ -28,159 +28,77 @@
 - [x] Security middleware (Helmet, CORS, Compression)
 - [x] Error handling middleware
 - [x] Validation middleware
-- [x] **Models**: Store, User, Product, Category, Cart, Order, ShippingRule
 - [x] JWT authentication middleware
 - [x] Role-based authorization
-- [x] User registration endpoint
-- [x] User login endpoint
-- [x] Token refresh endpoint
-- [x] User profile endpoints (get/update)
-- [x] Shipping calculator service
 - [x] Password hashing with bcrypt
 
-### 🟡 In Progress (20%)
+#### Models (Complete)
+- [x] Store model (with reviewSettings)
+- [x] User model (admin users)
+- [x] Product model (with variants, options)
+- [x] Category model (hierarchical)
+- [x] Brand model
+- [x] Attribute model (specifications)
+- [x] ProductOption model
+- [x] Cart model
+- [x] Order model
+- [x] ShippingRule model
+- [x] PaymentGatewayConfig model
+- [x] Currency model
+- [x] Coupon model
+- [x] Sale model
+- [x] Review model
+- [x] Customer model
+- [x] File model
+- [x] Geo model (countries/zones)
+- [x] GeoGroup model
 
-- [/] Product API endpoints
-- [/] Store API endpoints
-- [/] Cart API endpoints
-- [/] Order API endpoints
+#### Controllers & APIs (Complete)
+- [x] Admin authentication (login, register, refresh token)
+- [x] Admin management CRUD
+- [x] Store CRUD + settings
+- [x] Product CRUD + variants
+- [x] Category CRUD
+- [x] Brand CRUD
+- [x] Attribute/Specifications CRUD
+- [x] ProductOption CRUD
+- [x] Cart APIs
+- [x] Order CRUD + status workflow
+- [x] Shipping rules CRUD + calculator
+- [x] Payment gateway configuration CRUD
+- [x] Currency CRUD
+- [x] Coupon CRUD + validation
+- [x] Sale/Promotion CRUD
+- [x] Review CRUD + moderation
+- [x] Customer CRUD + authentication
+- [x] File management (upload, folders, sync)
+- [x] Geo management (countries, zones)
+- [x] GeoGroup management
+- [x] Webhook handler (payment callbacks)
 
-### 🔴 Pending (40%)
+### 🔴 Pending (10%)
 
-#### Authentication & Social Integration (Priority: HIGH)
-- [ ] **Google OAuth integration**
-  - [ ] Add Passport.js Google strategy
-  - [ ] Create OAuth callback routes
-  - [ ] Store OAuth tokens in User model
-  - [ ] Admin panel configuration for Google credentials
-- [ ] **Facebook OAuth integration**
-  - [ ] Add Passport.js Facebook strategy
-  - [ ] Create OAuth callback routes
-  - [ ] Store OAuth tokens in User model
-  - [ ] Admin panel configuration for Facebook credentials
-- [ ] **Firebase integration for mobile verification**
-  - [ ] Set up Firebase Admin SDK
-  - [ ] Phone number verification endpoint
-  - [ ] OTP generation and validation
-  - [ ] Admin panel Firebase configuration
-- [ ] Social auth provider model (for admin configuration)
+#### Authentication Enhancements (Priority: MEDIUM)
+- [ ] Google OAuth integration
+- [ ] Facebook OAuth integration
+- [ ] Firebase phone verification
 - [ ] Email verification system
 - [ ] Password reset functionality
 - [ ] Two-factor authentication (2FA)
 
-#### Store Management
-- [ ] Create store endpoint (admin only)
-- [ ] Update store endpoint
-- [ ] Delete store endpoint
-- [ ] Get store by domain/subdomain
-- [ ] List all stores (admin only)
-- [ ] Store settings management
+#### Missing Features (Priority: HIGH)
+- [ ] Reports & Analytics endpoints
+- [ ] Bulk import/export APIs
+- [ ] Refunds/Returns (RMA) system
+- [ ] Inventory low-stock alerts
+- [ ] Email templates system
+- [ ] Wishlist API
 
-#### Product Management
-- [ ] Create product endpoint
-- [ ] Update product endpoint
-- [ ] Delete product endpoint
-- [ ] Get product by ID/slug
-- [ ] List products with filters (category, price, search)
-- [ ] Product search with full-text indexing
-- [ ] Bulk product import
-- [ ] Product image upload (AWS S3)
-- [ ] Product variant management
-- [ ] Digital product file upload
-- [ ] Product review system
-
-#### Category Management
-- [ ] Create category endpoint
-- [ ] Update category endpoint
-- [ ] Delete category endpoint
-- [ ] Get category tree
-- [ ] Category image upload
-
-#### Cart Management
-- [ ] Add item to cart
-- [ ] Update cart item quantity
-- [ ] Remove cart item
-- [ ] Get cart (with product details)
-- [ ] Clear cart
-- [ ] Merge guest cart with user cart on login
-- [ ] Cart abandonment tracking
-
-#### Order Management
-- [ ] Create order from cart
-- [ ] Get order by ID
-- [ ] List user orders
-- [ ] List all orders (admin)
-- [ ] Update order status
-- [ ] Cancel order
-- [ ] Refund order
-- [ ] Order tracking
-- [ ] Generate invoice PDF
-- [ ] Order email notifications
-
-#### Shipping
-- [ ] Create shipping rule endpoint
-- [ ] Update shipping rule endpoint
-- [ ] Delete shipping rule endpoint
-- [ ] List shipping rules
-- [ ] Calculate shipping endpoint (public)
-- [ ] Shipping rate preview
-
-#### Payment Gateway Integration
-- [ ] **Razorpay integration**
-  - [ ] Create payment order
-  - [ ] Verify payment signature
-  - [ ] Webhook handler
-  - [ ] Refund API
-- [ ] **Stripe integration**
-  - [ ] Create payment intent
-  - [ ] Confirm payment
-  - [ ] Webhook handler
-  - [ ] Refund API
-- [ ] **PayPal integration**
-  - [ ] Create order
-  - [ ] Capture payment
-  - [ ] Webhook handler
-  - [ ] Refund API
-- [ ] Payment gateway selection logic
-- [ ] Payment method configuration (admin)
-- [ ] Payment history tracking
-
-#### Multi-Currency
-- [ ] Currency model
-- [ ] Exchange rate API integration
-- [ ] Currency conversion service
-- [ ] Auto-update exchange rates (cron job)
-- [ ] Currency selection endpoint
-
-#### File Upload & Storage
-- [ ] AWS S3 configuration
-- [ ] Image upload endpoint
-- [ ] Image resize/optimize
-- [ ] Digital product file upload
-- [ ] Secure download link generation
-- [ ] File deletion
-
-#### Analytics & Reporting
-- [ ] Sales analytics endpoint
-- [ ] Product performance metrics
-- [ ] Customer analytics
-- [ ] Revenue reports
-- [ ] Inventory reports
-
-#### Email System
-- [ ] Email service setup (Nodemailer)
-- [ ] Order confirmation email
-- [ ] Shipping notification email
-- [ ] Password reset email
-- [ ] Welcome email
-- [ ] Email templates
-
-#### Testing
-- [ ] Unit tests for models
-- [ ] Unit tests for services
-- [ ] Integration tests for API endpoints
-- [ ] Authentication tests
-- [ ] Shipping calculator tests
+#### Nice-to-Have
+- [ ] Activity logs/audit trail
+- [ ] CMS/Static pages API
+- [ ] Banners/Sliders API
+- [ ] Advanced tax rules per region
 
 ---
 
@@ -202,20 +120,15 @@
 - [ ] Shopping cart context
 - [ ] Currency context
 - [ ] Toast notifications setup
-- [ ] Loading states management
 
 #### Authentication & User
 - [ ] Login page
 - [ ] Registration page
-- [ ] **Social login buttons (Google, Facebook)**
-- [ ] **Firebase phone verification UI**
+- [ ] Social login buttons (Google, Facebook)
 - [ ] Forgot password page
-- [ ] Reset password page
-- [ ] Email verification page
 - [ ] User profile page
 - [ ] Address management
 - [ ] Order history page
-- [ ] Account settings
 
 #### Product Pages
 - [ ] Product listing page
@@ -223,218 +136,187 @@
 - [ ] Product image gallery
 - [ ] Product variants selector
 - [ ] Product reviews section
-- [ ] Related products
 - [ ] Product search
-- [ ] Product filters (category, price, etc.)
-- [ ] Product sorting
+- [ ] Product filters
 
-#### Shopping Experience
+#### Shopping & Checkout
 - [ ] Shopping cart page
 - [ ] Cart sidebar/drawer
-- [ ] Add to cart animation
-- [ ] Quantity selector
-- [ ] Cart item removal
-- [ ] Cart total calculation
-
-#### Checkout
 - [ ] Checkout page (multi-step)
 - [ ] Shipping address form
-- [ ] Billing address form
-- [ ] Shipping method selection
-- [ ] Payment method selection
-- [ ] Order review
-- [ ] Payment integration (Razorpay/Stripe/PayPal)
+- [ ] Payment integration
 - [ ] Order confirmation page
-- [ ] Order tracking page
 
-#### Category & Navigation
-- [ ] Category listing page
-- [ ] Category navigation menu
-- [ ] Breadcrumbs
-- [ ] Search bar with autocomplete
-- [ ] Mobile menu
-
-#### Homepage
+#### Homepage & Navigation
 - [ ] Hero section
 - [ ] Featured products
-- [ ] Category showcase
-- [ ] Promotional banners
-- [ ] Newsletter signup
+- [ ] Category navigation
+- [ ] Search bar
 
 #### SEO & Performance
-- [ ] Dynamic metadata generation
-- [ ] JSON-LD structured data (Product, Offer, Review)
-- [ ] Open Graph tags
-- [ ] Twitter Card tags
+- [ ] Dynamic metadata
+- [ ] Structured data
 - [ ] Sitemap generation
-- [ ] Robots.txt
 - [ ] Image optimization
-- [ ] Lazy loading
-- [ ] Code splitting
-
-#### Google Analytics
-- [ ] GA4 setup
-- [ ] Page view tracking
-- [ ] Product view events
-- [ ] Add to cart events
-- [ ] Checkout events
-- [ ] Purchase events
-- [ ] Custom event tracking
-
-#### Responsive Design
-- [ ] Mobile optimization
-- [ ] Tablet optimization
-- [ ] Desktop optimization
-- [ ] Touch gestures
-- [ ] Accessibility (WCAG)
-
-#### Multi-Currency
-- [ ] Currency selector component
-- [ ] Price display with conversion
-- [ ] Currency persistence
-
-#### Multi-Store
-- [ ] Store detection by subdomain
-- [ ] Store-specific branding
-- [ ] Store switcher (if needed)
 
 ---
 
 ## 🛠️ Admin Panel
 
-### ✅ Completed (5%)
+### ✅ Completed (85%)
 
 - [x] Next.js project structure
 - [x] TypeScript configuration
-- [x] Tailwind CSS setup
+- [x] Material UI setup
 - [x] Form libraries (react-hook-form, zod)
 - [x] Chart library (recharts)
-
-### 🔴 Pending (95%)
-
-#### Core Setup
-- [ ] API client setup
-- [ ] Authentication context
-- [ ] Admin layout with sidebar
-- [ ] Protected routes
-- [ ] Permission-based UI
+- [x] API client setup
+- [x] Authentication context
+- [x] Admin layout with sidebar
+- [x] Protected routes
+- [x] Global notification system (MUI Snackbar)
 
 #### Authentication
-- [ ] Admin login page
-- [ ] Session management
-- [ ] Role-based access control UI
+- [x] Admin login page
+- [x] Session management
+- [x] Token refresh
 
 #### Dashboard
-- [ ] Sales overview
-- [ ] Revenue charts
-- [ ] Order statistics
-- [ ] Product performance
-- [ ] Customer analytics
-- [ ] Recent orders widget
-- [ ] Low stock alerts
+- [x] Dashboard page structure
 
 #### Store Management
-- [ ] Store list page
-- [ ] Create store form
-- [ ] Edit store form
-- [ ] Store settings
-- [ ] Store branding configuration
-- [ ] Multi-currency settings per store
+- [x] Store list page
+- [x] Create store form
+- [x] Edit store form
+- [x] Store settings (including review settings)
+- [x] SEO settings
 
 #### Product Management
-- [ ] Product list with filters
-- [ ] Create product form
-  - [ ] Simple product
-  - [ ] Variable product with variants
-  - [ ] Digital product with files
-- [ ] Edit product form
-- [ ] Product image upload
-- [ ] Bulk product import
-- [ ] Product export
-- [ ] Inventory management
-- [ ] SEO settings per product
+- [x] Product list with filters
+- [x] Create product form (simple & variable)
+- [x] Edit product form
+- [x] Product image management
+- [x] Product variants management
+- [x] Product options assignment
 
 #### Category Management
-- [ ] Category tree view
-- [ ] Create category form
-- [ ] Edit category form
-- [ ] Category reordering (drag & drop)
-- [ ] Category image upload
+- [x] Category list/tree view
+- [x] Create category form
+- [x] Edit category form
+- [x] Category image upload
+
+#### Brand Management
+- [x] Brand list page
+- [x] Create/Edit brand form
+
+#### Attribute/Specifications Management
+- [x] Attribute list page
+- [x] Create/Edit attribute form
+
+#### Product Options Management
+- [x] Product options list
+- [x] Create/Edit product option form
 
 #### Order Management
-- [ ] Order list with filters
-- [ ] Order detail view
-- [ ] Update order status
-- [ ] Print invoice
-- [ ] Shipping label generation
-- [ ] Refund processing
-- [ ] Order notes
+- [x] Order list with filters
+- [x] Order detail view
+- [x] Update order status
+- [x] Order notes
 
 #### Customer Management
-- [ ] Customer list
-- [ ] Customer detail view
-- [ ] Customer order history
-- [ ] Customer address management
-- [ ] Customer groups/segments
+- [x] Customer list
+- [x] Customer detail view
+- [x] Customer address management
+- [x] Customer orders view
 
 #### Shipping Rules
-- [ ] **Shipping rule list**
-- [ ] **Create shipping rule form**
-  - [ ] Geographic conditions (country/state/city)
-  - [ ] Category conditions
-  - [ ] Weight conditions
-  - [ ] Order value conditions
-- [ ] **Edit shipping rule**
-- [ ] **Rule priority management**
-- [ ] **Test shipping calculator**
+- [x] Shipping rule list
+- [x] Create shipping rule form
+- [x] Edit shipping rule
+- [x] Geographic, weight, category, value conditions
 
 #### Payment Gateway Configuration
-- [ ] **Payment gateway list**
-- [ ] **Razorpay configuration**
-  - [ ] API key input
-  - [ ] Test mode toggle
-  - [ ] Webhook URL display
-- [ ] **Stripe configuration**
-  - [ ] API key input
-  - [ ] Test mode toggle
-  - [ ] Webhook URL display
-- [ ] **PayPal configuration**
-  - [ ] Client ID/Secret input
-  - [ ] Sandbox mode toggle
-- [ ] **Payment gateway region rules**
+- [x] Payment gateway list
+- [x] Razorpay configuration
+- [x] Stripe configuration
+- [x] PayPal configuration
+- [x] Gateway region/country rules
 
-#### Social Authentication Configuration (NEW)
-- [ ] **Social auth providers list**
-- [ ] **Google OAuth configuration**
-  - [ ] Client ID input
-  - [ ] Client Secret input
-  - [ ] Enable/disable toggle
-  - [ ] Callback URL display
-- [ ] **Facebook OAuth configuration**
-  - [ ] App ID input
-  - [ ] App Secret input
-  - [ ] Enable/disable toggle
-  - [ ] Callback URL display
-- [ ] **Firebase configuration**
-  - [ ] Project ID input
-  - [ ] Service account JSON upload
-  - [ ] Enable/disable phone verification
-  - [ ] Test phone verification
+#### Currency Management
+- [x] Currency list
+- [x] Create/Edit currency
+- [x] Exchange rate management
 
-#### Analytics & Reports
-- [ ] Sales reports
+#### Coupon Management
+- [x] Coupon list
+- [x] Create/Edit coupon form
+- [x] Usage limits, category rules
+
+#### Sales/Promotions
+- [x] Sale list
+- [x] Create/Edit sale form
+- [x] Date range, discount types
+
+#### Review Management
+- [x] Review list with filters
+- [x] Create/Edit review
+- [x] Review approval/moderation
+- [x] Admin reply to reviews
+
+#### File Manager
+- [x] File browser UI
+- [x] Folder management
+- [x] File upload
+- [x] File preview
+- [x] Filesystem sync
+
+#### Geo Management
+- [x] Countries/Zones list
+- [x] Create/Edit geo entries
+- [x] Geo groups management
+
+#### Admin User Management
+- [x] Admin list
+- [x] Create/Edit admin users
+- [x] Role assignment
+
+### 🔴 Pending (15%)
+
+#### Dashboard Analytics (Priority: HIGH)
+- [ ] Sales overview charts
+- [ ] Revenue trends
+- [ ] Order statistics
+- [ ] Top products
+- [ ] Customer analytics
+- [ ] Low stock alerts widget
+
+#### Reports (Priority: HIGH)
+- [ ] Sales reports page
 - [ ] Product performance reports
 - [ ] Customer reports
 - [ ] Revenue reports
 - [ ] Export reports (CSV/PDF)
 
-#### Settings
-- [ ] General settings
-- [ ] Email settings (SMTP)
-- [ ] Tax settings
-- [ ] Currency settings
-- [ ] User management (admin users)
-- [ ] Role & permissions management
+#### Bulk Operations (Priority: HIGH)
+- [ ] Bulk product import (CSV)
+- [ ] Bulk product export
+- [ ] Bulk customer import/export
+- [ ] Bulk order export
+
+#### Refunds/Returns (Priority: HIGH)
+- [ ] RMA (Return Merchandise Authorization) page
+- [ ] Refund processing UI
+- [ ] Return status tracking
+
+#### Email Templates (Priority: MEDIUM)
+- [ ] Email template list
+- [ ] Template editor
+- [ ] Template preview
+
+#### Social Auth Configuration (Priority: LOW)
+- [ ] Google OAuth configuration
+- [ ] Facebook OAuth configuration
+- [ ] Firebase configuration
 
 ---
 
@@ -454,28 +336,20 @@
 - [ ] Deployment automation
 
 #### Production Deployment
-- [ ] Backend API deployment (AWS/DigitalOcean/Heroku)
+- [ ] Backend API deployment (AWS/DigitalOcean)
 - [ ] Frontend deployment (Vercel/Netlify)
 - [ ] Admin panel deployment (Vercel/Netlify)
 - [ ] MongoDB Atlas setup
 - [ ] AWS S3 bucket setup
 - [ ] Domain configuration
 - [ ] SSL certificates
-- [ ] CDN setup (CloudFront/Cloudflare)
+- [ ] CDN setup
 
 #### Monitoring & Logging
 - [ ] Error tracking (Sentry)
 - [ ] Application monitoring
-- [ ] Database monitoring
 - [ ] Log aggregation
 - [ ] Uptime monitoring
-
-#### Backup & Security
-- [ ] Database backup automation
-- [ ] File backup automation
-- [ ] Security audit
-- [ ] Rate limiting
-- [ ] DDoS protection
 
 ---
 
@@ -484,67 +358,166 @@
 ### 🔴 Pending
 
 - [ ] API documentation (Swagger/OpenAPI)
-- [ ] User guide for customers
 - [ ] Admin panel user guide
 - [ ] Developer documentation
 - [ ] Deployment guide
-- [ ] Troubleshooting guide
 
 ---
 
-## 🎯 Priority Roadmap
+## 🎯 Priority Roadmap (Updated)
 
-### Phase 1: MVP Backend (Week 1-2)
-- [x] Database models
+### ✅ Phase 1: Core Backend & Admin - COMPLETE
+- [x] All database models
 - [x] Authentication system
-- [x] Shipping calculator
-- [ ] Product CRUD APIs
-- [ ] Cart APIs
-- [ ] Order APIs
-- [ ] Payment gateway integration (Razorpay + Stripe)
+- [x] All CRUD APIs
+- [x] Admin panel core modules
 
-### Phase 2: Social Auth & Mobile Verification (Week 2)
-- [ ] Google OAuth
-- [ ] Facebook OAuth
-- [ ] Firebase phone verification
-- [ ] Admin configuration UI
+### 🟡 Phase 2: Layout Designer System (CURRENT)
+> **Spec Document**: [docs/LAYOUT_DESIGNER_SPEC.md](./docs/LAYOUT_DESIGNER_SPEC.md)
 
-### Phase 3: Frontend Core (Week 3-4)
-- [ ] Product listing & detail pages
-- [ ] Cart functionality
-- [ ] Checkout flow
-- [ ] User authentication UI
-- [ ] Social login buttons
+#### Backend (Week 1)
+- [x] Theme model & CRUD
+- [x] Layout model & CRUD
+- [x] Menu model & CRUD
+- [x] Page model & CRUD (static pages)
+- [x] BlogCategory model & CRUD
+- [x] BlogPost model & CRUD
+- [x] HeaderLayout model & CRUD
+- [x] FooterLayout model & CRUD
+- [ ] Storefront public APIs
 
-### Phase 4: Admin Panel (Week 4-5)
-- [ ] Dashboard
-- [ ] Product management
-- [ ] Order management
-- [ ] Shipping rules UI
-- [ ] Payment gateway configuration
-- [ ] Social auth configuration
+#### Admin Panel - Basic Management (Week 2)
+- [ ] Layouts list page
+- [ ] Menus list page
+- [ ] Pages list & CRUD
+- [ ] Blog categories list & CRUD
+- [ ] Blog posts list & CRUD
+- [ ] Rich Text Editor component (TipTap)
 
-### Phase 5: SEO & Analytics (Week 5-6)
-- [ ] SEO optimization
-- [ ] Google Analytics integration
-- [ ] Structured data
-- [ ] Sitemaps
+#### Admin Panel - Layout Designer UI (Week 3-4)
+- [ ] Layout Designer main component
+- [ ] Section management (add, remove, reorder)
+- [ ] Module palette (draggable modules)
+- [ ] Drag-and-drop system (@dnd-kit)
+- [ ] Module config panels (all types)
+- [ ] Preview mode
+- [ ] Responsive preview toggle
+- [ ] Template library
 
-### Phase 6: Testing & Launch (Week 6-7)
-- [ ] Testing
-- [ ] Bug fixes
-- [ ] Deployment
+#### Admin Panel - Menu Designer (Week 4)
+- [ ] Menu designer main component
+- [ ] Menu item CRUD
+- [ ] Drag-and-drop reordering
+- [ ] Nested items support
+- [ ] Mega menu column editor
+
+#### Admin Panel - Header & Footer (Week 5)
+- [ ] Header layout designer
+- [ ] Top bar configuration
+- [ ] Logo, menu, search, cart placement
+- [ ] Footer layout designer
+- [ ] Footer columns management
+- [ ] Social links, newsletter config
+
+#### Theme System (Week 6)
+- [ ] Theme selector page
+- [ ] Assign theme to store
+- [ ] Theme settings override
+- [ ] Default theme creation
+
+### 🔴 Phase 3: Analytics & Reports
+- [ ] Dashboard analytics
+- [ ] Sales reports
+- [ ] Export functionality
+
+### 🔴 Phase 4: Frontend Development
+- [ ] Customer-facing storefront
+- [ ] Product pages
+- [ ] Cart & checkout
+- [ ] User authentication
+
+### 🔴 Phase 5: Advanced Features
+- [ ] Refunds/Returns system
+- [ ] Email templates
+- [ ] Social authentication
+- [ ] Wishlist
+
+### 🔴 Phase 6: Deployment & Launch
+- [ ] CI/CD pipeline
+- [ ] Production deployment
 - [ ] Documentation
 
 ---
 
-## 📌 Notes
+## 🎨 Layout Designer - Module Types
 
-- **Social Authentication**: Added Google, Facebook OAuth and Firebase phone verification as per user request
-- **Admin Configuration**: All payment gateways and social auth providers will be configurable from admin panel
-- **Multi-Store**: Subdomain-based routing for scalability
-- **Database**: MongoDB for flexible schema (product variants)
-- **SEO**: AI-friendly structured data for ChatGPT, Gemini, M365 discoverability
+### Standard Modules
+- [ ] `banner` - Hero image with overlay
+- [ ] `banner-slider` - Rotating banners
+- [ ] `text-block` - Rich text content
+- [ ] `image` - Single image
+- [ ] `image-gallery` - Image grid
+- [ ] `video` - YouTube/Vimeo embed
+- [ ] `spacer` - Vertical space
+- [ ] `divider` - Horizontal line
+- [ ] `html` - Custom HTML
+- [ ] `newsletter` - Email signup
+- [ ] `testimonials` - Customer reviews
+- [ ] `countdown` - Sale countdown
+- [ ] `brand-logos` - Brand showcase
+
+### Product Modules
+- [ ] `product-carousel` - Horizontal slider
+- [ ] `product-grid` - Product grid
+- [ ] `category-showcase` - Category cards
+- [ ] `featured-product` - Single highlight
+
+### Placeholder Modules
+- [ ] `category-header` - Category page header
+- [ ] `category-products` - Product listing
+- [ ] `product-details` - Product page content
+- [ ] `search-results` - Search page content
+- [ ] `blog-listing` - Blog list
+- [ ] `blog-content` - Blog post content
+
+### Navigation Modules
+- [ ] `menu` - Navigation menu
+- [ ] `logo` - Store logo
+- [ ] `search-bar` - Search input
+- [ ] `cart-icon` - Cart button
+- [ ] `account-icon` - Account link
+- [ ] `social-icons` - Social links
+
+---
+
+## 📌 Summary of Completed Features
+
+| Category | Features |
+|----------|----------|
+| **Products** | Full CRUD, variants, options, images, specifications |
+| **Categories** | Hierarchical tree, images, SEO |
+| **Brands** | Full CRUD |
+| **Orders** | CRUD, status workflow, notes |
+| **Customers** | CRUD, auth, addresses |
+| **Coupons** | CRUD, usage limits, category rules |
+| **Sales** | CRUD, date ranges, discount types |
+| **Reviews** | CRUD, moderation, admin replies |
+| **Shipping** | Rules, conditions, calculator |
+| **Payments** | Multi-gateway (Razorpay, Stripe, PayPal) |
+| **Currency** | Multi-currency support |
+| **Geo** | Countries, zones, groups |
+| **Files** | Upload, folders, preview, sync |
+| **Stores** | Multi-store, settings, review config |
+| **Admins** | User management, roles |
+
+---
+
+## 📚 Documentation
+
+| Document | Path | Purpose |
+|----------|------|---------|
+| Layout Designer Spec | `docs/LAYOUT_DESIGNER_SPEC.md` | Complete technical specification |
+| TODO Tracker | `TODO.md` | This file - progress tracking |
 
 ---
 
@@ -552,3 +525,4 @@
 - ✅ [x] = Completed
 - 🟡 [/] = In Progress  
 - 🔴 [ ] = Pending
+
