@@ -28,8 +28,8 @@ export interface ProductOption {
 
 interface ProductAutoCompleteProps {
     storeId: string;
-    value?: ProductOption | null;
-    onChange: (value: ProductOption | null) => void;
+    value?: ProductOption | ProductOption[] | null;
+    onChange: (value: any) => void;
     label?: string;
     error?: boolean;
     helperText?: string;
@@ -39,6 +39,7 @@ interface ProductAutoCompleteProps {
     size?: 'small' | 'medium';
     excludeIds?: string[];
     currency?: string; // Optional: currency code for price display
+    multiple?: boolean;
 }
 
 export default function ProductAutoComplete({
@@ -54,6 +55,7 @@ export default function ProductAutoComplete({
     size = 'medium',
     excludeIds = [],
     currency,
+    multiple = false,
 }: ProductAutoCompleteProps) {
     const [options, setOptions] = useState<ProductOption[]>([]);
     const [loading, setLoading] = useState(false);
@@ -103,6 +105,7 @@ export default function ProductAutoComplete({
 
     return (
         <Autocomplete
+            multiple={multiple}
             value={value}
             onChange={(_, newValue) => onChange(newValue)}
             inputValue={inputValue}
@@ -110,31 +113,40 @@ export default function ProductAutoComplete({
             options={options}
             loading={loading}
             disabled={disabled || !storeId}
-            getOptionLabel={(option) => `${option.name} (${option.sku})`}
-            isOptionEqualToValue={(option, value) => option._id === value?._id}
+            getOptionLabel={(option) => {
+                const opt = option as ProductOption;
+                return `${opt.name} (${opt.sku})`;
+            }}
+            isOptionEqualToValue={(option, val) => {
+                return option._id === (val as any)._id;
+            }}
             filterOptions={(x) => x} // Disable client-side filtering, rely on server
-            renderOption={(props, option) => (
-                <Box component="li" {...props} key={option._id}>
-                    <Box display="flex" alignItems="center" gap={2} width="100%">
-                        <Avatar
-                            src={option.images?.[0]}
-                            variant="rounded"
-                            sx={{ width: 40, height: 40 }}
-                        >
-                            {option.name.charAt(0)}
-                        </Avatar>
-                        <Box flex={1} minWidth={0}>
-                            <Typography variant="body2" fontWeight={500} noWrap>
-                                {option.name}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                                SKU: {option.sku} | {formatConvertedPrice(option.salePrice || option.price)}
-                                {option.stock !== undefined && ` | Stock: ${option.stock}`}
-                            </Typography>
+            renderOption={(props, option) => {
+                const { key, ...otherProps } = props;
+                const opt = option as ProductOption;
+                return (
+                    <Box component="li" key={key} {...otherProps}>
+                        <Box display="flex" alignItems="center" gap={2} width="100%">
+                            <Avatar
+                                src={opt.images?.[0]}
+                                variant="rounded"
+                                sx={{ width: 40, height: 40 }}
+                            >
+                                {opt.name.charAt(0)}
+                            </Avatar>
+                            <Box flex={1} minWidth={0}>
+                                <Typography variant="body2" fontWeight={500} noWrap>
+                                    {opt.name}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                    SKU: {opt.sku} | {formatConvertedPrice(opt.salePrice || opt.price)}
+                                    {opt.stock !== undefined && ` | Stock: ${opt.stock}`}
+                                </Typography>
+                            </Box>
                         </Box>
                     </Box>
-                </Box>
-            )}
+                )
+            }}
             renderInput={(params) => (
                 <TextField
                     {...params}

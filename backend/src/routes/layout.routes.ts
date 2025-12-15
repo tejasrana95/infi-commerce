@@ -18,15 +18,15 @@ router.use(authenticate);
 
 router
     .route('/')
-    .post(authorize('admin', 'superadmin'), createLayoutValidation, validate, createLayout)
+    .post(authorize('admin', 'super_admin'), validate(createLayoutValidation), createLayout)
     .get(getLayouts);
 
 router
     .route('/:id')
     .get(getLayoutById)
-    .put(authorize('admin', 'superadmin'), updateLayoutValidation, validate, updateLayout)
-    .delete(authorize('admin', 'superadmin'), deleteLayout);
+    .put(authorize('admin', 'super_admin'), validate(updateLayoutValidation), updateLayout)
+    .delete(authorize('admin', 'super_admin'), deleteLayout);
 
-router.post('/:id/duplicate', authorize('admin', 'superadmin'), duplicateLayout);
+router.post('/:id/duplicate', authorize('admin', 'super_admin'), duplicateLayout);
 
 export default router;

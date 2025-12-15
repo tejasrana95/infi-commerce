@@ -12,8 +12,10 @@ import {
     FormatBold, FormatItalic, FormatUnderlined, FormatStrikethrough,
     FormatListBulleted, FormatListNumbered, FormatQuote, Code,
     Undo, Redo, Image as ImageIcon, Link as LinkIcon,
-    FormatAlignLeft, FormatAlignCenter, FormatAlignRight, FormatAlignJustify, LinkOff,
+    FormatAlignLeft, FormatAlignCenter, FormatAlignRight, FormatAlignJustify, LinkOff, CodeOff,
+    Fullscreen, FullscreenExit,
 } from '@mui/icons-material';
+import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
 import { useEffect, useState, useCallback } from 'react';
 import FileManagerButton from './FileManagerButton';
 import { FileItem } from '@/types/file';
@@ -29,6 +31,8 @@ interface RichTextEditorProps {
     error?: boolean;
     helperText?: string;
     minHeight?: string | number;
+    showSourceToggle?: boolean; // Allow switching to HTML source mode
+    showFullscreen?: boolean; // Allow fullscreen editing mode
 }
 
 const LinkDialog = ({ open, onClose, onSave, initialUrl }: { open: boolean, onClose: () => void, onSave: (url: string) => void, initialUrl: string }) => {
@@ -68,9 +72,15 @@ const LinkDialog = ({ open, onClose, onSave, initialUrl }: { open: boolean, onCl
 interface MenuBarProps {
     editor: Editor | null;
     variant: RichTextEditorVariant;
+    showSourceToggle?: boolean;
+    sourceMode: boolean;
+    onSourceToggle: () => void;
+    showFullscreen?: boolean;
+    isFullscreen?: boolean;
+    onFullscreenToggle?: () => void;
 }
 
-const MenuBar = ({ editor, variant }: MenuBarProps) => {
+const MenuBar = ({ editor, variant, showSourceToggle, sourceMode, onSourceToggle, showFullscreen, isFullscreen, onFullscreenToggle }: MenuBarProps) => {
     const [linkDialogOpen, setLinkDialogOpen] = useState(false);
     const theme = useTheme();
 
@@ -340,6 +350,38 @@ const MenuBar = ({ editor, variant }: MenuBarProps) => {
                 onSave={setLink}
                 initialUrl={editor.getAttributes('link').href || ''}
             />
+
+            {/* Source Code Toggle */}
+            {showSourceToggle && (
+                <>
+                    <Divider flexItem orientation="vertical" sx={{ mx: 0.5, my: 0.5, height: 24 }} />
+                    <Tooltip title={sourceMode ? 'Visual Editor' : 'HTML Source'}>
+                        <IconButton
+                            size="small"
+                            onClick={onSourceToggle}
+                            color={sourceMode ? 'primary' : 'default'}
+                        >
+                            <IntegrationInstructionsIcon fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+                </>
+            )}
+
+            {/* Fullscreen Toggle */}
+            {showFullscreen && onFullscreenToggle && (
+                <>
+                    <Divider flexItem orientation="vertical" sx={{ mx: 0.5, my: 0.5, height: 24 }} />
+                    <Tooltip title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}>
+                        <IconButton
+                            size="small"
+                            onClick={onFullscreenToggle}
+                            color={isFullscreen ? 'primary' : 'default'}
+                        >
+                            {isFullscreen ? <FullscreenExit fontSize="small" /> : <Fullscreen fontSize="small" />}
+                        </IconButton>
+                    </Tooltip>
+                </>
+            )}
         </Paper>
     );
 };
@@ -352,9 +394,14 @@ export default function RichTextEditor({
     placeholder,
     error,
     helperText,
-    minHeight = 200
+    minHeight = 200,
+    showSourceToggle = false,
+    showFullscreen = false,
 }: RichTextEditorProps) {
     const theme = useTheme();
+    const [sourceMode, setSourceMode] = useState(false);
+    const [sourceValue, setSourceValue] = useState(value);
+    const [isFullscreen, setIsFullscreen] = useState(false);
 
     const editor = useEditor({
         extensions: [
@@ -398,8 +445,91 @@ export default function RichTextEditor({
                 editor.commands.setContent(value);
             }
         }
-    }, [value, editor]);
+        // Keep source view in sync
+        if (!sourceMode) {
+            setSourceValue(value);
+        }
+    }, [value, editor, sourceMode]);
 
+    // Handle source mode toggle
+    const handleSourceToggle = useCallback(() => {
+        if (sourceMode) {
+            // Switching from source to visual - apply source changes
+            if (editor) {
+                editor.commands.setContent(sourceValue);
+            }
+            onChange(sourceValue);
+        } else {
+            // Switching to source mode - sync source value
+            setSourceValue(editor?.getHTML() || value);
+        }
+        setSourceMode(!sourceMode);
+    }, [sourceMode, sourceValue, editor, value, onChange]);
+
+    // Handle source textarea changes
+    const handleSourceChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setSourceValue(e.target.value);
+    };
+
+    // Apply source changes on blur
+    const handleSourceBlur = () => {
+        if (editor) {
+            editor.commands.setContent(sourceValue);
+        }
+        onChange(sourceValue);
+    };
+
+    // Editor content component (reused in both normal and fullscreen mode)
+    const renderEditorContent = (fullscreenMode?: boolean) => (
+        <>
+            <MenuBar
+                editor={editor}
+                variant={variant}
+                showSourceToggle={showSourceToggle}
+                sourceMode={sourceMode}
+                onSourceToggle={handleSourceToggle}
+                showFullscreen={showFullscreen}
+                isFullscreen={isFullscreen}
+                onFullscreenToggle={() => setIsFullscreen(!isFullscreen)}
+            />
+
+            {sourceMode ? (
+                <Box sx={{ p: 2, flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    <textarea
+                        value={sourceValue}
+                        onChange={handleSourceChange}
+                        onBlur={handleSourceBlur}
+                        style={{
+                            width: '100%',
+                            flex: 1,
+                            minHeight: fullscreenMode ? 'calc(100vh - 150px)' : (typeof minHeight === 'number' ? minHeight : 200),
+                            fontFamily: 'monospace',
+                            fontSize: '13px',
+                            lineHeight: 1.5,
+                            padding: '12px',
+                            border: `1px solid ${theme.palette.divider}`,
+                            borderRadius: '4px',
+                            backgroundColor: theme.palette.grey[900],
+                            color: theme.palette.common.white,
+                            resize: fullscreenMode ? 'none' : 'vertical',
+                        }}
+                        placeholder="<p>Enter HTML code here...</p>"
+                    />
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                        Editing HTML source. Click the code icon to switch back to visual editor.
+                    </Typography>
+                </Box>
+            ) : (
+                <Box sx={{
+                    flex: fullscreenMode ? 1 : undefined,
+                    overflow: fullscreenMode ? 'auto' : undefined,
+                    '& .ProseMirror': fullscreenMode ? { minHeight: 'calc(100vh - 120px)' } : {}
+                }}>
+                    <EditorContent editor={editor} />
+                </Box>
+            )}
+        </>
+    );
 
     return (
         <Box sx={{ width: '100%' }}>
@@ -415,7 +545,6 @@ export default function RichTextEditor({
                     bgcolor: 'background.paper',
                     overflow: 'hidden',
                     '&:hover': {
-                        // Only apply hover border if not error
                         borderColor: error ? theme.palette.error.main : theme.palette.primary.main,
                     },
                     '&:focus-within': {
@@ -433,7 +562,6 @@ export default function RichTextEditor({
                         height: 0,
                         pointerEvents: 'none',
                     },
-                    // Tiptap specific styling for image/code
                     '& .ProseMirror img': {
                         maxWidth: '100%',
                         height: 'auto',
@@ -455,14 +583,61 @@ export default function RichTextEditor({
                     }
                 }}
             >
-                <MenuBar editor={editor} variant={variant} />
-                <EditorContent editor={editor} />
+                {renderEditorContent()}
             </Box>
             {helperText && (
                 <Typography variant="caption" color={error ? 'error' : 'textSecondary'} sx={{ mt: 0.5, ml: 1.5 }}>
                     {helperText}
                 </Typography>
             )}
+
+            {/* Fullscreen Dialog */}
+            <Dialog
+                open={isFullscreen}
+                onClose={() => setIsFullscreen(false)}
+                fullScreen
+                PaperProps={{
+                    sx: {
+                        bgcolor: 'background.paper',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        '& .ProseMirror': {
+                            outline: 'none',
+                            flex: 1,
+                            minHeight: 'calc(100vh - 100px)',
+                            padding: '24px',
+                        },
+                        '& .ProseMirror p.is-editor-empty:first-of-type::before': {
+                            color: theme.palette.text.disabled,
+                            content: 'attr(data-placeholder)',
+                            float: 'left',
+                            height: 0,
+                            pointerEvents: 'none',
+                        },
+                        '& .ProseMirror img': {
+                            maxWidth: '100%',
+                            height: 'auto',
+                            borderRadius: 4,
+                        },
+                        '& .ProseMirror pre': {
+                            background: theme.palette.grey[900],
+                            color: theme.palette.common.white,
+                            padding: '0.75rem 1rem',
+                            borderRadius: '0.5rem',
+                            fontFamily: 'monospace',
+                        },
+                        '& .ProseMirror blockquote': {
+                            borderLeft: `3px solid ${theme.palette.grey[300]}`,
+                            paddingLeft: '1rem',
+                            marginLeft: 0,
+                            marginRight: 0,
+                            fontStyle: 'italic',
+                        }
+                    }
+                }}
+            >
+                {renderEditorContent(true)}
+            </Dialog>
         </Box>
     );
 }

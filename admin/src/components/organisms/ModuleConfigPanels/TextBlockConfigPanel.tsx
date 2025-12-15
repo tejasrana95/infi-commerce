@@ -1,19 +1,11 @@
 'use client';
 
-import {
-    Box,
-    TextField,
-    MenuItem,
-    FormControlLabel,
-    Switch,
-    Typography,
-} from '@mui/material';
+import { Box, TextField, MenuItem, Typography } from '@mui/material';
+import RichTextEditor from '@/components/molecules/RichTextEditor';
 
 export interface TextBlockConfig {
     content: string;
     alignment: 'left' | 'center' | 'right' | 'justify';
-    fontSize: 'small' | 'medium' | 'large';
-    fontWeight: 'normal' | 'medium' | 'bold';
     textColor?: string;
     backgroundColor?: string;
     padding: number;
@@ -28,8 +20,6 @@ interface TextBlockConfigPanelProps {
 export const defaultTextBlockConfig: TextBlockConfig = {
     content: '',
     alignment: 'left',
-    fontSize: 'medium',
-    fontWeight: 'normal',
     textColor: '',
     backgroundColor: '',
     padding: 16,
@@ -47,15 +37,15 @@ export default function TextBlockConfigPanel({ config, onChange }: TextBlockConf
                 Text Block Settings
             </Typography>
 
-            <TextField
-                label="Content"
-                multiline
-                rows={6}
+            {/* Full Rich Text Editor with source toggle */}
+            <RichTextEditor
                 value={config.content}
-                onChange={(e) => handleChange('content', e.target.value)}
-                fullWidth
+                onChange={(value) => handleChange('content', value)}
+                variant="full"
                 placeholder="Enter your text content here..."
-                helperText="Supports basic HTML formatting"
+                minHeight={200}
+                showSourceToggle
+                showFullscreen
             />
 
             <TextField
@@ -71,34 +61,6 @@ export default function TextBlockConfigPanel({ config, onChange }: TextBlockConf
                 <MenuItem value="right">Right</MenuItem>
                 <MenuItem value="justify">Justify</MenuItem>
             </TextField>
-
-            <Box sx={{ display: 'flex', gap: 2 }}>
-                <TextField
-                    select
-                    label="Font Size"
-                    value={config.fontSize}
-                    onChange={(e) => handleChange('fontSize', e.target.value)}
-                    fullWidth
-                    size="small"
-                >
-                    <MenuItem value="small">Small</MenuItem>
-                    <MenuItem value="medium">Medium</MenuItem>
-                    <MenuItem value="large">Large</MenuItem>
-                </TextField>
-
-                <TextField
-                    select
-                    label="Font Weight"
-                    value={config.fontWeight}
-                    onChange={(e) => handleChange('fontWeight', e.target.value)}
-                    fullWidth
-                    size="small"
-                >
-                    <MenuItem value="normal">Normal</MenuItem>
-                    <MenuItem value="medium">Medium</MenuItem>
-                    <MenuItem value="bold">Bold</MenuItem>
-                </TextField>
-            </Box>
 
             <Box sx={{ display: 'flex', gap: 2 }}>
                 <Box flex={1}>

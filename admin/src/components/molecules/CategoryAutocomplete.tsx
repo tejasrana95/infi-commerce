@@ -14,8 +14,8 @@ export interface CategoryOption {
 }
 
 interface CategoryAutocompleteProps {
-    value?: string | null;
-    onChange: (value: string | null, category?: CategoryOption | null) => void;
+    value?: string | string[] | null;
+    onChange: (value: any, category?: CategoryOption | CategoryOption[] | null) => void;
     storeId?: string;
     excludeId?: string; // Exclude specific category (e.g., current category when editing)
     label?: string;
@@ -25,6 +25,7 @@ interface CategoryAutocompleteProps {
     required?: boolean;
     placeholder?: string;
     minimal?: boolean; // For compact filter display
+    multiple?: boolean;
 }
 
 export default function CategoryAutocomplete({
@@ -39,6 +40,7 @@ export default function CategoryAutocomplete({
     required = false,
     placeholder,
     minimal = false,
+    multiple = false,
 }: CategoryAutocompleteProps) {
     const [categories, setCategories] = useState<CategoryOption[]>([]);
     const [loading, setLoading] = useState(false);
@@ -81,16 +83,26 @@ export default function CategoryAutocomplete({
     };
 
     const getSelectedValue = () => {
-        if (!value) return null;
+        if (!value) return multiple ? [] : null;
+        if (multiple && Array.isArray(value)) {
+            return categories.filter(c => value.includes(c.value));
+        }
         return categories.find(c => c.value === value) || null;
     };
 
-    const handleChange = (_: any, newValue: CategoryOption | null) => {
-        onChange(newValue?.value || null, newValue);
+    const handleChange = (_: any, newValue: any) => {
+        if (multiple) {
+            const values = (newValue as CategoryOption[]).map(v => v.value);
+            onChange(values, newValue);
+        } else {
+            const val = (newValue as CategoryOption);
+            onChange(val?.value || null, val);
+        }
     };
 
     return (
         <Autocomplete
+            multiple={multiple}
             value={getSelectedValue()}
             onChange={handleChange}
             options={categories}

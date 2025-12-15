@@ -53,7 +53,7 @@ export default function ImageGalleryConfigPanel({ config, onChange }: ImageGalle
     };
 
     const handleImageSelect = (files: FileItem[]) => {
-        const newImages = files.map(f => ({ src: f.url, alt: f.name, link: '' }));
+        const newImages = files.map(f => ({ src: f.url, alt: f.originalName, link: '' }));
         handleChange('images', [...config.images, ...newImages]);
     };
 

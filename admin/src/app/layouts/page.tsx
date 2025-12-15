@@ -79,19 +79,17 @@ export default function LayoutsPage() {
     const filteredRows = layouts.filter((layout) => {
         const query = searchQuery.toLowerCase();
 
-        // Search filter (name, slug)
+        // Search filter (name, description)
         const matchesSearch = !searchQuery || (
             (layout.name && layout.name.toLowerCase().includes(query)) ||
-            (layout.slug && layout.slug.toLowerCase().includes(query))
+            (layout.description && layout.description.toLowerCase().includes(query))
         );
 
         // Type filter
         const matchesType = !filterType || layout.type === filterType;
 
-        // Status filter
-        const matchesStatus = !filterStatus || (
-            filterStatus === 'active' ? layout.isActive : !layout.isActive
-        );
+        // Status filter (now uses status field: draft/published)
+        const matchesStatus = !filterStatus || layout.status === filterStatus;
 
         return matchesSearch && matchesType && matchesStatus;
     });
@@ -101,28 +99,57 @@ export default function LayoutsPage() {
             field: 'name',
             headerName: 'Name',
             flex: 1,
-            minWidth: 200,
+            minWidth: 180,
             renderCell: (params: GridRenderCellParams) => (
                 <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
                     <Typography variant="body2" fontWeight={600} sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }} onClick={() => handleEdit(params.row._id)}>
                         {params.row.name}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">{params.row.slug}</Typography>
+                    {params.row.description && (
+                        <Typography variant="caption" color="text.secondary" noWrap>{params.row.description}</Typography>
+                    )}
                 </Box>
             ),
         },
         {
+            field: 'storeId',
+            headerName: 'Store',
+            width: 140,
+            renderCell: (params: GridRenderCellParams) => {
+                const store = params.value;
+                return store?.name ? (
+                    <Typography variant="body2">{store.name}</Typography>
+                ) : (
+                    <Typography variant="body2" color="text.secondary">-</Typography>
+                );
+            },
+        },
+        {
             field: 'type',
             headerName: 'Type',
-            width: 120,
-            renderCell: (params: GridRenderCellParams) => (
-                <Chip
-                    label={params.value === 'page' ? 'Page' : 'Template'}
-                    size="small"
-                    color={params.value === 'template' ? 'secondary' : 'default'}
-                    variant="outlined"
-                />
-            ),
+            width: 130,
+            renderCell: (params: GridRenderCellParams) => {
+                const typeLabels: Record<string, string> = {
+                    homepage: 'Homepage',
+                    category: 'Category',
+                    product: 'Product',
+                    search: 'Search',
+                    'blog-list': 'Blog List',
+                    'blog-post': 'Blog Post',
+                    page: 'Static Page',
+                    cart: 'Cart',
+                    checkout: 'Checkout',
+                    account: 'Account',
+                };
+                return (
+                    <Chip
+                        label={typeLabels[params.value] || params.value}
+                        size="small"
+                        color="primary"
+                        variant="outlined"
+                    />
+                );
+            },
         },
         {
             field: 'isDefault',
@@ -134,10 +161,17 @@ export default function LayoutsPage() {
             ),
         },
         {
-            field: 'isActive',
-            headerName: 'Active',
+            field: 'status',
+            headerName: 'Status',
             width: 100,
-            renderCell: (params: GridRenderCellParams) => <StatusChip active={params.value as boolean} />,
+            renderCell: (params: GridRenderCellParams) => (
+                <Chip
+                    label={params.value === 'published' ? 'Published' : 'Draft'}
+                    size="small"
+                    color={params.value === 'published' ? 'success' : 'default'}
+                    variant="filled"
+                />
+            ),
         },
         {
             field: 'createdAt',
@@ -210,8 +244,16 @@ export default function LayoutsPage() {
                         label: 'Type',
                         type: 'select',
                         options: [
-                            { value: 'page', label: 'Page Layout' },
-                            { value: 'template', label: 'Theme Template' },
+                            { value: 'homepage', label: 'Homepage' },
+                            { value: 'category', label: 'Category' },
+                            { value: 'product', label: 'Product' },
+                            { value: 'search', label: 'Search' },
+                            { value: 'blog-list', label: 'Blog List' },
+                            { value: 'blog-post', label: 'Blog Post' },
+                            { value: 'page', label: 'Static Page' },
+                            { value: 'cart', label: 'Cart' },
+                            { value: 'checkout', label: 'Checkout' },
+                            { value: 'account', label: 'Account' },
                         ],
                     },
                     {
@@ -219,8 +261,8 @@ export default function LayoutsPage() {
                         label: 'Status',
                         type: 'select',
                         options: [
-                            { value: 'active', label: 'Active' },
-                            { value: 'inactive', label: 'Inactive' },
+                            { value: 'published', label: 'Published' },
+                            { value: 'draft', label: 'Draft' },
                         ],
                     },
                 ]}

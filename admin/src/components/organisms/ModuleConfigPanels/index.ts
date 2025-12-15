@@ -21,3 +21,10 @@ export type { DividerConfig } from './DividerConfigPanel';
 
 export { default as HTMLConfigPanel, defaultHTMLConfig } from './HTMLConfigPanel';
 export type { HTMLConfig } from './HTMLConfigPanel';
+
+export { default as BannerConfigPanel } from './BannerConfigPanel';
+export { default as BannerSliderConfigPanel } from './BannerSliderConfigPanel';
+export { default as TestimonialsConfigPanel } from './TestimonialsConfigPanel';
+export { default as BrandLogosConfigPanel } from './BrandLogosConfigPanel';
+export { default as ProductCollectionConfigPanel } from './ProductCollectionConfigPanel';
+export { default as CategoryShowcaseConfigPanel } from './CategoryShowcaseConfigPanel';

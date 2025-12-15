@@ -94,14 +94,20 @@ export const createLayout = asyncHandler(async (req: AuthRequest, res: Response)
 export const getLayouts = asyncHandler(async (req: AuthRequest, res: Response) => {
     const filter: any = {};
 
+    // For super_admin, storeId is optional (can view all layouts)
+    // For regular admin, storeId is required
     if (req.query.storeId) {
         filter.storeId = req.query.storeId;
-    } else {
+    } else if (req.user?.role !== 'super_admin') {
         throw new AppError('Store ID is required', 400);
     }
 
     if (req.query.type) {
         filter.type = req.query.type;
+    }
+
+    if (req.query.status) {
+        filter.status = req.query.status;
     }
 
     // Support filtering by templates
@@ -111,9 +117,11 @@ export const getLayouts = asyncHandler(async (req: AuthRequest, res: Response) =
         filter.isTemplate = false; // Default to showing actual layouts, not templates
     }
 
-    const layouts = await Layout.find(filter).sort({ isDefault: -1, updatedAt: -1 });
+    const layouts = await Layout.find(filter)
+        .populate('storeId', 'name domain')
+        .sort({ isDefault: -1, updatedAt: -1 });
 
-    res.json({ layouts });
+    res.json({ data: layouts });
 });
 
 /**

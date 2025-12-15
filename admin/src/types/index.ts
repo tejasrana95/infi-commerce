@@ -315,17 +315,102 @@ export interface Theme {
   updatedAt: string;
 }
 
+// --- Layout Designer Types ---
+
+export type LayoutType = 'homepage' | 'category' | 'product' | 'search' | 'blog-list' | 'blog-post' | 'page' | 'cart' | 'checkout' | 'account';
+
+export type ModuleType =
+  // Standard modules
+  | 'banner' | 'banner-slider' | 'text-block' | 'image' | 'image-gallery'
+  | 'video' | 'spacer' | 'divider' | 'html' | 'newsletter' | 'testimonials'
+  | 'countdown' | 'brand-logos'
+  // Product modules
+  | 'product-carousel' | 'product-grid' | 'category-showcase' | 'featured-product'
+  // Placeholder modules (required, page-specific)
+  | 'category-header' | 'category-products' | 'product-details'
+  | 'search-results' | 'blog-listing' | 'blog-content';
+
+export type SectionType = 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';
+
+export interface LayoutModule {
+  id: string;
+  type: ModuleType;
+  config: Record<string, any>;
+  styling: {
+    className?: string;
+    customCSS?: string;
+    marginTop?: number;
+    marginBottom?: number;
+    paddingTop?: number;
+    paddingBottom?: number;
+  };
+  visibility: {
+    desktop: boolean;
+    tablet: boolean;
+    mobile: boolean;
+  };
+  isPlaceholder: boolean;
+  isRemovable: boolean;
+  order: number;
+}
+
+export interface LayoutColumn {
+  id: string;
+  width: number;
+  modules: LayoutModule[];
+}
+
+export interface LayoutSection {
+  id: string;
+  name?: string;
+  type: SectionType;
+  settings: {
+    backgroundColor?: string;
+    backgroundImage?: string;
+    backgroundSize?: string;
+    backgroundPosition?: string;
+    paddingTop?: number;
+    paddingBottom?: number;
+    paddingLeft?: number;
+    paddingRight?: number;
+    marginTop?: number;
+    marginBottom?: number;
+    maxWidth?: number;
+    customClass?: string;
+  };
+  columns?: LayoutColumn[];
+  modules: LayoutModule[];
+  visibility: {
+    desktop: boolean;
+    tablet: boolean;
+    mobile: boolean;
+  };
+  order: number;
+}
+
 export interface Layout {
   _id: string;
+  storeId: string | { _id: string; name: string };
+  themeId?: string;
   name: string;
-  slug: string;
   description?: string;
-  type: 'page' | 'template';
-  template?: string | { _id: string; name: string };
-  sections: any[];
-  isActive: boolean;
+  type: LayoutType;
+  sections: LayoutSection[];
+  settings: {
+    backgroundColor?: string;
+    customCSS?: string;
+    customJS?: string;
+    bodyClass?: string;
+  };
+  seo?: {
+    metaTitle?: string;
+    metaDescription?: string;
+    metaKeywords?: string[];
+  };
   isDefault: boolean;
-  storeId: string;
+  isTemplate: boolean;
+  templateCategory?: string;
+  status: 'draft' | 'published';
   createdAt: string;
   updatedAt: string;
 }
