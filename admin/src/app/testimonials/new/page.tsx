@@ -32,7 +32,7 @@ export default function NewTestimonialPage() {
             <PageHeader
                 title="Add Testimonial"
                 subtitle="Create a new customer testimonial"
-                backHref="/testimonials"
+                backUrl="/testimonials"
             />
             <TestimonialForm onSubmit={handleSubmit} isSubmitting={isSubmitting} />
         </Box>

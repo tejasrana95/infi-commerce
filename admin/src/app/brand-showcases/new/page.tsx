@@ -32,7 +32,7 @@ export default function NewBrandShowcasePage() {
             <PageHeader
                 title="Create Brand Showcase"
                 subtitle="Add a new brand logo collection"
-                backHref="/brand-showcases"
+                backUrl="/brand-showcases"
             />
             <BrandShowcaseForm onSubmit={handleSubmit} isSubmitting={isSubmitting} />
         </Box>

@@ -32,7 +32,7 @@ export default function NewBannerPage() {
             <PageHeader
                 title="Create Banner"
                 subtitle="Add a new hero banner for your storefront"
-                backHref="/banners"
+                backUrl="/banners"
             />
             <BannerForm onSubmit={handleSubmit} isSubmitting={isSubmitting} />
         </Box>

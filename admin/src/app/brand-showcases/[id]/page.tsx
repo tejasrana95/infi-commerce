@@ -61,7 +61,7 @@ export default function EditBrandShowcasePage({ params }: PageProps) {
             <PageHeader
                 title="Edit Brand Showcase"
                 subtitle={showcase?.name || 'Update showcase details'}
-                backHref="/brand-showcases"
+                backUrl="/brand-showcases"
             />
             {showcase && (
                 <BrandShowcaseForm

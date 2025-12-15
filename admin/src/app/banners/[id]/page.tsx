@@ -61,7 +61,7 @@ export default function EditBannerPage({ params }: PageProps) {
             <PageHeader
                 title="Edit Banner"
                 subtitle={banner?.name || 'Update banner details'}
-                backHref="/banners"
+                backUrl="/banners"
             />
             {banner && (
                 <BannerForm

@@ -61,7 +61,7 @@ export default function EditTestimonialPage({ params }: PageProps) {
             <PageHeader
                 title="Edit Testimonial"
                 subtitle={testimonial?.customerName || 'Update testimonial details'}
-                backHref="/testimonials"
+                backUrl="/testimonials"
             />
             {testimonial && (
                 <TestimonialForm
