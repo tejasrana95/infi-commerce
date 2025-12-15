@@ -62,6 +62,7 @@ import BlogCategoryAutocomplete from '@/components/molecules/BlogCategoryAutocom
 import { v4 as uuidv4 } from 'uuid';
 import { ProductAutoComplete } from '../molecules';
 import { ProductOption } from '../molecules/ProductAutoComplete';
+import { MegaMenuBuilder, MegaMenuData } from './MegaMenuBuilder';
 
 interface MenuItemBuilderProps {
     items: MenuItemType[];
@@ -146,7 +147,7 @@ function EditItemDialog({ open, item, onClose, onSave, storeId, isNew = false }:
 
     return (
         <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-            <DialogTitle>{isNew ? 'Add Menu Item' : 'Edit Menu Item'}</DialogTitle>
+            <DialogTitle>{isNew ? 'Add Menu' : 'Edit Menu'}</DialogTitle>
             <DialogContent>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
                     <TextField
@@ -251,14 +252,13 @@ function EditItemDialog({ open, item, onClose, onSave, storeId, isNew = false }:
             <DialogActions>
                 <Button onClick={onClose}>Cancel</Button>
                 <Button onClick={handleSave} variant="contained" disabled={!formData.label}>
-                    {isNew ? 'Add Item' : 'Save Changes'}
+                    {isNew ? 'Add Menu' : 'Save Changes'}
                 </Button>
             </DialogActions>
         </Dialog>
     );
 }
 
-// Sortable Menu Item Row
 interface SortableMenuItemRowProps {
     item: MenuItemType;
     depth: number;
@@ -268,6 +268,7 @@ interface SortableMenuItemRowProps {
     onDelete: (itemId: string) => void;
     onAddChild: (parentId: string) => void;
     onReorderChildren: (parentId: string, oldIndex: number, newIndex: number) => void;
+    onUpdateItem: (item: MenuItemType) => void;
 }
 
 function SortableMenuItemRow({
@@ -279,6 +280,7 @@ function SortableMenuItemRow({
     onDelete,
     onAddChild,
     onReorderChildren,
+    onUpdateItem,
 }: SortableMenuItemRowProps) {
     const [expanded, setExpanded] = useState(true);
     const hasChildren = item.children && item.children.length > 0;
@@ -372,7 +374,7 @@ function SortableMenuItemRow({
                             {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
                         </IconButton>
                     )}
-                    {canAddChildren && item.type !== 'divider' && (
+                    {canAddChildren && item.type !== 'divider' && item.type !== 'mega-menu' && (
                         <Tooltip title="Add child item">
                             <IconButton size="small" onClick={() => onAddChild(item.id)} color="primary">
                                 <AddIcon fontSize="small" />
@@ -392,7 +394,29 @@ function SortableMenuItemRow({
                 </ListItemSecondaryAction>
             </ListItem>
 
-            {hasChildren && (
+            {/* For mega-menu type, show MegaMenuBuilder instead of children */}
+            {item.type === 'mega-menu' && (
+                <Collapse in={expanded}>
+                    <Box sx={{ pl: depth * 3 + 5, pr: 2, py: 2 }}>
+                        <MegaMenuBuilder
+                            data={{
+                                sections: item.megaMenu?.sections || [],
+                            }}
+                            onChange={(megaData: MegaMenuData) => {
+                                onUpdateItem({
+                                    ...item,
+                                    megaMenu: {
+                                        sections: megaData.sections,
+                                    },
+                                });
+                            }}
+                            storeId={storeId}
+                        />
+                    </Box>
+                </Collapse>
+            )}
+
+            {hasChildren && item.type !== 'mega-menu' && (
                 <Collapse in={expanded}>
                     <DndContext
                         sensors={sensors}
@@ -415,6 +439,7 @@ function SortableMenuItemRow({
                                         onDelete={onDelete}
                                         onAddChild={onAddChild}
                                         onReorderChildren={onReorderChildren}
+                                        onUpdateItem={onUpdateItem}
                                     />
                                 ))}
                             </List>
@@ -524,6 +549,22 @@ export default function MenuItemBuilder({ items, onChange, storeId, maxDepth = 3
         onChange(removeItem(items));
     };
 
+    // Update a specific item (for mega menu builder)
+    const handleUpdateItem = (updatedItem: MenuItemType) => {
+        const updateItem = (items: MenuItemType[]): MenuItemType[] => {
+            return items.map(i => {
+                if (i.id === updatedItem.id) {
+                    return updatedItem;
+                }
+                if (i.children && i.children.length > 0) {
+                    return { ...i, children: updateItem(i.children) };
+                }
+                return i;
+            });
+        };
+        onChange(updateItem(items));
+    };
+
     if (!storeId) {
         return (
             <Alert severity="warning" sx={{ mt: 2 }}>
@@ -549,7 +590,7 @@ export default function MenuItemBuilder({ items, onChange, storeId, maxDepth = 3
                     size="small"
                     onClick={handleAddItem}
                 >
-                    Add Item
+                    Add Menu
                 </Button>
             </Box>
 
@@ -559,7 +600,7 @@ export default function MenuItemBuilder({ items, onChange, storeId, maxDepth = 3
                         No menu items yet
                     </Typography>
                     <Button startIcon={<AddIcon />} variant="contained" onClick={handleAddItem}>
-                        Add First Item
+                        Add First Menu
                     </Button>
                 </Box>
             ) : (
@@ -584,6 +625,7 @@ export default function MenuItemBuilder({ items, onChange, storeId, maxDepth = 3
                                     onDelete={handleDeleteItem}
                                     onAddChild={handleAddChild}
                                     onReorderChildren={handleReorderChildren}
+                                    onUpdateItem={handleUpdateItem}
                                 />
                             ))}
                         </List>

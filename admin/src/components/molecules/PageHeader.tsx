@@ -11,6 +11,7 @@ interface PageHeaderProps {
   actionHref?: string;
   onAction?: () => void;
   backUrl?: string;
+  action?: React.ReactNode;
 }
 
 const PageHeader = memo(({
@@ -19,7 +20,8 @@ const PageHeader = memo(({
   actionLabel,
   actionHref,
   onAction,
-  backUrl
+  backUrl,
+  action
 }: PageHeaderProps) => {
   return (
     <Box
@@ -57,7 +59,9 @@ const PageHeader = memo(({
           )}
         </Box>
       </Box>
-      {(actionLabel && (actionHref || onAction)) && (
+      {action ? (
+        action
+      ) : (actionLabel && (actionHref || onAction)) && (
         actionHref ? (
           <Button
             component={Link}

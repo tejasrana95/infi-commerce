@@ -36,6 +36,54 @@ export interface IStore extends Document {
         [key: string]: any;
     };
 
+    // Theme Configuration (Header, Footer, Colors, Fonts)
+    theme?: {
+        header?: {
+            topBar?: {
+                enabled: boolean;
+                backgroundColor?: string;
+                textColor?: string;
+                height?: number;
+                items?: any[];
+            };
+            main: {
+                layout: 'default' | 'centered' | 'split' | 'minimal' | 'custom';
+                backgroundColor?: string;
+                height?: number;
+                sticky?: boolean;
+                transparent?: boolean;
+                sections: Array<{
+                    id: string;
+                    position: 'left' | 'center' | 'right';
+                    items: any[];
+                }>;
+            };
+        };
+        footer?: {
+            sections: Array<{
+                id: string;
+                type: 'columns' | 'bottom-bar';
+                backgroundColor?: string;
+                textColor?: string;
+                padding?: number;
+                columns?: any[];
+                rows?: Array<{ id: string; columns: any[] }>;
+                bottomBarContent?: string;
+            }>;
+        };
+        colors?: {
+            primary?: string;
+            secondary?: string;
+            accent?: string;
+            background?: string;
+            text?: string;
+        };
+        fonts?: {
+            heading?: string;
+            body?: string;
+        };
+    };
+
     createdAt: Date;
     updatedAt: Date;
 }
@@ -118,6 +166,11 @@ const StoreSchema = new Schema<IStore>(
                     maxImagesPerReview: 5,
                 },
             },
+        },
+        // Theme configuration for header, footer, colors, fonts
+        theme: {
+            type: Schema.Types.Mixed,
+            default: null,
         },
     },
     {

@@ -12,6 +12,7 @@ import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules'
 import { LoadingSpinner, StatusChip } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
 import { createDataGridStyles } from '@/utils/styles';
+import FormatPaintIcon from '@mui/icons-material/FormatPaint';
 
 export default function StoresPage() {
   const router = useRouter();
@@ -52,6 +53,10 @@ export default function StoresPage() {
 
   const handleEdit = (id: string) => {
     router.push(`/stores/${id}/edit`);
+  };
+
+  const handleThemeEdit = (id: string) => {
+    router.push(`/stores/${id}/theme`);
   };
 
   const handleCreate = () => {
@@ -113,6 +118,12 @@ export default function StoresPage() {
       sortable: false,
       renderCell: (params: GridRenderCellParams) => (
         <Box>
+
+          <Tooltip title="Edit Theme">
+            <IconButton onClick={() => handleThemeEdit(params.row._id)} size="small" color="primary">
+              <FormatPaintIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
           <Tooltip title="Edit">
             <IconButton onClick={() => handleEdit(params.row._id)} size="small" color="primary">
               <EditIcon fontSize="small" />

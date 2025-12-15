@@ -45,7 +45,7 @@ export interface IMenu extends Document {
     storeId: mongoose.Types.ObjectId;
     name: string;
     slug: string;
-    location: 'header-main' | 'header-top' | 'footer-primary' | 'footer-secondary' | 'sidebar' | 'mobile' | 'custom';
+    location: 'header' | 'footer' | 'sidebar' | 'mobile' | 'custom';
     description?: string;
 
     items: IMenuItem[];
@@ -135,7 +135,7 @@ const MenuSchema = new Schema<IMenu>(
         },
         location: {
             type: String,
-            enum: ['header-main', 'header-top', 'footer-primary', 'footer-secondary', 'sidebar', 'mobile', 'custom'],
+            enum: ['header', 'footer', 'sidebar', 'mobile', 'custom'],
             default: 'custom',
         },
         description: {

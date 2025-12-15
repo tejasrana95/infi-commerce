@@ -5,6 +5,152 @@ export interface User {
   role: 'admin' | 'manager' | 'staff';
 }
 
+// ============ HEADER & FOOTER TYPES ============
+
+// Header Top Bar Types
+export interface HeaderTopBarItem {
+  id: string;
+  type: 'text' | 'link' | 'phone' | 'email' | 'social' | 'language' | 'currency';
+  content?: string;
+  label?: string;
+  url?: string;
+  icon?: string;
+  position: 'left' | 'center' | 'right';
+  order: number;
+}
+
+export interface HeaderTopBar {
+  enabled: boolean;
+  backgroundColor?: string;
+  textColor?: string;
+  height?: number;
+  items: HeaderTopBarItem[];
+}
+
+// Header Main Types
+export interface HeaderElement {
+  id: string;
+  type: 'logo' | 'menu' | 'search' | 'cart' | 'account' | 'wishlist' | 'custom';
+  menuId?: string; // Reference to Menu._id
+  width?: number; // Grid units out of 12
+  settings?: {
+    // Logo settings
+    logoUrl?: string;
+    logoHeight?: number;
+    logoAlt?: string;
+    // Search settings
+    searchPlaceholder?: string;
+    searchButtonText?: string;
+    // Cart settings
+    showCartCount?: boolean;
+    cartIconStyle?: 'default' | 'bag' | 'basket';
+    // Account settings
+    showLoginRegister?: boolean;
+    loginText?: string;
+    registerText?: string;
+    // Wishlist settings
+    wishlistIconStyle?: 'default' | 'heart' | 'star';
+    // Custom settings
+    customHtml?: string;
+  };
+  order: number;
+}
+
+export interface HeaderSection {
+  id: string;
+  position: 'left' | 'center' | 'right';
+  items: HeaderElement[];
+}
+
+export interface HeaderMainConfig {
+  layout: 'default' | 'centered' | 'split' | 'minimal' | 'custom';
+  backgroundColor?: string;
+  height?: number;
+  sticky?: boolean;
+  transparent?: boolean;
+  sections: HeaderSection[];
+}
+
+// Footer Types
+export interface FooterElement {
+  id: string;
+  type: 'menu' | 'text' | 'html' | 'newsletter' | 'social' | 'contact' | 'payment-methods';
+  menuId?: string;
+  content?: string;
+  settings?: {
+    // Newsletter settings
+    newsletterTitle?: string;
+    newsletterPlaceholder?: string;
+    newsletterButtonText?: string;
+    newsletterDescription?: string;
+    // Social settings
+    socialLinks?: Array<{
+      id: string;
+      platform: 'facebook' | 'twitter' | 'instagram' | 'linkedin' | 'youtube' | 'pinterest' | 'tiktok';
+      url: string;
+    }>;
+    // Contact settings
+    contactInfo?: {
+      address?: string;
+      phone?: string;
+      email?: string;
+      workingHours?: string;
+    };
+    // Payment methods
+    paymentMethods?: Array<{
+      id: string;
+      name: string;
+      icon: string;
+    }>;
+  };
+}
+
+export interface FooterColumn {
+  id: string;
+  title?: string;
+  width: number; // Grid units out of 12
+  items: FooterElement[];
+}
+
+export interface FooterSection {
+  id: string;
+  type: 'columns' | 'bottom-bar';
+  backgroundColor?: string;
+  textColor?: string;
+  padding?: number;
+  columns?: FooterColumn[];
+  rows?: Array<{ id: string; columns: FooterColumn[] }>; // Multi-row support
+  bottomBarContent?: string; // For copyright, etc.
+}
+
+export interface FooterConfig {
+  sections: FooterSection[];
+}
+
+// Theme Configuration
+export interface ThemeConfig {
+  templateId: string; // ID of the specific template (e.g., 'modern-clean', 'classic-elegance')
+  header?: {
+    topBar?: HeaderTopBar;
+    main: HeaderMainConfig;
+  };
+  footer?: FooterConfig;
+  colors?: {
+    primary?: string;
+    secondary?: string;
+    accent?: string;
+    background?: string;
+    text?: string;
+  };
+  fonts?: {
+    heading?: string;
+    body?: string;
+  };
+}
+
+// ============ END HEADER & FOOTER TYPES ============
+
+
 export interface Store {
   _id: string;
   name: string;
@@ -37,6 +183,7 @@ export interface Store {
     shippingEnabled?: boolean;
     [key: string]: any;
   };
+  theme?: ThemeConfig;
   createdAt: string;
   updatedAt: string;
 }
@@ -425,14 +572,40 @@ export interface MenuItem {
   pageId?: string;
   blogCategoryId?: string;
   megaMenu?: {
-    columns: Array<{
-      title?: string;
-      items: MenuItem[];
-      width: number;
+    sections: Array<{
+      id: string;
+      type: 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';
+      columns: Array<{
+        id: string;
+        width: number;
+        items: Array<{
+          id: string;
+          type: 'category' | 'product' | 'image' | 'custom-link' | 'page' | 'divider';
+          label?: string;
+          // Category config
+          categoryId?: string;
+          productLimit?: number;
+          autoAddProducts?: boolean;
+          // Product config
+          productIds?: string[];
+          // Image config
+          imageUrl?: string;
+          imageLink?: string;
+          imageAlt?: string;
+          // Custom link config
+          linkLabel?: string;
+          linkTitle?: string;
+          linkUrl?: string;
+          linkOpenInNewTab?: boolean;
+          // Page config
+          pageId?: string;
+        }>;
+      }>;
+      settings: {
+        backgroundColor?: string;
+        padding?: number;
+      };
     }>;
-    featuredImage?: string;
-    featuredLink?: string;
-    featuredTitle?: string;
   };
   icon?: string;
   badge?: {
@@ -448,7 +621,7 @@ export interface Menu {
   _id: string;
   name: string;
   slug: string;
-  location: 'header-main' | 'header-top' | 'footer-primary' | 'footer-secondary' | 'sidebar' | 'mobile' | 'custom';
+  location: 'header' | 'footer' | 'sidebar' | 'mobile' | 'custom';
   description?: string;
   items: MenuItem[];
   settings: {

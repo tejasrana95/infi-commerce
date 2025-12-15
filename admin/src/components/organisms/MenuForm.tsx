@@ -24,7 +24,7 @@ const schema = z.object({
     name: z.string().min(1, 'Name is required').max(100),
     slug: z.string().min(1, 'Slug is required').regex(/^[a-z0-9-]+$/, 'Slug must be lowercase with hyphens only'),
     storeId: z.string().min(1, 'Store is required'),
-    location: z.enum(['header-main', 'header-top', 'footer-primary', 'footer-secondary', 'sidebar', 'mobile', 'custom']),
+    location: z.enum(['header', 'footer', 'sidebar', 'mobile', 'custom']),
     description: z.string().max(255).optional(),
     isActive: z.boolean(),
 
@@ -122,8 +122,8 @@ export default function MenuForm({ initialData, onSubmit, isSubmitting = false }
         <Box component="form" id="menu-form" onSubmit={handleSubmit(handleFormSubmit)}>
             <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)} sx={{ mb: 3 }}>
                 <Tab label="Basic Info" />
-                <Tab label="Menu Items" />
                 <Tab label="Settings" />
+                <Tab label="Menu Items" />
             </Tabs>
 
             {/* Tab 0: Basic Info */}
@@ -197,10 +197,8 @@ export default function MenuForm({ initialData, onSubmit, isSubmitting = false }
                                     error={!!errors.location}
                                     helperText="Where this menu will be displayed"
                                 >
-                                    <MenuItem value="header-main">Header Main</MenuItem>
-                                    <MenuItem value="header-top">Header Top</MenuItem>
-                                    <MenuItem value="footer-primary">Footer Primary</MenuItem>
-                                    <MenuItem value="footer-secondary">Footer Secondary</MenuItem>
+                                    <MenuItem value="header">Header</MenuItem>
+                                    <MenuItem value="footer">Footer</MenuItem>
                                     <MenuItem value="sidebar">Sidebar</MenuItem>
                                     <MenuItem value="mobile">Mobile</MenuItem>
                                     <MenuItem value="custom">Custom</MenuItem>
@@ -242,20 +240,8 @@ export default function MenuForm({ initialData, onSubmit, isSubmitting = false }
                 </Grid>
             )}
 
-            {/* Tab 1: Menu Items */}
+            {/* Tab 1: Settings */}
             {activeTab === 1 && (
-                <Box>
-                    <MenuItemBuilder
-                        items={menuItems}
-                        onChange={setMenuItems}
-                        storeId={watchedStoreId}
-                        maxDepth={watchedMaxDepth}
-                    />
-                </Box>
-            )}
-
-            {/* Tab 2: Settings */}
-            {activeTab === 2 && (
                 <Grid container spacing={3}>
                     <Grid size={{ xs: 12 }}>
                         <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
@@ -340,6 +326,18 @@ export default function MenuForm({ initialData, onSubmit, isSubmitting = false }
                         />
                     </Grid>
                 </Grid>
+            )}
+
+            {/* Tab 2: Menu Items */}
+            {activeTab === 2 && (
+                <Box>
+                    <MenuItemBuilder
+                        items={menuItems}
+                        onChange={setMenuItems}
+                        storeId={watchedStoreId}
+                        maxDepth={watchedMaxDepth}
+                    />
+                </Box>
             )}
         </Box>
     );

@@ -74,10 +74,8 @@ export default function MenusPage() {
 
     const getLocationLabel = (location: string) => {
         const labels: Record<string, string> = {
-            'header-main': 'Header Main',
-            'header-top': 'Header Top',
-            'footer-primary': 'Footer Primary',
-            'footer-secondary': 'Footer Secondary',
+            'header': 'Header',
+            'footer': 'Footer',
             'sidebar': 'Sidebar',
             'mobile': 'Mobile',
             'custom': 'Custom',
@@ -87,10 +85,8 @@ export default function MenusPage() {
 
     const getLocationColor = (location: string) => {
         const colors: Record<string, 'primary' | 'secondary' | 'success' | 'warning' | 'info' | 'default'> = {
-            'header-main': 'primary',
-            'header-top': 'secondary',
-            'footer-primary': 'success',
-            'footer-secondary': 'success',
+            'header': 'primary',
+            'footer': 'success',
             'sidebar': 'info',
             'mobile': 'warning',
             'custom': 'default',
@@ -270,10 +266,8 @@ export default function MenusPage() {
                         label: 'Location',
                         type: 'select',
                         options: [
-                            { value: 'header-main', label: 'Header Main' },
-                            { value: 'header-top', label: 'Header Top' },
-                            { value: 'footer-primary', label: 'Footer Primary' },
-                            { value: 'footer-secondary', label: 'Footer Secondary' },
+                            { value: 'header', label: 'Header' },
+                            { value: 'footer', label: 'Footer' },
                             { value: 'sidebar', label: 'Sidebar' },
                             { value: 'mobile', label: 'Mobile' },
                             { value: 'custom', label: 'Custom' },

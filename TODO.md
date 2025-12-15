@@ -395,13 +395,13 @@
 - [x] Rich Text Editor component (TipTap)
 
 #### Admin Panel - Layout Designer UI (Week 3-4)
-- [ ] Layout Designer main component
-- [ ] Section management (add, remove, reorder)
-- [ ] Module palette (draggable modules)
-- [ ] Drag-and-drop system (@dnd-kit)
-- [ ] Module config panels (all types)
+- [x] Layout Designer main component
+- [x] Section management (add, remove, reorder)
+- [x] Module palette (draggable modules)
+- [x] Drag-and-drop system (@dnd-kit)
+- [x] Module config panels (all types)
 - [ ] Preview mode
-- [ ] Responsive preview toggle
+- [x] Responsive preview toggle
 - [ ] Template library
 
 #### Admin Panel - Menu Designer (Week 4)
