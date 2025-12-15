@@ -1,16 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { Box } from '@mui/material';
+import { Box, Button, Paper } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import api from '@/lib/api';
-import BlogCategoryForm from '@/components/organisms/BlogCategoryForm';
 import { PageHeader } from '@/components/molecules';
 import { LoadingSpinner } from '@/components/atoms';
+import BlogCategoryForm from '@/components/organisms/BlogCategoryForm';
 import { useNotification } from '@/contexts/NotificationContext';
 import { BlogCategory } from '@/types';
 
-export default function EditBlogCategoryPage({ params }: { params: { id: string } }) {
+export default function EditBlogCategoryPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
     const router = useRouter();
     const { showNotification } = useNotification();
     const [category, setCategory] = useState<BlogCategory | null>(null);
@@ -18,16 +20,16 @@ export default function EditBlogCategoryPage({ params }: { params: { id: string 
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        fetchCategory();
-    }, [params.id]);
+        if (id) {
+            fetchCategory();
+        }
+    }, [id]);
 
     const fetchCategory = async () => {
         try {
-            setLoading(true);
-            const response = await api.get(`/blog/categories/${params.id}`);
-            setCategory(response.data.category);
+            const response = await api.get(`/blog/categories/${id}`);
+            setCategory(response.data.category || response.data);
         } catch (error: any) {
-            console.error('Failed to load blog category', error);
             showNotification(error.response?.data?.message || 'Failed to load category', 'error');
             router.push('/blog/categories');
         } finally {
@@ -36,9 +38,9 @@ export default function EditBlogCategoryPage({ params }: { params: { id: string 
     };
 
     const handleSubmit = async (data: any) => {
+        setIsSubmitting(true);
         try {
-            setIsSubmitting(true);
-            await api.put(`/blog/categories/${params.id}`, data);
+            await api.put(`/blog/categories/${id}`, data);
             showNotification('Category updated successfully', 'success');
             router.push('/blog/categories');
         } catch (error: any) {
@@ -48,19 +50,52 @@ export default function EditBlogCategoryPage({ params }: { params: { id: string 
         }
     };
 
-    if (loading) return <LoadingSpinner message="Loading category..." />;
-    if (!category) return null;
+    const handleCancel = () => {
+        router.push('/blog/categories');
+    };
+
+    if (loading) {
+        return <LoadingSpinner message="Loading category..." />;
+    }
 
     return (
         <Box>
+            <Button
+                startIcon={<ArrowBackIcon />}
+                onClick={handleCancel}
+                sx={{ mb: 2 }}
+            >
+                Back to Categories
+            </Button>
+
             <PageHeader
-                title={`Edit Category: ${category.name}`}
-                subtitle="Manage blog category details"
-                backUrl="/blog/categories"
+                title="Edit Blog Category"
+                subtitle={`Update ${category?.name || 'category'}`}
             />
-            <Box sx={{ mt: 3, maxWidth: 1000 }}>
-                <BlogCategoryForm initialData={category} onSubmit={handleSubmit} isSubmitting={isSubmitting} />
-            </Box>
+
+            <BlogCategoryForm
+                initialData={category || undefined}
+                onSubmit={handleSubmit}
+                isSubmitting={isSubmitting}
+            />
+
+            <Paper sx={{ p: 2, mt: 3, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                <Button
+                    variant="outlined"
+                    onClick={handleCancel}
+                    disabled={isSubmitting}
+                >
+                    Cancel
+                </Button>
+                <Button
+                    type="submit"
+                    variant="contained"
+                    disabled={isSubmitting}
+                    form="blog-category-form"
+                >
+                    {isSubmitting ? 'Updating...' : 'Update Category'}
+                </Button>
+            </Paper>
         </Box>
     );
 }

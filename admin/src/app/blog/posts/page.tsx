@@ -6,6 +6,7 @@ import { Box, Tooltip, IconButton, Typography, useTheme, Chip, Avatar } from '@m
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import api from '@/lib/api';
 import { BlogPost, BlogCategory } from '@/types';
 import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules';
@@ -23,6 +24,7 @@ export default function BlogPostsPage() {
 
     // Filter states
     const [searchQuery, setSearchQuery] = useState('');
+    const [filterStore, setFilterStore] = useState<string>('');
     const [filterStatus, setFilterStatus] = useState<string>('');
 
     useEffect(() => {
@@ -62,25 +64,50 @@ export default function BlogPostsPage() {
         router.push('/blog/posts/new');
     };
 
+    const getStoreName = (storeId: any) => {
+        if (typeof storeId === 'object' && storeId !== null) {
+            return storeId.name;
+        }
+        return '-';
+    };
+
+    const getCategoryNames = (categoryIds: any[]) => {
+        if (!categoryIds || categoryIds.length === 0) return '-';
+        return categoryIds.map(cat => {
+            if (typeof cat === 'object' && cat !== null) {
+                return cat.name;
+            }
+            return '';
+        }).filter(Boolean).join(', ') || '-';
+    };
+
     const filteredRows = posts.filter((post) => {
         const query = searchQuery.toLowerCase();
 
         // Search filter
         const matchesSearch = !searchQuery || (
             (post.title && post.title.toLowerCase().includes(query)) ||
-            (post.slug && post.slug.toLowerCase().includes(query))
+            (post.slug && post.slug.toLowerCase().includes(query)) ||
+            (post.author?.name && post.author.name.toLowerCase().includes(query))
         );
+
+        // Store filter
+        const postStoreId = typeof post.storeId === 'object' && post.storeId !== null
+            ? (post.storeId as any)._id
+            : post.storeId;
+        const matchesStore = !filterStore || postStoreId === filterStore;
 
         // Status filter
         const matchesStatus = !filterStatus || post.status === filterStatus;
 
-        return matchesSearch && matchesStatus;
+        return matchesSearch && matchesStore && matchesStatus;
     });
 
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'published': return 'success';
             case 'draft': return 'default';
+            case 'scheduled': return 'info';
             case 'archived': return 'error';
             default: return 'default';
         }
@@ -98,17 +125,24 @@ export default function BlogPostsPage() {
                     alt={params.row.title}
                     variant="rounded"
                     sx={{ width: 50, height: 50 }}
-                />
+                >
+                    {params.row.title?.charAt(0)}
+                </Avatar>
             ),
         },
         {
             field: 'title',
             headerName: 'Title',
             flex: 1,
-            minWidth: 200,
+            minWidth: 250,
             renderCell: (params: GridRenderCellParams) => (
                 <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
-                    <Typography variant="body2" fontWeight={600} sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }} onClick={() => handleEdit(params.row._id)}>
+                    <Typography
+                        variant="body2"
+                        fontWeight={600}
+                        sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }}
+                        onClick={() => handleEdit(params.row._id)}
+                    >
                         {params.row.title}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">{params.row.slug}</Typography>
@@ -116,18 +150,24 @@ export default function BlogPostsPage() {
             ),
         },
         {
+            field: 'storeId',
+            headerName: 'Store',
+            width: 140,
+            renderCell: (params: GridRenderCellParams) => (
+                <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+            ),
+        },
+        {
             field: 'categoryIds',
-            headerName: 'Category',
-            width: 150,
+            headerName: 'Categories',
+            width: 160,
             renderCell: (params: GridRenderCellParams) => {
                 const categories = params.value as (string | BlogCategory)[];
-                if (!categories || categories.length === 0) return '-';
-                // Assuming populated or handled in backend. If not, it might be IDs.
-                // Backend populates? Let's assume for now or handle IDs.
-                // For list API, usually populated.
+                if (!categories || categories.length === 0) return <Typography variant="caption" color="text.secondary">-</Typography>;
                 const catName = typeof categories[0] === 'object' ? (categories[0] as BlogCategory).name : '...';
+                const moreCount = categories.length > 1 ? ` +${categories.length - 1}` : '';
                 return (
-                    <Chip label={catName} size="small" variant="outlined" />
+                    <Chip label={catName + moreCount} size="small" variant="outlined" />
                 );
             }
         },
@@ -142,13 +182,12 @@ export default function BlogPostsPage() {
         {
             field: 'status',
             headerName: 'Status',
-            width: 100,
+            width: 110,
             renderCell: (params: GridRenderCellParams) => (
                 <Chip
                     label={params.value}
                     size="small"
                     color={getStatusColor(params.value as string) as any}
-                    variant="outlined"
                     sx={{ textTransform: 'capitalize' }}
                 />
             ),
@@ -159,13 +198,16 @@ export default function BlogPostsPage() {
             width: 80,
             align: 'center',
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2">{params.value?.views || 0}</Typography>
+                <Box display="flex" alignItems="center" gap={0.5}>
+                    <VisibilityIcon fontSize="small" color="action" />
+                    <Typography variant="caption">{params.value?.views || 0}</Typography>
+                </Box>
             )
         },
         {
             field: 'publishedAt',
             headerName: 'Published',
-            width: 120,
+            width: 110,
             renderCell: (params: GridRenderCellParams) => (
                 <Typography variant="caption" color="text.secondary">
                     {params.value ? new Date(params.value).toLocaleDateString() : '-'}
@@ -196,10 +238,10 @@ export default function BlogPostsPage() {
 
     if (loading) return <LoadingSpinner message="Loading posts..." />;
 
-    if (posts.length === 0 && !searchQuery && !filterStatus) {
+    if (posts.length === 0 && !searchQuery && !filterStore && !filterStatus) {
         return (
             <Box>
-                <PageHeader title="Blog Posts" subtitle="Manage blog articles" actionLabel="Create Post" onAction={handleCreate} />
+                <PageHeader title="Blog Posts" subtitle="Manage your blog articles" actionLabel="Create Post" onAction={handleCreate} />
                 <EmptyState
                     message="No blog posts found. Create your first post!"
                     actionLabel="Create Post"
@@ -213,13 +255,13 @@ export default function BlogPostsPage() {
         <Box>
             <PageHeader
                 title="Blog Posts"
-                subtitle="Manage blog articles"
+                subtitle="Manage your blog articles"
                 actionLabel="Create Post"
                 onAction={handleCreate}
             />
 
             <SearchFilterBar
-                searchPlaceholder="Search posts..."
+                searchPlaceholder="Search posts by title, slug or author..."
                 searchValue={searchQuery}
                 onSearchChange={setSearchQuery}
                 filters={[
@@ -230,12 +272,16 @@ export default function BlogPostsPage() {
                         options: [
                             { value: 'published', label: 'Published' },
                             { value: 'draft', label: 'Draft' },
+                            { value: 'scheduled', label: 'Scheduled' },
                             { value: 'archived', label: 'Archived' },
                         ],
                     },
                 ]}
                 activeFilters={{ status: filterStatus }}
                 onFilterChange={(filters) => setFilterStatus(filters.status as string || '')}
+                showStoreFilter
+                storeFilterValue={filterStore}
+                onStoreFilterChange={setFilterStore}
             />
 
             <Box sx={{ height: 600, width: '100%' }}>
@@ -245,7 +291,7 @@ export default function BlogPostsPage() {
                     getRowId={(row) => row._id}
                     pageSizeOptions={[10, 25, 50]}
                     initialState={{
-                        pagination: { paginationModel: { pageSize: 10 } },
+                        pagination: { paginationModel: { pageSize: 25 } },
                     }}
                     disableRowSelectionOnClick
                     sx={dataGridStyles}

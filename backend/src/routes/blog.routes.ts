@@ -11,7 +11,8 @@ import {
     deleteBlogPost,
     createBlogCategoryValidation,
     updateBlogCategoryValidation,
-    createBlogPostValidation
+    createBlogPostValidation,
+    getBlogCategoryById
 } from '../controllers/blog.controller';
 import { authenticate, authorize } from '../middleware/auth';
 import { validate } from '../middleware/validation';
@@ -23,24 +24,25 @@ router.use(authenticate);
 // Blog Categories
 router
     .route('/categories')
-    .post(authorize('admin', 'superadmin'), createBlogCategoryValidation, validate, createBlogCategory)
+    .post(authorize('admin', 'super_admin'), validate(createBlogCategoryValidation), createBlogCategory)
     .get(getBlogCategories);
 
 router
     .route('/categories/:id')
-    .put(authorize('admin', 'superadmin'), updateBlogCategoryValidation, validate, updateBlogCategory)
-    .delete(authorize('admin', 'superadmin'), deleteBlogCategory);
+    .get(getBlogCategoryById)
+    .put(authorize('admin', 'super_admin'), validate(updateBlogCategoryValidation), updateBlogCategory)
+    .delete(authorize('admin', 'super_admin'), deleteBlogCategory);
 
 // Blog Posts
 router
     .route('/posts')
-    .post(authorize('admin', 'superadmin'), createBlogPostValidation, validate, createBlogPost)
+    .post(authorize('admin', 'super_admin'), validate(createBlogPostValidation), createBlogPost)
     .get(getBlogPosts);
 
 router
     .route('/posts/:id')
     .get(getBlogPostById)
-    .put(authorize('admin', 'superadmin'), updateBlogPost)
-    .delete(authorize('admin', 'superadmin'), deleteBlogPost);
+    .put(authorize('admin', 'super_admin'), updateBlogPost)
+    .delete(authorize('admin', 'super_admin'), deleteBlogPost);
 
 export default router;

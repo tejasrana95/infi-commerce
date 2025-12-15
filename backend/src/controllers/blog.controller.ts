@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { body, param } from 'express-validator';
 import BlogCategory from '../models/BlogCategory';
 import BlogPost from '../models/BlogPost';
+import User from '../models/User';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 
@@ -184,16 +185,22 @@ export const createBlogPost = asyncHandler(async (req: AuthRequest, res: Respons
         throw new AppError('Post with this slug already exists in this store', 400);
     }
 
-    // Default author to current user if not provided
-    let authorName = 'Admin';
-    if (req.user?.email) {
-        authorName = req.user.email.split('@')[0];
+    // Get actual user data for author
+    let postAuthor = author;
+    if (!postAuthor && req.user?.id) {
+        const user = await User.findById(req.user.id).select('firstName lastName');
+        if (user) {
+            postAuthor = {
+                name: `${user.firstName} ${user.lastName}`.trim(),
+                userId: req.user.id
+            };
+        } else {
+            postAuthor = {
+                name: 'Admin',
+                userId: req.user.id
+            };
+        }
     }
-
-    const postAuthor = author || {
-        name: authorName,
-        userId: req.user?.id
-    };
 
     const post = await BlogPost.create({
         storeId,

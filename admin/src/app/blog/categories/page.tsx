@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Box, Tooltip, IconButton, Typography, useTheme, Chip } from '@mui/material';
+import { Box, Tooltip, IconButton, Typography, useTheme, Chip, Avatar } from '@mui/material';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -23,6 +23,7 @@ export default function BlogCategoriesPage() {
 
     // Filter states
     const [searchQuery, setSearchQuery] = useState('');
+    const [filterStore, setFilterStore] = useState<string>('');
     const [filterStatus, setFilterStatus] = useState<string>('');
 
     useEffect(() => {
@@ -62,6 +63,13 @@ export default function BlogCategoriesPage() {
         router.push('/blog/categories/new');
     };
 
+    const getStoreName = (storeId: any) => {
+        if (typeof storeId === 'object' && storeId !== null) {
+            return storeId.name;
+        }
+        return '-';
+    };
+
     const filteredRows = categories.filter((category) => {
         const query = searchQuery.toLowerCase();
 
@@ -71,15 +79,37 @@ export default function BlogCategoriesPage() {
             (category.slug && category.slug.toLowerCase().includes(query))
         );
 
+        // Store filter
+        const categoryStoreId = typeof category.storeId === 'object' && category.storeId !== null
+            ? (category.storeId as any)._id
+            : category.storeId;
+        const matchesStore = !filterStore || categoryStoreId === filterStore;
+
         // Status filter
         const matchesStatus = !filterStatus || (
             filterStatus === 'active' ? category.isActive : !category.isActive
         );
 
-        return matchesSearch && matchesStatus;
+        return matchesSearch && matchesStore && matchesStatus;
     });
 
     const columns: GridColDef[] = [
+        {
+            field: 'image',
+            headerName: '',
+            width: 70,
+            sortable: false,
+            renderCell: (params: GridRenderCellParams) => (
+                <Avatar
+                    src={(params.row as any).image}
+                    alt={params.row.name}
+                    variant="rounded"
+                    sx={{ width: 40, height: 40 }}
+                >
+                    {params.row.name?.charAt(0)}
+                </Avatar>
+            ),
+        },
         {
             field: 'name',
             headerName: 'Name',
@@ -87,7 +117,12 @@ export default function BlogCategoriesPage() {
             minWidth: 200,
             renderCell: (params: GridRenderCellParams) => (
                 <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
-                    <Typography variant="body2" fontWeight={600} sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }} onClick={() => handleEdit(params.row._id)}>
+                    <Typography
+                        variant="body2"
+                        fontWeight={600}
+                        sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }}
+                        onClick={() => handleEdit(params.row._id)}
+                    >
                         {params.row.name}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">{params.row.slug}</Typography>
@@ -95,18 +130,25 @@ export default function BlogCategoriesPage() {
             ),
         },
         {
+            field: 'storeId',
+            headerName: 'Store',
+            width: 150,
+            renderCell: (params: GridRenderCellParams) => (
+                <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+            ),
+        },
+        {
             field: 'postCount',
-            headerName: 'Articles',
-            width: 100,
+            headerName: 'Posts',
+            width: 80,
             align: 'center',
             renderCell: (params: GridRenderCellParams) => (
-                <Chip label={params.value || 0} size="small" />
-                // <Typography variant="body2">{params.value || 0}</Typography>
+                <Chip label={params.value || 0} size="small" variant="outlined" />
             ),
         },
         {
             field: 'isActive',
-            headerName: 'Active',
+            headerName: 'Status',
             width: 100,
             renderCell: (params: GridRenderCellParams) => <StatusChip active={params.value as boolean} />,
         },
@@ -134,12 +176,12 @@ export default function BlogCategoriesPage() {
 
     if (loading) return <LoadingSpinner message="Loading categories..." />;
 
-    if (categories.length === 0 && !searchQuery && !filterStatus) {
+    if (categories.length === 0 && !searchQuery && !filterStore && !filterStatus) {
         return (
             <Box>
-                <PageHeader title="Blog Categories" subtitle="Manage blog categories" actionLabel="Create Category" onAction={handleCreate} />
+                <PageHeader title="Blog Categories" subtitle="Organize your blog content" actionLabel="Create Category" onAction={handleCreate} />
                 <EmptyState
-                    message="No categories found. Create your first category!"
+                    message="No blog categories found. Create your first category!"
                     actionLabel="Create Category"
                     onAction={handleCreate}
                 />
@@ -151,7 +193,7 @@ export default function BlogCategoriesPage() {
         <Box>
             <PageHeader
                 title="Blog Categories"
-                subtitle="Manage blog categories"
+                subtitle="Organize your blog content"
                 actionLabel="Create Category"
                 onAction={handleCreate}
             />
@@ -173,6 +215,9 @@ export default function BlogCategoriesPage() {
                 ]}
                 activeFilters={{ status: filterStatus }}
                 onFilterChange={(filters) => setFilterStatus(filters.status as string || '')}
+                showStoreFilter
+                storeFilterValue={filterStore}
+                onStoreFilterChange={setFilterStore}
             />
 
             <Box sx={{ height: 600, width: '100%' }}>
@@ -182,7 +227,7 @@ export default function BlogCategoriesPage() {
                     getRowId={(row) => row._id}
                     pageSizeOptions={[10, 25, 50]}
                     initialState={{
-                        pagination: { paginationModel: { pageSize: 10 } },
+                        pagination: { paginationModel: { pageSize: 25 } },
                     }}
                     disableRowSelectionOnClick
                     sx={dataGridStyles}

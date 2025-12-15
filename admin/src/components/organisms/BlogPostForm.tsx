@@ -20,6 +20,7 @@ import { BlogPost } from '@/types';
 import StoreAutocomplete from '@/components/molecules/StoreAutocomplete';
 import BlogCategoryAutocomplete from '@/components/molecules/BlogCategoryAutocomplete';
 import FileManagerButton from '@/components/molecules/FileManagerButton';
+import RichTextEditor from '@/components/molecules/RichTextEditor';
 import { FileItem } from '@/types/file';
 
 // Validation Schema
@@ -141,7 +142,7 @@ export default function BlogPostForm({ initialData, onSubmit, isSubmitting = fal
     }, [watchedTitle, initialData, setValue]);
 
     return (
-        <Box component="form" onSubmit={handleSubmit(onSubmit)}>
+        <Box component="form" id="blog-post-form" onSubmit={handleSubmit(onSubmit)}>
             <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)} sx={{ mb: 3 }}>
                 <Tab label="Content" />
                 <Tab label="Settings" />
@@ -174,15 +175,14 @@ export default function BlogPostForm({ initialData, onSubmit, isSubmitting = fal
                                     name="content"
                                     control={control}
                                     render={({ field }) => (
-                                        <TextField
-                                            {...field}
+                                        <RichTextEditor
+                                            value={field.value || ''}
+                                            onChange={field.onChange}
                                             label="Content"
-                                            fullWidth
-                                            multiline
-                                            rows={15}
-                                            required
+                                            variant="full"
                                             error={!!errors.content}
-                                            helperText={errors.content?.message || 'Markdown supported'}
+                                            helperText={errors.content?.message}
+                                            minHeight={400}
                                         />
                                     )}
                                 />
