@@ -67,7 +67,8 @@ export default function LayoutDesigner({
 
     // Find selected section and module
     const selectedSection = layout.sections.find((s) => s.id === selectedSectionId);
-    const selectedModule = selectedSection?.modules.find((m) => m.id === selectedModuleId);
+    const selectedModule = selectedSection?.modules.find((m) => m.id === selectedModuleId) ||
+        selectedSection?.columns?.flatMap(c => c.modules).find(m => m.id === selectedModuleId);
 
     // Update sections
     const updateSections = useCallback(
@@ -93,18 +94,36 @@ export default function LayoutDesigner({
         (sectionId: string, moduleId: string, updates: Partial<LayoutModule>) => {
             const sections = layout.sections.map((s) => {
                 if (s.id !== sectionId) return s;
-                return {
-                    ...s,
-                    modules: s.modules.map((m) =>
-                        m.id === moduleId ? { ...m, ...updates } : m
-                    ),
-                };
+
+                // Check if module is in main modules list
+                if (s.modules.some(m => m.id === moduleId)) {
+                    return {
+                        ...s,
+                        modules: s.modules.map((m) =>
+                            m.id === moduleId ? { ...m, ...updates } : m
+                        ),
+                    };
+                }
+
+                // Check if module is in columns
+                if (s.columns) {
+                    return {
+                        ...s,
+                        columns: s.columns.map(col => ({
+                            ...col,
+                            modules: col.modules.map(m =>
+                                m.id === moduleId ? { ...m, ...updates } : m
+                            )
+                        }))
+                    };
+                }
+
+                return s;
             });
             updateSections(sections);
         },
         [layout.sections, updateSections]
     );
-
     // Add new section
     const handleAddSection = () => {
         const newSection = createSection('container');
@@ -122,13 +141,26 @@ export default function LayoutDesigner({
         }
     };
 
-    // Delete module
     const handleDeleteModule = (sectionId: string, moduleId: string) => {
-        updateSection(sectionId, {
-            modules: layout.sections
-                .find((s) => s.id === sectionId)
-                ?.modules.filter((m) => m.id !== moduleId) || [],
-        });
+        const section = layout.sections.find((s) => s.id === sectionId);
+        if (!section) return;
+
+        let updates: Partial<LayoutSection> = {};
+
+        if (section.columns) {
+            updates = {
+                columns: section.columns.map(col => ({
+                    ...col,
+                    modules: col.modules.filter(m => m.id !== moduleId)
+                }))
+            };
+        } else {
+            updates = {
+                modules: section.modules.filter((m) => m.id !== moduleId)
+            };
+        }
+
+        updateSection(sectionId, updates);
         if (selectedModuleId === moduleId) {
             setSelectedModuleId(null);
         }
@@ -136,7 +168,10 @@ export default function LayoutDesigner({
 
     // Find which section contains a module
     const findSectionByModuleId = (moduleId: string): LayoutSection | undefined => {
-        return layout.sections.find((s) => s.modules.some((m) => m.id === moduleId));
+        return layout.sections.find((s) =>
+            s.modules.some((m) => m.id === moduleId) ||
+            s.columns?.some(c => c.modules.some(m => m.id === moduleId))
+        );
     };
 
     // Handle drag start
@@ -162,13 +197,32 @@ export default function LayoutDesigner({
             // Check if dropping on a section drop zone
             if (overData?.type === 'section-drop' && overData.sectionId) {
                 const newModule = createModule(activeData.moduleType as ModuleType);
-                const section = layout.sections.find((s) => s.id === overData.sectionId);
+                const sectionId = overData.sectionId; // This could be a section ID or a column ID
+
+                // Find if target is a section or a column
+                const section = layout.sections.find(s => s.id === sectionId);
+
                 if (section) {
-                    updateSection(overData.sectionId, {
+                    // Dropped directly on a non-split section
+                    updateSection(sectionId, {
                         modules: [...section.modules, newModule],
                     });
-                    setSelectedSectionId(overData.sectionId);
+                    setSelectedSectionId(sectionId);
                     setSelectedModuleId(newModule.id);
+                } else {
+                    // Check if it's a column ID
+                    const sectionWithColumn = layout.sections.find(s => s.columns?.some(c => c.id === sectionId));
+                    if (sectionWithColumn && sectionWithColumn.columns) {
+                        updateSection(sectionWithColumn.id, {
+                            columns: sectionWithColumn.columns.map(col =>
+                                col.id === sectionId
+                                    ? { ...col, modules: [...col.modules, newModule] }
+                                    : col
+                            )
+                        });
+                        setSelectedSectionId(sectionWithColumn.id);
+                        setSelectedModuleId(newModule.id);
+                    }
                 }
             }
             return;
@@ -184,17 +238,134 @@ export default function LayoutDesigner({
             return;
         }
 
-        // Case 3: Reordering modules within same section
+        // Case 3: Reordering modules (within section/column or moving between them)
         const activeSection = findSectionByModuleId(active.id as string);
         const overSection = findSectionByModuleId(over.id as string);
 
-        if (activeSection && overSection && activeSection.id === overSection.id) {
-            const oldIndex = activeSection.modules.findIndex((m) => m.id === active.id);
-            const newIndex = activeSection.modules.findIndex((m) => m.id === over.id);
-            if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
-                updateSection(activeSection.id, {
-                    modules: arrayMove(activeSection.modules, oldIndex, newIndex),
-                });
+        // Handle moving modules
+        if (activeSection) {
+            // Determine source container (section module list or specific column)
+            let sourceModules = activeSection.modules;
+            let sourceColumnId: string | null = null;
+
+            if (activeSection.columns) {
+                const col = activeSection.columns.find(c => c.modules.some(m => m.id === active.id));
+                if (col) {
+                    sourceModules = col.modules;
+                    sourceColumnId = col.id;
+                }
+            }
+
+            // Determine target container
+            let targetSection = overSection;
+            let targetModules: LayoutModule[] | null = null;
+            let targetColumnId: string | null = null;
+
+            // If hovering over a module, find its container
+            if (overSection) {
+                targetModules = overSection.modules;
+                if (overSection.columns) {
+                    const col = overSection.columns.find(c => c.modules.some(m => m.id === over.id));
+                    if (col) {
+                        targetModules = col.modules;
+                        targetColumnId = col.id;
+                    }
+                }
+            }
+            // If hovering over a drop zone (empty column/section)
+            else if (overData?.type === 'section-drop') {
+                const containerId = overData.sectionId;
+                targetSection = layout.sections.find(s => s.id === containerId);
+
+                if (targetSection) {
+                    targetModules = targetSection.modules;
+                } else {
+                    targetSection = layout.sections.find(s => s.columns?.some(c => c.id === containerId));
+                    if (targetSection && targetSection.columns) {
+                        const col = targetSection.columns.find(c => c.id === containerId);
+                        if (col) {
+                            targetModules = col.modules;
+                            targetColumnId = col.id;
+                        }
+                    }
+                }
+            }
+
+            if (targetSection && targetModules) {
+                const oldIndex = sourceModules.findIndex(m => m.id === active.id);
+                // If over a drop zone, append to end. If over a module, find its index.
+                const newIndex = overData?.type === 'section-drop'
+                    ? targetModules.length + 1
+                    : targetModules.findIndex(m => m.id === over.id);
+
+                // Same container reorder
+                if (activeSection.id === targetSection.id && sourceColumnId === targetColumnId) {
+                    if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+                        const reordered = arrayMove(sourceModules, oldIndex, newIndex);
+
+                        if (sourceColumnId && activeSection.columns) {
+                            updateSection(activeSection.id, {
+                                columns: activeSection.columns.map(c =>
+                                    c.id === sourceColumnId ? { ...c, modules: reordered } : c
+                                )
+                            });
+                        } else {
+                            updateSection(activeSection.id, { modules: reordered });
+                        }
+                    }
+                }
+                // Move between containers (columns or sections)
+                else {
+                    // Remove from source
+                    const item = sourceModules[oldIndex];
+                    const newSourceModules = sourceModules.filter(m => m.id !== active.id);
+
+                    // Add to target
+                    const newTargetModules = [...targetModules];
+                    // Insert at specific index if hovering over a module, otherwise append
+                    if (newIndex >= 0 && newIndex < newTargetModules.length) {
+                        newTargetModules.splice(newIndex, 0, item);
+                    } else {
+                        newTargetModules.push(item);
+                    }
+
+                    // Apply updates (batch if possible, but here we might need two updates if different sections)
+                    // Since we update full sections list, we can do it in one go if we modify the sections array
+
+                    const newSections = layout.sections.map(s => {
+                        let newS = { ...s };
+
+                        // Update source section
+                        if (s.id === activeSection!.id) {
+                            if (sourceColumnId && s.columns) {
+                                newS.columns = s.columns.map(c => c.id === sourceColumnId ? { ...c, modules: newSourceModules } : c);
+                            } else {
+                                newS.modules = newSourceModules;
+                            }
+                        }
+
+                        // Update target section (might be same section)
+                        // Note: if same section, we need to use the 'newS' which presumably has the removal applied logic?
+                        // Actually, if same section, we need to apply both changes to 'newS'
+                        const sId = s.id;
+
+                        if (sId === targetSection!.id) {
+                            // If it's the same section, we have already modified newS above used as source. 
+                            // We need to match the target column in the *modified* section?
+                            // No, source and target are distinct containers (different columns or different sections).
+
+                            if (targetColumnId && newS.columns) {
+                                newS.columns = newS.columns.map(c => c.id === targetColumnId ? { ...c, modules: newTargetModules } : c);
+                            } else if (!targetColumnId) {
+                                newS.modules = newTargetModules;
+                            }
+                        }
+
+                        return newS;
+                    });
+
+                    updateSections(newSections);
+                }
             }
         }
     };

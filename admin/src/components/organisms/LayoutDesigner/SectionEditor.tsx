@@ -15,6 +15,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { LayoutSection, SectionType } from '@/types';
 import FileManagerButton from '@/components/molecules/FileManagerButton';
 import { FileItem } from '@/types/file';
+import { createColumn } from './types';
 
 interface SectionEditorProps {
     section: LayoutSection;
@@ -74,7 +75,39 @@ export default function SectionEditor({ section, onChange, onDelete }: SectionEd
                 select
                 label="Layout Type"
                 value={section.type}
-                onChange={(e) => onChange({ ...section, type: e.target.value as SectionType })}
+                onChange={(e) => {
+                    const newType = e.target.value as SectionType;
+                    let newColumns = section.columns;
+
+                    if (newType.startsWith('split')) {
+                        const count = parseInt(newType.split('-')[1]);
+                        // Initialize columns if not present or count changed
+                        if (!newColumns || newColumns.length !== count) {
+                            newColumns = Array(count).fill(0).map(() => createColumn(12 / count));
+
+                            // If switching from non-split to split, move modules to first column
+                            if (section.modules.length > 0) {
+                                newColumns[0].modules = [...section.modules];
+                            }
+                        }
+                    } else {
+                        // Switching back to container/full-width
+                        // Move all modules back to main modules array
+                        if (section.columns) {
+                            const allModules = section.columns.flatMap(c => c.modules);
+                            onChange({ ...section, type: newType, columns: undefined, modules: allModules });
+                            return;
+                        }
+                    }
+
+                    onChange({
+                        ...section,
+                        type: newType,
+                        columns: newColumns,
+                        // Clear main modules if using columns
+                        modules: newType.startsWith('split') ? [] : section.modules
+                    });
+                }}
                 size="small"
                 fullWidth
             >
@@ -84,6 +117,46 @@ export default function SectionEditor({ section, onChange, onDelete }: SectionEd
                     </MenuItem>
                 ))}
             </TextField>
+
+            {/* Column Configuration for Split Sections */}
+            {section.type.startsWith('split') && section.columns && (
+                <Box>
+                    <Typography variant="caption" color="text.secondary" gutterBottom>
+                        Column Widths (Total must be 12)
+                    </Typography>
+                    {section.columns.map((col, index) => (
+                        <Box key={col.id} sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1 }}>
+                            <Typography variant="caption" sx={{ minWidth: 60 }}>
+                                Col {index + 1}: {col.width}/12
+                            </Typography>
+                            <Slider
+                                value={col.width}
+                                onChange={(_, val) => {
+                                    const newColumns = [...section.columns!];
+                                    const oldWidth = newColumns[index].width;
+                                    const diff = (val as number) - oldWidth;
+
+                                    // Adjust next column (or previous if last) to keep total 12
+                                    if (index < newColumns.length - 1) {
+                                        newColumns[index + 1].width -= diff;
+                                    } else if (index > 0) {
+                                        newColumns[index - 1].width -= diff;
+                                    }
+
+                                    newColumns[index].width = val as number;
+                                    onChange({ ...section, columns: newColumns });
+                                }}
+                                min={1}
+                                max={11}
+                                step={1}
+                                size="small"
+                                sx={{ flex: 1 }}
+                            />
+                        </Box>
+                    ))}
+                    <Divider sx={{ my: 2 }} />
+                </Box>
+            )}
 
             <Divider />
 

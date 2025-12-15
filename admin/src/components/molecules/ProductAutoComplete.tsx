@@ -118,7 +118,8 @@ export default function ProductAutoComplete({
                 return `${opt.name} (${opt.sku})`;
             }}
             isOptionEqualToValue={(option, val) => {
-                return option._id === (val as any)._id;
+                const opt = option as ProductOption;
+                return opt._id === (val as any)._id;
             }}
             filterOptions={(x) => x} // Disable client-side filtering, rely on server
             renderOption={(props, option) => {

@@ -1,6 +1,6 @@
 // Layout Designer local types for drag-and-drop context
 
-import { LayoutModule, LayoutSection, ModuleType, SectionType } from '@/types';
+import { LayoutModule, LayoutSection, ModuleType, SectionType, LayoutColumn } from '@/types';
 
 // Module definition for the palette
 export interface ModuleDefinition {
@@ -271,4 +271,10 @@ export const createSection = (type: SectionType = 'container', name?: string): L
     modules: [],
     visibility: { desktop: true, tablet: true, mobile: true },
     order: 0,
+});
+
+export const createColumn = (width: number): LayoutColumn => ({
+    id: crypto.randomUUID(),
+    width,
+    modules: [],
 });

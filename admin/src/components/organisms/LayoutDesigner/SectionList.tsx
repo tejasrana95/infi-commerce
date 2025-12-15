@@ -183,7 +183,7 @@ function SectionItem({
                         {section.name || 'Unnamed Section'}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                        {section.type} • {section.modules.length} module(s)
+                        {section.type} • {section.modules.length + (section.columns?.reduce((acc, col) => acc + col.modules.length, 0) || 0)} module(s)
                     </Typography>
                 </Box>
 
@@ -215,33 +215,71 @@ function SectionItem({
             {/* Section Content - Modules are sortable within the parent context */}
             <Collapse in={isExpanded}>
                 <Box sx={{ p: 1.5, bgcolor: 'background.paper' }}>
-                    <SortableContext
-                        items={section.modules.map((m) => m.id)}
-                        strategy={verticalListSortingStrategy}
-                    >
-                        <ModuleDropZone sectionId={section.id}>
-                            {section.modules.length === 0 ? (
-                                <Typography
-                                    variant="body2"
-                                    color="text.secondary"
-                                    textAlign="center"
-                                    py={2}
-                                >
-                                    Drag modules here
-                                </Typography>
-                            ) : (
-                                section.modules.map((mod) => (
-                                    <SortableModule
-                                        key={mod.id}
-                                        module={mod}
-                                        isSelected={selectedModuleId === mod.id}
-                                        onSelect={() => onSelectModule(mod.id)}
-                                        onDelete={() => onDeleteModule(mod.id)}
-                                    />
-                                ))
-                            )}
-                        </ModuleDropZone>
-                    </SortableContext>
+                    {section.columns && section.columns.length > 0 ? (
+                        <Box sx={{ display: 'flex', gap: 2 }}>
+                            {section.columns.map((col) => (
+                                <Box key={col.id} sx={{ flex: col.width, minWidth: 0 }}>
+                                    <SortableContext
+                                        id={col.id} // Column ID becomes the sortable context ID
+                                        items={col.modules.map(m => m.id)}
+                                        strategy={verticalListSortingStrategy}
+                                    >
+                                        <ModuleDropZone sectionId={col.id}> {/* Drop zone uses column ID */}
+                                            {col.modules.length === 0 ? (
+                                                <Typography
+                                                    variant="body2"
+                                                    color="text.secondary"
+                                                    textAlign="center"
+                                                    py={2}
+                                                >
+                                                    Empty
+                                                </Typography>
+                                            ) : (
+                                                col.modules.map((mod) => (
+                                                    <SortableModule
+                                                        key={mod.id}
+                                                        module={mod}
+                                                        isSelected={selectedModuleId === mod.id}
+                                                        onSelect={() => onSelectModule(mod.id)}
+                                                        onDelete={() => onDeleteModule(mod.id)}
+                                                    />
+                                                ))
+                                            )}
+                                        </ModuleDropZone>
+                                    </SortableContext>
+                                </Box>
+                            ))}
+                        </Box>
+                    ) : (
+                        <SortableContext
+                            id={section.id}
+                            items={section.modules.map((m) => m.id)}
+                            strategy={verticalListSortingStrategy}
+                        >
+                            <ModuleDropZone sectionId={section.id}>
+                                {section.modules.length === 0 ? (
+                                    <Typography
+                                        variant="body2"
+                                        color="text.secondary"
+                                        textAlign="center"
+                                        py={2}
+                                    >
+                                        Drag modules here
+                                    </Typography>
+                                ) : (
+                                    section.modules.map((mod) => (
+                                        <SortableModule
+                                            key={mod.id}
+                                            module={mod}
+                                            isSelected={selectedModuleId === mod.id}
+                                            onSelect={() => onSelectModule(mod.id)}
+                                            onDelete={() => onDeleteModule(mod.id)}
+                                        />
+                                    ))
+                                )}
+                            </ModuleDropZone>
+                        </SortableContext>
+                    )}
                 </Box>
             </Collapse>
         </Paper>
@@ -280,7 +318,8 @@ export default function SectionList({
                         section={section}
                         isSelected={selectedSectionId === section.id}
                         selectedModuleId={
-                            sections.find((s) => s.id === section.id)?.modules.find((m) => m.id === selectedModuleId)
+                            sections.find((s) => s.id === section.id)?.modules.find((m) => m.id === selectedModuleId) ||
+                                sections.find((s) => s.id === section.id)?.columns?.some(c => c.modules.some(m => m.id === selectedModuleId))
                                 ? selectedModuleId
                                 : null
                         }
