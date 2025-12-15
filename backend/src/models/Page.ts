@@ -131,6 +131,25 @@ PageSchema.index({ storeId: 1, status: 1 });
 PageSchema.index({ storeId: 1, showInFooter: 1 });
 PageSchema.index({ storeId: 1, showInHeader: 1 });
 
+// Pre-save middleware to auto-generate canonical URL
+PageSchema.pre('save', async function (next) {
+    if (this.isModified('slug') || this.isNew) {
+        const Store = mongoose.model('Store');
+        const store = await Store.findById(this.storeId);
+
+        if (store) {
+            const protocol = 'https://';
+            const domain = (store as any).domain;
+            if (!this.seo) {
+                this.seo = {};
+            }
+            this.seo.canonicalUrl = `${protocol}${domain}/page/${this.slug}`;
+        }
+    }
+    next();
+});
+
 const Page = mongoose.model<IPage>('Page', PageSchema);
 
 export default Page;
+

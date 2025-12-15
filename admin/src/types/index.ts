@@ -331,28 +331,49 @@ export interface Layout {
 }
 
 export interface MenuItem {
-  title: string;
-  type: 'link' | 'category' | 'product' | 'page' | 'custom';
+  id: string;
+  label: string;
+  type: 'link' | 'category' | 'product' | 'page' | 'blog-category' | 'mega-menu' | 'divider';
   url?: string;
-  referenceId?: string;
-  target: '_self' | '_blank';
-  children: MenuItem[];
-  // Mega menu fields
+  categoryId?: string;
+  productId?: string;
+  pageId?: string;
+  blogCategoryId?: string;
   megaMenu?: {
-    enabled: boolean;
-    columns: any[];
+    columns: Array<{
+      title?: string;
+      items: MenuItem[];
+      width: number;
+    }>;
     featuredImage?: string;
+    featuredLink?: string;
+    featuredTitle?: string;
   };
+  icon?: string;
+  badge?: {
+    text: string;
+    color: string;
+  };
+  openInNewTab: boolean;
+  children: MenuItem[];
+  order: number;
 }
 
 export interface Menu {
   _id: string;
   name: string;
   slug: string;
-  locations: string[];
+  location: 'header-main' | 'header-top' | 'footer-primary' | 'footer-secondary' | 'sidebar' | 'mobile' | 'custom';
+  description?: string;
   items: MenuItem[];
+  settings: {
+    style: 'horizontal' | 'vertical' | 'mega' | 'flyout' | 'accordion';
+    showIcons: boolean;
+    maxDepth: number;
+    mobileBreakpoint: number;
+  };
   isActive: boolean;
-  storeId: string;
+  storeId: string | { _id: string; name: string };
   createdAt: string;
   updatedAt: string;
 }
@@ -361,20 +382,24 @@ export interface Page {
   _id: string;
   title: string;
   slug: string;
-  contentMode: 'builder' | 'richtext';
-  layout?: string | Layout;
+  useLayout: boolean;
+  layoutId?: string;
   content?: string;
-  summary?: string;
-  status: 'published' | 'draft' | 'archived';
-  visibility: 'public' | 'private' | 'password';
-  publishedAt?: string;
+  featuredImage?: string;
   seo?: {
     metaTitle?: string;
     metaDescription?: string;
-    keywords?: string[];
+    metaKeywords?: string[];
     ogImage?: string;
+    canonicalUrl?: string;
   };
-  storeId: string;
+  status: 'published' | 'draft';
+  showInFooter: boolean;
+  footerGroup?: string;
+  showInHeader: boolean;
+  template: 'default' | 'full-width' | 'sidebar' | 'landing';
+  sortOrder: number;
+  storeId: string | { _id: string; name: string };
   createdAt: string;
   updatedAt: string;
 }

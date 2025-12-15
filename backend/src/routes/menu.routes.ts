@@ -17,13 +17,13 @@ router.use(authenticate);
 
 router
     .route('/')
-    .post(authorize('admin', 'superadmin'), createMenuValidation, validate, createMenu)
+    .post(authorize('admin', 'super_admin'), validate(createMenuValidation), createMenu)
     .get(getMenus);
 
 router
     .route('/:id')
     .get(getMenuById)
-    .put(authorize('admin', 'superadmin'), updateMenuValidation, validate, updateMenu)
-    .delete(authorize('admin', 'superadmin'), deleteMenu);
+    .put(authorize('admin', 'super_admin'), validate(updateMenuValidation), updateMenu)
+    .delete(authorize('admin', 'super_admin'), deleteMenu);
 
 export default router;

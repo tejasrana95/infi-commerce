@@ -88,17 +88,23 @@ export const createPage = asyncHandler(async (req: AuthRequest, res: Response) =
 export const getPages = asyncHandler(async (req: AuthRequest, res: Response) => {
     const filter: any = {};
 
+    // Store filter - optional for super_admin
     if (req.query.storeId) {
         filter.storeId = req.query.storeId;
-    } else {
-        throw new AppError('Store ID is required', 400);
+    } else if (req.user?.role === 'super_admin') {
+        // Super admin can see all pages
+    } else if (req.user?.storeId) {
+        // Store admin sees only their store's pages
+        filter.storeId = req.user.storeId;
     }
 
     if (req.query.status) {
         filter.status = req.query.status;
     }
 
-    const pages = await Page.find(filter).sort({ sortOrder: 1, title: 1 });
+    const pages = await Page.find(filter)
+        .populate('storeId', 'name')
+        .sort({ sortOrder: 1, title: 1 });
 
     res.json({ pages });
 });

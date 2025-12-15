@@ -17,13 +17,13 @@ router.use(authenticate);
 
 router
     .route('/')
-    .post(authorize('admin', 'superadmin'), createPageValidation, validate, createPage)
+    .post(authorize('admin', 'super_admin'), validate(createPageValidation), createPage)
     .get(getPages);
 
 router
     .route('/:id')
     .get(getPageById)
-    .put(authorize('admin', 'superadmin'), updatePageValidation, validate, updatePage)
-    .delete(authorize('admin', 'superadmin'), deletePage);
+    .put(authorize('admin', 'super_admin'), validate(updatePageValidation), updatePage)
+    .delete(authorize('admin', 'super_admin'), deletePage);
 
 export default router;

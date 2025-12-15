@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Box, Tooltip, IconButton, Typography, useTheme, Chip } from '@mui/material';
+import { Box, Tooltip, IconButton, Typography, useTheme, Chip, Avatar } from '@mui/material';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import MenuIcon from '@mui/icons-material/Menu';
 import api from '@/lib/api';
 import { Menu } from '@/types';
 import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules';
@@ -23,7 +24,9 @@ export default function MenusPage() {
 
     // Filter states
     const [searchQuery, setSearchQuery] = useState('');
+    const [filterStore, setFilterStore] = useState<string>('');
     const [filterStatus, setFilterStatus] = useState<string>('');
+    const [filterLocation, setFilterLocation] = useState<string>('');
 
     useEffect(() => {
         fetchMenus();
@@ -33,7 +36,7 @@ export default function MenusPage() {
         try {
             setLoading(true);
             const response = await api.get('/menus');
-            setMenus(response.data.data || []);
+            setMenus(response.data.menus || []);
         } catch (err: any) {
             console.error('Failed to fetch menus', err);
             showNotification(err.response?.data?.message || 'Failed to load menus', 'error');
@@ -62,31 +65,91 @@ export default function MenusPage() {
         router.push('/menus/new');
     };
 
+    const getStoreName = (storeId: any) => {
+        if (typeof storeId === 'object' && storeId !== null) {
+            return storeId.name;
+        }
+        return '-';
+    };
+
+    const getLocationLabel = (location: string) => {
+        const labels: Record<string, string> = {
+            'header-main': 'Header Main',
+            'header-top': 'Header Top',
+            'footer-primary': 'Footer Primary',
+            'footer-secondary': 'Footer Secondary',
+            'sidebar': 'Sidebar',
+            'mobile': 'Mobile',
+            'custom': 'Custom',
+        };
+        return labels[location] || location;
+    };
+
+    const getLocationColor = (location: string) => {
+        const colors: Record<string, 'primary' | 'secondary' | 'success' | 'warning' | 'info' | 'default'> = {
+            'header-main': 'primary',
+            'header-top': 'secondary',
+            'footer-primary': 'success',
+            'footer-secondary': 'success',
+            'sidebar': 'info',
+            'mobile': 'warning',
+            'custom': 'default',
+        };
+        return colors[location] || 'default';
+    };
+
     const filteredRows = menus.filter((menu) => {
         const query = searchQuery.toLowerCase();
 
         // Search filter
         const matchesSearch = !searchQuery || (
             (menu.name && menu.name.toLowerCase().includes(query)) ||
-            (menu.slug && menu.slug.toLowerCase().includes(query))
+            (menu.slug && menu.slug.toLowerCase().includes(query)) ||
+            (menu.description && menu.description.toLowerCase().includes(query))
         );
+
+        // Store filter
+        const menuStoreId = typeof menu.storeId === 'object' && menu.storeId !== null
+            ? menu.storeId._id
+            : menu.storeId;
+        const matchesStore = !filterStore || menuStoreId === filterStore;
 
         // Status filter
         const matchesStatus = !filterStatus || (
             filterStatus === 'active' ? menu.isActive : !menu.isActive
         );
 
-        return matchesSearch && matchesStatus;
+        // Location filter
+        const matchesLocation = !filterLocation || menu.location === filterLocation;
+
+        return matchesSearch && matchesStore && matchesStatus && matchesLocation;
     });
 
     const columns: GridColDef[] = [
         {
+            field: 'icon',
+            headerName: '',
+            width: 60,
+            sortable: false,
+            renderCell: () => (
+                <Avatar variant="rounded" sx={{ width: 40, height: 40, bgcolor: 'info.light' }}>
+                    <MenuIcon fontSize="small" color="info" />
+                </Avatar>
+            ),
+        },
+        {
             field: 'name',
             headerName: 'Name',
-            width: 200,
+            flex: 1,
+            minWidth: 180,
             renderCell: (params: GridRenderCellParams) => (
                 <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
-                    <Typography variant="body2" fontWeight={600} sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }} onClick={() => handleEdit(params.row._id)}>
+                    <Typography
+                        variant="body2"
+                        fontWeight={600}
+                        sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }}
+                        onClick={() => handleEdit(params.row._id)}
+                    >
                         {params.row.name}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">{params.row.slug}</Typography>
@@ -94,34 +157,51 @@ export default function MenusPage() {
             ),
         },
         {
-            field: 'locations',
-            headerName: 'Locations',
-            flex: 1,
-            minWidth: 200,
+            field: 'storeId',
+            headerName: 'Store',
+            width: 140,
             renderCell: (params: GridRenderCellParams) => (
-                <Box display="flex" gap={0.5} flexWrap="wrap" alignItems="center" height="100%">
-                    {params.value && params.value.length > 0 ? (
-                        params.value.map((loc: string) => (
-                            <Chip key={loc} label={loc} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} />
-                        ))
-                    ) : (
-                        <Typography variant="caption" color="text.secondary">-</Typography>
-                    )}
-                </Box>
+                <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+            ),
+        },
+        {
+            field: 'location',
+            headerName: 'Location',
+            width: 140,
+            renderCell: (params: GridRenderCellParams) => (
+                <Chip
+                    label={getLocationLabel(params.value)}
+                    size="small"
+                    color={getLocationColor(params.value)}
+                    variant="outlined"
+                />
+            ),
+        },
+        {
+            field: 'settings',
+            headerName: 'Style',
+            width: 100,
+            renderCell: (params: GridRenderCellParams) => (
+                <Chip
+                    label={params.value?.style || 'horizontal'}
+                    size="small"
+                    variant="filled"
+                    sx={{ textTransform: 'capitalize', fontSize: '0.7rem' }}
+                />
             ),
         },
         {
             field: 'items',
             headerName: 'Items',
-            width: 100,
+            width: 80,
             align: 'center',
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2">{params.value?.length || 0}</Typography>
+                <Chip label={params.value?.length || 0} size="small" variant="outlined" />
             ),
         },
         {
             field: 'isActive',
-            headerName: 'Active',
+            headerName: 'Status',
             width: 100,
             renderCell: (params: GridRenderCellParams) => <StatusChip active={params.value as boolean} />,
         },
@@ -149,12 +229,12 @@ export default function MenusPage() {
 
     if (loading) return <LoadingSpinner message="Loading menus..." />;
 
-    if (menus.length === 0 && !searchQuery && !filterStatus) {
+    if (menus.length === 0 && !searchQuery && !filterStore && !filterStatus && !filterLocation) {
         return (
             <Box>
-                <PageHeader title="Menus" subtitle="Manage navigation menus" actionLabel="Create Menu" onAction={handleCreate} />
+                <PageHeader title="Menus" subtitle="Manage navigation menus for header, footer, sidebar" actionLabel="Create Menu" onAction={handleCreate} />
                 <EmptyState
-                    message="No menus found. Create your first menu!"
+                    message="No menus found. Create your first navigation menu!"
                     actionLabel="Create Menu"
                     onAction={handleCreate}
                 />
@@ -166,13 +246,13 @@ export default function MenusPage() {
         <Box>
             <PageHeader
                 title="Menus"
-                subtitle="Manage navigation menus"
+                subtitle="Manage navigation menus for header, footer, sidebar"
                 actionLabel="Create Menu"
                 onAction={handleCreate}
             />
 
             <SearchFilterBar
-                searchPlaceholder="Search menus..."
+                searchPlaceholder="Search menus by name, slug or description..."
                 searchValue={searchQuery}
                 onSearchChange={setSearchQuery}
                 filters={[
@@ -185,13 +265,29 @@ export default function MenusPage() {
                             { value: 'inactive', label: 'Inactive' },
                         ],
                     },
+                    {
+                        id: 'location',
+                        label: 'Location',
+                        type: 'select',
+                        options: [
+                            { value: 'header-main', label: 'Header Main' },
+                            { value: 'header-top', label: 'Header Top' },
+                            { value: 'footer-primary', label: 'Footer Primary' },
+                            { value: 'footer-secondary', label: 'Footer Secondary' },
+                            { value: 'sidebar', label: 'Sidebar' },
+                            { value: 'mobile', label: 'Mobile' },
+                            { value: 'custom', label: 'Custom' },
+                        ],
+                    },
                 ]}
-                activeFilters={{
-                    status: filterStatus
-                }}
+                activeFilters={{ status: filterStatus, location: filterLocation }}
                 onFilterChange={(filters) => {
                     setFilterStatus(filters.status as string || '');
+                    setFilterLocation(filters.location as string || '');
                 }}
+                showStoreFilter
+                storeFilterValue={filterStore}
+                onStoreFilterChange={setFilterStore}
             />
 
             <Box sx={{ height: 600, width: '100%' }}>
@@ -201,7 +297,7 @@ export default function MenusPage() {
                     getRowId={(row) => row._id}
                     pageSizeOptions={[10, 25, 50]}
                     initialState={{
-                        pagination: { paginationModel: { pageSize: 10 } },
+                        pagination: { paginationModel: { pageSize: 25 } },
                     }}
                     disableRowSelectionOnClick
                     sx={dataGridStyles}

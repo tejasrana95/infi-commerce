@@ -2,15 +2,15 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Box, Tooltip, IconButton, Typography, useTheme, Chip } from '@mui/material';
+import { Box, Tooltip, IconButton, Typography, useTheme, Chip, Avatar } from '@mui/material';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import VisibilityIcon from '@mui/icons-material/Visibility';
+import DescriptionIcon from '@mui/icons-material/Description';
 import api from '@/lib/api';
 import { Page } from '@/types';
 import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules';
-import { LoadingSpinner } from '@/components/atoms';
+import { LoadingSpinner, StatusChip } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
 import { createDataGridStyles } from '@/utils/styles';
 
@@ -24,6 +24,7 @@ export default function PagesPage() {
 
     // Filter states
     const [searchQuery, setSearchQuery] = useState('');
+    const [filterStore, setFilterStore] = useState<string>('');
     const [filterStatus, setFilterStatus] = useState<string>('');
 
     useEffect(() => {
@@ -34,7 +35,7 @@ export default function PagesPage() {
         try {
             setLoading(true);
             const response = await api.get('/pages');
-            setPages(response.data.data || []);
+            setPages(response.data.pages || []);
         } catch (err: any) {
             console.error('Failed to fetch pages', err);
             showNotification(err.response?.data?.message || 'Failed to load pages', 'error');
@@ -63,6 +64,13 @@ export default function PagesPage() {
         router.push('/pages/new');
     };
 
+    const getStoreName = (storeId: any) => {
+        if (typeof storeId === 'object' && storeId !== null) {
+            return storeId.name;
+        }
+        return '-';
+    };
+
     const filteredRows = pages.filter((page) => {
         const query = searchQuery.toLowerCase();
 
@@ -72,22 +80,38 @@ export default function PagesPage() {
             (page.slug && page.slug.toLowerCase().includes(query))
         );
 
+        // Store filter
+        const pageStoreId = typeof page.storeId === 'object' && page.storeId !== null
+            ? page.storeId._id
+            : page.storeId;
+        const matchesStore = !filterStore || pageStoreId === filterStore;
+
         // Status filter
         const matchesStatus = !filterStatus || page.status === filterStatus;
 
-        return matchesSearch && matchesStatus;
+        return matchesSearch && matchesStore && matchesStatus;
     });
 
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'published': return 'success';
             case 'draft': return 'default';
-            case 'archived': return 'error';
             default: return 'default';
         }
     };
 
     const columns: GridColDef[] = [
+        {
+            field: 'icon',
+            headerName: '',
+            width: 60,
+            sortable: false,
+            renderCell: () => (
+                <Avatar variant="rounded" sx={{ width: 40, height: 40, bgcolor: 'primary.light' }}>
+                    <DescriptionIcon fontSize="small" color="primary" />
+                </Avatar>
+            ),
+        },
         {
             field: 'title',
             headerName: 'Title',
@@ -95,56 +119,84 @@ export default function PagesPage() {
             minWidth: 200,
             renderCell: (params: GridRenderCellParams) => (
                 <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
-                    <Typography variant="body2" fontWeight={600} sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }} onClick={() => handleEdit(params.row._id)}>
+                    <Typography
+                        variant="body2"
+                        fontWeight={600}
+                        sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }}
+                        onClick={() => handleEdit(params.row._id)}
+                    >
                         {params.row.title}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">{params.row.slug}</Typography>
+                    <Typography variant="caption" color="text.secondary">/{params.row.slug}</Typography>
                 </Box>
             ),
         },
         {
-            field: 'status',
-            headerName: 'Status',
+            field: 'storeId',
+            headerName: 'Store',
+            width: 140,
+            renderCell: (params: GridRenderCellParams) => (
+                <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+            ),
+        },
+        {
+            field: 'template',
+            headerName: 'Template',
             width: 120,
             renderCell: (params: GridRenderCellParams) => (
                 <Chip
-                    label={params.value}
+                    label={params.value || 'default'}
                     size="small"
-                    color={getStatusColor(params.value as string) as any}
                     variant="outlined"
                     sx={{ textTransform: 'capitalize' }}
                 />
             ),
         },
         {
-            field: 'contentMode',
-            headerName: 'Mode',
-            width: 120,
+            field: 'status',
+            headerName: 'Status',
+            width: 110,
             renderCell: (params: GridRenderCellParams) => (
                 <Chip
-                    label={params.value === 'builder' ? 'Builder' : 'Rich Text'}
+                    label={params.value}
                     size="small"
-                    color="info"
-                    variant="filled"
-                    sx={{ height: 24, fontSize: '0.7rem' }}
+                    color={getStatusColor(params.value as string) as any}
+                    sx={{ textTransform: 'capitalize' }}
                 />
             ),
         },
         {
-            field: 'visibility',
-            headerName: 'Visibility',
-            width: 120,
+            field: 'showInHeader',
+            headerName: 'Header',
+            width: 80,
+            align: 'center',
             renderCell: (params: GridRenderCellParams) => (
-                <Box display="flex" alignItems="center" gap={0.5}>
-                    <VisibilityIcon fontSize="inherit" color="action" />
-                    <Typography variant="caption" sx={{ textTransform: 'capitalize' }}>{params.value}</Typography>
-                </Box>
+                <Chip
+                    label={params.value ? 'Yes' : 'No'}
+                    size="small"
+                    color={params.value ? 'success' : 'default'}
+                    variant="outlined"
+                />
+            ),
+        },
+        {
+            field: 'showInFooter',
+            headerName: 'Footer',
+            width: 80,
+            align: 'center',
+            renderCell: (params: GridRenderCellParams) => (
+                <Chip
+                    label={params.value ? 'Yes' : 'No'}
+                    size="small"
+                    color={params.value ? 'success' : 'default'}
+                    variant="outlined"
+                />
             ),
         },
         {
             field: 'updatedAt',
-            headerName: 'Last Updated',
-            width: 150,
+            headerName: 'Updated',
+            width: 110,
             renderCell: (params: GridRenderCellParams) => (
                 <Typography variant="caption" color="text.secondary">
                     {new Date(params.value).toLocaleDateString()}
@@ -175,12 +227,12 @@ export default function PagesPage() {
 
     if (loading) return <LoadingSpinner message="Loading pages..." />;
 
-    if (pages.length === 0 && !searchQuery && !filterStatus) {
+    if (pages.length === 0 && !searchQuery && !filterStore && !filterStatus) {
         return (
             <Box>
-                <PageHeader title="Pages" subtitle="Manage static pages" actionLabel="Create Page" onAction={handleCreate} />
+                <PageHeader title="Pages" subtitle="Manage static pages like About, Contact, Privacy" actionLabel="Create Page" onAction={handleCreate} />
                 <EmptyState
-                    message="No pages found. Create your first page!"
+                    message="No pages found. Create your first static page!"
                     actionLabel="Create Page"
                     onAction={handleCreate}
                 />
@@ -192,13 +244,13 @@ export default function PagesPage() {
         <Box>
             <PageHeader
                 title="Pages"
-                subtitle="Manage static pages"
+                subtitle="Manage static pages like About, Contact, Privacy"
                 actionLabel="Create Page"
                 onAction={handleCreate}
             />
 
             <SearchFilterBar
-                searchPlaceholder="Search pages..."
+                searchPlaceholder="Search pages by title or slug..."
                 searchValue={searchQuery}
                 onSearchChange={setSearchQuery}
                 filters={[
@@ -209,12 +261,14 @@ export default function PagesPage() {
                         options: [
                             { value: 'published', label: 'Published' },
                             { value: 'draft', label: 'Draft' },
-                            { value: 'archived', label: 'Archived' },
                         ],
                     },
                 ]}
                 activeFilters={{ status: filterStatus }}
                 onFilterChange={(filters) => setFilterStatus(filters.status as string || '')}
+                showStoreFilter
+                storeFilterValue={filterStore}
+                onStoreFilterChange={setFilterStore}
             />
 
             <Box sx={{ height: 600, width: '100%' }}>
@@ -224,7 +278,7 @@ export default function PagesPage() {
                     getRowId={(row) => row._id}
                     pageSizeOptions={[10, 25, 50]}
                     initialState={{
-                        pagination: { paginationModel: { pageSize: 10 } },
+                        pagination: { paginationModel: { pageSize: 25 } },
                     }}
                     disableRowSelectionOnClick
                     sx={dataGridStyles}

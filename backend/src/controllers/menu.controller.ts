@@ -103,10 +103,14 @@ export const createMenu = asyncHandler(async (req: AuthRequest, res: Response) =
 export const getMenus = asyncHandler(async (req: AuthRequest, res: Response) => {
     const filter: any = {};
 
+    // Store filter - optional for super_admin
     if (req.query.storeId) {
         filter.storeId = req.query.storeId;
-    } else {
-        throw new AppError('Store ID is required', 400);
+    } else if (req.user?.role === 'super_admin') {
+        // Super admin can see all menus
+    } else if (req.user?.storeId) {
+        // Store admin sees only their store's menus
+        filter.storeId = req.user.storeId;
     }
 
     if (req.query.location) {
@@ -117,7 +121,9 @@ export const getMenus = asyncHandler(async (req: AuthRequest, res: Response) => 
         filter.isActive = req.query.isActive === 'true';
     }
 
-    const menus = await Menu.find(filter).sort({ name: 1 });
+    const menus = await Menu.find(filter)
+        .populate('storeId', 'name')
+        .sort({ name: 1 });
 
     res.json({ menus });
 });
