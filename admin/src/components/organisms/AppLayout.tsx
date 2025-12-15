@@ -103,6 +103,7 @@ const navigationItems: NavItem[] = [
       { name: 'Menus', href: '/menus', icon: <MenuIcon /> },
       { name: 'Pages', href: '/pages', icon: <ArticleIcon /> },
       { name: 'Banners', href: '/banners', icon: <ViewCarouselIcon /> },
+      { name: 'Banner Sliders', href: '/banner-sliders', icon: <ViewCarouselIcon /> },
       { name: 'Testimonials', href: '/testimonials', icon: <FormatQuoteIcon /> },
       { name: 'Brand Showcases', href: '/brand-showcases', icon: <WorkspacesIcon /> },
       {
