@@ -30,6 +30,12 @@ import pageRoutes from './page.routes';
 import blogRoutes from './blog.routes';
 import globalElementsRoutes from './global-elements.routes';
 
+// Content Module Routes
+import bannerRoutes from './banner.routes';
+import bannerSliderRoutes from './bannerSlider.routes';
+import testimonialRoutes from './testimonial.routes';
+import brandShowcaseRoutes from './brandShowcase.routes';
+
 const router = Router();
 
 // Mount authentication routes
@@ -115,6 +121,12 @@ router.use('/blog', blogRoutes);
 
 // Mount global elements routes
 router.use('/global', globalElementsRoutes);
+
+// --- Content Module Routes ---
+router.use('/banners', bannerRoutes);
+router.use('/banner-sliders', bannerSliderRoutes);
+router.use('/testimonials', testimonialRoutes);
+router.use('/brand-showcases', brandShowcaseRoutes);
 
 export default router;
 

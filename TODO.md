@@ -1,7 +1,7 @@
 # Multi-Store Ecommerce Platform - TODO Tracker
 
-**Last Updated**: 2025-12-14  
-**Overall Progress**: 70% Complete
+**Last Updated**: 2025-12-15  
+**Overall Progress**: 75% Complete
 
 ---
 
@@ -96,7 +96,7 @@
 
 #### Nice-to-Have
 - [ ] Activity logs/audit trail
-- [ ] CMS/Static pages API
+- [x] CMS/Static pages API
 - [ ] Banners/Sliders API
 - [ ] Advanced tax rules per region
 
@@ -388,11 +388,11 @@
 
 #### Admin Panel - Basic Management (Week 2)
 - [x] Layouts list page
-- [x] Menus list page
-- [/] Pages list & CRUD
+- [x] Menus list page + Menu Item Builder with drag-and-drop
+- [x] Pages list & CRUD
 - [x] Blog categories list & CRUD
 - [x] Blog posts list & CRUD
-- [ ] Rich Text Editor component (TipTap)
+- [x] Rich Text Editor component (TipTap)
 
 #### Admin Panel - Layout Designer UI (Week 3-4)
 - [ ] Layout Designer main component
@@ -405,10 +405,10 @@
 - [ ] Template library
 
 #### Admin Panel - Menu Designer (Week 4)
-- [ ] Menu designer main component
-- [ ] Menu item CRUD
-- [ ] Drag-and-drop reordering
-- [ ] Nested items support
+- [x] Menu designer main component
+- [x] Menu item CRUD (add, edit, delete)
+- [x] Drag-and-drop reordering (@dnd-kit)
+- [x] Nested items support (children)
 - [ ] Mega menu column editor
 
 #### Admin Panel - Header & Footer (Week 5)

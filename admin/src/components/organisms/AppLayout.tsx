@@ -56,6 +56,10 @@ import WebIcon from '@mui/icons-material/Web';
 import DashboardCustomizeIcon from '@mui/icons-material/DashboardCustomize';
 import ArticleIcon from '@mui/icons-material/Article';
 import RssFeedIcon from '@mui/icons-material/RssFeed';
+import ImageIcon from '@mui/icons-material/Image';
+import ViewCarouselIcon from '@mui/icons-material/ViewCarousel';
+import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
+import WorkspacesIcon from '@mui/icons-material/Workspaces';
 const drawerWidth = 260;
 
 interface NavItem {
@@ -98,6 +102,9 @@ const navigationItems: NavItem[] = [
       { name: 'Layouts', href: '/layouts', icon: <DashboardCustomizeIcon /> },
       { name: 'Menus', href: '/menus', icon: <MenuIcon /> },
       { name: 'Pages', href: '/pages', icon: <ArticleIcon /> },
+      { name: 'Banners', href: '/banners', icon: <ViewCarouselIcon /> },
+      { name: 'Testimonials', href: '/testimonials', icon: <FormatQuoteIcon /> },
+      { name: 'Brand Showcases', href: '/brand-showcases', icon: <WorkspacesIcon /> },
       {
         name: 'Blog',
         icon: <RssFeedIcon />,
