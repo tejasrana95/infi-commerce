@@ -1,0 +1,11 @@
+// Classic Elegance Template Styles
+body.template-classic-elegance {
+    --card-border-radius: 4px;
+    --btn-border-radius: 2px;
+
+    // Example Override
+    h1 {
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+    }
+}

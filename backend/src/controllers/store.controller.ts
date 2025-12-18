@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { body, param } from 'express-validator';
 import Store from '../models/Store';
 import { AuthRequest } from '../middleware/auth';
@@ -17,8 +17,16 @@ export const createStoreValidation = [
         .trim()
         .notEmpty()
         .withMessage('Domain is required')
-        .matches(/^[a-z0-9.-]+\.[a-z]{2,}$/)
-        .withMessage('Invalid domain format'),
+        .custom((value) => {
+            // Allow localhost (with optional port) or standard domain format
+            const isLocalhost = /^localhost(:\d{1,5})?$/.test(value);
+            const isStandardDomain = /^[a-z0-9.-]+\.[a-z]{2,}$/.test(value);
+
+            if (!isLocalhost && !isStandardDomain) {
+                throw new Error('Invalid domain format');
+            }
+            return true;
+        }),
     body('description').optional().trim(),
     body('logo').optional().isURL().withMessage('Logo must be a valid URL'),
     body('currency')
@@ -39,8 +47,16 @@ export const updateStoreValidation = [
     body('domain')
         .optional()
         .trim()
-        .matches(/^[a-z0-9.-]+\.[a-z]{2,}$/)
-        .withMessage('Invalid domain format'),
+        .custom((value) => {
+            // Allow localhost (with optional port) or standard domain format
+            const isLocalhost = /^localhost(:\d{1,5})?$/.test(value);
+            const isStandardDomain = /^[a-z0-9.-]+\.[a-z]{2,}$/.test(value);
+
+            if (!isLocalhost && !isStandardDomain) {
+                throw new Error('Invalid domain format');
+            }
+            return true;
+        }),
     body('description').optional().trim(),
     body('logo').optional().isURL().withMessage('Logo must be a valid URL'),
     body('currency')
@@ -50,6 +66,36 @@ export const updateStoreValidation = [
     body('timezone').optional().trim(),
     body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
+
+/**
+ * @swagger
+ * /api/stores/domain/{domain}:
+ *   get:
+ *     summary: Get store by domain
+ *     tags: [Stores]
+ *     parameters:
+ *       - in: path
+ *         name: domain
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Store domain
+ *     responses:
+ *       200:
+ *         description: Store details
+ *       404:
+ *         description: Store not found
+ */
+export const getStoreByDomain = asyncHandler(async (req: Request, res: Response) => {
+    const { domain } = req.params;
+    const store = await Store.findOne({ domain, isActive: true });
+
+    if (!store) {
+        throw new AppError('Store not found', 404);
+    }
+
+    res.json(store);
+});
 
 /**
  * @swagger

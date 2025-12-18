@@ -41,7 +41,11 @@ const TIMEZONES = [
 const schema = z.object({
     name: z.string().min(1, 'Name is required'),
     slug: z.string().min(1, 'Slug is required').regex(/^[a-z0-9-]+$/, 'Slug must be lowercase with hyphens only'),
-    domain: z.string().min(1, 'Domain is required').regex(/^[a-z0-9.-]+$/, 'Invalid domain format'),
+    domain: z.string().min(1, 'Domain is required').refine((value) => {
+        const isLocalhost = /^localhost(:\d{1,5})?$/.test(value);
+        const isStandardDomain = /^[a-z0-9.-]+\.[a-z]{2,}$/.test(value);
+        return isLocalhost || isStandardDomain;
+    }, 'Invalid domain format'),
     description: z.string().optional(),
     logo: z.string().url('Must be a valid URL').optional().or(z.literal('')),
     favicon: z.string().url('Must be a valid URL').optional().or(z.literal('')),

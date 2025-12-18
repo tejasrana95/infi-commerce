@@ -1,0 +1,10 @@
+// Modern Clean Template Styles
+body.template-modern-clean {
+    --card-border-radius: 16px;
+    --btn-border-radius: 8px;
+    
+    // Example Override
+    h1 {
+        letter-spacing: -0.025em; // Tighter tracking for modern look
+    }
+}

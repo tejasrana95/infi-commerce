@@ -4,6 +4,7 @@ import {
     getStores,
     getStoreById,
     getStoreBySlug,
+    getStoreByDomain,
     updateStore,
     deleteStore,
     toggleStoreStatus,
@@ -17,8 +18,9 @@ const router = Router();
 
 // Public routes (anyone can view stores)
 router.get('/', getStores);
-router.get('/:id', getStoreById);
+router.get('/domain/:domain', getStoreByDomain);
 router.get('/slug/:slug', getStoreBySlug);
+router.get('/:id', getStoreById);
 
 // Protected routes (require authentication AND admin role)
 // Only admin, store_admin, and super_admin can manage stores

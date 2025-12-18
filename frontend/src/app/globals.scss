@@ -1,4 +1,7 @@
-@import "tailwindcss";
+@use "tailwindcss";
+
+@use "../styles/templates/modern-clean";
+@use "../styles/templates/classic-elegance";
 
 :root {
   --background: #ffffff;
