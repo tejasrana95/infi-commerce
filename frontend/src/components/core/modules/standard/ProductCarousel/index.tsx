@@ -93,7 +93,7 @@ export default function ProductCarouselModule({ config }: ModuleProps) {
                     params.append('sort', 'createdAt');
                 }
 
-                const data = await api.get<Product[] | { products: Product[] }>(`/products?${params.toString()}`);
+                const data = await api.get<Product[] | { products: Product[] }>(`products?${params.toString()}`);
                 setProducts(Array.isArray(data) ? data : data.products || []);
             } catch (err) {
                 console.error('Error fetching products:', err);

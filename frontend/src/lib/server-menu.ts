@@ -33,7 +33,7 @@ export async function getEnrichedMenus(headerConfig: any, storeId: string): Prom
     // 2. Fetch all menus in parallel
     const menuPromises = Array.from(menuIds).map(async (id) => {
         try {
-            const data = await api.get<{ menu: Menu }>(`/menus/${id}?storeId=${storeId}`);
+            const data = await api.get<{ menu: Menu }>(`menus/${id}?storeId=${storeId}`);
             if (data?.menu) {
                 // Enrich the menu with dynamic data (products)
                 const enrichedMenu = await enrichMenu(data.menu, storeId);
@@ -85,7 +85,7 @@ async function enrichMenuItem(item: MenuItem, storeId: string): Promise<MenuItem
                 storeId: storeId
             });
 
-            const response = await api.get<{ products: any[] }>(`/products?${queryParams.toString()}`);
+            const response = await api.get<{ products: any[] }>(`products?${queryParams.toString()}`);
             const products = response.products || (response as any).data || [];
 
             // Store enriched products in the item

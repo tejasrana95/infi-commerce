@@ -29,7 +29,7 @@ const MegaSubItem = ({ item }: { item: MenuItem }) => {
                         categoryId: item.categoryId!,
                         limit: String(item.productLimit)
                     });
-                    const response = await api.get(`/products?${queryParams.toString()}`);
+                    const response = await api.get(`products?${queryParams.toString()}`);
                     const products = response.products || response.data || [];
                     setCategoryProducts(products);
                 } catch (error) {

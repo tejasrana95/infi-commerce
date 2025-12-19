@@ -15,7 +15,7 @@ export async function getLayoutByType(type: string, storeId: string): Promise<La
             storeId
         });
 
-        const result = await api.get<{ data: Layout[] }>(`/layouts?${params}`);
+        const result = await api.get<{ data: Layout[] }>(`layouts?${params}`);
 
         // API returns { data: [...] }, get the first layout from the array
         return result.data && result.data.length > 0 ? result.data[0] : null;
@@ -30,7 +30,7 @@ export async function getLayoutByType(type: string, storeId: string): Promise<La
  */
 export async function getLayoutById(id: string): Promise<Layout | null> {
     try {
-        const data = await api.get<{ layout: Layout }>(`/layouts/${id}`);
+        const data = await api.get<{ layout: Layout }>(`layouts/${id}`);
         return data.layout || null;
     } catch (error) {
         console.error('Error fetching layout:', error);
@@ -51,7 +51,7 @@ export async function getDefaultLayout(type: string, storeId: string): Promise<L
             default: 'true'
         });
 
-        const data = await api.get<{ layout: Layout }>(`/layouts?${params}`);
+        const data = await api.get<{ layout: Layout }>(`layouts?${params}`);
         return data.layout || null;
     } catch (error) {
         console.error('Error fetching default layout:', error);

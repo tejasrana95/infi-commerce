@@ -5,7 +5,9 @@ import "./globals.scss";
 
 import { StoreProvider } from "@/providers/StoreProvider";
 import { fetchCurrencies, getStore } from "@/lib/api";
-import { Currency } from "@/types";
+import { getEnrichedMenus } from "@/lib/server-menu";
+import { getComponent } from "@/components/templates/registry";
+import { Currency, DEFAULT_TEMPLATE_ID } from "@/types";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -65,6 +67,9 @@ export default async function RootLayout({
   // Get store data on the server
   const store = await getStore(domain);
 
+  // Get template ID
+  const templateId = store?.theme?.templateId || DEFAULT_TEMPLATE_ID;
+
   // Fetch currencies
   let currencies: Currency[] = [];
   let selectedCurrency: Currency | undefined;
@@ -75,6 +80,13 @@ export default async function RootLayout({
     const currencyCode = cookieStore.get("currency")?.value || store.currency || "USD";
     selectedCurrency = currencies.find(c => c.code === currencyCode) || currencies[0];
   }
+
+  // Pre-fetch menus for SSR
+  const menus = (store?.theme?.header && store?._id) ? await getEnrichedMenus(store.theme.header, store._id) : {};
+
+  // Get template-specific components
+  const Header = getComponent("Header", templateId);
+  const Footer = getComponent("Footer", templateId);
 
   return (
     <html lang="en">
@@ -100,9 +112,26 @@ export default async function RootLayout({
           currentCurrency={selectedCurrency}
           availableCurrencies={currencies}
         >
-          {children}
+          <div className="min-h-screen flex flex-col">
+            {/* Header - Template-specific container */}
+            <Header
+              config={store?.theme?.header}
+              store={store}
+              templateId={templateId}
+              menus={menus}
+            />
+
+            {/* Main Content */}
+            <main className="flex-1">
+              {children}
+            </main>
+
+            {/* Footer - Template-specific container */}
+            <Footer config={store?.theme?.footer} store={store} templateId={templateId} />
+          </div>
         </StoreProvider>
       </body>
     </html>
   );
 }
+

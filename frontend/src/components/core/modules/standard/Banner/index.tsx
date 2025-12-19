@@ -51,7 +51,7 @@ export default function BannerModule({ config }: ModuleProps) {
 
             try {
                 setLoading(true);
-                const data = await api.get<{ banner: BannerData }>(`/banners/${bannerId}`);
+                const data = await api.get<{ banner: BannerData }>(`banners/${bannerId}`);
                 setBanner(data.banner);
             } catch (err) {
                 console.error('Error fetching banner:', err);

@@ -52,7 +52,7 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
             try {
                 setLoading(true);
                 const ids = categoryIds.join(',');
-                const data = await api.get<{ categories: Category[] }>(`/categories?ids=${ids}`);
+                const data = await api.get<{ categories: Category[] }>(`categories?ids=${ids}`);
                 setCategories(Array.isArray(data.categories) ? data.categories : []);
             } catch (err) {
                 console.error('Error fetching categories:', err);
