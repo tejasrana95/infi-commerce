@@ -155,6 +155,14 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
     // Build filter
     const filter: any = { isActive: true };
 
+    // Support comma-separated IDs filter
+    if (req.query.ids) {
+        const ids = (req.query.ids as string).split(',').map(id => id.trim()).filter(id => id);
+        if (ids.length > 0) {
+            filter._id = { $in: ids };
+        }
+    }
+
     if (req.query.storeId) {
         filter.storeId = req.query.storeId;
     }

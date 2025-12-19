@@ -134,6 +134,86 @@ export interface FooterConfig {
 }
 
 // ============================================
+// Product Card Configuration Types
+// ============================================
+
+export interface ProductCardConfig {
+    // Card Design
+    cardStyle: 'default' | 'minimal' | 'overlay' | 'horizontal' | 'bordered';
+
+    // Image Settings
+    imageAspectRatio: '1:1' | '3:4' | '4:3' | '16:9' | 'auto';
+    imageSize: 'small' | 'medium' | 'large';
+    imageFit: 'cover' | 'contain';
+    showImageHover: boolean;
+
+    // Button Visibility
+    showAddToCart: boolean;
+    showBuyNow: boolean;
+    showWishlist: boolean;
+    showQuickView: boolean;
+    showCompare: boolean;
+
+    // Button Styles
+    addToCartStyle: 'filled' | 'outlined' | 'text' | 'icon-only';
+    buyNowStyle: 'filled' | 'outlined' | 'text';
+    wishlistPosition: 'top-right' | 'top-left' | 'bottom';
+    quickViewPosition: 'overlay' | 'top-right';
+
+    // Typography
+    titleLines: 1 | 2 | 3;
+    titleFontSize: 'small' | 'medium' | 'large';
+    titleFontWeight: 'normal' | 'medium' | 'semibold' | 'bold';
+    priceFontSize: 'small' | 'medium' | 'large';
+
+    // Display Options
+    showBrand: boolean;
+    showRating: boolean;
+    showSalePercent: boolean;
+    showStock: boolean;
+    showSku: boolean;
+
+    // Hover Effects
+    hoverEffect: 'none' | 'zoom' | 'lift' | 'shadow' | 'overlay';
+
+    // Spacing
+    cardGap: number;
+    cardPadding: number;
+    cardBorderRadius: number;
+}
+
+// Default product card config
+export const DEFAULT_PRODUCT_CARD_CONFIG: ProductCardConfig = {
+    cardStyle: 'default',
+    imageAspectRatio: '3:4',
+    imageSize: 'medium',
+    imageFit: 'cover',
+    showImageHover: true,
+    showAddToCart: true,
+    showBuyNow: false,
+    showWishlist: true,
+    showQuickView: true,
+    showCompare: false,
+    addToCartStyle: 'filled',
+    buyNowStyle: 'outlined',
+    wishlistPosition: 'top-right',
+    quickViewPosition: 'overlay',
+    titleLines: 2,
+    titleFontSize: 'medium',
+    titleFontWeight: 'medium',
+    priceFontSize: 'medium',
+    showBrand: true,
+    showRating: true,
+    showSalePercent: true,
+    showStock: false,
+    showSku: false,
+    hoverEffect: 'lift',
+    cardGap: 16,
+    cardPadding: 12,
+    cardBorderRadius: 12,
+};
+
+// ============================================
 // Theme Configuration
 // ============================================
 
@@ -143,6 +223,7 @@ export interface ThemeConfig {
     fonts?: ThemeFonts;
     header?: HeaderConfig;
     footer?: FooterConfig;
+    productCard?: ProductCardConfig;
 }
 
 // ============================================

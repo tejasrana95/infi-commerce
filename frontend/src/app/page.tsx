@@ -61,20 +61,6 @@ export default async function Page() {
           store={store}
           templateId={templateId}
         />
-
-        {/* Debug Info (Development Only) */}
-        {process.env.NODE_ENV === "development" && (
-          <section className="bg-gray-50 border-t border-gray-200 py-4 px-4">
-            <div className="container mx-auto text-sm text-gray-600">
-              <p>
-                <strong>Template:</strong> {templateId} |{" "}
-                <strong>Store:</strong> {store?.name || "Not loaded"} |{" "}
-                <strong>Domain:</strong> {domain} |{" "}
-                <strong>Layout:</strong> {layout ? `${layout.sections.length} sections` : "None"}
-              </p>
-            </div>
-          </section>
-        )}
       </main>
 
       {/* Footer - Template-specific container */}

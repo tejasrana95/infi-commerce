@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { getComponent } from '@/components/templates/registry';
 import { ModuleProps } from '../..';
 import api from '@/lib/api';
+import styles from './ProductGrid.module.scss';
 
 interface ProductGridConfig {
     source: 'best-sellers' | 'new-arrivals' | 'custom' | 'category';
@@ -25,15 +26,17 @@ interface Product {
     images?: string[];
     averageRating?: number;
     reviewCount?: number;
+    isNew?: boolean;
+    inStock?: boolean;
 }
 
 export default function ProductGridModule({ config }: ModuleProps) {
     const {
         source,
-        limit,
-        columns,
-        showPrice,
-        showRating,
+        limit = 8,
+        columns = 4,
+        showPrice = true,
+        showRating = true,
         productIds,
         categoryIds,
         title,
@@ -50,7 +53,6 @@ export default function ProductGridModule({ config }: ModuleProps) {
             try {
                 setLoading(true);
 
-                // Build query parameters
                 const params = new URLSearchParams();
                 params.append('limit', limit.toString());
                 params.append('isActive', 'true');
@@ -65,7 +67,6 @@ export default function ProductGridModule({ config }: ModuleProps) {
                     params.append('sort', 'createdAt');
                 }
 
-                // Use centralized API client
                 const data = await api.get<Product[] | { products: Product[] }>(`/products?${params.toString()}`);
                 setProducts(Array.isArray(data) ? data : data.products || []);
             } catch (err) {
@@ -79,21 +80,16 @@ export default function ProductGridModule({ config }: ModuleProps) {
         fetchProducts();
     }, [source, limit, categoryIds, productIds]);
 
+    const columnClass = styles[`columns${Math.min(Math.max(columns, 2), 6)}`];
+
     if (loading) {
         return (
-            <div className="w-full py-12">
-                <div className="max-w-7xl mx-auto px-4">
-                    {title && <h2 className="text-2xl font-bold mb-6 h-8 bg-gray-200 animate-pulse w-48 rounded" />}
-                    <div
-                        className="grid gap-6"
-                        style={{
-                            gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-                        }}
-                    >
-                        {Array.from({ length: Math.min(limit, 8) }).map((_, i) => (
-                            <div key={i} className="h-80 bg-gray-200 animate-pulse rounded-lg" />
-                        ))}
-                    </div>
+            <div className={styles.container}>
+                {title && <div className={styles.skeletonTitle} />}
+                <div className={styles.skeletonGrid}>
+                    {Array.from({ length: Math.min(limit, 8) }).map((_, i) => (
+                        <div key={i} className={styles.skeleton} />
+                    ))}
                 </div>
             </div>
         );
@@ -102,9 +98,10 @@ export default function ProductGridModule({ config }: ModuleProps) {
     if (error || products.length === 0) {
         if (process.env.NODE_ENV === 'development') {
             return (
-                <div className="w-full p-8">
-                    <div className="max-w-7xl mx-auto bg-red-50 border border-red-200 rounded-lg p-8">
-                        <p className="text-red-600">Error loading products: {error || 'No products found'}</p>
+                <div className={styles.container}>
+                    <div className={styles.errorState}>
+                        <span>📦</span>
+                        <p>Error: {error || 'No products found'}</p>
                     </div>
                 </div>
             );
@@ -113,28 +110,21 @@ export default function ProductGridModule({ config }: ModuleProps) {
     }
 
     return (
-        <div className="w-full py-12">
-            <div className="max-w-7xl mx-auto px-4">
-                {title && (
-                    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">{title}</h2>
-                )}
-
-                <div
-                    className="grid gap-6"
-                    style={{
-                        gridTemplateColumns: `repeat(auto-fill, minmax(${100 / columns}%, 1fr))`,
-                    }}
-                >
-                    {products.map((product) => (
-                        <div key={product._id}>
-                            <ProductCard
-                                product={product}
-                                showPrice={showPrice}
-                                showRating={showRating}
-                            />
-                        </div>
-                    ))}
+        <div className={styles.container}>
+            {title && (
+                <div className={styles.header}>
+                    <h2 className={styles.title}>{title}</h2>
                 </div>
+            )}
+
+            <div className={`${styles.grid} ${columnClass}`}>
+                {products.map((product) => (
+                    <ProductCard
+                        key={product._id}
+                        product={product}
+                        showRating={showRating}
+                    />
+                ))}
             </div>
         </div>
     );

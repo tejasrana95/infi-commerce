@@ -5,13 +5,14 @@ import { moduleRegistry } from '@/components/core/modules';
 
 interface ModuleRendererProps {
     module: Module;
+    sectionType?: 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';
 }
 
 /**
  * ModuleRenderer - Renders a single module based on its type
  * Looks up the module component from the registry and applies styling
  */
-export default function ModuleRenderer({ module }: ModuleRendererProps) {
+export default function ModuleRenderer({ module, sectionType }: ModuleRendererProps) {
     // Check visibility (simplified - you may want device detection)
     const isVisible = module.visibility?.desktop !== false;
 
@@ -52,7 +53,7 @@ export default function ModuleRenderer({ module }: ModuleRendererProps) {
             className={module.styling?.className || ''}
             style={moduleStyle}
         >
-            <ModuleComponent config={module.config} />
+            <ModuleComponent config={module.config} sectionType={sectionType} />
 
             {/* Custom CSS for this module */}
             {module.styling?.customCSS && (

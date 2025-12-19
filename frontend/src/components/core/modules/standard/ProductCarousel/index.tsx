@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { getComponent } from '@/components/templates/registry';
 import { ModuleProps } from '../..';
 import api from '@/lib/api';
+import styles from './ProductCarousel.module.scss';
 
 interface ProductCarouselConfig {
     source: 'best-sellers' | 'new-arrivals' | 'custom' | 'category';
@@ -12,9 +13,11 @@ interface ProductCarouselConfig {
     showPrice: boolean;
     showRating: boolean;
     autoplay: boolean;
+    autoplayInterval?: number;
     categoryIds?: string[];
     productIds?: string[];
     title?: string;
+    viewAllLink?: string;
 }
 
 interface Product {
@@ -26,34 +29,56 @@ interface Product {
     images?: string[];
     averageRating?: number;
     reviewCount?: number;
+    isNew?: boolean;
+    inStock?: boolean;
 }
 
 export default function ProductCarouselModule({ config }: ModuleProps) {
     const {
         source,
-        limit,
-        columns,
-        showPrice,
-        showRating,
-        autoplay,
+        limit = 8,
+        columns = 4,
+        showPrice = true,
+        showRating = true,
+        autoplay = false,
+        autoplayInterval = 4000,
         categoryIds,
         productIds,
         title,
+        viewAllLink,
     } = config as ProductCarouselConfig;
 
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [currentOffset, setCurrentOffset] = useState(0);
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [isPaused, setIsPaused] = useState(false);
 
     const ProductCard = getComponent('ProductCard');
 
+    // Calculate visible slides based on columns
+    const getVisibleCount = () => {
+        if (typeof window === 'undefined') return columns;
+        if (window.innerWidth < 768) return 2;
+        if (window.innerWidth < 1024) return Math.min(columns, 3);
+        return columns;
+    };
+
+    const [visibleCount, setVisibleCount] = useState(columns);
+
+    useEffect(() => {
+        const handleResize = () => setVisibleCount(getVisibleCount());
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [columns]);
+
+    // Fetch products
     useEffect(() => {
         const fetchProducts = async () => {
             try {
                 setLoading(true);
 
-                // Build query parameters
                 const params = new URLSearchParams();
                 params.append('limit', limit.toString());
                 params.append('isActive', 'true');
@@ -68,7 +93,6 @@ export default function ProductCarouselModule({ config }: ModuleProps) {
                     params.append('sort', 'createdAt');
                 }
 
-                // Use centralized API client
                 const data = await api.get<Product[] | { products: Product[] }>(`/products?${params.toString()}`);
                 setProducts(Array.isArray(data) ? data : data.products || []);
             } catch (err) {
@@ -82,38 +106,39 @@ export default function ProductCarouselModule({ config }: ModuleProps) {
         fetchProducts();
     }, [source, limit, categoryIds, productIds]);
 
-    // Auto-play functionality
-    useEffect(() => {
-        if (autoplay && products.length > columns) {
-            const timer = setInterval(() => {
-                setCurrentOffset((prev) => {
-                    const maxOffset = Math.max(0, products.length - columns);
-                    return prev >= maxOffset ? 0 : prev + 1;
-                });
-            }, 3000);
+    // Navigation
+    const maxIndex = Math.max(0, products.length - visibleCount);
 
+    const goToSlide = useCallback((index: number) => {
+        setCurrentIndex(Math.max(0, Math.min(index, maxIndex)));
+    }, [maxIndex]);
+
+    const nextSlide = useCallback(() => {
+        setCurrentIndex(prev => prev >= maxIndex ? 0 : prev + 1);
+    }, [maxIndex]);
+
+    const prevSlide = useCallback(() => {
+        setCurrentIndex(prev => prev <= 0 ? maxIndex : prev - 1);
+    }, [maxIndex]);
+
+    // Auto-play
+    useEffect(() => {
+        if (autoplay && products.length > visibleCount && !isPaused) {
+            const timer = setInterval(nextSlide, autoplayInterval);
             return () => clearInterval(timer);
         }
-    }, [autoplay, products.length, columns]);
+    }, [autoplay, autoplayInterval, products.length, visibleCount, isPaused, nextSlide]);
 
-    const scrollLeft = () => {
-        setCurrentOffset((prev) => Math.max(0, prev - 1));
-    };
-
-    const scrollRight = () => {
-        setCurrentOffset((prev) => Math.min(products.length - columns, prev + 1));
-    };
+    const columnClass = styles[`columns${Math.min(Math.max(columns, 2), 6)}`];
 
     if (loading) {
         return (
-            <div className="w-full py-12">
-                <div className="max-w-7xl mx-auto px-4">
-                    {title && <h2 className="text-2xl font-bold mb-6 h-8 bg-gray-200 animate-pulse w-48 rounded" />}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                        {[1, 2, 3, 4].map((i) => (
-                            <div key={i} className="h-80 bg-gray-200 animate-pulse rounded-lg" />
-                        ))}
-                    </div>
+            <div className={styles.container}>
+                {title && <div className={styles.skeletonTitle} />}
+                <div className={styles.skeletonGrid}>
+                    {Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className={styles.skeleton} />
+                    ))}
                 </div>
             </div>
         );
@@ -122,9 +147,10 @@ export default function ProductCarouselModule({ config }: ModuleProps) {
     if (error || products.length === 0) {
         if (process.env.NODE_ENV === 'development') {
             return (
-                <div className="w-full p-8">
-                    <div className="max-w-7xl mx-auto bg-red-50 border border-red-200 rounded-lg p-8">
-                        <p className="text-red-600">Error loading products: {error || 'No products found'}</p>
+                <div className={styles.container}>
+                    <div className={styles.errorState}>
+                        <span>📦</span>
+                        <p>Error: {error || 'No products found'}</p>
                     </div>
                 </div>
             );
@@ -132,65 +158,88 @@ export default function ProductCarouselModule({ config }: ModuleProps) {
         return null;
     }
 
+    const slideWidth = 100 / visibleCount;
+    const translateX = currentIndex * slideWidth;
+
     return (
-        <div className="w-full py-12">
-            <div className="max-w-7xl mx-auto px-4">
-                {title && (
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-2xl md:text-3xl font-bold text-gray-900">{title}</h2>
-                    </div>
-                )}
-
-                <div className="relative">
-                    {/* Navigation Arrows */}
-                    {products.length > columns && (
-                        <>
-                            <button
-                                onClick={scrollLeft}
-                                disabled={currentOffset === 0}
-                                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-10 h-10 bg-white shadow-lg rounded-full flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                                aria-label="Previous products"
-                            >
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                </svg>
-                            </button>
-                            <button
-                                onClick={scrollRight}
-                                disabled={currentOffset >= products.length - columns}
-                                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-10 h-10 bg-white shadow-lg rounded-full flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                                aria-label="Next products"
-                            >
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
-                            </button>
-                        </>
+        <div className={styles.container}>
+            {/* Header */}
+            {title && (
+                <div className={styles.header}>
+                    <h2 className={styles.title}>{title}</h2>
+                    {viewAllLink && (
+                        <a href={viewAllLink} className={styles.viewAllLink}>
+                            View All
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </a>
                     )}
+                </div>
+            )}
 
-                    {/* Product Grid/Carousel */}
-                    <div className="overflow-hidden">
-                        <div
-                            className="grid gap-6 transition-transform duration-300"
-                            style={{
-                                gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-                                transform: `translateX(-${(currentOffset * 100) / columns}%)`,
-                                width: `${(products.length * 100) / columns}%`,
-                            }}
-                        >
-                            {products.map((product) => (
-                                <div key={product._id}>
-                                    <ProductCard
-                                        product={product}
-                                        showPrice={showPrice}
-                                        showRating={showRating}
-                                    />
-                                </div>
-                            ))}
-                        </div>
+            {/* Carousel */}
+            <div
+                className={styles.carouselWrapper}
+                onMouseEnter={() => setIsPaused(true)}
+                onMouseLeave={() => setIsPaused(false)}
+            >
+                <div className={styles.carouselViewport}>
+                    <div
+                        className={`${styles.carouselTrack} ${columnClass}`}
+                        style={{ transform: `translateX(-${translateX}%)` }}
+                    >
+                        {products.map((product) => (
+                            <div key={product._id} className={styles.carouselSlide}>
+                                <ProductCard
+                                    product={product}
+                                    showRating={showRating}
+                                />
+                            </div>
+                        ))}
                     </div>
                 </div>
+
+                {/* Navigation Arrows */}
+                {products.length > visibleCount && (
+                    <>
+                        <button
+                            className={`${styles.navButton} ${styles.navPrev}`}
+                            onClick={prevSlide}
+                            disabled={currentIndex === 0 && !autoplay}
+                            aria-label="Previous products"
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+                        <button
+                            className={`${styles.navButton} ${styles.navNext}`}
+                            onClick={nextSlide}
+                            disabled={currentIndex >= maxIndex && !autoplay}
+                            aria-label="Next products"
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    </>
+                )}
             </div>
+
+            {/* Dots Navigation */}
+            {products.length > visibleCount && (
+                <div className={styles.dots}>
+                    {Array.from({ length: maxIndex + 1 }).map((_, index) => (
+                        <button
+                            key={index}
+                            className={`${styles.dot} ${index === currentIndex ? styles.dotActive : ''}`}
+                            onClick={() => goToSlide(index)}
+                            aria-label={`Go to slide ${index + 1}`}
+                        />
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

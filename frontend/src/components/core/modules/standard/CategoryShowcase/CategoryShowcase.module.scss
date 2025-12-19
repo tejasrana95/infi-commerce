@@ -1,0 +1,235 @@
+@use '@/styles/breakpoints' as *;
+
+// =============================================================================
+// CATEGORY SHOWCASE MODULE
+// =============================================================================
+
+.container {
+    width: 100%;
+}
+
+.fluidContainer {
+    width: 100%;
+}
+
+// =============================================================================
+// HEADER
+// =============================================================================
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+
+    @include tablet {
+        margin-bottom: 2rem;
+    }
+}
+
+.title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #111827;
+    letter-spacing: -0.02em;
+
+    @include tablet {
+        font-size: 1.75rem;
+    }
+
+    @include desktop {
+        font-size: 2rem;
+    }
+}
+
+// =============================================================================
+// GRID
+// =============================================================================
+
+.grid {
+    display: grid;
+    gap: 1rem;
+
+    @include tablet {
+        gap: 1.5rem;
+    }
+}
+
+// =============================================================================
+// CAROUSEL
+// =============================================================================
+
+.carousel {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    gap: 1rem;
+    padding-bottom: 0.5rem;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.carouselItem {
+    flex-shrink: 0;
+    scroll-snap-align: start;
+}
+
+.navButtons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.navButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid #e5e7eb;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    svg {
+        width: 20px;
+        height: 20px;
+        color: #111827;
+    }
+
+    &:hover {
+        background: #f3f4f6;
+        border-color: #d1d5db;
+    }
+
+    &:active {
+        transform: scale(0.95);
+    }
+}
+
+// Column variations
+.columns2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.columns3 {
+    grid-template-columns: repeat(2, 1fr);
+
+    @include tablet {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.columns4 {
+    grid-template-columns: repeat(2, 1fr);
+
+    @include tablet {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    @include desktop {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.columns5 {
+    grid-template-columns: repeat(2, 1fr);
+
+    @include tablet {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    @include desktop {
+        grid-template-columns: repeat(5, 1fr);
+    }
+}
+
+.columns6 {
+    grid-template-columns: repeat(2, 1fr);
+
+    @include tablet {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    @include desktop {
+        grid-template-columns: repeat(6, 1fr);
+    }
+}
+
+// =============================================================================
+// LOADING & ERROR STATES
+// =============================================================================
+
+.skeletonGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+
+    @include tablet {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    @include desktop {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.skeleton {
+    aspect-ratio: 4 / 3;
+    border-radius: 16px;
+    background: linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 50%, #f3f4f6 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+.skeletonTitle {
+    height: 32px;
+    width: 200px;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 50%, #f3f4f6 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+.errorState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+    gap: 0.75rem;
+    color: #dc2626;
+
+    span {
+        font-size: 2.5rem;
+    }
+
+    p {
+        margin: 0;
+    }
+}
+
+// =============================================================================
+// ANIMATIONS
+// =============================================================================
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}

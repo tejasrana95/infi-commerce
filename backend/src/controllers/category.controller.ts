@@ -17,7 +17,15 @@ export const createCategoryValidation = [
     body('description').optional().trim(),
     body('storeId').isMongoId().withMessage('Valid store ID is required'),
     body('parentCategory').optional().isMongoId().withMessage('Invalid parent category ID'),
-    body('image').optional().isURL().withMessage('Image must be a valid URL'),
+    body('image').optional().custom((value) => {
+        if (!value) return true;
+        // Allow both regular URLs and localhost URLs
+        const urlPattern = /^(https?:\/\/)(localhost(:\d+)?|[\w.-]+)([\/\w.-]*)*\/?$/i;
+        if (!urlPattern.test(value)) {
+            throw new Error('Image must be a valid URL');
+        }
+        return true;
+    }),
     body('status').optional().isIn(['active', 'inactive', 'draft']).withMessage('Invalid status'),
     body('seo.metaTitle').optional().trim().isLength({ max: 60 }).withMessage('Meta title max 60 characters'),
     body('seo.metaDescription').optional().trim().isLength({ max: 160 }).withMessage('Meta description max 160 characters'),
@@ -33,7 +41,15 @@ export const updateCategoryValidation = [
         .withMessage('Slug must contain only lowercase letters, numbers, and hyphens'),
     body('description').optional().trim(),
     body('parentCategory').optional().isMongoId().withMessage('Invalid parent category ID'),
-    body('image').optional().isURL().withMessage('Image must be a valid URL'),
+    body('image').optional().custom((value) => {
+        if (!value) return true;
+        // Allow both regular URLs and localhost URLs
+        const urlPattern = /^(https?:\/\/)(localhost(:\d+)?|[\w.-]+)([\/\w.-]*)*\/?$/i;
+        if (!urlPattern.test(value)) {
+            throw new Error('Image must be a valid URL');
+        }
+        return true;
+    }),
     body('status').optional().isIn(['active', 'inactive', 'draft']).withMessage('Invalid status'),
 ];
 
@@ -185,6 +201,14 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
 
     // Build filter
     const filter: any = {};
+
+    // Support comma-separated IDs filter
+    if (req.query.ids) {
+        const ids = (req.query.ids as string).split(',').map(id => id.trim()).filter(id => id);
+        if (ids.length > 0) {
+            filter._id = { $in: ids };
+        }
+    }
 
     if (req.query.storeId) {
         filter.storeId = req.query.storeId;

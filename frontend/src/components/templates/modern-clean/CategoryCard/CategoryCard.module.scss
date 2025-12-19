@@ -1,0 +1,270 @@
+@use '@/styles/breakpoints' as *;
+
+// =============================================================================
+// MODERN CLEAN CATEGORY CARD - Premium Design
+// =============================================================================
+
+.card {
+    position: relative;
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #ffffff;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+    &:hover {
+        box-shadow: 0 5px 5px rgba(0, 0, 0, 0.12);
+
+        .imageInner {
+            transform: scale(1.08);
+        }
+
+        .overlay {
+            opacity: 1;
+        }
+
+        .arrow {
+            transform: translateX(4px);
+        }
+    }
+}
+
+// =============================================================================
+// CARD STYLE
+// =============================================================================
+
+.styleCard {
+    .imageContainer {
+        aspect-ratio: 4 / 3;
+    }
+}
+
+// =============================================================================
+// BANNER STYLE
+// =============================================================================
+
+.styleBanner {
+    .imageContainer {
+        aspect-ratio: 16 / 9;
+    }
+
+    .content {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        color: #ffffff;
+        padding: 1.5rem;
+    }
+
+    .name {
+        color: #ffffff;
+        font-size: 1.5rem;
+
+        @include tablet {
+            font-size: 1.75rem;
+        }
+    }
+
+    .productCount {
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .overlayGradient {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.2) 100%);
+        z-index: 1;
+    }
+}
+
+// =============================================================================
+// MINIMAL STYLE
+// =============================================================================
+
+.styleMinimal {
+    background: transparent;
+    text-align: center;
+    padding: 1rem;
+
+    &:hover {
+        background: #f9fafb;
+        box-shadow: none;
+    }
+
+    .imageContainer {
+        width: 100px;
+        height: 100px;
+        margin: 0 auto 1rem;
+        border-radius: 50%;
+        aspect-ratio: 1;
+
+        @include tablet {
+            width: 120px;
+            height: 120px;
+        }
+    }
+
+    .content {
+        padding: 0;
+    }
+
+    .name {
+        font-size: 1rem;
+    }
+}
+
+// =============================================================================
+// OVERLAY STYLE
+// =============================================================================
+
+.styleOverlay {
+    .imageContainer {
+        aspect-ratio: 1;
+    }
+
+    .content {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 1.5rem;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+        color: #ffffff;
+        z-index: 2;
+    }
+
+    .name {
+        color: #ffffff;
+    }
+
+    .productCount {
+        color: rgba(255, 255, 255, 0.8);
+    }
+}
+
+// =============================================================================
+// IMAGE CONTAINER
+// =============================================================================
+
+.imageContainer {
+    position: relative;
+    background: #f3f4f6;
+    overflow: hidden;
+    // Default aspect ratio for card style
+    aspect-ratio: 4 / 3;
+}
+
+.imageInner {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+// =============================================================================
+// CONTENT
+// =============================================================================
+
+.content {
+    padding: 1.25rem;
+    position: relative;
+    z-index: 2;
+}
+
+.name {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #111827;
+    line-height: 1.3;
+
+    @include tablet {
+        font-size: 1.25rem;
+    }
+}
+
+.description {
+    margin: 0.5rem 0 0;
+    font-size: 0.875rem;
+    color: #6b7280;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.productCount {
+    margin: 0.5rem 0 0;
+    font-size: 0.8125rem;
+    color: #9ca3af;
+}
+
+// =============================================================================
+// CTA
+// =============================================================================
+
+.cta {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    transition: color 0.2s ease;
+
+    .card:hover & {
+        color: #111827;
+    }
+}
+
+.arrow {
+    display: inline-flex;
+    transition: transform 0.2s ease;
+
+    svg {
+        width: 16px;
+        height: 16px;
+    }
+}
+
+// =============================================================================
+// OVERLAY (HOVER EFFECT)
+// =============================================================================
+
+.overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.05);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1;
+    pointer-events: none;
+}

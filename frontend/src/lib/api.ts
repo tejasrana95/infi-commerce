@@ -287,7 +287,7 @@ export async function getStore(domain: string): Promise<Store | null> {
 
 export async function fetchCurrencies(storeId: string): Promise<import('@/types').Currency[]> {
     try {
-        const res = await fetch(`${API_BASE_URL}currencies?storeId=${storeId}&isActive=true`, {
+        const res = await fetch(`${API_BASE_URL}/currencies?storeId=${storeId}&isActive=true`, {
             next: { revalidate: 3600 }, // Cache for 1 hour
             headers: { 'Content-Type': 'application/json' },
         });

@@ -1,6 +1,8 @@
 // Modern Clean Footer Styles
 // Beautiful, responsive design with smooth animations
 
+@use '@/styles/breakpoints' as *;
+
 .footer {
     position: relative;
     overflow: hidden;
@@ -12,7 +14,7 @@
         padding: 60px 0;
         background: linear-gradient(135deg, var(--footer-bg-start, #1a1a2e) 0%, var(--footer-bg-end, #16213e) 100%);
 
-        @media (max-width: 768px) {
+        @include mobile {
             padding: 40px 0;
         }
 
@@ -39,7 +41,7 @@
             padding-top: 48px;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
 
-            @media (max-width: 768px) {
+            @include mobile {
                 margin-top: 32px;
                 padding-top: 32px;
             }
@@ -52,7 +54,7 @@
         animation-delay: var(--column-delay, 0s);
         color: var(--footer-text, currentColor);
 
-        @media (max-width: 768px) {
+        @include mobile {
             margin-bottom: 32px;
 
             &:last-child {
@@ -104,7 +106,7 @@
         animation: fadeIn 1s ease-in-out 0.4s forwards;
         opacity: 0;
 
-        @media (max-width: 768px) {
+        @include mobile {
             padding: 16px 0;
             font-size: 12px;
         }
@@ -178,7 +180,7 @@
         opacity: 0.85;
         font-size: 14px;
 
-        @media (max-width: 768px) {
+        @include mobile {
             font-size: 13px;
         }
     }
@@ -201,7 +203,7 @@
             gap: 8px;
             max-width: 400px;
 
-            @media (max-width: 640px) {
+            @include small-mobile {
                 flex-direction: column;
             }
 
@@ -248,7 +250,7 @@
                 white-space: nowrap;
                 box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 
-                @media (max-width: 640px) {
+                @include small-mobile {
                     width: 100%;
                 }
 
@@ -347,8 +349,6 @@
 
     // Contact element
     &Contact {
-
-
         h4 {
             font-size: 16px;
             font-weight: 600;
@@ -480,11 +480,11 @@
     grid-template-columns: repeat(12, 1fr);
     gap: 32px;
 
-    @media (max-width: 968px) {
+    @include desktop {
         gap: 24px;
     }
 
-    @media (max-width: 768px) {
+    @include mobile {
         grid-template-columns: 1fr;
         gap: 0;
     }
@@ -492,11 +492,5 @@
 
 // Container
 .container {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 0 24px;
-
-    @media (max-width: 768px) {
-        padding: 0 16px;
-    }
+    @include container;
 }

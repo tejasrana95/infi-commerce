@@ -3,6 +3,7 @@
 import { Section } from '@/types/layout';
 import ModuleRenderer from '../ModuleRenderer';
 import { useEffect, useState } from 'react';
+import styles from './SectionRenderer.module.scss';
 
 interface SectionRendererProps {
     section: Section;
@@ -32,7 +33,7 @@ export default function SectionRenderer({ section }: SectionRendererProps) {
         return null;
     }
 
-    // Build section styles
+    // Build section styles (for the outer wrapper - backgrounds, margins)
     const sectionStyle: React.CSSProperties = {
         backgroundColor: section.settings?.backgroundColor,
         backgroundImage: section.settings?.backgroundImage
@@ -42,27 +43,29 @@ export default function SectionRenderer({ section }: SectionRendererProps) {
         backgroundPosition: section.settings?.backgroundPosition || 'center',
         paddingTop: section.settings?.paddingTop ? `${section.settings.paddingTop}px` : undefined,
         paddingBottom: section.settings?.paddingBottom ? `${section.settings.paddingBottom}px` : undefined,
-        paddingLeft: section.settings?.paddingLeft ? `${section.settings.paddingLeft}px` : undefined,
-        paddingRight: section.settings?.paddingRight ? `${section.settings.paddingRight}px` : undefined,
         marginTop: section.settings?.marginTop ? `${section.settings.marginTop}px` : undefined,
         marginBottom: section.settings?.marginBottom ? `${section.settings.marginBottom}px` : undefined,
     };
 
-    // Get container class based on section type
+    // Check if section is full-width (no container wrapper needed)
+    const isFullWidth = section.type === 'full-width';
+
+    // Get container class for the inner content wrapper
     const getContainerClass = () => {
+        if (isFullWidth) {
+            // Full-width gets horizontal padding but no max-width constraint
+            return styles.fullWidth;
+        }
+
         switch (section.type) {
-            case 'full-width':
-                return 'w-full';
-            case 'container':
-                return 'container mx-auto px-4';
             case 'split-2':
-                return 'container mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-8';
+                return `${styles.container} ${styles.splitTwo}`;
             case 'split-3':
-                return 'container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8';
+                return `${styles.container} ${styles.splitThree}`;
             case 'split-4':
-                return 'container mx-auto px-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8';
+                return `${styles.container} ${styles.splitFour}`;
             default:
-                return 'container mx-auto px-4';
+                return styles.container;
         }
     };
 
@@ -73,19 +76,27 @@ export default function SectionRenderer({ section }: SectionRendererProps) {
     if (section.columns && section.columns.length > 0) {
         return (
             <section
-                className={`${getContainerClass()} ${section.settings?.customClass || ''}`}
+                className={`${styles.section} ${section.settings?.customClass || ''}`}
                 style={sectionStyle}
             >
-                {section.columns.map((column) => {
-                    const sortedColumnModules = [...(column.modules || [])].sort((a, b) => a.order - b.order);
-                    return (
-                        <div key={column.id} style={{ width: `${column.width}%` }}>
-                            {sortedColumnModules.map((module) => (
-                                <ModuleRenderer key={module.id} module={module} />
-                            ))}
-                        </div>
-                    );
-                })}
+                <div className={`${getContainerClass()} ${styles.columnWrapper}`}>
+                    {section.columns.map((column) => {
+                        const sortedColumnModules = [...(column.modules || [])].sort((a, b) => a.order - b.order);
+                        // Convert 12-column grid value to percentage (e.g., 6 -> 50%)
+                        const widthPercent = (column.width / 12) * 100;
+                        return (
+                            <div
+                                key={column.id}
+                                className={styles.column}
+                                style={{ '--column-width': `${widthPercent}%` } as React.CSSProperties}
+                            >
+                                {sortedColumnModules.map((module) => (
+                                    <ModuleRenderer key={module.id} module={module} sectionType={section.type} />
+                                ))}
+                            </div>
+                        );
+                    })}
+                </div>
             </section>
         );
     }
@@ -93,12 +104,15 @@ export default function SectionRenderer({ section }: SectionRendererProps) {
     // Render standard layout with modules
     return (
         <section
-            className={`${getContainerClass()} ${section.settings?.customClass || ''}`}
+            className={`${styles.section} ${section.settings?.customClass || ''}`}
             style={sectionStyle}
         >
-            {sortedModules.map((module) => (
-                <ModuleRenderer key={module.id} module={module} />
-            ))}
+            <div className={getContainerClass()}>
+                {sortedModules.map((module) => (
+                    <ModuleRenderer key={module.id} module={module} sectionType={section.type} />
+                ))}
+            </div>
         </section>
     );
 }
+

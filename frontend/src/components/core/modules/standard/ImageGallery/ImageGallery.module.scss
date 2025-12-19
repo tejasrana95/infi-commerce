@@ -1,0 +1,532 @@
+@use '@/styles/breakpoints' as *;
+
+.container {
+    width: 100%;
+}
+
+// =============================================================================
+// GALLERY LAYOUTS
+// =============================================================================
+
+.gallery {
+    width: 100%;
+}
+
+.grid {
+    display: grid;
+}
+
+.masonry {
+    display: block;
+
+    >div,
+    >a {
+        break-inside: avoid;
+        display: inline-block;
+        width: 100%;
+        margin-bottom: inherit;
+    }
+}
+
+// Column variations
+.columns2 {
+    &.grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    &.masonry {
+        column-count: 2;
+    }
+}
+
+.columns3 {
+    &.grid {
+        grid-template-columns: repeat(2, 1fr);
+
+        @include tablet {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    &.masonry {
+        column-count: 2;
+
+        @include tablet {
+            column-count: 3;
+        }
+    }
+}
+
+.columns4 {
+    &.grid {
+        grid-template-columns: repeat(2, 1fr);
+
+        @include tablet {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        @include desktop {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+
+    &.masonry {
+        column-count: 2;
+
+        @include tablet {
+            column-count: 3;
+        }
+
+        @include desktop {
+            column-count: 4;
+        }
+    }
+}
+
+.columns5 {
+    &.grid {
+        grid-template-columns: repeat(2, 1fr);
+
+        @include tablet {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        @include desktop {
+            grid-template-columns: repeat(5, 1fr);
+        }
+    }
+
+    &.masonry {
+        column-count: 2;
+
+        @include tablet {
+            column-count: 3;
+        }
+
+        @include desktop {
+            column-count: 5;
+        }
+    }
+}
+
+.columns6 {
+    &.grid {
+        grid-template-columns: repeat(2, 1fr);
+
+        @include tablet {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        @include desktop {
+            grid-template-columns: repeat(6, 1fr);
+        }
+    }
+
+    &.masonry {
+        column-count: 2;
+
+        @include tablet {
+            column-count: 3;
+        }
+
+        @include desktop {
+            column-count: 6;
+        }
+    }
+}
+
+// =============================================================================
+// CAROUSEL LAYOUT
+// =============================================================================
+
+.carouselWrapper {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+}
+
+.carousel {
+    overflow: hidden;
+    border-radius: 12px;
+}
+
+.carouselTrack {
+    display: flex;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
+}
+
+.carouselSlide {
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 100%;
+}
+
+.carouselBtn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    opacity: 0;
+
+    .carouselWrapper:hover & {
+        opacity: 1;
+    }
+
+    @include mobile {
+        opacity: 1;
+        width: 36px;
+        height: 36px;
+    }
+
+    &:hover {
+        background: #ffffff;
+        transform: translateY(-50%) scale(1.1);
+    }
+
+    svg {
+        width: 20px;
+        height: 20px;
+        color: #333;
+    }
+}
+
+.carouselPrev {
+    left: 12px;
+}
+
+.carouselNext {
+    right: 12px;
+}
+
+.carouselDots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.carouselDot {
+    width: 8px;
+    height: 8px;
+    border: none;
+    border-radius: 50%;
+    background: #ddd;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.3s ease;
+
+    &:hover {
+        background: #bbb;
+    }
+
+    &.active {
+        background: var(--color-accent, #333);
+        width: 24px;
+        border-radius: 10px;
+    }
+}
+
+// =============================================================================
+// IMAGE ITEMS
+// =============================================================================
+
+.imageItem {
+    position: relative;
+    overflow: hidden;
+    background: #f0f0f0;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    width: 100%;
+
+    &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+
+        .overlay {
+            opacity: 1;
+        }
+
+        .image {
+            transform: scale(1.05);
+        }
+    }
+}
+
+.clickable .imageItem {
+    cursor: pointer;
+}
+
+.link {
+    display: block;
+    text-decoration: none;
+}
+
+.image {
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+// =============================================================================
+// ASPECT RATIOS
+// =============================================================================
+
+.aspectSquare {
+    aspect-ratio: 1 / 1;
+}
+
+.aspectLandscape {
+    aspect-ratio: 16 / 9;
+}
+
+.aspectPortrait {
+    aspect-ratio: 3 / 4;
+}
+
+.aspectAuto {
+    aspect-ratio: auto;
+    min-height: 200px;
+}
+
+.aspect4x3 {
+    aspect-ratio: 4 / 3;
+}
+
+.aspect16x9 {
+    aspect-ratio: 16 / 9;
+}
+
+.aspect3x2 {
+    aspect-ratio: 3 / 2;
+}
+
+.aspect21x9 {
+    aspect-ratio: 21 / 9;
+}
+
+// Masonry doesn't use aspect ratio - uses natural image heights
+.masonry {
+    .imageItem {
+        aspect-ratio: unset;
+
+        .image {
+            position: relative !important;
+            height: auto !important;
+            width: 100% !important;
+        }
+    }
+}
+
+// Hover overlay
+.overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 2;
+
+    svg {
+        width: 32px;
+        height: 32px;
+        color: white;
+    }
+}
+
+// Captions
+.caption {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px 16px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, transparent 100%);
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 500;
+    z-index: 3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+// =============================================================================
+// LIGHTBOX
+// =============================================================================
+
+.lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.lightboxContent {
+    position: relative;
+    width: 90%;
+    height: 80%;
+    max-width: 1200px;
+
+    @include tablet {
+        width: 85%;
+        height: 85%;
+    }
+}
+
+.lightboxImage {
+    object-fit: contain;
+}
+
+.lightboxCaption {
+    position: absolute;
+    bottom: -40px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: white;
+    font-size: 1rem;
+    font-weight: 500;
+    padding: 8px 16px;
+}
+
+.closeBtn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 44px;
+    height: 44px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: background 0.2s ease;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    svg {
+        width: 24px;
+        height: 24px;
+        color: white;
+    }
+}
+
+.navBtn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: background 0.2s ease, transform 0.2s ease;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-50%) scale(1.1);
+    }
+
+    svg {
+        width: 24px;
+        height: 24px;
+        color: white;
+    }
+}
+
+.prevBtn {
+    left: 16px;
+
+    @include tablet {
+        left: 24px;
+    }
+}
+
+.nextBtn {
+    right: 16px;
+
+    @include tablet {
+        right: 24px;
+    }
+}
+
+.counter {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 8px 16px;
+    border-radius: 20px;
+}
+
+// =============================================================================
+// EMPTY STATE
+// =============================================================================
+
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    background: #f5f5f5;
+    border: 2px dashed #ddd;
+    border-radius: 12px;
+    color: #999;
+    gap: 0.75rem;
+
+    span {
+        font-size: 3rem;
+        opacity: 0.6;
+    }
+
+    p {
+        margin: 0;
+        font-size: 0.9rem;
+    }
+}
+
+// =============================================================================
+// ANIMATIONS
+// =============================================================================
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}

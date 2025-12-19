@@ -1,0 +1,10 @@
+@use '@/styles/breakpoints' as *;
+
+.spacer {
+    width: 100%;
+    height: var(--spacer-height, 40px);
+
+    @include mobile {
+        height: var(--spacer-mobile-height, var(--spacer-height, 40px));
+    }
+}

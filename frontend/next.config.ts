@@ -6,12 +6,22 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '3001',
+        pathname: '/uploads/**',
+      },
+      {
+        protocol: 'http',
         hostname: 'localhost',
       },
       {
-        hostname: '*',
+        protocol: 'https',
+        hostname: '**',
       },
     ],
+    // Allow unoptimized images in development to avoid issues with localhost
+    unoptimized: process.env.NODE_ENV === 'development',
   },
 };
 

@@ -1,49 +1,60 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ModuleProps } from '../..';
 import api from '@/lib/api';
-
-interface BrandLogosConfig {
-    showcaseId: string;
-}
+import styles from './BrandLogos.module.scss';
 
 interface BrandLogo {
     image: string;
     alt: string;
     link?: string;
-    order: number;
+    order?: number;
+}
+
+interface BrandShowcaseSettings {
+    layout?: 'grid' | 'carousel';
+    columns?: number;
+    grayscale?: boolean;
+    hoverEffect?: boolean;
+    autoplay?: boolean;
+    interval?: number;
 }
 
 interface BrandShowcaseData {
     _id: string;
     name: string;
     logos: BrandLogo[];
-    settings: {
-        layout: 'grid' | 'carousel';
-        columns: number;
-        grayscale: boolean;
-        hoverEffect: boolean;
-        autoplay: boolean;
-        interval: number;
-    };
+    settings?: BrandShowcaseSettings;
+    isActive: boolean;
 }
+
+interface BrandLogosConfig {
+    showcaseId: string;
+}
+
+// Helper to clean image URLs
+const cleanImageUrl = (url: string): string => {
+    if (!url) return '';
+    return url.replace(/([^:]\/)\/+/g, '$1');
+};
 
 export default function BrandLogosModule({ config }: ModuleProps) {
     const { showcaseId } = config as BrandLogosConfig;
     const [showcase, setShowcase] = useState<BrandShowcaseData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [currentIndex, setCurrentIndex] = useState(0);
+    const [isPaused, setIsPaused] = useState(false);
+    const scrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const fetchShowcase = async () => {
             try {
                 setLoading(true);
-                const data = await api.get<{ brands: BrandShowcaseData }>(`brand-showcases/${showcaseId}`);
-                setShowcase(data.brands);
+                const data = await api.get<{ showcase: BrandShowcaseData }>(`brand-showcases/${showcaseId}`);
+                setShowcase(data.showcase);
             } catch (err) {
                 console.error('Error fetching brand showcase:', err);
                 setError(err instanceof Error ? err.message : 'Failed to load brand showcase');
@@ -54,47 +65,56 @@ export default function BrandLogosModule({ config }: ModuleProps) {
 
         if (showcaseId) {
             fetchShowcase();
+        } else {
+            setLoading(false);
         }
     }, [showcaseId]);
 
-    // Auto-play for carousel layout
+    // Infinite scroll animation for carousel
     useEffect(() => {
-        if (
-            showcase?.settings.layout === 'carousel' &&
-            showcase?.settings.autoplay &&
-            showcase.logos.length > showcase.settings.columns
-        ) {
-            const timer = setInterval(() => {
-                setCurrentIndex((prev) => {
-                    const maxIndex = showcase.logos.length - showcase.settings.columns;
-                    return prev >= maxIndex ? 0 : prev + 1;
-                });
-            }, showcase.settings.interval);
+        const settings = showcase?.settings;
+        if (settings?.layout !== 'carousel' || !settings?.autoplay || isPaused) return;
 
-            return () => clearInterval(timer);
-        }
-    }, [showcase]);
+        const scrollContainer = scrollRef.current;
+        if (!scrollContainer) return;
+
+        let animationId: number;
+        let scrollPos = 0;
+        const speed = 0.5;
+
+        const animate = () => {
+            scrollPos += speed;
+            if (scrollPos >= scrollContainer.scrollWidth / 2) {
+                scrollPos = 0;
+            }
+            scrollContainer.scrollLeft = scrollPos;
+            animationId = requestAnimationFrame(animate);
+        };
+
+        animationId = requestAnimationFrame(animate);
+
+        return () => cancelAnimationFrame(animationId);
+    }, [showcase?.settings, isPaused]);
 
     if (loading) {
         return (
-            <div className="w-full py-12">
-                <div className="max-w-7xl mx-auto px-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8">
-                        {[1, 2, 3, 4, 5, 6].map((i) => (
-                            <div key={i} className="h-20 bg-gray-200 animate-pulse rounded" />
-                        ))}
-                    </div>
+            <div className={styles.container}>
+                <div className={styles.skeletonGrid}>
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                        <div key={i} className={styles.skeleton} />
+                    ))}
                 </div>
             </div>
         );
     }
 
-    if (error || !showcase || showcase.logos.length === 0) {
+    if (error || !showcase || !showcase.logos?.length) {
         if (process.env.NODE_ENV === 'development') {
             return (
-                <div className="w-full p-8">
-                    <div className="max-w-7xl mx-auto bg-red-50 border border-red-200 rounded-lg p-8">
-                        <p className="text-red-600">Error loading brand logos: {error || 'No logos found'}</p>
+                <div className={styles.container}>
+                    <div className={styles.errorState}>
+                        <span>🏷️</span>
+                        <p>Error: {error || 'No brand logos found'}</p>
                     </div>
                 </div>
             );
@@ -102,23 +122,27 @@ export default function BrandLogosModule({ config }: ModuleProps) {
         return null;
     }
 
-    const sortedLogos = [...showcase.logos].sort((a, b) => a.order - b.order);
+    const { logos, settings } = showcase;
+    const sortedLogos = [...logos].sort((a, b) => (a.order || 0) - (b.order || 0));
 
-    const LogoImage = ({ logo }: { logo: BrandLogo }) => {
-        const imageClass = `
-            w-full h-20 object-contain transition-all duration-300
-            ${showcase.settings.grayscale ? 'grayscale' : ''}
-            ${showcase.settings.hoverEffect ? 'hover:grayscale-0 hover:scale-110' : ''}
-        `;
+    const layout = settings?.layout || 'grid';
+    const columns = settings?.columns || 6;
+    const grayscale = settings?.grayscale ?? true;
+    const hoverEffect = settings?.hoverEffect ?? true;
 
-        const imageElement = (
-            <div className="relative w-full h-20">
+    const columnClass = styles[`columns${Math.min(Math.max(columns, 2), 8)}`];
+    const grayscaleClass = grayscale ? styles.grayscale : '';
+    const hoverClass = hoverEffect ? styles.hoverEffect : '';
+
+    const renderLogo = (logo: BrandLogo, index: number) => {
+        const logoContent = (
+            <div className={`${styles.logoItem} ${grayscaleClass} ${hoverClass}`}>
                 <Image
-                    src={logo.image}
-                    alt={logo.alt}
+                    src={cleanImageUrl(logo.image)}
+                    alt={logo.alt || `Brand ${index + 1}`}
                     fill
-                    className={imageClass}
-                    style={{ objectFit: 'contain' }}
+                    className={styles.logoImage}
+                    unoptimized
                 />
             </div>
         );
@@ -126,86 +150,54 @@ export default function BrandLogosModule({ config }: ModuleProps) {
         if (logo.link) {
             return (
                 <Link
+                    key={index}
                     href={logo.link}
+                    className={styles.logoLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block"
                 >
-                    {imageElement}
+                    {logoContent}
                 </Link>
             );
         }
 
-        return imageElement;
+        return <div key={index} className={styles.logoWrapper}>{logoContent}</div>;
     };
 
-    if (showcase.settings.layout === 'carousel') {
-        const visibleLogos = sortedLogos.slice(
-            currentIndex,
-            currentIndex + showcase.settings.columns
-        );
-
-        // If we need to wrap around
-        if (visibleLogos.length < showcase.settings.columns) {
-            visibleLogos.push(...sortedLogos.slice(0, showcase.settings.columns - visibleLogos.length));
-        }
+    // Carousel Layout
+    if (layout === 'carousel') {
+        // Double the logos for infinite scroll effect
+        const carouselLogos = [...sortedLogos, ...sortedLogos];
 
         return (
-            <div className="w-full py-12 bg-gray-50">
-                <div className="max-w-7xl mx-auto px-4">
-                    <div className="overflow-hidden">
-                        <div
-                            className="grid gap-8 transition-transform duration-500"
-                            style={{
-                                gridTemplateColumns: `repeat(${showcase.settings.columns}, minmax(0, 1fr))`,
-                            }}
-                        >
-                            {visibleLogos.map((logo, index) => (
-                                <div key={`${logo.image}-${index}`} className="flex items-center justify-center p-4">
-                                    <LogoImage logo={logo} />
-                                </div>
-                            ))}
-                        </div>
+            <div className={styles.container}>
+                <div
+                    className={styles.carouselWrapper}
+                    onMouseEnter={() => setIsPaused(true)}
+                    onMouseLeave={() => setIsPaused(false)}
+                >
+                    <div className={styles.carouselFade + ' ' + styles.fadeLeft} />
+                    <div
+                        className={styles.carouselTrack}
+                        ref={scrollRef}
+                    >
+                        {carouselLogos.map((logo, index) => (
+                            <div key={index} className={styles.carouselSlide}>
+                                {renderLogo(logo, index)}
+                            </div>
+                        ))}
                     </div>
-
-                    {sortedLogos.length > showcase.settings.columns && (
-                        <div className="flex justify-center gap-2 mt-6">
-                            {Array.from({ length: Math.ceil(sortedLogos.length / showcase.settings.columns) }).map(
-                                (_, index) => (
-                                    <button
-                                        key={index}
-                                        onClick={() => setCurrentIndex(index * showcase.settings.columns)}
-                                        className={`w-2 h-2 rounded-full transition-all ${Math.floor(currentIndex / showcase.settings.columns) === index
-                                            ? 'bg-blue-600 w-8'
-                                            : 'bg-gray-300 hover:bg-gray-400'
-                                            }`}
-                                        aria-label={`Go to brand group ${index + 1}`}
-                                    />
-                                )
-                            )}
-                        </div>
-                    )}
+                    <div className={styles.carouselFade + ' ' + styles.fadeRight} />
                 </div>
             </div>
         );
     }
 
-    // Grid layout
+    // Grid Layout
     return (
-        <div className="w-full py-12 bg-gray-50">
-            <div className="max-w-7xl mx-auto px-4">
-                <div
-                    className="grid gap-8"
-                    style={{
-                        gridTemplateColumns: `repeat(auto-fit, minmax(${100 / showcase.settings.columns}px, 1fr))`,
-                    }}
-                >
-                    {sortedLogos.map((logo, index) => (
-                        <div key={`${logo.image}-${index}`} className="flex items-center justify-center p-4">
-                            <LogoImage logo={logo} />
-                        </div>
-                    ))}
-                </div>
+        <div className={styles.container}>
+            <div className={`${styles.grid} ${columnClass}`}>
+                {sortedLogos.map((logo, index) => renderLogo(logo, index))}
             </div>
         </div>
     );

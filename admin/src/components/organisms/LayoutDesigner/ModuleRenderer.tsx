@@ -76,9 +76,7 @@ export default function ModuleRenderer({ module, isSelected, onClick }: ModuleRe
             case 'text-block':
                 return (
                     <Box sx={{ p: 1, bgcolor: 'grey.50', borderRadius: 1, minHeight: 40 }}>
-                        <Typography variant="caption" color="text.secondary">
-                            {module.config.content || 'Text content...'}
-                        </Typography>
+                        <Typography variant="caption" color="text.secondary" dangerouslySetInnerHTML={{ __html: module.config.content || 'Text content...' }} />
                     </Box>
                 );
 

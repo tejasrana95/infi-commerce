@@ -1,14 +1,18 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { ModuleProps } from '../..';
 import api from '@/lib/api';
+import styles from './Testimonials.module.scss';
 
 interface TestimonialsConfig {
     testimonialIds: string[];
-    layout: 'grid' | 'carousel';
+    layout?: 'grid' | 'carousel' | 'featured';
     autoplay?: boolean;
+    autoplayInterval?: number;
+    showQuoteIcon?: boolean;
+    theme?: 'light' | 'dark' | 'gradient';
 }
 
 interface TestimonialData {
@@ -18,14 +22,31 @@ interface TestimonialData {
     customerImage?: string;
     content: string;
     rating?: number;
+    company?: string;
 }
 
+// Helper to clean image URLs
+const cleanImageUrl = (url: string): string => {
+    if (!url) return '';
+    return url.replace(/([^:]\/)\/+/g, '$1');
+};
+
 export default function TestimonialsModule({ config }: ModuleProps) {
-    const { testimonialIds, layout, autoplay = true } = config as TestimonialsConfig;
+    const {
+        testimonialIds,
+        layout = 'carousel',
+        autoplay = true,
+        autoplayInterval = 5000,
+        showQuoteIcon = true,
+        theme = 'gradient',
+    } = config as TestimonialsConfig;
+
     const [testimonials, setTestimonials] = useState<TestimonialData[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [isPaused, setIsPaused] = useState(false);
+    const [isTransitioning, setIsTransitioning] = useState(false);
 
     useEffect(() => {
         const fetchTestimonials = async () => {
@@ -49,53 +70,42 @@ export default function TestimonialsModule({ config }: ModuleProps) {
         }
     }, [testimonialIds]);
 
+    const goToSlide = useCallback((index: number) => {
+        if (isTransitioning) return;
+        setIsTransitioning(true);
+        setCurrentIndex(index);
+        setTimeout(() => setIsTransitioning(false), 600);
+    }, [isTransitioning]);
+
+    const nextSlide = useCallback(() => {
+        goToSlide((currentIndex + 1) % testimonials.length);
+    }, [currentIndex, testimonials.length, goToSlide]);
+
+    const prevSlide = useCallback(() => {
+        goToSlide((currentIndex - 1 + testimonials.length) % testimonials.length);
+    }, [currentIndex, testimonials.length, goToSlide]);
+
     // Auto-play for carousel layout
     useEffect(() => {
-        if (layout === 'carousel' && autoplay && testimonials.length > 1) {
+        if ((layout === 'carousel' || layout === 'featured') && autoplay && testimonials.length > 1 && !isPaused) {
             const timer = setInterval(() => {
-                setCurrentIndex((prev) => (prev + 1) % testimonials.length);
-            }, 5000);
+                nextSlide();
+            }, autoplayInterval);
 
             return () => clearInterval(timer);
         }
-    }, [layout, autoplay, testimonials.length]);
+    }, [layout, autoplay, autoplayInterval, testimonials.length, isPaused, nextSlide]);
 
-    if (loading) {
-        return (
-            <div className="w-full py-12">
-                <div className="max-w-7xl mx-auto px-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {[1, 2, 3].map((i) => (
-                            <div key={i} className="h-48 bg-gray-200 animate-pulse rounded-lg" />
-                        ))}
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    if (error || testimonials.length === 0) {
-        if (process.env.NODE_ENV === 'development') {
-            return (
-                <div className="w-full p-8">
-                    <div className="max-w-7xl mx-auto bg-red-50 border border-red-200 rounded-lg p-8">
-                        <p className="text-red-600">Error loading testimonials: {error || 'No testimonials found'}</p>
-                    </div>
-                </div>
-            );
-        }
-        return null;
-    }
-
+    // Render star rating
     const renderStars = (rating?: number) => {
         if (!rating) return null;
 
         return (
-            <div className="flex gap-1 mb-4">
+            <div className={styles.stars}>
                 {[1, 2, 3, 4, 5].map((star) => (
                     <svg
                         key={star}
-                        className={`w-5 h-5 ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                        className={`${styles.star} ${star <= rating ? styles.starFilled : styles.starEmpty}`}
                         fill="currentColor"
                         viewBox="0 0 20 20"
                     >
@@ -106,85 +116,216 @@ export default function TestimonialsModule({ config }: ModuleProps) {
         );
     };
 
-    const TestimonialCard = ({ testimonial }: { testimonial: TestimonialData }) => (
-        <div className="bg-white rounded-lg shadow-lg p-8 h-full">
-            {renderStars(testimonial.rating)}
-
-            <p className="text-gray-700 mb-6 italic">"{testimonial.content}"</p>
-
-            <div className="flex items-center gap-4">
-                {testimonial.customerImage ? (
-                    <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gray-200">
-                        <Image
-                            src={testimonial.customerImage}
-                            alt={testimonial.customerName}
-                            fill
-                            className="object-cover"
-                        />
-                    </div>
-                ) : (
-                    <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center">
-                        <span className="text-gray-600 font-semibold text-lg">
-                            {testimonial.customerName.charAt(0).toUpperCase()}
-                        </span>
-                    </div>
-                )}
-
-                <div>
-                    <p className="font-semibold text-gray-900">{testimonial.customerName}</p>
-                    {testimonial.customerTitle && (
-                        <p className="text-sm text-gray-600">{testimonial.customerTitle}</p>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-
-    if (layout === 'carousel') {
+    // Loading state
+    if (loading) {
         return (
-            <div className="w-full py-12 bg-gray-50">
-                <div className="max-w-4xl mx-auto px-4">
-                    <div className="relative">
-                        {testimonials.map((testimonial, index) => (
-                            <div
-                                key={testimonial._id}
-                                className={`transition-opacity duration-500 ${index === currentIndex ? 'opacity-100' : 'opacity-0 absolute inset-0'
-                                    }`}
-                            >
-                                <TestimonialCard testimonial={testimonial} />
-                            </div>
-                        ))}
-
-                        {testimonials.length > 1 && (
-                            <div className="flex justify-center gap-2 mt-6">
-                                {testimonials.map((_, index) => (
-                                    <button
-                                        key={index}
-                                        onClick={() => setCurrentIndex(index)}
-                                        className={`w-2 h-2 rounded-full transition-all ${index === currentIndex
-                                            ? 'bg-blue-600 w-8'
-                                            : 'bg-gray-300 hover:bg-gray-400'
-                                            }`}
-                                        aria-label={`Go to testimonial ${index + 1}`}
-                                    />
-                                ))}
-                            </div>
-                        )}
-                    </div>
+            <div className={styles.container}>
+                <div className={styles.skeletonWrapper}>
+                    <div className={styles.skeleton} />
                 </div>
             </div>
         );
     }
 
-    // Grid layout
-    return (
-        <div className="w-full py-12 bg-gray-50">
-            <div className="max-w-7xl mx-auto px-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {testimonials.map((testimonial) => (
-                        <TestimonialCard key={testimonial._id} testimonial={testimonial} />
+    // Error state
+    if (error || testimonials.length === 0) {
+        if (process.env.NODE_ENV === 'development') {
+            return (
+                <div className={styles.container}>
+                    <div className={styles.errorState}>
+                        <span>💬</span>
+                        <p>Error: {error || 'No testimonials found'}</p>
+                    </div>
+                </div>
+            );
+        }
+        return null;
+    }
+
+    const themeClass = styles[`theme${theme.charAt(0).toUpperCase() + theme.slice(1)}`];
+
+    // Grid Layout
+    if (layout === 'grid') {
+        return (
+            <div className={`${styles.container} ${themeClass}`}>
+                <div className={styles.grid}>
+                    {testimonials.map((testimonial, index) => (
+                        <div
+                            key={testimonial._id}
+                            className={styles.gridCard}
+                            style={{ animationDelay: `${index * 0.1}s` }}
+                        >
+                            {showQuoteIcon && (
+                                <div className={styles.quoteIcon}>
+                                    <svg viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
+                                    </svg>
+                                </div>
+                            )}
+
+                            {renderStars(testimonial.rating)}
+
+                            <p className={styles.content}>{testimonial.content}</p>
+
+                            <div className={styles.author}>
+                                <div className={styles.avatar}>
+                                    {testimonial.customerImage ? (
+                                        <Image
+                                            src={cleanImageUrl(testimonial.customerImage)}
+                                            alt={testimonial.customerName}
+                                            fill
+                                            className={styles.avatarImage}
+                                            unoptimized
+                                        />
+                                    ) : (
+                                        <span className={styles.avatarInitial}>
+                                            {testimonial.customerName.charAt(0).toUpperCase()}
+                                        </span>
+                                    )}
+                                </div>
+                                <div className={styles.authorInfo}>
+                                    <p className={styles.authorName}>{testimonial.customerName}</p>
+                                    {(testimonial.customerTitle || testimonial.company) && (
+                                        <p className={styles.authorTitle}>
+                                            {testimonial.customerTitle}
+                                            {testimonial.customerTitle && testimonial.company && ' at '}
+                                            {testimonial.company}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                     ))}
                 </div>
+            </div>
+        );
+    }
+
+    // Featured / Carousel Layout
+    return (
+        <div
+            className={`${styles.container} ${themeClass}`}
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
+        >
+            <div className={styles.carouselWrapper}>
+                {/* Background decoration */}
+                <div className={styles.bgDecoration}>
+                    <div className={styles.blob1} />
+                    <div className={styles.blob2} />
+                </div>
+
+                {/* Large quote icon */}
+                {showQuoteIcon && (
+                    <div className={styles.largeQuote}>
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
+                        </svg>
+                    </div>
+                )}
+
+                {/* Carousel track */}
+                <div className={styles.carouselViewport}>
+                    <div
+                        className={styles.carouselTrack}
+                        style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+                    >
+                        {testimonials.map((testimonial, index) => (
+                            <div
+                                key={testimonial._id}
+                                className={styles.carouselSlide}
+                            >
+                                <div className={styles.featuredCard}>
+                                    {renderStars(testimonial.rating)}
+
+                                    <blockquote className={styles.quote}>
+                                        {testimonial.content}
+                                    </blockquote>
+
+                                    <div className={styles.authorFeatured}>
+                                        <div className={styles.avatarLarge}>
+                                            {testimonial.customerImage ? (
+                                                <Image
+                                                    src={cleanImageUrl(testimonial.customerImage)}
+                                                    alt={testimonial.customerName}
+                                                    fill
+                                                    className={styles.avatarImage}
+                                                    unoptimized
+                                                />
+                                            ) : (
+                                                <span className={styles.avatarInitialLarge}>
+                                                    {testimonial.customerName.charAt(0).toUpperCase()}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className={styles.authorInfoFeatured}>
+                                            <p className={styles.authorNameFeatured}>{testimonial.customerName}</p>
+                                            {(testimonial.customerTitle || testimonial.company) && (
+                                                <p className={styles.authorTitleFeatured}>
+                                                    {testimonial.customerTitle}
+                                                    {testimonial.customerTitle && testimonial.company && ' · '}
+                                                    {testimonial.company}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Navigation arrows */}
+                {testimonials.length > 1 && (
+                    <>
+                        <button
+                            className={`${styles.navButton} ${styles.navPrev}`}
+                            onClick={prevSlide}
+                            aria-label="Previous testimonial"
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+                        <button
+                            className={`${styles.navButton} ${styles.navNext}`}
+                            onClick={nextSlide}
+                            aria-label="Next testimonial"
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    </>
+                )}
+
+                {/* Dots navigation */}
+                {testimonials.length > 1 && (
+                    <div className={styles.dots}>
+                        {testimonials.map((_, index) => (
+                            <button
+                                key={index}
+                                className={`${styles.dot} ${index === currentIndex ? styles.dotActive : ''}`}
+                                onClick={() => goToSlide(index)}
+                                aria-label={`Go to testimonial ${index + 1}`}
+                            />
+                        ))}
+                    </div>
+                )}
+
+                {/* Progress bar */}
+                {autoplay && testimonials.length > 1 && (
+                    <div className={styles.progressWrapper}>
+                        <div
+                            className={styles.progress}
+                            style={{
+                                animationDuration: `${autoplayInterval}ms`,
+                                animationPlayState: isPaused ? 'paused' : 'running'
+                            }}
+                            key={currentIndex}
+                        />
+                    </div>
+                )}
             </div>
         </div>
     );

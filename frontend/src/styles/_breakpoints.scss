@@ -1,0 +1,166 @@
+// =============================================================================
+// BREAKPOINTS & RESPONSIVE MIXINS
+// =============================================================================
+// Standard viewport breakpoints for consistent responsive design
+// Usage: @include tablet { ... } or @include desktop { ... }
+// =============================================================================
+
+// Breakpoint values
+$breakpoint-mobile: 480px;
+$breakpoint-tablet: 768px;
+$breakpoint-desktop: 1024px;
+$breakpoint-large: 1280px;
+$breakpoint-xlarge: 1536px;
+
+// =============================================================================
+// MOBILE FIRST MIXINS (min-width)
+// Use these for progressive enhancement from mobile up
+// =============================================================================
+
+// Small mobile and up (480px+)
+@mixin mobile-up {
+    @media (min-width: $breakpoint-mobile) {
+        @content;
+    }
+}
+
+// Tablet and up (768px+)
+@mixin tablet {
+    @media (min-width: $breakpoint-tablet) {
+        @content;
+    }
+}
+
+// Desktop and up (1024px+)
+@mixin desktop {
+    @media (min-width: $breakpoint-desktop) {
+        @content;
+    }
+}
+
+// Large screens (1280px+)
+@mixin large {
+    @media (min-width: $breakpoint-large) {
+        @content;
+    }
+}
+
+// Extra large screens (1536px+)
+@mixin xlarge {
+    @media (min-width: $breakpoint-xlarge) {
+        @content;
+    }
+}
+
+// =============================================================================
+// DESKTOP FIRST MIXINS (max-width)
+// Use these for graceful degradation from desktop down
+// =============================================================================
+
+// Tablet and below (1023px-)
+@mixin tablet-down {
+    @media (max-width: #{$breakpoint-desktop - 1px}) {
+        @content;
+    }
+}
+
+// Mobile only (767px-)
+@mixin mobile {
+    @media (max-width: #{$breakpoint-tablet - 1px}) {
+        @content;
+    }
+}
+
+// Small mobile only (479px-)
+@mixin small-mobile {
+    @media (max-width: #{$breakpoint-mobile - 1px}) {
+        @content;
+    }
+}
+
+// =============================================================================
+// SPECIFIC RANGE MIXINS
+// Use these for targeting specific device ranges only
+// =============================================================================
+
+// Tablet only (768px - 1023px)
+@mixin tablet-only {
+    @media (min-width: $breakpoint-tablet) and (max-width: #{$breakpoint-desktop - 1px}) {
+        @content;
+    }
+}
+
+// Desktop only (1024px - 1279px)
+@mixin desktop-only {
+    @media (min-width: $breakpoint-desktop) and (max-width: #{$breakpoint-large - 1px}) {
+        @content;
+    }
+}
+
+// =============================================================================
+// UTILITY MIXINS
+// =============================================================================
+
+// Hide on specific devices
+@mixin hide-mobile {
+    @include mobile {
+        display: none !important;
+    }
+}
+
+@mixin hide-tablet {
+    @include tablet-only {
+        display: none !important;
+    }
+}
+
+@mixin hide-desktop {
+    @include desktop {
+        display: none !important;
+    }
+}
+
+// Show only on specific devices
+@mixin show-mobile-only {
+    display: block;
+
+    @include tablet {
+        display: none !important;
+    }
+}
+
+@mixin show-tablet-only {
+    display: none;
+
+    @include tablet-only {
+        display: block !important;
+    }
+}
+
+@mixin show-desktop-only {
+    display: none;
+
+    @include desktop {
+        display: block !important;
+    }
+}
+
+// Container width mixin
+@mixin container {
+    width: 100%;
+    max-width: $breakpoint-large;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+
+    @include tablet {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+
+    @include desktop {
+        padding-left: 2rem;
+        padding-right: 2rem;
+    }
+}

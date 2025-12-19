@@ -5,6 +5,8 @@ export interface ProductTemplateProps {
     id: string;
     name: string;
     slug: string;
+    brand?: string;
+    sku?: string;
 
     // Pricing
     price: number;
@@ -26,6 +28,7 @@ export interface ProductTemplateProps {
     isNew?: boolean;
     isOnSale?: boolean;
     inStock?: boolean;
+    stockStatus?: string;
 
     // URLs
     productUrl: string;
@@ -41,9 +44,15 @@ export interface Product {
     slug: string;
     price: number;
     compareAtPrice?: number;
+    salePrice?: number;
+    saleStartDate?: string;
+    saleEndDate?: string;
     images?: string[];
     rating?: number;
     reviewCount?: number;
     isNew?: boolean;
     inStock?: boolean;
+    brand?: string;
+    sku?: string;
+    stockStatus?: string;
 }

@@ -1,0 +1,631 @@
+@use '@/styles/breakpoints' as *;
+
+// =============================================================================
+// TESTIMONIALS MODULE - Professional & Minimal Design
+// =============================================================================
+
+.container {
+    width: 100%;
+    padding: 4rem 1rem;
+    position: relative;
+
+    @include tablet {
+        padding: 5rem 2rem;
+    }
+}
+
+// =============================================================================
+// THEMES - Clean & Professional
+// =============================================================================
+
+.themeLight {
+    background: #ffffff;
+    color: #1f2937;
+
+    .quoteIcon {
+        color: #e5e7eb;
+    }
+
+    .gridCard,
+    .featuredCard {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        color: #1f2937;
+    }
+
+    .largeQuote {
+        color: #f3f4f6;
+    }
+
+    .content,
+    .quote {
+        color: #4b5563;
+    }
+
+    .authorTitle,
+    .authorTitleFeatured {
+        color: #6b7280;
+    }
+
+    .navButton {
+        background: #ffffff;
+        color: #374151;
+        border: 1px solid #e5e7eb;
+
+        &:hover {
+            background: #f9fafb;
+            border-color: #d1d5db;
+        }
+    }
+
+    .dot {
+        background: #d1d5db;
+
+        &:hover {
+            background: #9ca3af;
+        }
+    }
+
+    .dotActive {
+        background: #374151;
+    }
+
+    .progressWrapper {
+        background: #e5e7eb;
+    }
+
+    .progress {
+        background: #374151;
+    }
+}
+
+.themeDark {
+    background: #111827;
+    color: #f9fafb;
+
+    .quoteIcon {
+        color: #1f2937;
+    }
+
+    .gridCard,
+    .featuredCard {
+        background: #1f2937;
+        border: 1px solid #374151;
+        color: #f9fafb;
+    }
+
+    .content,
+    .quote {
+        color: #d1d5db;
+    }
+
+    .authorTitle,
+    .authorTitleFeatured {
+        color: #9ca3af;
+    }
+
+    .largeQuote {
+        color: #1f2937;
+    }
+
+    .navButton {
+        background: #1f2937;
+        color: #f9fafb;
+        border: 1px solid #374151;
+
+        &:hover {
+            background: #374151;
+        }
+    }
+
+    .dot {
+        background: #374151;
+
+        &:hover {
+            background: #4b5563;
+        }
+    }
+
+    .dotActive {
+        background: #f9fafb;
+    }
+
+    .progressWrapper {
+        background: #374151;
+    }
+
+    .progress {
+        background: #f9fafb;
+    }
+
+    .starEmpty {
+        color: #374151;
+    }
+}
+
+.themeGradient {
+    background: #f9fafb;
+    color: #1f2937;
+    border-radius: 8px;
+
+    .quoteIcon {
+        color: #e5e7eb;
+    }
+
+    .gridCard,
+    .featuredCard {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+        color: #1f2937;
+    }
+
+    .content,
+    .quote {
+        color: #4b5563;
+    }
+
+    .authorTitle,
+    .authorTitleFeatured {
+        color: #6b7280;
+    }
+
+    .largeQuote {
+        color: #f3f4f6;
+    }
+
+    .navButton {
+        background: #ffffff;
+        color: #374151;
+        border: 1px solid #e5e7eb;
+
+        &:hover {
+            background: #f9fafb;
+        }
+    }
+
+    .dot {
+        background: #d1d5db;
+
+        &:hover {
+            background: #9ca3af;
+        }
+    }
+
+    .dotActive {
+        background: #374151;
+    }
+
+    .progressWrapper {
+        background: #e5e7eb;
+    }
+
+    .progress {
+        background: #374151;
+    }
+}
+
+// =============================================================================
+// GRID LAYOUT
+// =============================================================================
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+
+    @include tablet {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    @include desktop {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.gridCard {
+    position: relative;
+    padding: 2rem;
+    border-radius: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    animation: fadeIn 0.4s ease-out forwards;
+    opacity: 0;
+
+    &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+    }
+}
+
+.quoteIcon {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    width: 32px;
+    height: 32px;
+
+    svg {
+        width: 100%;
+        height: 100%;
+    }
+}
+
+// =============================================================================
+// CAROUSEL LAYOUT
+// =============================================================================
+
+.carouselWrapper {
+    position: relative;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 1rem 0;
+}
+
+.bgDecoration {
+    display: none;
+}
+
+.largeQuote {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 80px;
+    z-index: 0;
+
+    @include tablet {
+        width: 100px;
+        height: 100px;
+    }
+
+    svg {
+        width: 100%;
+        height: 100%;
+    }
+}
+
+.carouselViewport {
+    overflow: hidden;
+    border-radius: 16px;
+}
+
+.carouselTrack {
+    display: flex;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.carouselSlide {
+    flex: 0 0 100%;
+    min-width: 100%;
+}
+
+.featuredCard {
+    padding: 2.5rem 2rem;
+    border-radius: 16px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+
+    @include tablet {
+        padding: 3rem 2.5rem;
+    }
+}
+
+.quote {
+    font-size: 1.125rem;
+    line-height: 1.8;
+    margin: 0 0 2rem;
+    font-weight: 400;
+
+    @include tablet {
+        font-size: 1.25rem;
+    }
+
+    @include desktop {
+        font-size: 1.375rem;
+    }
+}
+
+.authorFeatured {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+
+    @include tablet {
+        flex-direction: row;
+        justify-content: center;
+    }
+}
+
+.avatarLarge {
+    position: relative;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: #f3f4f6;
+
+    @include tablet {
+        width: 64px;
+        height: 64px;
+    }
+}
+
+.avatarInitialLarge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background: #374151;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: white;
+}
+
+.authorInfoFeatured {
+    text-align: center;
+
+    @include tablet {
+        text-align: left;
+    }
+}
+
+.authorNameFeatured {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+.authorTitleFeatured {
+    margin: 0.25rem 0 0;
+    font-size: 0.875rem;
+}
+
+// =============================================================================
+// COMMON ELEMENTS
+// =============================================================================
+
+.stars {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 1rem;
+    justify-content: center;
+}
+
+.star {
+    width: 18px;
+    height: 18px;
+}
+
+.starFilled {
+    color: #fbbf24;
+}
+
+.starEmpty {
+    color: #e5e7eb;
+}
+
+.content {
+    font-size: 1rem;
+    line-height: 1.75;
+    margin: 0 0 1.5rem;
+}
+
+.author {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+}
+
+.avatar {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: #374151;
+}
+
+.avatarImage {
+    object-fit: cover;
+}
+
+.avatarInitial {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: white;
+}
+
+.authorInfo {
+    text-align: left;
+}
+
+.authorName {
+    margin: 0;
+    font-weight: 600;
+    font-size: 0.9375rem;
+}
+
+.authorTitle {
+    margin: 0.125rem 0 0;
+    font-size: 0.8125rem;
+}
+
+// =============================================================================
+// NAVIGATION
+// =============================================================================
+
+.navButton {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: all 0.2s ease;
+    opacity: 0;
+
+    .carouselWrapper:hover & {
+        opacity: 1;
+    }
+
+    @include mobile {
+        opacity: 1;
+        width: 40px;
+        height: 40px;
+    }
+
+    svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    &:hover {
+        transform: translateY(-50%) scale(1.05);
+    }
+}
+
+.navPrev {
+    left: -56px;
+
+    @include tablet-down {
+        left: -8px;
+    }
+}
+
+.navNext {
+    right: -56px;
+
+    @include tablet-down {
+        right: -8px;
+    }
+}
+
+.dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 2rem;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.2s ease;
+}
+
+.dotActive {
+    width: 24px;
+    border-radius: 8px;
+}
+
+// =============================================================================
+// PROGRESS BAR
+// =============================================================================
+
+.progressWrapper {
+    margin-top: 1rem;
+    height: 2px;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progress {
+    height: 100%;
+    animation: progress linear forwards;
+}
+
+// =============================================================================
+// LOADING & ERROR STATES
+// =============================================================================
+
+.skeletonWrapper {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.skeleton {
+    height: 280px;
+    border-radius: 16px;
+    background: linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 50%, #f3f4f6 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+.errorState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    gap: 0.75rem;
+    color: #6b7280;
+
+    span {
+        font-size: 2.5rem;
+    }
+
+    p {
+        margin: 0;
+    }
+}
+
+// =============================================================================
+// ANIMATIONS
+// =============================================================================
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+@keyframes progress {
+    from {
+        width: 0%;
+    }
+
+    to {
+        width: 100%;
+    }
+}

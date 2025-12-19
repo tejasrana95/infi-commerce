@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ModuleProps } from '../..';
 import api from '@/lib/api';
+import styles from './Banner.module.scss';
 
 interface BannerConfig {
     bannerId: string;
@@ -28,14 +29,26 @@ interface BannerData {
     textColor?: string;
 }
 
+// Helper to clean image URLs (remove double slashes)
+const cleanImageUrl = (url: string): string => {
+    if (!url) return '';
+    return url.replace(/([^:]\/)\/+/g, '$1');
+};
+
 export default function BannerModule({ config }: ModuleProps) {
     const { bannerId } = config as BannerConfig;
     const [banner, setBanner] = useState<BannerData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [imageError, setImageError] = useState(false);
 
     useEffect(() => {
         const fetchBanner = async () => {
+            if (!bannerId) {
+                setLoading(false);
+                return;
+            }
+
             try {
                 setLoading(true);
                 const data = await api.get<{ banner: BannerData }>(`/banners/${bannerId}`);
@@ -48,86 +61,115 @@ export default function BannerModule({ config }: ModuleProps) {
             }
         };
 
-        if (bannerId) {
-            fetchBanner();
-        }
+        fetchBanner();
     }, [bannerId]);
 
+    // Loading skeleton
     if (loading) {
         return (
-            <div className="w-full h-[400px] bg-gray-200 animate-pulse rounded-lg" />
+            <div className={styles.bannerContainer}>
+                <div className={styles.skeleton} />
+            </div>
         );
     }
 
+    // Error state (only show in development)
     if (error || !banner) {
         if (process.env.NODE_ENV === 'development') {
             return (
-                <div className="w-full p-8 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-red-600">Error loading banner: {error || 'Banner not found'}</p>
+                <div className={styles.bannerContainer}>
+                    <div className={styles.errorState}>
+                        <span className={styles.errorIcon}>⚠️</span>
+                        <p>Banner not found: {error || 'No banner ID provided'}</p>
+                    </div>
                 </div>
             );
         }
         return null;
     }
 
-    const alignmentClass = {
-        left: 'items-start text-left',
-        center: 'items-center text-center',
-        right: 'items-end text-right',
-    }[banner.alignment];
+    const desktopImage = cleanImageUrl(banner.image);
+    const mobileImage = banner.mobileImage ? cleanImageUrl(banner.mobileImage) : desktopImage;
+    const hasContent = banner.title || banner.subtitle || banner.ctaText;
 
     return (
-        <div className="relative w-full overflow-hidden rounded-lg">
-            {/* Banner Image */}
-            <div className="relative w-full aspect-[21/9]">
-                <Image
-                    src={banner.image}
-                    alt={banner.title || banner.name}
-                    fill
-                    className="object-cover hidden md:block"
-                    priority
-                />
-                {banner.mobileImage && (
-                    <Image
-                        src={banner.mobileImage}
-                        alt={banner.title || banner.name}
-                        fill
-                        className="object-cover md:hidden"
-                        priority
-                    />
-                )}
+        <div className={styles.bannerContainer}>
+            <div
+                className={`${styles.banner} ${styles[`align${banner.alignment.charAt(0).toUpperCase() + banner.alignment.slice(1)}`]}`}
+            >
+                {/* Desktop Image */}
+                <div className={styles.imageWrapper}>
+                    {desktopImage && !imageError ? (
+                        <>
+                            <Image
+                                src={desktopImage}
+                                alt={banner.title || banner.name}
+                                fill
+                                className={`${styles.bannerImage} ${styles.desktopImage}`}
+                                priority
+                                unoptimized
+                                onError={() => setImageError(true)}
+                            />
+                            <Image
+                                src={mobileImage}
+                                alt={banner.title || banner.name}
+                                fill
+                                className={`${styles.bannerImage} ${styles.mobileImage}`}
+                                priority
+                                unoptimized
+                                onError={() => setImageError(true)}
+                            />
+                        </>
+                    ) : (
+                        <div className={styles.imagePlaceholder}>
+                            <span>🖼️</span>
+                            <p>Image unavailable</p>
+                        </div>
+                    )}
 
-                {/* Overlay */}
-                {banner.overlay.enabled && (
-                    <div
-                        className="absolute inset-0"
-                        style={{
-                            backgroundColor: banner.overlay.color,
-                            opacity: banner.overlay.opacity,
-                        }}
-                    />
-                )}
+                    {/* Gradient overlay for text visibility */}
+                    {hasContent && <div className={styles.gradientOverlay} />}
 
-                {/* Text Content */}
-                {(banner.title || banner.subtitle || banner.ctaText) && (
-                    <div className={`absolute inset-0 flex flex-col justify-center ${alignmentClass} p-8 md:p-16`}>
-                        <div className="max-w-2xl" style={{ color: banner.textColor }}>
+                    {/* Custom overlay */}
+                    {banner.overlay?.enabled && (
+                        <div
+                            className={styles.customOverlay}
+                            style={{
+                                backgroundColor: banner.overlay.color,
+                                opacity: banner.overlay.opacity,
+                            }}
+                        />
+                    )}
+                </div>
+
+                {/* Content */}
+                {hasContent && (
+                    <div className={styles.content}>
+                        <div className={styles.contentInner}>
                             {banner.title && (
-                                <h2 className="text-3xl md:text-5xl font-bold mb-4">
+                                <h2
+                                    className={styles.title}
+                                    style={{ color: banner.textColor || '#ffffff' }}
+                                >
                                     {banner.title}
                                 </h2>
                             )}
+
                             {banner.subtitle && (
-                                <p className="text-lg md:text-xl mb-6 opacity-90">
+                                <p
+                                    className={styles.subtitle}
+                                    style={{ color: banner.textColor || '#ffffff' }}
+                                >
                                     {banner.subtitle}
                                 </p>
                             )}
+
                             {banner.ctaText && banner.ctaLink && (
-                                <Link
-                                    href={banner.ctaLink}
-                                    className="inline-block px-8 py-3 bg-white text-black font-semibold rounded-lg hover:bg-opacity-90 transition-all"
-                                >
+                                <Link href={banner.ctaLink} className={styles.ctaButton}>
                                     {banner.ctaText}
+                                    <svg className={styles.ctaIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                    </svg>
                                 </Link>
                             )}
                         </div>

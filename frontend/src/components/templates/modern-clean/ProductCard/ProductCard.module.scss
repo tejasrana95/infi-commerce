@@ -1,0 +1,1035 @@
+@use '@/styles/breakpoints' as *;
+
+// =============================================================================
+// MODERN CLEAN PRODUCT CARD - Premium E-commerce Design
+// =============================================================================
+
+.card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    border-radius: var(--card-border-radius, 16px);
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+    &:hover {
+        transform: translateY(-6px);
+        box-shadow: 0px 5px 14px #0000001a;
+
+        .imageInner {
+            transform: scale(1.08);
+        }
+
+        .quickActions {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .wishlistBtn,
+        .compareBtn {
+            opacity: 1;
+        }
+    }
+}
+
+// =============================================================================
+// IMAGE CONTAINER
+// =============================================================================
+
+.imageContainer {
+    position: relative;
+    aspect-ratio: 3 / 4;
+    background: #f8f9fa;
+    overflow: hidden;
+}
+
+.imageInner {
+    width: 100%;
+    height: 100%;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #d1d5db;
+
+    svg {
+        width: 48px;
+        height: 48px;
+    }
+}
+
+// =============================================================================
+// BADGES
+// =============================================================================
+
+.badges {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 2;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.badgeSale {
+    background: #ef4444;
+    color: #ffffff;
+}
+
+.badgeNew {
+    background: #10b981;
+    color: #ffffff;
+}
+
+.badgeOutOfStock {
+    background: #6b7280;
+    color: #ffffff;
+}
+
+// =============================================================================
+// QUICK ACTIONS OVERLAY
+// =============================================================================
+
+.quickActions {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 16px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+    z-index: 2;
+}
+
+.addToCartBtn {
+    width: 100%;
+    padding: 12px 20px;
+    background: #ffffff;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #111827;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: #f3f4f6;
+        transform: scale(1.02);
+    }
+
+    &:active {
+        transform: scale(0.98);
+    }
+}
+
+// =============================================================================
+// QUICK ICONS CONTAINER (Top Right: Quick View, Compare, Wishlist)
+// =============================================================================
+
+.quickIcons {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    gap: 8px;
+    z-index: 3;
+}
+
+.iconBtn {
+    width: 36px;
+    height: 36px;
+    background: #ffffff;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+
+    @include mobile {
+        opacity: 1;
+    }
+
+    svg {
+        width: 16px;
+        height: 16px;
+        color: #374151;
+        transition: all 0.2s ease;
+    }
+
+    &:hover {
+        transform: scale(1.1);
+
+        svg {
+            color: var(--color-primary, #3b82f6);
+        }
+    }
+
+    &.wishlisted {
+        svg {
+            color: #ef4444;
+        }
+    }
+}
+
+.card:hover .iconBtn {
+    opacity: 1;
+}
+
+// =============================================================================
+// WISHLIST BUTTON
+// =============================================================================
+
+.wishlistBtn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    background: #ffffff;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    z-index: 3;
+
+    @include mobile {
+        opacity: 1;
+    }
+
+    svg {
+        width: 18px;
+        height: 18px;
+        color: #374151;
+        transition: all 0.2s ease;
+    }
+
+    &:hover {
+        transform: scale(1.1);
+
+        svg {
+            color: #ef4444;
+        }
+    }
+
+    &.wishlisted {
+        svg {
+            color: #ef4444;
+            fill: #ef4444;
+        }
+    }
+}
+
+// =============================================================================
+// CONTENT
+// =============================================================================
+
+.content {
+    padding: var(--card-padding, 16px);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.name {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: #111827;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+
+    a {
+        color: inherit;
+        text-decoration: none;
+        transition: color 0.2s ease;
+
+        &:hover {
+            color: #6b7280;
+        }
+    }
+}
+
+// =============================================================================
+// RATING
+// =============================================================================
+
+.rating {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.stars {
+    display: flex;
+    gap: 2px;
+}
+
+.star {
+    width: 14px;
+    height: 14px;
+}
+
+.starFilled {
+    color: #fbbf24;
+}
+
+.starEmpty {
+    color: #e5e7eb;
+}
+
+.reviewCount {
+    font-size: 0.75rem;
+    color: #9ca3af;
+}
+
+// =============================================================================
+// PRICING
+// =============================================================================
+
+.pricing {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.price {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111827;
+}
+
+.priceOnSale {
+    color: #ef4444;
+}
+
+.comparePrice {
+    font-size: 0.875rem;
+    color: #9ca3af;
+    text-decoration: line-through;
+}
+
+// =============================================================================
+// OUT OF STOCK STATE
+// =============================================================================
+
+.outOfStock {
+    .imageContainer::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.5);
+        z-index: 1;
+    }
+
+    .addToCartBtn {
+        background: #e5e7eb;
+        color: #9ca3af;
+        cursor: not-allowed;
+
+        &:hover {
+            background: #e5e7eb;
+            transform: none;
+        }
+    }
+}
+
+// =============================================================================
+// CARD STYLES
+// =============================================================================
+
+.styleDefault {
+    border-radius: var(--card-border-radius, 16px);
+
+    .sku {
+        color: var(--color-text-tertiary);
+    }
+}
+
+.styleMinimal {
+    border-radius: var(--card-border-radius, 8px);
+    box-shadow: none;
+
+    .sku {
+        color: var(--color-text-tertiary);
+    }
+
+    &:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+}
+
+.styleOverlay {
+    .content {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+        padding: 24px 16px 16px;
+        color: #ffffff;
+    }
+
+    .name a {
+        color: #ffffff;
+
+        &:hover {
+            color: rgba(255, 255, 255, 0.8);
+        }
+    }
+
+    .price {
+        color: #ffffff;
+    }
+}
+
+.styleBordered {
+    border: 1px solid #e5e7eb;
+    box-shadow: none;
+
+    &:hover {
+        border-color: #d1d5db;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    }
+
+    .sku {
+        color: var(--color-text-tertiary);
+    }
+}
+
+.styleHorizontal {
+    flex-direction: row;
+
+    .imageContainer {
+        width: 40%;
+        aspect-ratio: 1 / 1;
+    }
+
+    .sku {
+        color: var(--color-text-tertiary);
+    }
+
+    .content {
+        flex: 1;
+        justify-content: center;
+    }
+}
+
+// =============================================================================
+// HOVER EFFECTS
+// =============================================================================
+
+.hoverNone {
+    &:hover {
+        transform: none;
+        box-shadow: none;
+
+        .imageInner {
+            transform: none;
+        }
+    }
+}
+
+.hoverZoom {
+    &:hover {
+        transform: none;
+
+        .imageInner {
+            transform: scale(1.15);
+        }
+    }
+}
+
+.hoverLift {
+    &:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+    }
+}
+
+.hoverShadow {
+    &:hover {
+        transform: none;
+        box-shadow: 0 16px 32px rgba(0, 0, 0, 0.15);
+    }
+}
+
+.hoverOverlay {
+    &:hover {
+        .imageContainer::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.1);
+            z-index: 1;
+        }
+    }
+}
+
+// =============================================================================
+// ASPECT RATIOS
+// =============================================================================
+
+.aspect1x1 {
+    aspect-ratio: 1 / 1;
+}
+
+.aspect3x4 {
+    aspect-ratio: 3 / 4;
+}
+
+.aspect4x3 {
+    aspect-ratio: 4 / 3;
+}
+
+.aspect16x9 {
+    aspect-ratio: 16 / 9;
+}
+
+.aspectAuto {
+    aspect-ratio: auto;
+    min-height: 200px;
+}
+
+// =============================================================================
+// TITLE TYPOGRAPHY
+// =============================================================================
+
+// Font sizes
+.titleSizeSmall {
+    font-size: 0.8125rem;
+}
+
+.titleSizeMedium {
+    font-size: 0.9375rem;
+}
+
+.titleSizeLarge {
+    font-size: 1.0625rem;
+}
+
+// Font weights
+.titleWeightNormal {
+    font-weight: 400;
+}
+
+.titleWeightMedium {
+    font-weight: 500;
+}
+
+.titleWeightSemibold {
+    font-weight: 600;
+}
+
+.titleWeightBold {
+    font-weight: 700;
+}
+
+// Title lines
+.titleLines1 {
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+}
+
+.titleLines2 {
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+}
+
+.titleLines3 {
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+}
+
+// =============================================================================
+// PRICE TYPOGRAPHY
+// =============================================================================
+
+.priceSizeSmall {
+    font-size: 0.875rem;
+}
+
+.priceSizeMedium {
+    font-size: 1rem;
+}
+
+.priceSizeLarge {
+    font-size: 1.125rem;
+}
+
+// =============================================================================
+// WISHLIST POSITIONS
+// =============================================================================
+
+.top-right {
+    top: 12px;
+    right: 12px;
+}
+
+.top-left {
+    top: 12px;
+    left: 12px;
+    right: auto;
+}
+
+.bottom {
+    top: auto;
+    bottom: 12px;
+    right: 12px;
+}
+
+// =============================================================================
+// QUICK VIEW BUTTON
+// =============================================================================
+
+.quickViewBtn {
+    width: 40px;
+    height: 40px;
+    background: #ffffff;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-left: auto;
+
+    svg {
+        width: 20px;
+        height: 20px;
+        color: #374151;
+    }
+
+    &:hover {
+        background: #f3f4f6;
+        transform: scale(1.1);
+    }
+}
+
+// Quick View Button - Top Right Position
+.quickViewBtnTopRight {
+    position: absolute;
+    top: 92px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    background: #ffffff;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    z-index: 3;
+
+    @include mobile {
+        opacity: 1;
+    }
+
+    svg {
+        width: 16px;
+        height: 16px;
+        color: #374151;
+        transition: all 0.2s ease;
+    }
+
+    &:hover {
+        transform: scale(1.1);
+
+        svg {
+            color: var(--color-primary, #3b82f6);
+        }
+    }
+}
+
+.card:hover .quickViewBtnTopRight {
+    opacity: 1;
+}
+
+// Update quickActions to support multiple buttons
+.quickActions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+
+    &.stacked {
+        flex-direction: column;
+        gap: 6px;
+
+        .actionButtons {
+            flex-direction: column;
+            width: 100%;
+        }
+    }
+}
+
+.actionButtons {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+    width: 100%;
+
+    button {
+        flex: 1;
+    }
+}
+
+// =============================================================================
+// BUTTON STYLE VARIANTS
+// =============================================================================
+
+// Filled style (default)
+.btnFilled {
+    background: #ffffff;
+    color: #111827;
+    border: none;
+
+    &:hover {
+        background: #f3f4f6;
+    }
+}
+
+// Outlined style
+.btnOutlined {
+    background: transparent;
+    color: #ffffff;
+    border: 2px solid #ffffff;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+}
+
+// Text style
+.btnText {
+    background: transparent;
+    color: #ffffff;
+    border: none;
+    text-decoration: underline;
+
+    &:hover {
+        text-decoration: none;
+    }
+}
+
+// Icon only style
+.btnIcononly {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+    border: none;
+    border-radius: 50%;
+    min-width: 44px;
+    min-height: 44px;
+
+    svg {
+        width: 20px;
+        height: 20px;
+        color: #111827;
+    }
+
+    &:hover {
+        background: #f3f4f6;
+        transform: scale(1.1);
+    }
+}
+
+// =============================================================================
+// BUY NOW BUTTON
+// =============================================================================
+
+.buyNowBtn {
+    flex: 1;
+    padding: 12px 16px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        transform: scale(1.02);
+    }
+
+    &:active {
+        transform: scale(0.98);
+    }
+}
+
+// =============================================================================
+// COMPARE BUTTON
+// =============================================================================
+
+.compareBtn {
+    position: absolute;
+    top: 12px;
+    right: 52px;
+    width: 36px;
+    height: 36px;
+    background: #ffffff;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    z-index: 3;
+
+    @include mobile {
+        opacity: 1;
+    }
+
+    svg {
+        width: 16px;
+        height: 16px;
+        color: #374151;
+        transition: all 0.2s ease;
+    }
+
+    &:hover {
+        transform: scale(1.1);
+
+        svg {
+            color: var(--color-primary, #3b82f6);
+        }
+    }
+}
+
+// Quick View Button - Top Right Position (next to compare)
+.quickViewBtnTopRight {
+    position: absolute;
+    top: 12px;
+    right: 92px;
+    width: 36px;
+    height: 36px;
+    background: #ffffff;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    z-index: 3;
+
+    @include mobile {
+        opacity: 1;
+    }
+
+    svg {
+        width: 16px;
+        height: 16px;
+        color: #374151;
+        transition: all 0.2s ease;
+    }
+
+    &:hover {
+        transform: scale(1.1);
+
+        svg {
+            color: var(--color-primary, #3b82f6);
+        }
+    }
+}
+
+.card:hover .quickViewBtnTopRight {
+    opacity: 1;
+}
+
+// =============================================================================
+// DISPLAY OPTIONS - BRAND, SKU, STOCK
+// =============================================================================
+
+.brand {
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+}
+
+.sku {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: white
+}
+
+.stockStatus {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-top: 4px;
+
+    &::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+    }
+}
+
+.inStock {
+    color: #10b981;
+
+    &::before {
+        background: #10b981;
+    }
+}
+
+.outOfStockText {
+    color: #ef4444;
+
+    &::before {
+        background: #ef4444;
+    }
+}
+
+// =============================================================================
+// CONTENT ACTION BUTTONS (For non-overlay card styles)
+// =============================================================================
+
+.contentActions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.contentBtn {
+    flex: 1;
+    padding: 10px 16px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    &:hover {
+        transform: translateY(-1px);
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+}
+
+// Filled style (default)
+.contentBtnFilled {
+    background: var(--color-primary, #111827);
+    color: #ffffff;
+    border: none;
+
+    &:hover {
+        opacity: 0.9;
+    }
+}
+
+// Outlined style
+.contentBtnOutlined {
+    background: transparent;
+    color: var(--color-accent, #111827);
+    border: 2px solid var(--color-accent, #111827);
+
+    &:hover {
+        background: var(--color-accent, #111827);
+        color: #ffffff;
+    }
+}
+
+// Text style
+.contentBtnText {
+    background: transparent;
+    color: var(--color-primary, #111827);
+    border: none;
+    text-decoration: underline;
+    padding: 10px 8px;
+
+    &:hover {
+        text-decoration: none;
+        background: rgba(0, 0, 0, 0.05);
+    }
+}
+
+// Icon only style
+.contentBtnIcononly {
+    flex: 0;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    background: var(--color-accent, #111827);
+    color: #ffffff;
+    border: none;
+    border-radius: 50%;
+
+    &:hover {
+        opacity: 0.9;
+        transform: scale(1.05);
+    }
+}

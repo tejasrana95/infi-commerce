@@ -1,0 +1,90 @@
+@use '@/styles/breakpoints' as *;
+
+// =============================================================================
+// SECTION RENDERER STYLES
+// =============================================================================
+
+.section {
+    width: 100%;
+}
+
+// Container - constrained width with centered content
+.container {
+    @include container;
+}
+
+// Full-width - fluid, no max-width constraint
+.fullWidth {
+    width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+
+    @include tablet {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+
+    @include desktop {
+        padding-left: 2rem;
+        padding-right: 2rem;
+    }
+}
+
+// Split layouts
+.splitTwo {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+
+    @include tablet {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.splitThree {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+
+    @include tablet {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.splitFour {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+
+    @include tablet {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    @include desktop {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+// =============================================================================
+// COLUMN LAYOUT - Dynamic grid with mobile responsiveness
+// =============================================================================
+
+.columnWrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.column {
+    // Mobile: Full width (100%)
+    width: 100%;
+
+    // Tablet and up: Use the column width from CSS variable
+    @include tablet {
+        width: calc(var(--column-width) - 1rem);
+    }
+
+    @include desktop {
+        width: calc(var(--column-width) - 1rem);
+    }
+}

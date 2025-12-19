@@ -1,6 +1,8 @@
 // Modern Clean Header Styles
 // Minimal, centered, elegant design
 
+@use '@/styles/breakpoints' as *;
+
 .header {
     background: var(--color-header-bg, white);
     transition: all 0.3s ease;
@@ -25,18 +27,14 @@
         .mainHeader {
             border-bottom: none;
         }
-
-        // When transparent, force white text usually (or use theme logic if preferred)
-        // For now, we keep inheriting theme colors but ensure background is clear
     }
 
     // Scrolled State (Active Sticky)
     &.scrolled {
-        position: fixed; // Switch to fixed to ensure it stays on top smoothly
+        position: fixed;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
         animation: slideDown 0.3s ease forwards;
 
-        // Scrolled + Transparent = Glassmorphism
         &.transparent {
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(12px);
@@ -62,7 +60,7 @@
     padding: 0.5rem 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 
-    @media (max-width: 768px) {
+    @include mobile {
         font-size: 0.7rem;
         padding: 0.4rem 0;
     }
@@ -82,7 +80,7 @@
     display: flex;
     gap: 0.75rem;
 
-    @media (max-width: 768px) {
+    @include mobile {
         display: none;
     }
 }
@@ -91,7 +89,7 @@
     flex: 1;
     text-align: center;
 
-    @media (max-width: 768px) {
+    @include mobile {
         font-size: 0.65rem;
     }
 }
@@ -100,7 +98,7 @@
     display: flex;
     gap: 1rem;
 
-    @media (max-width: 768px) {
+    @include mobile {
         display: none;
     }
 }
@@ -135,7 +133,7 @@
 // ========== MAIN HEADER ==========
 .mainHeader {
     border-bottom: 1px solid var(--color-border, #f0f0f0);
-    position: relative; // Positioning context for mega menu dropdown
+    position: relative;
     z-index: 20;
     background: var(--color-header-bg, white);
 }
@@ -166,7 +164,7 @@
     position: relative;
     gap: 2rem;
 
-    @media (max-width: 768px) {
+    @include mobile {
         padding: 1rem 0;
         gap: 1rem;
     }
@@ -185,7 +183,7 @@
     justify-content: center;
     position: relative;
 
-    @media (max-width: 768px) {
+    @include mobile {
         display: none;
     }
 }
@@ -211,7 +209,7 @@
         stroke: currentColor;
     }
 
-    @media (max-width: 768px) {
+    @include mobile {
         display: flex;
     }
 }
@@ -222,12 +220,12 @@
     img {
         height: 2.5rem;
 
-        @media (max-width: 768px) {
+        @include mobile {
             height: 2rem;
         }
     }
 
-    @media (max-width: 768px) {
+    @include mobile {
         position: static;
         transform: none;
     }
@@ -240,7 +238,7 @@
     text-transform: uppercase;
     color: var(--color-text, #000);
 
-    @media (max-width: 768px) {
+    @include mobile {
         font-size: 1.25rem;
     }
 }
@@ -334,7 +332,7 @@
 .shopBtn {
     display: inline-block;
     padding: 0.6rem 1.2rem;
-    background: #000; // Fallback
+    background: #000;
     color: white;
     text-decoration: none;
     border-radius: 0.5rem;
@@ -442,12 +440,7 @@
     left: 0;
     top: 100%;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-
     animation: slideBehindHeader 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-    transition: all 0.2s;
-
-    top: 100%;
-
     transition: all 0.2s;
     z-index: -1;
 }
@@ -495,13 +488,12 @@
 }
 
 // ========== NAVIGATION ==========
-// ========== NAVIGATION ==========
 .navWrapper {
     border-bottom: 1px solid #f0f0f0;
 }
 
 .headerMenu {
-    @media (max-width: 768px) {
+    @include mobile {
         display: none;
     }
 }
@@ -509,7 +501,7 @@
 .nav {
     border-bottom: 1px solid #f0f0f0;
 
-    @media (max-width: 768px) {
+    @include mobile {
         display: none;
     }
 }
@@ -594,8 +586,7 @@
     transition: all 0.2s;
     z-index: -1;
 
-
-    @media (max-width: 768px) {
+    @include mobile {
         display: block;
     }
 }

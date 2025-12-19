@@ -1,0 +1,521 @@
+@use '@/styles/breakpoints' as *;
+
+// =============================================================================
+// BANNER SLIDER MODULE
+// Modern, responsive hero slider with theme integration
+// =============================================================================
+
+.container {
+    width: 100%;
+}
+
+.slider {
+    position: relative;
+    width: 100%;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    background: linear-gradient(135deg, var(--color-primary, #667eea) 0%, var(--color-secondary, #764ba2) 100%);
+
+    @include mobile {
+        border-radius: 12px;
+    }
+}
+
+.track {
+    position: relative;
+    width: 100%;
+    height: 280px;
+    overflow: hidden;
+
+    @include mobile-up {
+        height: 350px;
+    }
+
+    @include tablet {
+        height: 420px;
+    }
+
+    @include desktop {
+        height: 500px;
+    }
+
+    @include large {
+        height: 560px;
+    }
+}
+
+// =============================================================================
+// SLIDE STYLES
+// =============================================================================
+
+.slide {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.fadeEffect {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.6s ease-in-out, visibility 0.6s ease-in-out;
+
+    &.active {
+        opacity: 1;
+        visibility: visible;
+    }
+}
+
+.slideEffect {
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &.active {
+        z-index: 5;
+    }
+}
+
+// =============================================================================
+// IMAGE STYLES
+// =============================================================================
+
+.image {
+    object-fit: cover;
+    transition: transform 8s ease-out;
+
+    .active & {
+        transform: scale(1.05);
+    }
+}
+
+.imageDesktop {
+    position: absolute;
+    inset: 0;
+    display: none;
+
+    @include tablet {
+        display: block;
+    }
+}
+
+.imageMobile {
+    position: absolute;
+    inset: 0;
+    display: block;
+
+    @include tablet {
+        display: none;
+    }
+}
+
+// =============================================================================
+// OVERLAY STYLES
+// =============================================================================
+
+.overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.3) 50%, transparent 100%);
+
+    &.alignCenter {
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.2) 50%, transparent 100%);
+    }
+
+    &.alignRight {
+        background: linear-gradient(to left, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.3) 50%, transparent 100%);
+    }
+}
+
+// =============================================================================
+// CONTENT STYLES
+// =============================================================================
+
+.content {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    padding: 1.5rem;
+
+    @include tablet {
+        padding: 2.5rem;
+    }
+
+    @include desktop {
+        padding: 3.5rem;
+    }
+
+    &.alignLeft {
+        justify-content: flex-start;
+        text-align: left;
+    }
+
+    &.alignCenter {
+        justify-content: center;
+        text-align: center;
+
+        .contentInner {
+            margin: 0 auto;
+        }
+    }
+
+    &.alignRight {
+        justify-content: flex-end;
+        text-align: right;
+
+        .contentInner {
+            margin-left: auto;
+        }
+    }
+}
+
+.contentInner {
+    max-width: 100%;
+    opacity: 0;
+    transform: translateY(30px);
+    animation: none;
+
+    .active & {
+        animation: slideUp 0.8s 0.3s ease-out forwards;
+    }
+
+    @include tablet {
+        max-width: 550px;
+    }
+
+    @include desktop {
+        max-width: 600px;
+    }
+}
+
+.title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    line-height: 1.15;
+    margin: 0 0 0.75rem;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+    letter-spacing: -0.02em;
+
+    @include mobile-up {
+        font-size: 2rem;
+    }
+
+    @include tablet {
+        font-size: 2.75rem;
+        margin-bottom: 1rem;
+    }
+
+    @include desktop {
+        font-size: 3.5rem;
+    }
+
+    @include large {
+        font-size: 4rem;
+    }
+}
+
+.subtitle {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin: 0 0 1.25rem;
+    opacity: 0.95;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+
+    @include mobile-up {
+        font-size: 1rem;
+    }
+
+    @include tablet {
+        font-size: 1.15rem;
+        margin-bottom: 1.5rem;
+    }
+
+    @include desktop {
+        font-size: 1.25rem;
+    }
+}
+
+.ctaButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--color-accent, #ffffff);
+    color: var(--color-accent-text, #1a1a1a);
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    border-radius: 50px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    transition: all 0.3s ease;
+
+    &:hover {
+        transform: translateX(4px);
+        box-shadow: 0 6px 25px rgba(0, 0, 0, 0.3);
+    }
+
+    @include tablet {
+        padding: 1rem 2rem;
+        font-size: 1rem;
+    }
+}
+
+.ctaIcon {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.3s ease;
+
+    .ctaButton:hover & {
+        transform: translateX(3px);
+    }
+
+    @include tablet {
+        width: 18px;
+        height: 18px;
+    }
+}
+
+// =============================================================================
+// NAVIGATION BUTTONS
+// =============================================================================
+
+.navButton {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    opacity: 0;
+
+    .slider:hover & {
+        opacity: 1;
+    }
+
+    @include mobile {
+        opacity: 1;
+        width: 32px;
+        height: 32px;
+    }
+
+    @include tablet {
+        width: 44px;
+        height: 44px;
+    }
+
+    svg {
+        width: 18px;
+        height: 18px;
+        color: #333;
+
+        @include tablet {
+            width: 22px;
+            height: 22px;
+        }
+    }
+
+    &:hover {
+        background: #ffffff;
+        transform: translateY(-50%) scale(1.1);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+}
+
+.navPrev {
+    left: 12px;
+
+    @include tablet {
+        left: 20px;
+    }
+}
+
+.navNext {
+    right: 12px;
+
+    @include tablet {
+        right: 20px;
+    }
+}
+
+// =============================================================================
+// DOTS NAVIGATION
+// =============================================================================
+
+.dots {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+
+    @include tablet {
+        bottom: 24px;
+        gap: 10px;
+    }
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.3s ease;
+
+    @include tablet {
+        width: 10px;
+        height: 10px;
+    }
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.8);
+    }
+}
+
+.dotActive {
+    background: #ffffff;
+    width: 24px;
+    border-radius: 10px;
+
+    @include tablet {
+        width: 30px;
+    }
+}
+
+// =============================================================================
+// PROGRESS BAR
+// =============================================================================
+
+.progressWrapper {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.2);
+    z-index: 10;
+
+    @include tablet {
+        height: 4px;
+    }
+}
+
+.progress {
+    height: 100%;
+    background: var(--color-accent, #ffffff);
+    animation: progress linear forwards;
+    transform-origin: left;
+}
+
+// =============================================================================
+// LOADING SKELETON
+// =============================================================================
+
+.skeleton {
+    width: 100%;
+    height: 280px;
+    border-radius: 16px;
+    background: linear-gradient(90deg, #e8e8e8 0%, #f5f5f5 50%, #e8e8e8 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+
+    @include mobile-up {
+        height: 350px;
+    }
+
+    @include tablet {
+        height: 420px;
+    }
+
+    @include desktop {
+        height: 500px;
+    }
+}
+
+// =============================================================================
+// ERROR STATE
+// =============================================================================
+
+.errorState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 250px;
+    background: #fff5f5;
+    border: 2px dashed #feb2b2;
+    border-radius: 16px;
+    color: #c53030;
+    gap: 0.75rem;
+
+    .errorIcon {
+        font-size: 2rem;
+    }
+
+    p {
+        margin: 0;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+}
+
+// =============================================================================
+// ANIMATIONS
+// =============================================================================
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+@keyframes progress {
+    from {
+        width: 0%;
+    }
+
+    to {
+        width: 100%;
+    }
+}

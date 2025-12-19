@@ -1,5 +1,7 @@
 // Mega Menu Styles
 
+@use '@/styles/breakpoints' as *;
+
 .megaMenu {
     width: 100%;
 }
@@ -52,7 +54,7 @@
     transition: all 0.3s ease;
     z-index: 100;
 
-    @media (max-width: 1024px) {
+    @include tablet-down {
         padding: 1rem 0;
     }
 }
@@ -64,7 +66,7 @@
     display: flex;
     gap: 1rem;
 
-    @media (max-width: 1024px) {
+    @include tablet-down {
         padding: 0 1rem;
     }
 }

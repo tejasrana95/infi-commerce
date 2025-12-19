@@ -128,6 +128,51 @@ export interface FooterConfig {
 }
 
 // Theme Configuration
+export interface ProductCardConfig {
+  // Card Design
+  cardStyle: 'default' | 'minimal' | 'overlay' | 'horizontal' | 'bordered';
+
+  // Image Settings
+  imageAspectRatio: '1:1' | '3:4' | '4:3' | '16:9' | 'auto';
+  imageSize: 'small' | 'medium' | 'large';
+  imageFit: 'cover' | 'contain';
+  showImageHover: boolean;
+
+  // Button Visibility
+  showAddToCart: boolean;
+  showBuyNow: boolean;
+  showWishlist: boolean;
+  showQuickView: boolean;
+  showCompare: boolean;
+
+  // Button Styles
+  addToCartStyle: 'filled' | 'outlined' | 'text' | 'icon-only';
+  buyNowStyle: 'filled' | 'outlined' | 'text';
+  wishlistPosition: 'top-right' | 'top-left' | 'bottom';
+  quickViewPosition: 'overlay' | 'top-right';
+
+  // Typography
+  titleLines: 1 | 2 | 3;
+  titleFontSize: 'small' | 'medium' | 'large';
+  titleFontWeight: 'normal' | 'medium' | 'semibold' | 'bold';
+  priceFontSize: 'small' | 'medium' | 'large';
+
+  // Display Options
+  showBrand: boolean;
+  showRating: boolean;
+  showSalePercent: boolean;
+  showStock: boolean;
+  showSku: boolean;
+
+  // Hover Effects
+  hoverEffect: 'none' | 'zoom' | 'lift' | 'shadow' | 'overlay';
+
+  // Spacing
+  cardGap: number;
+  cardPadding: number;
+  cardBorderRadius: number;
+}
+
 export interface ThemeConfig {
   templateId: string; // ID of the specific template (e.g., 'modern-clean', 'classic-elegance')
   header?: {
@@ -139,6 +184,7 @@ export interface ThemeConfig {
     };
   };
   footer?: FooterConfig;
+  productCard?: ProductCardConfig;
   colors?: {
     primary?: string;
     secondary?: string;

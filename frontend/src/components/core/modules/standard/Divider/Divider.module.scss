@@ -1,0 +1,24 @@
+@use '@/styles/breakpoints' as *;
+
+.container {
+    display: flex;
+    width: 100%;
+}
+
+.alignLeft {
+    justify-content: flex-start;
+}
+
+.alignCenter {
+    justify-content: center;
+}
+
+.alignRight {
+    justify-content: flex-end;
+}
+
+.divider {
+    border: none;
+    border-top: 1px solid #e0e0e0;
+    margin: 0;
+}

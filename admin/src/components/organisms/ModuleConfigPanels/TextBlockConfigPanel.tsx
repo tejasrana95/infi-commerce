@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, TextField, MenuItem, Typography } from '@mui/material';
+import { Box, TextField, MenuItem, Typography, FormControlLabel, Switch } from '@mui/material';
 import RichTextEditor from '@/components/molecules/RichTextEditor';
 
 export interface TextBlockConfig {
@@ -10,6 +10,12 @@ export interface TextBlockConfig {
     backgroundColor?: string;
     padding: number;
     maxWidth?: number;
+    // Collapse options
+    enableCollapse?: boolean;
+    defaultState?: 'collapsed' | 'expanded';
+    linesToShow?: number;
+    expandLabel?: string;
+    collapseLabel?: string;
 }
 
 interface TextBlockConfigPanelProps {
@@ -24,6 +30,11 @@ export const defaultTextBlockConfig: TextBlockConfig = {
     backgroundColor: '',
     padding: 16,
     maxWidth: undefined,
+    enableCollapse: false,
+    defaultState: 'expanded',
+    linesToShow: 3,
+    expandLabel: 'Read More',
+    collapseLabel: 'Show Less',
 };
 
 export default function TextBlockConfigPanel({ config, onChange }: TextBlockConfigPanelProps) {
@@ -118,6 +129,65 @@ export default function TextBlockConfigPanel({ config, onChange }: TextBlockConf
                 size="small"
                 placeholder="Leave empty for full width"
             />
+
+            {/* Collapse/Expand Options */}
+            <Typography variant="subtitle2" fontWeight={600} sx={{ mt: 2 }}>
+                Collapse Options
+            </Typography>
+
+            <FormControlLabel
+                control={
+                    <Switch
+                        checked={config.enableCollapse || false}
+                        onChange={(e) => handleChange('enableCollapse', e.target.checked)}
+                    />
+                }
+                label="Enable Collapse"
+            />
+
+            {config.enableCollapse && (
+                <>
+                    <TextField
+                        select
+                        label="Default State"
+                        value={config.defaultState || 'expanded'}
+                        onChange={(e) => handleChange('defaultState', e.target.value)}
+                        fullWidth
+                        size="small"
+                    >
+                        <MenuItem value="collapsed">Collapsed</MenuItem>
+                        <MenuItem value="expanded">Expanded</MenuItem>
+                    </TextField>
+
+                    <TextField
+                        label="Lines to Show (when collapsed)"
+                        type="number"
+                        value={config.linesToShow || 3}
+                        onChange={(e) => handleChange('linesToShow', parseInt(e.target.value) || 3)}
+                        fullWidth
+                        size="small"
+                        inputProps={{ min: 1 }}
+                    />
+
+                    <TextField
+                        label="Expand Label"
+                        value={config.expandLabel || 'Read More'}
+                        onChange={(e) => handleChange('expandLabel', e.target.value)}
+                        fullWidth
+                        size="small"
+                        placeholder="Read More"
+                    />
+
+                    <TextField
+                        label="Collapse Label"
+                        value={config.collapseLabel || 'Show Less'}
+                        onChange={(e) => handleChange('collapseLabel', e.target.value)}
+                        fullWidth
+                        size="small"
+                        placeholder="Show Less"
+                    />
+                </>
+            )}
         </Box>
     );
 }

@@ -1,0 +1,310 @@
+@use '@/styles/breakpoints' as *;
+
+// =============================================================================
+// BRAND LOGOS MODULE - Professional & Minimal Design
+// =============================================================================
+
+.container {
+    width: 100%;
+    padding: 3rem 1rem;
+
+    @include tablet {
+        padding: 4rem 2rem;
+    }
+}
+
+// =============================================================================
+// GRID LAYOUT
+// =============================================================================
+
+.grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    align-items: stretch;
+
+    @include tablet {
+        gap: 1.5rem;
+    }
+}
+
+// Column variations - responsive using flex
+// Gap is 1rem (16px) on mobile, 1.5rem (24px) on tablet+
+
+.columns2 .logoWrapper,
+.columns2 .logoLink {
+    flex: 0 0 calc(50% - 0.5rem);
+
+    @include tablet {
+        flex: 0 0 calc(50% - 0.75rem);
+    }
+}
+
+.columns3 .logoWrapper,
+.columns3 .logoLink {
+    flex: 0 0 calc(50% - 0.5rem);
+
+    @include tablet {
+        flex: 0 0 calc(33.333% - 1rem);
+    }
+}
+
+.columns4 .logoWrapper,
+.columns4 .logoLink {
+    flex: 0 0 calc(50% - 0.5rem);
+
+    @include tablet {
+        flex: 0 0 calc(33.333% - 1rem);
+    }
+
+    @include desktop {
+        flex: 0 0 calc(25% - 1.125rem);
+    }
+}
+
+.columns5 .logoWrapper,
+.columns5 .logoLink {
+    flex: 0 0 calc(50% - 0.5rem);
+
+    @include tablet {
+        flex: 0 0 calc(33.333% - 1rem);
+    }
+
+    @include desktop {
+        flex: 0 0 calc(20% - 1.2rem);
+    }
+}
+
+.columns6 .logoWrapper,
+.columns6 .logoLink {
+    flex: 0 0 calc(50% - 0.5rem);
+
+    @include tablet {
+        flex: 0 0 calc(33.333% - 1rem);
+    }
+
+    @include desktop {
+        flex: 0 0 calc(16.666% - 1.25rem);
+    }
+}
+
+.columns7 .logoWrapper,
+.columns7 .logoLink {
+    flex: 0 0 calc(50% - 0.5rem);
+
+    @include tablet {
+        flex: 0 0 calc(25% - 1.125rem);
+    }
+
+    @include desktop {
+        flex: 0 0 calc(14.285% - 1.29rem);
+    }
+}
+
+.columns8 .logoWrapper,
+.columns8 .logoLink {
+    flex: 0 0 calc(50% - 0.5rem);
+
+    @include tablet {
+        flex: 0 0 calc(25% - 1.125rem);
+    }
+
+    @include desktop {
+        flex: 0 0 calc(12.5% - 1.3125rem);
+    }
+}
+
+// =============================================================================
+// LOGO ITEM
+// =============================================================================
+
+.logoWrapper,
+.logoLink {
+    display: block;
+}
+
+.logoLink {
+    text-decoration: none;
+}
+
+.logoItem {
+    position: relative;
+    aspect-ratio: 3 / 2;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    margin-top: 0.25rem;
+}
+
+.logoImage {
+    object-fit: contain;
+    padding: 1.25rem;
+    transition: all 0.3s ease;
+
+    @include tablet {
+        padding: 1.5rem;
+    }
+}
+
+// Grayscale effect
+.grayscale {
+    .logoImage {
+        filter: grayscale(100%);
+        opacity: 0.7;
+    }
+
+    &:hover .logoImage {
+        filter: grayscale(0%);
+        opacity: 1;
+    }
+}
+
+// Hover effect
+.hoverEffect {
+    &:hover {
+        border-color: #d1d5db;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        transform: translateY(-4px);
+
+        .logoImage {
+            transform: scale(1.05);
+        }
+    }
+}
+
+// =============================================================================
+// CAROUSEL LAYOUT
+// =============================================================================
+
+.carouselWrapper {
+    position: relative;
+    overflow: hidden;
+}
+
+.carouselTrack {
+    display: flex;
+    gap: 1.5rem;
+    overflow-x: hidden;
+    scroll-behavior: auto;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+
+    @include tablet {
+        gap: 2rem;
+    }
+}
+
+.carouselSlide {
+    flex: 0 0 auto;
+    width: 120px;
+
+    @include tablet {
+        width: 150px;
+    }
+
+    @include desktop {
+        width: 180px;
+    }
+}
+
+// Fade edges
+.carouselFade {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 60px;
+    z-index: 2;
+    pointer-events: none;
+
+    @include tablet {
+        width: 100px;
+    }
+}
+
+.fadeLeft {
+    left: 0;
+    background: linear-gradient(to right, #ffffff 0%, transparent 100%);
+}
+
+.fadeRight {
+    right: 0;
+    background: linear-gradient(to left, #ffffff 0%, transparent 100%);
+}
+
+// Carousel logo item adjustments
+.carouselSlide .logoItem {
+    aspect-ratio: 1 / 1;
+    padding: 1rem;
+
+    @include tablet {
+        padding: 1.25rem;
+    }
+}
+
+// =============================================================================
+// LOADING & ERROR STATES
+// =============================================================================
+
+.skeletonGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+
+    @include tablet {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    @include desktop {
+        grid-template-columns: repeat(6, 1fr);
+    }
+}
+
+.skeleton {
+    aspect-ratio: 3 / 2;
+    border-radius: 12px;
+    background: linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 50%, #f3f4f6 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+.errorState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    gap: 0.75rem;
+    color: #6b7280;
+
+    span {
+        font-size: 2.5rem;
+    }
+
+    p {
+        margin: 0;
+    }
+}
+
+// =============================================================================
+// ANIMATIONS
+// =============================================================================
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
