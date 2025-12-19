@@ -147,7 +147,8 @@ export default function LayoutDesigner({
 
         let updates: Partial<LayoutSection> = {};
 
-        if (section.columns) {
+        // Check if section has columns AND they're not empty
+        if (section.columns && section.columns.length > 0) {
             updates = {
                 columns: section.columns.map(col => ({
                     ...col,

@@ -89,7 +89,7 @@ class ApiClient {
         options: RequestInit = {},
         config?: ApiConfig
     ): Promise<T> {
-        const url = `${this.baseUrl}${endpoint}`;
+        const url = `${this.baseUrl}/${endpoint}`;
 
         const headers = this.buildHeaders(config?.headers);
 

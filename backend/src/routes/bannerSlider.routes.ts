@@ -10,6 +10,9 @@ import {
 
 const router = express.Router();
 
+router.get('/', getBannerSliders);
+router.get('/:id', getBannerSliderById);
+
 router.use(authenticate);
 
 router

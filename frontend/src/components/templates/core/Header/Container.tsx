@@ -4,6 +4,7 @@
 import { HeaderConfig, Store, HeaderSection, HeaderElement } from '@/types';
 import { Menu } from '@/types/menu';
 import { getComponent } from '@/components/templates/registry';
+import api from '@/lib/api';
 import {
     HeaderTemplateProps,
     NavLink,
@@ -22,15 +23,7 @@ interface HeaderContainerProps {
 // Fetch menu by ID
 async function fetchMenuById(menuId: string): Promise<Menu | null> {
     try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-        const response = await fetch(
-            `${apiUrl}menus/${menuId}`,
-            { next: { revalidate: 60 } }
-        );
-
-        if (!response.ok) return null;
-
-        const data = await response.json();
+        const data = await api.get<{ menu: Menu }>(`menus/${menuId}`);
         return data.menu;
     } catch (error) {
         console.error('Failed to fetch menu:', error);
@@ -41,15 +34,7 @@ async function fetchMenuById(menuId: string): Promise<Menu | null> {
 // Fetch menus for store (by location)
 async function fetchMenus(storeId: string): Promise<Menu[]> {
     try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-        const response = await fetch(
-            `${apiUrl}/api/menus?storeId=${storeId}&isActive=true`,
-            { next: { revalidate: 60 } }
-        );
-
-        if (!response.ok) return [];
-
-        const menus = await response.json();
+        const menus = await api.get<Menu[]>(`menus?storeId=${storeId}&isActive=true`);
         return menus;
     } catch (error) {
         console.error('Failed to fetch menus:', error);

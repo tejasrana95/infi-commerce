@@ -1,43 +1,37 @@
-// Module Registry - Central registration of all layout modules
+/**
+ * Module Registry
+ * Maps module types to their React components
+ * Add new modules here as they are created
+ */
 
-import { ModuleType } from '@/types/layout';
-import dynamic from 'next/dynamic';
+import BannerModule from './standard/Banner';
+import BannerSliderModule from './standard/BannerSlider';
+import TestimonialsModule from './standard/Testimonials';
+import BrandLogosModule from './standard/BrandLogos';
+import ProductCarouselModule from './standard/ProductCarousel';
+import ProductGridModule from './standard/ProductGrid';
+import CategoryShowcaseModule from './standard/CategoryShowcase';
 
-// Dynamically import modules for code splitting
-const Banner = dynamic(() => import('./standard/Banner'));
-const TextBlock = dynamic(() => import('./standard/TextBlock'));
-const Image = dynamic(() => import('./standard/Image'));
-const Spacer = dynamic(() => import('./standard/Spacer'));
-const Divider = dynamic(() => import('./standard/Divider'));
+export interface ModuleProps {
+    config: Record<string, any>;
+}
 
-// Module Registry - maps module types to components
-export const MODULE_REGISTRY: Partial<Record<ModuleType, React.ComponentType<any>>> = {
-    // Standard modules
-    'banner': Banner,
-    'text-block': TextBlock,
-    'image': Image,
-    'spacer': Spacer,
-    'divider': Divider,
+type ModuleComponent = React.ComponentType<ModuleProps>;
 
-    // More modules will be added as we implement them
-    // 'banner-slider': BannerSlider,
-    // 'image-gallery': ImageGallery,
-    // 'video': Video,
-    // 'html': Html,
-    // 'testimonials': Testimonials,
-    // 'brand-logos': BrandLogos,
-    // 'product-carousel': ProductCarousel,
-    // 'product-grid': ProductGrid,
-    // 'category-showcase': CategoryShowcase,
-    // etc...
+export const moduleRegistry: Record<string, ModuleComponent> = {
+    // Core/Standard Modules
+    'banner': BannerModule,
+    'banner-slider': BannerSliderModule,
+    'testimonials': TestimonialsModule,
+    'brand-logos': BrandLogosModule,
+    'product-carousel': ProductCarouselModule,
+    'product-grid': ProductGridModule,
+    'category-showcase': CategoryShowcaseModule,
 };
 
-// Helper to check if a module type is registered
-export const isModuleRegistered = (type: ModuleType): boolean => {
-    return type in MODULE_REGISTRY;
-};
-
-// Helper to get all registered module types
-export const getRegisteredModules = (): ModuleType[] => {
-    return Object.keys(MODULE_REGISTRY) as ModuleType[];
-};
+/**
+ * Register a new module type
+ */
+export function registerModule(type: string, component: ModuleComponent) {
+    moduleRegistry[type] = component;
+}

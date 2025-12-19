@@ -34,6 +34,9 @@ export default function ModuleEditor({ module, onChange, onDelete, storeId }: Mo
     const [tab, setTab] = useState(0);
     const definition = getModuleDefinition(module.type);
 
+    // Check if module is removable - defaults to true unless explicitly false or is a placeholder
+    const isRemovable = module.isRemovable !== false && definition?.category !== 'placeholder';
+
     // Ensure storeId is a string if it's populated
     const effectiveStoreId = typeof storeId === 'object' && storeId !== null ? storeId._id : storeId;
 
@@ -193,7 +196,7 @@ export default function ModuleEditor({ module, onChange, onDelete, storeId }: Mo
                 <Typography variant="subtitle2" fontWeight={600}>
                     {definition?.label || module.type}
                 </Typography>
-                {module.isRemovable && (
+                {isRemovable && (
                     <IconButton size="small" color="error" onClick={onDelete}>
                         <DeleteIcon fontSize="small" />
                     </IconButton>

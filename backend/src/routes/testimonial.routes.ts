@@ -11,6 +11,10 @@ import {
 
 const router = express.Router();
 
+
+router.get('/', getTestimonials);
+router.get('/:id', getTestimonialById);
+
 router.use(authenticate);
 
 router

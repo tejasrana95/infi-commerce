@@ -21,6 +21,7 @@ export default function LayoutsPage() {
     const theme = useTheme();
     const [layouts, setLayouts] = useState<Layout[]>([]);
     const [loading, setLoading] = useState(true);
+    const [stores, setStores] = useState<any[]>([]);
     const { showNotification } = useNotification();
     const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
 
@@ -36,7 +37,9 @@ export default function LayoutsPage() {
     const fetchLayouts = async () => {
         try {
             setLoading(true);
-            const response = await api.get('/layouts');
+            let url = '/layouts';
+
+            const response = await api.get(url);
             setLayouts(response.data.data || []);
         } catch (err: any) {
             console.error('Failed to fetch layouts', err);
@@ -240,6 +243,15 @@ export default function LayoutsPage() {
                 onSearchChange={setSearchQuery}
                 filters={[
                     {
+                        id: 'store',
+                        label: 'Store',
+                        type: 'select',
+                        options: stores.map(store => ({
+                            value: store._id,
+                            label: store.name
+                        })),
+                    },
+                    {
                         id: 'type',
                         label: 'Type',
                         type: 'select',
@@ -267,6 +279,7 @@ export default function LayoutsPage() {
                     },
                 ]}
                 activeFilters={{
+
                     type: filterType,
                     status: filterStatus
                 }}

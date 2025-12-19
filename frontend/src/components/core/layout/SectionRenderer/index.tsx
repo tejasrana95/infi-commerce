@@ -1,79 +1,104 @@
-// Section Renderer - Renders layout sections with proper styling and structure
+'use client';
 
-import { LayoutSection } from '@/types/layout';
+import { Section } from '@/types/layout';
 import ModuleRenderer from '../ModuleRenderer';
-import styles from './SectionRenderer.module.scss';
+import { useEffect, useState } from 'react';
 
 interface SectionRendererProps {
-    section: LayoutSection;
+    section: Section;
 }
 
+/**
+ * SectionRenderer - Renders a layout section with its modules
+ * Handles responsive visibility and section-level styling
+ */
 export default function SectionRenderer({ section }: SectionRendererProps) {
-    const { settings = {}, type, modules = [], columns, visibility = { desktop: true, tablet: true, mobile: true } } = section;
+    const [isMounted, setIsMounted] = useState(false);
 
-    // Apply visibility classes
-    const visibilityClasses = [];
-    if (!visibility.desktop) visibilityClasses.push(styles.hideDesktop);
-    if (!visibility.tablet) visibilityClasses.push(styles.hideTablet);
-    if (!visibility.mobile) visibilityClasses.push(styles.hideMobile);
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
-    // Determine layout type
-    const isFullWidth = type === 'full-width';
-    const isSplit = type === 'split';
+    // Don't render until mounted (for responsive visibility)
+    if (!isMounted) {
+        return null;
+    }
+
+    // Check visibility based on device type
+    // This is a simple implementation - you may want to use media queries or a context
+    const isVisible = section.visibility?.desktop !== false;
+
+    if (!isVisible) {
+        return null;
+    }
 
     // Build section styles
-    const sectionStyles: React.CSSProperties = {
-        backgroundColor: settings.backgroundColor,
-        backgroundImage: settings.backgroundImage ? `url(${settings.backgroundImage})` : undefined,
-        backgroundSize: settings.backgroundSize || 'cover',
-        backgroundPosition: settings.backgroundPosition || 'center',
-        paddingTop: settings.paddingTop !== undefined ? `${settings.paddingTop}px` : undefined,
-        paddingBottom: settings.paddingBottom !== undefined ? `${settings.paddingBottom}px` : undefined,
-        paddingLeft: settings.paddingLeft !== undefined ? `${settings.paddingLeft}px` : undefined,
-        paddingRight: settings.paddingRight !== undefined ? `${settings.paddingRight}px` : undefined,
-        marginTop: settings.marginTop !== undefined ? `${settings.marginTop}px` : undefined,
-        marginBottom: settings.marginBottom !== undefined ? `${settings.marginBottom}px` : undefined,
+    const sectionStyle: React.CSSProperties = {
+        backgroundColor: section.settings?.backgroundColor,
+        backgroundImage: section.settings?.backgroundImage
+            ? `url(${section.settings.backgroundImage})`
+            : undefined,
+        backgroundSize: section.settings?.backgroundSize || 'cover',
+        backgroundPosition: section.settings?.backgroundPosition || 'center',
+        paddingTop: section.settings?.paddingTop ? `${section.settings.paddingTop}px` : undefined,
+        paddingBottom: section.settings?.paddingBottom ? `${section.settings.paddingBottom}px` : undefined,
+        paddingLeft: section.settings?.paddingLeft ? `${section.settings.paddingLeft}px` : undefined,
+        paddingRight: section.settings?.paddingRight ? `${section.settings.paddingRight}px` : undefined,
+        marginTop: section.settings?.marginTop ? `${section.settings.marginTop}px` : undefined,
+        marginBottom: section.settings?.marginBottom ? `${section.settings.marginBottom}px` : undefined,
     };
 
+    // Get container class based on section type
+    const getContainerClass = () => {
+        switch (section.type) {
+            case 'full-width':
+                return 'w-full';
+            case 'container':
+                return 'container mx-auto px-4';
+            case 'split-2':
+                return 'container mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-8';
+            case 'split-3':
+                return 'container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8';
+            case 'split-4':
+                return 'container mx-auto px-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8';
+            default:
+                return 'container mx-auto px-4';
+        }
+    };
+
+    // Sort modules by order
+    const sortedModules = [...(section.modules || [])].sort((a, b) => a.order - b.order);
+
+    // Render split layout with columns
+    if (section.columns && section.columns.length > 0) {
+        return (
+            <section
+                className={`${getContainerClass()} ${section.settings?.customClass || ''}`}
+                style={sectionStyle}
+            >
+                {section.columns.map((column) => {
+                    const sortedColumnModules = [...(column.modules || [])].sort((a, b) => a.order - b.order);
+                    return (
+                        <div key={column.id} style={{ width: `${column.width}%` }}>
+                            {sortedColumnModules.map((module) => (
+                                <ModuleRenderer key={module.id} module={module} />
+                            ))}
+                        </div>
+                    );
+                })}
+            </section>
+        );
+    }
+
+    // Render standard layout with modules
     return (
         <section
-            className={`${styles.section} ${visibilityClasses.join(' ')} ${settings.customClass || ''}`}
-            style={sectionStyles}
-            data-section-id={section.id}
-            data-section-type={type}
+            className={`${getContainerClass()} ${section.settings?.customClass || ''}`}
+            style={sectionStyle}
         >
-            <div
-                className={isFullWidth ? styles.fullWidth : styles.container}
-                style={{ maxWidth: settings.maxWidth ? `${settings.maxWidth}px` : undefined }}
-            >
-                {isSplit && columns ? (
-                    <div className={styles.splitGrid}>
-                        {columns.map((column) => (
-                            <div
-                                key={column.id}
-                                className={styles.column}
-                                style={{ gridColumn: `span ${column.width}` }}
-                            >
-                                {column.modules.map(module => (
-                                    <ModuleRenderer
-                                        key={module.id}
-                                        module={module}
-                                        sectionSettings={settings}
-                                    />
-                                ))}
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    modules.map(module => (
-                        <ModuleRenderer
-                            key={module.id}
-                            module={module}
-                            sectionSettings={settings}
-                        />
-                    ))
-                )}
-            </div>
+            {sortedModules.map((module) => (
+                <ModuleRenderer key={module.id} module={module} />
+            ))}
         </section>
     );
 }

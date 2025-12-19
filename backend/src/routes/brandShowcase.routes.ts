@@ -10,6 +10,9 @@ import {
 
 const router = express.Router();
 
+router.get('/', getBrandShowcases);
+router.get('/:id', getBrandShowcaseById);
+
 router.use(authenticate);
 
 router

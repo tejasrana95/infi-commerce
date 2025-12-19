@@ -14,19 +14,14 @@ import { validate } from '../middleware/validation';
 
 const router = express.Router();
 
-router.use(authenticate);
+// Public routes for frontend
+router.get('/', getLayouts);
+router.get('/:id', getLayoutById);
 
-router
-    .route('/')
-    .post(authorize('admin', 'super_admin'), validate(createLayoutValidation), createLayout)
-    .get(getLayouts);
-
-router
-    .route('/:id')
-    .get(getLayoutById)
-    .put(authorize('admin', 'super_admin'), validate(updateLayoutValidation), updateLayout)
-    .delete(authorize('admin', 'super_admin'), deleteLayout);
-
-router.post('/:id/duplicate', authorize('admin', 'super_admin'), duplicateLayout);
+// Protected routes for admin
+router.post('/', authenticate, authorize('admin', 'super_admin'), validate(createLayoutValidation), createLayout);
+router.put('/:id', authenticate, authorize('admin', 'super_admin'), validate(updateLayoutValidation), updateLayout);
+router.delete('/:id', authenticate, authorize('admin', 'super_admin'), deleteLayout);
+router.post('/:id/duplicate', authenticate, authorize('admin', 'super_admin'), duplicateLayout);
 
 export default router;

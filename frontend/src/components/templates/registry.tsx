@@ -8,6 +8,7 @@ import { DEFAULT_TEMPLATE_ID } from '@/types';
 // Core (Fallback) - Containers
 import CoreHeaderContainer from './core/Header/Container';
 import CoreFooterContainer from './core/Footer/Container';
+import CoreHomePageContainer from '@/components/core/HomePage';
 import CoreProductCardContainer from './core/ProductCard/Container';
 
 // Core (Fallback) - Templates (pure presentation)
@@ -18,6 +19,7 @@ import CoreProductCardTemplate from './core/ProductCard/Template';
 // Modern Clean - Templates (pure presentation)
 import ModernCleanHeaderTemplate from './modern-clean/Header/Template';
 import ModernCleanFooterTemplate from './modern-clean/Footer/Template';
+import ModernCleanHomePageTemplate from './modern-clean/HomePage/Template';
 import ModernCleanProductCardTemplate from './modern-clean/ProductCard/Template';
 
 // Classic Elegance - Templates (pure presentation)
@@ -34,6 +36,8 @@ export type ComponentName =
     | 'HeaderTemplate'
     | 'Footer'
     | 'FooterTemplate'
+    | 'HomePage'
+    | 'HomePageTemplate'
     | 'ProductCard'
     | 'ProductCardTemplate'
     | 'CategoryCard'
@@ -48,16 +52,19 @@ const TEMPLATE_COMPONENTS: Record<string, Record<string, React.ComponentType<any
         // Containers (with business logic)
         Header: CoreHeaderContainer,
         Footer: CoreFooterContainer,
+        HomePage: CoreHomePageContainer,
         ProductCard: CoreProductCardContainer,
         // Templates (pure presentation)
         HeaderTemplate: ModernCleanHeaderTemplate,
         FooterTemplate: ModernCleanFooterTemplate,
+        HomePageTemplate: ModernCleanHomePageTemplate,
         ProductCardTemplate: ModernCleanProductCardTemplate,
     },
     'classic-elegance': {
         // Containers (with business logic) - Use same Core containers
         Header: CoreHeaderContainer,
         Footer: CoreFooterContainer,
+        HomePage: CoreHomePageContainer,
         ProductCard: CoreProductCardContainer,
         // Templates (pure presentation)
         HeaderTemplate: ClassicEleganceHeaderTemplate,
@@ -75,6 +82,7 @@ const CORE_COMPONENTS: Record<string, React.ComponentType<any>> = {
     HeaderTemplate: CoreHeaderTemplate,
     Footer: CoreFooterContainer,
     FooterTemplate: CoreFooterTemplate,
+    HomePage: CoreHomePageContainer,
     ProductCard: CoreProductCardContainer,
     ProductCardTemplate: CoreProductCardTemplate,
 };

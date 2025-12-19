@@ -10,6 +10,9 @@ import {
 
 const router = express.Router();
 
+router.get('/', getBanners);
+router.get('/:id', getBannerById);
+
 router.use(authenticate);
 
 router

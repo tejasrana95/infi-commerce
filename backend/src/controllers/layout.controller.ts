@@ -80,7 +80,7 @@ export const createLayout = asyncHandler(async (req: AuthRequest, res: Response)
  *     parameters:
  *       - in: query
  *         name: storeId
- *         required: true
+ *         required: false
  *         schema:
  *           type: string
  *       - in: query
@@ -94,12 +94,10 @@ export const createLayout = asyncHandler(async (req: AuthRequest, res: Response)
 export const getLayouts = asyncHandler(async (req: AuthRequest, res: Response) => {
     const filter: any = {};
 
-    // For super_admin, storeId is optional (can view all layouts)
-    // For regular admin, storeId is required
+    // For admin requests, storeId is optional
+    // If storeId is provided, filter by it; otherwise return all layouts (for admins)
     if (req.query.storeId) {
         filter.storeId = req.query.storeId;
-    } else if (req.user?.role !== 'super_admin') {
-        throw new AppError('Store ID is required', 400);
     }
 
     if (req.query.type) {

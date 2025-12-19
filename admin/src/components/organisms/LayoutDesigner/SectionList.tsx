@@ -27,6 +27,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { LayoutSection, LayoutModule } from '@/types';
 import ModuleRenderer from './ModuleRenderer';
+import { getModuleDefinition } from './types';
 
 // Sortable Module Item
 interface SortableModuleProps {
@@ -37,6 +38,11 @@ interface SortableModuleProps {
 }
 
 function SortableModule({ module, isSelected, onSelect, onDelete }: SortableModuleProps) {
+    const definition = getModuleDefinition(module.type);
+
+    // Check if module is removable - defaults to true unless explicitly false or is a placeholder
+    const isRemovable = module.isRemovable !== false && definition?.category !== 'placeholder';
+
     const {
         attributes,
         listeners,
@@ -74,7 +80,7 @@ function SortableModule({ module, isSelected, onSelect, onDelete }: SortableModu
             <Box flex={1}>
                 <ModuleRenderer module={module} isSelected={isSelected} onClick={onSelect} />
             </Box>
-            {module.isRemovable && (
+            {isRemovable && (
                 <IconButton size="small" color="error" onClick={onDelete}>
                     <DeleteIcon fontSize="small" />
                 </IconButton>
