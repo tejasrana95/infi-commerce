@@ -74,6 +74,7 @@ export default function HeaderElementConfig({
             'cart': 'Cart Icon Settings',
             'account': 'Account Settings',
             'wishlist': 'Wishlist Settings',
+            'currency': 'Currency Settings',
             'custom': 'Custom HTML Settings',
         };
         return titles[formData.type] || 'Element Settings';
@@ -306,6 +307,15 @@ export default function HeaderElementConfig({
                                 <MenuItem value="star">Star</MenuItem>
                             </Select>
                         </FormControl>
+                    )}
+
+                    {/* Currency Configuration */}
+                    {formData.type === 'currency' && (
+                        <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                            <Typography variant="body2" color="text.secondary">
+                                This element displays a currency selector based on enabled currencies.
+                            </Typography>
+                        </Box>
                     )}
 
                     {/* Custom HTML Configuration */}

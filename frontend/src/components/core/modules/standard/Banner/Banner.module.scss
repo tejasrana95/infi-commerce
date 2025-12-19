@@ -1,0 +1,168 @@
+// Banner Module Styles - Premium UI with Mobile-First Design
+
+.banner {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    min-height: 400px;
+    border-radius: 8px;
+
+    @media (max-width: 768px) {
+        min-height: 300px;
+        border-radius: 0; // Full width on mobile
+    }
+}
+
+.image {
+    object-fit: cover;
+    z-index: 0;
+    transition: transform 0.5s ease;
+
+    .banner:hover & {
+        transform: scale(1.05);
+    }
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg,
+            rgba(0, 0, 0, 0.3) 0%,
+            rgba(0, 0, 0, 0.6) 100%);
+    z-index: 1;
+    transition: opacity 0.3s ease;
+}
+
+.content {
+    position: relative;
+    z-index: 2;
+    color: white;
+    padding: 32px 24px;
+    max-width: 900px;
+    width: 100%;
+    text-align: center;
+
+    @media (max-width: 768px) {
+        padding: 24px 20px;
+    }
+
+    &.left {
+        text-align: left;
+        margin-right: auto;
+        padding-left: 48px;
+
+        @media (max-width: 768px) {
+            padding-left: 20px;
+            text-align: center; // Center on mobile for better readability
+        }
+    }
+
+    &.right {
+        text-align: right;
+        margin-left: auto;
+        padding-right: 48px;
+
+        @media (max-width: 768px) {
+            padding-right: 20px;
+            text-align: center;
+        }
+    }
+}
+
+.title {
+    font-size: clamp(28px, 5vw, 64px);
+    font-weight: 800;
+    margin: 0 0 20px 0;
+    line-height: 1.15;
+    letter-spacing: -0.5px;
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.9) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+
+    @media (max-width: 768px) {
+        margin-bottom: 16px;
+        letter-spacing: -0.3px;
+    }
+}
+
+.subtitle {
+    font-size: clamp(16px, 2.5vw, 22px);
+    margin: 0 0 32px 0;
+    opacity: 0.95;
+    line-height: 1.6;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.15s backwards;
+    font-weight: 400;
+
+    @media (max-width: 768px) {
+        margin-bottom: 24px;
+    }
+}
+
+.button {
+    display: inline-block;
+    padding: 16px 40px;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 50px;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s backwards;
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+    position: relative;
+    overflow: hidden;
+
+    @media (max-width: 768px) {
+        padding: 14px 32px;
+        font-size: 15px;
+        width: 100%;
+        max-width: 280px;
+    }
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s;
+    }
+
+    &:hover {
+        transform: translateY(-3px) scale(1.02);
+        box-shadow: 0 12px 32px rgba(102, 126, 234, 0.5);
+
+        &::before {
+            left: 100%;
+        }
+    }
+
+    &:active {
+        transform: translateY(-1px) scale(0.98);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

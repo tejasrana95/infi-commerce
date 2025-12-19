@@ -1,0 +1,235 @@
+// Horizontal Menu Styles
+
+.horizontalMenu {
+    width: 100%;
+    // No position:relative - allow mega menu to position relative to header
+}
+
+.menuList {
+    display: flex;
+    align-items: center;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    gap: 0.5rem;
+}
+
+.menuItem {
+    position: relative;
+
+    &.hasChildren {
+        &:hover {
+
+            .dropdown {
+                opacity: 1;
+                visibility: visible;
+                transform: translateY(0);
+            }
+        }
+    }
+
+    &.hasMegaMenu {
+        position: static; // Allow mega menu to position relative to header
+
+        &:hover {
+
+
+            .megaMenuDropdown {
+                opacity: 1;
+                visibility: visible;
+                transform: translateY(0);
+            }
+        }
+    }
+}
+
+.divider {
+    width: 1px;
+    height: 1.5rem;
+    background: rgba(0, 0, 0, 0.1);
+    margin: 0 0.5rem;
+}
+
+// Regular Dropdown
+.dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: var(--color-background, white);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0;
+    min-width: 12rem;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-0.5rem);
+    transition: all 0.2s ease;
+    z-index: 100;
+}
+
+.dropdownList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.dropdownItem {
+    &:hover {
+        background: var(--color-secondary, #f5f5f5);
+    }
+}
+
+// Mega Menu Dropdown - Full Width (positions relative to mainHeader)
+.megaMenuDropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    width: 100%;
+    background: var(--color-background, white);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    padding: 1rem 0;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-0.5rem);
+    transition: all 0.3s ease;
+    z-index: 100;
+    border-radius: 0.5rem;
+}
+
+.megaMenuSection {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.megaMenuColumns {
+    display: flex;
+    gap: 1rem;
+}
+
+.megaMenuColumn {
+    min-width: 0;
+}
+
+.megaMenuList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.megaMenuItem {
+
+    margin-bottom: 0.5rem;
+
+    a:not(.categoryLabel) {
+        display: block;
+        padding: 0.5rem 0;
+        color: #333;
+        text-decoration: none;
+        font-size: 0.9rem;
+
+        &:hover {
+            color: var(--color-accent, #f60);
+        }
+    }
+}
+
+.megaDivider {
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 1rem 0;
+}
+
+.megaImageLink {
+    display: block;
+
+    img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 0.5rem;
+    }
+}
+
+.megaCustomLink {
+    display: block;
+    padding: 0.5rem 0;
+    color: var(--color-accent, #f60);
+    text-decoration: none;
+    font-weight: 500;
+
+    &:hover {
+        text-decoration: underline;
+
+    }
+}
+
+// Internal MegaSubItem Styles
+.megaSubItem {
+    margin-bottom: 0.75rem;
+}
+
+.categoryLabel {
+    display: block;
+    font-weight: 600;
+    color: var(--color-text, #333);
+    text-decoration: none;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+    padding: 0;
+
+    &:hover {
+        color: var(--primary-color, #000);
+    }
+}
+
+.categoryLabelStatic {
+    display: block;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.megaProductList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+
+.megaProductLink {
+    color: #666;
+    text-decoration: none;
+    font-size: 0.9rem;
+    display: block;
+    padding: 2px 0;
+
+    &:hover {
+        color: var(--primary-color, #000);
+    }
+}
+
+.megaPageLink {
+    color: #555;
+    text-decoration: none;
+    font-size: 0.95rem;
+    display: block;
+
+    &:hover {
+        color: var(--primary-color, #000);
+    }
+}
+
+.loading {
+    font-size: 0.85rem;
+    color: #999;
+    padding: 0.5rem 0;
+}
+
+.noProducts {
+    font-size: 0.85rem;
+    color: #999;
+    font-style: italic;
+    padding: 0.5rem 0;
+}

@@ -9,6 +9,7 @@ export interface CategoryOption {
     value: string;
     _id: string;
     title: string;
+    slug: string;
     path: string;
     level: number;
 }
@@ -68,6 +69,7 @@ export default function CategoryAutocomplete({
                     value: cat._id,
                     _id: cat._id,
                     title: cat.title,
+                    slug: cat.slug || '',
                     path: cat.path || cat.title,
                     level: cat.level || 0,
                 }))

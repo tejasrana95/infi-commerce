@@ -1,39 +1,134 @@
 import React from 'react';
+import { DEFAULT_TEMPLATE_ID } from '@/types';
 
-// Import Modern Clean Components
-import ModernCleanHeader from './modern-clean/Header';
+// ============================================
+// Import Template Components (Static for SSR)
+// ============================================
 
-// Import Classic Elegance Components
-import ClassicEleganceHeader from './classic-elegance/Header';
+// Core (Fallback) - Containers
+import CoreHeaderContainer from './core/Header/Container';
+import CoreFooterContainer from './core/Footer/Container';
+import CoreProductCardContainer from './core/ProductCard/Container';
 
-// Component Map
+// Core (Fallback) - Templates (pure presentation)
+import CoreHeaderTemplate from './core/Header/Template';
+import CoreFooterTemplate from './core/Footer/Template';
+import CoreProductCardTemplate from './core/ProductCard/Template';
+
+// Modern Clean - Templates (pure presentation)
+import ModernCleanHeaderTemplate from './modern-clean/Header/Template';
+import ModernCleanFooterTemplate from './modern-clean/Footer/Template';
+import ModernCleanProductCardTemplate from './modern-clean/ProductCard/Template';
+
+// Classic Elegance - Templates (pure presentation)
+import ClassicEleganceHeaderTemplate from './classic-elegance/Header/Template';
+import ClassicEleganceFooterTemplate from './classic-elegance/Footer/Template';
+import ClassicEleganceProductCardTemplate from './classic-elegance/ProductCard/Template';
+
+// ============================================
+// Component Types
+// ============================================
+
+export type ComponentName =
+    | 'Header'
+    | 'HeaderTemplate'
+    | 'Footer'
+    | 'FooterTemplate'
+    | 'ProductCard'
+    | 'ProductCardTemplate'
+    | 'CategoryCard'
+    | 'Banner';
+
+// ============================================
+// Template Component Registry
+// ============================================
+
 const TEMPLATE_COMPONENTS: Record<string, Record<string, React.ComponentType<any>>> = {
     'modern-clean': {
-        'Header': ModernCleanHeader,
-        // Add other components here
+        // Containers (with business logic)
+        Header: CoreHeaderContainer,
+        Footer: CoreFooterContainer,
+        ProductCard: CoreProductCardContainer,
+        // Templates (pure presentation)
+        HeaderTemplate: ModernCleanHeaderTemplate,
+        FooterTemplate: ModernCleanFooterTemplate,
+        ProductCardTemplate: ModernCleanProductCardTemplate,
     },
     'classic-elegance': {
-        'Header': ClassicEleganceHeader,
-    }
+        // Containers (with business logic) - Use same Core containers
+        Header: CoreHeaderContainer,
+        Footer: CoreFooterContainer,
+        ProductCard: CoreProductCardContainer,
+        // Templates (pure presentation)
+        HeaderTemplate: ClassicEleganceHeaderTemplate,
+        FooterTemplate: ClassicEleganceFooterTemplate,
+        ProductCardTemplate: ClassicEleganceProductCardTemplate,
+    },
 };
 
-// Fallback (Core) Components
-// import CoreHeader from '../core/Header'; 
-// For now, if no core component, we can return null or a placeholder
+// ============================================
+// Core (Fallback) Components
+// ============================================
+
 const CORE_COMPONENTS: Record<string, React.ComponentType<any>> = {
-    'Header': () => <div className="p-4 bg-gray-100 border-b">Core Header (Fallback)</div>
+    Header: CoreHeaderContainer,
+    HeaderTemplate: CoreHeaderTemplate,
+    Footer: CoreFooterContainer,
+    FooterTemplate: CoreFooterTemplate,
+    ProductCard: CoreProductCardContainer,
+    ProductCardTemplate: CoreProductCardTemplate,
 };
 
-export function getComponent(componentName: string, templateId: string): React.ComponentType<any> {
-    const template = TEMPLATE_COMPONENTS[templateId];
+// ============================================
+// Get Component Function
+// ============================================
 
-    if (template && template[componentName]) {
-        return template[componentName];
+/**
+ * Get the appropriate component for a template.
+ * Falls back to core components if template variant doesn't exist.
+ *
+ * @param componentName - Name of the component (Header, Footer, etc.)
+ * @param templateId - Template identifier (modern-clean, classic-elegance, etc.)
+ * @returns React component
+ */
+export function getComponent<T = any>(
+    componentName: ComponentName,
+    templateId: string = DEFAULT_TEMPLATE_ID
+): React.ComponentType<T> {
+    // Try to get template-specific component
+    const templateComponents = TEMPLATE_COMPONENTS[templateId];
+    if (templateComponents && templateComponents[componentName]) {
+        return templateComponents[componentName];
     }
 
+    // Fall back to core component
     if (CORE_COMPONENTS[componentName]) {
         return CORE_COMPONENTS[componentName];
     }
 
-    return () => <div className="text-red-500">Component "{componentName}" not found for template "{templateId}"</div>;
+    // Last resort: return a placeholder
+    const PlaceholderComponent = () => (
+        <div className="p-4 bg-yellow-100 border border-yellow-400 text-yellow-800">
+            Component "{componentName}" not found for template "{templateId}"
+        </div>
+    );
+    PlaceholderComponent.displayName = `Placeholder_${componentName}`;
+
+    return PlaceholderComponent;
+}
+
+// ============================================
+// Get Available Templates
+// ============================================
+
+export function getAvailableTemplates(): string[] {
+    return Object.keys(TEMPLATE_COMPONENTS);
+}
+
+// ============================================
+// Check if Template Exists
+// ============================================
+
+export function hasTemplateComponent(templateId: string, componentName: ComponentName): boolean {
+    return !!(TEMPLATE_COMPONENTS[templateId]?.[componentName]);
 }

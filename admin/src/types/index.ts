@@ -30,7 +30,7 @@ export interface HeaderTopBar {
 // Header Main Types
 export interface HeaderElement {
   id: string;
-  type: 'logo' | 'menu' | 'search' | 'cart' | 'account' | 'wishlist' | 'custom';
+  type: 'logo' | 'menu' | 'search' | 'cart' | 'account' | 'wishlist' | 'currency' | 'custom';
   menuId?: string; // Reference to Menu._id
   width?: number; // Grid units out of 12
   settings?: {
@@ -133,6 +133,10 @@ export interface ThemeConfig {
   header?: {
     topBar?: HeaderTopBar;
     main: HeaderMainConfig;
+    mobileMenu?: {
+      enabled: boolean;
+      menuId: string;
+    };
   };
   footer?: FooterConfig;
   colors?: {
@@ -568,9 +572,13 @@ export interface MenuItem {
   type: 'link' | 'category' | 'product' | 'page' | 'blog-category' | 'mega-menu' | 'divider';
   url?: string;
   categoryId?: string;
+  categorySlug?: string;
   productId?: string;
+  productSlug?: string;
   pageId?: string;
+  pageSlug?: string;
   blogCategoryId?: string;
+  blogCategorySlug?: string;
   megaMenu?: {
     sections: Array<{
       id: string;

@@ -11,20 +11,49 @@ export interface IMenuItem {
     // Target based on type
     url?: string;                       // For type: link
     categoryId?: mongoose.Types.ObjectId;
+    categorySlug?: string;
     productId?: mongoose.Types.ObjectId;
+    productSlug?: string;
     pageId?: mongoose.Types.ObjectId;
+    pageSlug?: string;
     blogCategoryId?: mongoose.Types.ObjectId;
+    blogCategorySlug?: string;
 
-    // Mega menu content
+    // Mega menu content - Sections-based structure
     megaMenu?: {
-        columns: Array<{
-            title?: string;
-            items: IMenuItem[];
-            width: number;              // Percentage
+        sections: Array<{
+            id: string;
+            type: 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';
+            columns: Array<{
+                id: string;
+                width: number;
+                items: Array<{
+                    id: string;
+                    type: 'category' | 'product' | 'image' | 'custom-link' | 'page' | 'divider';
+                    label?: string;
+                    categoryId?: string;
+                    categoryName?: string;
+                    productLimit?: number;
+                    autoAddProducts?: boolean;
+                    productIds?: string[];
+                    productNames?: string[];
+                    products?: Array<{ _id: string; name: string }>; // Array of product objects
+                    imageUrl?: string;
+                    imageLink?: string;
+                    imageAlt?: string;
+                    linkLabel?: string;
+                    linkTitle?: string;
+                    linkUrl?: string;
+                    linkOpenInNewTab?: boolean;
+                    pageId?: string;
+                    pageName?: string;
+                }>;
+            }>;
+            settings: {
+                backgroundColor?: string;
+                padding?: number;
+            };
         }>;
-        featuredImage?: string;
-        featuredLink?: string;
-        featuredTitle?: string;
     };
 
     icon?: string;                      // Icon name or URL
@@ -85,19 +114,60 @@ const MenuItemSchema = new Schema<IMenuItem>(
 
         url: { type: String, trim: true },
         categoryId: { type: Schema.Types.ObjectId, ref: 'Category' },
+        categorySlug: { type: String, trim: true },
         productId: { type: Schema.Types.ObjectId, ref: 'Product' },
+        productSlug: { type: String, trim: true },
         pageId: { type: Schema.Types.ObjectId, ref: 'Page' },
+        pageSlug: { type: String, trim: true },
         blogCategoryId: { type: Schema.Types.ObjectId, ref: 'BlogCategory' },
+        blogCategorySlug: { type: String, trim: true },
 
         megaMenu: {
-            columns: [{
-                title: { type: String, trim: true },
-                items: { type: [Schema.Types.Mixed] as any, default: [] },
-                width: { type: Number, default: 25 },
+            sections: [{
+                id: { type: String },
+                type: {
+                    type: String,
+                    enum: ['full-width', 'container', 'split-2', 'split-3', 'split-4', 'custom']
+                },
+                columns: [{
+                    id: { type: String },
+                    width: { type: Number, default: 25 },
+                    items: [{
+                        id: { type: String },
+                        type: {
+                            type: String,
+                            enum: ['category', 'product', 'image', 'custom-link', 'page', 'divider']
+                        },
+                        label: { type: String, trim: true },
+                        categoryId: { type: String },
+                        categoryName: { type: String, trim: true },
+                        categorySlug: { type: String, trim: true },
+                        productLimit: { type: Number },
+                        autoAddProducts: { type: Boolean },
+                        productIds: [{ type: String }],
+                        productNames: [{ type: String, trim: true }],
+                        products: [{
+                            _id: { type: String },
+                            name: { type: String, trim: true },
+                            slug: { type: String, trim: true }
+                        }],
+                        imageUrl: { type: String, trim: true },
+                        imageLink: { type: String, trim: true },
+                        imageAlt: { type: String, trim: true },
+                        linkLabel: { type: String, trim: true },
+                        linkTitle: { type: String, trim: true },
+                        linkUrl: { type: String, trim: true },
+                        linkOpenInNewTab: { type: Boolean },
+                        pageId: { type: String },
+                        pageName: { type: String, trim: true },
+                        pageSlug: { type: String, trim: true },
+                    }],
+                }],
+                settings: {
+                    backgroundColor: { type: String, trim: true },
+                    padding: { type: Number },
+                },
             }],
-            featuredImage: { type: String, trim: true },
-            featuredLink: { type: String, trim: true },
-            featuredTitle: { type: String, trim: true },
         },
 
         icon: { type: String, trim: true },

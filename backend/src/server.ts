@@ -22,7 +22,8 @@ app.use(morgan(config.env === 'development' ? 'dev' : 'combined')); // Logging
 // CORS configuration
 app.use(
     cors({
-        origin: [config.cors.frontendUrl, config.cors.adminUrl],
+        // origin: [config.cors.frontendUrl, config.cors.adminUrl],
+        origin: "*",
         credentials: true,
     })
 );

@@ -21,6 +21,7 @@ import {
 import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { FooterElement } from '@/types';
 import MenuAutocomplete from '@/components/molecules/MenuAutocomplete';
+import RichTextEditor from '@/components/molecules/RichTextEditor';
 
 interface FooterElementConfigProps {
     open: boolean;
@@ -176,20 +177,22 @@ export default function FooterElementConfig({
 
                     {/* Text Configuration */}
                     {formData.type === 'text' && (
-                        <TextField
-                            label="Text Content"
-                            value={formData.content || ''}
-                            onChange={(e) =>
-                                setFormData({
-                                    ...formData,
-                                    content: e.target.value,
-                                })
-                            }
-                            multiline
-                            rows={4}
-                            fullWidth
-                            placeholder="Enter your text content..."
-                        />
+                        <>
+                            <RichTextEditor
+                                value={formData.content || ''}
+                                onChange={(value) =>
+                                    setFormData({
+                                        ...formData,
+                                        content: value,
+                                    })
+                                }
+                                variant="minimal"
+                                placeholder="Enter your text content..."
+                            />
+                            <Typography variant="caption" color="text.secondary">
+                                Add formatted text content for the footer
+                            </Typography>
+                        </>
                     )}
 
                     {/* HTML Configuration */}

@@ -68,22 +68,64 @@ const elementInfo: Record<string, { label: string; icon: React.ReactNode; descri
     'payment-methods': { label: 'Payment', icon: <PaymentIcon fontSize="small" />, description: 'Payment method icons' },
 };
 
+// Utility function to get contrasting colors based on background
+function getContrastColor(hexColor: string): { text: string; textLight: string; overlay: string; border: string } {
+    // Remove # if present
+    const hex = hexColor.replace('#', '');
+
+    // Convert to RGB
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+
+    // Calculate relative luminance using WCAG formula
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+    // If background is light, use dark colors; if dark, use light colors
+    if (luminance > 0.5) {
+        // Light background
+        return {
+            text: '#000000',
+            textLight: 'rgba(0, 0, 0, 0.6)',
+            overlay: 'rgba(255, 255, 255, 0.8)',
+            border: 'rgba(0, 0, 0, 0.2)',
+        };
+    } else {
+        // Dark background
+        return {
+            text: '#ffffff',
+            textLight: 'rgba(255, 255, 255, 0.7)',
+            overlay: 'rgba(0, 0, 0, 0.6)',
+            border: 'rgba(255, 255, 255, 0.2)',
+        };
+    }
+}
+
 // Element Preview
 function ElementPreview({ element, onClick, onDelete, menus }: { element: FooterElement; onClick: () => void; onDelete: () => void; menus: MenuType[] }) {
     const renderElement = () => {
         switch (element.type) {
             case 'menu':
                 const selectedMenu = Array.isArray(menus) ? menus.find(m => m._id === element.menuId) : null;
+                const menuItems = selectedMenu?.items || [];
+                const hasMenu = !!selectedMenu;
+                console.log('menus', menus);;
                 return (
                     <Box>
                         <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
-                            {selectedMenu?.name || 'Quick Links'}
+                            {selectedMenu?.name || 'Select a menu'}
                         </Typography>
-                        {(selectedMenu?.items?.slice(0, 4) || ['About Us', 'Contact', 'FAQ', 'Terms']).map((item: any, i) => (
-                            <Typography key={i} variant="body2" sx={{ py: 0.25, opacity: 0.8 }}>
-                                {item.label || item}
+                        {hasMenu && menuItems.length > 0 ? (
+                            menuItems.slice(0, 5).map((item: any, i) => (
+                                <Typography key={i} variant="body2" sx={{ py: 0.25, opacity: 0.8 }}>
+                                    {item.label}
+                                </Typography>
+                            ))
+                        ) : (
+                            <Typography variant="caption" sx={{ opacity: 0.5, fontStyle: 'italic' }}>
+                                {hasMenu ? 'Menu has no items' : 'No menu selected'}
                             </Typography>
-                        ))}
+                        )}
                     </Box>
                 );
             case 'text':
@@ -146,27 +188,58 @@ function ElementPreview({ element, onClick, onDelete, menus }: { element: Footer
                     </Box>
                 );
             case 'contact':
+                const contactInfo = element.settings?.contactInfo;
                 return (
                     <Box>
                         <Typography variant="subtitle2" sx={{ mb: 0.5 }}>Contact Us</Typography>
-                        <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                            {element.settings?.contactInfo?.address || '123 Store Street'}
-                        </Typography>
-                        <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                            {element.settings?.contactInfo?.phone || '+1 234 567 890'}
-                        </Typography>
+                        {contactInfo?.address && (
+                            <Typography variant="body2" sx={{ opacity: 0.8, mb: 0.25 }}>
+                                {contactInfo.address}
+                            </Typography>
+                        )}
+                        {contactInfo?.phone && (
+                            <Typography variant="body2" sx={{ opacity: 0.8, mb: 0.25 }}>
+                                {contactInfo.phone}
+                            </Typography>
+                        )}
+                        {contactInfo?.email && (
+                            <Typography variant="body2" sx={{ opacity: 0.8, mb: 0.25 }}>
+                                {contactInfo.email}
+                            </Typography>
+                        )}
+                        {contactInfo?.workingHours && (
+                            <Typography variant="body2" sx={{ opacity: 0.7, mt: 0.5, fontSize: 11 }}>
+                                {contactInfo.workingHours}
+                            </Typography>
+                        )}
+                        {!contactInfo?.address && !contactInfo?.phone && !contactInfo?.email && (
+                            <Typography variant="caption" sx={{ opacity: 0.5, fontStyle: 'italic' }}>
+                                No contact info configured
+                            </Typography>
+                        )}
                     </Box>
                 );
             case 'payment-methods':
+                const paymentMethods = element.settings?.paymentMethods || [];
+                const defaultMethods = ['Visa', 'MC', 'Amex'];
+                const methodsToShow = paymentMethods.length > 0
+                    ? paymentMethods.map(m => m.name).filter(Boolean)
+                    : defaultMethods;
                 return (
                     <Box>
                         <Typography variant="subtitle2" sx={{ mb: 0.5 }}>We Accept</Typography>
-                        <Box sx={{ display: 'flex', gap: 0.5 }}>
-                            {['Visa', 'MC', 'Amex'].map((m) => (
-                                <Box key={m} sx={{ px: 0.5, py: 0.25, bgcolor: 'rgba(255,255,255,0.2)', borderRadius: 0.5, fontSize: 10 }}>
-                                    {m}
-                                </Box>
-                            ))}
+                        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                            {methodsToShow.length > 0 ? (
+                                methodsToShow.map((m, i) => (
+                                    <Box key={i} sx={{ px: 0.5, py: 0.25, bgcolor: 'rgba(255,255,255,0.2)', borderRadius: 0.5, fontSize: 10 }}>
+                                        {m}
+                                    </Box>
+                                ))
+                            ) : (
+                                <Typography variant="caption" sx={{ opacity: 0.5, fontStyle: 'italic' }}>
+                                    No payment methods configured
+                                </Typography>
+                            )}
                         </Box>
                     </Box>
                 );
@@ -362,7 +435,7 @@ export default function FooterDesigner({ config, onChange, storeId }: FooterDesi
         const fetchMenus = async () => {
             try {
                 const response = await api.get(`/menus?store=${storeId}`);
-                setMenus(response.data.data || response.data || []);
+                setMenus(response.data.menus || response.data || []);
             } catch (error) {
                 console.error('Failed to fetch menus:', error);
             }
@@ -555,19 +628,37 @@ export default function FooterDesigner({ config, onChange, storeId }: FooterDesi
                                 rows.map((row, rowIndex) => (
                                     <Box key={row.id} sx={{ position: 'relative', borderBottom: rowIndex < rows.length - 1 ? '1px solid rgba(255,255,255,0.1)' : 'none' }}>
                                         {/* Row Label */}
-                                        <Box sx={{ position: 'absolute', top: 8, left: 8, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                            <Typography variant="caption" sx={{ opacity: 0.5 }}>Row {rowIndex + 1}</Typography>
-                                            <Tooltip title="Add column">
-                                                <IconButton size="small" onClick={() => handleAddColumn(row.id)} sx={{ color: 'rgba(255,255,255,0.5)', width: 20, height: 20 }}>
-                                                    <AddIcon sx={{ fontSize: 14 }} />
-                                                </IconButton>
-                                            </Tooltip>
-                                            <Tooltip title="Delete row">
-                                                <IconButton size="small" onClick={() => handleDeleteRow(row.id)} sx={{ color: 'rgba(255,255,255,0.3)', width: 20, height: 20, '&:hover': { color: 'error.main' } }}>
-                                                    <DeleteIcon sx={{ fontSize: 14 }} />
-                                                </IconButton>
-                                            </Tooltip>
-                                        </Box>
+                                        {(() => {
+                                            const contrast = getContrastColor(columnsSection.backgroundColor || '#2a2a2a');
+                                            return (
+                                                <Box sx={{
+                                                    position: 'absolute',
+                                                    top: 8,
+                                                    left: 8,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 1,
+                                                    bgcolor: contrast.overlay,
+                                                    backdropFilter: 'blur(8px)',
+                                                    px: 1,
+                                                    py: 0.5,
+                                                    borderRadius: 1,
+                                                    border: `1px solid ${contrast.border}`,
+                                                }}>
+                                                    <Typography variant="caption" sx={{ color: contrast.text, fontWeight: 500 }}>Row {rowIndex + 1}</Typography>
+                                                    <Tooltip title="Add column">
+                                                        <IconButton size="small" onClick={() => handleAddColumn(row.id)} sx={{ color: contrast.text, opacity: 0.8, width: 20, height: 20, '&:hover': { opacity: 1 } }}>
+                                                            <AddIcon sx={{ fontSize: 14 }} />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                    <Tooltip title="Delete row">
+                                                        <IconButton size="small" onClick={() => handleDeleteRow(row.id)} sx={{ color: contrast.text, opacity: 0.7, width: 20, height: 20, '&:hover': { color: 'error.main', opacity: 1 } }}>
+                                                            <DeleteIcon sx={{ fontSize: 14 }} />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                </Box>
+                                            );
+                                        })()}
 
                                         {/* Columns */}
                                         <Box sx={{ display: 'flex', p: 3, pt: 5, gap: 2 }}>
@@ -630,18 +721,52 @@ export default function FooterDesigner({ config, onChange, storeId }: FooterDesi
                                                     </SortableContext>
 
                                                     {/* Add Element Button */}
-                                                    <Button
-                                                        size="small"
-                                                        startIcon={<AddIcon />}
-                                                        onClick={(e) => setAddMenuAnchor({ anchor: e.currentTarget, rowId: row.id, columnId: column.id })}
-                                                        sx={{ mt: 1, color: 'rgba(255,255,255,0.6)', border: '1px dashed rgba(255,255,255,0.2)', width: '100%' }}
-                                                    >
-                                                        Add
-                                                    </Button>
+                                                    {(() => {
+                                                        const contrast = getContrastColor(columnsSection.backgroundColor || '#2a2a2a');
+                                                        return (
+                                                            <Button
+                                                                size="small"
+                                                                startIcon={<AddIcon />}
+                                                                onClick={(e) => setAddMenuAnchor({ anchor: e.currentTarget, rowId: row.id, columnId: column.id })}
+                                                                sx={{
+                                                                    mt: 1,
+                                                                    width: '100%',
+                                                                    color: contrast.text,
+                                                                    bgcolor: contrast.overlay,
+                                                                    border: `1px dashed ${contrast.border}`,
+                                                                    backdropFilter: 'blur(4px)',
+                                                                    '&:hover': {
+                                                                        opacity: 0.8,
+                                                                    }
+                                                                }}
+                                                            >
+                                                                Add
+                                                            </Button>
+                                                        );
+                                                    })()}
 
                                                     {/* Column Delete */}
-                                                    <Box className="col-actions" sx={{ position: 'absolute', top: -8, right: -8, opacity: 0, transition: 'opacity 0.2s' }}>
-                                                        <IconButton size="small" onClick={() => handleDeleteColumn(row.id, column.id)} sx={{ bgcolor: 'error.main', color: 'white', width: 20, height: 20, '&:hover': { bgcolor: 'error.dark' } }}>
+                                                    <Box className="col-actions" sx={{
+                                                        position: 'absolute',
+                                                        top: -8,
+                                                        right: -8,
+                                                        opacity: 0,
+                                                        transition: 'opacity 0.2s',
+                                                        backdropFilter: 'blur(4px)',
+                                                        borderRadius: '50%',
+                                                        padding: '2px',
+                                                    }}>
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={() => handleDeleteColumn(row.id, column.id)}
+                                                            sx={{
+                                                                bgcolor: 'error.main',
+                                                                color: 'white',
+                                                                width: 20,
+                                                                height: 20,
+                                                                '&:hover': { bgcolor: 'error.dark' }
+                                                            }}
+                                                        >
                                                             <DeleteIcon sx={{ fontSize: 12 }} />
                                                         </IconButton>
                                                     </Box>

@@ -8,6 +8,7 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 export interface ProductOption {
     _id: string;
     name: string;
+    slug: string;
     sku: string;
     price: number;
     salePrice?: number;

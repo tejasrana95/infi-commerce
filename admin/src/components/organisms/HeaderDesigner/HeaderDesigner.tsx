@@ -35,6 +35,7 @@ import {
     LocalMall as LocalMallIcon,
     DragIndicator as DragIndicatorIcon,
     Edit as EditIcon,
+    AttachMoney as CurrencyIcon,
 } from '@mui/icons-material';
 import { DndContext, DragEndEvent, DragOverlay, closestCenter, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
@@ -59,6 +60,7 @@ const elementInfo: Record<string, { label: string; icon: React.ReactNode; descri
     'cart': { label: 'Cart', icon: <CartIcon />, description: 'Shopping cart' },
     'account': { label: 'Account', icon: <AccountIcon />, description: 'User account' },
     'wishlist': { label: 'Wishlist', icon: <WishlistIcon />, description: 'Wishlist' },
+    'currency': { label: 'Currency', icon: <CurrencyIcon />, description: 'Currency selector' },
     'custom': { label: 'Custom', icon: <CodeIcon />, description: 'Custom HTML' },
 };
 
@@ -190,6 +192,13 @@ function SortableElement({ element, onClick, onDelete, menus }: {
                         <Typography variant="caption">Custom</Typography>
                     </Box>
                 );
+            case 'currency':
+                return (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary' }}>
+                        <CurrencyIcon fontSize="small" />
+                        <Typography variant="body2">USD</Typography>
+                    </Box>
+                );
             default:
                 return <Typography variant="body2">{info?.label}</Typography>;
         }
@@ -269,7 +278,8 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
         const fetchMenus = async () => {
             try {
                 const response = await api.get(`/menus?store=${storeId}`);
-                setMenus(response.data.data || response.data || []);
+                const data = response.data.menus || response.data;
+                setMenus(Array.isArray(data) ? data : []);
             } catch (error) {
                 console.error('Failed to fetch menus:', error);
             }
@@ -304,13 +314,29 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
         items: [],
     };
 
+    const mobileMenu = headerConfig.mobileMenu || {
+        enabled: false,
+        menuId: '',
+    };
+
     // Toggle top bar
     const handleToggleTopBar = (enabled: boolean) => {
+        // Build top bar items from text
+        const items = enabled && topBarText ? [
+            {
+                id: 'topbar-text',
+                type: 'text' as const,
+                content: topBarText,
+                position: 'center' as const,
+                order: 0,
+            }
+        ] : [];
+
         onChange({
             ...config,
             header: {
                 ...headerConfig,
-                topBar: { ...topBar, enabled },
+                topBar: { ...topBar, enabled, items },
             },
         });
     };
@@ -333,6 +359,17 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
             header: {
                 ...headerConfig,
                 main: { ...headerConfig.main, ...updates },
+            },
+        });
+    };
+
+    // Update mobile menu settings
+    const handleUpdateMobileMenu = (updates: Partial<typeof mobileMenu>) => {
+        onChange({
+            ...config,
+            header: {
+                ...headerConfig,
+                mobileMenu: { ...mobileMenu, ...updates },
             },
         });
     };
@@ -388,19 +425,51 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
         const { active, over } = event;
         if (!over || active.id === over.id) return;
 
-        // Find which section contains the dragged element
-        for (const section of headerConfig.main.sections) {
-            const oldIndex = section.items.findIndex(item => item.id === active.id);
-            const newIndex = section.items.findIndex(item => item.id === over.id);
+        let activeSectionId = '';
+        let overSectionId = '';
+        let activeItemIndex = -1;
+        let overItemIndex = -1;
 
-            if (oldIndex !== -1 && newIndex !== -1) {
+        // Find active and over sections
+        headerConfig.main.sections.forEach(section => {
+            const aIndex = section.items.findIndex(item => item.id === active.id);
+            if (aIndex !== -1) {
+                activeSectionId = section.id;
+                activeItemIndex = aIndex;
+            }
+            const oIndex = section.items.findIndex(item => item.id === over.id);
+            if (oIndex !== -1) {
+                overSectionId = section.id;
+                overItemIndex = oIndex;
+            }
+        });
+
+        if (activeSectionId && overSectionId) {
+            if (activeSectionId === overSectionId) {
+                // Same section reorder
                 const updatedSections = headerConfig.main.sections.map(s =>
-                    s.id === section.id
-                        ? { ...s, items: arrayMove(s.items, oldIndex, newIndex) }
+                    s.id === activeSectionId
+                        ? { ...s, items: arrayMove(s.items, activeItemIndex, overItemIndex) }
                         : s
                 );
                 handleUpdateMainHeader({ sections: updatedSections });
-                break;
+            } else {
+                // Cross section move
+                const sourceSection = headerConfig.main.sections.find(s => s.id === activeSectionId)!;
+                const activeItem = sourceSection.items[activeItemIndex];
+
+                const updatedSections = headerConfig.main.sections.map(s => {
+                    if (s.id === activeSectionId) {
+                        return { ...s, items: s.items.filter(item => item.id !== active.id) };
+                    }
+                    if (s.id === overSectionId) {
+                        const newItems = [...s.items];
+                        newItems.splice(overItemIndex, 0, activeItem);
+                        return { ...s, items: newItems };
+                    }
+                    return s;
+                });
+                handleUpdateMainHeader({ sections: updatedSections });
             }
         }
     };
@@ -459,7 +528,9 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
                                     '&:hover .topbar-edit': { opacity: 1 },
                                 }}
                             >
-                                <Typography variant="caption">{topBarText}</Typography>
+                                <Typography variant="caption">
+                                    {topBar.items?.find((item: any) => item.type === 'text')?.content || topBarText}
+                                </Typography>
                                 <IconButton
                                     className="topbar-edit"
                                     size="small"
@@ -484,6 +555,19 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
                                     label="Top Bar Content"
                                     value={topBarText}
                                     onChange={(e) => setTopBarText(e.target.value)}
+                                    onBlur={() => {
+                                        // Save topBarText to items array when user stops editing
+                                        const items = topBarText ? [
+                                            {
+                                                id: 'topbar-text',
+                                                type: 'text' as const,
+                                                content: topBarText,
+                                                position: 'center' as const,
+                                                order: 0,
+                                            }
+                                        ] : [];
+                                        handleUpdateTopBar({ items });
+                                    }}
                                     fullWidth
                                     size="small"
                                     placeholder="Free shipping on orders over $50"
@@ -627,6 +711,46 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
                                     }
                                     label="Transparent"
                                 />
+                            </Box>
+
+                            <Divider sx={{ my: 2 }} />
+
+                            {/* Mobile Menu Settings */}
+                            <Typography variant="subtitle2" gutterBottom>Mobile Menu</Typography>
+                            <Box sx={{ mb: 2 }}>
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            checked={mobileMenu.enabled}
+                                            onChange={(e) => handleUpdateMobileMenu({ enabled: e.target.checked })}
+                                        />
+                                    }
+                                    label="Custom Mobile Menu"
+                                />
+                                <Typography variant="caption" display="block" color="text.secondary" sx={{ mb: 1 }}>
+                                    If disabled, an automatic menu will be generated.
+                                </Typography>
+
+                                {mobileMenu.enabled && (
+                                    <TextField
+                                        select
+                                        label="Select Menu"
+                                        value={mobileMenu.menuId || ''}
+                                        onChange={(e) => handleUpdateMobileMenu({ menuId: e.target.value })}
+                                        fullWidth
+                                        size="small"
+                                        sx={{ mt: 1 }}
+                                    >
+                                        <MuiMenuItem value="">
+                                            <em>None</em>
+                                        </MuiMenuItem>
+                                        {menus.map((menu) => (
+                                            <MuiMenuItem key={menu._id} value={menu._id}>
+                                                {menu.name}
+                                            </MuiMenuItem>
+                                        ))}
+                                    </TextField>
+                                )}
                             </Box>
                         </Box>
                     </Collapse>

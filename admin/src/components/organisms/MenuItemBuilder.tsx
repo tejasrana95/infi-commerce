@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     DndContext,
     closestCenter,
@@ -107,10 +107,53 @@ function EditItemDialog({ open, item, onClose, onSave, storeId, isNew = false }:
         url: '',
         openInNewTab: false,
         icon: '',
-        ...item,
     });
 
     const [selectedProduct, setSelectedProduct] = useState<ProductOption | null>(null);
+
+    // Reset form data whenever dialog opens or item changes
+    useEffect(() => {
+        if (open) {
+            if (item) {
+                // Editing existing item - populate form with item data
+                setFormData({
+                    label: item.label || '',
+                    type: item.type || 'link',
+                    url: item.url || '',
+                    categoryId: item.categoryId,
+                    categorySlug: item.categorySlug,
+                    productId: item.productId,
+                    productSlug: item.productSlug,
+                    pageId: item.pageId,
+                    pageSlug: item.pageSlug,
+                    blogCategoryId: item.blogCategoryId,
+                    blogCategorySlug: item.blogCategorySlug,
+                    openInNewTab: item.openInNewTab || false,
+                    icon: item.icon || '',
+                    badge: item.badge,
+                });
+
+                // If it's a product type, we should set selectedProduct
+                // Note: We don't have the full product data here, just the ID
+                // The ProductAutocomplete should handle loading by ID if needed
+                if (item.type === 'product' && item.productId) {
+                    // The autocomplete will need to fetch the product by ID
+                    // For now, set to null and let the autocomplete handle it via value prop
+                    setSelectedProduct(null);
+                }
+            } else {
+                // Creating new item - reset to defaults
+                setFormData({
+                    label: '',
+                    type: 'link',
+                    url: '',
+                    openInNewTab: false,
+                    icon: '',
+                });
+                setSelectedProduct(null);
+            }
+        }
+    }, [open, item]);
 
     const handleTypeChange = (newType: string) => {
         setFormData(prev => ({
@@ -118,9 +161,13 @@ function EditItemDialog({ open, item, onClose, onSave, storeId, isNew = false }:
             type: newType as MenuItemType['type'],
             url: '',
             categoryId: undefined,
+            categorySlug: undefined,
             productId: undefined,
+            productSlug: undefined,
             pageId: undefined,
+            pageSlug: undefined,
             blogCategoryId: undefined,
+            blogCategorySlug: undefined,
         }));
         setSelectedProduct(null);
     };
@@ -132,9 +179,13 @@ function EditItemDialog({ open, item, onClose, onSave, storeId, isNew = false }:
             type: formData.type || 'link',
             url: formData.url,
             categoryId: formData.categoryId,
+            categorySlug: formData.categorySlug,
             productId: formData.productId,
+            productSlug: formData.productSlug,
             pageId: formData.pageId,
+            pageSlug: formData.pageSlug,
             blogCategoryId: formData.blogCategoryId,
+            blogCategorySlug: formData.blogCategorySlug,
             openInNewTab: formData.openInNewTab || false,
             icon: formData.icon,
             badge: formData.badge,
@@ -189,7 +240,14 @@ function EditItemDialog({ open, item, onClose, onSave, storeId, isNew = false }:
                     {formData.type === 'category' && (
                         <CategoryAutocomplete
                             value={formData.categoryId || null}
-                            onChange={(value) => setFormData(prev => ({ ...prev, categoryId: value || undefined }))}
+                            onChange={(value, category) => {
+                                const cat = Array.isArray(category) ? category[0] : category;
+                                setFormData(prev => ({
+                                    ...prev,
+                                    categoryId: value || undefined,
+                                    categorySlug: cat?.slug || undefined
+                                }));
+                            }}
                             storeId={storeId}
                             label="Select Category"
                         />
@@ -201,7 +259,11 @@ function EditItemDialog({ open, item, onClose, onSave, storeId, isNew = false }:
                             value={selectedProduct}
                             onChange={(product) => {
                                 setSelectedProduct(product);
-                                setFormData(prev => ({ ...prev, productId: product?._id }));
+                                setFormData(prev => ({
+                                    ...prev,
+                                    productId: product?._id,
+                                    productSlug: product?.slug
+                                }));
                             }}
                             label="Select Product"
                         />
@@ -210,7 +272,11 @@ function EditItemDialog({ open, item, onClose, onSave, storeId, isNew = false }:
                     {formData.type === 'page' && (
                         <PageAutocomplete
                             value={formData.pageId || null}
-                            onChange={(value) => setFormData(prev => ({ ...prev, pageId: value || undefined }))}
+                            onChange={(value, page) => setFormData(prev => ({
+                                ...prev,
+                                pageId: value || undefined,
+                                pageSlug: page?.slug || undefined
+                            }))}
                             storeId={storeId}
                             label="Select Page"
                         />
@@ -219,7 +285,14 @@ function EditItemDialog({ open, item, onClose, onSave, storeId, isNew = false }:
                     {formData.type === 'blog-category' && (
                         <BlogCategoryAutocomplete
                             value={formData.blogCategoryId || null}
-                            onChange={(value) => setFormData(prev => ({ ...prev, blogCategoryId: (value as string | null) || undefined }))}
+                            onChange={(value, category) => {
+                                const cat = Array.isArray(category) ? category[0] : category;
+                                setFormData(prev => ({
+                                    ...prev,
+                                    blogCategoryId: (value as string | null) || undefined,
+                                    blogCategorySlug: cat?.slug || undefined
+                                }));
+                            }}
                             storeId={storeId}
                             label="Select Blog Category"
                         />

@@ -28,7 +28,7 @@ export const createStoreValidation = [
             return true;
         }),
     body('description').optional().trim(),
-    body('logo').optional().isURL().withMessage('Logo must be a valid URL'),
+    body('logo').optional().isURL({ require_tld: false }).withMessage('Logo must be a valid URL'),
     body('currency')
         .optional()
         .isLength({ min: 3, max: 3 })
@@ -58,7 +58,7 @@ export const updateStoreValidation = [
             return true;
         }),
     body('description').optional().trim(),
-    body('logo').optional().isURL().withMessage('Logo must be a valid URL'),
+    body('logo').optional().isURL({ require_tld: false }).withMessage('Logo must be a valid URL'),
     body('currency')
         .optional()
         .isLength({ min: 3, max: 3 })

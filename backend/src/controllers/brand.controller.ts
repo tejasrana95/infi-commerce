@@ -10,16 +10,16 @@ export const createBrandValidation = [
     body('name').trim().notEmpty().withMessage('Brand name is required'),
     body('slug').trim().notEmpty().matches(/^[a-z0-9-]+$/).withMessage('Invalid slug format'),
     body('storeId').isMongoId().withMessage('Valid store ID is required'),
-    body('logo').optional({ values: 'falsy' }).isURL().withMessage('Logo must be a valid URL'),
-    body('website').optional({ values: 'falsy' }).isURL().withMessage('Website must be a valid URL'),
+    body('logo').optional({ values: 'falsy' }).isURL({ require_tld: false }).withMessage('Logo must be a valid URL'),
+    body('website').optional({ values: 'falsy' }).isURL({ require_tld: false }).withMessage('Website must be a valid URL'),
 ];
 
 export const updateBrandValidation = [
     param('id').isMongoId().withMessage('Invalid brand ID'),
     body('name').optional().trim().notEmpty().withMessage('Name cannot be empty'),
     body('slug').optional().trim().matches(/^[a-z0-9-]+$/).withMessage('Invalid slug format'),
-    body('logo').optional({ values: 'falsy' }).isURL().withMessage('Logo must be a valid URL'),
-    body('website').optional({ values: 'falsy' }).isURL().withMessage('Website must be a valid URL'),
+    body('logo').optional({ values: 'falsy' }).isURL({ require_tld: false }).withMessage('Logo must be a valid URL'),
+    body('website').optional({ values: 'falsy' }).isURL({ require_tld: false }).withMessage('Website must be a valid URL'),
 ];
 
 /**

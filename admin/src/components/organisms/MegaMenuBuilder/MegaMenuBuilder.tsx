@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
     Box,
     Paper,
@@ -81,11 +81,13 @@ export interface MegaMenuItem {
 
     // Category config
     categoryId?: string;
+    categoryName?: string;
+    categorySlug?: string; // Store slug for proper URL generation
     productLimit?: number;
     autoAddProducts?: boolean;
 
     // Product config
-    productIds?: string[];
+    products?: Array<{ _id: string; name: string; slug?: string }>; // Include slug for URLs
 
     // Image config
     imageUrl?: string;
@@ -100,6 +102,8 @@ export interface MegaMenuItem {
 
     // Page config
     pageId?: string;
+    pageName?: string;
+    pageSlug?: string; // Store slug for proper URL generation
 }
 
 export interface MegaMenuSection {
@@ -186,11 +190,27 @@ interface ItemConfigDialogProps {
 }
 
 function ItemConfigDialog({ open, item, onClose, onSave, storeId }: ItemConfigDialogProps) {
-    const [formData, setFormData] = useState<MegaMenuItem>(item || {
+    const [formData, setFormData] = useState<MegaMenuItem>({
         id: uuidv4(),
         type: 'custom-link',
     });
     const [selectedProducts, setSelectedProducts] = useState<ProductOption[]>([]);
+
+    // Reset form data whenever dialog opens or item changes
+    useEffect(() => {
+        if (open && item) {
+            setFormData(item);
+            // Reset selected products when opening dialog
+            setSelectedProducts([]);
+        } else if (open && !item) {
+            // New item - default to custom-link
+            setFormData({
+                id: uuidv4(),
+                type: 'custom-link',
+            });
+            setSelectedProducts([]);
+        }
+    }, [open, item]);
 
     const handleSave = () => {
         onSave(formData);
@@ -219,7 +239,15 @@ function ItemConfigDialog({ open, item, onClose, onSave, storeId }: ItemConfigDi
                             />
                             <CategoryAutocomplete
                                 value={formData.categoryId || null}
-                                onChange={(value) => setFormData(prev => ({ ...prev, categoryId: value || undefined }))}
+                                onChange={(value, category) => {
+                                    const cat = Array.isArray(category) ? category[0] : category;
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        categoryId: value || undefined,
+                                        categoryName: cat?.title || undefined,
+                                        categorySlug: cat?.slug || undefined
+                                    }));
+                                }}
                                 storeId={storeId}
                                 label="Select Category"
                             />
@@ -256,12 +284,15 @@ function ItemConfigDialog({ open, item, onClose, onSave, storeId }: ItemConfigDi
                                 storeId={storeId}
                                 value={selectedProducts}
                                 onChange={(products) => {
-                                    setSelectedProducts(Array.isArray(products) ? products : products ? [products] : []);
+                                    const productsArray = Array.isArray(products) ? products : products ? [products] : [];
+                                    setSelectedProducts(productsArray);
                                     setFormData(prev => ({
                                         ...prev,
-                                        productIds: Array.isArray(products)
-                                            ? products.map(p => p._id)
-                                            : products ? [products._id] : []
+                                        products: productsArray.map(p => ({
+                                            _id: p._id,
+                                            name: p.name,
+                                            slug: p.slug
+                                        }))
                                     }));
                                 }}
                                 label="Select Products"
@@ -355,7 +386,12 @@ function ItemConfigDialog({ open, item, onClose, onSave, storeId }: ItemConfigDi
                             />
                             <PageAutocomplete
                                 value={formData.pageId || null}
-                                onChange={(value) => setFormData(prev => ({ ...prev, pageId: value || undefined }))}
+                                onChange={(value, page) => setFormData(prev => ({
+                                    ...prev,
+                                    pageId: value || undefined,
+                                    pageName: page?.title || undefined,
+                                    pageSlug: page?.slug || undefined
+                                }))}
                                 storeId={storeId}
                                 label="Select Page"
                             />
@@ -433,14 +469,21 @@ function SortableMegaMenuItem({ item, onEdit, onDelete }: SortableMegaMenuItemPr
     const getItemDetails = () => {
         switch (item.type) {
             case 'category':
+                if (item.categoryName) return `Category: ${item.categoryName}`;
                 return item.categoryId ? `Category: ${item.categoryId}` : 'No category selected';
             case 'product':
-                return `${item.productIds?.length || 0} products`;
+                const productCount = item.products?.length || 0;
+                if (productCount > 0) {
+                    const names = item.products!.map(p => p.name).slice(0, 2).join(', ');
+                    return `${productCount} product${productCount !== 1 ? 's' : ''}: ${names}${productCount > 2 ? '...' : ''}`;
+                }
+                return `${productCount} product${productCount !== 1 ? 's' : ''}`;
             case 'image':
                 return item.imageUrl ? 'Image configured' : 'No image';
             case 'custom-link':
                 return item.linkUrl || 'No URL';
             case 'page':
+                if (item.pageName) return `Page: ${item.pageName}`;
                 return item.pageId ? `Page: ${item.pageId}` : 'No page selected';
             default:
                 return '';
@@ -590,7 +633,14 @@ function MegaMenuColumnComponent({
                 <IconButton size="small" onClick={() => setExpanded(!expanded)}>
                     {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
                 </IconButton>
-                <IconButton size="small" color="error" onClick={() => onDelete(sectionId, column.id)}>
+                <IconButton
+                    size="small"
+                    color="error"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(sectionId, column.id);
+                    }}
+                >
                     <DeleteIcon fontSize="small" />
                 </IconButton>
             </Box>
@@ -744,7 +794,14 @@ function MegaMenuSectionComponent({
                 <IconButton size="small" onClick={() => setExpanded(!expanded)}>
                     {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                 </IconButton>
-                <IconButton size="small" color="error" onClick={() => onDelete(section.id)}>
+                <IconButton
+                    size="small"
+                    color="error"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(section.id);
+                    }}
+                >
                     <DeleteIcon />
                 </IconButton>
             </Box>
@@ -836,7 +893,7 @@ export default function MegaMenuBuilder({ data, onChange, storeId }: MegaMenuBui
 
     // Delete section
     const handleDeleteSection = (sectionId: string) => {
-        if (!confirm('Delete this section and all its contents?')) return;
+        if (!window.confirm('Delete this section and all its contents?')) return;
         onChange({
             ...data,
             sections: data.sections.filter(s => s.id !== sectionId),
@@ -857,7 +914,7 @@ export default function MegaMenuBuilder({ data, onChange, storeId }: MegaMenuBui
 
     // Delete column
     const handleDeleteColumn = (sectionId: string, columnId: string) => {
-        if (!confirm('Delete this column and all its contents?')) return;
+        if (!window.confirm('Delete this column and all its contents?')) return;
         onChange({
             ...data,
             sections: data.sections.map(s =>
