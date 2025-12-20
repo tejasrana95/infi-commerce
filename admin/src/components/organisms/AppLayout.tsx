@@ -60,6 +60,8 @@ import ImageIcon from '@mui/icons-material/Image';
 import ViewCarouselIcon from '@mui/icons-material/ViewCarousel';
 import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
 import WorkspacesIcon from '@mui/icons-material/Workspaces';
+import GridViewIcon from '@mui/icons-material/GridView';
+import CollectionsIcon from '@mui/icons-material/Collections';
 const drawerWidth = 260;
 
 interface NavItem {
@@ -104,6 +106,9 @@ const navigationItems: NavItem[] = [
       { name: 'Pages', href: '/pages', icon: <ArticleIcon /> },
       { name: 'Banners', href: '/banners', icon: <ViewCarouselIcon /> },
       { name: 'Banner Sliders', href: '/banner-sliders', icon: <ViewCarouselIcon /> },
+      { name: 'Product Carousels', href: '/product-carousels', icon: <ViewCarouselIcon /> },
+      { name: 'Product Grids', href: '/product-grids', icon: <GridViewIcon /> },
+      { name: 'Category Showcases', href: '/category-showcases', icon: <CollectionsIcon /> },
       { name: 'Testimonials', href: '/testimonials', icon: <FormatQuoteIcon /> },
       { name: 'Brand Showcases', href: '/brand-showcases', icon: <WorkspacesIcon /> },
       {

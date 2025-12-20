@@ -36,9 +36,17 @@ export default function ModernCleanCategoryPageTemplate({
     exchangeRate,
     templateId,
 }: CategoryPageTemplateProps) {
-    const [expandedFilters, setExpandedFilters] = useState<Set<string>>(
-        new Set(config.filters?.defaultState === 'expanded' ? ['price', 'brand', 'attributes'] : [])
-    );
+    const [expandedFilters, setExpandedFilters] = useState<Set<string>>(() => {
+        const isTop = config.filters?.position === 'top';
+        if (config.filters?.defaultState === 'expanded' && !isTop) {
+            const keys = ['price', 'brand', 'rating', 'stock', 'tags'];
+            if (availableFilters?.attributes) {
+                availableFilters.attributes.forEach(attr => keys.push(attr.slug));
+            }
+            return new Set(keys);
+        }
+        return new Set([]);
+    });
 
     // Get ProductCard component
     const ProductCard = getComponent('ProductCard', templateId);
@@ -54,9 +62,7 @@ export default function ModernCleanCategoryPageTemplate({
     };
 
     // Check if filter is expanded
-    const isExpanded = (key: string) => {
-        return config.filters?.defaultState === 'expanded' || expandedFilters.has(key);
-    };
+    const isExpanded = (key: string) => expandedFilters.has(key);
 
     // Render filter checkbox group
     const renderCheckboxFilter = (
@@ -344,11 +350,117 @@ export default function ModernCleanCategoryPageTemplate({
         </div>
     );
 
+    // Render dropdown filter (for Top position)
+    const renderDropdownFilter = (
+        title: string,
+        filterKey: string,
+        options: { value: string; label?: string; count: number; status?: string }[],
+    ) => {
+        const currentValues = filterKey === 'brand'
+            ? activeFilters.brands
+            : filterKey === 'tags'
+                ? activeFilters.tags
+                : filterKey === 'stock'
+                    ? activeFilters.stockStatus
+                    : activeFilters.attributes?.[filterKey] || [];
+
+        const isOpen = expandedFilters.has(filterKey);
+        const isActive = (currentValues?.length || 0) > 0;
+
+        return (
+            <div className={styles.filterDropdown}>
+                <button
+                    className={`${styles.dropdownTrigger} ${isOpen ? styles.open : ''} ${isActive ? styles.active : ''}`}
+                    onClick={() => toggleFilter(filterKey)}
+                >
+                    <span>{title}</span>
+                    {isActive && <span className={styles.filterBadge}>{currentValues?.length}</span>}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                {isOpen && (
+                    <div className={styles.dropdownContent}>
+                        {options.map(opt => (
+                            <label key={opt.value} className={styles.checkboxLabel}>
+                                <input
+                                    type="checkbox"
+                                    checked={currentValues?.includes(opt.value)}
+                                    onChange={(e) => {
+                                        const newValues = e.target.checked
+                                            ? [...(currentValues || []), opt.value]
+                                            : (currentValues || []).filter(v => v !== opt.value);
+                                        onFilterChange(filterKey, newValues);
+                                    }}
+                                />
+                                <span className={styles.checkbox}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </span>
+                                <span className={styles.labelText}>
+                                    {opt.label || (filterKey === 'stock' ? formatStockStatus(opt.status || opt.value) : opt.value)}
+                                </span>
+                                <span className={styles.count}>({opt.count})</span>
+                            </label>
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    // Render horizontal top filters
+    const renderHorizontalFilters = () => (
+        <div className={styles.topFilters}>
+            {/* Price Filter (simplified for top bar) */}
+            <div className={styles.filterDropdown}>
+                <button
+                    className={`${styles.dropdownTrigger} ${isExpanded('price') ? styles.open : ''} ${activeFilters.price ? styles.active : ''}`}
+                    onClick={() => toggleFilter('price')}
+                >
+                    <span>Price</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                {isExpanded('price') && (
+                    <div className={styles.dropdownContent} style={{ minWidth: 300 }}>
+                        {renderPriceFilter()}
+                    </div>
+                )}
+            </div>
+
+            {config.filters?.showBrandFilter && (availableFilters?.brands?.length ?? 0) > 0 &&
+                renderDropdownFilter('Brand', 'brand', availableFilters!.brands!)
+            }
+
+            {config.filters?.showAvailabilityFilter && (availableFilters?.availability?.length ?? 0) > 0 &&
+                renderDropdownFilter('Availability', 'stock', availableFilters!.availability!)
+            }
+
+            {config.filters?.showAttributeFilters && availableFilters?.attributes?.map(attr => (
+                <div key={attr._id}>
+                    {renderDropdownFilter(attr.name, attr.slug, attr.values)}
+                </div>
+            ))}
+
+            {/* Clear All */}
+            {activeFilterCount > 0 && (
+                <button onClick={onClearAllFilters} className={styles.clearFiltersBtn} style={{ padding: '0.5rem 1rem' }}>
+                    Clear All
+                </button>
+            )}
+        </div>
+    );
+
     // Calculate grid columns based on config
     const gridColumns = config.grid?.productsPerRow || { desktop: 4, tablet: 3, mobile: 2 };
 
     const hasFilters = config.filters?.enabled &&
         (config.filters.position === 'left' || config.filters.position === 'right');
+
+    const showTopFilters = config.filters?.enabled && config.filters.position === 'top';
 
     return (
         <div className={styles.categoryPage}>
@@ -387,6 +499,7 @@ export default function ModernCleanCategoryPageTemplate({
 
             {/* Main content */}
             <div className={`${styles.content} ${hasFilters ? styles.withSidebar : ''} ${config.filters?.position === 'right' ? styles.sidebarRight : ''}`}>
+
                 {/* Filter Sidebar (Desktop) */}
                 {hasFilters && (
                     <aside
@@ -407,14 +520,20 @@ export default function ModernCleanCategoryPageTemplate({
 
                 {/* Products section */}
                 <main className={styles.main}>
+                    {/* Top Filters */}
+                    {showTopFilters && renderHorizontalFilters()}
+
                     {/* Toolbar */}
                     <div className={styles.toolbar}>
                         <div className={styles.toolbarLeft}>
-                            {/* Mobile filter button */}
+                            {/* Mobile filter button - Show on desktop ONLY if position is off-canvas */}
                             {config.filters?.enabled && (
                                 <button
                                     className={styles.mobileFilterBtn}
                                     onClick={onOpenFilterDrawer}
+                                    style={{
+                                        display: (config.filters?.position === 'off-canvas') ? 'flex' : undefined
+                                    }}
                                 >
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
