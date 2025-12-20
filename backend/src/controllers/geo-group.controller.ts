@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { body, param } from 'express-validator';
+import { body } from 'express-validator';
 import GeoGroup from '../models/GeoGroup';
 import Store from '../models/Store';
 import Geo from '../models/Geo';

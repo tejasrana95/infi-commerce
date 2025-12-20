@@ -33,7 +33,11 @@ interface Product {
     inStock?: boolean;
 }
 
-export default function ProductCarouselModule({ config }: ModuleProps) {
+interface ProductCarouselProps extends ModuleProps {
+    initialProducts?: Product[];
+}
+
+export default function ProductCarouselModule({ config, initialProducts }: ProductCarouselProps) {
     const {
         source,
         limit = 8,
@@ -48,8 +52,10 @@ export default function ProductCarouselModule({ config }: ModuleProps) {
         viewAllLink,
     } = config as ProductCarouselConfig;
 
-    const [products, setProducts] = useState<Product[]>([]);
-    const [loading, setLoading] = useState(true);
+    // Use initialProducts if provided (SSR), otherwise start empty
+    const hasSSRData = initialProducts && initialProducts.length > 0;
+    const [products, setProducts] = useState<Product[]>(initialProducts || []);
+    const [loading, setLoading] = useState(!hasSSRData);
     const [error, setError] = useState<string | null>(null);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
@@ -73,8 +79,10 @@ export default function ProductCarouselModule({ config }: ModuleProps) {
         return () => window.removeEventListener('resize', handleResize);
     }, [columns]);
 
-    // Fetch products
+    // Only fetch client-side if no initialProducts provided
     useEffect(() => {
+        if (hasSSRData) return; // Skip fetch if SSR data exists
+
         const fetchProducts = async () => {
             try {
                 setLoading(true);
@@ -104,7 +112,7 @@ export default function ProductCarouselModule({ config }: ModuleProps) {
         };
 
         fetchProducts();
-    }, [source, limit, categoryIds, productIds]);
+    }, [source, limit, categoryIds, productIds, initialProducts]);
 
     // Navigation
     const maxIndex = Math.max(0, products.length - visibleCount);

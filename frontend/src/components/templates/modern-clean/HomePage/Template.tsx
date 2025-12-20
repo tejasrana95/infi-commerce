@@ -7,11 +7,13 @@ interface ModernCleanHomePageProps {
     layout: Layout | null;
     store?: any;
     templateId: string;
+    moduleData?: Record<string, any>;
 }
 
 export default function ModernCleanHomePageTemplate({
     layout,
-    store
+    store,
+    moduleData
 }: ModernCleanHomePageProps) {
 
     if (!layout) {
@@ -38,9 +40,9 @@ export default function ModernCleanHomePageTemplate({
                                         </p>
                                         <ol className="text-sm text-yellow-800 space-y-1 list-decimal list-inside">
                                             <li>Go to <strong>Admin Panel → Layouts</strong></li>
-                                            <li>Click <strong>"Create New Layout"</strong></li>
-                                            <li>Select type: <strong>"Homepage"</strong></li>
-                                            <li>Drag & drop modules to build your page</li>
+                                            <li>Click <strong>&quot;Create New Layout&quot;</strong></li>
+                                            <li>Select type: <strong>&quot;Homepage&quot;</strong></li>
+                                            <li>Drag &amp; drop modules to build your page</li>
                                             <li>Set as <strong>default</strong> and publish</li>
                                         </ol>
                                     </div>
@@ -53,6 +55,7 @@ export default function ModernCleanHomePageTemplate({
         );
     }
 
-    // Render layout using LayoutEngine
-    return <LayoutEngine layout={layout} />;
+    // Render layout using LayoutEngine with pre-fetched module data
+    return <LayoutEngine layout={layout} moduleData={moduleData} />;
 }
+

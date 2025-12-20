@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { body } from 'express-validator';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import Customer from '../models/Customer';
 import { config } from '../config';
 import { AuthRequest } from '../middleware/auth';
@@ -25,13 +25,13 @@ const generateCustomerTokens = (customerId: string, email: string) => {
     const accessToken = jwt.sign(
         { id: customerId, email, type: 'customer' },
         config.jwt.secret as string,
-        { expiresIn: config.jwt.expiresIn as string }
+        { expiresIn: config.jwt.expiresIn as SignOptions['expiresIn'] }
     );
 
     const refreshToken = jwt.sign(
         { id: customerId, type: 'customer' },
         config.jwt.refreshSecret as string,
-        { expiresIn: config.jwt.refreshExpiresIn as string }
+        { expiresIn: config.jwt.refreshExpiresIn as SignOptions['expiresIn'] }
     );
 
     return { accessToken, refreshToken };

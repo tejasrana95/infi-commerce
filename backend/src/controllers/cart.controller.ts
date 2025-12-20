@@ -358,10 +358,11 @@ export const mergeCart = asyncHandler(async (req: AuthRequest, res: Response) =>
     if (!guestCart || guestCart.items.length === 0) {
         // No guest cart to merge
         const userCart = await Cart.findOne({ userId });
-        return res.json({
+        res.json({
             message: 'No guest cart to merge',
             cart: userCart,
         });
+        return;
     }
 
     // Get or create user cart
@@ -372,10 +373,11 @@ export const mergeCart = asyncHandler(async (req: AuthRequest, res: Response) =>
         guestCart.sessionId = undefined;
         await guestCart.save();
 
-        return res.json({
+        res.json({
             message: 'Cart merged successfully',
             cart: guestCart,
         });
+        return;
     }
 
     // Merge items

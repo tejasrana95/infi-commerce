@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { body, param } from 'express-validator';
+import { body } from 'express-validator';
 import Sale from '../models/Sale';
 import Product from '../models/Product';
 import Category from '../models/Category';

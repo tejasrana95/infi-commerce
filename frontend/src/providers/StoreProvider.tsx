@@ -58,30 +58,10 @@ export function StoreProvider({ store, children, currentCurrency, availableCurre
     const templateId = store?.theme?.templateId || DEFAULT_TEMPLATE_ID;
     const themeConfig = store?.theme || null;
 
-    // Apply CSS variables and body class on mount/update
+    // Apply template class to body on mount/update
+    // Note: CSS variables are now applied server-side in layout.tsx for better CLS
     useEffect(() => {
         if (!themeConfig) return;
-
-        const root = document.documentElement;
-
-        // Apply Colors as CSS Variables
-        if (themeConfig.colors) {
-            const colors = themeConfig.colors;
-            if (colors.primary) root.style.setProperty('--color-primary', colors.primary);
-            if (colors.secondary) root.style.setProperty('--color-secondary', colors.secondary);
-            if (colors.accent) root.style.setProperty('--color-accent', colors.accent);
-            if (colors.background) root.style.setProperty('--color-background', colors.background);
-            if (colors.text) root.style.setProperty('--color-text', colors.text);
-            if (colors.headerBg) root.style.setProperty('--color-header-bg', colors.headerBg);
-            if (colors.footerBg) root.style.setProperty('--color-footer-bg', colors.footerBg);
-        }
-
-        // Apply Fonts as CSS Variables
-        if (themeConfig.fonts) {
-            const fonts = themeConfig.fonts;
-            if (fonts.heading) root.style.setProperty('--font-heading', fonts.heading);
-            if (fonts.body) root.style.setProperty('--font-body', fonts.body);
-        }
 
         // Apply Template Class to Body
         const templateClass = `template-${templateId}`;

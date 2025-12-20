@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { body } from 'express-validator';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import User from '../models/User';
 import { config } from '../config';
 import { AuthRequest } from '../middleware/auth';
@@ -25,13 +25,13 @@ const generateAdminTokens = (userId: string, email: string, role: string, storeI
     const accessToken = jwt.sign(
         { id: userId, email, role, storeId, type: 'admin' },
         config.jwt.secret as string,
-        { expiresIn: config.jwt.expiresIn as string }
+        { expiresIn: config.jwt.expiresIn as SignOptions['expiresIn'] }
     );
 
     const refreshToken = jwt.sign(
         { id: userId, type: 'admin' },
         config.jwt.refreshSecret as string,
-        { expiresIn: config.jwt.refreshExpiresIn as string }
+        { expiresIn: config.jwt.refreshExpiresIn as SignOptions['expiresIn'] }
     );
 
     return { accessToken, refreshToken };

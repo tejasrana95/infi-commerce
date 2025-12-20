@@ -7,13 +7,15 @@ import styles from './SectionRenderer.module.scss';
 
 interface SectionRendererProps {
     section: Section;
+    moduleData?: Record<string, any>;
 }
 
 /**
  * SectionRenderer - Renders a layout section with its modules
  * Handles responsive visibility and section-level styling
+ * Accepts moduleData for SSR to pass pre-fetched data to modules
  */
-export default function SectionRenderer({ section }: SectionRendererProps) {
+export default function SectionRenderer({ section, moduleData }: SectionRendererProps) {
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
@@ -91,7 +93,12 @@ export default function SectionRenderer({ section }: SectionRendererProps) {
                                 style={{ '--column-width': `${widthPercent}%` } as React.CSSProperties}
                             >
                                 {sortedColumnModules.map((module) => (
-                                    <ModuleRenderer key={module.id} module={module} sectionType={section.type} />
+                                    <ModuleRenderer
+                                        key={module.id}
+                                        module={module}
+                                        sectionType={section.type}
+                                        prefetchedData={moduleData?.[module.id]}
+                                    />
                                 ))}
                             </div>
                         );
@@ -109,7 +116,12 @@ export default function SectionRenderer({ section }: SectionRendererProps) {
         >
             <div className={getContainerClass()}>
                 {sortedModules.map((module) => (
-                    <ModuleRenderer key={module.id} module={module} sectionType={section.type} />
+                    <ModuleRenderer
+                        key={module.id}
+                        module={module}
+                        sectionType={section.type}
+                        prefetchedData={moduleData?.[module.id]}
+                    />
                 ))}
             </div>
         </section>

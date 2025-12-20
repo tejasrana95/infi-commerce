@@ -16,7 +16,7 @@ export class StripeService extends BasePaymentGateway {
         super(credentials, isTestMode);
 
         this.stripe = new Stripe(credentials.secretKey, {
-            apiVersion: '2024-11-20.acacia',
+            apiVersion: '2023-10-16',
         });
     }
 
@@ -161,7 +161,7 @@ export class StripeService extends BasePaymentGateway {
 
             if (paymentIntent.status === 'succeeded') {
                 status = 'success';
-            } else if (paymentIntent.status === 'canceled' || paymentIntent.status === 'payment_failed') {
+            } else if (paymentIntent.status === 'canceled') {
                 status = 'failed';
             } else if (paymentIntent.status === 'requires_payment_method') {
                 status = 'pending';

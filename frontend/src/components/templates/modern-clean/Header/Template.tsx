@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { HeaderTemplateProps } from '@/components/templates/core/Header/types';
 import MenuBuilder from '@/components/core/MenuBuilder';
 import { useStore } from '@/providers/StoreProvider';
@@ -57,7 +58,14 @@ export default function ModernCleanHeaderTemplate({
                 return (
                     <Link key={element.id} href="/" className={styles.logo}>
                         {(element.settings && element.settings?.logoUrl) ? (
-                            <img src={element.settings?.logoUrl} alt={element.settings?.logoAlt || storeName} />
+                            <Image
+                                src={element.settings?.logoUrl}
+                                alt={element.settings?.logoAlt || storeName}
+                                width={150}
+                                height={40}
+                                priority
+                                style={{ objectFit: 'contain', width: 'auto', height: '40px' }}
+                            />
                         ) : (
                             <span className={styles.logoText}>{storeName}</span>
                         )}

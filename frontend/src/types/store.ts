@@ -108,6 +108,11 @@ export interface FooterElement {
             name: string;
             icon: string;
         }>;
+        // Menu links (for inline footer links)
+        links?: Array<{
+            label: string;
+            url: string;
+        }>;
     };
 }
 

@@ -38,16 +38,21 @@ interface BannerSliderData {
     };
 }
 
+interface BannerSliderProps extends ModuleProps {
+    initialData?: BannerSliderData;
+}
+
 // Helper to clean image URLs
 const cleanImageUrl = (url: string): string => {
     if (!url) return '';
-    return url.replace(/([^:]\/)\/+/g, '$1');
+    return url.replace(/([^:]\/)+\/+/g, '$1');
 };
 
-export default function BannerSliderModule({ config }: ModuleProps) {
+export default function BannerSliderModule({ config, initialData }: BannerSliderProps) {
     const { sliderId } = config as BannerSliderConfig;
-    const [slider, setSlider] = useState<BannerSliderData | null>(null);
-    const [loading, setLoading] = useState(true);
+    // Use initialData if provided (SSR), otherwise start null
+    const [slider, setSlider] = useState<BannerSliderData | null>(initialData || null);
+    const [loading, setLoading] = useState(!initialData);
     const [error, setError] = useState<string | null>(null);
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
@@ -55,7 +60,10 @@ export default function BannerSliderModule({ config }: ModuleProps) {
     const touchStartX = useRef<number>(0);
     const touchEndX = useRef<number>(0);
 
+    // Only fetch client-side if no initialData provided
     useEffect(() => {
+        if (initialData) return; // Skip fetch if SSR data exists
+
         const fetchSlider = async () => {
             if (!sliderId) {
                 setLoading(false);
@@ -75,7 +83,7 @@ export default function BannerSliderModule({ config }: ModuleProps) {
         };
 
         fetchSlider();
-    }, [sliderId]);
+    }, [sliderId, initialData]);
 
     const goToSlide = useCallback((index: number) => {
         if (isTransitioning || !slider) return;

@@ -1,5 +1,4 @@
 import { Response } from 'express';
-import { body } from 'express-validator';
 import Geo from '../models/Geo';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
@@ -306,7 +305,7 @@ export const deleteGeo = asyncHandler(async (req: AuthRequest, res: Response) =>
  *       200:
  *         description: Countries retrieved successfully
  */
-export const getCountriesHierarchical = asyncHandler(async (req: AuthRequest, res: Response) => {
+export const getCountriesHierarchical = asyncHandler(async (res: Response) => {
     // Get all countries
     const countries = await Geo.find({ type: 'country' }).sort({ name: 1 });
 

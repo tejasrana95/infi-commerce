@@ -640,7 +640,7 @@ export const initializePayment = asyncHandler(async (req: AuthRequest, res: Resp
         };
     }
 
-    res.json(response);
+    return res.json(response);
 });
 
 /**

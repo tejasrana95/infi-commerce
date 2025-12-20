@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { body, param } from 'express-validator';
+import { body } from 'express-validator';
 import Currency from '../models/Currency';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
@@ -338,7 +338,7 @@ export const updateExchangeRate = asyncHandler(async (req: AuthRequest, res: Res
  *       200:
  *         description: Base currency retrieved
  */
-export const getBaseCurrency = asyncHandler(async (req: AuthRequest, res: Response) => {
+export const getBaseCurrency = asyncHandler(async (res: Response) => {
     const currency = await Currency.findOne({ isBaseCurrency: true });
 
     if (!currency) {

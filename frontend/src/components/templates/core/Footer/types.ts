@@ -11,7 +11,7 @@ export interface FooterColumn {
 }
 
 export interface FooterSocialLink {
-    platform: 'facebook' | 'twitter' | 'instagram' | 'youtube' | 'linkedin' | 'pinterest';
+    platform: 'facebook' | 'twitter' | 'instagram' | 'youtube' | 'linkedin' | 'pinterest' | 'tiktok';
     url: string;
 }
 

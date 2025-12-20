@@ -5,13 +5,15 @@ import SectionRenderer from '../SectionRenderer';
 
 interface LayoutEngineProps {
     layout: Layout;
+    moduleData?: Record<string, any>;
 }
 
 /**
  * LayoutEngine - Main component for rendering layouts
  * Processes layout data and renders sections in order
+ * Accepts moduleData for SSR to pass pre-fetched data to modules
  */
-export default function LayoutEngine({ layout }: LayoutEngineProps) {
+export default function LayoutEngine({ layout, moduleData }: LayoutEngineProps) {
     if (!layout || !layout.sections || layout.sections.length === 0) {
         return null;
     }
@@ -30,7 +32,7 @@ export default function LayoutEngine({ layout }: LayoutEngineProps) {
             style={pageStyle}
         >
             {sortedSections.map((section) => (
-                <SectionRenderer key={section.id} section={section} />
+                <SectionRenderer key={section.id} section={section} moduleData={moduleData} />
             ))}
 
             {/* Custom CSS */}
@@ -40,3 +42,4 @@ export default function LayoutEngine({ layout }: LayoutEngineProps) {
         </div>
     );
 }
+

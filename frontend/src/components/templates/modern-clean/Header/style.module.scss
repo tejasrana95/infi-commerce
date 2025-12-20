@@ -8,6 +8,8 @@
     transition: all 0.3s ease;
     width: 100%;
     z-index: 100;
+    // Fixed min-height to prevent CLS
+    min-height: 70px;
 
     // Sticky State
     &.sticky {
@@ -136,6 +138,8 @@
     position: relative;
     z-index: 20;
     background: var(--color-header-bg, white);
+    // Fixed min-height to prevent CLS
+    min-height: 70px;
 }
 
 @keyframes slideBehindHeader {
@@ -216,18 +220,24 @@
 
 .logo {
     text-decoration: none;
+    // Fixed dimensions to prevent CLS
+    min-height: 40px;
+    display: flex;
+    align-items: center;
 
     img {
-        height: 2.5rem;
+        height: 40px;
+        width: auto;
 
         @include mobile {
-            height: 2rem;
+            height: 32px;
         }
     }
 
     @include mobile {
         position: static;
         transform: none;
+        min-height: 32px;
     }
 }
 

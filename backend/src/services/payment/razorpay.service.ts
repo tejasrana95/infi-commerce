@@ -46,7 +46,7 @@ export class RazorpayService extends BasePaymentGateway {
                 },
             };
 
-            const order = await this.razorpay.orders.create(options);
+            const order = await this.razorpay.orders.create(options as any);
 
             return {
                 success: true,
@@ -137,19 +137,19 @@ export class RazorpayService extends BasePaymentGateway {
         reason?: string;
     }): Promise<RefundResponse> {
         try {
-            const refund = await this.razorpay.payments.refund(params.paymentId, {
+            const refundResult = await this.razorpay.payments.refund(params.paymentId, {
                 amount: this.formatAmount(params.amount, 'INR'), // Razorpay uses INR by default
                 notes: {
-                    reason: params.reason,
+                    reason: params.reason || null,
                 },
-            });
+            } as any);
 
             return {
                 success: true,
-                refundId: refund.id,
-                amount: this.parseAmount(refund.amount, 'INR'),
-                status: refund.status === 'processed' ? 'success' : 'pending',
-                gatewayResponse: refund,
+                refundId: refundResult.id,
+                amount: this.parseAmount(Number(refundResult.amount), 'INR'),
+                status: refundResult.status === 'processed' ? 'success' : 'pending',
+                gatewayResponse: refundResult,
             };
         } catch (error: any) {
             return {
@@ -184,7 +184,7 @@ export class RazorpayService extends BasePaymentGateway {
 
             return {
                 status,
-                amount: this.parseAmount(payment.amount, payment.currency),
+                amount: this.parseAmount(Number(payment.amount), payment.currency),
                 currency: payment.currency,
             };
         } catch (error) {

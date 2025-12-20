@@ -24,22 +24,27 @@ function processFooterConfig(config?: FooterConfig, store?: Store | null): Omit<
     const currentYear = new Date().getFullYear();
     const storeName = store?.name || 'Store';
 
+    // Find the columns section and bottom-bar section from FooterConfig.sections
+    const columnsSection = config?.sections?.find(s => s.type === 'columns');
+    const bottomBarSection = config?.sections?.find(s => s.type === 'bottom-bar');
+    const footerColumns = columnsSection?.columns;
+
     // Process columns from config or use defaults
     let columns: FooterColumn[] = DEFAULT_FOOTER_COLUMNS;
-    if (config?.columns && config.columns.length > 0) {
-        columns = config.columns.map(col => ({
+    if (footerColumns && footerColumns.length > 0) {
+        columns = footerColumns.map(col => ({
             title: col.title || 'Links',
             links: col.items
                 ?.filter(item => item.type === 'menu')
-                .flatMap(item => item.settings?.links as any[] || []) || [],
+                .flatMap(item => item.settings?.links || []) || [],
         }));
     }
 
     // Process social links from config
     let socialLinks: FooterSocialLink[] = DEFAULT_SOCIAL_LINKS;
-    const socialItem = config?.columns?.flatMap(c => c.items).find(i => i.type === 'social');
-    if (socialItem?.settings?.links) {
-        socialLinks = (socialItem.settings.links as any[]).map(link => ({
+    const socialItem = footerColumns?.flatMap(c => c.items).find(i => i.type === 'social');
+    if (socialItem?.settings?.socialLinks) {
+        socialLinks = socialItem.settings.socialLinks.map(link => ({
             platform: link.platform || 'facebook',
             url: link.url || '#',
         }));
@@ -47,27 +52,27 @@ function processFooterConfig(config?: FooterConfig, store?: Store | null): Omit<
 
     // Process contact info
     let contact: FooterContactInfo = DEFAULT_CONTACT;
-    const contactItem = config?.columns?.flatMap(c => c.items).find(i => i.type === 'contact');
-    if (contactItem?.settings) {
+    const contactItem = footerColumns?.flatMap(c => c.items).find(i => i.type === 'contact');
+    if (contactItem?.settings?.contactInfo) {
         contact = {
-            email: (contactItem.settings as any).email || DEFAULT_CONTACT.email,
-            phone: (contactItem.settings as any).phone || DEFAULT_CONTACT.phone,
-            address: (contactItem.settings as any).address || DEFAULT_CONTACT.address,
+            email: contactItem.settings.contactInfo.email || DEFAULT_CONTACT.email,
+            phone: contactItem.settings.contactInfo.phone || DEFAULT_CONTACT.phone,
+            address: contactItem.settings.contactInfo.address || DEFAULT_CONTACT.address,
         };
     }
 
     // Newsletter config
-    const newsletterItem = config?.columns?.flatMap(c => c.items).find(i => i.type === 'newsletter');
+    const newsletterItem = footerColumns?.flatMap(c => c.items).find(i => i.type === 'newsletter');
     const newsletter = {
         enabled: !!newsletterItem,
-        title: (newsletterItem?.settings as any)?.title || 'Join Our Newsletter',
-        description: (newsletterItem?.settings as any)?.description || 'Be the first to know about new collections and exclusive offers.',
-        placeholder: (newsletterItem?.settings as any)?.placeholder || 'Enter your email',
-        buttonText: (newsletterItem?.settings as any)?.buttonText || 'Subscribe',
+        title: newsletterItem?.settings?.newsletterTitle || 'Join Our Newsletter',
+        description: newsletterItem?.settings?.newsletterDescription || 'Be the first to know about new collections and exclusive offers.',
+        placeholder: newsletterItem?.settings?.newsletterPlaceholder || 'Enter your email',
+        buttonText: newsletterItem?.settings?.newsletterButtonText || 'Subscribe',
     };
 
     // Copyright text
-    const copyrightText = config?.bottomBar?.copyright || `© ${currentYear} ${storeName}. All rights reserved.`;
+    const copyrightText = bottomBarSection?.bottomBarContent || `© ${currentYear} ${storeName}. All rights reserved.`;
 
     return {
         storeName,
@@ -76,8 +81,8 @@ function processFooterConfig(config?: FooterConfig, store?: Store | null): Omit<
         contact,
         newsletter,
         copyrightText,
-        backgroundColor: config?.backgroundColor,
-        textColor: config?.textColor,
+        backgroundColor: columnsSection?.backgroundColor,
+        textColor: columnsSection?.textColor,
         currentYear,
     };
 }

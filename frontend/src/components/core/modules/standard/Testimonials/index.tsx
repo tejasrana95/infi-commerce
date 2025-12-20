@@ -25,13 +25,17 @@ interface TestimonialData {
     company?: string;
 }
 
+interface TestimonialsProps extends ModuleProps {
+    initialData?: TestimonialData[];
+}
+
 // Helper to clean image URLs
 const cleanImageUrl = (url: string): string => {
     if (!url) return '';
-    return url.replace(/([^:]\/)\/+/g, '$1');
+    return url.replace(/([^:]\/)+\/+/g, '$1');
 };
 
-export default function TestimonialsModule({ config }: ModuleProps) {
+export default function TestimonialsModule({ config, initialData }: TestimonialsProps) {
     const {
         testimonialIds,
         layout = 'carousel',
@@ -41,14 +45,18 @@ export default function TestimonialsModule({ config }: ModuleProps) {
         theme = 'gradient',
     } = config as TestimonialsConfig;
 
-    const [testimonials, setTestimonials] = useState<TestimonialData[]>([]);
-    const [loading, setLoading] = useState(true);
+    // Use initialData if provided (SSR), otherwise start empty
+    const [testimonials, setTestimonials] = useState<TestimonialData[]>(initialData || []);
+    const [loading, setLoading] = useState(!initialData);
     const [error, setError] = useState<string | null>(null);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
     const [isTransitioning, setIsTransitioning] = useState(false);
 
+    // Only fetch client-side if no initialData provided
     useEffect(() => {
+        if (initialData) return; // Skip fetch if SSR data exists
+
         const fetchTestimonials = async () => {
             try {
                 setLoading(true);
@@ -68,7 +76,7 @@ export default function TestimonialsModule({ config }: ModuleProps) {
         } else {
             setLoading(false);
         }
-    }, [testimonialIds]);
+    }, [testimonialIds, initialData]);
 
     const goToSlide = useCallback((index: number) => {
         if (isTransitioning) return;

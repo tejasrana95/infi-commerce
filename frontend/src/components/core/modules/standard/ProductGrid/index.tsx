@@ -30,7 +30,11 @@ interface Product {
     inStock?: boolean;
 }
 
-export default function ProductGridModule({ config }: ModuleProps) {
+interface ProductGridProps extends ModuleProps {
+    initialProducts?: Product[];
+}
+
+export default function ProductGridModule({ config, initialProducts }: ProductGridProps) {
     const {
         source,
         limit = 8,
@@ -42,13 +46,18 @@ export default function ProductGridModule({ config }: ModuleProps) {
         title,
     } = config as ProductGridConfig;
 
-    const [products, setProducts] = useState<Product[]>([]);
-    const [loading, setLoading] = useState(true);
+    // Use initialProducts if provided (SSR), otherwise start empty
+    const hasSSRData = initialProducts && initialProducts.length > 0;
+    const [products, setProducts] = useState<Product[]>(initialProducts || []);
+    const [loading, setLoading] = useState(!hasSSRData);
     const [error, setError] = useState<string | null>(null);
 
     const ProductCard = getComponent('ProductCard');
 
+    // Only fetch client-side if no initialProducts provided
     useEffect(() => {
+        if (hasSSRData) return; // Skip fetch if SSR data exists
+
         const fetchProducts = async () => {
             try {
                 setLoading(true);
@@ -78,7 +87,7 @@ export default function ProductGridModule({ config }: ModuleProps) {
         };
 
         fetchProducts();
-    }, [source, limit, categoryIds, productIds]);
+    }, [source, limit, categoryIds, productIds, initialProducts]);
 
     const columnClass = styles[`columns${Math.min(Math.max(columns, 2), 6)}`];
 

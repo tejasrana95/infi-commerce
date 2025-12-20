@@ -360,7 +360,7 @@ export default function CouponForm({ initialData, onSubmit, isSubmitting = false
                                 <Box sx={{ flex: 1 }}>
                                     <CategoryAutocomplete
                                         value={tempCategory?._id || null}
-                                        onChange={(_, category) => setTempCategory(category || null)}
+                                        onChange={(_, category) => setTempCategory((category as CategoryOption | null) || null)}
                                         storeId={watchStoreId}
                                         label="Add Category"
                                     />

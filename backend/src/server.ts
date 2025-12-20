@@ -1,4 +1,4 @@
-import express, { Express, Request, Response, NextFunction } from 'express';
+import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -37,7 +37,7 @@ const uploadsDir = process.env.UPLOAD_DIR || path.join(__dirname, '..', '..', 'u
 app.use('/uploads', express.static(uploadsDir));
 
 // Health check endpoint
-app.get('/health', (req: Request, res: Response) => {
+app.get('/health', (res: Response) => {
     res.status(200).json({
         status: 'ok',
         timestamp: new Date().toISOString(),
@@ -78,7 +78,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 }));
 
 // Swagger JSON spec
-app.get('/api-docs.json', (req: Request, res: Response) => {
+app.get('/api-docs.json', (res: Response) => {
     res.setHeader('Content-Type', 'application/json');
     res.send(swaggerSpec);
 });
@@ -95,7 +95,7 @@ app.use((req: Request, res: Response) => {
 });
 
 // Error handler
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+app.use((err: any, res: Response) => {
     console.error('Error:', err);
 
     const statusCode = err.statusCode || 500;

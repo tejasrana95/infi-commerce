@@ -9,15 +9,49 @@ import { getEnrichedMenus } from "@/lib/server-menu";
 import { getComponent } from "@/components/templates/registry";
 import { Currency, DEFAULT_TEMPLATE_ID } from "@/types";
 
+// Optimized font loading with display: swap to prevent FOIT
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
 });
+
+// ============================================
+// Generate CSS Variables from Theme Config (Server-Side)
+// ============================================
+function generateThemeCSSVariables(themeConfig: any): string {
+  if (!themeConfig) return '';
+
+  const variables: string[] = [];
+
+  // Colors
+  if (themeConfig.colors) {
+    const { primary, secondary, accent, background, text, headerBg, footerBg } = themeConfig.colors;
+    if (primary) variables.push(`--color-primary: ${primary}`);
+    if (secondary) variables.push(`--color-secondary: ${secondary}`);
+    if (accent) variables.push(`--color-accent: ${accent}`);
+    if (background) variables.push(`--color-background: ${background}`);
+    if (text) variables.push(`--color-text: ${text}`);
+    if (headerBg) variables.push(`--color-header-bg: ${headerBg}`);
+    if (footerBg) variables.push(`--color-footer-bg: ${footerBg}`);
+  }
+
+  // Fonts
+  if (themeConfig.fonts) {
+    const { heading, body } = themeConfig.fonts;
+    if (heading) variables.push(`--font-heading: ${heading}`);
+    if (body) variables.push(`--font-body: ${body}`);
+  }
+
+  if (variables.length === 0) return '';
+  return `:root { ${variables.join('; ')}; }`;
+}
 
 // ============================================
 // Metadata Generation
@@ -70,6 +104,9 @@ export default async function RootLayout({
   // Get template ID
   const templateId = store?.theme?.templateId || DEFAULT_TEMPLATE_ID;
 
+  // Generate CSS variables on server (prevents CLS)
+  const themeCSSVariables = generateThemeCSSVariables(store?.theme);
+
   // Fetch currencies
   let currencies: Currency[] = [];
   let selectedCurrency: Currency | undefined;
@@ -90,6 +127,12 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
+      <head>
+        {/* Server-rendered CSS variables - prevents CLS */}
+        {themeCSSVariables && (
+          <style dangerouslySetInnerHTML={{ __html: themeCSSVariables }} />
+        )}
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         {store && (
           <script
@@ -134,4 +177,5 @@ export default async function RootLayout({
     </html>
   );
 }
+
 

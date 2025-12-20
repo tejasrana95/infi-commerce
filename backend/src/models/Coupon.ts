@@ -177,7 +177,7 @@ CouponSchema.methods.canCustomerUse = function (customerId: string) {
 };
 
 // Method to calculate discount
-CouponSchema.methods.calculateDiscount = function (cartValue: number, applicableAmount: number) {
+CouponSchema.methods.calculateDiscount = function (applicableAmount: number) {
     let discount = 0;
 
     if (this.discountType === 'flat') {

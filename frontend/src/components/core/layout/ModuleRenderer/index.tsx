@@ -6,13 +6,15 @@ import { moduleRegistry } from '@/components/core/modules';
 interface ModuleRendererProps {
     module: Module;
     sectionType?: 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';
+    prefetchedData?: any; // SSR pre-fetched data for this module
 }
 
 /**
  * ModuleRenderer - Renders a single module based on its type
  * Looks up the module component from the registry and applies styling
+ * Accepts prefetchedData for SSR to prevent client-side fetches
  */
-export default function ModuleRenderer({ module, sectionType }: ModuleRendererProps) {
+export default function ModuleRenderer({ module, sectionType, prefetchedData }: ModuleRendererProps) {
     // Check visibility (simplified - you may want device detection)
     const isVisible = module.visibility?.desktop !== false;
 
@@ -40,6 +42,25 @@ export default function ModuleRenderer({ module, sectionType }: ModuleRendererPr
         return null;
     }
 
+    // Map prefetchedData to the correct prop name based on module type
+    const getModuleProps = () => {
+        const baseProps = { config: module.config, sectionType };
+
+        if (!prefetchedData) return baseProps;
+
+        switch (module.type) {
+            case 'product-carousel':
+            case 'product-grid':
+                return { ...baseProps, initialProducts: prefetchedData };
+            case 'banner-slider':
+                return { ...baseProps, initialData: prefetchedData };
+            case 'testimonials':
+                return { ...baseProps, initialData: prefetchedData };
+            default:
+                return baseProps;
+        }
+    };
+
     // Build module styles
     const moduleStyle: React.CSSProperties = {
         marginTop: module.styling?.marginTop ? `${module.styling.marginTop}px` : undefined,
@@ -53,7 +74,7 @@ export default function ModuleRenderer({ module, sectionType }: ModuleRendererPr
             className={module.styling?.className || ''}
             style={moduleStyle}
         >
-            <ModuleComponent config={module.config} sectionType={sectionType} />
+            <ModuleComponent {...getModuleProps()} />
 
             {/* Custom CSS for this module */}
             {module.styling?.customCSS && (

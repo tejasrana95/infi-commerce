@@ -322,7 +322,7 @@ export const activateTheme = asyncHandler(async (req: AuthRequest, res: Response
     theme.isActive = true;
     await theme.save(); // Middleware handles deactivating others
 
-    res.json({
+    return res.json({
         message: 'Theme activated successfully',
         theme,
     });

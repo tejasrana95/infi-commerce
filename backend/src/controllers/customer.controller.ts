@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { body, param, query } from 'express-validator';
+import { body, param } from 'express-validator';
 import Customer from '../models/Customer';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';

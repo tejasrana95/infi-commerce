@@ -18,7 +18,8 @@ body {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  /* System font stack for faster rendering, with web font as var override */
+  font-family: var(--font-body, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -32,4 +33,11 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* Prevent layout shift from font loading */
+@supports (font-display: swap) {
+  body {
+    font-display: swap;
+  }
 }
