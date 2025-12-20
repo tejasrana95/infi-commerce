@@ -7,7 +7,12 @@ import { LoadingSpinner } from '@/components/atoms';
 import { LayoutDesigner } from '@/components/organisms/LayoutDesigner';
 import { useNotification } from '@/contexts/NotificationContext';
 import api from '@/lib/api';
-import { Layout } from '@/types';
+import { Layout, Store, CategoryConfig, DEFAULT_CATEGORY_CONFIG } from '@/types';
+import {
+    createCategoryDefaultLayout,
+    isCategoryLayoutEmpty,
+    CategoryFilterPosition
+} from '@/components/organisms/LayoutDesigner/types';
 
 type PageParams = Promise<{ id: string }>;
 
@@ -28,7 +33,49 @@ export default function LayoutDesignerPage({ params }: { params: PageParams }) {
         try {
             setLoading(true);
             const response = await api.get(`/layouts/${resolvedParams.id}`);
-            setLayout(response.data.layout || response.data.data);
+            let fetchedLayout = response.data.layout || response.data.data;
+
+            // For category layouts, auto-generate split layout if empty
+            if (fetchedLayout.type === 'category' && isCategoryLayoutEmpty(fetchedLayout.sections)) {
+                try {
+                    // Fetch store's category config to determine layout
+                    const storeId = typeof fetchedLayout.storeId === 'object'
+                        ? fetchedLayout.storeId._id
+                        : fetchedLayout.storeId;
+
+                    const storeResponse = await api.get(`/stores/${storeId}`);
+                    const store: Store = storeResponse.data.store || storeResponse.data;
+
+                    // Get category config from theme or use defaults
+                    const categoryConfig: CategoryConfig = {
+                        ...DEFAULT_CATEGORY_CONFIG,
+                        ...store.theme?.category,
+                    };
+
+                    // Generate default category layout based on config
+                    const filterPosition = categoryConfig.filters?.position || 'left';
+                    const sidebarWidth = categoryConfig.filters?.sidebarWidth || 280;
+
+                    fetchedLayout = {
+                        ...fetchedLayout,
+                        sections: createCategoryDefaultLayout(
+                            filterPosition as CategoryFilterPosition,
+                            sidebarWidth
+                        ),
+                    };
+
+                    showNotification('Generated default category layout based on your theme settings', 'info');
+                } catch (err) {
+                    console.error('Failed to fetch store config, using defaults', err);
+                    // Fall back to default left sidebar layout
+                    fetchedLayout = {
+                        ...fetchedLayout,
+                        sections: createCategoryDefaultLayout('left', 280),
+                    };
+                }
+            }
+
+            setLayout(fetchedLayout);
         } catch (err: any) {
             console.error('Failed to fetch layout', err);
             showNotification(err.response?.data?.message || 'Failed to load layout', 'error');

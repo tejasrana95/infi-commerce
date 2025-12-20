@@ -338,7 +338,7 @@ export const updateExchangeRate = asyncHandler(async (req: AuthRequest, res: Res
  *       200:
  *         description: Base currency retrieved
  */
-export const getBaseCurrency = asyncHandler(async (res: Response) => {
+export const getBaseCurrency = asyncHandler(async (_req: AuthRequest, res: Response) => {
     const currency = await Currency.findOne({ isBaseCurrency: true });
 
     if (!currency) {

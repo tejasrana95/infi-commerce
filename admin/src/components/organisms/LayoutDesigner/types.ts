@@ -234,6 +234,33 @@ export const AVAILABLE_MODULES: ModuleDefinition[] = [
         defaultConfig: { showAuthor: true, showDate: true, showTags: true },
         allowedLayoutTypes: ['blog-post'],
     },
+    {
+        type: 'category-header',
+        label: 'Category Header',
+        icon: 'ViewAgenda',
+        category: 'placeholder',
+        description: 'Category title, image, breadcrumbs',
+        defaultConfig: { showImage: true, showDescription: true, showBreadcrumbs: true },
+        allowedLayoutTypes: ['category'],
+    },
+    {
+        type: 'category-filters',
+        label: 'Filter Sidebar',
+        icon: 'FilterList',
+        category: 'placeholder',
+        description: 'Product filters (auto-generated)',
+        defaultConfig: {},
+        allowedLayoutTypes: ['category'],
+    },
+    {
+        type: 'category-pagination',
+        label: 'Pagination',
+        icon: 'LastPage',
+        category: 'placeholder',
+        description: 'Page navigation / load more',
+        defaultConfig: {},
+        allowedLayoutTypes: ['category'],
+    },
 ];
 
 // Get modules by category
@@ -278,3 +305,95 @@ export const createColumn = (width: number): LayoutColumn => ({
     width,
     modules: [],
 });
+
+// Filter position type for category pages
+export type CategoryFilterPosition = 'left' | 'right' | 'top' | 'off-canvas';
+
+// Create default category page layout based on filter position
+export const createCategoryDefaultLayout = (
+    filterPosition: CategoryFilterPosition = 'left',
+    sidebarWidth: number = 280
+): LayoutSection[] => {
+    const sections: LayoutSection[] = [];
+
+    // 1. Header section (full width) - category header
+    const headerSection: LayoutSection = {
+        id: crypto.randomUUID(),
+        name: 'Category Header',
+        type: 'full-width',
+        settings: { paddingTop: 20, paddingBottom: 20 },
+        modules: [createModule('category-header')],
+        visibility: { desktop: true, tablet: true, mobile: true },
+        order: 0,
+    };
+    sections.push(headerSection);
+
+    // 2. Content section - varies based on filter position
+    if (filterPosition === 'left' || filterPosition === 'right') {
+        // Split layout with sidebar
+        const sidebarWidthPercent = Math.round((sidebarWidth / 1200) * 12); // Convert to 12-column grid
+        const mainWidthPercent = 12 - sidebarWidthPercent;
+
+        const filterColumn: LayoutColumn = {
+            id: crypto.randomUUID(),
+            width: sidebarWidthPercent,
+            modules: [createModule('category-filters')],
+        };
+
+        const mainColumn: LayoutColumn = {
+            id: crypto.randomUUID(),
+            width: mainWidthPercent,
+            modules: [
+                createModule('category-products'),
+                createModule('category-pagination'),
+            ],
+        };
+
+        const contentSection: LayoutSection = {
+            id: crypto.randomUUID(),
+            name: 'Category Content',
+            type: 'split-2',
+            settings: { paddingTop: 20, paddingBottom: 40 },
+            // Order columns based on filter position
+            columns: filterPosition === 'left'
+                ? [filterColumn, mainColumn]
+                : [mainColumn, filterColumn],
+            modules: [],
+            visibility: { desktop: true, tablet: true, mobile: true },
+            order: 1,
+        };
+        sections.push(contentSection);
+    } else {
+        // Full width layout (top filters or off-canvas)
+        const contentSection: LayoutSection = {
+            id: crypto.randomUUID(),
+            name: 'Category Content',
+            type: 'container',
+            settings: { paddingTop: 20, paddingBottom: 40 },
+            modules: [
+                ...(filterPosition === 'top' ? [createModule('category-filters')] : []),
+                createModule('category-products'),
+                createModule('category-pagination'),
+            ],
+            visibility: { desktop: true, tablet: true, mobile: true },
+            order: 1,
+        };
+        sections.push(contentSection);
+    }
+
+    return sections;
+};
+
+// Check if a layout needs default category sections
+export const isCategoryLayoutEmpty = (sections: LayoutSection[]): boolean => {
+    // Check if layout has no sections, or has only empty sections
+    if (sections.length === 0) return true;
+
+    // Check if any section has category-products module
+    const hasCategoryProducts = sections.some(s =>
+        s.modules.some(m => m.type === 'category-products') ||
+        s.columns?.some(c => c.modules.some(m => m.type === 'category-products'))
+    );
+
+    return !hasCategoryProducts;
+};

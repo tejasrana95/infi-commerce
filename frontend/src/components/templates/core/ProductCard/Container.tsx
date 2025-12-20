@@ -79,7 +79,7 @@ function processProductData(product: Product, currency: import('@/types').Curren
         id: product._id,
         name: product.name,
         slug: product.slug,
-        brand: product.brand,
+        brand: product.brandName || product.brand,
         sku: product.sku,
         price: currentPrice,
         compareAtPrice: displayCompareAt,

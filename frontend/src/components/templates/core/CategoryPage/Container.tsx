@@ -1,0 +1,392 @@
+// CategoryPage Container - Business logic, data fetching, state management
+// Follows the pattern: Container handles logic, Template handles presentation
+
+'use client';
+
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useStore } from '@/providers/StoreProvider';
+import api from '@/lib/api';
+import { getComponent } from '@/components/templates/registry';
+import { CategoryConfig, DEFAULT_CATEGORY_CONFIG } from '@/types/store';
+import {
+    Category,
+    ProductListItem,
+    AvailableFilters,
+    ActiveFilters,
+    BreadcrumbItem,
+    PaginationState,
+    DEFAULT_SORT_OPTIONS,
+    CategoryPageTemplateProps,
+} from './types';
+
+interface CategoryPageContainerProps {
+    category: Category;
+    initialProducts?: ProductListItem[];
+    initialFilters?: AvailableFilters | null;
+}
+
+export default function CategoryPageContainer({
+    category,
+    initialProducts = [],
+    initialFilters = null,
+}: CategoryPageContainerProps) {
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const { store, currentCurrency } = useStore();
+
+    // Get category config from theme
+    const config: CategoryConfig = useMemo(() => ({
+        ...DEFAULT_CATEGORY_CONFIG,
+        ...store?.theme?.category,
+    }), [store?.theme?.category]);
+
+    const templateId = store?.theme?.templateId || 'modern-clean';
+    const currencySymbol = currentCurrency?.symbol || (store?.currency === 'INR' ? '₹' : store?.currency === 'EUR' ? '€' : '$');
+    const exchangeRate = currentCurrency?.exchangeRate || 1;
+
+    // State
+    const [products, setProducts] = useState<ProductListItem[]>(initialProducts);
+    const [availableFilters, setAvailableFilters] = useState<AvailableFilters | null>(initialFilters);
+    const [isLoading, setIsLoading] = useState(initialProducts.length === 0);
+    const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+
+    // Pagination state
+    const [pagination, setPagination] = useState<PaginationState>({
+        page: parseInt(searchParams.get('page') || '1'),
+        limit: config.grid?.productsPerPage || 24,
+        total: 0,
+        pages: 0,
+    });
+
+    // Parse active filters from URL
+    const activeFilters = useMemo<ActiveFilters>(() => {
+        const filters: ActiveFilters = {};
+
+        // Price range
+        const priceParam = searchParams.get('price');
+        if (priceParam) {
+            const [min, max] = priceParam.split('-').map(v => parseFloat(v));
+            if (!isNaN(min) || !isNaN(max)) {
+                filters.price = { min: min || 0, max: max || Infinity };
+            }
+        }
+
+        // Brands
+        const brandsParam = searchParams.get('brand');
+        if (brandsParam) {
+            filters.brands = brandsParam.split(',');
+        }
+
+        // Tags
+        const tagsParam = searchParams.get('tags');
+        if (tagsParam) {
+            filters.tags = tagsParam.split(',');
+        }
+
+        // Rating
+        const ratingParam = searchParams.get('rating');
+        if (ratingParam) {
+            filters.rating = parseInt(ratingParam);
+        }
+
+        // Stock status
+        const stockParam = searchParams.get('stock');
+        if (stockParam) {
+            filters.stockStatus = stockParam.split(',');
+        }
+
+        // Attribute filters (from URL params matching available filter slugs)
+        if (availableFilters?.attributes) {
+            const attrFilters: Record<string, string[]> = {};
+            availableFilters.attributes.forEach(attr => {
+                const param = searchParams.get(attr.slug);
+                if (param) {
+                    attrFilters[attr.slug] = param.split(',');
+                }
+            });
+            if (Object.keys(attrFilters).length > 0) {
+                filters.attributes = attrFilters;
+            }
+        }
+
+        return filters;
+    }, [searchParams, availableFilters]);
+
+    // Current sort
+    const currentSort = searchParams.get('sort') || config.sorting?.defaultSort || 'featured';
+
+    // Count active filters
+    const activeFilterCount = useMemo(() => {
+        let count = 0;
+        if (activeFilters.price) count++;
+        if (activeFilters.brands?.length) count += activeFilters.brands.length;
+        if (activeFilters.tags?.length) count += activeFilters.tags.length;
+        if (activeFilters.rating) count++;
+        if (activeFilters.stockStatus?.length) count += activeFilters.stockStatus.length;
+        if (activeFilters.attributes) {
+            Object.values(activeFilters.attributes).forEach(vals => {
+                count += vals.length;
+            });
+        }
+        return count;
+    }, [activeFilters]);
+
+    // Build breadcrumbs
+    const breadcrumbs = useMemo<BreadcrumbItem[]>(() => {
+        const crumbs: BreadcrumbItem[] = [
+            { label: 'Home', href: '/' },
+        ];
+
+        if (category.parentCategory) {
+            crumbs.push({
+                label: category.parentCategory.title,
+                href: `/category/${category.parentCategory.slug}`,
+            });
+        }
+
+        crumbs.push({ label: category.title });
+
+        return crumbs;
+    }, [category]);
+
+    // Build URL with filters
+    const buildFilterUrl = useCallback((updates: Record<string, string | null>) => {
+        const params = new URLSearchParams(searchParams.toString());
+
+        Object.entries(updates).forEach(([key, value]) => {
+            if (value === null || value === '') {
+                params.delete(key);
+            } else {
+                params.set(key, value);
+            }
+        });
+
+        // Reset to page 1 when filters change (except for page changes)
+        if (!updates.hasOwnProperty('page')) {
+            params.delete('page');
+        }
+
+        const query = params.toString();
+        return query ? `${pathname}?${query}` : pathname;
+    }, [searchParams, pathname]);
+
+    // Fetch products
+    const fetchProducts = useCallback(async () => {
+        if (!store?._id) return;
+
+        setIsLoading(true);
+        try {
+            // Build query params
+            const params = new URLSearchParams();
+            params.set('storeId', store._id);
+            params.set('categoryId', category._id);
+            params.set('page', pagination.page.toString());
+            params.set('limit', pagination.limit.toString());
+            params.set('sort', currentSort);
+
+            // Add active filters
+            if (activeFilters.price) {
+                params.set('price', `${activeFilters.price.min}-${activeFilters.price.max === Infinity ? '' : activeFilters.price.max}`);
+            }
+            if (activeFilters.brands?.length) {
+                params.set('brand', activeFilters.brands.join(','));
+            }
+            if (activeFilters.tags?.length) {
+                params.set('tags', activeFilters.tags.join(','));
+            }
+            if (activeFilters.rating) {
+                params.set('rating', activeFilters.rating.toString());
+            }
+            if (activeFilters.stockStatus?.length) {
+                params.set('stock', activeFilters.stockStatus.join(','));
+            }
+            if (activeFilters.attributes) {
+                Object.entries(activeFilters.attributes).forEach(([key, values]) => {
+                    params.set(key, values.join(','));
+                });
+            }
+
+            const response = await api.get(`/products?${params.toString()}`);
+            setProducts(response.products || []);
+            setPagination(prev => ({
+                ...prev,
+                total: response.pagination?.total || 0,
+                pages: response.pagination?.pages || 0,
+            }));
+        } catch (error) {
+            console.error('Failed to fetch products:', error);
+            setProducts([]);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [store?._id, category._id, pagination.page, pagination.limit, currentSort, activeFilters, api]);
+
+    // Fetch available filters
+    const fetchFilters = useCallback(async () => {
+
+        if (!store?._id || availableFilters) return;
+
+        try {
+            const response = await api.get(`/categories/${category._id}/filters?storeId=${store._id}`);
+            console.log('response', response);
+            setAvailableFilters(response);
+        } catch (error) {
+            console.error('Failed to fetch filters:', error);
+        }
+    }, [store?._id, category._id, availableFilters, api]);
+
+    // Initial fetch
+    useEffect(() => {
+        fetchFilters();
+    }, [fetchFilters]);
+
+    useEffect(() => {
+        fetchProducts();
+    }, [fetchProducts]);
+
+    // Handler: Page change
+    const handlePageChange = useCallback((page: number) => {
+        setPagination(prev => ({ ...prev, page }));
+        router.push(buildFilterUrl({ page: page.toString() }), { scroll: false });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [router, buildFilterUrl]);
+
+    // Handler: Load more
+    const handleLoadMore = useCallback(async () => {
+        if (!store?._id || isLoading) return;
+
+        const nextPage = pagination.page + 1;
+        if (nextPage > pagination.pages) return;
+
+        setIsLoading(true);
+        try {
+            const params = new URLSearchParams();
+            params.set('storeId', store._id);
+            params.set('categoryId', category._id);
+            params.set('page', nextPage.toString());
+            params.set('limit', pagination.limit.toString());
+            params.set('sort', currentSort);
+
+            const response = await api.get(`/products?${params.toString()}`);
+            setProducts(prev => [...prev, ...(response.data.products || [])]);
+            setPagination(prev => ({ ...prev, page: nextPage }));
+        } catch (error) {
+            console.error('Failed to load more products:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [store?._id, category._id, pagination, currentSort, isLoading, api]);
+
+    // Handler: Sort change
+    const handleSortChange = useCallback((sort: string) => {
+        router.push(buildFilterUrl({ sort }), { scroll: false });
+    }, [router, buildFilterUrl]);
+
+    // Handler: Filter change
+    const handleFilterChange = useCallback((filterType: string, value: any) => {
+        const updates: Record<string, string | null> = {};
+
+        switch (filterType) {
+            case 'price':
+                if (value && (value.min > 0 || value.max < Infinity)) {
+                    updates.price = `${value.min}-${value.max === Infinity ? '' : value.max}`;
+                } else {
+                    updates.price = null;
+                }
+                break;
+
+            case 'brand':
+                updates.brand = value?.length ? value.join(',') : null;
+                break;
+
+            case 'tags':
+                updates.tags = value?.length ? value.join(',') : null;
+                break;
+
+            case 'rating':
+                updates.rating = value ? value.toString() : null;
+                break;
+
+            case 'stock':
+                updates.stock = value?.length ? value.join(',') : null;
+                break;
+
+            default:
+                // Attribute filter
+                updates[filterType] = value?.length ? value.join(',') : null;
+                break;
+        }
+
+        router.push(buildFilterUrl(updates), { scroll: false });
+    }, [router, buildFilterUrl]);
+
+    // Handler: Clear single filter
+    const handleClearFilter = useCallback((filterType: string) => {
+        router.push(buildFilterUrl({ [filterType]: null }), { scroll: false });
+    }, [router, buildFilterUrl]);
+
+    // Handler: Clear all filters
+    const handleClearAllFilters = useCallback(() => {
+        const updates: Record<string, null> = {
+            price: null,
+            brand: null,
+            tags: null,
+            rating: null,
+            stock: null,
+        };
+
+        // Also clear attribute filters
+        availableFilters?.attributes.forEach(attr => {
+            updates[attr.slug] = null;
+        });
+
+        router.push(buildFilterUrl(updates), { scroll: false });
+    }, [router, buildFilterUrl, availableFilters]);
+
+    // Get sort options (filtered based on config)
+    const sortOptions = useMemo(() => {
+        const availableOptions = config.sorting?.availableSortOptions;
+        if (availableOptions?.length) {
+            return DEFAULT_SORT_OPTIONS.filter(opt =>
+                availableOptions.includes(opt.value)
+            );
+        }
+        return DEFAULT_SORT_OPTIONS;
+    }, [config.sorting?.availableSortOptions]);
+
+    // Get the template component
+    const CategoryPageTemplate = getComponent<CategoryPageTemplateProps>(
+        'CategoryPageTemplate',
+        templateId
+    );
+
+    return (
+        <CategoryPageTemplate
+            category={category}
+            breadcrumbs={breadcrumbs}
+            products={products}
+            isLoading={isLoading}
+            pagination={pagination}
+            onPageChange={handlePageChange}
+            onLoadMore={handleLoadMore}
+            currentSort={currentSort}
+            sortOptions={sortOptions}
+            onSortChange={handleSortChange}
+            availableFilters={availableFilters}
+            activeFilters={activeFilters}
+            activeFilterCount={activeFilterCount}
+            onFilterChange={handleFilterChange}
+            onClearFilter={handleClearFilter}
+            onClearAllFilters={handleClearAllFilters}
+            isFilterDrawerOpen={isFilterDrawerOpen}
+            onOpenFilterDrawer={() => setIsFilterDrawerOpen(true)}
+            onCloseFilterDrawer={() => setIsFilterDrawerOpen(false)}
+            config={config}
+            currencySymbol={currencySymbol}
+            exchangeRate={exchangeRate}
+            templateId={templateId}
+        />
+    );
+}

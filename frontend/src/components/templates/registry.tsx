@@ -11,6 +11,7 @@ import CoreFooterContainer from './core/Footer/Container';
 import CoreHomePageContainer from '@/components/core/HomePage';
 import CoreProductCardContainer from './core/ProductCard/Container';
 import CoreCategoryCardContainer from './core/CategoryCard/Container';
+import CoreCategoryPageContainer from './core/CategoryPage/Container';
 
 // Core (Fallback) - Templates (pure presentation)
 import CoreHeaderTemplate from './core/Header/Template';
@@ -24,6 +25,7 @@ import ModernCleanFooterTemplate from './modern-clean/Footer/Template';
 import ModernCleanHomePageTemplate from './modern-clean/HomePage/Template';
 import ModernCleanProductCardTemplate from './modern-clean/ProductCard/Template';
 import ModernCleanCategoryCardTemplate from './modern-clean/CategoryCard/Template';
+import ModernCleanCategoryPageTemplate from './modern-clean/CategoryPage/Template';
 
 // Classic Elegance - Templates (pure presentation)
 import ClassicEleganceHeaderTemplate from './classic-elegance/Header/Template';
@@ -45,6 +47,8 @@ export type ComponentName =
     | 'ProductCardTemplate'
     | 'CategoryCard'
     | 'CategoryCardTemplate'
+    | 'CategoryPage'
+    | 'CategoryPageTemplate'
     | 'Banner';
 
 // ============================================
@@ -59,12 +63,14 @@ const TEMPLATE_COMPONENTS: Record<string, Record<string, React.ComponentType<any
         HomePage: CoreHomePageContainer,
         ProductCard: CoreProductCardContainer,
         CategoryCard: CoreCategoryCardContainer,
+        CategoryPage: CoreCategoryPageContainer,
         // Templates (pure presentation)
         HeaderTemplate: ModernCleanHeaderTemplate,
         FooterTemplate: ModernCleanFooterTemplate,
         HomePageTemplate: ModernCleanHomePageTemplate,
         ProductCardTemplate: ModernCleanProductCardTemplate,
         CategoryCardTemplate: ModernCleanCategoryCardTemplate,
+        CategoryPageTemplate: ModernCleanCategoryPageTemplate,
     },
     'classic-elegance': {
         // Containers (with business logic) - Use same Core containers
@@ -73,11 +79,13 @@ const TEMPLATE_COMPONENTS: Record<string, Record<string, React.ComponentType<any
         HomePage: CoreHomePageContainer,
         ProductCard: CoreProductCardContainer,
         CategoryCard: CoreCategoryCardContainer,
+        CategoryPage: CoreCategoryPageContainer,
         // Templates (pure presentation)
         HeaderTemplate: ClassicEleganceHeaderTemplate,
         FooterTemplate: ClassicEleganceFooterTemplate,
         ProductCardTemplate: ClassicEleganceProductCardTemplate,
         CategoryCardTemplate: ModernCleanCategoryCardTemplate, // Use modern-clean as fallback
+        CategoryPageTemplate: ModernCleanCategoryPageTemplate, // Use modern-clean as fallback
     },
 };
 
@@ -95,6 +103,8 @@ const CORE_COMPONENTS: Record<string, React.ComponentType<any>> = {
     ProductCardTemplate: CoreProductCardTemplate,
     CategoryCard: CoreCategoryCardContainer,
     CategoryCardTemplate: CoreCategoryCardTemplate,
+    CategoryPage: CoreCategoryPageContainer,
+    CategoryPageTemplate: ModernCleanCategoryPageTemplate, // Use modern-clean as core fallback
 };
 
 // ============================================

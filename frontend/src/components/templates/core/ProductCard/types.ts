@@ -53,6 +53,7 @@ export interface Product {
     isNew?: boolean;
     inStock?: boolean;
     brand?: string;
+    brandName?: string;  // Resolved brand name from API lookup
     sku?: string;
     stockStatus?: string;
 }

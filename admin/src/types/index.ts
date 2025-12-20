@@ -173,6 +173,151 @@ export interface ProductCardConfig {
   cardBorderRadius: number;
 }
 
+// ============ CATEGORY PAGE CONFIGURATION ============
+
+export interface CategoryHeaderConfig {
+  showImage: boolean;
+  showDescription: boolean;
+  descriptionPosition: 'top' | 'bottom' | 'below-image';
+  descriptionStyle: 'expanded' | 'collapsed';
+  defaultExpanded: boolean;
+  expandLabel: string;
+  collapseLabel: string;
+}
+
+export interface CategoryGridConfig {
+  productsPerPage: number;
+  productsPerRow: {
+    desktop: 3 | 4 | 5;
+    tablet: 2 | 3;
+    mobile: 1 | 2;
+  };
+  cardStyle: 'default' | 'compact' | 'detailed';
+}
+
+export interface CategorySortingConfig {
+  defaultSort: 'featured' | 'newest' | 'oldest' | 'price-low' | 'price-high' | 'alphabetical' | 'bestselling';
+  showSortDropdown: boolean;
+  availableSortOptions: string[];
+}
+
+export interface CategoryPaginationConfig {
+  type: 'pagination' | 'infinite-scroll' | 'load-more';
+  position: 'left' | 'center' | 'right';
+  showProductCount: boolean;
+}
+
+export interface CategoryFiltersConfig {
+  enabled: boolean;
+  position: 'left' | 'right' | 'top' | 'off-canvas';
+  sidebarWidth: number;
+  style: 'sticky' | 'static';
+  defaultState: 'expanded' | 'collapsed';
+  showPriceRange: boolean;
+  priceRangeStyle: 'slider' | 'input' | 'range-buttons';
+  showCategoryFilter: boolean;
+  showAttributeFilters: boolean;
+  showTagFilter: boolean;
+  showBrandFilter: boolean;
+  showRatingFilter: boolean;
+  showAvailabilityFilter: boolean;
+  // Off-canvas specific settings
+  offCanvas?: {
+    slideFrom: 'left' | 'right';
+    drawerWidth: number;
+    buttonText: string;
+    buttonPosition: 'left' | 'right';
+    showFilterCount: boolean;
+  };
+}
+
+export interface SubcategoryDisplayConfig {
+  display: 'filter' | 'cards' | 'both' | 'none';
+  cardStyle: 'image' | 'minimal';
+  position: 'above-products' | 'sidebar';
+}
+
+export interface CategoryEmptyStateConfig {
+  message: string;
+  showClearFilters: boolean;
+}
+
+export interface CategorySEOConfig {
+  indexFilteredPages: boolean; // Whether to allow search engines to index filtered URLs
+}
+
+export interface CategoryConfig {
+  header: CategoryHeaderConfig;
+  grid: CategoryGridConfig;
+  sorting: CategorySortingConfig;
+  pagination: CategoryPaginationConfig;
+  filters: CategoryFiltersConfig;
+  subcategories: SubcategoryDisplayConfig;
+  emptyState: CategoryEmptyStateConfig;
+  seo: CategorySEOConfig;
+}
+
+export const DEFAULT_CATEGORY_CONFIG: CategoryConfig = {
+  header: {
+    showImage: true,
+    showDescription: true,
+    descriptionPosition: 'below-image',
+    descriptionStyle: 'collapsed',
+    defaultExpanded: false,
+    expandLabel: 'Read more',
+    collapseLabel: 'Show less',
+  },
+  grid: {
+    productsPerPage: 24,
+    productsPerRow: { desktop: 4, tablet: 3, mobile: 2 },
+    cardStyle: 'default',
+  },
+  sorting: {
+    defaultSort: 'featured',
+    showSortDropdown: true,
+    availableSortOptions: ['featured', 'newest', 'price-low', 'price-high', 'bestselling'],
+  },
+  pagination: {
+    type: 'pagination',
+    position: 'center',
+    showProductCount: true,
+  },
+  filters: {
+    enabled: true,
+    position: 'left',
+    sidebarWidth: 280,
+    style: 'sticky',
+    defaultState: 'expanded',
+    showPriceRange: true,
+    priceRangeStyle: 'slider',
+    showCategoryFilter: true,
+    showAttributeFilters: true,
+    showTagFilter: false,
+    showBrandFilter: true,
+    showRatingFilter: true,
+    showAvailabilityFilter: true,
+    offCanvas: {
+      slideFrom: 'left',
+      drawerWidth: 320,
+      buttonText: 'Filters',
+      buttonPosition: 'left',
+      showFilterCount: true,
+    },
+  },
+  subcategories: {
+    display: 'both',
+    cardStyle: 'image',
+    position: 'above-products',
+  },
+  emptyState: {
+    message: 'No products found',
+    showClearFilters: true,
+  },
+  seo: {
+    indexFilteredPages: false,
+  },
+};
+
 export interface ThemeConfig {
   templateId: string; // ID of the specific template (e.g., 'modern-clean', 'classic-elegance')
   header?: {
@@ -185,6 +330,7 @@ export interface ThemeConfig {
   };
   footer?: FooterConfig;
   productCard?: ProductCardConfig;
+  category?: CategoryConfig;
   colors?: {
     primary?: string;
     secondary?: string;
@@ -524,7 +670,7 @@ export type ModuleType =
   // Product modules
   | 'product-carousel' | 'product-grid' | 'category-showcase' | 'featured-product'
   // Placeholder modules (required, page-specific)
-  | 'category-header' | 'category-products' | 'product-details'
+  | 'category-header' | 'category-products' | 'category-filters' | 'category-pagination' | 'product-details'
   | 'search-results' | 'blog-listing' | 'blog-content';
 
 export type SectionType = 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';

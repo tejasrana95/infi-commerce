@@ -19,6 +19,7 @@ import FooterDesigner from '@/components/organisms/FooterDesigner/FooterDesigner
 import GeneralThemeSettings from '@/components/organisms/GeneralThemeSettings';
 import TemplateSelector from '@/components/organisms/TemplateSelector/TemplateSelector';
 import ProductCardSettings from '@/components/organisms/ProductCardSettings/ProductCardSettings';
+import CategorySettings from '@/components/organisms/CategorySettings/CategorySettings';
 import { ThemeConfig, Store } from '@/types';
 import api from '@/lib/api';
 
@@ -130,6 +131,7 @@ export default function ThemeSettingsPage() {
                     <Tab label="Header" />
                     <Tab label="Footer" />
                     <Tab label="Product Card" />
+                    <Tab label="Category" />
                     <Tab label="General" />
                 </Tabs>
 
@@ -168,6 +170,13 @@ export default function ThemeSettingsPage() {
                     )}
 
                     {activeTab === 4 && (
+                        <CategorySettings
+                            config={themeConfig}
+                            onChange={setThemeConfig}
+                        />
+                    )}
+
+                    {activeTab === 5 && (
                         <GeneralThemeSettings
                             config={themeConfig}
                             onChange={setThemeConfig}

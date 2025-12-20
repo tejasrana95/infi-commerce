@@ -5,6 +5,7 @@ import {
     getCategoryTree,
     getCategoryById,
     getCategoryBySlug,
+    getCategoryFilters,
     updateCategory,
     deleteCategory,
     createCategoryValidation,
@@ -19,6 +20,7 @@ const router = Router();
 router.get('/', getCategories);
 router.get('/tree/:storeId', getCategoryTree);
 router.get('/:id', getCategoryById);
+router.get('/:id/filters', getCategoryFilters);
 router.get('/slug/:storeId/:slug', getCategoryBySlug);
 
 // Protected routes (require authentication AND admin role)

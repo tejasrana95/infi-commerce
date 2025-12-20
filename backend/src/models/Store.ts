@@ -82,6 +82,64 @@ export interface IStore extends Document {
             heading?: string;
             body?: string;
         };
+        // Category page configuration
+        category?: {
+            header?: {
+                showImage?: boolean;
+                showDescription?: boolean;
+                descriptionPosition?: 'top' | 'bottom' | 'below-image';
+                descriptionStyle?: 'expanded' | 'collapsed';
+                defaultExpanded?: boolean;
+                expandLabel?: string;
+                collapseLabel?: string;
+            };
+            grid?: {
+                productsPerPage?: number;
+                productsPerRow?: {
+                    desktop?: 3 | 4 | 5;
+                    tablet?: 2 | 3;
+                    mobile?: 1 | 2;
+                };
+                cardStyle?: 'default' | 'compact' | 'detailed';
+            };
+            sorting?: {
+                defaultSort?: 'featured' | 'newest' | 'oldest' | 'price-low' | 'price-high' | 'alphabetical' | 'bestselling';
+                showSortDropdown?: boolean;
+                availableSortOptions?: string[];
+            };
+            pagination?: {
+                type?: 'pagination' | 'infinite-scroll' | 'load-more';
+                position?: 'left' | 'center' | 'right';
+                showProductCount?: boolean;
+            };
+            filters?: {
+                enabled?: boolean;
+                position?: 'left' | 'right' | 'top' | 'off-canvas';
+                sidebarWidth?: number;
+                style?: 'sticky' | 'static';
+                defaultState?: 'expanded' | 'collapsed';
+                showPriceRange?: boolean;
+                priceRangeStyle?: 'slider' | 'input' | 'range-buttons';
+                showCategoryFilter?: boolean;
+                showAttributeFilters?: boolean;
+                showTagFilter?: boolean;
+                showBrandFilter?: boolean;
+                showRatingFilter?: boolean;
+                showAvailabilityFilter?: boolean;
+            };
+            subcategories?: {
+                display?: 'filter' | 'cards' | 'both' | 'none';
+                cardStyle?: 'image' | 'minimal';
+                position?: 'above-products' | 'sidebar';
+            };
+            emptyState?: {
+                message?: string;
+                showClearFilters?: boolean;
+            };
+            seo?: {
+                indexFilteredPages?: boolean;
+            };
+        };
     };
 
     createdAt: Date;

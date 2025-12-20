@@ -506,3 +506,235 @@ export const deleteCategory = asyncHandler(async (req: AuthRequest, res: Respons
         message: 'Category deleted successfully',
     });
 });
+
+/**
+ * @swagger
+ * /api/categories/{id}/filters:
+ *   get:
+ *     summary: Get available filters for a category
+ *     tags: [Categories]
+ *     description: Returns aggregated filter data from products in this category
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Category ID
+ *       - in: query
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Store ID
+ *       - in: query
+ *         name: includeSubcategories
+ *         schema:
+ *           type: boolean
+ *           default: true
+ *         description: Include products from subcategories
+ *     responses:
+ *       200:
+ *         description: Filter data retrieved successfully
+ *       404:
+ *         description: Category not found
+ */
+export const getCategoryFilters = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    const { storeId, includeSubcategories = 'true' } = req.query;
+
+    if (!storeId) {
+        throw new AppError('storeId is required', 400);
+    }
+
+    // Verify category exists
+    const category = await Category.findById(id);
+    if (!category) {
+        throw new AppError('Category not found', 404);
+    }
+
+    // Get category IDs to filter by (including subcategories if requested)
+    let categoryIds = [id];
+    if (includeSubcategories === 'true') {
+        const subcategories = await Category.find({
+            storeId,
+            path: { $regex: new RegExp(`^${category.path}`) },
+        }).select('_id');
+        categoryIds = subcategories.map((c) => c._id.toString());
+    }
+
+    // Import Product model here to avoid circular dependency
+    const Product = require('../models/Product').default;
+    const Attribute = require('../models/Attribute').default;
+
+    // Build base match for products in this category
+    const baseMatch = {
+        storeId: require('mongoose').Types.ObjectId.createFromHexString(storeId as string),
+        categoryIds: { $in: categoryIds.map((cid) => require('mongoose').Types.ObjectId.createFromHexString(cid)) },
+        isActive: true,
+    };
+
+    // Run aggregation pipelines in parallel
+    const [priceRange, brands, tags, ratings, availability, subcategories] = await Promise.all([
+        // Price range
+        Product.aggregate([
+            { $match: baseMatch },
+            {
+                $group: {
+                    _id: null,
+                    minPrice: { $min: '$price' },
+                    maxPrice: { $max: '$price' },
+                },
+            },
+        ]),
+
+        // Brands with count (lookup brand name from brands collection)
+        Product.aggregate([
+            { $match: { ...baseMatch, brand: { $exists: true, $nin: [null, ''] } } },
+            { $group: { _id: '$brand', count: { $sum: 1 } } },
+            {
+                $addFields: {
+                    brandObjectId: { $toObjectId: '$_id' },
+                },
+            },
+            {
+                $lookup: {
+                    from: 'brands',
+                    localField: 'brandObjectId',
+                    foreignField: '_id',
+                    as: 'brandInfo',
+                },
+            },
+            { $unwind: { path: '$brandInfo', preserveNullAndEmptyArrays: true } },
+            { $sort: { count: -1 } },
+            {
+                $project: {
+                    value: '$_id',
+                    label: { $ifNull: ['$brandInfo.name', '$_id'] },
+                    count: 1,
+                    _id: 0,
+                },
+            },
+        ]),
+
+        // Tags with count
+        Product.aggregate([
+            { $match: baseMatch },
+            { $unwind: '$tags' },
+            { $group: { _id: '$tags', count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 50 },
+            { $project: { value: '$_id', label: '$_id', count: 1, _id: 0 } },
+        ]),
+
+        // Rating distribution
+        Product.aggregate([
+            { $match: { ...baseMatch, averageRating: { $exists: true, $ne: null } } },
+            {
+                $bucket: {
+                    groupBy: '$averageRating',
+                    boundaries: [0, 1, 2, 3, 4, 5.1],
+                    default: 'Other',
+                    output: { count: { $sum: 1 } },
+                },
+            },
+        ]),
+
+        // Availability
+        Product.aggregate([
+            { $match: baseMatch },
+            { $group: { _id: '$stockStatus', count: { $sum: 1 } } },
+            { $project: { value: '$_id', status: '$_id', count: 1, _id: 0 } },
+        ]),
+
+        // Subcategories with product count
+        Category.aggregate([
+            {
+                $match: {
+                    storeId: require('mongoose').Types.ObjectId.createFromHexString(storeId as string),
+                    parentCategory: require('mongoose').Types.ObjectId.createFromHexString(id),
+                    status: 'active',
+                },
+            },
+            {
+                $lookup: {
+                    from: 'products',
+                    let: { catId: '$_id' },
+                    pipeline: [
+                        { $match: { $expr: { $in: ['$$catId', '$categoryIds'] }, isActive: true } },
+                        { $count: 'count' },
+                    ],
+                    as: 'productCount',
+                },
+            },
+            {
+                $project: {
+                    _id: 1,
+                    title: 1,
+                    slug: 1,
+                    image: 1,
+                    productCount: { $ifNull: [{ $arrayElemAt: ['$productCount.count', 0] }, 0] },
+                },
+            },
+            { $sort: { sortOrder: 1, title: 1 } },
+        ]),
+    ]);
+
+    // Get filterable attributes with their values
+    // Check for isFilterable: true OR missing (for legacy data)
+    const filterableAttributes = await Attribute.find({
+        storeId: require('mongoose').Types.ObjectId.createFromHexString(storeId as string),
+        $or: [{ isFilterable: true }, { isFilterable: { $exists: false } }]
+    }).lean();
+
+    // Get attribute values used in products of this category
+    // Get attribute values used in products of this category
+    const attributeValuesAgg = await Product.aggregate([
+        { $match: baseMatch },
+        { $unwind: '$specifications' },
+        {
+            $group: {
+                _id: {
+                    attributeId: '$specifications.attributeId',
+                    value: '$specifications.value',
+                },
+                count: { $sum: 1 },
+            },
+        },
+        {
+            $group: {
+                _id: '$_id.attributeId',
+                values: { $push: { value: '$_id.value', count: '$count' } },
+            },
+        },
+    ]);
+
+    // Merge attribute data with aggregated values
+    const attributes = filterableAttributes.map((attr: any) => {
+        // Use loose comparison or string conversion for IDs to be safe
+        const aggData = attributeValuesAgg.find(
+            (a: any) => a._id && String(a._id) === String(attr._id)
+        );
+        return {
+            _id: attr._id,
+            name: attr.name,
+            slug: attr.slug,
+            type: attr.type,
+            values: aggData ? aggData.values : [],
+            options: attr.options || [],
+        };
+    }).filter((attr: any) => attr.values.length > 0); // Only return attributes with values in this category
+
+    res.json({
+        priceRange: priceRange[0] || { minPrice: 0, maxPrice: 0 },
+        brands,
+        tags,
+        ratings: ratings.map((r: any) => ({
+            rating: r._id === 'Other' ? null : Math.floor(r._id),
+            count: r.count,
+        })).filter((r: any) => r.rating !== null),
+        availability,
+        subcategories,
+        attributes,
+    });
+});

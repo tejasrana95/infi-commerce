@@ -97,8 +97,16 @@ export const createProduct = asyncHandler(async (req: AuthRequest, res: Response
  * @swagger
  * /api/products:
  *   get:
- *     summary: Get all products with filters
+ *     summary: Get all products with SEO-friendly filters
  *     tags: [Products]
+ *     description: |
+ *       Supports multiple filter formats for SEO-friendly URLs:
+ *       - Price range: price=100-500 or minPrice=100&maxPrice=500
+ *       - Brand: brand=nike or brand=nike,adidas
+ *       - Tags: tags=summer,new-arrival
+ *       - Rating: rating=4 (4 stars and above)
+ *       - Stock: stock=in-stock,pre-order
+ *       - Attributes: color=red,blue or attr_color=red (legacy)
  *     parameters:
  *       - in: query
  *         name: storeId
@@ -108,6 +116,12 @@ export const createProduct = asyncHandler(async (req: AuthRequest, res: Response
  *         name: categoryId
  *         schema:
  *           type: string
+ *         description: Single or comma-separated category IDs
+ *       - in: query
+ *         name: price
+ *         schema:
+ *           type: string
+ *         description: Price range (e.g., 100-500)
  *       - in: query
  *         name: minPrice
  *         schema:
@@ -116,6 +130,26 @@ export const createProduct = asyncHandler(async (req: AuthRequest, res: Response
  *         name: maxPrice
  *         schema:
  *           type: number
+ *       - in: query
+ *         name: brand
+ *         schema:
+ *           type: string
+ *         description: Single or comma-separated brands
+ *       - in: query
+ *         name: tags
+ *         schema:
+ *           type: string
+ *         description: Comma-separated tags
+ *       - in: query
+ *         name: rating
+ *         schema:
+ *           type: number
+ *         description: Minimum rating (e.g., 4 for 4+ stars)
+ *       - in: query
+ *         name: stock
+ *         schema:
+ *           type: string
+ *           enum: [in-stock, out-of-stock, pre-order, backorder]
  *       - in: query
  *         name: isOnSale
  *         schema:
@@ -142,14 +176,14 @@ export const createProduct = asyncHandler(async (req: AuthRequest, res: Response
  *         name: sort
  *         schema:
  *           type: string
- *           enum: [newest, oldest, price_asc, price_desc, popular, rating]
+ *           enum: [newest, oldest, price-low, price-high, bestselling, rating, featured, alphabetical]
  *     responses:
  *       200:
- *         description: Products retrieved successfully
+ *         description: Products retrieved with active filters metadata
  */
 export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 20;
+    const limit = parseInt(req.query.limit as string) || 100;
     const skip = (page - 1) * limit;
 
     // Build filter
@@ -167,14 +201,59 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         filter.storeId = req.query.storeId;
     }
 
+    // Category filter - support single or multiple categories
     if (req.query.categoryId) {
-        filter.categoryIds = req.query.categoryId;
+        const categoryIds = (req.query.categoryId as string).split(',').map(id => id.trim());
+        filter.categoryIds = categoryIds.length === 1
+            ? categoryIds[0]
+            : { $in: categoryIds };
     }
 
-    if (req.query.minPrice || req.query.maxPrice) {
+    // Price range filter (SEO-friendly: minPrice, maxPrice or price=100-500)
+    if (req.query.price) {
+        const [min, max] = (req.query.price as string).split('-').map(v => parseFloat(v));
+        filter.price = {};
+        if (!isNaN(min)) filter.price.$gte = min;
+        if (!isNaN(max)) filter.price.$lte = max;
+    } else if (req.query.minPrice || req.query.maxPrice) {
         filter.price = {};
         if (req.query.minPrice) filter.price.$gte = parseFloat(req.query.minPrice as string);
         if (req.query.maxPrice) filter.price.$lte = parseFloat(req.query.maxPrice as string);
+    }
+
+    // Brand filter (SEO-friendly: brand=nike or brand=nike,adidas)
+    if (req.query.brand) {
+        const brands = (req.query.brand as string).split(',').map(b => b.trim());
+        filter.brand = brands.length === 1
+            ? { $regex: new RegExp(`^${brands[0]}$`, 'i') }
+            : { $in: brands.map(b => new RegExp(`^${b}$`, 'i')) };
+    }
+
+    // Tags filter (SEO-friendly: tags=summer,new-arrival)
+    if (req.query.tags) {
+        const tags = (req.query.tags as string).split(',').map(t => t.trim());
+        filter.tags = { $in: tags };
+    }
+
+    // Rating filter (SEO-friendly: rating=4 means 4 stars and above)
+    if (req.query.rating) {
+        const minRating = parseFloat(req.query.rating as string);
+        if (!isNaN(minRating)) {
+            filter.averageRating = { $gte: minRating };
+        }
+    }
+
+    // Stock status filter (SEO-friendly: stock=in-stock,pre-order)
+    if (req.query.stock) {
+        const stockStatuses = (req.query.stock as string).split(',').map(s => s.trim());
+        filter.stockStatus = stockStatuses.length === 1
+            ? stockStatuses[0]
+            : { $in: stockStatuses };
+    }
+
+    // Availability shorthand (in_stock=true)
+    if (req.query.in_stock === 'true') {
+        filter.stockStatus = 'in-stock';
     }
 
     if (req.query.isOnSale === 'true') {
@@ -194,37 +273,108 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         ];
     }
 
-    // Attribute filters (e.g., ?attr_color=red&attr_size=L)
-    const attrFilters: any = {};
-    Object.keys(req.query).forEach((key) => {
-        if (key.startsWith('attr_')) {
-            attrFilters[`attributes.values`] = req.query[key];
-        }
-    });
-    if (Object.keys(attrFilters).length > 0) {
-        Object.assign(filter, attrFilters);
+    // Attribute filters - support multiple formats:
+    // 1. attr_color=red (legacy)
+    // 2. color=red,blue (SEO-friendly by attribute slug)
+    // 3. filter[color]=red (array format)
+    const attrConditions: any[] = [];
+
+    // First, get all filterable attribute slugs if we have storeId
+    let filterableAttributeMap: Record<string, any> = {};
+    if (req.query.storeId) {
+        const Attribute = require('../models/Attribute').default;
+        const filterableAttrs = await Attribute.find({
+            storeId: req.query.storeId,
+            $or: [{ isFilterable: true }, { isFilterable: { $exists: false } }]
+        }).select('slug _id').lean();
+
+        filterableAttrs.forEach((a: any) => {
+            filterableAttributeMap[a.slug] = a._id;
+        });
     }
 
-    // Build sort
+    Object.keys(req.query).forEach((key) => {
+        const value = req.query[key] as string;
+        let attrSlug: string | null = null;
+        let values: string[] = [];
+
+        // Identify filter type and extract slug
+        if (key.startsWith('attr_')) {
+            attrSlug = key.replace('attr_', '');
+        } else if (key.startsWith('filter[') && key.endsWith(']')) {
+            attrSlug = key.slice(7, -1);
+        } else if (filterableAttributeMap[key]) {
+            attrSlug = key;
+        }
+
+        if (attrSlug) {
+            values = value.split(',').map(v => v.trim());
+            const attrId = filterableAttributeMap[attrSlug];
+
+            if (attrId) {
+                // Precise match using attribute ID
+                attrConditions.push({
+                    specifications: {
+                        $elemMatch: {
+                            attributeId: attrId,
+                            value: values.length === 1 ? values[0] : { $in: values }
+                        }
+                    }
+                });
+            } else {
+                // Fallback loose match on value if ID not found
+                attrConditions.push({
+                    'specifications.value': values.length === 1 ? values[0] : { $in: values }
+                });
+            }
+        }
+    });
+
+    if (attrConditions.length > 0) {
+        filter.$and = filter.$and || [];
+        filter.$and.push(...attrConditions);
+    }
+
+    // Build sort - support SEO-friendly sort names
     let sort: any = { createdAt: -1 };
-    switch (req.query.sort) {
+    const sortParam = (req.query.sort as string) || 'newest';
+    switch (sortParam) {
         case 'newest':
+        case 'new':
             sort = { createdAt: -1 };
             break;
         case 'oldest':
+        case 'old':
             sort = { createdAt: 1 };
             break;
         case 'price_asc':
+        case 'price-asc':
+        case 'price-low':
             sort = { price: 1 };
             break;
         case 'price_desc':
+        case 'price-desc':
+        case 'price-high':
             sort = { price: -1 };
             break;
         case 'popular':
+        case 'bestselling':
+        case 'best-selling':
             sort = { salesCount: -1 };
             break;
         case 'rating':
+        case 'top-rated':
             sort = { averageRating: -1 };
+            break;
+        case 'alphabetical':
+        case 'name-asc':
+            sort = { name: 1 };
+            break;
+        case 'name-desc':
+            sort = { name: -1 };
+            break;
+        case 'featured':
+            sort = { isFeatured: -1, salesCount: -1 };
             break;
     }
 
@@ -241,6 +391,48 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         Product.countDocuments(filter),
     ]);
 
+    // Look up brand names for products that have brand IDs
+    const brandIds = [...new Set(products.filter(p => p.brand).map(p => p.brand))];
+    if (brandIds.length > 0) {
+        const Brand = require('../models/Brand').default;
+        const mongoose = require('mongoose');
+        const validBrandIds = brandIds.filter(id => mongoose.Types.ObjectId.isValid(id));
+        if (validBrandIds.length > 0) {
+            const brands = await Brand.find({ _id: { $in: validBrandIds } }).select('_id name').lean();
+            const brandMap = new Map(brands.map((b: any) => [b._id.toString(), b.name]));
+
+            // Replace brand ID with brand name in products
+            products.forEach((product: any) => {
+                if (product.brand && brandMap.has(product.brand)) {
+                    product.brandName = brandMap.get(product.brand);
+                }
+            });
+        }
+    }
+
+    // Build active filters metadata for frontend URL reconstruction
+    const activeFilters: Record<string, string | string[]> = {};
+    if (req.query.brand) activeFilters.brand = req.query.brand as string;
+    if (req.query.tags) activeFilters.tags = req.query.tags as string;
+    if (req.query.rating) activeFilters.rating = req.query.rating as string;
+    if (req.query.stock) activeFilters.stock = req.query.stock as string;
+    if (req.query.price) activeFilters.price = req.query.price as string;
+    if (req.query.minPrice || req.query.maxPrice) {
+        activeFilters.price = `${req.query.minPrice || 0}-${req.query.maxPrice || ''}`;
+    }
+    // Add attribute filters
+    Object.keys(req.query).forEach(key => {
+        if (key.startsWith('attr_')) {
+            const attrSlug = key.replace('attr_', '');
+            activeFilters[attrSlug] = req.query[key] as string;
+        } else if (filterableAttributeMap[key]) {
+            activeFilters[key] = req.query[key] as string;
+        } else if (key.startsWith('filter[') && key.endsWith(']')) {
+            const attrSlug = key.slice(7, -1);
+            activeFilters[attrSlug] = req.query[key] as string;
+        }
+    });
+
     res.json({
         products,
         pagination: {
@@ -249,6 +441,8 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
             limit,
             pages: Math.ceil(total / limit),
         },
+        activeFilters: Object.keys(activeFilters).length > 0 ? activeFilters : undefined,
+        sort: sortParam,
     });
 });
 

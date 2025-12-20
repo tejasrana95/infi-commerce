@@ -300,3 +300,4 @@ export async function fetchCurrencies(storeId: string): Promise<import('@/types'
         return [];
     }
 }
+
