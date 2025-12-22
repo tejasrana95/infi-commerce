@@ -18,6 +18,8 @@ import VideoModule from './standard/Video';
 import DividerModule from './standard/Divider';
 import SpacerModule from './standard/Spacer';
 import HtmlModule from './standard/Html';
+import RelatedProductsModule from './standard/RelatedProducts';
+import RecentlyViewedModule from './standard/RecentlyViewed';
 
 export interface ModuleProps {
     config: Record<string, any>;
@@ -42,6 +44,9 @@ export const moduleRegistry: Record<string, ModuleComponent> = {
     'divider': DividerModule,
     'spacer': SpacerModule,
     'html': HtmlModule,
+    // Product context modules
+    'related-products': RelatedProductsModule,
+    'recently-viewed': RecentlyViewedModule,
 };
 
 /**

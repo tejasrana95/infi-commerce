@@ -21,11 +21,13 @@ import TemplateSelector from '@/components/organisms/TemplateSelector/TemplateSe
 import ProductCardSettings from '@/components/organisms/ProductCardSettings/ProductCardSettings';
 import CategorySettings from '@/components/organisms/CategorySettings/CategorySettings';
 import { ThemeConfig, Store } from '@/types';
+import { useNotification } from '@/contexts/NotificationContext';
 import api from '@/lib/api';
 
 export default function ThemeSettingsPage() {
     const params = useParams();
     const storeId = params.id as string;
+    const { showNotification } = useNotification();
 
     const [activeTab, setActiveTab] = useState(0);
     const [loading, setLoading] = useState(true);
@@ -81,7 +83,7 @@ export default function ThemeSettingsPage() {
 
             // Show success message
             setError(null);
-            alert('Theme configuration saved successfully!');
+            showNotification('Theme configuration saved successfully!', 'success');
         } catch (err: any) {
             setError(err.response?.data?.message || 'Failed to save theme configuration');
         } finally {
@@ -141,7 +143,7 @@ export default function ThemeSettingsPage() {
                             currentConfig={themeConfig}
                             onSelect={(newConfig) => {
                                 setThemeConfig(newConfig);
-                                alert('Template applied! Click "Save Changes" to persist.');
+                                showNotification('Template applied! Click "Save Changes" to persist.', 'info');
                             }}
                         />
                     )}

@@ -28,3 +28,7 @@ export { default as TestimonialsConfigPanel } from './TestimonialsConfigPanel';
 export { default as BrandLogosConfigPanel } from './BrandLogosConfigPanel';
 export { default as ProductCollectionConfigPanel } from './ProductCollectionConfigPanel';
 export { default as CategoryShowcaseConfigPanel } from './CategoryShowcaseConfigPanel';
+export { default as RelatedProductsConfigPanel, defaultRelatedProductsConfig } from './RelatedProductsConfigPanel';
+export type { RelatedProductsConfig } from './RelatedProductsConfigPanel';
+export { default as RecentlyViewedConfigPanel, defaultRecentlyViewedConfig } from './RecentlyViewedConfigPanel';
+export type { RecentlyViewedConfig } from './RecentlyViewedConfigPanel';

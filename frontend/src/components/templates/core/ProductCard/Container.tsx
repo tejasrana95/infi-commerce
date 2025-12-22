@@ -12,6 +12,7 @@ interface ProductCardContainerProps {
     product: Product;
     currency?: string;
     templateId?: string;
+    cardConfig?: Partial<ProductCardConfig>;
 }
 
 // Format price based on currency object or code
@@ -107,6 +108,7 @@ export default function ProductCardContainer({
     product,
     currency: initialCurrency = 'USD', // Rename to avoid conflict
     templateId = 'modern-clean',
+    cardConfig,
 }: ProductCardContainerProps) {
     const { currentCurrency } = useStore();
     const themeConfig = useThemeConfig();
@@ -115,9 +117,25 @@ export default function ProductCardContainer({
     const activeCurrency = currentCurrency || initialCurrency;
 
     // Get product card config from theme, merge with defaults
-    const productCardConfig: ProductCardConfig = {
+    const themeProductCardConfig = {
         ...DEFAULT_PRODUCT_CARD_CONFIG,
         ...themeConfig?.productCard,
+    };
+
+    // Prepare override, removing 'default' style if we want to inherit theme's non-default style
+    const cardConfigOverride = { ...cardConfig };
+    if (cardConfigOverride.cardStyle === 'default' && themeProductCardConfig.cardStyle && themeProductCardConfig.cardStyle !== 'default') {
+        const { cardStyle, ...rest } = cardConfigOverride;
+        // Re-assign without cardStyle
+        Object.assign(cardConfigOverride, rest);
+        // actually delete is cleaner but TS might complain if strict. 
+        // Let's just create a new object if needed or delete.
+        delete cardConfigOverride.cardStyle;
+    }
+
+    const productCardConfig: ProductCardConfig = {
+        ...themeProductCardConfig,
+        ...cardConfigOverride,
     };
 
     // Process the product data

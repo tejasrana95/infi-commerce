@@ -15,6 +15,8 @@ import TabletIcon from '@mui/icons-material/Tablet';
 import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import { useNotification } from '@/contexts/NotificationContext';
+import ConfirmDialog from '@/components/molecules/ConfirmDialog';
 import {
     DndContext,
     DragEndEvent,
@@ -60,6 +62,15 @@ export default function LayoutDesigner({
     const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
     const [activeId, setActiveId] = useState<string | null>(null);
     const [activeDragData, setActiveDragData] = useState<any>(null);
+    const { showNotification } = useNotification();
+
+    // Confirmation Dialog State
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [confirmConfig, setConfirmConfig] = useState<{
+        title: string;
+        message: string;
+        onConfirm: () => void;
+    }>({ title: '', message: '', onConfirm: () => { } });
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -134,37 +145,55 @@ export default function LayoutDesigner({
 
     // Delete section
     const handleDeleteSection = (sectionId: string) => {
-        updateSections(layout.sections.filter((s) => s.id !== sectionId));
-        if (selectedSectionId === sectionId) {
-            setSelectedSectionId(null);
-            setSelectedModuleId(null);
-        }
+        setConfirmConfig({
+            title: 'Delete Section',
+            message: 'Are you sure you want to delete this section? This action cannot be undone.',
+            onConfirm: () => {
+                updateSections(layout.sections.filter((s) => s.id !== sectionId));
+                if (selectedSectionId === sectionId) {
+                    setSelectedSectionId(null);
+                    setSelectedModuleId(null);
+                }
+                setConfirmOpen(false);
+                showNotification('Section deleted', 'success');
+            }
+        });
+        setConfirmOpen(true);
     };
 
     const handleDeleteModule = (sectionId: string, moduleId: string) => {
-        const section = layout.sections.find((s) => s.id === sectionId);
-        if (!section) return;
+        setConfirmConfig({
+            title: 'Delete Module',
+            message: 'Are you sure you want to delete this module?',
+            onConfirm: () => {
+                const section = layout.sections.find((s) => s.id === sectionId);
+                if (!section) return;
 
-        let updates: Partial<LayoutSection> = {};
+                let updates: Partial<LayoutSection> = {};
 
-        // Check if section has columns AND they're not empty
-        if (section.columns && section.columns.length > 0) {
-            updates = {
-                columns: section.columns.map(col => ({
-                    ...col,
-                    modules: col.modules.filter(m => m.id !== moduleId)
-                }))
-            };
-        } else {
-            updates = {
-                modules: section.modules.filter((m) => m.id !== moduleId)
-            };
-        }
+                // Check if section has columns AND they're not empty
+                if (section.columns && section.columns.length > 0) {
+                    updates = {
+                        columns: section.columns.map(col => ({
+                            ...col,
+                            modules: col.modules.filter(m => m.id !== moduleId)
+                        }))
+                    };
+                } else {
+                    updates = {
+                        modules: section.modules.filter((m) => m.id !== moduleId)
+                    };
+                }
 
-        updateSection(sectionId, updates);
-        if (selectedModuleId === moduleId) {
-            setSelectedModuleId(null);
-        }
+                updateSection(sectionId, updates);
+                if (selectedModuleId === moduleId) {
+                    setSelectedModuleId(null);
+                }
+                setConfirmOpen(false);
+                showNotification('Module deleted', 'success');
+            }
+        });
+        setConfirmOpen(true);
     };
 
     // Find which section contains a module
@@ -633,6 +662,16 @@ export default function LayoutDesigner({
             <DragOverlay dropAnimation={null} style={{ zIndex: 9999 }}>
                 {renderDragOverlay()}
             </DragOverlay>
+
+            <ConfirmDialog
+                open={confirmOpen}
+                title={confirmConfig.title}
+                message={confirmConfig.message}
+                onConfirm={confirmConfig.onConfirm}
+                onCancel={() => setConfirmOpen(false)}
+                severity="error"
+                confirmLabel="Delete"
+            />
         </DndContext>
     );
 }

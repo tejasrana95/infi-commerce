@@ -547,32 +547,44 @@ export const getCategoryFilters = asyncHandler(async (req: AuthRequest, res: Res
         throw new AppError('storeId is required', 400);
     }
 
-    // Verify category exists
-    const category = await Category.findById(id);
-    if (!category) {
-        throw new AppError('Category not found', 404);
-    }
+    let categoryIds: string[] | null = null;
+    let category = null;
 
-    // Get category IDs to filter by (including subcategories if requested)
-    let categoryIds = [id];
-    if (includeSubcategories === 'true') {
-        const subcategories = await Category.find({
-            storeId,
-            path: { $regex: new RegExp(`^${category.path}`) },
-        }).select('_id');
-        categoryIds = subcategories.map((c) => c._id.toString());
+    // Handle "all-products" virtual category
+    if (id === 'all-products') {
+        // No specific category filter, will aggregate across all products
+    } else {
+        // Verify category exists
+        category = await Category.findById(id);
+        if (!category) {
+            throw new AppError('Category not found', 404);
+        }
+
+        // Get category IDs to filter by (including subcategories if requested)
+        categoryIds = [id];
+        if (includeSubcategories === 'true') {
+            const subcategories = await Category.find({
+                storeId,
+                path: { $regex: new RegExp(`^${category.path}`) },
+            }).select('_id');
+            categoryIds = subcategories.map((c) => c._id.toString());
+        }
     }
 
     // Import Product model here to avoid circular dependency
     const Product = require('../models/Product').default;
     const Attribute = require('../models/Attribute').default;
 
-    // Build base match for products in this category
-    const baseMatch = {
+    // Build base match for products
+    const baseMatch: any = {
         storeId: require('mongoose').Types.ObjectId.createFromHexString(storeId as string),
-        categoryIds: { $in: categoryIds.map((cid) => require('mongoose').Types.ObjectId.createFromHexString(cid)) },
         isActive: true,
     };
+
+    // Add category filter if not "all-products"
+    if (categoryIds) {
+        baseMatch.categoryIds = { $in: categoryIds.map((cid) => require('mongoose').Types.ObjectId.createFromHexString(cid)) };
+    }
 
     // Run aggregation pipelines in parallel
     const [priceRange, brands, tags, ratings, availability, subcategories] = await Promise.all([
@@ -652,7 +664,10 @@ export const getCategoryFilters = asyncHandler(async (req: AuthRequest, res: Res
             {
                 $match: {
                     storeId: require('mongoose').Types.ObjectId.createFromHexString(storeId as string),
-                    parentCategory: require('mongoose').Types.ObjectId.createFromHexString(id),
+                    // If all-products, show root categories. Else show children of current category
+                    parentCategory: id === 'all-products'
+                        ? null
+                        : require('mongoose').Types.ObjectId.createFromHexString(id),
                     status: 'active',
                 },
             },

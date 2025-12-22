@@ -439,6 +439,16 @@
 // Section Layouts (from layout builder)
 // ============================================
 .section {
+    width: 100%;
+    margin-bottom: 2rem;
+
+    @media (max-width: 768px) {
+        margin-bottom: 1.5rem;
+    }
+}
+
+// Container - constrained width with centered content
+.container {
     max-width: 1440px;
     margin: 0 auto;
     padding: 0 2rem;
@@ -448,14 +458,19 @@
     }
 }
 
-.splitSection {
-    max-width: 1440px;
-    margin: 0 auto;
+// Full-width - fluid, no max-width constraint
+.fullWidth {
+    width: 100%;
     padding: 0 2rem;
 
     @media (max-width: 768px) {
         padding: 0 1rem;
     }
+}
+
+.splitSection {
+    width: 100%;
+    margin-bottom: 2rem;
 }
 
 .splitColumns {
@@ -1234,8 +1249,8 @@
 
 .productItem {
     opacity: 0;
-    animation: fadeInUp 0.5s ease forwards;
-    animation-delay: calc(var(--index, 0) * 0.05s);
+    animation: fadeInUp 0.1s ease forwards;
+    animation-delay: calc(1 * 0.01s);
     height: 100%; // Ensure all items take full height of grid cell
     display: flex; // Make it a flex container
     flex-direction: column; // Stack content vertically

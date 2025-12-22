@@ -5,48 +5,36 @@ import { Suspense } from 'react';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-import CategoryPageSkeleton from './CategoryPageSkeleton';
-import CategoryPageClient from './CategoryPageClient';
+import CategoryPageSkeleton from './[slug]/CategoryPageSkeleton';
+import CategoryPageClient from './[slug]/CategoryPageClient';
 import {
     getServerStore,
-    fetchCategoryBySlug,
     fetchCategoryPageData,
 } from '@/lib/api/server-store';
 
-interface CategoryPageProps {
-    params: Promise<{ slug: string }>;
+interface PageProps {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 // Generate metadata for SEO
-export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
-    const { slug } = await params;
+export async function generateMetadata(): Promise<Metadata> {
     const store = await getServerStore();
     if (!store?._id) {
-        return { title: 'Category Not Found' };
-    }
-
-    const category = await fetchCategoryBySlug(store._id, slug);
-
-    if (!category) {
-        return { title: 'Category Not Found' };
+        return { title: 'Store Not Found' };
     }
 
     return {
-        title: category.seo?.metaTitle || `${category.title} | ${store.name}`,
-        description: category.seo?.metaDescription || category.description || `Browse ${category.title} products`,
-        keywords: category.seo?.metaKeywords?.join(', '),
+        title: `All Products | ${store.name}`,
+        description: `Browse all products at ${store.name}`,
         openGraph: {
-            title: category.seo?.metaTitle || category.title,
-            description: category.seo?.metaDescription || category.description,
-            images: category.image ? [category.image] : [],
+            title: `All Products | ${store.name}`,
+            description: `Browse all products at ${store.name}`,
         },
     };
 }
 
 // Server Component - Fetches all data for SSR
-export default async function CategoryPage({ params, searchParams }: CategoryPageProps) {
-    const { slug } = await params;
+export default async function AllProductsPage({ searchParams }: PageProps) {
     const resolvedSearchParams = await searchParams;
     const store = await getServerStore();
 
@@ -59,10 +47,10 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
         ? resolvedSearchParams.sort
         : store?.theme?.category?.sorting?.defaultSort || 'featured';
 
-    // Fetch all category data server-side with sort
+    // Fetch all category data server-side with sort, passing null for slug to indicate "All Products"
     const { category, products, filters, layout } = await fetchCategoryPageData(
         store._id,
-        slug,
+        null,
         { sort }
     );
 

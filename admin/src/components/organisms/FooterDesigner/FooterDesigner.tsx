@@ -109,7 +109,6 @@ function ElementPreview({ element, onClick, onDelete, menus }: { element: Footer
                 const selectedMenu = Array.isArray(menus) ? menus.find(m => m._id === element.menuId) : null;
                 const menuItems = selectedMenu?.items || [];
                 const hasMenu = !!selectedMenu;
-                console.log('menus', menus);;
                 return (
                     <Box>
                         <Typography variant="subtitle2" sx={{ mb: 0.5 }}>

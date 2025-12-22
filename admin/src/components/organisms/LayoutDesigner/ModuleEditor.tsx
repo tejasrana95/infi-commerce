@@ -21,6 +21,8 @@ import {
     BrandLogosConfigPanel,
     ProductCollectionConfigPanel,
     CategoryShowcaseConfigPanel,
+    RelatedProductsConfigPanel,
+    RecentlyViewedConfigPanel,
 } from '@/components/organisms/ModuleConfigPanels';
 
 interface ModuleEditorProps {
@@ -158,6 +160,24 @@ export default function ModuleEditor({ module, onChange, onDelete, storeId }: Mo
             case 'category-showcase':
                 return (
                     <CategoryShowcaseConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
+                        storeId={effectiveStoreId}
+                    />
+                );
+
+            case 'related-products':
+                return (
+                    <RelatedProductsConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
+                        storeId={effectiveStoreId}
+                    />
+                );
+
+            case 'recently-viewed':
+                return (
+                    <RecentlyViewedConfigPanel
                         config={module.config as any}
                         onChange={updateConfig}
                         storeId={effectiveStoreId}

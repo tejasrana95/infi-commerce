@@ -49,32 +49,72 @@ export default function ModernCleanProductCardTemplate({
     // Extract config with defaults
     const {
         cardStyle = 'default',
+    } = cardConfig || {};
+    // Define style-specific defaults
+    const getStyleDefaults = (style: string) => {
+        switch (style) {
+            case 'detailed':
+                return {
+                    cardBorderRadius: 16,
+                    cardPadding: 0, // Padding handled internally to allow full-width footer
+                    titleFontSize: 'large' as const,
+                    showStock: true,
+                    showSku: true,
+                    addToCartStyle: 'filled' as const,
+                    showRating: true
+                };
+            case 'compact':
+                return {
+                    cardBorderRadius: 8,
+                    cardPadding: 0, // Adjusted locally
+                    titleFontSize: 'small' as const,
+                    showRating: false,
+                    addToCartStyle: 'icon-only' as const,
+                    showQuickView: false,
+                    showStock: false,
+                    showSku: false
+                };
+            default:
+                return {
+                    cardBorderRadius: 12,
+                    cardPadding: 12,
+                    titleFontSize: 'medium' as const,
+                    showStock: false,
+                    showSku: false,
+                    addToCartStyle: 'filled' as const
+                };
+        }
+    };
+
+    const styleDefaults = getStyleDefaults(cardStyle);
+
+    const {
         hoverEffect = 'lift',
-        cardBorderRadius = 12,
-        cardPadding = 12,
+        cardBorderRadius = styleDefaults.cardBorderRadius,
+        cardPadding = styleDefaults.cardPadding,
         imageAspectRatio = '3:4',
         // Button visibility
         showAddToCart = true,
         showBuyNow = false,
         showWishlist = true,
-        showQuickView = true,
+        showQuickView = styleDefaults.showQuickView ?? true,
         showCompare = false,
         // Button styles
-        addToCartStyle = 'filled',
+        addToCartStyle = styleDefaults.addToCartStyle,
         buyNowStyle = 'outlined',
         wishlistPosition = 'top-right',
         quickViewPosition = 'overlay',
         // Typography
         titleLines = 2,
-        titleFontSize = 'medium',
+        titleFontSize = styleDefaults.titleFontSize,
         titleFontWeight = 'medium',
         priceFontSize = 'medium',
         // Display options
         showBrand = true,
-        showRating = true,
+        showRating = styleDefaults.showRating ?? true,
         showSalePercent = true,
-        showStock = false,
-        showSku = false,
+        showStock = styleDefaults.showStock,
+        showSku = styleDefaults.showSku,
     } = cardConfig || {};
 
     // Build class names
@@ -197,6 +237,22 @@ export default function ModernCleanProductCardTemplate({
                         </span>
                     )}
                 </div>
+
+                {/* Compact Style Overlay Actions */}
+                {(cardStyle as any) === 'compact' && showAddToCart && inStock && (
+                    <button
+                        className={styles.compactAddBtn}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            onAddToCart?.();
+                        }}
+                        aria-label="Add to Cart"
+                    >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                        </svg>
+                    </button>
+                )}
                 {/* Quick Action Icons - Top Right */}
                 <div className={styles.quickIcons}>
                     {showQuickView && quickViewPosition === 'top-right' && (
@@ -357,7 +413,7 @@ export default function ModernCleanProductCardTemplate({
                 )}
 
                 {/* Action Buttons - For non-overlay card styles */}
-                {cardStyle !== 'overlay' && (showAddToCart || showBuyNow) && inStock && (
+                {cardStyle !== 'overlay' && (cardStyle as any) !== 'detailed' && (showAddToCart || showBuyNow) && inStock && (
                     <div className={styles.contentActions}>
                         {showAddToCart && (
                             <button
@@ -390,6 +446,34 @@ export default function ModernCleanProductCardTemplate({
                     </div>
                 )}
             </div>
+
+            {/* Detailed Style Footer */}
+            {(cardStyle as any) === 'detailed' && (showAddToCart || showBuyNow) && inStock && (
+                <div className={styles.detailedFooter}>
+                    {showAddToCart && (
+                        <button
+                            className={`${styles.footerBtn} ${styles.footerBtnCart}`}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                onAddToCart?.();
+                            }}
+                        >
+                            Add to Cart
+                        </button>
+                    )}
+                    {showBuyNow && (
+                        <button
+                            className={`${styles.footerBtn} ${styles.footerBtnBuy}`}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                onBuyNow?.();
+                            }}
+                        >
+                            Buy Now
+                        </button>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

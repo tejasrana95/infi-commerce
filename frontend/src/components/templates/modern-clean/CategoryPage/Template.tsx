@@ -56,10 +56,31 @@ export default function ModernCleanCategoryPageTemplate({
         }
         return new Set([]);
     });
-    console.log('layout', layout);
     // Local state for slider values (for real-time visual feedback)
     const [localSliderMin, setLocalSliderMin] = useState<number | null>(null);
     const [localSliderMax, setLocalSliderMax] = useState<number | null>(null);
+
+    // Infinite scroll observer
+    const loadMoreRef = React.useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (config.pagination?.type !== 'infinite-scroll' || isLoading || pagination.page >= pagination.pages) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting) {
+                    onLoadMore();
+                }
+            },
+            { threshold: 0.1, rootMargin: '100px' }
+        );
+
+        if (loadMoreRef.current) {
+            observer.observe(loadMoreRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, [config.pagination?.type, isLoading, pagination.page, pagination.pages, onLoadMore]);
 
     // Sync local slider state with active filters
     useEffect(() => {
@@ -539,9 +560,6 @@ export default function ModernCleanCategoryPageTemplate({
                                 href={`/category/${sub.slug}`}
                                 className={styles.subcategoryItem}
                             >
-                                {sub.image && (
-                                    <Image src={sub.image} alt={sub.title} width={40} height={40} />
-                                )}
                                 <span>{sub.title}</span>
                                 <span className={styles.count}>({sub.productCount})</span>
                             </Link>
@@ -846,7 +864,12 @@ export default function ModernCleanCategoryPageTemplate({
                                     className={styles.productItem}
                                     style={{ '--index': index } as React.CSSProperties}
                                 >
-                                    <ProductCard product={product} />
+                                    <ProductCard
+                                        product={product}
+                                        cardConfig={{
+                                            cardStyle: config.grid?.cardStyle || 'default'
+                                        }}
+                                    />
                                 </div>
                             ))}
                         </div>
@@ -889,6 +912,17 @@ export default function ModernCleanCategoryPageTemplate({
                             >
                                 {pagination.page >= pagination.pages ? 'No more products' : 'Load More'}
                             </button>
+                        ) : config.pagination?.type === 'infinite-scroll' ? (
+                            <div className={styles.infiniteScrollSentinel} ref={loadMoreRef}>
+                                {isLoading ? (
+                                    <div className={styles.loadingMore}>
+                                        <div className={styles.spinnerSmall} />
+                                        <span>Loading more...</span>
+                                    </div>
+                                ) : pagination.page < pagination.pages ? (
+                                    <span className={styles.scrollText}>Scroll for more</span>
+                                ) : null}
+                            </div>
                         ) : config.pagination?.type === 'pagination' && (
                             <div className={`${styles.paginationNav} ${styles[config.pagination.position || 'center']}`}>
                                 <button
@@ -951,20 +985,11 @@ export default function ModernCleanCategoryPageTemplate({
 
     // ============================================
     // Section Rendering Helper
+    // Uses SectionRenderer for generic sections, special handling for category content
     // ============================================
     const renderSection = (section: any) => {
-        const sectionStyle = {
-            paddingTop: section.settings?.paddingTop || 0,
-            paddingBottom: section.settings?.paddingBottom || 0,
-            backgroundImage: section.settings?.backgroundImage ? `url(${section.settings.backgroundImage})` : undefined,
-            backgroundSize: section.settings?.backgroundSize || 'cover',
-            backgroundPosition: section.settings?.backgroundPosition || 'center',
-        };
-
-        // Check if this section has split columns (like split-2, split-3, etc.)
+        // Check if this section has split columns with filters + products
         const isSplitSection = section.type?.startsWith('split-') && section.columns?.length > 0;
-
-        // Check if this section contains category-filters or category-products
         const hasFiltersColumn = section.columns?.some((col: any) =>
             col.modules?.some((m: any) => m.type === 'category-filters')
         );
@@ -973,15 +998,23 @@ export default function ModernCleanCategoryPageTemplate({
         );
         const isCategoryContentSection = hasFiltersColumn && hasProductsColumn;
 
+        // Special handling for main category content section (filters sidebar + products)
         if (isSplitSection && isCategoryContentSection) {
-            // This is the main category content section with filters sidebar and products
+            const sectionStyle = {
+                paddingTop: section.settings?.paddingTop || 0,
+                paddingBottom: section.settings?.paddingBottom || 0,
+                backgroundImage: section.settings?.backgroundImage ? `url(${section.settings.backgroundImage})` : undefined,
+                backgroundSize: section.settings?.backgroundSize || 'cover',
+                backgroundPosition: section.settings?.backgroundPosition || 'center',
+            };
+
             return (
                 <div
                     key={section.id}
                     className={`${styles.content} ${hasFilters ? styles.withSidebar : ''} ${config.filters?.position === 'right' ? styles.sidebarRight : ''}`}
                     style={sectionStyle}
                 >
-                    {section.columns.map((column: any, colIndex: number) => {
+                    {section.columns.map((column: any) => {
                         const isFilterColumn = column.modules?.some((m: any) => m.type === 'category-filters');
                         const isProductColumn = column.modules?.some((m: any) => m.type === 'category-products');
 
@@ -1009,8 +1042,9 @@ export default function ModernCleanCategoryPageTemplate({
                         }
 
                         // Generic column
+                        const widthPercent = (column.width / 12) * 100;
                         return (
-                            <div key={column.id} style={{ flex: column.width || 1 }}>
+                            <div key={column.id} style={{ width: `${widthPercent}%` }}>
                                 {column.modules?.map((module: any) => renderModule(module))}
                             </div>
                         );
@@ -1019,30 +1053,13 @@ export default function ModernCleanCategoryPageTemplate({
             );
         }
 
-        if (isSplitSection) {
-            // Generic split section (not the main category content)
-            return (
-                <div key={section.id} className={styles.splitSection} style={sectionStyle}>
-                    <div className={styles.splitColumns}>
-                        {section.columns.map((column: any) => (
-                            <div
-                                key={column.id}
-                                className={styles.splitColumn}
-                                style={{ flex: column.width || 1 }}
-                            >
-                                {column.modules?.map((module: any) => renderModule(module))}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            );
-        }
-
-        // Container section with direct modules
+        // For all other sections, use SectionRenderer with custom module rendering
         return (
-            <section key={section.id} className={styles.section} style={sectionStyle}>
-                {section.modules?.map((module: any) => renderModule(module))}
-            </section>
+            <SectionRenderer
+                key={section.id}
+                section={section}
+                renderModule={(module) => renderModule(module)}
+            />
         );
     };
 

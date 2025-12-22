@@ -104,22 +104,24 @@ export async function fetchCategoryBySlug(storeId: string, slug: string): Promis
 }
 
 /**
- * Fetch products for a category
+ * Fetch products for a category (or all products if categoryId is null)
  */
 export async function fetchCategoryProducts(
     storeId: string,
-    categoryId: string,
+    categoryId: string | null,
     options: { limit?: number; sort?: string } = {}
 ): Promise<any[]> {
     const { limit = 24, sort = 'featured' } = options;
     try {
-        const res = await fetch(
-            `${API_BASE}/products?storeId=${storeId}&categoryId=${categoryId}&limit=${limit}&sort=${sort}`,
-            {
-                next: { revalidate: 60 },
-                headers: { 'Content-Type': 'application/json' },
-            }
-        );
+        let url = `${API_BASE}/products?storeId=${storeId}&limit=${limit}&sort=${sort}`;
+        if (categoryId) {
+            url += `&categoryId=${categoryId}`;
+        }
+
+        const res = await fetch(url, {
+            next: { revalidate: 60 },
+            headers: { 'Content-Type': 'application/json' },
+        });
 
         if (!res.ok) return [];
         const data = await res.json();
@@ -178,20 +180,38 @@ export async function fetchLayout(storeId: string, type: string): Promise<any | 
  */
 export async function fetchCategoryPageData(
     storeId: string,
-    slug: string,
+    slug: string | null,
     options: { sort?: string } = {}
 ) {
-    // First fetch the category
-    const category = await fetchCategoryBySlug(storeId, slug);
+    let category: CategoryData | null = null;
+    let categoryId: string | null = null;
 
-    if (!category) {
-        return { category: null, products: [], filters: null, layout: null };
+    if (slug) {
+        // Fetch specific category
+        category = await fetchCategoryBySlug(storeId, slug);
+        if (!category) {
+            return { category: null, products: [], filters: null, layout: null };
+        }
+        categoryId = category._id;
+    } else {
+        // "All Products" virtual category
+        category = {
+            _id: 'all-products',
+            title: 'All Products',
+            slug: 'products',
+            description: 'Browse our complete collection of products.',
+            seo: {
+                metaTitle: 'All Products',
+                metaDescription: 'Browse our complete collection of products.'
+            }
+        };
     }
 
-    // Then fetch products, filters, and layout in parallel
+    // Then fetch products, filters (if applicable), and layout in parallel
+    // Note: filters might need category context, passing null might fetch all store filters or fail depending on API
     const [products, filters, layout] = await Promise.all([
-        fetchCategoryProducts(storeId, category._id, { sort: options.sort }),
-        fetchCategoryFilters(storeId, category._id),
+        fetchCategoryProducts(storeId, categoryId, { sort: options.sort }),
+        categoryId ? fetchCategoryFilters(storeId, categoryId) : Promise.resolve(null), // TODO: Fetch global filters?
         fetchLayout(storeId, 'category'),
     ]);
 
@@ -204,7 +224,7 @@ export async function fetchCategoryPageData(
 
 export async function fetchProductBySlug(storeId: string, slug: string): Promise<any | null> {
     try {
-        const res = await fetch(`${API_BASE}/products/slug/${slug}?storeId=${storeId}`, {
+        const res = await fetch(`${API_BASE}/products/slug/${storeId}/${slug}`, {
             next: { revalidate: 60 },
             headers: { 'Content-Type': 'application/json' },
         });

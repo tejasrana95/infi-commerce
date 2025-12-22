@@ -187,6 +187,36 @@ export const AVAILABLE_MODULES: ModuleDefinition[] = [
         description: 'Featured category cards',
         defaultConfig: { categoryIds: [], style: 'card', columns: 4 },
     },
+    {
+        type: 'related-products',
+        label: 'Related Products',
+        icon: 'Recommend',
+        category: 'product',
+        description: 'Products related to current context (category, tags, or manual)',
+        defaultConfig: {
+            title: 'You May Also Like',
+            source: 'category',
+            limit: 8,
+            columns: 4,
+            layout: 'carousel',
+            showRating: true,
+            autoplay: false,
+        },
+    },
+    {
+        type: 'recently-viewed',
+        label: 'Recently Viewed',
+        icon: 'History',
+        category: 'product',
+        description: 'Products the customer recently viewed',
+        defaultConfig: {
+            title: 'Recently Viewed',
+            limit: 8,
+            columns: 4,
+            layout: 'carousel',
+            showRating: true,
+        },
+    },
 
     // Placeholder modules
     {

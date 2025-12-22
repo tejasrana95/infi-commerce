@@ -43,7 +43,7 @@ export default function CategoryPageContainer({
         ...DEFAULT_CATEGORY_CONFIG,
         ...store?.theme?.category,
     }), [store?.theme?.category]);
-
+    console.log('store?.theme?.category', store?.theme?.category);
     const templateId = store?.theme?.templateId || 'modern-clean';
     const currencySymbol = currentCurrency?.symbol || (store?.currency === 'INR' ? '₹' : store?.currency === 'EUR' ? '€' : '$');
     const exchangeRate = currentCurrency?.exchangeRate || 1;
@@ -179,16 +179,21 @@ export default function CategoryPageContainer({
     }, [searchParams, pathname]);
 
     // Fetch products
-    const fetchProducts = useCallback(async () => {
+    const fetchProducts = useCallback(async (options: { page?: number; append?: boolean } = {}) => {
         if (!store?._id) return;
+
+        const page = options.page || 1;
+        const append = options.append || false;
 
         setIsLoading(true);
         try {
             // Build query params
             const params = new URLSearchParams();
             params.set('storeId', store._id);
-            params.set('categoryId', category._id);
-            params.set('page', pagination.page.toString());
+            if (category._id && category._id !== 'all-products') {
+                params.set('categoryId', category._id);
+            }
+            params.set('page', page.toString());
             params.set('limit', pagination.limit.toString());
             params.set('sort', currentSort);
 
@@ -214,25 +219,38 @@ export default function CategoryPageContainer({
                 });
             }
 
-            const response = await api.get(`/products?${params.toString()}`);
-            setProducts(response.products || []);
+            const response = await api.get(`products?${params.toString()}`);
+
+            if (append) {
+                setProducts(prev => {
+                    const existingIds = new Set(prev.map(p => p._id));
+                    const newProducts = (response.products || []).filter((p: ProductListItem) => !existingIds.has(p._id));
+                    return [...prev, ...newProducts];
+                });
+            } else {
+                setProducts(response.products || []);
+            }
+
             setPagination(prev => ({
                 ...prev,
+                page: page,
                 total: response.pagination?.total || 0,
                 pages: response.pagination?.pages || 0,
             }));
         } catch (error) {
             console.error('Failed to fetch products:', error);
-            setProducts([]);
+            if (!append) setProducts([]);
         } finally {
             setIsLoading(false);
         }
-    }, [store?._id, category._id, pagination.page, pagination.limit, currentSort, activeFilters, api]);
+    }, [store?._id, category._id, pagination.limit, currentSort, activeFilters, api]);
 
     // Fetch available filters
     const fetchFilters = useCallback(async () => {
 
         if (!store?._id || availableFilters) return;
+
+        // If "all-products", we now support fetching global filters.
 
         try {
             const response = await api.get(`/categories/${category._id}/filters?storeId=${store._id}`);
@@ -248,7 +266,9 @@ export default function CategoryPageContainer({
     }, [fetchFilters]);
 
     useEffect(() => {
-        fetchProducts();
+        // Only fetch if we need to (e.g. filters changed). 
+        // Note: fetchProducts now implies resetting to page 1 unless specified.
+        fetchProducts({ page: 1 });
     }, [fetchProducts]);
 
     // Handler: Page change
@@ -265,24 +285,8 @@ export default function CategoryPageContainer({
         const nextPage = pagination.page + 1;
         if (nextPage > pagination.pages) return;
 
-        setIsLoading(true);
-        try {
-            const params = new URLSearchParams();
-            params.set('storeId', store._id);
-            params.set('categoryId', category._id);
-            params.set('page', nextPage.toString());
-            params.set('limit', pagination.limit.toString());
-            params.set('sort', currentSort);
-
-            const response = await api.get(`/products?${params.toString()}`);
-            setProducts(prev => [...prev, ...(response.data.products || [])]);
-            setPagination(prev => ({ ...prev, page: nextPage }));
-        } catch (error) {
-            console.error('Failed to load more products:', error);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [store?._id, category._id, pagination, currentSort, isLoading, api]);
+        await fetchProducts({ page: nextPage, append: true });
+    }, [store?._id, isLoading, pagination.page, pagination.pages, fetchProducts]);
 
     // Handler: Sort change
     const handleSortChange = useCallback((sort: string) => {

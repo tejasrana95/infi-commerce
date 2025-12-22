@@ -204,9 +204,15 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
     // Category filter - support single or multiple categories
     if (req.query.categoryId) {
         const categoryIds = (req.query.categoryId as string).split(',').map(id => id.trim());
-        filter.categoryIds = categoryIds.length === 1
-            ? categoryIds[0]
-            : { $in: categoryIds };
+        const validCategoryIds = categoryIds.filter(id => id.match(/^[0-9a-fA-F]{24}$/));
+
+        if (validCategoryIds.length > 0) {
+            filter.categoryIds = validCategoryIds.length === 1
+                ? validCategoryIds[0]
+                : { $in: validCategoryIds };
+        } else if (categoryIds.includes('all-products')) {
+            // Explicitly ignore 'all-products' if passed, treating it as no category filter
+        }
     }
 
     // Price range filter (SEO-friendly: minPrice, maxPrice or price=100-500)

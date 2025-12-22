@@ -669,6 +669,7 @@ export type ModuleType =
   | 'countdown' | 'brand-logos'
   // Product modules
   | 'product-carousel' | 'product-grid' | 'category-showcase' | 'featured-product'
+  | 'related-products' | 'recently-viewed'
   // Placeholder modules (required, page-specific)
   | 'category-header' | 'category-products' | 'category-filters' | 'category-pagination' | 'product-details'
   | 'search-results' | 'blog-listing' | 'blog-content';

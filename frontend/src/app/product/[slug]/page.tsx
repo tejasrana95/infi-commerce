@@ -1,73 +1,212 @@
-'use client';
-
-import { use } from 'react';
+// Product Page - Server Component with SSR and SEO support
+import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import styles from './page.module.scss';
+
+
+import { getServerStore } from '@/lib/api/server-store';
+import ProductPageClient from './ProductPageClient';
 
 interface ProductPageProps {
     params: Promise<{ slug: string }>;
 }
 
-export default function ProductPage({ params }: ProductPageProps) {
-    const { slug } = use(params);
+// Server-side product fetching
+async function getProduct(storeId: string, slug: string) {
+    try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+        const response = await fetch(
+            `${apiUrl}/products/slug/${storeId}/${slug}`,
+            {
+                next: { revalidate: 60 }, // Revalidate every minute
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
+
+        if (!response.ok) {
+            return null;
+        }
+
+        const data = await response.json();
+        return data.product || data;
+    } catch (error) {
+        console.error('Failed to fetch product:', error);
+        return null;
+    }
+}
+
+// Server-side layout fetching
+async function getProductLayout(storeId: string) {
+    try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+        const response = await fetch(
+            `${apiUrl}/layouts?storeId=${storeId}&type=product&isDefault=true`,
+            {
+                next: { revalidate: 300 }, // Cache for 5 minutes
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
+
+        if (!response.ok) {
+            return null;
+        }
+
+        const data = await response.json();
+        return data.data?.[0] || null;
+    } catch (error) {
+        console.error('Failed to fetch product layout:', error);
+        return null;
+    }
+}
+
+// Generate SEO metadata
+export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
+    const { slug } = await params;
+    const store = await getServerStore();
+
+    if (!store?._id) {
+        return { title: 'Product Not Found' };
+    }
+
+    const product = await getProduct(store._id, slug);
+
+    if (!product) {
+        return { title: 'Product Not Found' };
+    }
+
+    const title = product.seo?.metaTitle || product.name;
+    const description = product.seo?.metaDescription || product.shortDescription || product.description?.replace(/<[^>]*>/g, '').substring(0, 160);
+    const image = product.seo?.ogImage || product.featuredImage || product.images?.[0];
+    const canonical = product.seo?.canonicalUrl || `https://${store.domain}/product/${slug}`;
+
+    return {
+        title,
+        description,
+        keywords: product.seo?.metaKeywords?.join(', '),
+        alternates: {
+            canonical,
+        },
+        openGraph: {
+            title: product.seo?.ogTitle || title,
+            description: product.seo?.ogDescription || description,
+            images: image ? [{ url: image, width: 1200, height: 630, alt: product.name }] : [],
+            type: 'website',
+            url: canonical,
+            siteName: store.name,
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title: product.seo?.ogTitle || title,
+            description: product.seo?.ogDescription || description,
+            images: image ? [image] : [],
+        },
+        robots: {
+            index: product.isActive,
+            follow: product.isActive,
+        },
+    };
+}
+
+// Main Product Page Component (Server Component)
+export default async function ProductPage({ params }: ProductPageProps) {
+    const { slug } = await params;
+    const store = await getServerStore();
+
+    if (!store?._id) {
+        notFound();
+    }
+
+    const [product, layout] = await Promise.all([
+        getProduct(store._id, slug),
+        getProductLayout(store._id),
+    ]);
+
+    if (!product) {
+        notFound();
+    }
+
+    // Generate JSON-LD structured data for SEO
+    const jsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'Product',
+        name: product.name,
+        description: product.shortDescription || product.description?.replace(/<[^>]*>/g, '').substring(0, 500),
+        image: product.images,
+        sku: product.sku,
+        brand: product.brand ? {
+            '@type': 'Brand',
+            name: product.brand,
+        } : undefined,
+        offers: {
+            '@type': 'Offer',
+            url: `https://${store.domain}/product/${slug}`,
+            priceCurrency: store.currency || 'USD',
+            price: product.isOnSale && product.salePrice ? product.salePrice : product.price,
+            priceValidUntil: product.salePriceEndDate,
+            availability: product.stockStatus === 'in_stock'
+                ? 'https://schema.org/InStock'
+                : product.stockStatus === 'on_backorder'
+                    ? 'https://schema.org/BackOrder'
+                    : 'https://schema.org/OutOfStock',
+            seller: {
+                '@type': 'Organization',
+                name: store.name,
+            },
+        },
+        aggregateRating: product.reviewCount > 0 ? {
+            '@type': 'AggregateRating',
+            ratingValue: product.averageRating?.toFixed(1) || '0',
+            reviewCount: product.reviewCount,
+            bestRating: '5',
+            worstRating: '1',
+        } : undefined,
+    };
+
+    // Generate Breadcrumb JSON-LD
+    const breadcrumbJsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+            {
+                '@type': 'ListItem',
+                position: 1,
+                name: 'Home',
+                item: `https://${store.domain}/`,
+            },
+            ...(product.categories?.length > 0 ? [{
+                '@type': 'ListItem',
+                position: 2,
+                name: product.categories[0].title,
+                item: `https://${store.domain}/category/${product.categories[0].slug}`,
+            }] : []),
+            {
+                '@type': 'ListItem',
+                position: product.categories?.length > 0 ? 3 : 2,
+                name: product.name,
+            },
+        ],
+    };
 
     return (
-        <div className={styles.container}>
-            <div className={styles.content}>
-                <div className={styles.breadcrumb}>
-                    <a href="/">Home</a>
-                    <span>/</span>
-                    <a href="/category">Products</a>
-                    <span>/</span>
-                    <span>{slug}</span>
-                </div>
+        <>
+            {/* JSON-LD Structured Data for SEO */}
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+            />
 
-                <div className={styles.productLayout}>
-                    {/* Image Gallery Placeholder */}
-                    <div className={styles.gallery}>
-                        <div className={styles.mainImage}>
-                            <div className={styles.placeholder}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                <p>Product Image</p>
-                            </div>
-                        </div>
-                        <div className={styles.thumbnails}>
-                            {[1, 2, 3, 4].map(i => (
-                                <div key={i} className={styles.thumbnail}>
-                                    <div className={styles.placeholder}></div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Product Info Placeholder */}
-                    <div className={styles.info}>
-                        <h1 className={styles.title}>Product: {slug.replace(/-/g, ' ')}</h1>
-                        <div className={styles.rating}>
-                            <div className={styles.stars}>★★★★☆</div>
-                            <span>(0 reviews)</span>
-                        </div>
-                        <div className={styles.price}>
-                            <span className={styles.current}>$0.00</span>
-                            <span className={styles.original}>$0.00</span>
-                        </div>
-                        <p className={styles.description}>
-                            Product description will be loaded here. This is a placeholder page
-                            for the product detail view.
-                        </p>
-                        <div className={styles.actions}>
-                            <button className={styles.addToCart}>Add to Cart</button>
-                            <button className={styles.buyNow}>Buy Now</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div className={styles.notice}>
-                    <p>🚧 This page is under development. Product data will be fetched from the API.</p>
-                </div>
-            </div>
-        </div>
+            {/* Client Component for interactive parts */}
+            <ProductPageClient
+                product={product}
+                layout={layout}
+            />
+        </>
     );
 }

@@ -12,6 +12,7 @@ import CoreHomePageContainer from '@/components/core/HomePage';
 import CoreProductCardContainer from './core/ProductCard/Container';
 import CoreCategoryCardContainer from './core/CategoryCard/Container';
 import CoreCategoryPageContainer from './core/CategoryPage/Container';
+import CoreProductPageContainer from './core/ProductPage/Container';
 
 // Core (Fallback) - Templates (pure presentation)
 import CoreHeaderTemplate from './core/Header/Template';
@@ -26,6 +27,7 @@ import ModernCleanHomePageTemplate from './modern-clean/HomePage/Template';
 import ModernCleanProductCardTemplate from './modern-clean/ProductCard/Template';
 import ModernCleanCategoryCardTemplate from './modern-clean/CategoryCard/Template';
 import ModernCleanCategoryPageTemplate from './modern-clean/CategoryPage/Template';
+import ModernCleanProductPageTemplate from './modern-clean/ProductPage/Template';
 
 // Classic Elegance - Templates (pure presentation)
 import ClassicEleganceHeaderTemplate from './classic-elegance/Header/Template';
@@ -49,6 +51,8 @@ export type ComponentName =
     | 'CategoryCardTemplate'
     | 'CategoryPage'
     | 'CategoryPageTemplate'
+    | 'ProductPage'
+    | 'ProductPageTemplate'
     | 'Banner';
 
 // ============================================
@@ -64,6 +68,7 @@ const TEMPLATE_COMPONENTS: Record<string, Record<string, React.ComponentType<any
         ProductCard: CoreProductCardContainer,
         CategoryCard: CoreCategoryCardContainer,
         CategoryPage: CoreCategoryPageContainer,
+        ProductPage: CoreProductPageContainer,
         // Templates (pure presentation)
         HeaderTemplate: ModernCleanHeaderTemplate,
         FooterTemplate: ModernCleanFooterTemplate,
@@ -71,6 +76,7 @@ const TEMPLATE_COMPONENTS: Record<string, Record<string, React.ComponentType<any
         ProductCardTemplate: ModernCleanProductCardTemplate,
         CategoryCardTemplate: ModernCleanCategoryCardTemplate,
         CategoryPageTemplate: ModernCleanCategoryPageTemplate,
+        ProductPageTemplate: ModernCleanProductPageTemplate,
     },
     'classic-elegance': {
         // Containers (with business logic) - Use same Core containers
@@ -80,12 +86,14 @@ const TEMPLATE_COMPONENTS: Record<string, Record<string, React.ComponentType<any
         ProductCard: CoreProductCardContainer,
         CategoryCard: CoreCategoryCardContainer,
         CategoryPage: CoreCategoryPageContainer,
+        ProductPage: CoreProductPageContainer,
         // Templates (pure presentation)
         HeaderTemplate: ClassicEleganceHeaderTemplate,
         FooterTemplate: ClassicEleganceFooterTemplate,
         ProductCardTemplate: ClassicEleganceProductCardTemplate,
         CategoryCardTemplate: ModernCleanCategoryCardTemplate, // Use modern-clean as fallback
         CategoryPageTemplate: ModernCleanCategoryPageTemplate, // Use modern-clean as fallback
+        ProductPageTemplate: ModernCleanProductPageTemplate, // Use modern-clean as fallback
     },
 };
 
@@ -105,6 +113,8 @@ const CORE_COMPONENTS: Record<string, React.ComponentType<any>> = {
     CategoryCardTemplate: CoreCategoryCardTemplate,
     CategoryPage: CoreCategoryPageContainer,
     CategoryPageTemplate: ModernCleanCategoryPageTemplate, // Use modern-clean as core fallback
+    ProductPage: CoreProductPageContainer,
+    ProductPageTemplate: ModernCleanProductPageTemplate, // Use modern-clean as core fallback
 };
 
 // ============================================

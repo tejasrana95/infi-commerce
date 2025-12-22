@@ -366,6 +366,42 @@ export const DEFAULT_CATEGORY_CONFIG: CategoryConfig = {
 };
 
 // ============================================
+// Product Page Configuration Types
+// ============================================
+
+export interface ProductPageConfig {
+    gallery?: {
+        layout?: 'thumbnails-left' | 'thumbnails-bottom' | 'carousel' | 'grid';
+        enableZoom?: boolean;
+        enableLightbox?: boolean;
+        showVideoGallery?: boolean;
+    };
+    info?: {
+        showSku?: boolean;
+        showBrand?: boolean;
+        showStock?: boolean;
+        showShortDescription?: boolean;
+        showSocialShare?: boolean;
+    };
+    variants?: {
+        style?: 'dropdown' | 'buttons' | 'swatches';
+        showUnavailable?: boolean;
+    };
+    tabs?: {
+        layout?: 'tabs' | 'accordion' | 'sections';
+        showDescription?: boolean;
+        showSpecifications?: boolean;
+        showReviews?: boolean;
+    };
+    relatedProducts?: {
+        enabled?: boolean;
+        title?: string;
+        count?: number;
+        source?: 'category' | 'tags' | 'manual';
+    };
+}
+
+// ============================================
 // Theme Configuration
 // ============================================
 
@@ -377,6 +413,7 @@ export interface ThemeConfig {
     footer?: FooterConfig;
     productCard?: ProductCardConfig;
     category?: CategoryConfig;
+    product?: ProductPageConfig;
 }
 
 // ============================================
@@ -394,6 +431,17 @@ export interface StoreSettings {
     taxEnabled?: boolean;
     taxRate?: number;
     shippingEnabled?: boolean;
+    // Review settings
+    reviewSettings?: {
+        allowReviews?: boolean;
+        allowGuestReviews?: boolean;
+        requireGuestEmailVerification?: boolean;
+        requireApproval?: boolean;
+        minRating?: number;
+        maxRating?: number;
+        allowImages?: boolean;
+        maxImagesPerReview?: number;
+    };
 }
 
 export interface StoreSEO {

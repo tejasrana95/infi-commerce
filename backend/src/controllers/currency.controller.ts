@@ -167,7 +167,6 @@ export const getCurrencyByCode = asyncHandler(async (req: AuthRequest, res: Resp
  */
 export const updateCurrency = asyncHandler(async (req: AuthRequest, res: Response) => {
     const updates = req.body;
-    console.log('req.params', req.params);
     const currency = await Currency.findOne({ _id: req.params.id });
     if (!currency) {
         throw new AppError('Currency not found', 404);

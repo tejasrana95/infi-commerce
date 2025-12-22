@@ -1,5 +1,5 @@
 
-import mongoose from 'mongoose';
+
 import dotenv from 'dotenv';
 import path from 'path';
 import Category from '../src/models/Category';
