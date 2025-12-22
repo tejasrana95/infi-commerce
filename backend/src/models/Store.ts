@@ -211,7 +211,35 @@ const StoreSchema = new Schema<IStore>(
                 allowGuestCheckout: true,
                 requireEmailVerification: false,
                 taxEnabled: false,
+                tax: {
+                    pricesIncludeTax: false, // if true, entered prices include tax
+                    calculateTaxBasedOn: 'shipping', // 'shipping' | 'billing' | 'store'
+                },
                 shippingEnabled: true,
+                productPage: {
+                    pricing: {
+                        showTaxIncluded: false,
+                        showPriceWithoutTax: false,
+                    },
+                    info: {
+                        showSku: true,
+                        showBrand: true,
+                        showStock: true,
+                        showReviews: true,
+                        showSocialShare: false,
+                    },
+                    specifications: {
+                        show: true,
+                        layout: 'tab', // tab, list
+                    },
+                    gallery: {
+                        enableZoom: true,
+                        zoomType: 'hover', // hover, magnify, lightbox-only
+                    },
+                    shipping: {
+                        showCalculator: true,
+                    },
+                },
                 // Review settings
                 reviewSettings: {
                     allowReviews: true,

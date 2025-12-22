@@ -591,3 +591,57 @@ export const getReviewStats = asyncHandler(async (req: AuthRequest, res: Respons
         },
     });
 });
+/**
+ * @swagger
+ * /api/reviews/{id}/helpful:
+ *   post:
+ *     summary: Toggle helpful vote for a review
+ *     tags: [Reviews]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Vote toggled successfully
+ */
+export const toggleHelpfulVote = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user!.id; // Authenticated user ID
+
+    const review = await Review.findById(id);
+    if (!review) {
+        throw new AppError('Review not found', 404);
+    }
+
+    // Initialize votedBy if needed (for legacy reviews)
+    if (!review.votedBy) {
+        review.votedBy = [];
+    }
+
+    const userIdObj = require('mongoose').Types.ObjectId.createFromHexString(userId);
+    const hasVotedIndex = review.votedBy.findIndex((id: any) => id.toString() === userId);
+
+    if (hasVotedIndex > -1) {
+        // Remove vote
+        review.votedBy.splice(hasVotedIndex, 1);
+        review.helpfulCount = Math.max(0, review.helpfulCount - 1);
+    } else {
+        // Add vote
+        review.votedBy.push(userIdObj);
+        review.helpfulCount += 1;
+    }
+
+    await review.save();
+
+    res.json({
+        success: true,
+        message: hasVotedIndex > -1 ? 'Vote removed' : 'Vote added',
+        helpfulCount: review.helpfulCount,
+        hasVoted: hasVotedIndex === -1
+    });
+});

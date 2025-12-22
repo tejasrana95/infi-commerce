@@ -289,7 +289,11 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
             setValue('videos', initialData.videos || []);
             setValue('productOptions', initialData.productOptions?.map((opt: any) => ({
                 ...opt,
-                optionId: typeof opt.optionId === 'object' ? opt.optionId._id : opt.optionId
+                optionId: typeof opt.optionId === 'object' ? opt.optionId._id : opt.optionId,
+                // Flatten values if they are objects (from new API structure)
+                values: Array.isArray(opt.values) && typeof opt.values[0] === 'object'
+                    ? opt.values.map((v: any) => v.value)
+                    : opt.values
             })) || []);
             setValue('attributes', initialData.attributes?.map((attr: any) => ({
                 ...attr,

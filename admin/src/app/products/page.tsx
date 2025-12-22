@@ -31,13 +31,39 @@ export default function ProductsPage() {
   const [filterStockStatus, setFilterStockStatus] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('');
 
+  // Debounced search query for API calls
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Fetch products when filters change
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [debouncedSearch, filterStore, filterCategory, filterType, filterStockStatus, filterStatus]);
 
   const fetchProducts = async () => {
     try {
-      const response = await api.get('/products');
+      setLoading(true);
+
+      // Build query params
+      const params = new URLSearchParams();
+      if (debouncedSearch) params.append('search', debouncedSearch);
+      if (filterStore) params.append('storeId', filterStore);
+      if (filterCategory) params.append('categoryId', filterCategory);
+      if (filterType) params.append('type', filterType);
+      if (filterStockStatus) params.append('stockStatus', filterStockStatus);
+      if (filterStatus) params.append('isActive', filterStatus === 'active' ? 'true' : 'false');
+
+      const queryString = params.toString();
+      const url = queryString ? `/products?${queryString}` : '/products';
+
+      const response = await api.get(url);
       setProducts(response.data.products || []);
     } catch (err) {
       console.error('Failed to fetch products');
@@ -72,42 +98,8 @@ export default function ProductsPage() {
     setFilterCategory(''); // Reset category when store changes
   };
 
-  const filteredRows = products.filter((product) => {
-    const query = searchQuery.toLowerCase();
-
-    // Search filter (name, SKU)
-    const matchesSearch = !searchQuery || (
-      (product.name && product.name.toLowerCase().includes(query)) ||
-      (product.sku && product.sku.toLowerCase().includes(query))
-    );
-
-    // Store filter
-    const productStoreId = typeof product.storeId === 'object' && product.storeId !== null
-      ? product.storeId._id
-      : product.storeId;
-    const matchesStore = !filterStore || productStoreId === filterStore;
-
-    // Category filter
-    const matchesCategory = !filterCategory || (
-      product.categoryIds && product.categoryIds.some(catId => {
-        const id = typeof catId === 'object' && catId !== null ? catId._id : catId;
-        return id === filterCategory;
-      })
-    );
-
-    // Type filter
-    const matchesType = !filterType || product.type === filterType;
-
-    // Stock status filter
-    const matchesStockStatus = !filterStockStatus || product.stockStatus === filterStockStatus;
-
-    // Status filter
-    const matchesStatus = !filterStatus || (
-      filterStatus === 'active' ? product.isActive : !product.isActive
-    );
-
-    return matchesSearch && matchesStore && matchesCategory && matchesType && matchesStockStatus && matchesStatus;
-  });
+  // Note: We no longer filter client-side since filtering is done server-side
+  const filteredRows = products;
 
   const getStoreName = (storeId: any) => {
     if (typeof storeId === 'object' && storeId !== null) {

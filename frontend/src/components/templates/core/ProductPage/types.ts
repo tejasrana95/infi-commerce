@@ -21,8 +21,9 @@ export interface ProductDimensions {
 }
 
 export interface ProductVariant {
+    _id?: string;
     sku: string;
-    attributes: Record<string, string>; // e.g., { color: 'red', size: 'L' }
+    attributes: Record<string, string>; // e.g., { attributeId: 'value' }
     price: number;
     salePrice?: number;
     stock: number;
@@ -31,10 +32,15 @@ export interface ProductVariant {
     dimensions?: ProductDimensions;
 }
 
+export interface OptionValue {
+    label: string;
+    value: string;
+}
+
 export interface ProductOption {
     optionId: string;
     name: string;
-    values: string[];
+    values: OptionValue[];
     isVariation: boolean;
 }
 
@@ -82,7 +88,7 @@ export interface Product {
     // Inventory
     stock: number;
     manageStock: boolean;
-    stockStatus: 'in_stock' | 'out_of_stock' | 'on_backorder' | 'made_to_order';
+    stockStatus: 'in_stock' | 'out_of_stock' | 'on_backorder' | 'made_to_order' | 'low_stock';
     lowStockThreshold?: number;
 
     // Shipping
@@ -137,12 +143,14 @@ export interface ReviewAdminReply {
     };
 }
 
-export interface ProductReview {
+export interface Review {
     _id: string;
+    storeId: string;
     productId: string;
     customerId?: {
-        firstName?: string;
-        lastName?: string;
+        _id: string;
+        firstName: string;
+        lastName: string;
     };
     isGuestReview: boolean;
     guestName?: string;
@@ -152,20 +160,22 @@ export interface ProductReview {
     images?: string[];
     isVerifiedPurchase: boolean;
     helpfulCount: number;
-    adminReply?: ReviewAdminReply;
+    votedBy: string[]; // User IDs
+    adminReply?: {
+        content: string;
+        repliedAt: string;
+        repliedBy: {
+            name: string;
+            email: string;
+        };
+    };
     createdAt: string;
 }
 
 export interface ReviewStats {
     averageRating: number;
     totalReviews: number;
-    ratingDistribution: {
-        1: number;
-        2: number;
-        3: number;
-        4: number;
-        5: number;
-    };
+    ratingDistribution: Record<number, number>;
 }
 
 export interface ReviewSettings {
@@ -253,8 +263,11 @@ export interface ProductPageTemplateProps {
 
     // Variant state
     selectedVariant: ProductVariant | null;
+    matchingVariant?: ProductVariant | null; // For previewing partial selections
     selectedOptions: Record<string, string>;
-    onOptionChange: (optionName: string, value: string) => void;
+    availableOptions: Record<string, string[]>; // Available values per option based on current selections
+    allOptionsSelected: boolean; // True when all variation options have been selected
+    onOptionChange: (optionId: string, value: string) => void;
 
     // Quantity
     quantity: number;
@@ -268,7 +281,7 @@ export interface ProductPageTemplateProps {
     isAddingToCart: boolean;
 
     // Reviews
-    reviews: ProductReview[];
+    reviews: Review[];
     reviewStats: ReviewStats | null;
     reviewSettings: ReviewSettings;
     reviewsLoading: boolean;
@@ -288,12 +301,7 @@ export interface ProductPageTemplateProps {
         guestEmail?: string;
     }) => Promise<boolean>;
     isSubmittingReview: boolean;
-
-    // Related Products
     relatedProducts: RelatedProduct[];
-    relatedProductsLoading: boolean;
-
-    // Configuration
     config: ProductPageConfig;
     currencySymbol: string;
     exchangeRate: number;
@@ -305,6 +313,28 @@ export interface ProductPageTemplateProps {
 
     // User state
     isLoggedIn: boolean;
+    userId?: string;
+    onHelpfulVote: (reviewId: string) => Promise<void>;
+
+    // Tax Info
+    taxInfo?: {
+        rate: number;
+        amount: number;
+        included: boolean;
+        formattedAmount: string;
+        formattedPriceWithoutTax?: string;
+        formattedPriceWithTax?: string;
+    };
+
+    // Shipping Calculator
+    shippingEstimate?: {
+        loading: boolean;
+        error?: string;
+        cost?: number;
+        formattedCost?: string;
+        days?: string;
+    };
+    onCalculateShipping?: (zip: string, country: string) => Promise<void>;
 }
 
 // ============================================

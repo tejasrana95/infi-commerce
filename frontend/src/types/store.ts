@@ -370,9 +370,14 @@ export const DEFAULT_CATEGORY_CONFIG: CategoryConfig = {
 // ============================================
 
 export interface ProductPageConfig {
+    pricing?: {
+        showTaxIncluded: boolean;
+        showPriceWithoutTax: boolean;
+    };
     gallery?: {
         layout?: 'thumbnails-left' | 'thumbnails-bottom' | 'carousel' | 'grid';
         enableZoom?: boolean;
+        zoomType?: 'hover' | 'magnify' | 'lightbox-only';
         enableLightbox?: boolean;
         showVideoGallery?: boolean;
     };
@@ -382,6 +387,11 @@ export interface ProductPageConfig {
         showStock?: boolean;
         showShortDescription?: boolean;
         showSocialShare?: boolean;
+        showReviews?: boolean;
+    };
+    specifications?: {
+        show: boolean;
+        layout: 'tab' | 'list';
     };
     variants?: {
         style?: 'dropdown' | 'buttons' | 'swatches';
@@ -398,6 +408,9 @@ export interface ProductPageConfig {
         title?: string;
         count?: number;
         source?: 'category' | 'tags' | 'manual';
+    };
+    shipping?: {
+        showCalculator: boolean;
     };
 }
 
@@ -429,6 +442,10 @@ export interface StoreSettings {
     minOrderAmount?: number;
     maxOrderAmount?: number;
     taxEnabled?: boolean;
+    tax?: {
+        pricesIncludeTax: boolean;
+        calculateTaxBasedOn: 'shipping' | 'billing' | 'store';
+    };
     taxRate?: number;
     shippingEnabled?: boolean;
     // Review settings

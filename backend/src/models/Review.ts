@@ -25,6 +25,7 @@ export interface IReview extends Document {
     isApproved: boolean;
     isVerifiedPurchase: boolean;
     helpfulCount: number;
+    votedBy: mongoose.Types.ObjectId[];
     reportCount: number;
 
     // Admin reply
@@ -114,6 +115,10 @@ const ReviewSchema = new Schema<IReview>(
             type: Number,
             default: 0,
         },
+        votedBy: [{
+            type: Schema.Types.ObjectId,
+            ref: 'Customer',
+        }],
         reportCount: {
             type: Number,
             default: 0,
@@ -139,7 +144,7 @@ ReviewSchema.index({ customerId: 1 });
 ReviewSchema.index({ guestEmail: 1 });
 
 // Validate that either customerId or guest info is provided
-ReviewSchema.pre('validate', function (next) {
+ReviewSchema.pre('validate', function (this: IReview, next) {
     if (!this.isGuestReview && !this.customerId) {
         return next(new Error('Customer ID is required for non-guest reviews'));
     }

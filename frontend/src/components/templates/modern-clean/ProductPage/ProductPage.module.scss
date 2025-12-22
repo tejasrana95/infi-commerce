@@ -91,6 +91,10 @@ $star-color: #fbbf24;
     @media (max-width: 768px) {
         flex-direction: column-reverse;
         position: static;
+        width: 100%;
+        /* Ensure it takes full width of parent */
+        min-width: 0;
+        /* Prevent grid item blowout */
     }
 }
 
@@ -100,15 +104,30 @@ $star-color: #fbbf24;
     gap: 8px;
 
     @media (max-width: 768px) {
+        width: 100%;
+        display: flex;
         flex-direction: row;
+        flex-wrap: nowrap;
         overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        /* smooth scroll iOS */
         padding-bottom: 8px;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+        touch-action: pan-x;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
     }
 }
 
 .thumbnail {
     width: 80px;
     height: 80px;
+    flex: 0 0 auto;
+    /* No shrink, no grow, fixed sizing */
+    scroll-snap-align: start;
     border: 2px solid transparent;
     border-radius: 8px;
     overflow: hidden;
@@ -308,7 +327,7 @@ $star-color: #fbbf24;
     cursor: pointer;
     transition: all 0.2s;
 
-    &:hover {
+    &:hover:not(:disabled) {
         border-color: $text-secondary;
     }
 
@@ -316,6 +335,36 @@ $star-color: #fbbf24;
         border-color: $primary-color;
         background: $primary-color;
         color: white;
+    }
+
+    &.unavailable,
+    &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        text-decoration: line-through;
+        background: $bg-light;
+
+        &:hover {
+            border-color: $border-color;
+        }
+    }
+}
+
+.variantRequired {
+    color: #ef4444;
+    margin-left: 4px;
+}
+
+.selectOptionsHint {
+    color: #f59e0b;
+    font-size: 0.875rem;
+    margin: 0 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    &::before {
+        content: '⚠';
     }
 }
 
@@ -409,6 +458,18 @@ $star-color: #fbbf24;
 
     .stockDot {
         background: $error-color;
+    }
+
+    .stockDot {
+        background: $error-color;
+    }
+}
+
+.lowStock {
+    color: #f97316;
+
+    .stockDot {
+        background: #f97316;
     }
 }
 
@@ -553,10 +614,6 @@ $star-color: #fbbf24;
 // ============================================
 // Description Section
 // ============================================
-.descriptionSection {
-    max-width: 800px;
-}
-
 .description {
     font-size: 1rem;
     line-height: 1.8;
@@ -1024,5 +1081,84 @@ $star-color: #fbbf24;
 
     @media (max-width: 480px) {
         grid-template-columns: 1fr;
+    }
+}
+
+// ============================================
+// Helpful Vote
+// ============================================
+.helpfulAction {
+    margin-left: auto;
+    position: relative;
+    display: flex;
+    align-items: center;
+
+    &:hover .tooltip {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(-50%) translateY(-10px);
+    }
+}
+
+.tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-5px);
+    background-color: #1a1a1a;
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.25s cubic-bezier(0.165, 0.84, 0.44, 1);
+    pointer-events: none;
+    z-index: 20;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+    // Arrow
+    &::after {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: #1a1a1a transparent transparent transparent;
+    }
+}
+
+.helpfulBtn {
+    background: transparent;
+    border: 1px solid #e0e0e0;
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    &:hover:not(:disabled) {
+        background-color: #f5f5f5;
+        border-color: #ccc;
+    }
+
+    &:disabled {
+        opacity: 0.7;
+        cursor: help; // Indicates tooltip availability
+    }
+
+    &.active {
+        background-color: #e6f7ff;
+        border-color: #1890ff;
+        color: #1890ff;
+        font-weight: 500;
     }
 }

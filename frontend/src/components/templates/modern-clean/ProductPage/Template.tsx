@@ -17,7 +17,10 @@ export default function ModernCleanProductPageTemplate({
     product,
     breadcrumbs,
     selectedVariant,
+    matchingVariant,
     selectedOptions,
+    availableOptions,
+    allOptionsSelected,
     onOptionChange,
     quantity,
     onQuantityChange,
@@ -34,8 +37,9 @@ export default function ModernCleanProductPageTemplate({
     onLoadMoreReviews,
     onSubmitReview,
     isSubmittingReview,
+    onHelpfulVote,
+    userId,
     relatedProducts,
-    relatedProductsLoading,
     config,
     currencySymbol,
     exchangeRate,
@@ -63,28 +67,54 @@ export default function ModernCleanProductPageTemplate({
     // Main image state
     const [mainImageIndex, setMainImageIndex] = useState(0);
 
+    // Get current variant for display (either fully selected or partial match for preview)
+    const displayVariant = selectedVariant || matchingVariant;
+
     // Get current images (variant images or product images)
-    const currentImages = selectedVariant?.images?.length
-        ? selectedVariant.images
+    const currentImages = displayVariant?.images?.length
+        ? displayVariant.images
         : product.images;
 
     // Get current price
-    const currentPrice = selectedVariant?.price ?? product.price;
-    const currentSalePrice = selectedVariant?.salePrice ?? product.salePrice;
+    const currentPrice = displayVariant?.price ?? product.price;
+    const currentSalePrice = displayVariant?.salePrice ?? product.salePrice;
     const effectivePrice = currentSalePrice && currentSalePrice < currentPrice
         ? currentSalePrice
         : currentPrice;
     const hasDiscount = currentSalePrice && currentSalePrice < currentPrice;
 
     // Stock status
-    const currentStock = selectedVariant?.stock ?? product.stock;
+    const effectiveStock = displayVariant?.stock ?? product.stock;
 
-    // Determine if product can be ordered (everything except out_of_stock)
-    const canOrder = product.stockStatus !== 'out_of_stock';
+    // Determine effective status
+    // Determine effective status
+    let effectiveStatus: string = product.stockStatus || 'in_stock';
+    if (product.manageStock) {
+        if (effectiveStock <= 0) {
+            effectiveStatus = ['on_backorder', 'pre_order'].includes(product.stockStatus || '')
+                ? product.stockStatus!
+                : 'out_of_stock';
+        } else {
+            // Stock > 0
+            // If current status implies lack of immediate stock, flip to in_stock
+            // But keep 'pre_order' and 'made_to_order' as they are business logic states
+            const statusToFlip = ['out_of_stock', 'on_backorder', 'in_stock', 'low_stock'];
+            if (statusToFlip.includes(product.stockStatus || '')) {
+                if (product.lowStockThreshold && effectiveStock <= product.lowStockThreshold) {
+                    effectiveStatus = 'low_stock';
+                } else {
+                    effectiveStatus = 'in_stock';
+                }
+            }
+        }
+    }
+
+    // Determine if product can be ordered
+    const canOrder = effectiveStatus !== 'out_of_stock';
 
     // Check if stock is limited (for quantity selector)
-    const hasLimitedStock = ['in_stock', 'low_stock'].includes(product.stockStatus || '');
-    const maxQuantity = hasLimitedStock ? currentStock : 999;
+    const hasLimitedStock = product.manageStock && ['in_stock', 'low_stock'].includes(effectiveStatus || '');
+    const maxQuantity = hasLimitedStock ? effectiveStock : 999;
 
     // Stock status display labels
     const stockStatusLabels: Record<string, string> = {
@@ -92,10 +122,12 @@ export default function ModernCleanProductPageTemplate({
         'out_of_stock': 'Out of Stock',
         'low_stock': 'Low Stock',
         'pre_order': 'Pre Order',
-        'backorder': 'Backorder',
+        'backorder': 'Backorder', // Renamed for display consistency if needed, checking standard
+        'on_backorder': 'On Backorder',
         'made_to_order': 'Made to Order',
     };
-    const stockLabel = stockStatusLabels[product.stockStatus || ''] || 'In Stock';
+    const stockLabel = stockStatusLabels[effectiveStatus || ''] || 'In Stock';
+    const showStockCount = product.manageStock && ['in_stock', 'low_stock'].includes(effectiveStatus || '') && effectiveStock > 0;
 
     // ============================================
     // Track product view for "Recently Viewed" module
@@ -168,14 +200,28 @@ export default function ModernCleanProductPageTemplate({
                     </button>
                 ))}
             </div>
-            <div className={styles.mainImage}>
+            <div
+                className={styles.mainImage}
+                onMouseMove={(e) => {
+                    if (!config.gallery?.enableZoom) return;
+                    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+                    const x = ((e.clientX - left) / width) * 100;
+                    const y = ((e.clientY - top) / height) * 100;
+                    e.currentTarget.style.setProperty('--zoom-x', `${x}%`);
+                    e.currentTarget.style.setProperty('--zoom-y', `${y}%`);
+                }}
+                style={config.gallery?.enableZoom ? { cursor: 'zoom-in' } : {}}
+            >
                 {currentImages[mainImageIndex] && (
-                    <Image
-                        src={currentImages[mainImageIndex]}
-                        alt={product.name}
-                        fill
-                        priority
-                    />
+                    <div className={styles.zoomContainer}>
+                        <Image
+                            src={currentImages[mainImageIndex]}
+                            alt={product.name}
+                            fill
+                            priority
+                            className={styles.pdocutImage}
+                        />
+                    </div>
                 )}
                 {hasDiscount && (
                     <span className={styles.saleBadge}>
@@ -260,23 +306,36 @@ export default function ModernCleanProductPageTemplate({
             {/* Variant Selectors */}
             {product.productOptions && product.productOptions.length > 0 && (
                 <div className={styles.variants}>
-                    {product.productOptions.filter(opt => opt.isVariation).map((option) => (
-                        <div key={option.optionId} className={styles.variantGroup}>
-                            <label className={styles.variantLabel}>{option.name}</label>
-                            <div className={styles.variantOptions}>
-                                {option.values.map((value) => (
-                                    <button
-                                        key={value}
-                                        className={`${styles.variantButton} ${selectedOptions[option.name] === value ? styles.selected : ''
-                                            }`}
-                                        onClick={() => onOptionChange(option.name, value)}
-                                    >
-                                        {value}
-                                    </button>
-                                ))}
+                    {product.productOptions.filter(opt => opt.isVariation).map((option) => {
+                        const available = availableOptions[option.optionId] || [];
+                        return (
+                            <div key={option.optionId} className={styles.variantGroup}>
+                                <label className={styles.variantLabel}>
+                                    {option.name}
+                                    {!selectedOptions[option.optionId] && (
+                                        <span className={styles.variantRequired}>*</span>
+                                    )}
+                                </label>
+                                <div className={styles.variantOptions}>
+                                    {option.values.map((optionValue) => {
+                                        const isSelected = selectedOptions[option.optionId] === optionValue.value;
+                                        const isAvailable = available.includes(optionValue.value);
+                                        return (
+                                            <button
+                                                key={optionValue.value}
+                                                className={`${styles.variantButton} ${isSelected ? styles.selected : ''} ${!isAvailable ? styles.unavailable : ''}`}
+                                                onClick={() => isAvailable && onOptionChange(option.optionId, optionValue.value)}
+                                                disabled={!isAvailable}
+                                                title={!isAvailable ? 'This option is not available with current selection' : ''}
+                                            >
+                                                {optionValue.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 
@@ -302,7 +361,7 @@ export default function ModernCleanProductPageTemplate({
                     <button
                         className={styles.quantityBtn}
                         onClick={() => onQuantityChange(quantity + 1)}
-                        disabled={hasLimitedStock && quantity >= currentStock}
+                        disabled={hasLimitedStock && quantity >= effectiveStock}
                     >
                         +
                     </button>
@@ -311,26 +370,29 @@ export default function ModernCleanProductPageTemplate({
 
             {/* Stock Status */}
             {config.info?.showStock && (
-                <div className={`${styles.stockStatus} ${canOrder ? styles.inStock : styles.outOfStock}`}>
+                <div className={`${styles.stockStatus} ${effectiveStatus === 'low_stock' ? styles.lowStock : (canOrder ? styles.inStock : styles.outOfStock)}`}>
                     <span className={styles.stockDot} />
                     {stockLabel}
-                    {hasLimitedStock && currentStock > 0 && ` (${currentStock} available)`}
+                    {showStockCount && ` (${effectiveStock} available)`}
                 </div>
             )}
 
             {/* Action Buttons */}
+            {product.type === 'variable' && !allOptionsSelected && (
+                <p className={styles.selectOptionsHint}>Please select all options to continue</p>
+            )}
             <div className={styles.actions}>
                 <button
                     className={styles.addToCartBtn}
                     onClick={onAddToCart}
-                    disabled={!canOrder || isAddingToCart}
+                    disabled={!canOrder || isAddingToCart || (product.type === 'variable' && !allOptionsSelected)}
                 >
                     {isAddingToCart ? 'Adding...' : 'Add to Cart'}
                 </button>
                 <button
                     className={styles.buyNowBtn}
                     onClick={onBuyNow}
-                    disabled={!canOrder || isAddingToCart}
+                    disabled={!canOrder || isAddingToCart || (product.type === 'variable' && !allOptionsSelected)}
                 >
                     Buy Now
                 </button>
@@ -369,8 +431,11 @@ export default function ModernCleanProductPageTemplate({
     // ============================================
     // Specifications Tab
     // ============================================
+    // ============================================
+    // Specifications Tab
+    // ============================================
     const renderSpecifications = () => {
-        if (!product.specifications || product.specifications.length === 0) {
+        if (!config.specifications?.show || !product.specifications || product.specifications.length === 0) {
             return null;
         }
 
@@ -380,7 +445,8 @@ export default function ModernCleanProductPageTemplate({
                     <tbody>
                         {product.specifications.map((spec, index) => (
                             <tr key={index}>
-                                <th>{spec.name}</th>
+                                {/* Assuming spec object shape needs validation or casting if using strict models */}
+                                <th>{spec.attributeId ? 'Attribute' : spec.name}</th>
                                 <td>{String(spec.value)}</td>
                             </tr>
                         ))}
@@ -389,6 +455,48 @@ export default function ModernCleanProductPageTemplate({
             </div>
         );
     };
+
+    // ...
+
+    // Inside Render (below Actions)
+    const [shippingZip, setShippingZip] = useState('');
+    const [shippingCountry, setShippingCountry] = useState('US');
+
+    return (
+        // ...
+        <div className={styles.actions}>
+            {/* ... buttons ... */}
+        </div>
+
+        {/* Shipping Calculator */ }
+    {
+        config.shipping?.showCalculator && (
+            <div className={styles.shippingCalculator}>
+                <h4>Estimate Shipping</h4>
+                <div className={styles.shippingInputs}>
+                    <input
+                        type="text"
+                        placeholder="Zip Code"
+                        value={shippingZip}
+                        onChange={(e) => setShippingZip(e.target.value)}
+                    />
+                    <button
+                        onClick={() => onCalculateShipping?.(shippingZip, shippingCountry)}
+                        disabled={shippingEstimate?.loading}
+                    >
+                        {shippingEstimate?.loading ? '...' : 'Calculate'}
+                    </button>
+                </div>
+                {shippingEstimate?.cost !== undefined && (
+                    <div className={styles.shippingResult}>
+                        Shipping: {shippingEstimate.formattedCost} ({shippingEstimate.days})
+                    </div>
+                )}
+            </div>
+        )
+    }
+        // ...
+    );
 
     // ============================================
     // Reviews Section
@@ -576,32 +684,47 @@ export default function ModernCleanProductPageTemplate({
                                 )}
                                 <div className={styles.reviewMeta}>
                                     <span>{new Date(review.createdAt).toLocaleDateString()}</span>
-                                    <button className={styles.helpfulBtn}>
-                                        Helpful ({review.helpfulCount})
-                                    </button>
-                                </div>
-                                {review.adminReply && (
-                                    <div className={styles.adminReply}>
-                                        <strong>Store Response:</strong>
-                                        <p>{review.adminReply.content}</p>
+
+                                    <div className={styles.helpfulAction}>
+                                        <button
+                                            className={`${styles.helpfulBtn} ${userId && review.votedBy?.includes(userId) ? styles.active : ''}`}
+                                            onClick={() => isLoggedIn && onHelpfulVote(review._id)}
+                                            disabled={!isLoggedIn}
+                                        >
+                                            Helpful ({review.helpfulCount || 0})
+                                        </button>
+                                        {!isLoggedIn && (
+                                            <span className={styles.tooltip}>Please log in to mark as helpful</span>
+                                        )}
                                     </div>
-                                )}
+                                </div>
+
+                                {
+                                    review.adminReply && (
+                                        <div className={styles.adminReply}>
+                                            <strong>Store Response:</strong>
+                                            <p>{review.adminReply.content}</p>
+                                        </div>
+                                    )
+                                }
                             </div>
                         ))
                     )}
                 </div>
 
                 {/* Load More */}
-                {reviewsPagination.page < reviewsPagination.pages && (
-                    <button
-                        className={styles.loadMoreBtn}
-                        onClick={onLoadMoreReviews}
-                        disabled={reviewsLoading}
-                    >
-                        {reviewsLoading ? 'Loading...' : 'Load More Reviews'}
-                    </button>
-                )}
-            </div>
+                {
+                    reviewsPagination.page < reviewsPagination.pages && (
+                        <button
+                            className={styles.loadMoreBtn}
+                            onClick={onLoadMoreReviews}
+                            disabled={reviewsLoading}
+                        >
+                            {reviewsLoading ? 'Loading...' : 'Load More Reviews'}
+                        </button>
+                    )
+                }
+            </div >
         );
     };
 

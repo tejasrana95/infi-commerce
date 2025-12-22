@@ -474,24 +474,38 @@ export const getProductById = asyncHandler(async (req: AuthRequest, res: Respons
     const product = await Product.findById(req.params.id)
         .populate('storeId', 'name slug domain')
         .populate('categoryIds', 'title slug path')
-        .populate('attributes.attributeId', 'name slug type values');
+        .populate('attributes.attributeId', 'name slug type values')
+        .populate('productOptions.optionId', 'name slug type values');
 
     if (!product) {
         throw new AppError('Product not found', 404);
     }
 
-    // Increment view count
     // Increment view count atomically to prevent version conflicts
     await Product.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } });
 
-    // We don't save the product instance here to avoid race conditions with other updates
-    // The previous findById already returned the product data we need
+    // Transform productOptions to include proper label/value format for frontend
+    const productObj = product.toObject();
+    if (productObj.productOptions && productObj.productOptions.length > 0) {
+        productObj.productOptions = productObj.productOptions.map((opt: any) => {
+            const optionData = opt.optionId;
+            if (!optionData) return opt;
+
+            return {
+                optionId: optionData._id?.toString() || opt.optionId,
+                name: optionData.name,
+                type: optionData.type,
+                isVariation: opt.isVariation,
+                values: optionData.values?.filter((v: any) => opt.values.includes(v.value)) || [],
+            };
+        });
+    }
 
     // Get active sales for this product
     const sales = await (Sale as any).getActiveSalesForProduct(product._id, product.categoryIds);
 
     res.json({
-        product,
+        product: productObj,
         activeSales: sales,
     });
 });
@@ -525,19 +539,36 @@ export const getProductBySlug = asyncHandler(async (req: AuthRequest, res: Respo
     const product = await Product.findOne({ storeId, slug })
         .populate('storeId', 'name slug domain')
         .populate('categoryIds', 'title slug path')
-        .populate('attributes.attributeId', 'name slug type values');
+        .populate('attributes.attributeId', 'name slug type values')
+        .populate('productOptions.optionId', 'name slug type values'); // Populate option with labels
 
     if (!product) {
         throw new AppError('Product not found', 404);
     }
 
     // Increment view count atomically to prevent version conflicts
-    await Product.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } });
+    await Product.findByIdAndUpdate(product._id, { $inc: { views: 1 } });
 
-    // We don't save the product instance here to avoid race conditions with other updates
-    // The previous findById already returned the product data we need
+    // Transform productOptions to include proper label/value format for frontend
+    const productObj = product.toObject();
+    if (productObj.productOptions && productObj.productOptions.length > 0) {
+        productObj.productOptions = productObj.productOptions.map((opt: any) => {
+            const optionData = opt.optionId;
+            if (!optionData) return opt;
 
-    res.json({ product });
+            return {
+                optionId: optionData._id?.toString() || opt.optionId,
+                name: optionData.name,
+                type: optionData.type,
+                isVariation: opt.isVariation,
+                // Filter the full option values to only include selected ones for this product
+                // and maintain the label/value format
+                values: optionData.values?.filter((v: any) => opt.values.includes(v.value)) || [],
+            };
+        });
+    }
+
+    res.json({ product: productObj });
 });
 
 /**
