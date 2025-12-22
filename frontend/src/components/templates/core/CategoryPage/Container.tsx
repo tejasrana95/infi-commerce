@@ -24,12 +24,14 @@ interface CategoryPageContainerProps {
     category: Category;
     initialProducts?: ProductListItem[];
     initialFilters?: AvailableFilters | null;
+    initialLayout?: any;
 }
 
 export default function CategoryPageContainer({
     category,
     initialProducts = [],
     initialFilters = null,
+    initialLayout = null,
 }: CategoryPageContainerProps) {
     const router = useRouter();
     const pathname = usePathname();
@@ -51,6 +53,10 @@ export default function CategoryPageContainer({
     const [availableFilters, setAvailableFilters] = useState<AvailableFilters | null>(initialFilters);
     const [isLoading, setIsLoading] = useState(initialProducts.length === 0);
     const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+
+    // Staged filters (not yet applied to URL)
+    const [stagedFilters, setStagedFilters] = useState<ActiveFilters>({});
+    const [hasUnappliedChanges, setHasUnappliedChanges] = useState(false);
 
     // Pagination state
     const [pagination, setPagination] = useState<PaginationState>({
@@ -230,7 +236,6 @@ export default function CategoryPageContainer({
 
         try {
             const response = await api.get(`/categories/${category._id}/filters?storeId=${store._id}`);
-            console.log('response', response);
             setAvailableFilters(response);
         } catch (error) {
             console.error('Failed to fetch filters:', error);
@@ -284,43 +289,79 @@ export default function CategoryPageContainer({
         router.push(buildFilterUrl({ sort }), { scroll: false });
     }, [router, buildFilterUrl]);
 
-    // Handler: Filter change
+    // Handler: Filter change (now stages changes locally)
     const handleFilterChange = useCallback((filterType: string, value: any) => {
+        setStagedFilters(prev => {
+            const updated = { ...prev };
+
+            switch (filterType) {
+                case 'price':
+                    updated.price = value && (value.min > 0 || value.max < Infinity) ? value : undefined;
+                    break;
+                case 'brand':
+                    updated.brands = value !== null ? value : undefined;
+                    break;
+                case 'tags':
+                    updated.tags = value !== null ? value : undefined;
+                    break;
+                case 'rating':
+                    updated.rating = value || undefined;
+                    break;
+                case 'stock':
+                    updated.stockStatus = value !== null ? value : undefined;
+                    break;
+                default:
+                    // Attribute filter
+                    if (!updated.attributes) updated.attributes = {};
+                    if (value !== null) {
+                        updated.attributes[filterType] = value;
+                    } else {
+                        delete updated.attributes[filterType];
+                    }
+                    break;
+            }
+
+            return updated;
+        });
+        setHasUnappliedChanges(true);
+    }, []);
+
+    // Handler: Apply staged filters to URL (triggers API call)
+    const handleApplyFilters = useCallback(() => {
         const updates: Record<string, string | null> = {};
 
-        switch (filterType) {
-            case 'price':
-                if (value && (value.min > 0 || value.max < Infinity)) {
-                    updates.price = `${value.min}-${value.max === Infinity ? '' : value.max}`;
-                } else {
-                    updates.price = null;
-                }
-                break;
-
-            case 'brand':
-                updates.brand = value?.length ? value.join(',') : null;
-                break;
-
-            case 'tags':
-                updates.tags = value?.length ? value.join(',') : null;
-                break;
-
-            case 'rating':
-                updates.rating = value ? value.toString() : null;
-                break;
-
-            case 'stock':
-                updates.stock = value?.length ? value.join(',') : null;
-                break;
-
-            default:
-                // Attribute filter
-                updates[filterType] = value?.length ? value.join(',') : null;
-                break;
+        // Build updates from staged filters
+        if (stagedFilters.price) {
+            updates.price = `${stagedFilters.price.min}-${stagedFilters.price.max === Infinity ? '' : stagedFilters.price.max}`;
+        }
+        if (stagedFilters.brands !== undefined) {
+            updates.brand = stagedFilters.brands.length ? stagedFilters.brands.join(',') : null;
+        }
+        if (stagedFilters.tags !== undefined) {
+            updates.tags = stagedFilters.tags.length ? stagedFilters.tags.join(',') : null;
+        }
+        if (stagedFilters.rating) {
+            updates.rating = stagedFilters.rating.toString();
+        }
+        if (stagedFilters.stockStatus !== undefined) {
+            updates.stock = stagedFilters.stockStatus.length ? stagedFilters.stockStatus.join(',') : null;
+        }
+        if (stagedFilters.attributes) {
+            Object.entries(stagedFilters.attributes).forEach(([key, values]) => {
+                updates[key] = values.length ? values.join(',') : null;
+            });
         }
 
         router.push(buildFilterUrl(updates), { scroll: false });
-    }, [router, buildFilterUrl]);
+        setHasUnappliedChanges(false);
+        setStagedFilters({});
+    }, [stagedFilters, router, buildFilterUrl]);
+
+    // Handler: Clear staged filters
+    const handleClearStagedFilters = useCallback(() => {
+        setStagedFilters({});
+        setHasUnappliedChanges(false);
+    }, []);
 
     // Handler: Clear single filter
     const handleClearFilter = useCallback((filterType: string) => {
@@ -387,6 +428,11 @@ export default function CategoryPageContainer({
             currencySymbol={currencySymbol}
             exchangeRate={exchangeRate}
             templateId={templateId}
+            layout={initialLayout}
+            stagedFilters={stagedFilters}
+            hasUnappliedChanges={hasUnappliedChanges}
+            onApplyFilters={handleApplyFilters}
+            onClearStagedFilters={handleClearStagedFilters}
         />
     );
 }

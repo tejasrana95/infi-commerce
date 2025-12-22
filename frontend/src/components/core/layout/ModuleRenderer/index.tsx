@@ -2,6 +2,7 @@
 
 import { Module } from '@/types/layout';
 import { moduleRegistry } from '@/components/core/modules';
+import { useDeviceType, checkVisibility } from '@/hooks/useDeviceType';
 
 interface ModuleRendererProps {
     module: Module;
@@ -15,8 +16,10 @@ interface ModuleRendererProps {
  * Accepts prefetchedData for SSR to prevent client-side fetches
  */
 export default function ModuleRenderer({ module, sectionType, prefetchedData }: ModuleRendererProps) {
-    // Check visibility (simplified - you may want device detection)
-    const isVisible = module.visibility?.desktop !== false;
+    const deviceType = useDeviceType();
+
+    // Check visibility based on current device type
+    const isVisible = checkVisibility(module.visibility, deviceType);
 
     if (!isVisible) {
         return null;

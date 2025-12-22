@@ -3,13 +3,17 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import ModuleRenderer from '@/components/core/layout/ModuleRenderer';
+import SectionRenderer from '@/components/core/layout/SectionRenderer';
 import { CategoryPageTemplateProps } from '@/components/templates/core/CategoryPage/types';
 import { getComponent } from '@/components/templates/registry';
 import { formatStockStatus } from '@/lib/constants';
 import styles from './CategoryPage.module.scss';
+
+// (Layout helper functions removed - rendering now uses section-based iteration)
 
 export default function ModernCleanCategoryPageTemplate({
     category,
@@ -35,6 +39,11 @@ export default function ModernCleanCategoryPageTemplate({
     currencySymbol,
     exchangeRate,
     templateId,
+    layout,
+    stagedFilters,
+    hasUnappliedChanges,
+    onApplyFilters,
+    onClearStagedFilters,
 }: CategoryPageTemplateProps) {
     const [expandedFilters, setExpandedFilters] = useState<Set<string>>(() => {
         const isTop = config.filters?.position === 'top';
@@ -47,6 +56,18 @@ export default function ModernCleanCategoryPageTemplate({
         }
         return new Set([]);
     });
+    console.log('layout', layout);
+    // Local state for slider values (for real-time visual feedback)
+    const [localSliderMin, setLocalSliderMin] = useState<number | null>(null);
+    const [localSliderMax, setLocalSliderMax] = useState<number | null>(null);
+
+    // Sync local slider state with active filters
+    useEffect(() => {
+        if (!activeFilters.price) {
+            setLocalSliderMin(null);
+            setLocalSliderMax(null);
+        }
+    }, [activeFilters.price]);
 
     // Get ProductCard component
     const ProductCard = getComponent('ProductCard', templateId);
@@ -70,13 +91,15 @@ export default function ModernCleanCategoryPageTemplate({
         filterKey: string,
         options: { value: string; label?: string; count: number; status?: string }[],
     ) => {
+        // Check staged filters first (pending changes), fall back to active filters
+        // Important: use !== undefined to handle empty arrays correctly
         const currentValues = filterKey === 'brand'
-            ? activeFilters.brands
+            ? (stagedFilters?.brands !== undefined ? stagedFilters.brands : activeFilters.brands)
             : filterKey === 'tags'
-                ? activeFilters.tags
+                ? (stagedFilters?.tags !== undefined ? stagedFilters.tags : activeFilters.tags)
                 : filterKey === 'stock'
-                    ? activeFilters.stockStatus
-                    : activeFilters.attributes?.[filterKey] || [];
+                    ? (stagedFilters?.stockStatus !== undefined ? stagedFilters.stockStatus : activeFilters.stockStatus)
+                    : (stagedFilters?.attributes?.[filterKey] !== undefined ? stagedFilters.attributes[filterKey] : activeFilters.attributes?.[filterKey] || []);
 
         return (
             <div className={styles.filterGroup}>
@@ -100,7 +123,7 @@ export default function ModernCleanCategoryPageTemplate({
                             <label key={opt.value} className={styles.checkboxLabel}>
                                 <input
                                     type="checkbox"
-                                    checked={currentValues?.includes(opt.value)}
+                                    checked={currentValues?.includes(opt.value) || false}
                                     onChange={(e) => {
                                         const newValues = e.target.checked
                                             ? [...(currentValues || []), opt.value]
@@ -119,6 +142,45 @@ export default function ModernCleanCategoryPageTemplate({
                                 <span className={styles.count}>({opt.count})</span>
                             </label>
                         ))}
+                        {(() => {
+                            // Check if this specific filter has changes
+                            const activeValues = filterKey === 'brand'
+                                ? activeFilters.brands
+                                : filterKey === 'tags'
+                                    ? activeFilters.tags
+                                    : filterKey === 'stock'
+                                        ? activeFilters.stockStatus
+                                        : activeFilters.attributes?.[filterKey];
+
+                            const stagedValues = filterKey === 'brand'
+                                ? stagedFilters?.brands
+                                : filterKey === 'tags'
+                                    ? stagedFilters?.tags
+                                    : filterKey === 'stock'
+                                        ? stagedFilters?.stockStatus
+                                        : stagedFilters?.attributes?.[filterKey];
+
+                            // Show button if staged differs from active (proper comparison without mutating)
+                            const activeSorted = activeValues ? [...activeValues].sort().join(',') : '';
+                            const stagedSorted = stagedValues ? [...stagedValues].sort().join(',') : '';
+                            const hasChanges = activeSorted !== stagedSorted;
+                            const isApplied = activeValues && activeValues.length > 0;
+
+                            return (hasChanges || isApplied) ? (
+                                <div className={styles.filterActions}>
+                                    {hasChanges && (
+                                        <button className={styles.filterApplyBtn} onClick={onApplyFilters}>
+                                            Apply
+                                        </button>
+                                    )}
+                                    {isApplied && (
+                                        <button className={styles.filterResetBtn} onClick={() => onClearFilter?.(filterKey)}>
+                                            Reset
+                                        </button>
+                                    )}
+                                </div>
+                            ) : null;
+                        })()}
                     </div>
                 )}
             </div>
@@ -140,7 +202,162 @@ export default function ModernCleanCategoryPageTemplate({
         const currentBaseMin = activeFilters.price?.min ?? baseMinPrice;
         const currentBaseMax = activeFilters.price?.max ?? baseMaxPrice;
         const currentDisplayMin = Math.round(currentBaseMin * exchangeRate);
-        const currentDisplayMax = currentBaseMax === Infinity ? Infinity : Math.round(currentBaseMax * exchangeRate);
+        const currentDisplayMax = currentBaseMax === Infinity ? displayMaxPrice : Math.round(currentBaseMax * exchangeRate);
+
+        // Use local state for real-time display, fallback to active filter values
+        const displayMin = localSliderMin ?? currentDisplayMin;
+        const displayMax = localSliderMax ?? currentDisplayMax;
+
+        const priceStyle = config.filters?.priceRangeStyle || 'input';
+
+        // Generate preset price ranges for range-buttons style
+        const generatePriceRanges = () => {
+            const range = displayMaxPrice - displayMinPrice;
+            const step = Math.ceil(range / 4);
+            return [
+                { label: `Under ${currencySymbol}${(displayMinPrice + step).toLocaleString()}`, min: displayMinPrice, max: displayMinPrice + step },
+                { label: `${currencySymbol}${(displayMinPrice + step).toLocaleString()} - ${currencySymbol}${(displayMinPrice + step * 2).toLocaleString()}`, min: displayMinPrice + step, max: displayMinPrice + step * 2 },
+                { label: `${currencySymbol}${(displayMinPrice + step * 2).toLocaleString()} - ${currencySymbol}${(displayMinPrice + step * 3).toLocaleString()}`, min: displayMinPrice + step * 2, max: displayMinPrice + step * 3 },
+                { label: `Over ${currencySymbol}${(displayMinPrice + step * 3).toLocaleString()}`, min: displayMinPrice + step * 3, max: displayMaxPrice },
+            ];
+        };
+
+        // Render slider style (local state for labels, debounced API calls via Container)
+        const renderSlider = () => (
+            <div className={styles.priceSlider}>
+                <div className={styles.sliderLabels}>
+                    <span>{currencySymbol}{displayMin.toLocaleString()}</span>
+                    <span>{currencySymbol}{displayMax.toLocaleString()}</span>
+                </div>
+                <div className={styles.sliderContainer}>
+                    <input
+                        type="range"
+                        min={displayMinPrice}
+                        max={displayMaxPrice}
+                        value={displayMin}
+                        onChange={(e) => {
+                            const displayValue = parseInt(e.target.value);
+                            // Update local state immediately for visual feedback
+                            setLocalSliderMin(displayValue);
+                            // Ensure max stays >= min
+                            if (displayMax < displayValue) {
+                                setLocalSliderMax(displayValue);
+                            }
+                            // Trigger debounced filter change
+                            const baseValue = Math.round(displayValue / exchangeRate);
+                            const baseMax = displayMax < displayValue
+                                ? baseValue
+                                : Math.round(displayMax / exchangeRate);
+                            onFilterChange('price', { min: baseValue, max: baseMax });
+                        }}
+                        className={styles.sliderInput}
+                    />
+                    <input
+                        type="range"
+                        min={displayMinPrice}
+                        max={displayMaxPrice}
+                        value={displayMax}
+                        onChange={(e) => {
+                            const displayValue = parseInt(e.target.value);
+                            // Update local state immediately for visual feedback
+                            setLocalSliderMax(displayValue);
+                            // Ensure min stays <= max
+                            if (displayMin > displayValue) {
+                                setLocalSliderMin(displayValue);
+                            }
+                            // Trigger debounced filter change
+                            const baseValue = Math.round(displayValue / exchangeRate);
+                            const baseMin = displayMin > displayValue
+                                ? baseValue
+                                : Math.round(displayMin / exchangeRate);
+                            onFilterChange('price', { min: baseMin, max: baseValue });
+                        }}
+                        className={styles.sliderInput}
+                    />
+                    <div
+                        className={styles.sliderTrack}
+                        style={{
+                            left: `${((displayMin - displayMinPrice) / (displayMaxPrice - displayMinPrice)) * 100}%`,
+                            right: `${100 - ((displayMax - displayMinPrice) / (displayMaxPrice - displayMinPrice)) * 100}%`
+                        }}
+                    />
+                </div>
+            </div>
+        );
+
+        // Render input style (existing implementation)
+        const renderInputs = () => (
+            <>
+                <div className={styles.priceRange}>
+                    <span>{currencySymbol}{displayMinPrice.toLocaleString()}</span>
+                    <span>—</span>
+                    <span>{currencySymbol}{displayMaxPrice.toLocaleString()}</span>
+                </div>
+                <div className={styles.priceInputs}>
+                    <div className={styles.priceInput}>
+                        <span className={styles.currencySymbol}>{currencySymbol}</span>
+                        <input
+                            type="number"
+                            placeholder={`Min (${displayMinPrice})`}
+                            value={currentDisplayMin === displayMinPrice ? '' : currentDisplayMin}
+                            onChange={(e) => {
+                                const displayValue = parseInt(e.target.value) || displayMinPrice;
+                                const baseValue = Math.round(displayValue / exchangeRate);
+                                onFilterChange('price', { min: baseValue, max: currentBaseMax });
+                            }}
+                        />
+                    </div>
+                    <span className={styles.priceDash}>—</span>
+                    <div className={styles.priceInput}>
+                        <span className={styles.currencySymbol}>{currencySymbol}</span>
+                        <input
+                            type="number"
+                            placeholder={`Max (${displayMaxPrice})`}
+                            value={currentDisplayMax === displayMaxPrice ? '' : currentDisplayMax}
+                            onChange={(e) => {
+                                const displayValue = parseInt(e.target.value) || Infinity;
+                                const baseValue = displayValue === Infinity ? Infinity : Math.round(displayValue / exchangeRate);
+                                onFilterChange('price', { min: currentBaseMin, max: baseValue });
+                            }}
+                        />
+                    </div>
+                </div>
+            </>
+        );
+
+        // Render range buttons style
+        const renderRangeButtons = () => {
+            const ranges = generatePriceRanges();
+            const isRangeActive = (range: { min: number; max: number }) => {
+                return currentDisplayMin === range.min && currentDisplayMax === range.max;
+            };
+
+            return (
+                <div className={styles.priceRangeButtons}>
+                    {ranges.map((range, idx) => (
+                        <button
+                            key={idx}
+                            className={`${styles.rangeButton} ${isRangeActive(range) ? styles.active : ''}`}
+                            onClick={() => {
+                                const baseMin = Math.round(range.min / exchangeRate);
+                                const baseMax = Math.round(range.max / exchangeRate);
+                                onFilterChange('price', { min: baseMin, max: baseMax });
+                            }}
+                        >
+                            {range.label}
+                        </button>
+                    ))}
+                    {activeFilters.price && (
+                        <button
+                            className={styles.rangeClearButton}
+                            onClick={() => onClearFilter('price')}
+                        >
+                            Clear
+                        </button>
+                    )}
+                </div>
+            );
+        };
 
         return (
             <div className={styles.filterGroup}>
@@ -160,41 +377,31 @@ export default function ModernCleanCategoryPageTemplate({
                 </button>
                 {isExpanded('price') && (
                     <div className={styles.filterContent}>
-                        <div className={styles.priceRange}>
-                            <span>{currencySymbol}{displayMinPrice.toLocaleString()}</span>
-                            <span>—</span>
-                            <span>{currencySymbol}{displayMaxPrice.toLocaleString()}</span>
-                        </div>
-                        <div className={styles.priceInputs}>
-                            <div className={styles.priceInput}>
-                                <span className={styles.currencySymbol}>{currencySymbol}</span>
-                                <input
-                                    type="number"
-                                    placeholder={`Min (${displayMinPrice})`}
-                                    value={currentDisplayMin === displayMinPrice ? '' : currentDisplayMin}
-                                    onChange={(e) => {
-                                        // User enters in display currency, convert to base for API
-                                        const displayValue = parseInt(e.target.value) || displayMinPrice;
-                                        const baseValue = Math.round(displayValue / exchangeRate);
-                                        onFilterChange('price', { min: baseValue, max: currentBaseMax });
-                                    }}
-                                />
-                            </div>
-                            <span className={styles.priceDash}>—</span>
-                            <div className={styles.priceInput}>
-                                <span className={styles.currencySymbol}>{currencySymbol}</span>
-                                <input
-                                    type="number"
-                                    placeholder={`Max (${displayMaxPrice})`}
-                                    value={currentDisplayMax === Infinity || currentDisplayMax === displayMaxPrice ? '' : currentDisplayMax}
-                                    onChange={(e) => {
-                                        // User enters in display currency, convert to base for API
-                                        const displayValue = parseInt(e.target.value) || Infinity;
-                                        const baseValue = displayValue === Infinity ? Infinity : Math.round(displayValue / exchangeRate);
-                                        onFilterChange('price', { min: currentBaseMin, max: baseValue });
-                                    }}
-                                />
-                            </div>
+                        {priceStyle === 'slider' && renderSlider()}
+                        {priceStyle === 'input' && renderInputs()}
+                        {priceStyle === 'range-buttons' && renderRangeButtons()}
+
+                        {/* Apply and Reset buttons */}
+                        <div className={styles.filterActions}>
+                            {hasUnappliedChanges && (() => {
+                                const stagedPrice = stagedFilters?.price;
+                                const activePrice = activeFilters.price;
+                                const hasChanges = JSON.stringify(stagedPrice) !== JSON.stringify(activePrice);
+
+                                return hasChanges ? (
+                                    <button className={styles.filterApplyBtn} onClick={onApplyFilters}>
+                                        Apply
+                                    </button>
+                                ) : null;
+                            })()}
+                            {activeFilters.price && (
+                                <button
+                                    className={styles.filterResetBtn}
+                                    onClick={() => onClearFilter?.('price')}
+                                >
+                                    Reset
+                                </button>
+                            )}
                         </div>
                     </div>
                 )}
@@ -231,8 +438,12 @@ export default function ModernCleanCategoryPageTemplate({
                                 <input
                                     type="radio"
                                     name="rating"
-                                    checked={activeFilters.rating === rating}
-                                    onChange={() => onFilterChange('rating', rating)}
+                                    checked={(stagedFilters?.rating || activeFilters.rating) === rating}
+                                    onChange={() => {
+                                        const currentRating = stagedFilters?.rating ?? activeFilters.rating;
+                                        // Toggle: if clicking the same rating, deselect it
+                                        onFilterChange('rating', currentRating === rating ? null : rating);
+                                    }}
                                 />
                                 <span className={styles.radio} />
                                 <span className={styles.stars}>
@@ -250,6 +461,25 @@ export default function ModernCleanCategoryPageTemplate({
                                 <span className={styles.ratingText}>&amp; up</span>
                             </label>
                         ))}
+                        {(() => {
+                            const isApplied = activeFilters.rating;
+                            const hasChanges = stagedFilters?.rating !== activeFilters.rating;
+
+                            return (hasChanges || isApplied) ? (
+                                <div className={styles.filterActions}>
+                                    {hasChanges && (
+                                        <button className={styles.filterApplyBtn} onClick={onApplyFilters}>
+                                            Apply
+                                        </button>
+                                    )}
+                                    {isApplied && (
+                                        <button className={styles.filterResetBtn} onClick={() => onClearFilter?.('rating')}>
+                                            Reset
+                                        </button>
+                                    )}
+                                </div>
+                            ) : null;
+                        })()}
                     </div>
                 )}
             </div>
@@ -346,6 +576,13 @@ export default function ModernCleanCategoryPageTemplate({
             {/* Tag filter */}
             {config.filters?.showTagFilter && (availableFilters?.tags?.length ?? 0) > 0 && (
                 renderCheckboxFilter('Tags', 'tags', availableFilters!.tags!)
+            )}
+
+            {/* Clear Pending Button at Bottom */}
+            {hasUnappliedChanges && (
+                <button className={styles.clearAllPendingBtn} onClick={onClearStagedFilters}>
+                    Clear All Pending Changes
+                </button>
             )}
         </div>
     );
@@ -454,6 +691,17 @@ export default function ModernCleanCategoryPageTemplate({
         </div>
     );
 
+    // ============================================
+    // Layout Sections (in array order from API)
+    // ============================================
+    // NOTE: The array order in the API response IS the correct order
+    // as configured in the admin layout builder. We don't sort by 
+    // the 'order' property as it may not be set correctly for all sections.
+    const sections = useMemo(() => {
+        return layout?.sections || [];
+    }, [layout]
+    );
+
     // Calculate grid columns based on config
     const gridColumns = config.grid?.productsPerRow || { desktop: 4, tablet: 3, mobile: 2 };
 
@@ -462,221 +710,425 @@ export default function ModernCleanCategoryPageTemplate({
 
     const showTopFilters = config.filters?.enabled && config.filters.position === 'top';
 
+    // State for collapsible description
+    const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(
+        config.header?.defaultExpanded || false
+    );
+    const [needsToggle, setNeedsToggle] = useState(false);
+    const descriptionRef = React.useRef<HTMLDivElement>(null);
+
+    // Check if description content overflows (needs show more/less toggle)
+    React.useEffect(() => {
+        if (descriptionRef.current && config.header?.descriptionStyle === 'collapsed') {
+            // Compare scrollHeight with clientHeight to detect overflow
+            const hasOverflow = descriptionRef.current.scrollHeight > descriptionRef.current.clientHeight;
+            setNeedsToggle(hasOverflow);
+        }
+    }, [category.description, config.header?.descriptionStyle, isDescriptionExpanded]);
+
+    // Render description based on position
+    const renderDescription = () => {
+        if (!config.header?.showDescription || !category.description) return null;
+
+        const isCollapsed = config.header.descriptionStyle === 'collapsed';
+        const showCollapsed = isCollapsed && !isDescriptionExpanded;
+
+        return (
+            <div className={styles.descriptionContent}>
+                <div
+                    ref={!isDescriptionExpanded ? descriptionRef : undefined}
+                    className={`${styles.description} ${showCollapsed ? styles.collapsed : ''}`}
+                    dangerouslySetInnerHTML={{ __html: category.description }}
+                />
+                {isCollapsed && needsToggle && (
+                    <span
+                        className={styles.descriptionToggle}
+                        onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => e.key === 'Enter' && setIsDescriptionExpanded(!isDescriptionExpanded)}
+                    >
+                        {isDescriptionExpanded
+                            ? (config.header.collapseLabel || 'Show less')
+                            : (config.header.expandLabel || '...Read more')}
+                    </span>
+                )}
+            </div>
+        );
+    };
+
+    // ============================================
+    // Module Rendering Helper
+    // ============================================
+    const renderModule = (module: any) => {
+        // Skip invisible modules based on device (for SSR, we show all by default)
+        if (module.visibility?.desktop === false) return null;
+
+        // Handle placeholder types with actual components
+        switch (module.type) {
+            case 'category-header':
+                // The category header is already rendered separately at the top
+                // This placeholder just marks where additional header customizations could go
+                return null;
+
+            case 'category-filters':
+                return (
+                    <React.Fragment key={module.id}>
+                        <h3 className={styles.sidebarTitle}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                            </svg>
+                            Filters
+                        </h3>
+                        {renderFilters()}
+                    </React.Fragment>
+                );
+
+            case 'category-products':
+                return (
+                    <React.Fragment key={module.id}>
+                        {/* Toolbar */}
+                        <div className={styles.toolbar}>
+                            <div className={styles.toolbarLeft}>
+                                {/* Mobile filter button */}
+                                {config.filters?.enabled && (
+                                    <button
+                                        className={styles.mobileFilterBtn}
+                                        onClick={onOpenFilterDrawer}
+                                        style={{
+                                            display: (config.filters?.position === 'off-canvas') ? 'flex' : undefined
+                                        }}
+                                    >
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                                        </svg>
+                                        {config.filters?.offCanvas?.buttonText || 'Filters'}
+                                        {activeFilterCount > 0 && (
+                                            <span className={styles.filterBadge}>{activeFilterCount}</span>
+                                        )}
+                                    </button>
+                                )}
+                                <span className={styles.productCount}>
+                                    {pagination.total} products
+                                </span>
+                            </div>
+
+                            {/* Sort dropdown */}
+                            {config.sorting?.showSortDropdown && (
+                                <div className={styles.sortDropdown}>
+                                    <label>Sort by:</label>
+                                    <select
+                                        value={currentSort}
+                                        onChange={(e) => onSortChange(e.target.value)}
+                                    >
+                                        {sortOptions.map(opt => (
+                                            <option key={opt.value} value={opt.value}>
+                                                {opt.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Product grid */}
+                        <div
+                            className={styles.productGrid}
+                            style={{
+                                '--cols-desktop': gridColumns.desktop,
+                                '--cols-tablet': gridColumns.tablet,
+                                '--cols-mobile': gridColumns.mobile,
+                            } as React.CSSProperties}
+                        >
+                            {products.map((product, index) => (
+                                <div
+                                    key={product._id}
+                                    className={styles.productItem}
+                                    style={{ '--index': index } as React.CSSProperties}
+                                >
+                                    <ProductCard product={product} />
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Loading state */}
+                        {isLoading && (
+                            <div className={styles.loading}>
+                                <div className={styles.spinner} />
+                                <span>Loading products...</span>
+                            </div>
+                        )}
+
+                        {/* Empty state */}
+                        {!isLoading && products.length === 0 && (
+                            <div className={styles.emptyState}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                                </svg>
+                                <h3>{config.emptyState?.message || 'No products found'}</h3>
+                                <p>Try adjusting your filters or search criteria</p>
+                                {activeFilterCount > 0 && config.emptyState?.showClearFilters && (
+                                    <button onClick={onClearAllFilters} className={styles.clearFiltersBtn}>
+                                        Clear All Filters
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                    </React.Fragment>
+                );
+
+            case 'category-pagination':
+                if (isLoading || products.length === 0 || pagination.pages <= 1) return null;
+                return (
+                    <div key={module.id} className={styles.pagination}>
+                        {config.pagination?.type === 'load-more' ? (
+                            <button
+                                className={styles.loadMoreBtn}
+                                onClick={onLoadMore}
+                                disabled={pagination.page >= pagination.pages}
+                            >
+                                {pagination.page >= pagination.pages ? 'No more products' : 'Load More'}
+                            </button>
+                        ) : config.pagination?.type === 'pagination' && (
+                            <div className={`${styles.paginationNav} ${styles[config.pagination.position || 'center']}`}>
+                                <button
+                                    disabled={pagination.page <= 1}
+                                    onClick={() => onPageChange(pagination.page - 1)}
+                                    className={styles.pageBtn}
+                                >
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                                    </svg>
+                                </button>
+
+                                {[...Array(Math.min(5, pagination.pages))].map((_, i) => {
+                                    let pageNum: number;
+                                    if (pagination.pages <= 5) {
+                                        pageNum = i + 1;
+                                    } else if (pagination.page <= 3) {
+                                        pageNum = i + 1;
+                                    } else if (pagination.page >= pagination.pages - 2) {
+                                        pageNum = pagination.pages - 4 + i;
+                                    } else {
+                                        pageNum = pagination.page - 2 + i;
+                                    }
+                                    return (
+                                        <button
+                                            key={pageNum}
+                                            className={`${styles.pageBtn} ${pageNum === pagination.page ? styles.active : ''}`}
+                                            onClick={() => onPageChange(pageNum)}
+                                        >
+                                            {pageNum}
+                                        </button>
+                                    );
+                                })}
+
+                                <button
+                                    disabled={pagination.page >= pagination.pages}
+                                    onClick={() => onPageChange(pagination.page + 1)}
+                                    className={styles.pageBtn}
+                                >
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </button>
+                            </div>
+                        )}
+
+                        {config.pagination?.showProductCount && (
+                            <p className={styles.paginationInfo}>
+                                Showing {(pagination.page - 1) * pagination.limit + 1} - {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
+                            </p>
+                        )}
+                    </div>
+                );
+
+            default:
+                // Regular module - use ModuleRenderer
+                return <ModuleRenderer key={module.id} module={module} />;
+        }
+    };
+
+    // ============================================
+    // Section Rendering Helper
+    // ============================================
+    const renderSection = (section: any) => {
+        const sectionStyle = {
+            paddingTop: section.settings?.paddingTop || 0,
+            paddingBottom: section.settings?.paddingBottom || 0,
+            backgroundImage: section.settings?.backgroundImage ? `url(${section.settings.backgroundImage})` : undefined,
+            backgroundSize: section.settings?.backgroundSize || 'cover',
+            backgroundPosition: section.settings?.backgroundPosition || 'center',
+        };
+
+        // Check if this section has split columns (like split-2, split-3, etc.)
+        const isSplitSection = section.type?.startsWith('split-') && section.columns?.length > 0;
+
+        // Check if this section contains category-filters or category-products
+        const hasFiltersColumn = section.columns?.some((col: any) =>
+            col.modules?.some((m: any) => m.type === 'category-filters')
+        );
+        const hasProductsColumn = section.columns?.some((col: any) =>
+            col.modules?.some((m: any) => m.type === 'category-products')
+        );
+        const isCategoryContentSection = hasFiltersColumn && hasProductsColumn;
+
+        if (isSplitSection && isCategoryContentSection) {
+            // This is the main category content section with filters sidebar and products
+            return (
+                <div
+                    key={section.id}
+                    className={`${styles.content} ${hasFilters ? styles.withSidebar : ''} ${config.filters?.position === 'right' ? styles.sidebarRight : ''}`}
+                    style={sectionStyle}
+                >
+                    {section.columns.map((column: any, colIndex: number) => {
+                        const isFilterColumn = column.modules?.some((m: any) => m.type === 'category-filters');
+                        const isProductColumn = column.modules?.some((m: any) => m.type === 'category-products');
+
+                        if (isFilterColumn && hasFilters) {
+                            return (
+                                <aside
+                                    key={column.id}
+                                    className={styles.sidebar}
+                                    style={{ '--sidebar-width': `${config.filters?.sidebarWidth || 280}px` } as React.CSSProperties}
+                                >
+                                    <div className={`${styles.sidebarInner} ${config.filters?.style === 'sticky' ? styles.sticky : ''}`}>
+                                        {column.modules?.map((module: any) => renderModule(module))}
+                                    </div>
+                                </aside>
+                            );
+                        }
+
+                        if (isProductColumn) {
+                            return (
+                                <main key={column.id} className={styles.main}>
+                                    {showTopFilters && renderHorizontalFilters()}
+                                    {column.modules?.map((module: any) => renderModule(module))}
+                                </main>
+                            );
+                        }
+
+                        // Generic column
+                        return (
+                            <div key={column.id} style={{ flex: column.width || 1 }}>
+                                {column.modules?.map((module: any) => renderModule(module))}
+                            </div>
+                        );
+                    })}
+                </div>
+            );
+        }
+
+        if (isSplitSection) {
+            // Generic split section (not the main category content)
+            return (
+                <div key={section.id} className={styles.splitSection} style={sectionStyle}>
+                    <div className={styles.splitColumns}>
+                        {section.columns.map((column: any) => (
+                            <div
+                                key={column.id}
+                                className={styles.splitColumn}
+                                style={{ flex: column.width || 1 }}
+                            >
+                                {column.modules?.map((module: any) => renderModule(module))}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        // Container section with direct modules
+        return (
+            <section key={section.id} className={styles.section} style={sectionStyle}>
+                {section.modules?.map((module: any) => renderModule(module))}
+            </section>
+        );
+    };
+
     return (
         <div className={styles.categoryPage}>
-            {/* Category Header */}
+            {/* Category Header - Always rendered first */}
             <header className={styles.header}>
-                {/* Breadcrumbs */}
-                <nav className={styles.breadcrumbs}>
-                    {breadcrumbs.map((crumb, i) => (
-                        <React.Fragment key={i}>
-                            {i > 0 && <span className={styles.separator}>/</span>}
-                            {crumb.href ? (
-                                <Link href={crumb.href}>{crumb.label}</Link>
-                            ) : (
-                                <span className={styles.current}>{crumb.label}</span>
-                            )}
-                        </React.Fragment>
-                    ))}
-                </nav>
-
-                {/* Category info */}
-                <div className={styles.categoryInfo}>
+                {/* Background with gradient and optional image */}
+                <div className={styles.headerBackground}>
                     {config.header?.showImage && category.image && (
-                        <div className={styles.categoryImage}>
-                            <Image src={category.image} alt={category.title} fill style={{ objectFit: 'cover' }} />
-                            <div className={styles.imageOverlay} />
-                        </div>
+                        <Image
+                            src={category.image}
+                            alt={category.title}
+                            fill
+                            style={{ objectFit: 'cover' }}
+                            priority
+                            className={styles.headerBgImage}
+                        />
                     )}
-                    <div className={styles.categoryText}>
-                        <h1>{category.title}</h1>
-                        {config.header?.showDescription && category.description && (
-                            <p className={styles.description}>{category.description}</p>
-                        )}
+                    {/* Gradient overlay */}
+                    <div className={styles.gradientOverlay} />
+                    {/* Decorative floating shapes */}
+                    <div className={styles.decorativeShapes}>
+                        <div className={styles.shape1} />
+                        <div className={styles.shape2} />
+                        <div className={styles.shape3} />
+                    </div>
+                </div>
+
+                {/* Header Content - Inside Container */}
+                <div className={styles.headerContainer}>
+                    <div className={styles.categoryInfo}>
+                        {/* Breadcrumbs at top */}
+                        <nav className={styles.breadcrumbs}>
+                            {breadcrumbs.map((crumb, i) => (
+                                <React.Fragment key={i}>
+                                    {i > 0 && (
+                                        <svg className={styles.breadcrumbSeparator} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    )}
+                                    {crumb.href ? (
+                                        <Link href={crumb.href} className={styles.breadcrumbLink}>{crumb.label}</Link>
+                                    ) : (
+                                        <span className={styles.breadcrumbCurrent}>{crumb.label}</span>
+                                    )}
+                                </React.Fragment>
+                            ))}
+                        </nav>
+
+                        {/* Title with animated underline */}
+                        <div className={styles.titleWrapper}>
+                            <h1>{category.title}</h1>
+                            <div className={styles.titleDecoration} />
+                        </div>
+
+                        {/* Product count badge */}
+                        <div className={styles.headerMeta}>
+                            <span className={styles.productBadge}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                </svg>
+                                {pagination.total} Products
+                            </span>
+                        </div>
+
+                        {/* Description */}
+                        {(config.header.descriptionPosition === 'top' || config.header.descriptionPosition === 'below-image') &&
+                            config.header?.showDescription && category.description && (
+                                <div className={styles.descriptionWrapper}>
+                                    {renderDescription()}
+                                </div>
+                            )}
                     </div>
                 </div>
             </header>
 
-            {/* Main content */}
-            <div className={`${styles.content} ${hasFilters ? styles.withSidebar : ''} ${config.filters?.position === 'right' ? styles.sidebarRight : ''}`}>
+            {/* Render all sections in order */}
+            {sections.map((section: any) => renderSection(section))}
 
-                {/* Filter Sidebar (Desktop) */}
-                {hasFilters && (
-                    <aside
-                        className={styles.sidebar}
-                        style={{ '--sidebar-width': `${config.filters?.sidebarWidth || 280}px` } as React.CSSProperties}
-                    >
-                        <div className={`${styles.sidebarInner} ${config.filters?.style === 'sticky' ? styles.sticky : ''}`}>
-                            <h3 className={styles.sidebarTitle}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                                </svg>
-                                Filters
-                            </h3>
-                            {renderFilters()}
-                        </div>
-                    </aside>
-                )}
-
-                {/* Products section */}
-                <main className={styles.main}>
-                    {/* Top Filters */}
-                    {showTopFilters && renderHorizontalFilters()}
-
-                    {/* Toolbar */}
-                    <div className={styles.toolbar}>
-                        <div className={styles.toolbarLeft}>
-                            {/* Mobile filter button - Show on desktop ONLY if position is off-canvas */}
-                            {config.filters?.enabled && (
-                                <button
-                                    className={styles.mobileFilterBtn}
-                                    onClick={onOpenFilterDrawer}
-                                    style={{
-                                        display: (config.filters?.position === 'off-canvas') ? 'flex' : undefined
-                                    }}
-                                >
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                                    </svg>
-                                    {config.filters?.offCanvas?.buttonText || 'Filters'}
-                                    {activeFilterCount > 0 && (
-                                        <span className={styles.filterBadge}>{activeFilterCount}</span>
-                                    )}
-                                </button>
-                            )}
-                            <span className={styles.productCount}>
-                                {pagination.total} products
-                            </span>
-                        </div>
-
-                        {/* Sort dropdown */}
-                        {config.sorting?.showSortDropdown && (
-                            <div className={styles.sortDropdown}>
-                                <label>Sort by:</label>
-                                <select
-                                    value={currentSort}
-                                    onChange={(e) => onSortChange(e.target.value)}
-                                >
-                                    {sortOptions.map(opt => (
-                                        <option key={opt.value} value={opt.value}>
-                                            {opt.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Product grid */}
-                    <div
-                        className={styles.productGrid}
-                        style={{
-                            '--cols-desktop': gridColumns.desktop,
-                            '--cols-tablet': gridColumns.tablet,
-                            '--cols-mobile': gridColumns.mobile,
-                        } as React.CSSProperties}
-                    >
-                        {products.map((product, index) => (
-                            <div
-                                key={product._id}
-                                className={styles.productItem}
-                                style={{ '--index': index } as React.CSSProperties}
-                            >
-                                <ProductCard product={product} />
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Loading state */}
-                    {isLoading && (
-                        <div className={styles.loading}>
-                            <div className={styles.spinner} />
-                            <span>Loading products...</span>
-                        </div>
-                    )}
-
-                    {/* Empty state */}
-                    {!isLoading && products.length === 0 && (
-                        <div className={styles.emptyState}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                            </svg>
-                            <h3>{config.emptyState?.message || 'No products found'}</h3>
-                            <p>Try adjusting your filters or search criteria</p>
-                            {activeFilterCount > 0 && config.emptyState?.showClearFilters && (
-                                <button onClick={onClearAllFilters} className={styles.clearFiltersBtn}>
-                                    Clear All Filters
-                                </button>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Pagination / Load More */}
-                    {!isLoading && products.length > 0 && pagination.pages > 1 && (
-                        <div className={styles.pagination}>
-                            {config.pagination?.type === 'load-more' ? (
-                                <button
-                                    className={styles.loadMoreBtn}
-                                    onClick={onLoadMore}
-                                    disabled={pagination.page >= pagination.pages}
-                                >
-                                    {pagination.page >= pagination.pages ? 'No more products' : 'Load More'}
-                                </button>
-                            ) : config.pagination?.type === 'pagination' && (
-                                <div className={`${styles.paginationNav} ${styles[config.pagination.position || 'center']}`}>
-                                    <button
-                                        disabled={pagination.page <= 1}
-                                        onClick={() => onPageChange(pagination.page - 1)}
-                                        className={styles.pageBtn}
-                                    >
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                                        </svg>
-                                    </button>
-
-                                    {[...Array(Math.min(5, pagination.pages))].map((_, i) => {
-                                        let pageNum: number;
-                                        if (pagination.pages <= 5) {
-                                            pageNum = i + 1;
-                                        } else if (pagination.page <= 3) {
-                                            pageNum = i + 1;
-                                        } else if (pagination.page >= pagination.pages - 2) {
-                                            pageNum = pagination.pages - 4 + i;
-                                        } else {
-                                            pageNum = pagination.page - 2 + i;
-                                        }
-                                        return (
-                                            <button
-                                                key={pageNum}
-                                                className={`${styles.pageBtn} ${pageNum === pagination.page ? styles.active : ''}`}
-                                                onClick={() => onPageChange(pageNum)}
-                                            >
-                                                {pageNum}
-                                            </button>
-                                        );
-                                    })}
-
-                                    <button
-                                        disabled={pagination.page >= pagination.pages}
-                                        onClick={() => onPageChange(pagination.page + 1)}
-                                        className={styles.pageBtn}
-                                    >
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            )}
-
-                            {config.pagination?.showProductCount && (
-                                <p className={styles.paginationInfo}>
-                                    Showing {(pagination.page - 1) * pagination.limit + 1} - {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
-                                </p>
-                            )}
-                        </div>
-                    )}
-                </main>
-            </div>
+            {/* Category Description at Bottom */}
+            {config.header.descriptionPosition === 'bottom' && (
+                <div className={styles.bottomDescription}>
+                    {renderDescription()}
+                </div>
+            )}
 
             {/* Mobile Filter Drawer */}
             {isFilterDrawerOpen && (

@@ -186,7 +186,7 @@ export default function ModernCleanProductCardTemplate({
                             Out of Stock
                         </span>
                     )}
-                    {showSalePercent && hasDiscount && discountPercent && inStock && (
+                    {showSalePercent && hasDiscount && discountPercent !== undefined && discountPercent > 0 && inStock && (
                         <span className={`${styles.badge} ${styles.badgeSale}`}>
                             -{discountPercent}%
                         </span>

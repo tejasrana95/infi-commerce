@@ -106,10 +106,15 @@ export async function fetchCategoryBySlug(storeId: string, slug: string): Promis
 /**
  * Fetch products for a category
  */
-export async function fetchCategoryProducts(storeId: string, categoryId: string, limit = 24): Promise<any[]> {
+export async function fetchCategoryProducts(
+    storeId: string,
+    categoryId: string,
+    options: { limit?: number; sort?: string } = {}
+): Promise<any[]> {
+    const { limit = 24, sort = 'featured' } = options;
     try {
         const res = await fetch(
-            `${API_BASE}/products?storeId=${storeId}&categoryId=${categoryId}&limit=${limit}`,
+            `${API_BASE}/products?storeId=${storeId}&categoryId=${categoryId}&limit=${limit}&sort=${sort}`,
             {
                 next: { revalidate: 60 },
                 headers: { 'Content-Type': 'application/json' },
@@ -137,6 +142,7 @@ export async function fetchCategoryFilters(storeId: string, categoryId: string):
                 headers: { 'Content-Type': 'application/json' },
             }
         );
+
         if (!res.ok) return null;
         return await res.json();
     } catch (error) {
@@ -145,25 +151,51 @@ export async function fetchCategoryFilters(storeId: string, categoryId: string):
     }
 }
 
+// ============================================
+// Layout Data Fetching
+// ============================================
+
+export async function fetchLayout(storeId: string, type: string): Promise<any | null> {
+    try {
+        const res = await fetch(`${API_BASE}/layouts?storeId=${storeId}&type=${type}`, {
+            next: { revalidate: 60 },
+            headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (!res.ok) return null;
+        const data = await res.json();
+        // Return the first layout (assuming it's the active/default one due to sorting)
+        return data.data?.[0] || null;
+    } catch (error) {
+        console.error('Error fetching layout:', error);
+        return null;
+    }
+}
+
 /**
  * Fetch all category page data in one call
  * Optimized for SSR - fetches everything in parallel
  */
-export async function fetchCategoryPageData(storeId: string, slug: string) {
+export async function fetchCategoryPageData(
+    storeId: string,
+    slug: string,
+    options: { sort?: string } = {}
+) {
     // First fetch the category
     const category = await fetchCategoryBySlug(storeId, slug);
 
     if (!category) {
-        return { category: null, products: [], filters: null };
+        return { category: null, products: [], filters: null, layout: null };
     }
 
-    // Then fetch products and filters in parallel
-    const [products, filters] = await Promise.all([
-        fetchCategoryProducts(storeId, category._id),
+    // Then fetch products, filters, and layout in parallel
+    const [products, filters, layout] = await Promise.all([
+        fetchCategoryProducts(storeId, category._id, { sort: options.sort }),
         fetchCategoryFilters(storeId, category._id),
+        fetchLayout(storeId, 'category'),
     ]);
 
-    return { category, products, filters };
+    return { category, products, filters, layout };
 }
 
 // ============================================

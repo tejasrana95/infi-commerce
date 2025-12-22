@@ -3,6 +3,7 @@
 import { Section } from '@/types/layout';
 import ModuleRenderer from '../ModuleRenderer';
 import { useEffect, useState } from 'react';
+import { useDeviceType, checkVisibility } from '@/hooks/useDeviceType';
 import styles from './SectionRenderer.module.scss';
 
 interface SectionRendererProps {
@@ -17,6 +18,7 @@ interface SectionRendererProps {
  */
 export default function SectionRenderer({ section, moduleData }: SectionRendererProps) {
     const [isMounted, setIsMounted] = useState(false);
+    const deviceType = useDeviceType();
 
     useEffect(() => {
         setIsMounted(true);
@@ -27,9 +29,8 @@ export default function SectionRenderer({ section, moduleData }: SectionRenderer
         return null;
     }
 
-    // Check visibility based on device type
-    // This is a simple implementation - you may want to use media queries or a context
-    const isVisible = section.visibility?.desktop !== false;
+    // Check visibility based on current device type
+    const isVisible = checkVisibility(section.visibility, deviceType);
 
     if (!isVisible) {
         return null;

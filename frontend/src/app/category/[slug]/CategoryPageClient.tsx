@@ -28,12 +28,14 @@ interface CategoryPageClientProps {
     category: Category;
     initialProducts?: any[];
     initialFilters?: any;
+    initialLayout?: any;
 }
 
 export default function CategoryPageClient({
     category,
     initialProducts = [],
     initialFilters = null,
+    initialLayout = null,
 }: CategoryPageClientProps) {
     const { store } = useStore();
     const templateId = store?.theme?.templateId || 'modern-clean';
@@ -46,6 +48,7 @@ export default function CategoryPageClient({
             category={category}
             initialProducts={initialProducts}
             initialFilters={initialFilters}
+            initialLayout={initialLayout}
         />
     );
 }

@@ -130,6 +130,12 @@ export interface CategoryPageTemplateProps {
     onClearFilter: (filterType: string) => void;
     onClearAllFilters: () => void;
 
+    // Staged filters (Apply Filters button)
+    stagedFilters?: ActiveFilters;
+    hasUnappliedChanges?: boolean;
+    onApplyFilters?: () => void;
+    onClearStagedFilters?: () => void;
+
     // Mobile filter state
     isFilterDrawerOpen: boolean;
     onOpenFilterDrawer: () => void;
@@ -140,6 +146,9 @@ export interface CategoryPageTemplateProps {
     currencySymbol: string;
     exchangeRate: number;  // Exchange rate for multi-currency price conversion
     templateId: string;
+
+    // Layout
+    layout?: any;
 }
 
 // Default sort options

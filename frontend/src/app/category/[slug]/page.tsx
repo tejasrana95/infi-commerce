@@ -15,6 +15,7 @@ import {
 
 interface CategoryPageProps {
     params: Promise<{ slug: string }>;
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 // Generate metadata for SEO
@@ -45,16 +46,26 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
 }
 
 // Server Component - Fetches all data for SSR
-export default async function CategoryPage({ params }: CategoryPageProps) {
+export default async function CategoryPage({ params, searchParams }: CategoryPageProps) {
     const { slug } = await params;
+    const resolvedSearchParams = await searchParams;
     const store = await getServerStore();
 
     if (!store?._id) {
         notFound();
     }
 
-    // Fetch all category data server-side
-    const { category, products, filters } = await fetchCategoryPageData(store._id, slug);
+    // Get sort from URL params (use default if not specified)
+    const sort = typeof resolvedSearchParams.sort === 'string'
+        ? resolvedSearchParams.sort
+        : store?.theme?.category?.sorting?.defaultSort || 'featured';
+
+    // Fetch all category data server-side with sort
+    const { category, products, filters, layout } = await fetchCategoryPageData(
+        store._id,
+        slug,
+        { sort }
+    );
 
     if (!category) {
         notFound();
@@ -66,6 +77,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
                 category={category}
                 initialProducts={products}
                 initialFilters={filters}
+                initialLayout={layout}
             />
         </Suspense>
     );
