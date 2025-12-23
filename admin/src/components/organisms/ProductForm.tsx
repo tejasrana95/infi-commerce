@@ -25,6 +25,7 @@ import { z } from 'zod';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import api from '@/lib/api';
+import { TaxRate } from '@/types';
 import StoreAutocomplete from '../molecules/StoreAutocomplete';
 import BrandAutocomplete from '../molecules/BrandAutocomplete';
 import CategoryAutocomplete from '../molecules/CategoryAutocomplete';
@@ -57,6 +58,7 @@ const schema = z.object({
     salePriceStartDate: z.string().optional(),
     salePriceEndDate: z.string().optional(),
     costPrice: z.number().min(0).optional(),
+    taxClassId: z.string().optional(),
 
     // Inventory
     stock: z.number().min(0, 'Stock must be positive'),
@@ -161,6 +163,20 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
     const [activeTab, setActiveTab] = useState(0);
     const [tagInput, setTagInput] = useState('');
     const [keywordInput, setKeywordInput] = useState('');
+    const [taxRates, setTaxRates] = useState<TaxRate[]>([]);
+
+    // Fetch tax rates on mount
+    useEffect(() => {
+        const fetchTaxRates = async () => {
+            try {
+                const response = await api.get('/tax-rates', { params: { isActive: true } });
+                setTaxRates(response.data.data || []);
+            } catch (err) {
+                console.error('Failed to fetch tax rates');
+            }
+        };
+        fetchTaxRates();
+    }, []);
 
     const {
         control,
@@ -186,6 +202,7 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
             salePriceStartDate: '',
             salePriceEndDate: '',
             costPrice: undefined,
+            taxClassId: '',
             stock: 0,
             manageStock: true,
             stockStatus: 'in_stock',
@@ -262,7 +279,11 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
             setValue('sku', initialData.sku || '');
             setValue('description', initialData.description || '');
             setValue('shortDescription', initialData.shortDescription || '');
-            setValue('brand', initialData.brand || '');
+            // Handle brand - could be object or string
+            const brandId = typeof initialData.brand === 'object'
+                ? initialData.brand?._id
+                : initialData.brand;
+            setValue('brand', brandId || '');
             setValue('categoryIds', initialData.categoryIds?.map((c: any) => typeof c === 'object' ? c._id : c) || []);
             setValue('tags', initialData.tags || []);
             setValue('price', initialData.price || 0);
@@ -277,6 +298,11 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
                 setValue('salePriceEndDate', endDate.toISOString().slice(0, 16));
             }
             setValue('costPrice', initialData.costPrice);
+            // Handle taxClassId - could be object or string
+            const taxId = typeof initialData.taxClassId === 'object'
+                ? initialData.taxClassId?._id
+                : initialData.taxClassId;
+            setValue('taxClassId', taxId || '');
             setValue('stock', initialData.stock || 0);
             setValue('manageStock', initialData.manageStock !== undefined ? initialData.manageStock : true);
             setValue('stockStatus', initialData.stockStatus || 'in_stock');
@@ -683,6 +709,32 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
                                         helperText={errors.costPrice?.message}
                                         onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
                                     />
+                                )}
+                            />
+                        </Grid>
+
+                        <Grid size={{ xs: 12, md: 4 }}>
+                            <Controller
+                                name="taxClassId"
+                                control={control}
+                                render={({ field }) => (
+                                    <FormControl fullWidth>
+                                        <InputLabel>Tax Rate</InputLabel>
+                                        <Select
+                                            {...field}
+                                            label="Tax Rate"
+                                            value={field.value || ''}
+                                        >
+                                            <MenuItem value="">
+                                                <em>No Tax</em>
+                                            </MenuItem>
+                                            {taxRates.map((tax) => (
+                                                <MenuItem key={tax._id} value={tax._id}>
+                                                    {tax.name} ({tax.rate}%)
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
                                 )}
                             />
                         </Grid>

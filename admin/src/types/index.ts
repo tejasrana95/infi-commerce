@@ -5,6 +5,25 @@ export interface User {
   role: 'admin' | 'manager' | 'staff';
 }
 
+// ============ TAX RATE TYPES ============
+
+export interface SubTax {
+  name: string;
+  rate: number;
+}
+
+export interface TaxRate {
+  _id: string;
+  name: string;
+  rate: number;
+  isSplit: boolean;
+  subTaxes?: SubTax[];
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ============ HEADER & FOOTER TYPES ============
 
 // Header Top Bar Types
@@ -318,6 +337,86 @@ export const DEFAULT_CATEGORY_CONFIG: CategoryConfig = {
   },
 };
 
+// ============ PRODUCT PAGE CONFIGURATION ============
+
+export interface ProductPageConfig {
+  pricing?: {
+    showTaxIncluded: boolean;
+    showPriceWithoutTax: boolean;
+  };
+  gallery?: {
+    layout?: 'thumbnails-left' | 'thumbnails-bottom' | 'carousel' | 'grid';
+    enableZoom?: boolean;
+    zoomType?: 'hover' | 'magnify' | 'lightbox-only';
+    enableLightbox?: boolean;
+    showVideoGallery?: boolean;
+  };
+  info?: {
+    showSku?: boolean;
+    showBrand?: boolean;
+    showStock?: boolean;
+    showShortDescription?: boolean;
+    showSocialShare?: boolean;
+    showReviews?: boolean;
+  };
+  specifications?: {
+    show: boolean;
+    layout: 'tab' | 'list';
+  };
+  variants?: {
+    style?: 'dropdown' | 'buttons' | 'swatches';
+    showUnavailable?: boolean;
+  };
+  tabs?: {
+    layout?: 'tabs' | 'accordion' | 'sections';
+    showDescription?: boolean;
+    showSpecifications?: boolean;
+    showReviews?: boolean;
+  };
+  shipping?: {
+    showCalculator: boolean;
+  };
+}
+
+export const DEFAULT_PRODUCT_PAGE_CONFIG: ProductPageConfig = {
+  pricing: {
+    showTaxIncluded: false,
+    showPriceWithoutTax: false,
+  },
+  gallery: {
+    layout: 'thumbnails-left',
+    enableZoom: true,
+    zoomType: 'hover',
+    enableLightbox: true,
+    showVideoGallery: true,
+  },
+  info: {
+    showSku: true,
+    showBrand: true,
+    showStock: true,
+    showShortDescription: true,
+    showSocialShare: false,
+    showReviews: true,
+  },
+  specifications: {
+    show: true,
+    layout: 'tab',
+  },
+  variants: {
+    style: 'buttons',
+    showUnavailable: true,
+  },
+  tabs: {
+    layout: 'tabs',
+    showDescription: true,
+    showSpecifications: true,
+    showReviews: true,
+  },
+  shipping: {
+    showCalculator: false,
+  },
+};
+
 export interface ThemeConfig {
   templateId: string; // ID of the specific template (e.g., 'modern-clean', 'classic-elegance')
   header?: {
@@ -331,6 +430,7 @@ export interface ThemeConfig {
   footer?: FooterConfig;
   productCard?: ProductCardConfig;
   category?: CategoryConfig;
+  product?: ProductPageConfig;
   colors?: {
     primary?: string;
     secondary?: string;
@@ -374,8 +474,6 @@ export interface Store {
     requireEmailVerification?: boolean;
     minOrderAmount?: number;
     maxOrderAmount?: number;
-    taxEnabled?: boolean;
-    taxRate?: number;
     shippingEnabled?: boolean;
     [key: string]: any;
   };

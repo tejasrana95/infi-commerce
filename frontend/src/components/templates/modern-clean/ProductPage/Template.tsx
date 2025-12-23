@@ -11,7 +11,16 @@ import SectionRenderer from '@/components/core/layout/SectionRenderer';
 import { ProductPageTemplateProps } from '@/components/templates/core/ProductPage/types';
 import { getComponent } from '@/components/templates/registry';
 import { addToRecentlyViewed } from '@/components/core/modules/standard/RecentlyViewed';
+
+// Molecular Components
+import { ProductGallery } from '@/components/molecules/ProductGallery';
+import { ProductVariantSelector } from '@/components/molecules/ProductVariantSelector';
+import { ProductSocialShare } from '@/components/molecules/ProductSocialShare';
+import { ProductTabs } from '@/components/molecules/ProductTabs';
+import { ProductVideoGallery } from '@/components/molecules/ProductVideoGallery';
+
 import styles from './ProductPage.module.scss';
+import { formatPrice } from '@/lib/currency';
 
 export default function ModernCleanProductPageTemplate({
     product,
@@ -43,6 +52,7 @@ export default function ModernCleanProductPageTemplate({
     config,
     currencySymbol,
     exchangeRate,
+    currency,
     templateId,
     cardConfig,
     layout,
@@ -67,6 +77,10 @@ export default function ModernCleanProductPageTemplate({
     // Main image state
     const [mainImageIndex, setMainImageIndex] = useState(0);
 
+    // Shipping Calculator State
+    const [shippingZip, setShippingZip] = useState('');
+    const [shippingCountry, setShippingCountry] = useState('US');
+
     // Get current variant for display (either fully selected or partial match for preview)
     const displayVariant = selectedVariant || matchingVariant;
 
@@ -75,13 +89,36 @@ export default function ModernCleanProductPageTemplate({
         ? displayVariant.images
         : product.images;
 
-    // Get current price
+    // Get current pricing (prefer variant pricing if available)
+    const currentPricing = displayVariant?.pricing || product.pricing;
     const currentPrice = displayVariant?.price ?? product.price;
     const currentSalePrice = displayVariant?.salePrice ?? product.salePrice;
-    const effectivePrice = currentSalePrice && currentSalePrice < currentPrice
-        ? currentSalePrice
-        : currentPrice;
-    const hasDiscount = currentSalePrice && currentSalePrice < currentPrice;
+
+    // Tax-inclusive pricing
+    const showTaxIncluded = config.pricing?.showTaxIncluded ?? false;
+    const showPriceWithoutTax = config.pricing?.showPriceWithoutTax ?? false;
+
+    // Determine display prices based on tax settings
+    let displayPrice: number;
+    let displaySalePrice: number | undefined;
+    let displayComparePrice: number | undefined;
+
+    if (showTaxIncluded && currentPricing) {
+        // Show tax-inclusive prices
+        displayPrice = currentPricing.priceWithTax;
+        displaySalePrice = currentPricing.salePriceWithTax;
+        displayComparePrice = currentPricing.salePrice ? currentPricing.priceWithTax : undefined;
+    } else {
+        // Show base prices (without tax)
+        displayPrice = currentPrice;
+        displaySalePrice = currentSalePrice;
+        displayComparePrice = currentSalePrice && currentSalePrice < currentPrice ? currentPrice : undefined;
+    }
+
+    const effectivePrice = displaySalePrice && displaySalePrice < displayPrice
+        ? displaySalePrice
+        : displayPrice;
+    const hasDiscount = displaySalePrice && displaySalePrice < displayPrice;
 
     // Stock status
     const effectiveStock = displayVariant?.stock ?? product.stock;
@@ -182,54 +219,18 @@ export default function ModernCleanProductPageTemplate({
     // Product Gallery
     // ============================================
     const renderGallery = () => (
-        <div className={styles.gallery}>
-            <div className={styles.thumbnails}>
-                {currentImages.map((image, index) => (
-                    <button
-                        key={index}
-                        className={`${styles.thumbnail} ${index === mainImageIndex ? styles.active : ''}`}
-                        onClick={() => setMainImageIndex(index)}
-                    >
-                        <Image
-                            src={image}
-                            alt={`${product.name} - ${index + 1}`}
-                            width={80}
-                            height={80}
-                            style={{ objectFit: 'cover' }}
-                        />
-                    </button>
-                ))}
-            </div>
-            <div
-                className={styles.mainImage}
-                onMouseMove={(e) => {
-                    if (!config.gallery?.enableZoom) return;
-                    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
-                    const x = ((e.clientX - left) / width) * 100;
-                    const y = ((e.clientY - top) / height) * 100;
-                    e.currentTarget.style.setProperty('--zoom-x', `${x}%`);
-                    e.currentTarget.style.setProperty('--zoom-y', `${y}%`);
-                }}
-                style={config.gallery?.enableZoom ? { cursor: 'zoom-in' } : {}}
-            >
-                {currentImages[mainImageIndex] && (
-                    <div className={styles.zoomContainer}>
-                        <Image
-                            src={currentImages[mainImageIndex]}
-                            alt={product.name}
-                            fill
-                            priority
-                            className={styles.pdocutImage}
-                        />
-                    </div>
-                )}
-                {hasDiscount && (
-                    <span className={styles.saleBadge}>
-                        -{product.discountPercent}%
-                    </span>
-                )}
-            </div>
-        </div>
+        <ProductGallery
+            images={currentImages}
+            productName={product.name}
+            hasDiscount={!!hasDiscount}
+            discountPercent={product.discountPercent}
+            config={{
+                layout: config.gallery?.layout,
+                enableZoom: config.gallery?.enableZoom,
+                zoomType: config.gallery?.zoomType,
+                enableLightbox: config.gallery?.enableLightbox,
+            }}
+        />
     );
 
     // ============================================
@@ -253,7 +254,9 @@ export default function ModernCleanProductPageTemplate({
 
             {/* Title & Brand */}
             {config.info?.showBrand && product.brand && (
-                <p className={styles.brand}>{product.brand}</p>
+                <p className={styles.brand}>
+                    {typeof product.brand === 'object' ? product.brand.name : product.brand}
+                </p>
             )}
             <h1 className={styles.title}>{product.name}</h1>
 
@@ -278,18 +281,37 @@ export default function ModernCleanProductPageTemplate({
 
             {/* Price */}
             <div className={styles.pricing}>
-                <span className={styles.price}>
-                    {currencySymbol}{(effectivePrice * exchangeRate).toFixed(2)}
-                </span>
-                {hasDiscount && (
+                <span className={styles.price}>{formatPrice(effectivePrice, currency)}</span>
+                {hasDiscount && displayComparePrice && (
                     <>
-                        <span className={styles.comparePrice}>
-                            {currencySymbol}{(currentPrice * exchangeRate).toFixed(2)}
+                        <span className={styles.comparePrice}>{formatPrice(displayComparePrice, currency)}</span>
+                        <span className={styles.discount}>
+                            -{Math.round(((displayComparePrice - effectivePrice) / displayComparePrice) * 100)}%
                         </span>
-                        <span className={styles.discount}>-{product.discountPercent}%</span>
                     </>
                 )}
+                {showTaxIncluded && currentPricing && (
+                    <span className={styles.taxInfo}>incl. tax</span>
+                )}
             </div>
+
+            {/* Show price without tax if configured */}
+            {showPriceWithoutTax && currentPricing && showTaxIncluded && (
+                <p className={styles.priceExTax}>
+                    {formatPrice((displayVariant?.pricing?.price || product.pricing?.price || currentPrice), currency)} excl. tax
+                </p>
+            )}
+
+            {/* Tax breakdown for split taxes */}
+            {showTaxIncluded && currentPricing?.taxBreakdown && currentPricing.taxBreakdown.length > 0 && (
+                <div className={styles.taxBreakdown}>
+                    {currentPricing.taxBreakdown.map((tax, idx) => (
+                        <span key={idx} className={styles.taxItem}>
+                            {tax.name}: {formatPrice(tax.amount, currency)}
+                        </span>
+                    ))}
+                </div>
+            )}
 
             {/* SKU */}
             {config.info?.showSku && (
@@ -305,38 +327,16 @@ export default function ModernCleanProductPageTemplate({
 
             {/* Variant Selectors */}
             {product.productOptions && product.productOptions.length > 0 && (
-                <div className={styles.variants}>
-                    {product.productOptions.filter(opt => opt.isVariation).map((option) => {
-                        const available = availableOptions[option.optionId] || [];
-                        return (
-                            <div key={option.optionId} className={styles.variantGroup}>
-                                <label className={styles.variantLabel}>
-                                    {option.name}
-                                    {!selectedOptions[option.optionId] && (
-                                        <span className={styles.variantRequired}>*</span>
-                                    )}
-                                </label>
-                                <div className={styles.variantOptions}>
-                                    {option.values.map((optionValue) => {
-                                        const isSelected = selectedOptions[option.optionId] === optionValue.value;
-                                        const isAvailable = available.includes(optionValue.value);
-                                        return (
-                                            <button
-                                                key={optionValue.value}
-                                                className={`${styles.variantButton} ${isSelected ? styles.selected : ''} ${!isAvailable ? styles.unavailable : ''}`}
-                                                onClick={() => isAvailable && onOptionChange(option.optionId, optionValue.value)}
-                                                disabled={!isAvailable}
-                                                title={!isAvailable ? 'This option is not available with current selection' : ''}
-                                            >
-                                                {optionValue.label}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                <ProductVariantSelector
+                    options={product.productOptions}
+                    selectedOptions={selectedOptions}
+                    availableOptions={availableOptions}
+                    onOptionChange={onOptionChange}
+                    config={{
+                        style: config.variants?.style,
+                        showUnavailable: config.variants?.showUnavailable,
+                    }}
+                />
             )}
 
             {/* Quantity Selector */}
@@ -413,7 +413,16 @@ export default function ModernCleanProductPageTemplate({
                     Compare
                 </button>
             </div>
-        </div>
+
+            {/* Social Share */}
+            {config.info?.showSocialShare && (
+                <ProductSocialShare
+                    productName={product.name}
+                    productImage={product.images[0]}
+                />
+            )}
+
+        </div >
     );
 
     // ============================================
@@ -456,47 +465,7 @@ export default function ModernCleanProductPageTemplate({
         );
     };
 
-    // ...
 
-    // Inside Render (below Actions)
-    const [shippingZip, setShippingZip] = useState('');
-    const [shippingCountry, setShippingCountry] = useState('US');
-
-    return (
-        // ...
-        <div className={styles.actions}>
-            {/* ... buttons ... */}
-        </div>
-
-        {/* Shipping Calculator */ }
-    {
-        config.shipping?.showCalculator && (
-            <div className={styles.shippingCalculator}>
-                <h4>Estimate Shipping</h4>
-                <div className={styles.shippingInputs}>
-                    <input
-                        type="text"
-                        placeholder="Zip Code"
-                        value={shippingZip}
-                        onChange={(e) => setShippingZip(e.target.value)}
-                    />
-                    <button
-                        onClick={() => onCalculateShipping?.(shippingZip, shippingCountry)}
-                        disabled={shippingEstimate?.loading}
-                    >
-                        {shippingEstimate?.loading ? '...' : 'Calculate'}
-                    </button>
-                </div>
-                {shippingEstimate?.cost !== undefined && (
-                    <div className={styles.shippingResult}>
-                        Shipping: {shippingEstimate.formattedCost} ({shippingEstimate.days})
-                    </div>
-                )}
-            </div>
-        )
-    }
-        // ...
-    );
 
     // ============================================
     // Reviews Section
@@ -746,7 +715,7 @@ export default function ModernCleanProductPageTemplate({
                         <ProductCard
                             key={related._id}
                             product={related}
-                            currency={currencySymbol}
+                            currency={currency}
                             templateId={templateId}
                             cardConfig={cardConfig}
                         />
@@ -759,41 +728,56 @@ export default function ModernCleanProductPageTemplate({
     // ============================================
     // Tabs Section
     // ============================================
-    const renderTabs = () => (
-        <div className={styles.tabsSection}>
-            <div className={styles.tabHeaders}>
-                {config.tabs?.showDescription !== false && (
-                    <button
-                        className={`${styles.tabHeader} ${activeTab === 'description' ? styles.active : ''}`}
-                        onClick={() => setActiveTab('description')}
-                    >
-                        Description
-                    </button>
-                )}
-                {config.tabs?.showSpecifications !== false && product.specifications && product.specifications.length > 0 && (
-                    <button
-                        className={`${styles.tabHeader} ${activeTab === 'specifications' ? styles.active : ''}`}
-                        onClick={() => setActiveTab('specifications')}
-                    >
-                        Specifications
-                    </button>
-                )}
-                {config.tabs?.showReviews !== false && reviewSettings.allowReviews && (
-                    <button
-                        className={`${styles.tabHeader} ${activeTab === 'reviews' ? styles.active : ''}`}
-                        onClick={() => setActiveTab('reviews')}
-                    >
-                        Reviews ({reviewStats?.totalReviews || 0})
-                    </button>
-                )}
-            </div>
-            <div className={styles.tabContent}>
-                {activeTab === 'description' && renderDescription()}
-                {activeTab === 'specifications' && renderSpecifications()}
-                {activeTab === 'reviews' && renderReviews()}
-            </div>
-        </div>
-    );
+    const renderTabs = () => {
+        // Build tabs array based on config
+        const tabs = [
+            {
+                id: 'description',
+                label: 'Description',
+                content: renderDescription(),
+                show: config.tabs?.showDescription !== false,
+            },
+            {
+                id: 'specifications',
+                label: 'Specifications',
+                content: renderSpecifications(),
+                show: config.tabs?.showSpecifications !== false &&
+                    config.specifications?.show !== false &&
+                    product.specifications &&
+                    product.specifications.length > 0,
+            },
+            {
+                id: 'videos',
+                label: `Videos (${product.videos?.length || 0})`,
+                content: (
+                    <ProductVideoGallery
+                        videos={product.videos || []}
+                        productName={product.name}
+                    />
+                ),
+                show: config.gallery?.showVideoGallery !== false &&
+                    product.videos &&
+                    product.videos.length > 0,
+            },
+            {
+                id: 'reviews',
+                label: `Reviews (${reviewStats?.totalReviews || 0})`,
+                content: renderReviews(),
+                show: config.tabs?.showReviews !== false &&
+                    config.info?.showReviews !== false &&
+                    reviewSettings.allowReviews,
+            },
+        ];
+
+        return (
+            <ProductTabs
+                tabs={tabs}
+                config={{
+                    layout: config.tabs?.layout,
+                }}
+            />
+        );
+    };
 
     // ============================================
     // Main Render

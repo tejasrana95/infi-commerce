@@ -6,6 +6,80 @@ import Category from '../models/Category';
 import Sale from '../models/Sale';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
+import { calculatePricing, calculateTaxBreakdown } from '../utils/pricing.utils';
+
+// Helper function to add pricing with tax to a product (including variants)
+function addPricingToProduct(product: any) {
+    const taxRate = product.taxClassId?.rate || 0;
+    const basePrice = product.salePrice || product.price;
+    const pricing = calculatePricing({
+        regularPrice: product.price,
+        salePrice: product.salePrice,
+        taxRate,
+    });
+
+    // Main product pricing
+    const isOnSale = product.salePrice && product.salePrice < product.price;
+    const originalPrice = isOnSale
+        ? Math.round((product.price + (product.price * taxRate / 100)) * 100) / 100
+        : undefined;
+    const discountPercent = isOnSale
+        ? Math.round((1 - product.salePrice / product.price) * 100)
+        : undefined;
+
+    product.pricing = {
+        price: product.price,
+        salePrice: product.salePrice,
+        priceWithTax: Math.round((product.price + (product.price * taxRate / 100)) * 100) / 100,
+        salePriceWithTax: product.salePrice
+            ? Math.round((product.salePrice + (product.salePrice * taxRate / 100)) * 100) / 100
+            : undefined,
+        taxRate,
+        taxAmount: pricing.unitTaxAmount,
+        finalPrice: pricing.unitFinalPrice,
+        originalPrice,
+        isOnSale: !!isOnSale,
+        discountPercent,
+        taxBreakdown: product.taxClassId?.isSplit && product.taxClassId?.subTaxes
+            ? calculateTaxBreakdown(basePrice, product.taxClassId.subTaxes)
+            : undefined,
+    };
+
+    // Add pricing to each variant if they exist
+    if (product.variants && product.variants.length > 0) {
+        product.variants = product.variants.map((variant: any) => {
+            const variantPrice = variant.price || product.price;
+            const variantSalePrice = variant.salePrice;
+            const variantBasePrice = variantSalePrice || variantPrice;
+
+            const variantPricing = calculatePricing({
+                regularPrice: variantPrice,
+                salePrice: variantSalePrice,
+                taxRate,
+            });
+
+            return {
+                ...variant,
+                pricing: {
+                    price: variantPrice,
+                    salePrice: variantSalePrice,
+                    priceWithTax: Math.round((variantPrice + (variantPrice * taxRate / 100)) * 100) / 100,
+                    salePriceWithTax: variantSalePrice
+                        ? Math.round((variantSalePrice + (variantSalePrice * taxRate / 100)) * 100) / 100
+                        : undefined,
+                    taxRate,
+                    taxAmount: variantPricing.unitTaxAmount,
+                    finalPrice: variantPricing.unitFinalPrice,
+                    taxBreakdown: product.taxClassId?.isSplit && product.taxClassId?.subTaxes
+                        ? calculateTaxBreakdown(variantBasePrice, product.taxClassId.subTaxes)
+                        : undefined,
+                },
+            };
+        });
+    }
+
+    return product;
+}
 
 // Validation rules
 export const createProductValidation = [
@@ -390,6 +464,7 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
             .populate('storeId', 'name slug domain')
             .populate('categoryIds', 'title slug')
             .populate('attributes.attributeId', 'name slug type values')
+            .populate('taxClassId', 'name rate isSplit subTaxes')
             .skip(skip)
             .limit(limit)
             .sort(sort)
@@ -416,6 +491,9 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         }
     }
 
+    // Add computed pricing fields to each product (including variants)
+    const productsWithPricing = products.map((product: any) => addPricingToProduct(product));
+
     // Build active filters metadata for frontend URL reconstruction
     const activeFilters: Record<string, string | string[]> = {};
     if (req.query.brand) activeFilters.brand = req.query.brand as string;
@@ -440,7 +518,7 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
     });
 
     res.json({
-        products,
+        products: productsWithPricing,
         pagination: {
             total,
             page,
@@ -475,7 +553,9 @@ export const getProductById = asyncHandler(async (req: AuthRequest, res: Respons
         .populate('storeId', 'name slug domain')
         .populate('categoryIds', 'title slug path')
         .populate('attributes.attributeId', 'name slug type values')
-        .populate('productOptions.optionId', 'name slug type values');
+        .populate('productOptions.optionId', 'name slug type values')
+        .populate('taxClassId', 'name rate isSplit subTaxes')
+        .populate('brand', 'name slug logo');
 
     if (!product) {
         throw new AppError('Product not found', 404);
@@ -503,6 +583,9 @@ export const getProductById = asyncHandler(async (req: AuthRequest, res: Respons
 
     // Get active sales for this product
     const sales = await (Sale as any).getActiveSalesForProduct(product._id, product.categoryIds);
+
+    // Add computed pricing fields (including variants)
+    addPricingToProduct(productObj);
 
     res.json({
         product: productObj,
@@ -540,7 +623,9 @@ export const getProductBySlug = asyncHandler(async (req: AuthRequest, res: Respo
         .populate('storeId', 'name slug domain')
         .populate('categoryIds', 'title slug path')
         .populate('attributes.attributeId', 'name slug type values')
-        .populate('productOptions.optionId', 'name slug type values'); // Populate option with labels
+        .populate('productOptions.optionId', 'name slug type values')
+        .populate('taxClassId', 'name rate isSplit subTaxes')
+        .populate('brand', 'name slug logo');
 
     if (!product) {
         throw new AppError('Product not found', 404);
@@ -567,6 +652,9 @@ export const getProductBySlug = asyncHandler(async (req: AuthRequest, res: Respo
             };
         });
     }
+
+    // Add computed pricing fields (including variants)
+    addPricingToProduct(productObj);
 
     res.json({ product: productObj });
 });

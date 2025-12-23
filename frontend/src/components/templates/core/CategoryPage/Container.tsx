@@ -266,10 +266,10 @@ export default function CategoryPageContainer({
     }, [fetchFilters]);
 
     useEffect(() => {
-        // Only fetch if we need to (e.g. filters changed). 
-        // Note: fetchProducts now implies resetting to page 1 unless specified.
-        fetchProducts({ page: 1 });
-    }, [fetchProducts]);
+        // Fetch products when dependencies change (filters, sort, or URL params)
+        const currentPage = parseInt(searchParams.get('page') || '1');
+        fetchProducts({ page: currentPage });
+    }, [fetchProducts, searchParams]);
 
     // Handler: Page change
     const handlePageChange = useCallback((page: number) => {
@@ -431,6 +431,7 @@ export default function CategoryPageContainer({
             config={config}
             currencySymbol={currencySymbol}
             exchangeRate={exchangeRate}
+            currency={currentCurrency || 'USD'}
             templateId={templateId}
             layout={initialLayout}
             stagedFilters={stagedFilters}

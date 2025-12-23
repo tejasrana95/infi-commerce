@@ -1,6 +1,7 @@
 // ProductPage Types - Shared props for container and templates
 
-import { ProductCardConfig } from '@/types';
+import { ProductCardConfig, ProductPageConfig } from '@/types';
+export type { ProductPageConfig } from '@/types';
 
 // ============================================
 // Product Data Types
@@ -20,6 +21,23 @@ export interface ProductDimensions {
     unit?: 'cm' | 'in';
 }
 
+export interface TaxBreakdown {
+    name: string;
+    rate: number;
+    amount: number;
+}
+
+export interface ProductPricing {
+    price: number;
+    salePrice?: number;
+    priceWithTax: number;
+    salePriceWithTax?: number;
+    taxRate: number;
+    taxAmount: number;
+    finalPrice: number;
+    taxBreakdown?: TaxBreakdown[];
+}
+
 export interface ProductVariant {
     _id?: string;
     sku: string;
@@ -30,6 +48,7 @@ export interface ProductVariant {
     images: string[];
     weight?: number;
     dimensions?: ProductDimensions;
+    pricing?: ProductPricing;
 }
 
 export interface OptionValue {
@@ -85,6 +104,16 @@ export interface Product {
     discountPercent?: number;
     isOnSale?: boolean;
 
+    // Tax-inclusive pricing from API
+    pricing?: ProductPricing;
+    taxClassId?: {
+        _id: string;
+        name: string;
+        rate: number;
+        isSplit: boolean;
+        subTaxes?: Array<{ name: string; rate: number }>;
+    };
+
     // Inventory
     stock: number;
     manageStock: boolean;
@@ -112,7 +141,7 @@ export interface Product {
     categoryIds: string[];
     categories?: Array<{ _id: string; title: string; slug: string }>;
     tags: string[];
-    brand?: string;
+    brand?: string | { _id: string; name: string; slug: string; logo?: string };
 
     // SEO
     seo?: ProductSEO;
@@ -220,37 +249,7 @@ export interface RelatedProduct {
 // Product Page Configuration
 // ============================================
 
-export interface ProductPageConfig {
-    gallery?: {
-        layout?: 'thumbnails-left' | 'thumbnails-bottom' | 'carousel' | 'grid';
-        enableZoom?: boolean;
-        enableLightbox?: boolean;
-        showVideoGallery?: boolean;
-    };
-    info?: {
-        showSku?: boolean;
-        showBrand?: boolean;
-        showStock?: boolean;
-        showShortDescription?: boolean;
-        showSocialShare?: boolean;
-    };
-    variants?: {
-        style?: 'dropdown' | 'buttons' | 'swatches';
-        showUnavailable?: boolean;
-    };
-    tabs?: {
-        layout?: 'tabs' | 'accordion' | 'sections';
-        showDescription?: boolean;
-        showSpecifications?: boolean;
-        showReviews?: boolean;
-    };
-    relatedProducts?: {
-        enabled?: boolean;
-        title?: string;
-        count?: number;
-        source?: 'category' | 'tags' | 'manual';
-    };
-}
+
 
 // ============================================
 // Template Props
@@ -305,6 +304,7 @@ export interface ProductPageTemplateProps {
     config: ProductPageConfig;
     currencySymbol: string;
     exchangeRate: number;
+    currency: import('@/types').Currency | string;
     templateId: string;
     cardConfig?: ProductCardConfig;
 
@@ -316,15 +316,7 @@ export interface ProductPageTemplateProps {
     userId?: string;
     onHelpfulVote: (reviewId: string) => Promise<void>;
 
-    // Tax Info
-    taxInfo?: {
-        rate: number;
-        amount: number;
-        included: boolean;
-        formattedAmount: string;
-        formattedPriceWithoutTax?: string;
-        formattedPriceWithTax?: string;
-    };
+    // Tax info now comes from product.pricing directly
 
     // Shipping Calculator
     shippingEstimate?: {
@@ -354,6 +346,11 @@ export const DEFAULT_PRODUCT_PAGE_CONFIG: ProductPageConfig = {
         showStock: true,
         showShortDescription: true,
         showSocialShare: false,
+        showReviews: true,
+    },
+    specifications: {
+        show: true,
+        layout: 'tab',
     },
     variants: {
         style: 'buttons',
@@ -365,11 +362,12 @@ export const DEFAULT_PRODUCT_PAGE_CONFIG: ProductPageConfig = {
         showSpecifications: true,
         showReviews: true,
     },
-    relatedProducts: {
-        enabled: true,
-        title: 'You May Also Like',
-        count: 8,
-        source: 'category',
+    shipping: {
+        showCalculator: true,
+    },
+    pricing: {
+        showTaxIncluded: false,
+        showPriceWithoutTax: false,
     },
 };
 

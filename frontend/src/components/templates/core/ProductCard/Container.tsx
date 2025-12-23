@@ -7,37 +7,16 @@ import { getComponent } from '@/components/templates/registry';
 import { ProductTemplateProps, Product } from './types';
 import { useStore, useThemeConfig } from '@/providers/StoreProvider';
 import { DEFAULT_PRODUCT_CARD_CONFIG, ProductCardConfig } from '@/types';
+import { formatPrice } from '@/lib/currency';
 
 interface ProductCardContainerProps {
     product: Product;
-    currency?: string;
+    currency?: import('@/types').Currency | string;
     templateId?: string;
     cardConfig?: Partial<ProductCardConfig>;
 }
 
-// Format price based on currency object or code
-function formatPrice(price: number, currency: import('@/types').Currency | string): string {
-    if (typeof currency === 'string') {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: currency,
-        }).format(price);
-    }
 
-    // Custom formatting using Currency object
-    const val = price * (currency.exchangeRate || 1);
-    const formatted = val.toFixed(currency.decimalPlaces || 2);
-
-    // Add thousands separator if needed (simplified)
-    const parts = formatted.split('.');
-    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, currency.thousandsSeparator || ',');
-
-    const result = parts.join(currency.decimalSeparator || '.');
-
-    return currency.symbolPosition === 'after'
-        ? `${result} ${currency.symbol}`
-        : `${currency.symbol}${result}`;
-}
 // Check if product is currently on sale (within date range)
 function isWithinSalePeriod(saleStartDate?: string, saleEndDate?: string): boolean {
     const now = new Date();
@@ -58,6 +37,40 @@ function processProductData(product: Product, currency: import('@/types').Curren
     // Calculate values based on currency exchange rate
     const rate = typeof currency === 'string' ? 1 : (currency.exchangeRate || 1);
 
+    // If we have pricing object (from API with tax calculations), use it
+    if (product.pricing) {
+        const { finalPrice, originalPrice, isOnSale, discountPercent } = product.pricing;
+        const currentPrice = finalPrice * rate;
+        const compareAtPrice = isOnSale ? originalPrice * rate : undefined;
+
+        return {
+            id: product._id,
+            name: product.name,
+            slug: product.slug,
+            brand: product.brandName || product.brand,
+            sku: product.sku,
+            price: currentPrice,
+            compareAtPrice,
+            discountPercent: discountPercent ?? undefined,
+            hasDiscount: isOnSale,
+            formattedPrice: formatPrice(finalPrice, currency),
+            formattedCompareAtPrice: compareAtPrice
+                ? formatPrice(originalPrice, currency)
+                : undefined,
+            imageUrl: product.images?.[0],
+            imageAlt: product.name,
+            rating: product.rating,
+            reviewCount: product.reviewCount,
+            isNew: product.isNew,
+            isOnSale,
+            inStock: product.inStock ?? true,
+            stockStatus: product.stockStatus,
+            productUrl: `/product/${product.slug}`,
+            currency: typeof currency === 'string' ? currency : currency.code,
+        };
+    }
+
+    // Fallback: Calculate from base prices (legacy path)
     // Determine if sale is active
     const hasSalePrice = !!(product.salePrice && product.salePrice < product.price);
     const saleIsActive = hasSalePrice && isWithinSalePeriod(product.saleStartDate, product.saleEndDate);

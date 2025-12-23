@@ -276,6 +276,32 @@ $star-color: #fbbf24;
     border-radius: 4px;
 }
 
+.taxInfo {
+    font-size: 0.75rem;
+    color: $text-muted;
+    font-weight: 400;
+}
+
+.priceExTax {
+    font-size: 0.875rem;
+    color: $text-muted;
+    margin: 0;
+}
+
+.taxBreakdown {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 0.75rem;
+    color: $text-muted;
+}
+
+.taxItem {
+    background: $bg-light;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
 .sku {
     font-size: 0.875rem;
     color: $text-muted;
@@ -650,10 +676,6 @@ $star-color: #fbbf24;
 // ============================================
 // Specifications Section
 // ============================================
-.specificationsSection {
-    max-width: 800px;
-}
-
 .specTable {
     width: 100%;
     border-collapse: collapse;
@@ -687,9 +709,6 @@ $star-color: #fbbf24;
 // ============================================
 // Reviews Section
 // ============================================
-.reviewsSection {
-    max-width: 900px;
-}
 
 .sectionTitle {
     font-size: 1.5rem;

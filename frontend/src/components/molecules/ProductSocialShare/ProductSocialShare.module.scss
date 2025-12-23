@@ -1,0 +1,114 @@
+// ProductSocialShare Styles
+
+$text-muted: #6b7280;
+$border-color: #e5e7eb;
+
+.socialShare {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.label {
+    font-size: 0.875rem;
+    color: $text-muted;
+    font-weight: 500;
+}
+
+.buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.shareBtn {
+    width: 36px;
+    height: 36px;
+    border: 1px solid $border-color;
+    border-radius: 50%;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 0;
+
+    svg {
+        transition: transform 0.2s;
+    }
+
+    &:hover {
+        transform: translateY(-2px);
+
+        svg {
+            transform: scale(1.1);
+        }
+    }
+
+    &.facebook {
+        color: #1877f2;
+
+        &:hover {
+            background: #1877f2;
+            color: white;
+            border-color: #1877f2;
+        }
+    }
+
+    &.twitter {
+        color: #000;
+
+        &:hover {
+            background: #000;
+            color: white;
+            border-color: #000;
+        }
+    }
+
+    &.whatsapp {
+        color: #25d366;
+
+        &:hover {
+            background: #25d366;
+            color: white;
+            border-color: #25d366;
+        }
+    }
+
+    &.pinterest {
+        color: #e60023;
+
+        &:hover {
+            background: #e60023;
+            color: white;
+            border-color: #e60023;
+        }
+    }
+
+    &.email {
+        color: #6b7280;
+
+        &:hover {
+            background: #6b7280;
+            color: white;
+            border-color: #6b7280;
+        }
+    }
+
+    &.copy {
+        color: #6b7280;
+
+        &:hover {
+            background: #111827;
+            color: white;
+            border-color: #111827;
+        }
+
+        &.copied {
+            background: #10b981;
+            color: white;
+            border-color: #10b981;
+        }
+    }
+}

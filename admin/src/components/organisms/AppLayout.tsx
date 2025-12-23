@@ -62,6 +62,7 @@ import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
 import WorkspacesIcon from '@mui/icons-material/Workspaces';
 import GridViewIcon from '@mui/icons-material/GridView';
 import CollectionsIcon from '@mui/icons-material/Collections';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 const drawerWidth = 260;
 
 interface NavItem {
@@ -126,6 +127,7 @@ const navigationItems: NavItem[] = [
     icon: <SettingsOutlinedIcon />,
     children: [
       { name: 'Admin Users', href: '/admins', icon: <AdminPanelSettingsIcon /> },
+      { name: 'Taxes', href: '/settings/taxes', icon: <ReceiptLongIcon /> },
       { name: 'Currencies', href: '/currencies', icon: <CurrencyExchangeIcon /> },
       { name: 'Geo', href: '/geo', icon: <PublicIcon /> },
       { name: 'Geo Groups', href: '/geo-groups', icon: <GroupWorkIcon /> },

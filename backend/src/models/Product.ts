@@ -25,7 +25,6 @@ export interface IProduct extends Document {
     stock: number;
     manageStock: boolean;
     stockStatus: 'in_stock' | 'out_of_stock' | 'on_backorder' | 'made_to_order';
-    stockStatus: 'in_stock' | 'out_of_stock' | 'on_backorder' | 'made_to_order';
     lowStockThreshold?: number;
     taxClassId?: mongoose.Types.ObjectId;
 
@@ -104,7 +103,7 @@ export interface IProduct extends Document {
     // Categorization
     categoryIds: mongoose.Types.ObjectId[];
     tags: string[];
-    brand?: string;
+    brand?: mongoose.Types.ObjectId;
 
     // SEO
     seo: {
@@ -368,8 +367,8 @@ const ProductSchema = new Schema<IProduct>(
             index: true,
         },
         brand: {
-            type: String,
-            trim: true,
+            type: Schema.Types.ObjectId,
+            ref: 'Brand',
         },
 
         // SEO

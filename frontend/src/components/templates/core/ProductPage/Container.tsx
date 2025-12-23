@@ -19,17 +19,15 @@ import {
     DEFAULT_PRODUCT_PAGE_CONFIG,
     DEFAULT_REVIEW_SETTINGS,
 } from './types';
+import { formatPrice } from '@/lib/currency';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface ProductPageContainerProps {
     product: Product;
     layout?: any;
 }
 
-// Format price based on currency
-function formatPrice(price: number, currency: { symbol: string; exchangeRate: number }): string {
-    const converted = price * currency.exchangeRate;
-    return `${currency.symbol}${converted.toFixed(2)}`;
-}
+
 
 export default function ProductPageContainer({
     product: initialProduct,
@@ -37,6 +35,7 @@ export default function ProductPageContainer({
 }: ProductPageContainerProps) {
     const { store, currentCurrency } = useStore();
     const themeConfig = useThemeConfig();
+    const currency = useCurrency();
 
     // Currency
     const currencySymbol = currentCurrency?.symbol || '$';
@@ -69,12 +68,12 @@ export default function ProductPageContainer({
 
         return {
             ...initialProduct,
-            formattedPrice: formatPrice(currentPrice, { symbol: currencySymbol, exchangeRate: rate }),
+            formattedPrice: formatPrice(currentPrice, currency),
             formattedSalePrice: initialProduct.salePrice
-                ? formatPrice(initialProduct.salePrice, { symbol: currencySymbol, exchangeRate: rate })
+                ? formatPrice(initialProduct.salePrice, currency)
                 : undefined,
             formattedCompareAtPrice: compareAt
-                ? formatPrice(compareAt, { symbol: currencySymbol, exchangeRate: rate })
+                ? formatPrice(compareAt, currency)
                 : undefined,
             discountPercent: compareAt
                 ? Math.round((1 - currentPrice / compareAt) * 100)
@@ -389,7 +388,7 @@ export default function ProductPageContainer({
                 const categoryId = product.categoryIds?.[0];
                 if (categoryId) {
                     const response = await api.get(
-                        `products?storeId=${store?._id}&categoryId=${categoryId}&limit=${config.relatedProducts?.count || 8}&exclude=${product._id}`
+                        `products?storeId=${store?._id}&categoryId=${categoryId}&limit=${config.relatedProducts?.limit || 8}&exclude=${product._id}`
                     );
                     setRelatedProducts(response.products || []);
                 }
@@ -479,40 +478,9 @@ export default function ProductPageContainer({
     }, [isLoggedIn, userId]);
 
     // ============================================
-    // Tax Calculation
+    // Tax info now comes directly from product.pricing (API response)
+    // No store-level tax calculation needed
     // ============================================
-    const taxInfo = useMemo(() => {
-        if (!store?.settings?.taxEnabled) return undefined;
-
-        const taxRate = store.settings.taxRate || 0; // Default or fetch slab
-        const taxSettings = store.settings.tax || { pricesIncludeTax: false };
-
-        const price = product.isOnSale && product.salePrice ? product.salePrice : product.price;
-        let amount = 0;
-        let priceWithoutTax = price;
-        let priceWithTax = price;
-
-        if (taxSettings.pricesIncludeTax) {
-            // Price includes tax: Tax = Price - (Price / (1 + rate))
-            amount = price - (price / (1 + taxRate / 100));
-            priceWithoutTax = price - amount;
-            priceWithTax = price;
-        } else {
-            // Price excludes tax: Tax = Price * rate
-            amount = price * (taxRate / 100);
-            priceWithTax = price + amount;
-            priceWithoutTax = price;
-        }
-
-        return {
-            rate: taxRate,
-            amount,
-            included: taxSettings.pricesIncludeTax,
-            formattedAmount: formatPrice(amount, { symbol: currencySymbol, exchangeRate }),
-            formattedPriceWithoutTax: formatPrice(priceWithoutTax, { symbol: currencySymbol, exchangeRate }),
-            formattedPriceWithTax: formatPrice(priceWithTax, { symbol: currencySymbol, exchangeRate }),
-        };
-    }, [product.price, product.salePrice, product.isOnSale, store?.settings, currencySymbol, exchangeRate]);
 
     // ============================================
     // Shipping Calculator
@@ -534,7 +502,7 @@ export default function ProductPageContainer({
             setShippingEstimate({
                 loading: false,
                 cost,
-                formattedCost: formatPrice(cost, { symbol: currencySymbol, exchangeRate }),
+                formattedCost: formatPrice(cost, { symbol: currencySymbol, exchangeRate } as any),
                 days: '3-5 business days'
             });
         } catch (e) {
@@ -576,12 +544,12 @@ export default function ProductPageContainer({
         config,
         currencySymbol,
         exchangeRate,
+        currency,
         templateId,
         cardConfig: themeConfig?.productCard,
         layout,
         isLoggedIn,
         userId,
-        taxInfo,
         shippingEstimate,
         onCalculateShipping: handleCalculateShipping,
     };

@@ -403,14 +403,14 @@ export interface ProductPageConfig {
         showSpecifications?: boolean;
         showReviews?: boolean;
     };
-    relatedProducts?: {
-        enabled?: boolean;
-        title?: string;
-        count?: number;
-        source?: 'category' | 'tags' | 'manual';
-    };
     shipping?: {
         showCalculator: boolean;
+    };
+    relatedProducts?: {
+        show?: boolean;
+        enabled?: boolean;
+        limit?: number;
+        title?: string;
     };
 }
 
@@ -441,12 +441,6 @@ export interface StoreSettings {
     requireEmailVerification?: boolean;
     minOrderAmount?: number;
     maxOrderAmount?: number;
-    taxEnabled?: boolean;
-    tax?: {
-        pricesIncludeTax: boolean;
-        calculateTaxBasedOn: 'shipping' | 'billing' | 'store';
-    };
-    taxRate?: number;
     shippingEnabled?: boolean;
     // Review settings
     reviewSettings?: {

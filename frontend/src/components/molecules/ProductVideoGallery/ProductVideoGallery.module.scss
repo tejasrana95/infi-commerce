@@ -1,0 +1,136 @@
+// ProductVideoGallery Styles
+
+$primary-color: var(--color-primary, #111827);
+$text-primary: #111827;
+$text-secondary: #6b7280;
+$border-color: #e5e7eb;
+$bg-light: #f9fafb;
+
+.videoGallery {
+    margin-top: 32px;
+}
+
+.title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: $text-primary;
+    margin-bottom: 16px;
+}
+
+.videoGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+
+    @media (min-width: 768px) {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.videoItem {
+    position: relative;
+    aspect-ratio: 16/9;
+    border-radius: 12px;
+    overflow: hidden;
+    background: black;
+}
+
+.thumbnailBtn {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    background: $bg-light;
+
+    &:hover .playOverlay {
+        background: rgba(0, 0, 0, 0.6);
+    }
+
+    &:hover .playIcon {
+        transform: scale(1.1);
+    }
+}
+
+.playOverlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.playIcon {
+    width: 56px;
+    height: 56px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: $primary-color;
+    transition: transform 0.2s;
+    padding-left: 4px;
+}
+
+.videoTitle {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 8px 12px;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    color: white;
+    font-size: 0.75rem;
+    text-align: left;
+}
+
+.videoPlayer {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.iframe,
+.video {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.closeBtn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.7);
+    border: none;
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+
+    &:hover {
+        background: rgba(0, 0, 0, 0.9);
+    }
+}
+
+.placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $bg-light;
+    font-size: 2rem;
+    color: $text-secondary;
+}

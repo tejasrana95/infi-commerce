@@ -30,8 +30,6 @@ export interface IStore extends Document {
         requireEmailVerification?: boolean;
         minOrderAmount?: number;
         maxOrderAmount?: number;
-        taxEnabled?: boolean;
-        taxRate?: number;
         shippingEnabled?: boolean;
         [key: string]: any;
     };
@@ -210,11 +208,6 @@ const StoreSchema = new Schema<IStore>(
                 maintenanceMode: false,
                 allowGuestCheckout: true,
                 requireEmailVerification: false,
-                taxEnabled: false,
-                tax: {
-                    pricesIncludeTax: false, // if true, entered prices include tax
-                    calculateTaxBasedOn: 'shipping', // 'shipping' | 'billing' | 'store'
-                },
                 shippingEnabled: true,
                 productPage: {
                     pricing: {

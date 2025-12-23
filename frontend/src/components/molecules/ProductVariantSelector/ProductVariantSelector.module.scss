@@ -1,0 +1,165 @@
+// ProductVariantSelector Styles
+
+$primary-color: var(--color-primary, #111827);
+$text-primary: #111827;
+$text-muted: #9ca3af;
+$border-color: #e5e7eb;
+$bg-light: #f9fafb;
+$error-color: #ef4444;
+
+.variantSelector {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.optionGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.optionLabel {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: $text-primary;
+}
+
+.required {
+    color: $error-color;
+    margin-left: 4px;
+}
+
+// Dropdown Style
+.dropdown {
+    padding: 12px 16px;
+    border: 2px solid $border-color;
+    border-radius: 8px;
+    font-size: 1rem;
+    background: white;
+    cursor: pointer;
+    transition: border-color 0.2s;
+
+    &:focus {
+        outline: none;
+        border-color: $primary-color;
+    }
+
+    option:disabled {
+        color: $text-muted;
+    }
+}
+
+// Button Style
+.optionButtons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.optionButton {
+    padding: 10px 20px;
+    border: 2px solid $border-color;
+    border-radius: 8px;
+    background: white;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: $text-primary;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover:not(:disabled) {
+        border-color: $text-muted;
+    }
+
+    &.selected {
+        border-color: $primary-color;
+        background: $primary-color;
+        color: white;
+    }
+
+    &.unavailable,
+    &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        text-decoration: line-through;
+        background: $bg-light;
+    }
+}
+
+// Swatch Style
+.swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.swatch {
+    min-width: 48px;
+    padding: 10px 16px;
+    border: 2px solid $border-color;
+    border-radius: 8px;
+    background: white;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: $text-primary;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover:not(:disabled) {
+        border-color: $primary-color;
+    }
+
+    &.selected {
+        border-color: $primary-color;
+        box-shadow: 0 0 0 2px rgba($primary-color, 0.2);
+    }
+
+    &.unavailable {
+        opacity: 0.4;
+        cursor: not-allowed;
+        text-decoration: line-through;
+    }
+}
+
+.colorSwatch {
+    width: 40px;
+    height: 40px;
+    border: 2px solid $border-color;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    padding: 0;
+
+    &:hover:not(:disabled) {
+        transform: scale(1.1);
+    }
+
+    &.selected {
+        border-color: $primary-color;
+        box-shadow: 0 0 0 3px rgba($primary-color, 0.3);
+    }
+
+    &.unavailable {
+        opacity: 0.4;
+        cursor: not-allowed;
+
+        &::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: -2px;
+            right: -2px;
+            height: 2px;
+            background: $error-color;
+            transform: rotate(-45deg);
+        }
+    }
+}
+
+.checkmark {
+    color: white;
+    font-size: 1rem;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}

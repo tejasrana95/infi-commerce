@@ -1,0 +1,155 @@
+// ProductTabs Styles
+
+$primary-color: var(--color-primary, #111827);
+$text-primary: #111827;
+$text-secondary: #6b7280;
+$border-color: #e5e7eb;
+$bg-light: #f9fafb;
+
+// Tabs Layout
+.tabsContainer {
+    width: 100%;
+}
+
+.tabList {
+    display: flex;
+    gap: 4px;
+    border-bottom: 2px solid $border-color;
+    margin-bottom: 24px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.tab {
+    padding: 12px 24px;
+    border: none;
+    background: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: $text-secondary;
+    cursor: pointer;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+
+    &:hover {
+        color: $text-primary;
+    }
+
+    &.active {
+        color: $primary-color;
+        border-bottom-color: $primary-color;
+    }
+}
+
+.tabContent {
+    padding: 8px 0;
+}
+
+// Accordion Layout
+.accordionContainer {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.accordionItem {
+    border: 1px solid $border-color;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.accordionHeader {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: white;
+    border: none;
+    font-size: 1rem;
+    font-weight: 600;
+    color: $text-primary;
+    cursor: pointer;
+    transition: background 0.2s;
+
+    &:hover {
+        background: $bg-light;
+    }
+
+    &.expanded {
+        background: $bg-light;
+    }
+}
+
+.accordionIcon {
+    font-size: 1.25rem;
+    font-weight: 400;
+    color: $text-secondary;
+}
+
+.accordionContent {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.3s ease-out, opacity 0.3s ease-out, visibility 0.3s;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    min-height: 0; // Crucial for grid collapse
+
+    &.expanded {
+        grid-template-rows: 1fr;
+        opacity: 1;
+        visibility: visible;
+    }
+}
+
+.innerContent {
+    overflow: hidden;
+    min-height: 0;
+    padding: 0 20px; // Remove bottom padding by default
+    transition: padding-bottom 0.3s ease-out; // Animate padding
+
+    // Add padding only when expanded (via parent class selector if possible, or we need to target it)
+}
+
+// We need to target innerContent based on expanded state of parent
+.accordionContent.expanded .innerContent {
+    padding-bottom: 20px;
+}
+
+// Sections Layout
+.sectionsContainer {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+}
+
+.section {
+    border-bottom: 1px solid $border-color;
+    padding-bottom: 32px;
+
+    &:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+}
+
+.sectionTitle {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: $text-primary;
+    margin-bottom: 16px;
+}
+
+.sectionContent {
+    color: $text-secondary;
+    line-height: 1.7;
+}

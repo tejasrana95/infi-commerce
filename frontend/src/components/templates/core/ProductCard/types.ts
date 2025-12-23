@@ -56,4 +56,19 @@ export interface Product {
     brandName?: string;  // Resolved brand name from API lookup
     sku?: string;
     stockStatus?: string;
+    // Tax-inclusive pricing from API
+    pricing?: {
+        basePrice: number;
+        salePrice?: number;
+        priceWithTax: number;
+        salePriceWithTax?: number;
+        taxAmount: number;
+        saleTaxAmount?: number;
+        finalPrice: number;
+        originalPrice: number;
+        isOnSale: boolean;
+        discountPercent?: number;
+        taxRate?: number;
+        taxName?: string;
+    };
 }

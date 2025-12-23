@@ -72,8 +72,6 @@ const schema = z.object({
         requireEmailVerification: z.boolean().optional(),
         minOrderAmount: z.number().min(0).optional(),
         maxOrderAmount: z.number().min(0).optional(),
-        taxEnabled: z.boolean().optional(),
-        taxRate: z.number().min(0).max(100).optional(),
         shippingEnabled: z.boolean().optional(),
         // Review settings
         reviewSettings: z.object({
@@ -119,7 +117,6 @@ const defaultValues: FormData = {
         maintenanceMode: false,
         allowGuestCheckout: true,
         requireEmailVerification: false,
-        taxEnabled: false,
         shippingEnabled: true,
         reviewSettings: {
             allowReviews: true,
@@ -169,8 +166,6 @@ export default function StoreForm({ initialData, onSubmit, isSubmitting = false 
                     requireEmailVerification: initialData.settings?.requireEmailVerification ?? false,
                     minOrderAmount: initialData.settings?.minOrderAmount,
                     maxOrderAmount: initialData.settings?.maxOrderAmount,
-                    taxEnabled: initialData.settings?.taxEnabled ?? false,
-                    taxRate: initialData.settings?.taxRate,
                     shippingEnabled: initialData.settings?.shippingEnabled ?? true,
                     reviewSettings: {
                         allowReviews: initialData.settings?.reviewSettings?.allowReviews ?? true,
@@ -654,36 +649,7 @@ export default function StoreForm({ initialData, onSubmit, isSubmitting = false 
                     </Grid>
 
                     <Grid size={{ xs: 12 }}>
-                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>Tax & Shipping</Typography>
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <Controller
-                            name="settings.taxEnabled"
-                            control={control}
-                            render={({ field }) => (
-                                <FormControlLabel
-                                    control={<Switch checked={field.value} onChange={field.onChange} />}
-                                    label="Tax Enabled"
-                                />
-                            )}
-                        />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <Controller
-                            name="settings.taxRate"
-                            control={control}
-                            render={({ field: { onChange, value, ...field } }) => (
-                                <TextField
-                                    {...field}
-                                    value={value || ''}
-                                    onChange={(e) => onChange(e.target.value ? Number(e.target.value) : undefined)}
-                                    label="Tax Rate (%)"
-                                    type="number"
-                                    fullWidth
-                                    slotProps={{ htmlInput: { min: 0, max: 100, step: 0.01 } }}
-                                />
-                            )}
-                        />
+                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>Shipping</Typography>
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
                         <Controller

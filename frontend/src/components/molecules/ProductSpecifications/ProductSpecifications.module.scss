@@ -1,0 +1,56 @@
+// ProductSpecifications Styles
+
+$text-primary: #111827;
+$text-secondary: #6b7280;
+$border-color: #e5e7eb;
+$bg-light: #f9fafb;
+
+.specificationsSection {
+    margin-top: 40px;
+}
+
+.sectionTitle {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: $text-primary;
+    margin-bottom: 20px;
+}
+
+.specificationsTab {
+    padding: 16px 0;
+}
+
+.specTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.specRow {
+    border-bottom: 1px solid $border-color;
+
+    &:last-child {
+        border-bottom: none;
+    }
+
+    &:nth-child(even) {
+        background: $bg-light;
+    }
+}
+
+.specLabel {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 500;
+    color: $text-secondary;
+    width: 40%;
+    font-size: 0.875rem;
+    vertical-align: top;
+}
+
+.specValue {
+    padding: 12px 16px;
+    text-align: left;
+    color: $text-primary;
+    font-size: 0.875rem;
+    word-break: break-word;
+}

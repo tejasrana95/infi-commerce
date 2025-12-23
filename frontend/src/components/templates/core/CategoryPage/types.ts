@@ -144,7 +144,8 @@ export interface CategoryPageTemplateProps {
     // Configuration
     config: CategoryConfig;
     currencySymbol: string;
-    exchangeRate: number;  // Exchange rate for multi-currency price conversion
+    exchangeRate: number;
+    currency: import('@/types').Currency | string;
     templateId: string;
 
     // Layout

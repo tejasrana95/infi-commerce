@@ -20,6 +20,7 @@ import GeneralThemeSettings from '@/components/organisms/GeneralThemeSettings';
 import TemplateSelector from '@/components/organisms/TemplateSelector/TemplateSelector';
 import ProductCardSettings from '@/components/organisms/ProductCardSettings/ProductCardSettings';
 import CategorySettings from '@/components/organisms/CategorySettings/CategorySettings';
+import ProductPageSettings from '@/components/organisms/ProductPageSettings/ProductPageSettings';
 import { ThemeConfig, Store } from '@/types';
 import { useNotification } from '@/contexts/NotificationContext';
 import api from '@/lib/api';
@@ -134,6 +135,7 @@ export default function ThemeSettingsPage() {
                     <Tab label="Footer" />
                     <Tab label="Product Card" />
                     <Tab label="Category" />
+                    <Tab label="Product Page" />
                     <Tab label="General" />
                 </Tabs>
 
@@ -179,6 +181,13 @@ export default function ThemeSettingsPage() {
                     )}
 
                     {activeTab === 5 && (
+                        <ProductPageSettings
+                            config={themeConfig}
+                            onChange={setThemeConfig}
+                        />
+                    )}
+
+                    {activeTab === 6 && (
                         <GeneralThemeSettings
                             config={themeConfig}
                             onChange={setThemeConfig}

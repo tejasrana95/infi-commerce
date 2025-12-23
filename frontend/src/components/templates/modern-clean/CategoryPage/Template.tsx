@@ -11,6 +11,7 @@ import SectionRenderer from '@/components/core/layout/SectionRenderer';
 import { CategoryPageTemplateProps } from '@/components/templates/core/CategoryPage/types';
 import { getComponent } from '@/components/templates/registry';
 import { formatStockStatus } from '@/lib/constants';
+import { formatPrice } from '@/lib/currency';
 import styles from './CategoryPage.module.scss';
 
 // (Layout helper functions removed - rendering now uses section-based iteration)
@@ -38,6 +39,7 @@ export default function ModernCleanCategoryPageTemplate({
     config,
     currencySymbol,
     exchangeRate,
+    currency,
     templateId,
     layout,
     stagedFilters,
@@ -59,6 +61,12 @@ export default function ModernCleanCategoryPageTemplate({
     // Local state for slider values (for real-time visual feedback)
     const [localSliderMin, setLocalSliderMin] = useState<number | null>(null);
     const [localSliderMax, setLocalSliderMax] = useState<number | null>(null);
+
+    // Currency config for formatting display prices (which are already converted)
+    const priceCurrency = useMemo(() => {
+        if (typeof currency === 'string') return currency;
+        return { ...currency, exchangeRate: 1 };
+    }, [currency]);
 
     // Infinite scroll observer
     const loadMoreRef = React.useRef<HTMLDivElement>(null);
@@ -236,10 +244,10 @@ export default function ModernCleanCategoryPageTemplate({
             const range = displayMaxPrice - displayMinPrice;
             const step = Math.ceil(range / 4);
             return [
-                { label: `Under ${currencySymbol}${(displayMinPrice + step).toLocaleString()}`, min: displayMinPrice, max: displayMinPrice + step },
-                { label: `${currencySymbol}${(displayMinPrice + step).toLocaleString()} - ${currencySymbol}${(displayMinPrice + step * 2).toLocaleString()}`, min: displayMinPrice + step, max: displayMinPrice + step * 2 },
-                { label: `${currencySymbol}${(displayMinPrice + step * 2).toLocaleString()} - ${currencySymbol}${(displayMinPrice + step * 3).toLocaleString()}`, min: displayMinPrice + step * 2, max: displayMinPrice + step * 3 },
-                { label: `Over ${currencySymbol}${(displayMinPrice + step * 3).toLocaleString()}`, min: displayMinPrice + step * 3, max: displayMaxPrice },
+                { label: `Under ${formatPrice(displayMinPrice + step, priceCurrency)}`, min: displayMinPrice, max: displayMinPrice + step },
+                { label: `${formatPrice(displayMinPrice + step, priceCurrency)} - ${formatPrice(displayMinPrice + step * 2, priceCurrency)}`, min: displayMinPrice + step, max: displayMinPrice + step * 2 },
+                { label: `${formatPrice(displayMinPrice + step * 2, priceCurrency)} - ${formatPrice(displayMinPrice + step * 3, priceCurrency)}`, min: displayMinPrice + step * 2, max: displayMinPrice + step * 3 },
+                { label: `Over ${formatPrice(displayMinPrice + step * 3, priceCurrency)}`, min: displayMinPrice + step * 3, max: displayMaxPrice },
             ];
         };
 
@@ -247,8 +255,8 @@ export default function ModernCleanCategoryPageTemplate({
         const renderSlider = () => (
             <div className={styles.priceSlider}>
                 <div className={styles.sliderLabels}>
-                    <span>{currencySymbol}{displayMin.toLocaleString()}</span>
-                    <span>{currencySymbol}{displayMax.toLocaleString()}</span>
+                    <span>{formatPrice(displayMin, priceCurrency)}</span>
+                    <span>{formatPrice(displayMax, priceCurrency)}</span>
                 </div>
                 <div className={styles.sliderContainer}>
                     <input
@@ -310,9 +318,9 @@ export default function ModernCleanCategoryPageTemplate({
         const renderInputs = () => (
             <>
                 <div className={styles.priceRange}>
-                    <span>{currencySymbol}{displayMinPrice.toLocaleString()}</span>
+                    <span>{formatPrice(displayMinPrice, priceCurrency)}</span>
                     <span>—</span>
-                    <span>{currencySymbol}{displayMaxPrice.toLocaleString()}</span>
+                    <span>{formatPrice(displayMaxPrice, priceCurrency)}</span>
                 </div>
                 <div className={styles.priceInputs}>
                     <div className={styles.priceInput}>
@@ -534,7 +542,7 @@ export default function ModernCleanCategoryPageTemplate({
                                 : Math.round(activeFilters.price.max * exchangeRate).toLocaleString();
                             return (
                                 <span className={styles.filterTag}>
-                                    {currencySymbol}{displayMin.toLocaleString()} - {currencySymbol}{displayMax}
+                                    {formatPrice(displayMin, priceCurrency)} - {String(displayMax).includes('∞') ? '∞' : formatPrice(Number(displayMax), priceCurrency)}
                                     <button onClick={() => onClearFilter('price')}>×</button>
                                 </span>
                             );
