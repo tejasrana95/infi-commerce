@@ -372,7 +372,10 @@ export const socialLogin = asyncHandler(async (req: AuthRequest, res: Response) 
         throw new AppError(`Social login with ${provider} is disabled for this store`, 403);
     }
 
-    let email, firstName, lastName, providerId;
+    let email: string | undefined;
+    let firstName: string | undefined;
+    let lastName: string | undefined;
+    let providerId: string | undefined;
 
     if (provider === 'google') {
         try {
@@ -403,7 +406,7 @@ export const socialLogin = asyncHandler(async (req: AuthRequest, res: Response) 
         }
     }
 
-    if (!email) {
+    if (!email || !providerId) {
         throw new AppError('Could not retrieve email from social provider', 400);
     }
 
