@@ -1,0 +1,26 @@
+.dashboardContainer {
+    background-color: #f9fafb; // Light gray background for dashboard area
+    min-height: calc(100vh - 80px); // Adjust based on header height
+}
+
+.wrapper {
+    max-width: 1280px;
+    margin: 0 auto;
+    display: flex;
+    align-items: flex-start;
+    padding: 0;
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+    }
+}
+
+.content {
+    flex: 1;
+    padding: 32px;
+    width: 100%;
+
+    @media (max-width: 768px) {
+        padding: 16px;
+    }
+}

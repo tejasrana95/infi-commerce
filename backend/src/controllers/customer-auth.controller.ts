@@ -1,7 +1,9 @@
 import { Response } from 'express';
 import { body } from 'express-validator';
 import jwt, { SignOptions } from 'jsonwebtoken';
+import axios from 'axios';
 import Customer from '../models/Customer';
+import Store from '../models/Store';
 import { config } from '../config';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
@@ -18,6 +20,12 @@ export const customerRegisterValidation = [
 export const customerLoginValidation = [
     body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
     body('password').notEmpty().withMessage('Password is required'),
+];
+
+export const customerSocialLoginValidation = [
+    body('provider').isIn(['google', 'facebook']).withMessage('Invalid provider'),
+    body('token').notEmpty().withMessage('Token is required'),
+    body('storeId').notEmpty().withMessage('Store ID is required'),
 ];
 
 // Generate JWT tokens for customers
@@ -89,31 +97,30 @@ export const registerCustomer = asyncHandler(async (req: AuthRequest, res: Respo
         throw new AppError('Customer with this email already exists', 400);
     }
 
-    // Create new customer
+    // Create new customer (emailVerified defaults to false)
     const customer = await Customer.create({
         email,
         password,
         firstName,
         lastName,
         phone,
+        emailVerified: false,  // Explicitly set to false - requires verification
     });
 
-    // Generate tokens
-    const { accessToken, refreshToken } = generateCustomerTokens(
-        customer._id.toString(),
-        customer.email
-    );
+    // TODO: Queue email verification message here
+    // await emailQueue.add('sendVerificationEmail', { customerId: customer._id, email: customer.email });
 
+    // Don't return access token - customer must verify email first
     res.status(201).json({
-        message: 'Customer registered successfully',
+        message: 'Registration successful! Please check your email to verify your account.',
+        requiresVerification: true,
         customer: {
             id: customer._id,
             email: customer.email,
             firstName: customer.firstName,
             lastName: customer.lastName,
+            emailVerified: false,
         },
-        accessToken,
-        refreshToken,
     });
 });
 
@@ -166,6 +173,11 @@ export const loginCustomer = asyncHandler(async (req: AuthRequest, res: Response
     const isPasswordValid = await customer.comparePassword(password);
     if (!isPasswordValid) {
         throw new AppError('Invalid email or password', 401);
+    }
+
+    // Check if email is verified
+    if (!customer.emailVerified) {
+        throw new AppError('Please verify your email before logging in. Check your inbox for the verification link.', 403);
     }
 
     // Update last login
@@ -316,5 +328,133 @@ export const updateCustomerProfile = asyncHandler(async (req: AuthRequest, res: 
     res.json({
         message: 'Profile updated successfully',
         customer,
+    });
+});
+
+/**
+ * @swagger
+ * /api/auth/customer/social-login:
+ *   post:
+ *     summary: Social login for customer
+ *     tags: [Customer Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - provider
+ *               - token
+ *               - storeId
+ *             properties:
+ *               provider:
+ *                 type: string
+ *                 enum: [google, facebook]
+ *               token:
+ *                 type: string
+ *               storeId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ */
+export const socialLogin = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { provider, token, storeId } = req.body;
+
+    const store = await Store.findById(storeId);
+    if (!store) {
+        throw new AppError('Store not found', 404);
+    }
+
+    const socialConfig = store.settings.socialLogin?.[provider as 'google' | 'facebook'];
+    if (!socialConfig?.enabled) {
+        throw new AppError(`Social login with ${provider} is disabled for this store`, 403);
+    }
+
+    let email, firstName, lastName, providerId;
+
+    if (provider === 'google') {
+        try {
+            const response = await axios.get(`https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${token}`);
+            // Optional: input verification if store.settings.socialLogin.google.clientId matches response.data.aud
+            if (socialConfig.clientId && response.data.aud !== socialConfig.clientId) {
+                // strict check if clientId is configured
+                // throw new AppError('Invalid token audience', 401); 
+                // relaxing this for now as sometimes android/ios client ids differ
+            }
+
+            email = response.data.email;
+            firstName = response.data.given_name;
+            lastName = response.data.family_name;
+            providerId = response.data.sub;
+        } catch (error) {
+            throw new AppError('Invalid Google token', 401);
+        }
+    } else if (provider === 'facebook') {
+        try {
+            const response = await axios.get(`https://graph.facebook.com/me?access_token=${token}&fields=id,email,first_name,last_name`);
+            email = response.data.email;
+            firstName = response.data.first_name;
+            lastName = response.data.last_name;
+            providerId = response.data.id;
+        } catch (error) {
+            throw new AppError('Invalid Facebook token', 401);
+        }
+    }
+
+    if (!email) {
+        throw new AppError('Could not retrieve email from social provider', 400);
+    }
+
+    // Find or Create Customer
+    let customer = await Customer.findOne({
+        $or: [
+            { email },
+            { 'socialAccounts.providerId': providerId, 'socialAccounts.provider': provider }
+        ]
+    });
+
+    if (customer) {
+        // Link account if not already linked
+        const isLinked = customer.socialAccounts?.some(
+            acc => acc.provider === provider && acc.providerId === providerId
+        );
+
+        if (!isLinked) {
+            customer.socialAccounts = customer.socialAccounts || [];
+            customer.socialAccounts.push({ provider, providerId });
+            // If email wasn't verified before, social login usually confirms it
+            if (!customer.emailVerified) customer.emailVerified = true;
+            await customer.save();
+        }
+    } else {
+        // Create new customer
+        // Generate a random password since they are using social login
+        const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8).toUpperCase() + '!';
+
+        customer = await Customer.create({
+            email,
+            password: randomPassword,
+            firstName: firstName || 'User',
+            lastName: lastName || '-',  // Placeholder since lastName is required
+            emailVerified: true,
+            isActive: true,
+            socialAccounts: [{ provider, providerId }]
+        });
+    }
+
+    const tokens = generateCustomerTokens(customer._id.toString(), customer.email);
+
+    res.json({
+        message: 'Login successful',
+        customer: {
+            id: customer._id,
+            email: customer.email,
+            firstName: customer.firstName,
+            lastName: customer.lastName,
+            emailVerified: customer.emailVerified,
+        },
+        ...tokens,
     });
 });

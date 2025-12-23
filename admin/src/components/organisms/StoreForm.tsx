@@ -82,6 +82,19 @@ const schema = z.object({
             allowImages: z.boolean().optional(),
             maxImagesPerReview: z.number().min(1).max(10).optional(),
         }).optional(),
+        // Social Login
+        socialLogin: z.object({
+            google: z.object({
+                enabled: z.boolean(),
+                clientId: z.string().optional(),
+                clientSecret: z.string().optional(),
+            }),
+            facebook: z.object({
+                enabled: z.boolean(),
+                clientId: z.string().optional(),
+                clientSecret: z.string().optional(),
+            }),
+        }).optional(),
     }).optional(),
 });
 
@@ -125,6 +138,10 @@ const defaultValues: FormData = {
             requireApproval: true,
             allowImages: true,
             maxImagesPerReview: 5,
+        },
+        socialLogin: {
+            google: { enabled: false, clientId: '', clientSecret: '' },
+            facebook: { enabled: false, clientId: '', clientSecret: '' },
         },
     },
 };
@@ -175,6 +192,18 @@ export default function StoreForm({ initialData, onSubmit, isSubmitting = false 
                         allowImages: initialData.settings?.reviewSettings?.allowImages ?? true,
                         maxImagesPerReview: initialData.settings?.reviewSettings?.maxImagesPerReview ?? 5,
                     },
+                    socialLogin: {
+                        google: {
+                            enabled: initialData.settings?.socialLogin?.google?.enabled ?? false,
+                            clientId: initialData.settings?.socialLogin?.google?.clientId ?? '',
+                            clientSecret: initialData.settings?.socialLogin?.google?.clientSecret ?? '',
+                        },
+                        facebook: {
+                            enabled: initialData.settings?.socialLogin?.facebook?.enabled ?? false,
+                            clientId: initialData.settings?.socialLogin?.facebook?.clientId ?? '',
+                            clientSecret: initialData.settings?.socialLogin?.facebook?.clientSecret ?? '',
+                        },
+                    },
                 },
             });
         } else {
@@ -199,6 +228,7 @@ export default function StoreForm({ initialData, onSubmit, isSubmitting = false 
                 <Tab label="Basic Info" />
                 <Tab label="SEO" />
                 <Tab label="Settings" />
+                <Tab label="Social Login" />
             </Tabs>
 
             {/* Tab 0: Basic Info */}
@@ -762,6 +792,109 @@ export default function StoreForm({ initialData, onSubmit, isSubmitting = false 
                             )}
                         />
                     </Grid>
+                </Grid>
+            )}
+
+            {/* Tab 3: Social Login */}
+            {activeTab === 3 && (
+                <Grid container spacing={3}>
+                    {/* Google Login */}
+                    <Grid size={{ xs: 12 }}>
+                        <Typography variant="h6" gutterBottom>Google Login</Typography>
+                    </Grid>
+                    <Grid size={{ xs: 12 }}>
+                        <Controller
+                            name="settings.socialLogin.google.enabled"
+                            control={control}
+                            render={({ field }) => (
+                                <FormControlLabel
+                                    control={<Switch checked={field.value} onChange={field.onChange} />}
+                                    label="Enable Google Login"
+                                />
+                            )}
+                        />
+                    </Grid>
+                    {watch('settings.socialLogin.google.enabled') && (
+                        <>
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <Controller
+                                    name="settings.socialLogin.google.clientId"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            label="Google Client ID"
+                                            fullWidth
+                                            helperText="From Google Cloud Console"
+                                        />
+                                    )}
+                                />
+                            </Grid>
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <Controller
+                                    name="settings.socialLogin.google.clientSecret"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            label="Google Client Secret"
+                                            fullWidth
+                                            type="password"
+                                        />
+                                    )}
+                                />
+                            </Grid>
+                        </>
+                    )}
+
+                    {/* Facebook Login */}
+                    <Grid size={{ xs: 12 }}>
+                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>Facebook Login</Typography>
+                    </Grid>
+                    <Grid size={{ xs: 12 }}>
+                        <Controller
+                            name="settings.socialLogin.facebook.enabled"
+                            control={control}
+                            render={({ field }) => (
+                                <FormControlLabel
+                                    control={<Switch checked={field.value} onChange={field.onChange} />}
+                                    label="Enable Facebook Login"
+                                />
+                            )}
+                        />
+                    </Grid>
+                    {watch('settings.socialLogin.facebook.enabled') && (
+                        <>
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <Controller
+                                    name="settings.socialLogin.facebook.clientId"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            label="Facebook App ID"
+                                            fullWidth
+                                            helperText="From Meta for Developers"
+                                        />
+                                    )}
+                                />
+                            </Grid>
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <Controller
+                                    name="settings.socialLogin.facebook.clientSecret"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            label="Facebook App Secret"
+                                            fullWidth
+                                            type="password"
+                                        />
+                                    )}
+                                />
+                            </Grid>
+                        </>
+                    )}
                 </Grid>
             )}
         </Box>

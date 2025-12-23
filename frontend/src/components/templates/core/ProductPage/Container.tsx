@@ -285,6 +285,28 @@ export default function ProductPageContainer({
     }, [product._id]);
 
     // ============================================
+    // User State (moved before Reviews so it's available for review handlers)
+    // ============================================
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [userId, setUserId] = useState<string | undefined>(undefined);
+
+    useEffect(() => {
+        const token = api.getToken();
+        if (token) {
+            setIsLoggedIn(true);
+            try {
+                // Simple JWT decode
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                if (payload.id) {
+                    setUserId(payload.id);
+                }
+            } catch (e) {
+                console.error('Failed to decode token:', e);
+            }
+        }
+    }, []);
+
+    // ============================================
     // Reviews
     // ============================================
     const [reviews, setReviews] = useState<Review[]>([]);
@@ -349,14 +371,16 @@ export default function ProductPageContainer({
     }): Promise<boolean> => {
         setIsSubmittingReview(true);
         try {
-            const isGuest = !!(reviewData.guestName && reviewData.guestEmail);
+            // Determine if this is a guest review based on login state
+            const isGuest = !isLoggedIn && !!(reviewData.guestName && reviewData.guestEmail);
 
             await api.post('reviews', {
                 storeId: store?._id,
                 productId: product._id,
+                customerId: isLoggedIn ? userId : undefined,  // Include customerId for logged-in users
                 isGuestReview: isGuest,
-                guestName: reviewData.guestName,
-                guestEmail: reviewData.guestEmail,
+                guestName: isGuest ? reviewData.guestName : undefined,
+                guestEmail: isGuest ? reviewData.guestEmail : undefined,
                 rating: reviewData.rating,
                 title: reviewData.title,
                 content: reviewData.content,
@@ -371,7 +395,7 @@ export default function ProductPageContainer({
         } finally {
             setIsSubmittingReview(false);
         }
-    }, [api, store?._id, product._id, fetchReviews]);
+    }, [api, store?._id, product._id, fetchReviews, isLoggedIn, userId]);
 
     // ============================================
     // Related Products
@@ -421,27 +445,7 @@ export default function ProductPageContainer({
         return crumbs;
     }, [product.categories, product.name]);
 
-    // ============================================
-    // User State
-    // ============================================
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [userId, setUserId] = useState<string | undefined>(undefined);
-
-    useEffect(() => {
-        const token = api.getToken();
-        if (token) {
-            setIsLoggedIn(true);
-            try {
-                // Simple JWT decode
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                if (payload.id) {
-                    setUserId(payload.id);
-                }
-            } catch (e) {
-                console.error('Failed to decode token:', e);
-            }
-        }
-    }, []);
+    // User State is now defined earlier in the file (line ~290)
 
     const handleHelpfulVote = useCallback(async (reviewId: string) => {
         if (!isLoggedIn) return;

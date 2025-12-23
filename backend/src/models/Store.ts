@@ -31,6 +31,18 @@ export interface IStore extends Document {
         minOrderAmount?: number;
         maxOrderAmount?: number;
         shippingEnabled?: boolean;
+        socialLogin?: {
+            google: {
+                enabled: boolean;
+                clientId?: string;
+                clientSecret?: string;
+            };
+            facebook: {
+                enabled: boolean;
+                clientId?: string;
+                clientSecret?: string;
+            };
+        };
         [key: string]: any;
     };
 
@@ -243,6 +255,18 @@ const StoreSchema = new Schema<IStore>(
                     maxRating: 5,
                     allowImages: true,
                     maxImagesPerReview: 5,
+                },
+                socialLogin: {
+                    google: {
+                        enabled: false,
+                        clientId: '',
+                        clientSecret: '',
+                    },
+                    facebook: {
+                        enabled: false,
+                        clientId: '',
+                        clientSecret: '',
+                    },
                 },
             },
         },

@@ -1,0 +1,134 @@
+.container {
+    width: 100%;
+    max-width: 800px;
+}
+
+.header {
+    margin-bottom: 32px;
+
+    h1 {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 4px;
+    }
+
+    p {
+        color: #6b7280;
+        font-size: 1rem;
+    }
+}
+
+.form {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 32px;
+
+    @media (max-width: 640px) {
+        padding: 24px;
+    }
+}
+
+.section {
+    margin-bottom: 32px;
+
+    h2 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 24px;
+    }
+}
+
+.row {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 24px;
+
+    @media (max-width: 640px) {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    >div {
+        flex: 1;
+    }
+}
+
+.group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 24px;
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+
+    label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+    }
+
+    input {
+        padding: 10px 14px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        transition: border 0.2s;
+
+        &:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+        }
+
+        &.disabled {
+            background-color: #f3f4f6;
+            color: #6b7280;
+            cursor: not-allowed;
+        }
+    }
+}
+
+.divider {
+    border: none;
+    border-top: 1px solid #e5e7eb;
+    margin: 32px 0;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 16px;
+    margin-top: 32px;
+}
+
+.saveBtn {
+    background-color: #111827;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+
+    &:hover {
+        background-color: #000;
+    }
+
+    &:disabled {
+        background-color: #9ca3af;
+        cursor: not-allowed;
+    }
+}
+
+.message {
+    color: #059669;
+    font-size: 0.875rem;
+    font-weight: 500;
+}

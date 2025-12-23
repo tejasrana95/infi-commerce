@@ -2,58 +2,55 @@
 
 import Link from 'next/link';
 import styles from './page.module.scss';
+import React from 'react';
+import { useCustomer } from '@/providers/AuthProvider';
 
 export default function AccountPage() {
+    const { customer, fullName } = useCustomer();
+
     return (
         <div className={styles.container}>
-            <div className={styles.content}>
-                <div className={styles.sidebar}>
-                    <div className={styles.profile}>
-                        <div className={styles.avatar}></div>
-                        <h3>John Doe</h3>
-                        <p>john@example.com</p>
+            <header className={styles.header}>
+                <h1>Dashboard Overview</h1>
+                <p>Welcome back, {customer?.firstName || 'Guest'}! Here's what's happening with your account today.</p>
+            </header>
+
+            <div className={styles.grid}>
+                <div className={styles.card}>
+                    <div className={styles.cardHeader}>
+                        <h3>Recent Orders</h3>
+                        <Link href="/account/orders" className={styles.link}>View all</Link>
                     </div>
-                    <nav className={styles.nav}>
-                        <Link href="/account" className={styles.active}>Dashboard</Link>
-                        <Link href="/account/orders">Orders</Link>
-                        <Link href="/account/addresses">Addresses</Link>
-                        <Link href="/account/wishlist">Wishlist</Link>
-                        <Link href="/account/settings">Settings</Link>
-                        <button className={styles.logout}>Logout</button>
-                    </nav>
+                    <div className={styles.emptyState}>
+                        <p>No recent orders found.</p>
+                        <Link href="/products" className={styles.button}>Start Shopping</Link>
+                    </div>
                 </div>
 
-                <main className={styles.main}>
-                    <h1>My Account</h1>
-
-                    <div className={styles.grid}>
-                        <div className={styles.card}>
-                            <h3>Recent Orders</h3>
-                            <p>You have 0 orders</p>
-                            <Link href="/account/orders">View all orders →</Link>
-                        </div>
-                        <div className={styles.card}>
-                            <h3>Saved Addresses</h3>
-                            <p>0 addresses saved</p>
-                            <Link href="/account/addresses">Manage addresses →</Link>
-                        </div>
-                        <div className={styles.card}>
-                            <h3>Wishlist</h3>
-                            <p>0 items saved</p>
-                            <Link href="/account/wishlist">View wishlist →</Link>
-                        </div>
-                        <div className={styles.card}>
-                            <h3>Account Settings</h3>
-                            <p>Update your profile</p>
-                            <Link href="/account/settings">Edit settings →</Link>
-                        </div>
+                <div className={styles.card}>
+                    <div className={styles.cardHeader}>
+                        <h3>Default Address</h3>
+                        <Link href="/account/addresses" className={styles.link}>Manage</Link>
                     </div>
-
-                    <div className={styles.notice}>
-                        <p>🚧 Account functionality under development</p>
+                    <div className={styles.addressPreview}>
+                        <p className={styles.name}>{customer ? `${customer.firstName} ${customer.lastName}` : 'No address saved'}</p>
+                        <p>Add your shipping address</p>
                     </div>
-                </main>
+                </div>
+
+                <div className={styles.card}>
+                    <div className={styles.cardHeader}>
+                        <h3>Account Details</h3>
+                        <Link href="/account/profile" className={styles.link}>Edit</Link>
+                    </div>
+                    <div className={styles.detailsPreview}>
+                        <p><strong>Name:</strong> {customer ? `${customer.firstName} ${customer.lastName}` : 'Guest'}</p>
+                        <p><strong>Email:</strong> {customer?.email || 'Not provided'}</p>
+                        <p><strong>Phone:</strong> {customer?.phone || 'Not provided'}</p>
+                    </div>
+                </div>
             </div>
         </div>
     );
 }
+

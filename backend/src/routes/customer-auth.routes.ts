@@ -5,6 +5,7 @@ import {
     refreshCustomerToken,
     getCustomerProfile,
     updateCustomerProfile,
+    socialLogin,
     customerRegisterValidation,
     customerLoginValidation,
 } from '../controllers/customer-auth.controller';
@@ -17,9 +18,11 @@ const router = Router();
 router.post('/register', validate(customerRegisterValidation), registerCustomer);
 router.post('/login', validate(customerLoginValidation), loginCustomer);
 router.post('/refresh', refreshCustomerToken);
+router.post('/social-login', socialLogin);
 
 // Protected routes (require customer authentication)
 router.get('/me', authenticate, getCustomerProfile);
 router.put('/me', authenticate, updateCustomerProfile);
 
 export default router;
+

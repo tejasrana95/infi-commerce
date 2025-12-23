@@ -13,6 +13,7 @@ import CoreProductCardContainer from './core/ProductCard/Container';
 import CoreCategoryCardContainer from './core/CategoryCard/Container';
 import CoreCategoryPageContainer from './core/CategoryPage/Container';
 import CoreProductPageContainer from './core/ProductPage/Container';
+import CoreAuthPageContainer from './core/AuthPage/Container';
 
 // Core (Fallback) - Templates (pure presentation)
 import CoreHeaderTemplate from './core/Header/Template';
@@ -28,6 +29,7 @@ import ModernCleanProductCardTemplate from './modern-clean/ProductCard/Template'
 import ModernCleanCategoryCardTemplate from './modern-clean/CategoryCard/Template';
 import ModernCleanCategoryPageTemplate from './modern-clean/CategoryPage/Template';
 import ModernCleanProductPageTemplate from './modern-clean/ProductPage/Template';
+import ModernCleanAuthPageTemplate from './modern-clean/AuthPage/Template';
 
 // Classic Elegance - Templates (pure presentation)
 import ClassicEleganceHeaderTemplate from './classic-elegance/Header/Template';
@@ -53,6 +55,8 @@ export type ComponentName =
     | 'CategoryPageTemplate'
     | 'ProductPage'
     | 'ProductPageTemplate'
+    | 'AuthPage'
+    | 'AuthPageTemplate'
     | 'Banner';
 
 // ============================================
@@ -77,6 +81,8 @@ const TEMPLATE_COMPONENTS: Record<string, Record<string, React.ComponentType<any
         CategoryCardTemplate: ModernCleanCategoryCardTemplate,
         CategoryPageTemplate: ModernCleanCategoryPageTemplate,
         ProductPageTemplate: ModernCleanProductPageTemplate,
+        AuthPage: CoreAuthPageContainer,
+        AuthPageTemplate: ModernCleanAuthPageTemplate,
     },
     'classic-elegance': {
         // Containers (with business logic) - Use same Core containers
@@ -94,6 +100,8 @@ const TEMPLATE_COMPONENTS: Record<string, Record<string, React.ComponentType<any
         CategoryCardTemplate: ModernCleanCategoryCardTemplate, // Use modern-clean as fallback
         CategoryPageTemplate: ModernCleanCategoryPageTemplate, // Use modern-clean as fallback
         ProductPageTemplate: ModernCleanProductPageTemplate, // Use modern-clean as fallback
+        AuthPage: CoreAuthPageContainer,
+        AuthPageTemplate: ModernCleanAuthPageTemplate, // Use modern-clean as fallback
     },
 };
 
@@ -115,6 +123,9 @@ const CORE_COMPONENTS: Record<string, React.ComponentType<any>> = {
     CategoryPageTemplate: ModernCleanCategoryPageTemplate, // Use modern-clean as core fallback
     ProductPage: CoreProductPageContainer,
     ProductPageTemplate: ModernCleanProductPageTemplate, // Use modern-clean as core fallback
+    // Auth
+    AuthPage: React.lazy(() => import('./core/AuthPage/Container')),
+    AuthPageTemplate: React.lazy(() => import('./modern-clean/AuthPage/Template')),
 };
 
 // ============================================

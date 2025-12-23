@@ -1,0 +1,262 @@
+.formContainer {
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 10px;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 32px;
+
+    h2 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 8px;
+    }
+
+    p {
+        color: #6b7280;
+        font-size: 0.95rem;
+    }
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.error {
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    color: #dc2626;
+    padding: 14px 16px;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    text-align: center;
+    border: 1px solid #fecaca;
+    animation: shake 0.4s ease-in-out;
+}
+
+@keyframes shake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-4px);
+    }
+
+    75% {
+        transform: translateX(4px);
+    }
+}
+
+.row {
+    display: flex;
+    gap: 16px;
+
+    >div {
+        flex: 1;
+    }
+
+    @media (max-width: 480px) {
+        flex-direction: column;
+        gap: 20px;
+    }
+}
+
+.inputGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+    }
+
+    input {
+        padding: 14px 16px;
+        border: 1.5px solid #e5e7eb;
+        border-radius: 12px;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+        outline: none;
+        background: #f9fafb;
+
+        &:hover {
+            border-color: #d1d5db;
+        }
+
+        &:focus {
+            border-color: #111827;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.08);
+        }
+
+        &::placeholder {
+            color: #9ca3af;
+        }
+    }
+}
+
+.forgotPassword {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: -8px;
+}
+
+.linkBtn {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #111827;
+    font-weight: 500;
+    font-size: 0.875rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: color 0.2s;
+
+    &:hover {
+        color: #4f46e5;
+        text-decoration: underline;
+    }
+}
+
+.backLink {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #6b7280;
+    font-weight: 500;
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: color 0.2s;
+
+    &:hover {
+        color: #111827;
+    }
+}
+
+.submitBtn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 8px;
+    box-shadow: 0 4px 14px rgba(17, 24, 39, 0.15);
+
+    &:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(17, 24, 39, 0.25);
+    }
+
+    &:active:not(:disabled) {
+        transform: translateY(0);
+    }
+
+    &:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+        box-shadow: none;
+    }
+}
+
+.footer {
+    text-align: center;
+    margin-top: 28px;
+    font-size: 0.95rem;
+    color: #4b5563;
+
+    p {
+        margin: 0;
+    }
+
+    button,
+    a {
+        font-size: 0.95rem;
+    }
+}
+
+// Success/Error/Status Messages
+.successMessage,
+.statusMessage,
+.errorMessage {
+    text-align: center;
+    padding: 24px;
+    border-radius: 16px;
+
+    h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0 0 12px 0;
+        color: #111827;
+    }
+
+    p {
+        color: #6b7280;
+        font-size: 0.95rem;
+        margin: 0 0 20px 0;
+
+        strong {
+            color: #111827;
+        }
+    }
+}
+
+.successMessage {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border: 1px solid #bbf7d0;
+
+    h3 {
+        color: #166534;
+    }
+}
+
+.statusMessage {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border: 1px solid #bae6fd;
+
+    h3 {
+        color: #0369a1;
+    }
+}
+
+.errorMessage {
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    border: 1px solid #fecaca;
+
+    h3 {
+        color: #dc2626;
+    }
+}
+
+// Loading spinner for status messages
+.statusMessage::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 40px;
+    margin: 0 auto 16px;
+    border: 3px solid #e0f2fe;
+    border-top-color: #0284c7;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

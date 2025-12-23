@@ -94,8 +94,8 @@ app.use((req: Request, res: Response) => {
     });
 });
 
-// Error handler
-app.use((err: any, res: Response) => {
+// Error handler - Must have 4 parameters for Express to recognize it as error handler
+app.use((err: any, _req: Request, res: Response, _next: Function) => {
     console.error('Error:', err);
 
     const statusCode = err.statusCode || 500;

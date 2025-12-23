@@ -4,6 +4,9 @@ import { headers, cookies } from "next/headers";
 import "./globals.scss";
 
 import { StoreProvider } from "@/providers/StoreProvider";
+import { UIProvider } from "@/providers/UIProvider";
+import { CustomerProvider } from "@/providers/AuthProvider";
+import AuthModal from "@/components/organisms/AuthModal/AuthModal";
 import { fetchCurrencies, getStore } from "@/lib/api";
 import { getEnrichedMenus } from "@/lib/server-menu";
 import { getComponent } from "@/components/templates/registry";
@@ -155,23 +158,28 @@ export default async function RootLayout({
           currentCurrency={selectedCurrency}
           availableCurrencies={currencies}
         >
-          <div className="min-h-screen flex flex-col">
-            {/* Header - Template-specific container */}
-            <Header
-              config={store?.theme?.header}
-              store={store}
-              templateId={templateId}
-              menus={menus}
-            />
+          <UIProvider>
+            <CustomerProvider>
+              <div className="min-h-screen flex flex-col">
+                {/* Header - Template-specific container */}
+                <Header
+                  config={store?.theme?.header}
+                  store={store}
+                  templateId={templateId}
+                  menus={menus}
+                />
 
-            {/* Main Content */}
-            <main className="flex-1">
-              {children}
-            </main>
+                {/* Main Content */}
+                <main className="flex-1">
+                  {children}
+                </main>
 
-            {/* Footer - Template-specific container */}
-            <Footer config={store?.theme?.footer} store={store} templateId={templateId} />
-          </div>
+                {/* Footer - Template-specific container */}
+                <Footer config={store?.theme?.footer} store={store} templateId={templateId} />
+              </div>
+              <AuthModal />
+            </CustomerProvider>
+          </UIProvider>
         </StoreProvider>
       </body>
     </html>

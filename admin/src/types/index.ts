@@ -475,6 +475,18 @@ export interface Store {
     minOrderAmount?: number;
     maxOrderAmount?: number;
     shippingEnabled?: boolean;
+    socialLogin?: {
+      google?: {
+        enabled: boolean;
+        clientId?: string;
+        clientSecret?: string;
+      };
+      facebook?: {
+        enabled: boolean;
+        clientId?: string;
+        clientSecret?: string;
+      };
+    };
     [key: string]: any;
   };
   theme?: ThemeConfig;

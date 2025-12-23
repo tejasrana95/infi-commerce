@@ -453,6 +453,16 @@ export interface StoreSettings {
         allowImages?: boolean;
         maxImagesPerReview?: number;
     };
+    socialLogin?: {
+        google: {
+            enabled: boolean;
+            clientId?: string;
+        };
+        facebook: {
+            enabled: boolean;
+            clientId?: string;
+        };
+    };
 }
 
 export interface StoreSEO {

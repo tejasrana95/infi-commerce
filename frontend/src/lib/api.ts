@@ -108,7 +108,28 @@ class ApiClient {
 
             if (!response.ok) {
                 const error = isJson ? await response.json() : await response.text();
-                throw new Error(error?.message || error || `HTTP ${response.status}`);
+
+                // Extract error message from different formats
+                let errorMessage = `HTTP ${response.status}`;
+
+                if (isJson && error?.message) {
+                    // JSON error response
+                    errorMessage = error.message;
+                } else if (typeof error === 'string') {
+                    // HTML error page - try to extract the AppError message
+                    const match = error.match(/AppError:\s*([^<\n]+)/);
+                    if (match) {
+                        errorMessage = match[1].trim();
+                    } else if (error.includes('Error:')) {
+                        // Try to extract any Error: message
+                        const errorMatch = error.match(/Error:\s*([^<\n]+)/);
+                        if (errorMatch) {
+                            errorMessage = errorMatch[1].trim();
+                        }
+                    }
+                }
+
+                throw new Error(errorMessage);
             }
 
             return isJson ? await response.json() : (await response.text()) as T;

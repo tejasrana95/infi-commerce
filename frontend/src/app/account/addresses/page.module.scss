@@ -1,0 +1,150 @@
+.container {
+    width: 100%;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+
+    @media (max-width: 640px) {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    h1 {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 4px;
+    }
+
+    p {
+        color: #6b7280;
+        font-size: 1rem;
+    }
+}
+
+.addButton {
+    background-color: #111827;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+
+    &:hover {
+        background-color: #000;
+    }
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
+}
+
+.card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 24px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.badge {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background-color: #f3f4f6;
+    color: #374151;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+.cardContent {
+    flex: 1;
+    color: #4b5563;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 20px;
+
+    h3 {
+        color: #111827;
+        font-weight: 600;
+        margin-bottom: 8px;
+        font-size: 1.125rem;
+        padding-right: 60px; // Make space for badge
+    }
+
+    p {
+        margin: 0;
+    }
+
+    .phone {
+        margin-top: 8px;
+    }
+}
+
+.actions {
+    display: flex;
+    gap: 12px;
+    border-top: 1px solid #f3f4f6;
+    padding-top: 16px;
+
+    button {
+        background: none;
+        border: none;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        padding: 0;
+
+        &.editBtn {
+            color: #4f46e5;
+
+            &:hover {
+                text-decoration: underline;
+            }
+        }
+
+        &.deleteBtn {
+            color: #ef4444;
+
+            &:hover {
+                text-decoration: underline;
+            }
+        }
+    }
+}
+
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.modal {
+    background: white;
+    padding: 32px;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 500px;
+}

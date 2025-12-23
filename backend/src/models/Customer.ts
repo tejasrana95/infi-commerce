@@ -13,6 +13,10 @@ export interface ICustomer extends Document {
     phone?: string;
     isActive: boolean;
     emailVerified: boolean;
+    socialAccounts?: Array<{
+        provider: string;
+        providerId: string;
+    }>;
     addresses: Array<{
         type: 'billing' | 'shipping';
         firstName: string;
@@ -76,6 +80,12 @@ const CustomerSchema = new Schema<ICustomer>(
             type: Boolean,
             default: false,
         },
+        socialAccounts: [
+            {
+                provider: { type: String, required: true },
+                providerId: { type: String, required: true },
+            },
+        ],
         addresses: [
             {
                 type: {
