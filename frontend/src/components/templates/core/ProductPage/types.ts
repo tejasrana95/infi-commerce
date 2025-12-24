@@ -276,6 +276,7 @@ export interface ProductPageTemplateProps {
     onAddToCart: () => void;
     onBuyNow: () => void;
     onAddToWishlist: () => void;
+    isWishlisted?: boolean;
     onAddToCompare: () => void;
     isAddingToCart: boolean;
 

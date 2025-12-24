@@ -197,7 +197,13 @@ export const loginCustomer = asyncHandler(async (req: AuthRequest, res: Response
             email: customer.email,
             firstName: customer.firstName,
             lastName: customer.lastName,
+            phone: customer.phone,
             emailVerified: customer.emailVerified,
+            addresses: customer.addresses,
+            wishlist: customer.wishlist,
+            preferences: customer.preferences,
+            createdAt: customer.createdAt,
+            updatedAt: customer.updatedAt,
         },
         accessToken,
         refreshToken,
@@ -313,11 +319,19 @@ export const getCustomerProfile = asyncHandler(async (req: AuthRequest, res: Res
  *         description: Unauthorized
  */
 export const updateCustomerProfile = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { firstName, lastName, phone } = req.body;
+    const { firstName, lastName, phone, addresses, preferences } = req.body;
+
+    // Build update object with only provided fields
+    const updateData: Record<string, any> = {};
+    if (firstName !== undefined) updateData.firstName = firstName;
+    if (lastName !== undefined) updateData.lastName = lastName;
+    if (phone !== undefined) updateData.phone = phone;
+    if (addresses !== undefined) updateData.addresses = addresses;
+    if (preferences !== undefined) updateData.preferences = preferences;
 
     const customer = await Customer.findByIdAndUpdate(
         req.user!.id,
-        { firstName, lastName, phone },
+        updateData,
         { new: true, runValidators: true }
     ).select('-password');
 

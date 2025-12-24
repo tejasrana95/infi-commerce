@@ -685,7 +685,7 @@ export const getUserOrders = asyncHandler(async (req: AuthRequest, res: Response
     const userId = req.user!.id;
     const { page = 1, limit = 10, status } = req.query;
 
-    const filter: any = { userId };
+    const filter: any = { customerId: userId };
     if (status) filter.status = status;
 
     const skip = (Number(page) - 1) * Number(limit);
@@ -693,6 +693,7 @@ export const getUserOrders = asyncHandler(async (req: AuthRequest, res: Response
     const [orders, total] = await Promise.all([
         Order.find(filter)
             .populate('storeId', 'name')
+            .populate('items.productId', 'name slug images')
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(Number(limit)),
@@ -701,7 +702,7 @@ export const getUserOrders = asyncHandler(async (req: AuthRequest, res: Response
 
     res.json({
         success: true,
-        data: orders,
+        orders,
         pagination: {
             page: Number(page),
             limit: Number(limit),
@@ -717,27 +718,124 @@ export const getUserOrders = asyncHandler(async (req: AuthRequest, res: Response
  * @access  Private (Admin/Store Admin)
  */
 export const getAllOrders = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { page = 1, limit = 20, status, paymentStatus, storeId, search } = req.query;
+    const {
+        page = 1,
+        limit = 20,
+        status,
+        paymentStatus,
+        storeId,
+        search,
+        dateRange,
+        startDate,
+        endDate,
+        sortBy = 'createdAt',
+        sortOrder = 'desc'
+    } = req.query;
 
     const filter: any = {};
     if (status) filter.status = status;
     if (paymentStatus) filter.paymentStatus = paymentStatus;
     if (storeId) filter.storeId = storeId;
+
+    // Enhanced search - search across multiple fields
     if (search) {
+        const searchStr = String(search);
+        // Escape special regex characters for safe searching
+        const escapedSearch = searchStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
         filter.$or = [
-            { orderNumber: { $regex: search, $options: 'i' } },
-            { 'shippingAddress.firstName': { $regex: search, $options: 'i' } },
-            { 'shippingAddress.lastName': { $regex: search, $options: 'i' } },
+            // Order identifiers
+            { orderNumber: { $regex: searchStr, $options: 'i' } },
+            // Guest info
+            { guestEmail: { $regex: escapedSearch, $options: 'i' } },
+            // Shipping address
+            { 'shippingAddress.firstName': { $regex: escapedSearch, $options: 'i' } },
+            { 'shippingAddress.lastName': { $regex: escapedSearch, $options: 'i' } },
+            { 'shippingAddress.email': { $regex: escapedSearch, $options: 'i' } },
+            { 'shippingAddress.phone': { $regex: escapedSearch, $options: 'i' } },
+            // Billing address
+            { 'billingAddress.firstName': { $regex: escapedSearch, $options: 'i' } },
+            { 'billingAddress.lastName': { $regex: escapedSearch, $options: 'i' } },
+            { 'billingAddress.email': { $regex: escapedSearch, $options: 'i' } },
+            { 'billingAddress.phone': { $regex: escapedSearch, $options: 'i' } },
         ];
+    }
+    // Date range filters
+    if (dateRange || (startDate && endDate)) {
+        const now = new Date();
+        let dateFilter: { $gte?: Date; $lte?: Date } = {};
+
+        switch (dateRange) {
+            case 'today':
+                dateFilter.$gte = new Date(now.setHours(0, 0, 0, 0));
+                dateFilter.$lte = new Date();
+                break;
+            case 'yesterday':
+                const yesterday = new Date(now);
+                yesterday.setDate(yesterday.getDate() - 1);
+                dateFilter.$gte = new Date(yesterday.setHours(0, 0, 0, 0));
+                dateFilter.$lte = new Date(yesterday.setHours(23, 59, 59, 999));
+                break;
+            case 'last7days':
+                const last7 = new Date(now);
+                last7.setDate(last7.getDate() - 7);
+                dateFilter.$gte = new Date(last7.setHours(0, 0, 0, 0));
+                dateFilter.$lte = new Date();
+                break;
+            case 'last30days':
+                const last30 = new Date(now);
+                last30.setDate(last30.getDate() - 30);
+                dateFilter.$gte = new Date(last30.setHours(0, 0, 0, 0));
+                dateFilter.$lte = new Date();
+                break;
+            case 'ytd':
+                dateFilter.$gte = new Date(now.getFullYear(), 0, 1);
+                dateFilter.$lte = new Date();
+                break;
+            case 'custom':
+                if (startDate) dateFilter.$gte = new Date(String(startDate));
+                if (endDate) dateFilter.$lte = new Date(String(endDate));
+                break;
+        }
+
+        if (dateFilter.$gte || dateFilter.$lte) {
+            filter.createdAt = dateFilter;
+        }
     }
 
     const skip = (Number(page) - 1) * Number(limit);
+    const sortField = String(sortBy);
+    const sortDirection = sortOrder === 'asc' ? 1 : -1;
+
+    // First, get all customer IDs that match the search query
+    let customerIds: any[] = [];
+    if (search) {
+        const searchStr = String(search);
+        // Escape special regex characters for safe searching
+        const escapedSearch = searchStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+        const Customer = (await import('../models/Customer')).default;
+        const matchingCustomers = await Customer.find({
+            $or: [
+                { firstName: { $regex: escapedSearch, $options: 'i' } },
+                { lastName: { $regex: escapedSearch, $options: 'i' } },
+                { email: { $regex: escapedSearch, $options: 'i' } },
+                { phone: { $regex: escapedSearch, $options: 'i' } },
+            ]
+        }).select('_id');
+        customerIds = matchingCustomers.map(c => c._id);
+
+        // Add customer IDs to search criteria
+        if (customerIds.length > 0) {
+            filter.$or.push({ customerId: { $in: customerIds } });
+        }
+    }
 
     const [orders, total] = await Promise.all([
         Order.find(filter)
-            .populate('customerId', 'firstName lastName email')
+            .populate('customerId', 'firstName lastName email phone')
             .populate('storeId', 'name')
-            .sort({ createdAt: -1 })
+            .sort({ [sortField]: sortDirection })
             .skip(skip)
             .limit(Number(limit)),
         Order.countDocuments(filter),

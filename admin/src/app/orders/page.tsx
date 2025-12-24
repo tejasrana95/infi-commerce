@@ -1,10 +1,15 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Box, Tooltip, IconButton, Typography, useTheme, Chip, Avatar } from '@mui/material';
-import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import {
+    Box, Tooltip, IconButton, Typography, useTheme, Chip,
+    FormControl, InputLabel, Select, MenuItem, TextField, Stack,
+    Button, Popover
+} from '@mui/material';
+import { DataGrid, GridColDef, GridRenderCellParams, GridPaginationModel, GridSortModel } from '@mui/x-data-grid';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import api from '@/lib/api';
 import { Order, OrderStatus, PaymentStatus } from '@/types/order';
 import { PageHeader, SearchFilterBar } from '@/components/molecules';
@@ -12,6 +17,17 @@ import { LoadingSpinner } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
 import { createDataGridStyles } from '@/utils/styles';
 import { useCurrency } from '@/contexts/CurrencyContext';
+
+const DATE_RANGE_OPTIONS = [
+    { value: '', label: 'All Time' },
+    { value: 'today', label: 'Today' },
+    { value: 'yesterday', label: 'Yesterday' },
+    { value: 'last7days', label: 'Last 7 Days' },
+    { value: 'last30days', label: 'Last 30 Days' },
+    { value: 'ytd', label: 'Year to Date' },
+    { value: 'custom', label: 'Custom Range' },
+];
+
 export default function OrdersPage() {
     const router = useRouter();
     const theme = useTheme();
@@ -19,20 +35,61 @@ export default function OrdersPage() {
     const [loading, setLoading] = useState(true);
     const { showNotification } = useNotification();
     const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
+    const { convertAndFormat } = useCurrency();
+
+    // Pagination state
+    const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+        page: 0,
+        pageSize: 25,
+    });
+    const [totalRows, setTotalRows] = useState(0);
+
+    // Sort state
+    const [sortModel, setSortModel] = useState<GridSortModel>([
+        { field: 'createdAt', sort: 'desc' }
+    ]);
 
     // Filter states
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState<string>('');
     const [filterPaymentStatus, setFilterPaymentStatus] = useState<string>('');
-    const { convertAndFormat } = useCurrency();
-    useEffect(() => {
-        fetchOrders();
-    }, []);
+    const [dateRange, setDateRange] = useState<string>('');
+    const [startDate, setStartDate] = useState<string>('');
+    const [endDate, setEndDate] = useState<string>('');
 
-    const fetchOrders = async () => {
+    // Debounce search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    // Fetch orders with server-side filtering
+    const fetchOrders = useCallback(async () => {
+        setLoading(true);
         try {
-            const response = await api.get('/orders');
+            const params = new URLSearchParams();
+            params.append('page', String(paginationModel.page + 1));
+            params.append('limit', String(paginationModel.pageSize));
+
+            if (debouncedSearch) params.append('search', debouncedSearch);
+            if (filterStatus) params.append('status', filterStatus);
+            if (filterPaymentStatus) params.append('paymentStatus', filterPaymentStatus);
+            if (dateRange) params.append('dateRange', dateRange);
+            if (dateRange === 'custom') {
+                if (startDate) params.append('startDate', startDate);
+                if (endDate) params.append('endDate', endDate);
+            }
+            if (sortModel.length > 0) {
+                params.append('sortBy', sortModel[0].field);
+                params.append('sortOrder', sortModel[0].sort || 'desc');
+            }
+
+            const response = await api.get(`/orders?${params.toString()}`);
             setOrders(response.data.data || []);
+            setTotalRows(response.data.pagination?.total || 0);
         } catch (err) {
             console.error('Failed to fetch orders');
             showNotification('Failed to load orders', 'error');
@@ -40,7 +97,11 @@ export default function OrdersPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [paginationModel, debouncedSearch, filterStatus, filterPaymentStatus, dateRange, startDate, endDate, sortModel, showNotification]);
+
+    useEffect(() => {
+        fetchOrders();
+    }, [fetchOrders]);
 
     const handleView = (id: string) => {
         router.push(`/orders/${id}`);
@@ -50,29 +111,14 @@ export default function OrdersPage() {
         router.push('/orders/new');
     };
 
-    const filteredRows = orders.filter((order) => {
-        const query = searchQuery.toLowerCase();
-
-        // Search filter (order number, customer name/email)
-        const matchesSearch = !searchQuery || (
-            order.orderNumber?.toLowerCase().includes(query) ||
-            order.guestEmail?.toLowerCase().includes(query) ||
-            // @ts-ignore - populated field
-            order.userId?.firstName?.toLowerCase().includes(query) ||
-            // @ts-ignore - populated field
-            order.userId?.lastName?.toLowerCase().includes(query) ||
-            // @ts-ignore - populated field
-            order.userId?.email?.toLowerCase().includes(query)
-        );
-
-        // Order status filter
-        const matchesStatus = !filterStatus || order.status === filterStatus;
-
-        // Payment status filter
-        const matchesPaymentStatus = !filterPaymentStatus || order.paymentStatus === filterPaymentStatus;
-
-        return matchesSearch && matchesStatus && matchesPaymentStatus;
-    });
+    const handleClearFilters = () => {
+        setSearchQuery('');
+        setFilterStatus('');
+        setFilterPaymentStatus('');
+        setDateRange('');
+        setStartDate('');
+        setEndDate('');
+    };
 
     const getStatusColor = (status: OrderStatus): 'warning' | 'info' | 'primary' | 'success' | 'error' | 'default' => {
         switch (status) {
@@ -143,6 +189,7 @@ export default function OrdersPage() {
             headerName: 'Customer',
             flex: 1,
             minWidth: 200,
+            sortable: false,
             renderCell: (params: GridRenderCellParams) => (
                 <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
                     <Typography variant="body2" fontWeight={500}>
@@ -200,6 +247,7 @@ export default function OrdersPage() {
             field: 'items',
             headerName: 'Items',
             width: 80,
+            sortable: false,
             renderCell: (params: GridRenderCellParams) => (
                 <Typography variant="body2">
                     {params.value?.length || 0}
@@ -223,7 +271,7 @@ export default function OrdersPage() {
         },
     ];
 
-    if (loading) return <LoadingSpinner message="Loading orders..." />;
+    const hasActiveFilters = filterStatus || filterPaymentStatus || dateRange || debouncedSearch;
 
     return (
         <Box>
@@ -234,56 +282,118 @@ export default function OrdersPage() {
                 onAction={handleCreate}
             />
 
-            <SearchFilterBar
-                searchPlaceholder="Search by order #, customer name or email..."
-                searchValue={searchQuery}
-                onSearchChange={setSearchQuery}
-                filters={[
-                    {
-                        id: 'status',
-                        label: 'Order Status',
-                        type: 'select',
-                        options: [
-                            { value: 'pending', label: 'Pending' },
-                            { value: 'processing', label: 'Processing' },
-                            { value: 'shipped', label: 'Shipped' },
-                            { value: 'delivered', label: 'Delivered' },
-                            { value: 'cancelled', label: 'Cancelled' },
-                            { value: 'refunded', label: 'Refunded' },
-                        ],
-                    },
-                    {
-                        id: 'paymentStatus',
-                        label: 'Payment Status',
-                        type: 'select',
-                        options: [
-                            { value: 'pending', label: 'Pending' },
-                            { value: 'paid', label: 'Paid' },
-                            { value: 'failed', label: 'Failed' },
-                            { value: 'refunded', label: 'Refunded' },
-                        ],
-                    },
-                ]}
-                activeFilters={{
-                    status: filterStatus,
-                    paymentStatus: filterPaymentStatus,
-                }}
-                onFilterChange={(filters) => {
-                    setFilterStatus(filters.status as string || '');
-                    setFilterPaymentStatus(filters.paymentStatus as string || '');
-                }}
-            />
+            {/* Search and Filters */}
+            <Box sx={{ mb: 3, p: 2, bgcolor: 'background.paper', borderRadius: 2 }}>
+                <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="flex-start">
+                    {/* Search */}
+                    <TextField
+                        size="small"
+                        placeholder="Search by order #, customer name, email, phone..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        sx={{ minWidth: 320 }}
+                    />
+
+                    {/* Order Status */}
+                    <FormControl size="small" sx={{ minWidth: 140 }}>
+                        <InputLabel>Status</InputLabel>
+                        <Select
+                            value={filterStatus}
+                            label="Status"
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                        >
+                            <MenuItem value="">All</MenuItem>
+                            <MenuItem value="pending">Pending</MenuItem>
+                            <MenuItem value="processing">Processing</MenuItem>
+                            <MenuItem value="shipped">Shipped</MenuItem>
+                            <MenuItem value="delivered">Delivered</MenuItem>
+                            <MenuItem value="cancelled">Cancelled</MenuItem>
+                            <MenuItem value="refunded">Refunded</MenuItem>
+                        </Select>
+                    </FormControl>
+
+                    {/* Payment Status */}
+                    <FormControl size="small" sx={{ minWidth: 140 }}>
+                        <InputLabel>Payment</InputLabel>
+                        <Select
+                            value={filterPaymentStatus}
+                            label="Payment"
+                            onChange={(e) => setFilterPaymentStatus(e.target.value)}
+                        >
+                            <MenuItem value="">All</MenuItem>
+                            <MenuItem value="pending">Pending</MenuItem>
+                            <MenuItem value="paid">Paid</MenuItem>
+                            <MenuItem value="failed">Failed</MenuItem>
+                            <MenuItem value="refunded">Refunded</MenuItem>
+                        </Select>
+                    </FormControl>
+
+                    {/* Date Range */}
+                    <FormControl size="small" sx={{ minWidth: 150 }}>
+                        <InputLabel>Date Range</InputLabel>
+                        <Select
+                            value={dateRange}
+                            label="Date Range"
+                            onChange={(e) => setDateRange(e.target.value)}
+                        >
+                            {DATE_RANGE_OPTIONS.map((opt) => (
+                                <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+
+                    {/* Custom Date Range */}
+                    {dateRange === 'custom' && (
+                        <>
+                            <TextField
+                                size="small"
+                                type="date"
+                                label="Start Date"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                                InputLabelProps={{ shrink: true }}
+                                sx={{ width: 150 }}
+                            />
+                            <TextField
+                                size="small"
+                                type="date"
+                                label="End Date"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                                InputLabelProps={{ shrink: true }}
+                                sx={{ width: 150 }}
+                            />
+                        </>
+                    )}
+
+                    {/* Clear Filters */}
+                    {hasActiveFilters && (
+                        <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={handleClearFilters}
+                            sx={{ whiteSpace: 'nowrap' }}
+                        >
+                            Clear Filters
+                        </Button>
+                    )}
+                </Stack>
+            </Box>
 
             <Box sx={{ height: 600, width: '100%' }}>
                 <DataGrid
-                    rows={filteredRows}
+                    rows={orders}
                     columns={columns}
                     getRowId={(row) => row._id}
+                    loading={loading}
+                    paginationMode="server"
+                    sortingMode="server"
+                    rowCount={totalRows}
+                    paginationModel={paginationModel}
+                    onPaginationModelChange={setPaginationModel}
+                    sortModel={sortModel}
+                    onSortModelChange={setSortModel}
                     pageSizeOptions={[10, 25, 50, 100]}
-                    initialState={{
-                        pagination: { paginationModel: { pageSize: 25 } },
-                        sorting: { sortModel: [{ field: 'createdAt', sort: 'desc' }] },
-                    }}
                     disableRowSelectionOnClick
                     sx={dataGridStyles}
                     rowHeight={70}

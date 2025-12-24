@@ -22,6 +22,7 @@ import customerRoutes from './customer.routes';
 import adminRoutes from './admin.routes';
 import reviewRoutes from './review.routes';
 import taxRateRoutes from './taxRate.routes';
+import wishlistRoutes from './wishlist.routes';
 
 // Layout Designer Routes
 import themeRoutes from './theme.routes';
@@ -106,6 +107,9 @@ router.use('/reviews', reviewRoutes);
 
 // Mount tax rate routes (global - not store-specific)
 router.use('/tax-rates', taxRateRoutes);
+
+// Mount wishlist routes
+router.use('/wishlist', wishlistRoutes);
 
 // --- Layout Designer Routes ---
 // Mount theme routes

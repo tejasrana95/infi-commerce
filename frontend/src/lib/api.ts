@@ -16,6 +16,12 @@ class ApiClient {
     private baseUrl: string;
     private sessionId: string | null = null;
     private token: string | null = null;
+    private refreshToken: string | null = null;
+    private isRefreshing = false;
+    private failedQueue: Array<{
+        resolve: (token: string) => void;
+        reject: (err: any) => void;
+    }> = [];
 
     constructor(baseUrl: string = API_BASE_URL) {
         this.baseUrl = baseUrl;
@@ -24,6 +30,7 @@ class ApiClient {
         if (typeof window !== 'undefined') {
             this.sessionId = localStorage.getItem('sessionId');
             this.token = localStorage.getItem('authToken');
+            this.refreshToken = localStorage.getItem('refreshToken');
         }
     }
 
@@ -43,6 +50,14 @@ class ApiClient {
         }
     }
 
+    // Set refresh token
+    setRefreshToken(token: string) {
+        this.refreshToken = token;
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('refreshToken', token);
+        }
+    }
+
     // Get current session ID
     getSessionId(): string | null {
         return this.sessionId;
@@ -57,9 +72,11 @@ class ApiClient {
     clearAuth() {
         this.sessionId = null;
         this.token = null;
+        this.refreshToken = null;
         if (typeof window !== 'undefined') {
             localStorage.removeItem('sessionId');
             localStorage.removeItem('authToken');
+            localStorage.removeItem('refreshToken');
         }
     }
 
@@ -133,10 +150,92 @@ class ApiClient {
             }
 
             return isJson ? await response.json() : (await response.text()) as T;
-        } catch (error) {
+        } catch (error: any) {
+            // Check if error is 401 and we haven't already retried
+            if (error.message.includes('401') || (error.response && error.response.status === 401)) {
+
+                // If this WAS a refresh attempt that failed, don't retry, just logout
+                if (endpoint === 'auth/customer/refresh') {
+                    this.clearAuth();
+                    if (typeof window !== 'undefined') {
+                        window.location.href = '/login';
+                    }
+                    throw error;
+                }
+
+                if (!this.refreshToken) {
+                    // No refresh token available, logout
+                    this.clearAuth();
+                    if (typeof window !== 'undefined') {
+                        window.location.href = '/login';
+                    }
+                    throw error;
+                }
+
+                if (this.isRefreshing) {
+                    return new Promise((resolve, reject) => {
+                        this.failedQueue.push({ resolve, reject });
+                    }).then((token) => {
+                        // Retry original request with new token
+                        config = { ...config, token: token as string }; // Use new token override
+                        // Update options header as well just in case
+                        const newHeaders = {
+                            ...options.headers,
+                            'Authorization': `Bearer ${token}`
+                        };
+                        return this.request<T>(endpoint, { ...options, headers: newHeaders }, config);
+                    }).catch(err => {
+                        throw err;
+                    });
+                }
+
+                this.isRefreshing = true;
+
+                try {
+                    const refreshResponse = await this.post<{ accessToken: string; refreshToken: string }>(
+                        'auth/customer/refresh',
+                        { refreshToken: this.refreshToken }
+                    );
+
+                    const { accessToken, refreshToken } = refreshResponse;
+
+                    this.setToken(accessToken);
+                    if (refreshToken) this.setRefreshToken(refreshToken);
+
+                    this.processQueue(null, accessToken);
+
+                    // Retry original request
+                    const newHeaders = {
+                        ...options.headers,
+                        'Authorization': `Bearer ${accessToken}`
+                    };
+                    return this.request<T>(endpoint, { ...options, headers: newHeaders }, config);
+                } catch (refreshError) {
+                    this.processQueue(refreshError, null);
+                    this.clearAuth();
+                    if (typeof window !== 'undefined') {
+                        window.location.href = '/login';
+                    }
+                    throw refreshError;
+                } finally {
+                    this.isRefreshing = false;
+                }
+            }
+
             console.error(`API Error [${endpoint}]:`, error);
             throw error;
         }
+    }
+
+    private processQueue(error: any, token: string | null = null) {
+        this.failedQueue.forEach(prom => {
+            if (error) {
+                prom.reject(error);
+            } else {
+                prom.resolve(token!);
+            }
+        });
+        this.failedQueue = [];
     }
 
     // GET request

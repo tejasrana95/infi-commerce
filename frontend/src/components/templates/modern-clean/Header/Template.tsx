@@ -9,6 +9,7 @@ import Image from 'next/image';
 import { HeaderTemplateProps } from '@/components/templates/core/Header/types';
 import MenuBuilder from '@/components/core/MenuBuilder';
 import { useStore } from '@/providers/StoreProvider';
+import { useAuth } from '@/providers/AuthProvider';
 import CurrencySelector from '@/components/molecules/CurrencySelector';
 import styles from './style.module.scss';
 
@@ -29,6 +30,8 @@ export default function ModernCleanHeaderTemplate({
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [searchOpen, setSearchOpen] = useState(false);
     const [cartOpen, setCartOpen] = useState(false);
+    const [accountOpen, setAccountOpen] = useState(false);
+    const { isAuthenticated, customer, logout } = useAuth();
     const [isScrolled, setIsScrolled] = useState(false);
     const cartTotal = 0;
     // Handle scroll for sticky/transparent behavior
@@ -99,11 +102,77 @@ export default function ModernCleanHeaderTemplate({
 
             case 'account':
                 return (
-                    <Link key={element.id} href="/account" className={styles.actionBtn} aria-label={labels.account}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                    </Link>
+                    <div key={element.id} className={styles.accountWrapper}>
+                        <button
+                            className={styles.actionBtn}
+                            onClick={() => setAccountOpen(!accountOpen)}
+                            aria-label={labels.account}
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                        </button>
+
+                        {accountOpen && (
+                            <div className={styles.accountDropdown}>
+                                {isAuthenticated && customer ? (
+                                    <>
+                                        <div className={styles.accountHeader}>
+                                            <p>Welcome back,</p>
+                                            <strong>{customer.firstName} {customer.lastName}</strong>
+                                        </div>
+                                        <ul className={styles.accountMenu}>
+                                            <li>
+                                                <Link href="/account" className={styles.accountMenuItem} onClick={() => setAccountOpen(false)}>
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                                                    My Account
+                                                </Link>
+                                            </li>
+                                            <li>
+                                                <Link href="/account/orders" className={styles.accountMenuItem} onClick={() => setAccountOpen(false)}>
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                                                    Orders
+                                                </Link>
+                                            </li>
+                                            <li>
+                                                <Link href="/account/profile" className={styles.accountMenuItem} onClick={() => setAccountOpen(false)}>
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                    Profile
+                                                </Link>
+                                            </li>
+                                            <li>
+                                                <Link href="/account/addresses" className={styles.accountMenuItem} onClick={() => setAccountOpen(false)}>
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                                    Address
+                                                </Link>
+                                            </li>
+                                            <li>
+                                                <Link href="/wishlist" className={styles.accountMenuItem} onClick={() => setAccountOpen(false)}>
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                                                    Wishlist
+                                                </Link>
+                                            </li>
+                                            <li>
+                                                <button className={`${styles.accountMenuItem} ${styles.signOut}`} onClick={() => { logout(); setAccountOpen(false); }}>
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                                                    Sign Out
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </>
+                                ) : (
+                                    <div className={styles.authButtons}>
+                                        <Link href="/login" className={styles.loginBtn} onClick={() => setAccountOpen(false)}>
+                                            Login
+                                        </Link>
+                                        <Link href="/register" className={styles.registerBtn} onClick={() => setAccountOpen(false)}>
+                                            Register
+                                        </Link>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 );
 
             case 'wishlist':

@@ -5,6 +5,7 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { getComponent } from '@/components/templates/registry';
 import { useStore, useThemeConfig } from '@/providers/StoreProvider';
+import { useWishlist } from '@/providers/WishlistProvider';
 import api from '@/lib/api';
 import {
     Product,
@@ -36,6 +37,7 @@ export default function ProductPageContainer({
     const { store, currentCurrency } = useStore();
     const themeConfig = useThemeConfig();
     const currency = useCurrency();
+    const { isInWishlist, toggleWishlist } = useWishlist();
 
     // Currency
     const currencySymbol = currentCurrency?.symbol || '$';
@@ -276,9 +278,12 @@ export default function ProductPageContainer({
         window.location.href = '/checkout';
     }, [handleAddToCart]);
 
-    const handleAddToWishlist = useCallback(() => {
-        console.log('Add to wishlist:', product._id);
-    }, [product._id]);
+    // Wishlist state from context
+    const isWishlisted = isInWishlist(product._id);
+
+    const handleToggleWishlist = useCallback(() => {
+        toggleWishlist(product._id);
+    }, [toggleWishlist, product._id]);
 
     const handleAddToCompare = useCallback(() => {
         console.log('Add to compare:', product._id);
@@ -532,7 +537,8 @@ export default function ProductPageContainer({
         onQuantityChange: handleQuantityChange,
         onAddToCart: handleAddToCart,
         onBuyNow: handleBuyNow,
-        onAddToWishlist: handleAddToWishlist,
+        onAddToWishlist: handleToggleWishlist,
+        isWishlisted,
         onAddToCompare: handleAddToCompare,
         isAddingToCart,
         reviews,

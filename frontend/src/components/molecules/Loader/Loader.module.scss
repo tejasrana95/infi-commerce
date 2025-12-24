@@ -1,0 +1,246 @@
+// Loader Component Styles
+// Beautiful, modern loading animations
+
+.loaderWrapper {
+    --loader-color: var(--primary-color, #6366f1);
+    --loader-secondary: rgba(99, 102, 241, 0.2);
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+
+// Size variants
+.sm {
+    --loader-size: 24px;
+    --ring-width: 2px;
+    --dot-size: 6px;
+
+    .loaderText {
+        font-size: 0.75rem;
+    }
+}
+
+.md {
+    --loader-size: 40px;
+    --ring-width: 3px;
+    --dot-size: 10px;
+
+    .loaderText {
+        font-size: 0.875rem;
+    }
+}
+
+.lg {
+    --loader-size: 56px;
+    --ring-width: 4px;
+    --dot-size: 12px;
+
+    .loaderText {
+        font-size: 1rem;
+    }
+}
+
+.xl {
+    --loader-size: 80px;
+    --ring-width: 5px;
+    --dot-size: 16px;
+
+    .loaderText {
+        font-size: 1.125rem;
+    }
+}
+
+// Full screen & overlay
+.fullScreen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    background: var(--background-color, #ffffff);
+
+    &.overlay {
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+    }
+}
+
+// Loader text
+.loaderText {
+    color: var(--loader-color);
+    font-weight: 500;
+    letter-spacing: 0.025em;
+    animation: fadeInOut 1.5s ease-in-out infinite;
+}
+
+// ========================================
+// SPINNER VARIANT - Elegant triple ring
+// ========================================
+.spinner {
+    position: relative;
+    width: var(--loader-size);
+    height: var(--loader-size);
+}
+
+.spinnerRing {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: var(--ring-width) solid transparent;
+
+    &:nth-child(1) {
+        border-top-color: var(--loader-color);
+        animation: spin 1s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+    }
+
+    &:nth-child(2) {
+        inset: 15%;
+        border-right-color: var(--loader-color);
+        opacity: 0.7;
+        animation: spin 0.8s cubic-bezier(0.5, 0, 0.5, 1) infinite reverse;
+    }
+
+    &:nth-child(3) {
+        inset: 30%;
+        border-bottom-color: var(--loader-color);
+        opacity: 0.4;
+        animation: spin 0.6s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+    }
+}
+
+// ========================================
+// DOTS VARIANT - Bouncing dots
+// ========================================
+.dots {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--dot-size) * 0.6);
+}
+
+.dot {
+    width: var(--dot-size);
+    height: var(--dot-size);
+    background: var(--loader-color);
+    border-radius: 50%;
+    animation: bounce 1.4s ease-in-out infinite both;
+
+    &:nth-child(1) {
+        animation-delay: -0.32s;
+    }
+
+    &:nth-child(2) {
+        animation-delay: -0.16s;
+    }
+
+    &:nth-child(3) {
+        animation-delay: 0s;
+    }
+}
+
+// ========================================
+// PULSE VARIANT - Ripple effect
+// ========================================
+.pulse {
+    position: relative;
+    width: var(--loader-size);
+    height: var(--loader-size);
+}
+
+.pulseCircle {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--loader-color);
+    opacity: 0;
+    animation: pulse 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+
+    &:nth-child(2) {
+        animation-delay: 1s;
+    }
+}
+
+// ========================================
+// RING VARIANT - Modern gradient arc
+// ========================================
+.ring {
+    position: relative;
+    width: var(--loader-size);
+    height: var(--loader-size);
+}
+
+.ringArc {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: var(--ring-width) solid var(--loader-secondary);
+    border-top-color: var(--loader-color);
+    animation: spin 0.8s linear infinite;
+
+    // Gradient glow effect
+    &::after {
+        content: '';
+        position: absolute;
+        inset: calc(var(--ring-width) * -1);
+        border-radius: 50%;
+        border: var(--ring-width) solid transparent;
+        border-top-color: var(--loader-color);
+        filter: blur(4px);
+        opacity: 0.5;
+    }
+}
+
+// ========================================
+// ANIMATIONS
+// ========================================
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes bounce {
+
+    0%,
+    80%,
+    100% {
+        transform: scale(0);
+        opacity: 0.5;
+    }
+
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(0);
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 0;
+    }
+}
+
+@keyframes fadeInOut {
+
+    0%,
+    100% {
+        opacity: 0.5;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}

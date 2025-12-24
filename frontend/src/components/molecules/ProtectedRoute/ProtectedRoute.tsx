@@ -3,6 +3,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
+import Loader from '../Loader';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
@@ -51,7 +52,7 @@ export default function ProtectedRoute({
     }
 
     if (!isAuthenticated) {
-        return null;
+        return <Loader size="lg" variant="spinner" className='m-16' />;
     }
 
     return <>{children}</>;

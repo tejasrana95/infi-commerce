@@ -3,9 +3,11 @@
 // Core ProductCard Container - Handles business logic and data processing
 // Client Component to support dynamic currency updates
 
+import React from 'react';
 import { getComponent } from '@/components/templates/registry';
 import { ProductTemplateProps, Product } from './types';
 import { useStore, useThemeConfig } from '@/providers/StoreProvider';
+import { useWishlist } from '@/providers/WishlistProvider';
 import { DEFAULT_PRODUCT_CARD_CONFIG, ProductCardConfig } from '@/types';
 import { formatPrice } from '@/lib/currency';
 
@@ -15,7 +17,6 @@ interface ProductCardContainerProps {
     templateId?: string;
     cardConfig?: Partial<ProductCardConfig>;
 }
-
 
 // Check if product is currently on sale (within date range)
 function isWithinSalePeriod(saleStartDate?: string, saleEndDate?: string): boolean {
@@ -71,7 +72,6 @@ function processProductData(product: Product, currency: import('@/types').Curren
     }
 
     // Fallback: Calculate from base prices (legacy path)
-    // Determine if sale is active
     const hasSalePrice = !!(product.salePrice && product.salePrice < product.price);
     const saleIsActive = hasSalePrice && isWithinSalePeriod(product.saleStartDate, product.saleEndDate);
 
@@ -119,12 +119,15 @@ function processProductData(product: Product, currency: import('@/types').Curren
 // The Container component
 export default function ProductCardContainer({
     product,
-    currency: initialCurrency = 'USD', // Rename to avoid conflict
+    currency: initialCurrency = 'USD',
     templateId = 'modern-clean',
     cardConfig,
 }: ProductCardContainerProps) {
     const { currentCurrency } = useStore();
     const themeConfig = useThemeConfig();
+
+    // Get wishlist functions from context (single API call for all products)
+    const { isInWishlist, toggleWishlist } = useWishlist();
 
     // Use context currency if available, otherwise fallback to prop
     const activeCurrency = currentCurrency || initialCurrency;
@@ -138,11 +141,6 @@ export default function ProductCardContainer({
     // Prepare override, removing 'default' style if we want to inherit theme's non-default style
     const cardConfigOverride = { ...cardConfig };
     if (cardConfigOverride.cardStyle === 'default' && themeProductCardConfig.cardStyle && themeProductCardConfig.cardStyle !== 'default') {
-        const { cardStyle, ...rest } = cardConfigOverride;
-        // Re-assign without cardStyle
-        Object.assign(cardConfigOverride, rest);
-        // actually delete is cleaner but TS might complain if strict. 
-        // Let's just create a new object if needed or delete.
         delete cardConfigOverride.cardStyle;
     }
 
@@ -157,6 +155,13 @@ export default function ProductCardContainer({
     // Get the template-specific presenter component
     const ProductCardTemplate = getComponent('ProductCardTemplate', templateId);
 
-    // Render the template with processed data and config
-    return <ProductCardTemplate {...templateProps} cardConfig={productCardConfig} />;
+    // Render the template with processed data, config, and wishlist props
+    return (
+        <ProductCardTemplate
+            {...templateProps}
+            cardConfig={productCardConfig}
+            isWishlisted={isInWishlist(product._id)}
+            onToggleWishlist={() => toggleWishlist(product._id)}
+        />
+    );
 }

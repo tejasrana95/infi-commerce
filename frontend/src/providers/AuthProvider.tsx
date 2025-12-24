@@ -234,7 +234,6 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
                 setIsLoading(false);
                 return { success: false, error: response.message || 'Login failed' };
             }
-
             // Transform response customer to our Customer type
             const customerData: Customer = {
                 _id: response.customer.id || response.customer._id,
@@ -250,9 +249,14 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
                     language: 'en',
                     newsletter: false,
                 },
+                createdAt: response.customer.createdAt,
+                updatedAt: response.customer.updatedAt,
             };
 
             api.setToken(response.accessToken);
+            if (response.refreshToken) {
+                api.setRefreshToken(response.refreshToken);
+            }
             localStorage.setItem('customer', JSON.stringify(customerData));
             setToken(response.accessToken);
             setCustomer(customerData);
@@ -310,9 +314,14 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
                     language: 'en',
                     newsletter: false,
                 },
+                createdAt: response.customer.createdAt,
+                updatedAt: response.customer.updatedAt,
             };
 
             api.setToken(response.accessToken);
+            if (response.refreshToken) {
+                api.setRefreshToken(response.refreshToken);
+            }
             localStorage.setItem('customer', JSON.stringify(customerData));
             setToken(response.accessToken);
             setCustomer(customerData);

@@ -1,102 +1,356 @@
-.container {
-    width: 100%;
+// Account Dashboard Styles
+// Modern, clean design with responsive layout
+
+.loadingContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
 }
 
-.header {
-    margin-bottom: 32px;
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
 
+// Header
+.header {
+    margin-bottom: 2rem;
+}
+
+.welcomeSection {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.welcomeText {
     h1 {
-        font-size: 1.875rem;
-        font-weight: 700;
-        color: #111827;
-        margin-bottom: 8px;
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #111;
+        margin: 0 0 0.25rem 0;
     }
 
     p {
-        color: #6b7280;
-        font-size: 1rem;
+        color: #666;
+        margin: 0;
     }
 }
 
-.grid {
+// Stats Grid
+.statsGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 24px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+    }
 }
 
-.card {
+.statCard {
     background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 24px;
-    transition: box-shadow 0.2s;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f0f0f0;
+    transition: all 0.2s;
 
     &:hover {
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        transform: translateY(-2px);
     }
+}
+
+.statIcon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    svg {
+        width: 24px;
+        height: 24px;
+        color: #6366f1;
+    }
+}
+
+.statContent {
+    display: flex;
+    flex-direction: column;
+}
+
+.statValue {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #111;
+}
+
+.statLabel {
+    font-size: 0.875rem;
+    color: #666;
+}
+
+// Main Grid
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+
+    @media (max-width: 1024px) {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    @media (max-width: 640px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+// Cards
+.card {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f0f0f0;
+    overflow: hidden;
 }
 
 .cardHeader {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #f0f0f0;
 
-    h3 {
-        font-size: 1.125rem;
+    h2 {
+        font-size: 1rem;
         font-weight: 600;
-        color: #111827;
+        color: #111;
         margin: 0;
     }
 }
 
-.link {
+.viewAllLink {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
     font-size: 0.875rem;
-    color: #4f46e5;
-    font-weight: 500;
+    color: #6366f1;
     text-decoration: none;
+    transition: color 0.2s;
+
+    svg {
+        width: 16px;
+        height: 16px;
+    }
 
     &:hover {
-        text-decoration: underline;
+        color: #4f46e5;
     }
 }
 
+.cardBody {
+    padding: 1.5rem;
+}
+
+// Order List
+.orderList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.orderItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: #fafafa;
+    border-radius: 0.75rem;
+    text-decoration: none;
+    transition: all 0.2s;
+
+    &:hover {
+        background: #f0f0f0;
+    }
+}
+
+.orderInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.orderNumber {
+    font-weight: 600;
+    color: #111;
+}
+
+.orderDate {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.orderMeta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+}
+
+.orderStatus {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 999px;
+    text-transform: capitalize;
+}
+
+.orderTotal {
+    font-weight: 600;
+    color: #111;
+}
+
+// Empty State
 .emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
     text-align: center;
-    padding: 20px 0;
-    color: #6b7280;
 
-    .button {
-        display: inline-block;
-        margin-top: 12px;
-        padding: 8px 16px;
-        background-color: #111827;
-        color: white;
-        border-radius: 6px;
-        font-size: 0.875rem;
-        font-weight: 500;
-        text-decoration: none;
-        transition: background 0.2s;
-
-        &:hover {
-            background-color: #000;
-        }
-    }
-}
-
-.addressPreview,
-.detailsPreview {
-    color: #4b5563;
-    font-size: 0.95rem;
-    line-height: 1.6;
-
-    .name {
-        font-weight: 600;
-        color: #111827;
-        margin-bottom: 4px;
+    svg {
+        width: 48px;
+        height: 48px;
+        color: #ccc;
+        margin-bottom: 1rem;
     }
 
     p {
-        margin: 0;
+        color: #666;
+        margin: 0 0 1rem 0;
     }
+}
+
+.shopButton {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background: #111;
+    color: white;
+    text-decoration: none;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: opacity 0.2s;
+
+    &:hover {
+        opacity: 0.9;
+    }
+}
+
+// Address Card
+.addressCard {
+    display: flex;
+    gap: 1rem;
+}
+
+.addressIcon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: #f0fdf4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    svg {
+        width: 20px;
+        height: 20px;
+        color: #10b981;
+    }
+}
+
+.addressDetails {
+    p {
+        margin: 0 0 0.25rem 0;
+        color: #444;
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+}
+
+.addressName {
+    font-weight: 600;
+    color: #111 !important;
+}
+
+.addressPhone {
+    color: #666 !important;
+    font-size: 0.85rem !important;
+    margin-top: 0.5rem !important;
+}
+
+// Details List
+.detailsList {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.detailItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #f0f0f0;
+
+    &:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+}
+
+.detailLabel {
+    font-size: 0.875rem;
+    color: #666;
+}
+
+.detailValue {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #111;
+}
+
+.verified {
+    color: #10b981 !important;
+}
+
+.notVerified {
+    color: #ef4444 !important;
 }
