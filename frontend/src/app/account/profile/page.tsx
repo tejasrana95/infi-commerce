@@ -82,7 +82,7 @@ export default function ProfilePage() {
         }
 
         try {
-            await api.put('auth/customer/me', {
+            await api.post('auth/customer/change-password', {
                 currentPassword: passwordData.currentPassword,
                 newPassword: passwordData.newPassword,
             });

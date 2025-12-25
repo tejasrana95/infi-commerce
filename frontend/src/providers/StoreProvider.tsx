@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect } from 'react';
 import { Store, StoreContextType, ThemeConfig, DEFAULT_TEMPLATE_ID } from '@/types';
+import api from '@/lib/api';
 
 // ============================================
 // Context Creation
@@ -57,6 +58,13 @@ interface StoreProviderProps {
 export function StoreProvider({ store, children, currentCurrency, availableCurrencies }: StoreProviderProps) {
     const templateId = store?.theme?.templateId || DEFAULT_TEMPLATE_ID;
     const themeConfig = store?.theme || null;
+
+    // Set store ID on API client for X-Store-ID header
+    useEffect(() => {
+        if (store?._id) {
+            api.setStoreId(store._id);
+        }
+    }, [store?._id]);
 
     // Apply template class to body on mount/update
     // Note: CSS variables are now applied server-side in layout.tsx for better CLS

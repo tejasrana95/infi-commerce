@@ -555,3 +555,239 @@ export const toggleStoreStatus = asyncHandler(async (req: AuthRequest, res: Resp
         store,
     });
 });
+
+// ============================================
+// Email Settings Endpoints
+// ============================================
+
+/**
+ * @swagger
+ * /api/stores/{id}/email-settings:
+ *   get:
+ *     summary: Get store email settings
+ *     tags: [Stores]
+ *     security:
+ *       - bearerAuth: []
+ */
+export const getEmailSettings = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const store = await Store.findById(req.params.id);
+
+    if (!store) {
+        throw new AppError('Store not found', 404);
+    }
+
+    // Return email settings (mask sensitive credentials)
+    const settings = store.settings?.emailSettings || null;
+
+    if (settings) {
+        // Mask passwords/secrets
+        const masked = { ...settings };
+        if (masked.smtp?.password) masked.smtp.password = '••••••••';
+        if (masked.ses?.secretAccessKey) masked.ses.secretAccessKey = '••••••••';
+        if (masked.sendgrid?.apiKey) masked.sendgrid.apiKey = '••••••••';
+        if (masked.mailjet?.secretKey) masked.mailjet.secretKey = '••••••••';
+
+        res.json({ success: true, emailSettings: masked });
+    } else {
+        res.json({ success: true, emailSettings: null });
+    }
+});
+
+/**
+ * @swagger
+ * /api/stores/{id}/email-settings:
+ *   put:
+ *     summary: Update store email settings
+ *     tags: [Stores]
+ *     security:
+ *       - bearerAuth: []
+ */
+export const updateEmailSettings = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const store = await Store.findById(req.params.id);
+
+    if (!store) {
+        throw new AppError('Store not found', 404);
+    }
+
+    const { provider, fromEmail, fromName, replyTo, rateLimit, smtp, ses, sendgrid, mailjet } = req.body;
+
+    // Validate provider-specific settings
+    if (!provider) {
+        throw new AppError('Email provider is required', 400);
+    }
+
+    if (!fromEmail) {
+        throw new AppError('From email is required', 400);
+    }
+
+    // Build email settings object
+    const emailSettings: any = {
+        provider,
+        fromEmail,
+        fromName: fromName || fromEmail.split('@')[0],
+        replyTo: replyTo || fromEmail,
+        rateLimit: rateLimit || 30,
+    };
+
+    // Add provider-specific settings
+    switch (provider) {
+        case 'smtp':
+            if (!smtp?.host || !smtp?.port || !smtp?.user) {
+                throw new AppError('SMTP host, port, and user are required', 400);
+            }
+            // Preserve existing password if not provided (masked in GET)
+            const existingSmtp = store.settings?.emailSettings?.smtp;
+            emailSettings.smtp = {
+                host: smtp.host,
+                port: smtp.port,
+                secure: smtp.secure ?? true,
+                user: smtp.user,
+                password: smtp.password === '••••••••' ? existingSmtp?.password : smtp.password,
+            };
+            break;
+        case 'ses':
+            if (!ses?.region || !ses?.accessKeyId) {
+                throw new AppError('SES region and access key ID are required', 400);
+            }
+            const existingSes = store.settings?.emailSettings?.ses;
+            emailSettings.ses = {
+                region: ses.region,
+                accessKeyId: ses.accessKeyId,
+                secretAccessKey: ses.secretAccessKey === '••••••••' ? existingSes?.secretAccessKey : ses.secretAccessKey,
+            };
+            break;
+        case 'sendgrid':
+            const existingSendgrid = store.settings?.emailSettings?.sendgrid;
+            emailSettings.sendgrid = {
+                apiKey: sendgrid?.apiKey === '••••••••' ? existingSendgrid?.apiKey : sendgrid?.apiKey,
+            };
+            if (!emailSettings.sendgrid.apiKey) {
+                throw new AppError('SendGrid API key is required', 400);
+            }
+            break;
+        case 'mailjet':
+            if (!mailjet?.apiKey) {
+                throw new AppError('Mailjet API key is required', 400);
+            }
+            const existingMailjet = store.settings?.emailSettings?.mailjet;
+            emailSettings.mailjet = {
+                apiKey: mailjet.apiKey,
+                secretKey: mailjet.secretKey === '••••••••' ? existingMailjet?.secretKey : mailjet.secretKey,
+            };
+            break;
+        default:
+            throw new AppError(`Invalid email provider: ${provider}`, 400);
+    }
+
+    // Update store settings
+    store.settings = {
+        ...store.settings,
+        emailSettings,
+    };
+    await store.save();
+
+    res.json({
+        success: true,
+        message: 'Email settings updated successfully',
+    });
+});
+
+/**
+ * @swagger
+ * /api/stores/{id}/email-settings/test:
+ *   post:
+ *     summary: Send test email
+ *     tags: [Stores]
+ *     security:
+ *       - bearerAuth: []
+ */
+export const testEmailSettings = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const store = await Store.findById(req.params.id);
+
+    if (!store) {
+        throw new AppError('Store not found', 404);
+    }
+
+    const emailSettings = store.settings?.emailSettings;
+    if (!emailSettings) {
+        throw new AppError('Email settings not configured', 400);
+    }
+
+    const { testEmail } = req.body;
+    if (!testEmail) {
+        throw new AppError('Test email address is required', 400);
+    }
+
+    // Import notification service dynamically to avoid circular deps
+    const { notificationService } = await import('../services/notification.service');
+
+    try {
+        // Create a test notification and process it immediately
+        const notification = await notificationService.queueNotification({
+            storeId: store._id.toString(),
+            channel: 'email',
+            priority: 'high',
+            type: 'custom',
+            recipient: testEmail,
+            recipientName: 'Test User',
+            subject: `Test Email from ${store.name}`,
+            content: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; background: #f5f5f5;">
+    <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <h1 style="color: #333; margin-bottom: 24px;">Email Configuration Test</h1>
+        <p style="color: #666; line-height: 1.6;">Hi {{firstName}},</p>
+        <p style="color: #666; line-height: 1.6;">This is a test email from <strong>{{storeName}}</strong>.</p>
+        <p style="color: #666; line-height: 1.6;">If you received this email, your email settings are configured correctly!</p>
+        <div style="background: #f0f9ff; border-radius: 8px; padding: 16px; margin-top: 24px;">
+            <p style="margin: 0; color: #0369a1; font-size: 14px;">SMTP/Email provider is working properly</p>
+        </div>
+       <p style="text-align: center;"><u><small>Powered By Infi Commerce</small></u></p>
+    </div>
+</body>
+</html>`,
+            templateData: {
+                firstName: 'Test User',
+                storeName: store.name,
+            },
+        });
+
+        // Wait for processing (increased for slow SMTP servers)
+        await new Promise(resolve => setTimeout(resolve, 5000));
+
+        // Check if sent
+        const updated = await (await import('../models/NotificationQueue')).default.findById(notification._id);
+
+        if (updated?.status === 'sent') {
+            res.json({
+                success: true,
+                message: `Test email sent successfully to ${testEmail}`,
+            });
+        } else if (updated?.status === 'failed') {
+            throw new AppError(`Email sending failed: ${updated?.error || 'Unknown error'}`, 500);
+        } else if (updated?.status === 'pending' || updated?.status === 'processing') {
+            // Still processing - might be slow
+            throw new AppError(`Email is still being processed. Status: ${updated?.status}. Please check notification logs.`, 500);
+        } else {
+            throw new AppError(`Unexpected status: ${updated?.status}. Error: ${updated?.error || 'None'}`, 500);
+        }
+    } catch (error: any) {
+        throw new AppError(`Test email failed: ${error.message}`, 500);
+    }
+});
+
+// Validation for email settings
+export const updateEmailSettingsValidation = [
+    param('id').isMongoId().withMessage('Invalid store ID'),
+    body('provider').isIn(['smtp', 'ses', 'sendgrid', 'mailjet']).withMessage('Invalid email provider'),
+    body('fromEmail').isEmail().withMessage('Valid from email is required'),
+    body('fromName').optional().isString(),
+    body('rateLimit').optional().isInt({ min: 1, max: 100 }),
+];
+
+export const testEmailSettingsValidation = [
+    param('id').isMongoId().withMessage('Invalid store ID'),
+    body('testEmail').isEmail().withMessage('Valid test email is required'),
+];

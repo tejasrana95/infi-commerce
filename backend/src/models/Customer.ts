@@ -38,6 +38,11 @@ export interface ICustomer extends Document {
         newsletter?: boolean;
     };
     lastLogin?: Date;
+    // Token fields for password reset and email verification
+    passwordResetToken?: string;
+    passwordResetExpires?: Date;
+    emailVerificationToken?: string;
+    emailVerificationExpires?: Date;
     createdAt: Date;
     updatedAt: Date;
     comparePassword(candidatePassword: string): Promise<boolean>;
@@ -79,6 +84,20 @@ const CustomerSchema = new Schema<ICustomer>(
         emailVerified: {
             type: Boolean,
             default: false,
+        },
+        // Password reset tokens
+        passwordResetToken: {
+            type: String,
+        },
+        passwordResetExpires: {
+            type: Date,
+        },
+        // Email verification tokens
+        emailVerificationToken: {
+            type: String,
+        },
+        emailVerificationExpires: {
+            type: Date,
         },
         socialAccounts: [
             {

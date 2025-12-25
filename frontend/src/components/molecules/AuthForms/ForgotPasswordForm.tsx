@@ -2,20 +2,30 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import api from '@/lib/api';
 import styles from './AuthForms.module.scss';
 
 export default function ForgotPasswordForm() {
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const [error, setError] = useState('');
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        setLoading(false);
-        setSubmitted(true);
+        setError('');
+
+        try {
+            await api.post('auth/customer/forgot-password', { email });
+            setSubmitted(true);
+        } catch (err: any) {
+            // Always show success to prevent email enumeration
+            // Backend also returns success even if email doesn't exist
+            setSubmitted(true);
+        } finally {
+            setLoading(false);
+        }
     };
 
     if (submitted) {
@@ -23,7 +33,7 @@ export default function ForgotPasswordForm() {
             <div className={styles.formContainer}>
                 <div className={styles.successMessage}>
                     <h3>Check your inbox</h3>
-                    <p>We have sent a password reset link to <strong>{email}</strong>.</p>
+                    <p>If an account exists for <strong>{email}</strong>, we have sent a password reset link.</p>
                     <Link href="/login" className={styles.backLink}>
                         Back to Sign In
                     </Link>
@@ -34,6 +44,8 @@ export default function ForgotPasswordForm() {
 
     return (
         <form className={styles.form} onSubmit={handleSubmit}>
+            {error && <div className={styles.error}>{error}</div>}
+
             <div className={styles.inputGroup}>
                 <label htmlFor="forgot-email">Email address</label>
                 <input

@@ -23,6 +23,7 @@ import adminRoutes from './admin.routes';
 import reviewRoutes from './review.routes';
 import taxRateRoutes from './taxRate.routes';
 import wishlistRoutes from './wishlist.routes';
+import notificationRoutes from './notification.routes';
 
 // Layout Designer Routes
 import themeRoutes from './theme.routes';
@@ -110,6 +111,9 @@ router.use('/tax-rates', taxRateRoutes);
 
 // Mount wishlist routes
 router.use('/wishlist', wishlistRoutes);
+
+// Mount notification routes
+router.use('/notifications', notificationRoutes);
 
 // --- Layout Designer Routes ---
 // Mount theme routes

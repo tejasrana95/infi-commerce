@@ -2,11 +2,13 @@ import { Response } from 'express';
 import { body } from 'express-validator';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import axios from 'axios';
+import crypto from 'crypto';
 import Customer from '../models/Customer';
 import Store from '../models/Store';
 import { config } from '../config';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
+import { sendPasswordResetEmail, sendEmailVerificationEmail } from '../services/email.service';
 
 // Validation rules
 export const customerRegisterValidation = [
@@ -91,24 +93,40 @@ const generateCustomerTokens = (customerId: string, email: string) => {
 export const registerCustomer = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { email, password, firstName, lastName, phone } = req.body;
 
+    // Store context is provided by storeContext middleware
+    const storeId = req.storeId!;
+    const storeName = req.store!.name;
+
     // Check if customer already exists
     const existingCustomer = await Customer.findOne({ email });
     if (existingCustomer) {
         throw new AppError('Customer with this email already exists', 400);
     }
 
-    // Create new customer (emailVerified defaults to false)
+    // Generate email verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
+
+    // Create new customer with verification token
     const customer = await Customer.create({
         email,
         password,
         firstName,
         lastName,
         phone,
-        emailVerified: false,  // Explicitly set to false - requires verification
+        emailVerified: false,
+        emailVerificationToken: hashedToken,
+        emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
     });
 
-    // TODO: Queue email verification message here
-    // await emailQueue.add('sendVerificationEmail', { customerId: customer._id, email: customer.email });
+    // Send verification email via notification queue
+    await sendEmailVerificationEmail(
+        storeId,
+        storeName,
+        customer.email,
+        verificationToken,
+        customer.firstName
+    );
 
     // Don't return access token - customer must verify email first
     res.status(201).json({
@@ -475,3 +493,307 @@ export const socialLogin = asyncHandler(async (req: AuthRequest, res: Response) 
         ...tokens,
     });
 });
+
+// ============================================
+// Password & Email Verification Endpoints
+// ============================================
+
+/**
+ * @swagger
+ * /api/auth/customer/change-password:
+ *   post:
+ *     summary: Change customer password
+ *     tags: [Customer Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 6
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *       401:
+ *         description: Current password is incorrect
+ */
+export const changePassword = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+        throw new AppError('Current password and new password are required', 400);
+    }
+
+    if (newPassword.length < 6) {
+        throw new AppError('New password must be at least 6 characters', 400);
+    }
+
+    const customer = await Customer.findById(req.user!.id);
+    if (!customer) {
+        throw new AppError('Customer not found', 404);
+    }
+
+    // Verify current password
+    const isMatch = await customer.comparePassword(currentPassword);
+    if (!isMatch) {
+        throw new AppError('Current password is incorrect', 401);
+    }
+
+    // Update password (will be hashed by pre-save hook)
+    customer.password = newPassword;
+    await customer.save();
+
+    res.json({ message: 'Password changed successfully' });
+});
+
+/**
+ * @swagger
+ * /api/auth/customer/forgot-password:
+ *   post:
+ *     summary: Request password reset email
+ *     tags: [Customer Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: Reset email sent (if account exists)
+ */
+export const forgotPassword = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { email } = req.body;
+
+    if (!email) {
+        throw new AppError('Email is required', 400);
+    }
+
+    // Always return success to prevent email enumeration
+    const successMessage = 'If an account with that email exists, a password reset link has been sent';
+
+    // Store context is provided by storeContext middleware
+    const storeId = req.storeId!;
+    const storeName = req.store!.name;
+
+    const customer = await Customer.findOne({ email: email.toLowerCase() });
+    if (!customer) {
+        // Don't reveal if email exists
+        res.json({ message: successMessage });
+        return;
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+    // Save token and expiry (1 hour)
+    customer.passwordResetToken = hashedToken;
+    customer.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000);
+    await customer.save();
+
+    // Send email via notification queue
+    await sendPasswordResetEmail(
+        storeId,
+        storeName,
+        customer.email,
+        resetToken,
+        customer.firstName
+    );
+
+    res.json({ message: successMessage });
+});
+
+/**
+ * @swagger
+ * /api/auth/customer/reset-password:
+ *   post:
+ *     summary: Reset password with token
+ *     tags: [Customer Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *               - newPassword
+ *             properties:
+ *               token:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 6
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ *       400:
+ *         description: Invalid or expired token
+ */
+export const resetPassword = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+        throw new AppError('Token and new password are required', 400);
+    }
+
+    if (newPassword.length < 6) {
+        throw new AppError('Password must be at least 6 characters', 400);
+    }
+
+    // Hash token to compare with stored hash
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const customer = await Customer.findOne({
+        passwordResetToken: hashedToken,
+        passwordResetExpires: { $gt: new Date() },
+    });
+
+    if (!customer) {
+        throw new AppError('Invalid or expired reset token', 400);
+    }
+
+    // Update password
+    customer.password = newPassword;
+    customer.passwordResetToken = undefined;
+    customer.passwordResetExpires = undefined;
+    await customer.save();
+
+    res.json({ message: 'Password reset successfully' });
+});
+
+/**
+ * @swagger
+ * /api/auth/customer/verify-email:
+ *   post:
+ *     summary: Verify email address with token
+ *     tags: [Customer Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *             properties:
+ *               token:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Email verified successfully
+ *       400:
+ *         description: Invalid or expired token
+ */
+export const verifyEmail = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { token } = req.body;
+
+    if (!token) {
+        throw new AppError('Verification token is required', 400);
+    }
+
+    // Hash token to compare with stored hash
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const customer = await Customer.findOne({
+        emailVerificationToken: hashedToken,
+        emailVerificationExpires: { $gt: new Date() },
+    });
+
+    if (!customer) {
+        throw new AppError('Invalid or expired verification token', 400);
+    }
+
+    // Mark email as verified
+    customer.emailVerified = true;
+    customer.emailVerificationToken = undefined;
+    customer.emailVerificationExpires = undefined;
+    await customer.save();
+
+    res.json({ message: 'Email verified successfully' });
+});
+
+/**
+ * @swagger
+ * /api/auth/customer/resend-verification:
+ *   post:
+ *     summary: Resend email verification
+ *     tags: [Customer Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Verification email sent
+ *       400:
+ *         description: Email already verified
+ */
+export const resendVerification = asyncHandler(async (req: AuthRequest, res: Response) => {
+    // Store context is provided by storeContext middleware
+    const storeId = req.storeId!;
+    const storeName = req.store!.name;
+
+    const customer = await Customer.findById(req.user!.id);
+    if (!customer) {
+        throw new AppError('Customer not found', 404);
+    }
+
+    if (customer.emailVerified) {
+        throw new AppError('Email is already verified', 400);
+    }
+
+    // Generate verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
+
+    // Save token and expiry (24 hours)
+    customer.emailVerificationToken = hashedToken;
+    customer.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await customer.save();
+
+    // Send email via notification queue
+    await sendEmailVerificationEmail(
+        storeId,
+        storeName,
+        customer.email,
+        verificationToken,
+        customer.firstName
+    );
+
+    res.json({ message: 'Verification email sent' });
+});
+
+// Validation rules for new endpoints
+export const changePasswordValidation = [
+    body('currentPassword').notEmpty().withMessage('Current password is required'),
+    body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters'),
+];
+
+export const forgotPasswordValidation = [
+    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+];
+
+export const resetPasswordValidation = [
+    body('token').notEmpty().withMessage('Reset token is required'),
+    body('newPassword').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+];
+
+export const verifyEmailValidation = [
+    body('token').notEmpty().withMessage('Verification token is required'),
+];

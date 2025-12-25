@@ -63,6 +63,7 @@ import WorkspacesIcon from '@mui/icons-material/Workspaces';
 import GridViewIcon from '@mui/icons-material/GridView';
 import CollectionsIcon from '@mui/icons-material/Collections';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
+import DescriptionIcon from '@mui/icons-material/Description';
 const drawerWidth = 260;
 
 interface NavItem {
@@ -134,6 +135,8 @@ const navigationItems: NavItem[] = [
       { name: 'Shipping', href: '/shipping', icon: <LocalShippingIcon /> },
       { name: 'Payment Gateways', href: '/payment-gateways', icon: <PaymentIcon /> },
       { name: 'Files', href: '/files', icon: <FolderIcon /> },
+      { name: 'Notifications Queue', href: '/notifications', icon: <NotificationsOutlinedIcon /> },
+      { name: 'Notification Templates', href: '/notification-templates', icon: <DescriptionIcon /> },
     ],
   },
 ];

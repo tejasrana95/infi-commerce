@@ -2,36 +2,82 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import api from '@/lib/api';
 import styles from './AuthForms.module.scss';
 
 export default function ResetPasswordForm() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const token = searchParams.get('token');
+
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [success, setSuccess] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+
+        if (!token) {
+            setError('Invalid reset link. Please request a new password reset.');
+            return;
+        }
 
         if (password !== confirmPassword) {
             setError('Passwords do not match');
             return;
         }
 
-        if (password.length < 8) {
-            setError('Password must be at least 8 characters');
+        if (password.length < 6) {
+            setError('Password must be at least 6 characters');
             return;
         }
 
         setLoading(true);
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        setLoading(false);
-        router.push('/login?reset=success');
+        try {
+            await api.post('auth/customer/reset-password', {
+                token,
+                newPassword: password,
+            });
+            setSuccess(true);
+            // Redirect to login after a short delay
+            setTimeout(() => {
+                router.push('/login?reset=success');
+            }, 2000);
+        } catch (err: any) {
+            setError(err.message || 'Failed to reset password. The link may have expired.');
+        } finally {
+            setLoading(false);
+        }
     };
+
+    if (success) {
+        return (
+            <div className={styles.formContainer}>
+                <div className={styles.successMessage}>
+                    <h3>Password Reset Successful!</h3>
+                    <p>Your password has been reset. Redirecting to login...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!token) {
+        return (
+            <div className={styles.formContainer}>
+                <div className={styles.errorMessage}>
+                    <h3>Invalid Reset Link</h3>
+                    <p>This password reset link is invalid or has expired.</p>
+                    <Link href="/forgot-password" className={styles.submitBtn} style={{ display: 'block', textAlign: 'center', marginTop: '1rem', textDecoration: 'none' }}>
+                        Request New Reset Link
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <form className={styles.form} onSubmit={handleSubmit}>
@@ -46,7 +92,7 @@ export default function ResetPasswordForm() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    minLength={8}
+                    minLength={6}
                 />
             </div>
 
@@ -74,4 +120,3 @@ export default function ResetPasswordForm() {
         </form>
     );
 }
-

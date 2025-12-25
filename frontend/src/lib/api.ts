@@ -17,6 +17,7 @@ class ApiClient {
     private sessionId: string | null = null;
     private token: string | null = null;
     private refreshToken: string | null = null;
+    private storeId: string | null = null;
     private isRefreshing = false;
     private failedQueue: Array<{
         resolve: (token: string) => void;
@@ -31,6 +32,7 @@ class ApiClient {
             this.sessionId = localStorage.getItem('sessionId');
             this.token = localStorage.getItem('authToken');
             this.refreshToken = localStorage.getItem('refreshToken');
+            this.storeId = localStorage.getItem('storeId');
         }
     }
 
@@ -58,6 +60,14 @@ class ApiClient {
         }
     }
 
+    // Set store ID (for multi-tenant context)
+    setStoreId(storeId: string) {
+        this.storeId = storeId;
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('storeId', storeId);
+        }
+    }
+
     // Get current session ID
     getSessionId(): string | null {
         return this.sessionId;
@@ -66,6 +76,11 @@ class ApiClient {
     // Get current token
     getToken(): string | null {
         return this.token;
+    }
+
+    // Get current store ID
+    getStoreId(): string | null {
+        return this.storeId;
     }
 
     // Clear auth
@@ -86,6 +101,11 @@ class ApiClient {
             'Content-Type': 'application/json',
             ...customHeaders,
         };
+
+        // Add store ID header for multi-tenant context
+        if (this.storeId) {
+            headers['X-Store-ID'] = this.storeId;
+        }
 
         // Add session ID if available
         if (this.sessionId) {
@@ -306,6 +326,11 @@ class ApiClient {
 
         // Don't set Content-Type for FormData - let browser set it with boundary
         const headers: Record<string, string> = {};
+
+        // Add store ID header for multi-tenant context
+        if (this.storeId) {
+            headers['X-Store-ID'] = this.storeId;
+        }
 
         if (this.sessionId) {
             headers['X-Session-ID'] = this.sessionId;
