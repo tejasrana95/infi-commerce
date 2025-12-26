@@ -299,7 +299,7 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
 
                 if (category && category.path) {
                     const subcategories = await Category.find({
-                        storeId: req.query.storeId,
+                        storeId: category.storeId,
                         path: { $regex: new RegExp(`^${category.path}`) },
                     }).select('_id');
 

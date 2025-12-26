@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import CurrencySelector from '@/components/molecules/CurrencySelector';
+import SearchAutocomplete from '@/components/molecules/SearchAutocomplete';
 import styles from './style.module.scss';
 
 interface HeaderClientProps {
@@ -66,20 +67,14 @@ export default function HeaderClient({
         <header className={headerClasses}>
             {children}
 
-            {/* Search Bar - Rendered client-side for interactivity */}
+            {/* Search Bar with Autocomplete - Rendered client-side for interactivity */}
             {searchOpen && (
                 <div className={styles.searchBar}>
-                    <input
-                        type="text"
+                    <SearchAutocomplete
                         placeholder={searchPlaceholder}
-                        className={styles.searchInput}
+                        onClose={() => setSearchOpen(false)}
                         autoFocus
                     />
-                    <button className={styles.searchBtn} onClick={() => setSearchOpen(false)}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
                 </div>
             )}
         </header>

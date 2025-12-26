@@ -11,6 +11,8 @@ import { Layout, Store, CategoryConfig, DEFAULT_CATEGORY_CONFIG } from '@/types'
 import {
     createCategoryDefaultLayout,
     isCategoryLayoutEmpty,
+    createSearchDefaultLayout,
+    isSearchLayoutEmpty,
     CategoryFilterPosition
 } from '@/components/organisms/LayoutDesigner/types';
 
@@ -71,6 +73,45 @@ export default function LayoutDesignerPage({ params }: { params: PageParams }) {
                     fetchedLayout = {
                         ...fetchedLayout,
                         sections: createCategoryDefaultLayout('left', 280),
+                    };
+                }
+            }
+
+            // For search layouts, auto-generate split layout if empty
+            if (fetchedLayout.type === 'search' && isSearchLayoutEmpty(fetchedLayout.sections)) {
+                try {
+                    // Fetch store's config to determine layout (using category config as base since search shares it)
+                    const storeId = typeof fetchedLayout.storeId === 'object'
+                        ? fetchedLayout.storeId._id
+                        : fetchedLayout.storeId;
+
+                    const storeResponse = await api.get(`/stores/${storeId}`);
+                    const store: Store = storeResponse.data.store || storeResponse.data;
+
+                    // Search layout often mirrors category layout, so we use category settings or defaults
+                    // We could also look for store.theme?.search if it existed
+                    const categoryConfig: CategoryConfig = {
+                        ...DEFAULT_CATEGORY_CONFIG,
+                        ...store.theme?.category,
+                    };
+
+                    const filterPosition = categoryConfig.filters?.position || 'left';
+                    const sidebarWidth = categoryConfig.filters?.sidebarWidth || 280;
+
+                    fetchedLayout = {
+                        ...fetchedLayout,
+                        sections: createSearchDefaultLayout(
+                            filterPosition as CategoryFilterPosition,
+                            sidebarWidth
+                        ),
+                    };
+
+                    showNotification('Generated default search layout based on your theme settings', 'info');
+                } catch (err) {
+                    console.error('Failed to fetch store config for search, using defaults', err);
+                    fetchedLayout = {
+                        ...fetchedLayout,
+                        sections: createSearchDefaultLayout('left', 280),
                     };
                 }
             }

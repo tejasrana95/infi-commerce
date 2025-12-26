@@ -807,7 +807,8 @@ export type ModuleType =
   | 'related-products' | 'recently-viewed'
   // Placeholder modules (required, page-specific)
   | 'category-header' | 'category-products' | 'category-filters' | 'category-pagination' | 'product-details'
-  | 'search-results' | 'blog-listing' | 'blog-content';
+  | 'search-header' | 'search-results' | 'search-filters' | 'search-pagination'
+  | 'blog-listing' | 'blog-content';
 
 export type SectionType = 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';
 

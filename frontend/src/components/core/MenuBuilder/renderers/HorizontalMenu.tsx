@@ -30,6 +30,7 @@ const MegaSubItem = ({ item }: { item: MenuItem }) => {
                         limit: String(item.productLimit)
                     });
                     const response = await api.get(`products?${queryParams.toString()}`);
+                    console.log('response', response);
                     const products = response.products || response.data || [];
                     setCategoryProducts(products);
                 } catch (error) {

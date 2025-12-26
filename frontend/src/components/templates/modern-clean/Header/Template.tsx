@@ -11,6 +11,7 @@ import MenuBuilder from '@/components/core/MenuBuilder';
 import { useStore } from '@/providers/StoreProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import CurrencySelector from '@/components/molecules/CurrencySelector';
+import SearchAutocomplete from '@/components/molecules/SearchAutocomplete';
 import styles from './style.module.scss';
 
 export default function ModernCleanHeaderTemplate({
@@ -355,20 +356,14 @@ export default function ModernCleanHeaderTemplate({
                         )}
                     </div>
 
-                    {/* Search Bar - Expanded */}
+                    {/* Search Bar - Expanded with Autocomplete */}
                     {searchOpen && (
                         <div className={styles.searchBar}>
-                            <input
-                                type="text"
+                            <SearchAutocomplete
                                 placeholder={search.placeholder}
-                                className={styles.searchInput}
+                                onClose={() => setSearchOpen(false)}
                                 autoFocus
                             />
-                            <button className={styles.searchBtn}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                            </button>
                         </div>
                     )}
                 </div>

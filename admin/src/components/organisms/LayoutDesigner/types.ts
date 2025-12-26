@@ -291,6 +291,25 @@ export const AVAILABLE_MODULES: ModuleDefinition[] = [
         defaultConfig: {},
         allowedLayoutTypes: ['category'],
     },
+    // Search page placeholders
+    {
+        type: 'search-header',
+        label: 'Search Header',
+        icon: 'Search',
+        category: 'placeholder',
+        description: 'Search title and result count',
+        defaultConfig: { showBreadcrumbs: true },
+        allowedLayoutTypes: ['search'],
+    },
+    {
+        type: 'search-filters',
+        label: 'Search Filters',
+        icon: 'FilterList',
+        category: 'placeholder',
+        description: 'Product filters for search results',
+        defaultConfig: {},
+        allowedLayoutTypes: ['search'],
+    },
 ];
 
 // Get modules by category
@@ -426,4 +445,91 @@ export const isCategoryLayoutEmpty = (sections: LayoutSection[]): boolean => {
     );
 
     return !hasCategoryProducts;
+};
+
+// Create default search page layout based on filter position
+export const createSearchDefaultLayout = (
+    filterPosition: CategoryFilterPosition = 'left',
+    sidebarWidth: number = 280
+): LayoutSection[] => {
+    const sections: LayoutSection[] = [];
+
+    // 1. Header section (full width) - search header
+    const headerSection: LayoutSection = {
+        id: crypto.randomUUID(),
+        name: 'Search Header',
+        type: 'full-width',
+        settings: { paddingTop: 20, paddingBottom: 20 },
+        modules: [createModule('search-header')],
+        visibility: { desktop: true, tablet: true, mobile: true },
+        order: 0,
+    };
+    sections.push(headerSection);
+
+    // 2. Content section - varies based on filter position
+    if (filterPosition === 'left' || filterPosition === 'right') {
+        // Split layout with sidebar
+        const sidebarWidthPercent = Math.round((sidebarWidth / 1200) * 12); // Convert to 12-column grid
+        const mainWidthPercent = 12 - sidebarWidthPercent;
+
+        const filterColumn: LayoutColumn = {
+            id: crypto.randomUUID(),
+            width: sidebarWidthPercent,
+            modules: [createModule('search-filters')],
+        };
+
+        const mainColumn: LayoutColumn = {
+            id: crypto.randomUUID(),
+            width: mainWidthPercent,
+            modules: [
+                createModule('search-results'),
+            ],
+        };
+
+        const contentSection: LayoutSection = {
+            id: crypto.randomUUID(),
+            name: 'Search Content',
+            type: 'split-2',
+            settings: { paddingTop: 20, paddingBottom: 40 },
+            // Order columns based on filter position
+            columns: filterPosition === 'left'
+                ? [filterColumn, mainColumn]
+                : [mainColumn, filterColumn],
+            modules: [],
+            visibility: { desktop: true, tablet: true, mobile: true },
+            order: 1,
+        };
+        sections.push(contentSection);
+    } else {
+        // Full width layout (top filters or off-canvas)
+        const contentSection: LayoutSection = {
+            id: crypto.randomUUID(),
+            name: 'Search Content',
+            type: 'container',
+            settings: { paddingTop: 20, paddingBottom: 40 },
+            modules: [
+                ...(filterPosition === 'top' ? [createModule('search-filters')] : []),
+                createModule('search-results'),
+            ],
+            visibility: { desktop: true, tablet: true, mobile: true },
+            order: 1,
+        };
+        sections.push(contentSection);
+    }
+
+    return sections;
+};
+
+// Check if a layout needs default search sections
+export const isSearchLayoutEmpty = (sections: LayoutSection[]): boolean => {
+    // Check if layout has no sections, or has only empty sections
+    if (sections.length === 0) return true;
+
+    // Check if any section has search-results module
+    const hasSearchResults = sections.some(s =>
+        s.modules.some(m => m.type === 'search-results') ||
+        s.columns?.some(c => c.modules.some(m => m.type === 'search-results'))
+    );
+
+    return !hasSearchResults;
 };

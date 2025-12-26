@@ -79,6 +79,16 @@ export default function LayoutsPage() {
         router.push('/layouts/new');
     };
 
+    const handleToggleDefault = async (layout: Layout) => {
+        try {
+            await api.put(`/layouts/${layout._id}`, { isDefault: !layout.isDefault });
+            fetchLayouts();
+            showNotification('Layout updated successfully', 'success');
+        } catch (err: any) {
+            showNotification(err.response?.data?.message || 'Failed to update layout', 'error');
+        }
+    };
+
     const filteredRows = layouts.filter((layout) => {
         const query = searchQuery.toLowerCase();
 
@@ -160,7 +170,14 @@ export default function LayoutsPage() {
             width: 100,
             align: 'center',
             renderCell: (params: GridRenderCellParams) => (
-                params.value ? <StarIcon color="warning" fontSize="small" /> : <StarBorderIcon color="disabled" fontSize="small" />
+                <Tooltip title={params.value ? "Unset as Default" : "Set as Default"}>
+                    <IconButton onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleDefault(params.row);
+                    }}>
+                        {params.value ? <StarIcon color="warning" fontSize="small" /> : <StarBorderIcon color="action" fontSize="small" />}
+                    </IconButton>
+                </Tooltip>
             ),
         },
         {

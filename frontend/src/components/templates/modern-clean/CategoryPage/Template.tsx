@@ -13,6 +13,7 @@ import { getComponent } from '@/components/templates/registry';
 import { formatStockStatus } from '@/lib/constants';
 import { formatPrice } from '@/lib/currency';
 import styles from './CategoryPage.module.scss';
+import CategoryFilters from '@/components/molecules/CategoryFilters';
 
 // (Layout helper functions removed - rendering now uses section-based iteration)
 
@@ -51,20 +52,9 @@ export default function ModernCleanCategoryPageTemplate({
     getBrandDisplay = (id) => brandLookup[id]?.name || id,
     isFilterValueActive,
 }: CategoryPageTemplateProps) {
-    const [expandedFilters, setExpandedFilters] = useState<Set<string>>(() => {
-        const isTop = config.filters?.position === 'top';
-        if (config.filters?.defaultState === 'expanded' && !isTop) {
-            const keys = ['price', 'brand', 'rating', 'stock', 'tags'];
-            if (availableFilters?.attributes) {
-                availableFilters.attributes.forEach(attr => keys.push(attr.slug));
-            }
-            return new Set(keys);
-        }
-        return new Set([]);
-    });
+    // Filter state removed (handled by molecule)
     // Local state for slider values (for real-time visual feedback)
-    const [localSliderMin, setLocalSliderMin] = useState<number | null>(null);
-    const [localSliderMax, setLocalSliderMax] = useState<number | null>(null);
+    // Local slider state removed (handled by molecule)
 
     // Currency config for formatting display prices (which are already converted)
     const priceCurrency = useMemo(() => {
@@ -95,508 +85,19 @@ export default function ModernCleanCategoryPageTemplate({
     }, [config.pagination?.type, isLoading, pagination.page, pagination.pages, onLoadMore]);
 
     // Sync local slider state with active filters
-    useEffect(() => {
-        if (!activeFilters.price) {
-            setLocalSliderMin(null);
-            setLocalSliderMax(null);
-        }
-    }, [activeFilters.price]);
+    // Slider sync effect removed
 
     // Get ProductCard component
     const ProductCard = getComponent('ProductCard', templateId);
 
     // Toggle filter section
-    const toggleFilter = (key: string) => {
-        setExpandedFilters(prev => {
-            const next = new Set(prev);
-            if (next.has(key)) next.delete(key);
-            else next.add(key);
-            return next;
-        });
-    };
 
-    const isExpanded = (key: string) => expandedFilters.has(key);
 
     // Render filter checkbox group
-    const renderCheckboxFilter = (
-        title: string,
-        filterKey: string,
-        options: { value: string; label?: string; count: number; status?: string }[],
-    ) => {
-        // Check staged filters first (pending changes), fall back to active filters
-        // Important: use !== undefined to handle empty arrays correctly
-        const currentValues = filterKey === 'brand'
-            ? (stagedFilters?.brands !== undefined ? stagedFilters.brands : activeFilters.brands)
-            : filterKey === 'tags'
-                ? (stagedFilters?.tags !== undefined ? stagedFilters.tags : activeFilters.tags)
-                : filterKey === 'stock'
-                    ? (stagedFilters?.stockStatus !== undefined ? stagedFilters.stockStatus : activeFilters.stockStatus)
-                    : (stagedFilters?.attributes?.[filterKey] !== undefined ? stagedFilters.attributes[filterKey] : activeFilters.attributes?.[filterKey] || []);
-
-        return (
-            <div className={styles.filterGroup}>
-                <button
-                    className={styles.filterHeader}
-                    onClick={() => toggleFilter(filterKey)}
-                >
-                    <span>{title}</span>
-                    <svg
-                        className={`${styles.chevron} ${isExpanded(filterKey) ? styles.expanded : ''}`}
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                    >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                </button>
-                {isExpanded(filterKey) && (
-                    <div className={styles.filterContent}>
-                        {options.map(opt => (
-                            <label key={opt.value} className={styles.checkboxLabel}>
-                                <input
-                                    type="checkbox"
-                                    checked={isFilterValueActive
-                                        ? isFilterValueActive(filterKey, opt.value)
-                                        : currentValues?.includes(opt.value) || false
-                                    }
-                                    onChange={(e) => {
-                                        const newValues = e.target.checked
-                                            ? [...(currentValues || []), opt.value]
-                                            : (currentValues || []).filter(v => v !== opt.value);
-                                        onFilterChange(filterKey, newValues);
-                                    }}
-                                />
-                                <span className={styles.checkbox}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                    </svg>
-                                </span>
-                                <span className={styles.labelText}>
-                                    {opt.label || (filterKey === 'stock' ? formatStockStatus(opt.status || opt.value) : opt.value)}
-                                </span>
-                                <span className={styles.count}>({opt.count})</span>
-                            </label>
-                        ))}
-                        {(() => {
-                            // Check if this specific filter has changes
-                            const activeValues = filterKey === 'brand'
-                                ? activeFilters.brands
-                                : filterKey === 'tags'
-                                    ? activeFilters.tags
-                                    : filterKey === 'stock'
-                                        ? activeFilters.stockStatus
-                                        : activeFilters.attributes?.[filterKey];
-
-                            const stagedValues = filterKey === 'brand'
-                                ? stagedFilters?.brands
-                                : filterKey === 'tags'
-                                    ? stagedFilters?.tags
-                                    : filterKey === 'stock'
-                                        ? stagedFilters?.stockStatus
-                                        : stagedFilters?.attributes?.[filterKey];
-
-                            // Show button if staged differs from active (proper comparison without mutating)
-                            const normalizeForComparison = (values: any[] | undefined): string => {
-                                if (!values) return '';
-                                return [...values].sort().join(',');
-                            };
-                            const activeSorted = normalizeForComparison(activeValues as any[]);
-                            const stagedSorted = normalizeForComparison(stagedValues as any[]);
-                            const hasChanges = activeSorted !== stagedSorted;
-                            const isApplied = activeValues && activeValues.length > 0;
-
-                            return (hasChanges || isApplied) ? (
-                                <div className={styles.filterActions}>
-                                    {hasChanges && (
-                                        <button className={styles.filterApplyBtn} onClick={onApplyFilters}>
-                                            Apply
-                                        </button>
-                                    )}
-                                    {isApplied && (
-                                        <button className={styles.filterResetBtn} onClick={() => onClearFilter?.(filterKey)}>
-                                            Reset
-                                        </button>
-                                    )}
-                                </div>
-                            ) : null;
-                        })()}
-                    </div>
-                )}
-            </div>
-        );
-    };
-
-    // Render price range filter
-    const renderPriceFilter = () => {
-        if (!config.filters?.showPriceRange || !availableFilters?.priceRange) return null;
-
-        // All values from API are in base currency
-        const { minPrice: baseMinPrice, maxPrice: baseMaxPrice } = availableFilters.priceRange;
-
-        // Convert to display currency for showing to user
-        const displayMinPrice = Math.round(baseMinPrice * exchangeRate);
-        const displayMaxPrice = Math.round(baseMaxPrice * exchangeRate);
-
-        // Active filter values are stored in base currency, convert for display
-        const currentBaseMin = activeFilters.price?.min ?? baseMinPrice;
-        const currentBaseMax = activeFilters.price?.max ?? baseMaxPrice;
-        const currentDisplayMin = Math.round(currentBaseMin * exchangeRate);
-        const currentDisplayMax = currentBaseMax === Infinity ? displayMaxPrice : Math.round(currentBaseMax * exchangeRate);
-
-        // Use local state for real-time display, fallback to active filter values
-        const displayMin = localSliderMin ?? currentDisplayMin;
-        const displayMax = localSliderMax ?? currentDisplayMax;
-
-        const priceStyle = config.filters?.priceRangeStyle || 'input';
-
-        // Generate preset price ranges for range-buttons style
-        const generatePriceRanges = () => {
-            const range = displayMaxPrice - displayMinPrice;
-            const step = Math.ceil(range / 4);
-            return [
-                { label: `Under ${formatPrice(displayMinPrice + step, priceCurrency)}`, min: displayMinPrice, max: displayMinPrice + step },
-                { label: `${formatPrice(displayMinPrice + step, priceCurrency)} - ${formatPrice(displayMinPrice + step * 2, priceCurrency)}`, min: displayMinPrice + step, max: displayMinPrice + step * 2 },
-                { label: `${formatPrice(displayMinPrice + step * 2, priceCurrency)} - ${formatPrice(displayMinPrice + step * 3, priceCurrency)}`, min: displayMinPrice + step * 2, max: displayMinPrice + step * 3 },
-                { label: `Over ${formatPrice(displayMinPrice + step * 3, priceCurrency)}`, min: displayMinPrice + step * 3, max: displayMaxPrice },
-            ];
-        };
-
-        // Render slider style (local state for labels, debounced API calls via Container)
-        const renderSlider = () => (
-            <div className={styles.priceSlider}>
-                <div className={styles.sliderLabels}>
-                    <span>{formatPrice(displayMin, priceCurrency)}</span>
-                    <span>{formatPrice(displayMax, priceCurrency)}</span>
-                </div>
-                <div className={styles.sliderContainer}>
-                    <input
-                        type="range"
-                        min={displayMinPrice}
-                        max={displayMaxPrice}
-                        value={displayMin}
-                        onChange={(e) => {
-                            const displayValue = parseInt(e.target.value);
-                            // Update local state immediately for visual feedback
-                            setLocalSliderMin(displayValue);
-                            // Ensure max stays >= min
-                            if (displayMax < displayValue) {
-                                setLocalSliderMax(displayValue);
-                            }
-                            // Trigger debounced filter change
-                            const baseValue = Math.round(displayValue / exchangeRate);
-                            const baseMax = displayMax < displayValue
-                                ? baseValue
-                                : Math.round(displayMax / exchangeRate);
-                            onFilterChange('price', { min: baseValue, max: baseMax });
-                        }}
-                        className={styles.sliderInput}
-                    />
-                    <input
-                        type="range"
-                        min={displayMinPrice}
-                        max={displayMaxPrice}
-                        value={displayMax}
-                        onChange={(e) => {
-                            const displayValue = parseInt(e.target.value);
-                            // Update local state immediately for visual feedback
-                            setLocalSliderMax(displayValue);
-                            // Ensure min stays <= max
-                            if (displayMin > displayValue) {
-                                setLocalSliderMin(displayValue);
-                            }
-                            // Trigger debounced filter change
-                            const baseValue = Math.round(displayValue / exchangeRate);
-                            const baseMin = displayMin > displayValue
-                                ? baseValue
-                                : Math.round(displayMin / exchangeRate);
-                            onFilterChange('price', { min: baseMin, max: baseValue });
-                        }}
-                        className={styles.sliderInput}
-                    />
-                    <div
-                        className={styles.sliderTrack}
-                        style={{
-                            left: `${((displayMin - displayMinPrice) / (displayMaxPrice - displayMinPrice)) * 100}%`,
-                            right: `${100 - ((displayMax - displayMinPrice) / (displayMaxPrice - displayMinPrice)) * 100}%`
-                        }}
-                    />
-                </div>
-            </div>
-        );
-
-        // Render input style (existing implementation)
-        const renderInputs = () => (
-            <>
-                <div className={styles.priceRange}>
-                    <span>{formatPrice(displayMinPrice, priceCurrency)}</span>
-                    <span>—</span>
-                    <span>{formatPrice(displayMaxPrice, priceCurrency)}</span>
-                </div>
-                <div className={styles.priceInputs}>
-                    <div className={styles.priceInput}>
-                        <span className={styles.currencySymbol}>{currencySymbol}</span>
-                        <input
-                            type="number"
-                            placeholder={`Min (${displayMinPrice})`}
-                            value={currentDisplayMin === displayMinPrice ? '' : currentDisplayMin}
-                            onChange={(e) => {
-                                const displayValue = parseInt(e.target.value) || displayMinPrice;
-                                const baseValue = Math.round(displayValue / exchangeRate);
-                                onFilterChange('price', { min: baseValue, max: currentBaseMax });
-                            }}
-                        />
-                    </div>
-                    <span className={styles.priceDash}>—</span>
-                    <div className={styles.priceInput}>
-                        <span className={styles.currencySymbol}>{currencySymbol}</span>
-                        <input
-                            type="number"
-                            placeholder={`Max (${displayMaxPrice})`}
-                            value={currentDisplayMax === displayMaxPrice ? '' : currentDisplayMax}
-                            onChange={(e) => {
-                                const displayValue = parseInt(e.target.value) || Infinity;
-                                const baseValue = displayValue === Infinity ? Infinity : Math.round(displayValue / exchangeRate);
-                                onFilterChange('price', { min: currentBaseMin, max: baseValue });
-                            }}
-                        />
-                    </div>
-                </div>
-            </>
-        );
-
-        // Render range buttons style
-        const renderRangeButtons = () => {
-            const ranges = generatePriceRanges();
-            const isRangeActive = (range: { min: number; max: number }) => {
-                return currentDisplayMin === range.min && currentDisplayMax === range.max;
-            };
-
-            return (
-                <div className={styles.priceRangeButtons}>
-                    {ranges.map((range, idx) => (
-                        <button
-                            key={idx}
-                            className={`${styles.rangeButton} ${isRangeActive(range) ? styles.active : ''}`}
-                            onClick={() => {
-                                const baseMin = Math.round(range.min / exchangeRate);
-                                const baseMax = Math.round(range.max / exchangeRate);
-                                onFilterChange('price', { min: baseMin, max: baseMax });
-                            }}
-                        >
-                            {range.label}
-                        </button>
-                    ))}
-                    {activeFilters.price && (
-                        <button
-                            className={styles.rangeClearButton}
-                            onClick={() => onClearFilter('price')}
-                        >
-                            Clear
-                        </button>
-                    )}
-                </div>
-            );
-        };
-
-        return (
-            <div className={styles.filterGroup}>
-                <button
-                    className={styles.filterHeader}
-                    onClick={() => toggleFilter('price')}
-                >
-                    <span>Price Range</span>
-                    <svg
-                        className={`${styles.chevron} ${isExpanded('price') ? styles.expanded : ''}`}
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                    >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                </button>
-                {isExpanded('price') && (
-                    <div className={styles.filterContent}>
-                        {priceStyle === 'slider' && renderSlider()}
-                        {priceStyle === 'input' && renderInputs()}
-                        {priceStyle === 'range-buttons' && renderRangeButtons()}
-
-                        {/* Apply and Reset buttons */}
-                        <div className={styles.filterActions}>
-                            {(() => {
-                                const stagedPrice = stagedFilters?.price;
-                                const activePrice = activeFilters.price;
-                                // Only show hasChanges if price was explicitly staged
-                                const hasChanges = stagedPrice !== undefined &&
-                                    JSON.stringify(stagedPrice) !== JSON.stringify(activePrice);
-
-                                return hasChanges ? (
-                                    <button className={styles.filterApplyBtn} onClick={onApplyFilters}>
-                                        Apply
-                                    </button>
-                                ) : null;
-                            })()}
-                            {activeFilters.price && (
-                                <button
-                                    className={styles.filterResetBtn}
-                                    onClick={() => onClearFilter?.('price')}
-                                >
-                                    Reset
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                )}
-            </div>
-        );
-    };
-
-    // Render rating filter
-    const renderRatingFilter = () => {
-        if (!config.filters?.showRatingFilter) return null;
-
-        const ratings = [4, 3, 2, 1];
-
-        return (
-            <div className={styles.filterGroup}>
-                <button
-                    className={styles.filterHeader}
-                    onClick={() => toggleFilter('rating')}
-                >
-                    <span>Rating</span>
-                    <svg
-                        className={`${styles.chevron} ${isExpanded('rating') ? styles.expanded : ''}`}
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                    >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                </button>
-                {isExpanded('rating') && (
-                    <div className={styles.filterContent}>
-                        {ratings.map(rating => (
-                            <label key={rating} className={styles.ratingLabel}>
-                                <input
-                                    type="radio"
-                                    name="rating"
-                                    checked={(stagedFilters?.rating || activeFilters.rating) === rating}
-                                    onChange={() => {
-                                        const currentRating = stagedFilters?.rating ?? activeFilters.rating;
-                                        // Toggle: if clicking the same rating, deselect it
-                                        onFilterChange('rating', currentRating === rating ? null : rating);
-                                    }}
-                                />
-                                <span className={styles.radio} />
-                                <span className={styles.stars}>
-                                    {[...Array(5)].map((_, i) => (
-                                        <svg
-                                            key={i}
-                                            className={i < rating ? styles.starFilled : styles.starEmpty}
-                                            viewBox="0 0 20 20"
-                                            fill="currentColor"
-                                        >
-                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                        </svg>
-                                    ))}
-                                </span>
-                                <span className={styles.ratingText}>&amp; up</span>
-                            </label>
-                        ))}
-                        {(() => {
-                            const isApplied = activeFilters.rating != null;
-                            // Compare properly: treat undefined as "not staged" meaning use active value
-                            const stagedRating = stagedFilters?.rating;
-                            const hasChanges = stagedRating !== undefined && stagedRating !== activeFilters.rating;
-
-                            return (hasChanges || isApplied) ? (
-                                <div className={styles.filterActions}>
-                                    {hasChanges && (
-                                        <button className={styles.filterApplyBtn} onClick={onApplyFilters}>
-                                            Apply
-                                        </button>
-                                    )}
-                                    {isApplied && (
-                                        <button className={styles.filterResetBtn} onClick={() => onClearFilter?.('rating')}>
-                                            Reset
-                                        </button>
-                                    )}
-                                </div>
-                            ) : null;
-                        })()}
-                    </div>
-                )}
-            </div>
-        );
-    };
-    // Render sidebar filters
-    const renderFilters = () => (
-        <div className={styles.filtersContent}>
-            {/* Active filters */}
-            {activeFilterCount > 0 && (
-                <div className={styles.activeFilters}>
-                    <div className={styles.activeFiltersHeader}>
-                        <span>Active Filters ({activeFilterCount})</span>
-                        <button onClick={onClearAllFilters}>Clear All</button>
-                    </div>
-                    <div className={styles.activeFilterTags}>
-                        {activeFilters.brands?.map(brandId => (
-                            <span key={brandId} className={styles.filterTag}>
-                                {getBrandDisplay(brandId)}
-                                <button onClick={() => {
-                                    onRemoveFilterValue('brand', brandId);
-                                }}>×</button>
-                            </span>
-                        ))}
-                        {activeFilters.stockStatus?.map(status => (
-                            <span key={status} className={styles.filterTag}>
-                                {formatStockStatus(status)}
-                                <button onClick={() => {
-                                    onRemoveFilterValue('stock', status);
-                                }}>×</button>
-                            </span>
-                        ))}
-                        {activeFilters.tags?.map(tag => (
-                            <span key={tag} className={styles.filterTag}>
-                                {tag}
-                                <button onClick={() => {
-                                    onRemoveFilterValue('tags', tag);
-                                }}>×</button>
-                            </span>
-                        ))}
-                        {activeFilters.attributes && Object.entries(activeFilters.attributes).map(([attrSlug, values]) =>
-                            values.map(value => (
-                                <span key={`${attrSlug}-${value}`} className={styles.filterTag}>
-                                    {value}
-                                    <button onClick={() => {
-                                        onRemoveFilterValue(attrSlug, value);
-                                    }}>×</button>
-                                </span>
-                            ))
-                        )}
-                        {activeFilters.price && (() => {
-                            const displayMin = Math.round(activeFilters.price.min * exchangeRate);
-                            const displayMax = activeFilters.price.max === Infinity
-                                ? '∞'
-                                : Math.round(activeFilters.price.max * exchangeRate).toLocaleString();
-                            return (
-                                <span className={styles.filterTag}>
-                                    {formatPrice(displayMin, priceCurrency)} - {String(displayMax).includes('∞') ? '∞' : formatPrice(Number(displayMax), priceCurrency)}
-                                    <button onClick={() => onClearFilter('price')}>×</button>
-                                </span>
-                            );
-                        })()}
-                        {activeFilters.rating && (
-                            <span className={styles.filterTag}>
-                                {activeFilters.rating}+ Stars
-                                <button onClick={() => onClearFilter('rating')}>×</button>
-                            </span>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* Subcategories */}
-            {config.subcategories?.display !== 'none' && (availableFilters?.subcategories?.length ?? 0) > 0 && (
+    // Render sidebar filters using extracted molecule
+    const renderFilters = () => {
+        const renderSubcategories = () => (
+            config.subcategories?.display !== 'none' && (availableFilters?.subcategories?.length ?? 0) > 0 ? (
                 <div className={styles.subcategories}>
                     <h4>Categories</h4>
                     <div className={styles.subcategoryList}>
@@ -612,148 +113,59 @@ export default function ModernCleanCategoryPageTemplate({
                         ))}
                     </div>
                 </div>
-            )}
-
-            {/* Price filter */}
-            {renderPriceFilter()}
-
-            {/* Brand filter */}
-            {config.filters?.showBrandFilter && (availableFilters?.brands?.length ?? 0) > 0 && (
-                renderCheckboxFilter('Brand', 'brand', availableFilters!.brands!)
-            )}
-
-            {/* Rating filter */}
-            {renderRatingFilter()}
-
-            {/* Availability filter */}
-            {config.filters?.showAvailabilityFilter && (availableFilters?.availability?.length ?? 0) > 0 && (
-                renderCheckboxFilter('Availability', 'stock', availableFilters!.availability!)
-            )}
-
-            {/* Attribute filters */}
-            {config.filters?.showAttributeFilters && availableFilters?.attributes?.map(attr => (
-                <div key={attr._id}>
-                    {renderCheckboxFilter(attr.name, attr.slug, attr.values)}
-                </div>
-            ))}
-
-            {/* Tag filter */}
-            {config.filters?.showTagFilter && (availableFilters?.tags?.length ?? 0) > 0 && (
-                renderCheckboxFilter('Tags', 'tags', availableFilters!.tags!)
-            )}
-
-            {/* Clear Pending Button at Bottom */}
-            {hasUnappliedChanges && (
-                <button className={styles.clearAllPendingBtn} onClick={onClearStagedFilters}>
-                    Clear All Pending Changes
-                </button>
-            )}
-        </div>
-    );
-
-    // Render dropdown filter (for Top position)
-    const renderDropdownFilter = (
-        title: string,
-        filterKey: string,
-        options: { value: string; label?: string; count: number; status?: string }[],
-    ) => {
-        const currentValues = filterKey === 'brand'
-            ? activeFilters.brands
-            : filterKey === 'tags'
-                ? activeFilters.tags
-                : filterKey === 'stock'
-                    ? activeFilters.stockStatus
-                    : activeFilters.attributes?.[filterKey] || [];
-
-        const isOpen = expandedFilters.has(filterKey);
-        const isActive = (currentValues?.length || 0) > 0;
+            ) : null
+        );
 
         return (
-            <div className={styles.filterDropdown}>
-                <button
-                    className={`${styles.dropdownTrigger} ${isOpen ? styles.open : ''} ${isActive ? styles.active : ''}`}
-                    onClick={() => toggleFilter(filterKey)}
-                >
-                    <span>{title}</span>
-                    {isActive && <span className={styles.filterBadge}>{currentValues?.length}</span>}
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                    </svg>
-                </button>
-                {isOpen && (
-                    <div className={styles.dropdownContent}>
-                        {options.map(opt => (
-                            <label key={opt.value} className={styles.checkboxLabel}>
-                                <input
-                                    type="checkbox"
-                                    checked={currentValues?.includes(opt.value)}
-                                    onChange={(e) => {
-                                        const newValues = e.target.checked
-                                            ? [...(currentValues || []), opt.value]
-                                            : (currentValues || []).filter(v => v !== opt.value);
-                                        onFilterChange(filterKey, newValues);
-                                    }}
-                                />
-                                <span className={styles.checkbox}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                    </svg>
-                                </span>
-                                <span className={styles.labelText}>
-                                    {opt.label || (filterKey === 'stock' ? formatStockStatus(opt.status || opt.value) : opt.value)}
-                                </span>
-                                <span className={styles.count}>({opt.count})</span>
-                            </label>
-                        ))}
-                    </div>
-                )}
-            </div>
+            <CategoryFilters
+                availableFilters={availableFilters}
+                activeFilters={activeFilters}
+                activeFilterCount={activeFilterCount}
+                stagedFilters={stagedFilters}
+                onFilterChange={onFilterChange}
+                onClearFilter={onClearFilter}
+                onRemoveFilterValue={onRemoveFilterValue}
+                onClearAllFilters={onClearAllFilters}
+                onApplyFilters={onApplyFilters}
+                onClearStagedFilters={onClearStagedFilters}
+                hasUnappliedChanges={hasUnappliedChanges}
+                config={config}
+                currencySymbol={currencySymbol}
+                exchangeRate={exchangeRate}
+                currency={currency}
+                getBrandDisplay={getBrandDisplay}
+                isFilterValueActive={isFilterValueActive}
+                className={styles.filtersContent}
+            >
+                {renderSubcategories()}
+            </CategoryFilters>
         );
     };
 
-    // Render horizontal top filters
+    // Render horizontal top filters using extracted molecule properties
     const renderHorizontalFilters = () => (
-        <div className={styles.topFilters}>
-            {/* Price Filter (simplified for top bar) */}
-            <div className={styles.filterDropdown}>
-                <button
-                    className={`${styles.dropdownTrigger} ${isExpanded('price') ? styles.open : ''} ${activeFilters.price ? styles.active : ''}`}
-                    onClick={() => toggleFilter('price')}
-                >
-                    <span>Price</span>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                    </svg>
-                </button>
-                {isExpanded('price') && (
-                    <div className={styles.dropdownContent} style={{ minWidth: 300 }}>
-                        {renderPriceFilter()}
-                    </div>
-                )}
-            </div>
-
-            {config.filters?.showBrandFilter && (availableFilters?.brands?.length ?? 0) > 0 &&
-                renderDropdownFilter('Brand', 'brand', availableFilters!.brands!)
-            }
-
-            {config.filters?.showAvailabilityFilter && (availableFilters?.availability?.length ?? 0) > 0 &&
-                renderDropdownFilter('Availability', 'stock', availableFilters!.availability!)
-            }
-
-            {config.filters?.showAttributeFilters && availableFilters?.attributes?.map(attr => (
-                <div key={attr._id}>
-                    {renderDropdownFilter(attr.name, attr.slug, attr.values)}
-                </div>
-            ))}
-
-            {/* Clear All */}
-            {activeFilterCount > 0 && (
-                <button onClick={onClearAllFilters} className={styles.clearFiltersBtn} style={{ padding: '0.5rem 1rem' }}>
-                    Clear All
-                </button>
-            )}
-        </div>
+        <CategoryFilters
+            availableFilters={availableFilters}
+            activeFilters={activeFilters}
+            activeFilterCount={activeFilterCount}
+            stagedFilters={stagedFilters}
+            onFilterChange={onFilterChange}
+            onClearFilter={onClearFilter}
+            onRemoveFilterValue={onRemoveFilterValue}
+            onClearAllFilters={onClearAllFilters}
+            onApplyFilters={onApplyFilters}
+            onClearStagedFilters={onClearStagedFilters}
+            hasUnappliedChanges={hasUnappliedChanges}
+            config={{ ...config, filters: { ...config.filters, position: 'top' } }}
+            currencySymbol={currencySymbol}
+            exchangeRate={exchangeRate}
+            currency={currency}
+            getBrandDisplay={getBrandDisplay}
+            isFilterValueActive={isFilterValueActive}
+        />
     );
+    // Check staged filters first (pending changes), fall back to active filters
+    // Important: use !== undefined to handle empty arrays correctly
 
     // ============================================
     // Layout Sections (in array order from API)
