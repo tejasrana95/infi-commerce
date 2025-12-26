@@ -154,7 +154,7 @@
     position: relative;
     z-index: 1;
     width: 100%;
-    max-width: 1440px;
+    max-width: var(--max-container-width);
     margin: 0 auto;
     padding: 0 2rem;
 
@@ -389,7 +389,7 @@
 }
 
 .bottomDescription {
-    max-width: 1440px;
+    max-width: var(--max-container-width);
     margin: 3rem auto;
     padding: 0 2rem;
 
@@ -412,7 +412,7 @@
 // Content Layout
 // ============================================
 .content {
-    max-width: 1440px;
+    max-width: var(--max-container-width);
     margin: 0 auto;
     padding: 2rem;
     display: flex;
@@ -449,7 +449,7 @@
 
 // Container - constrained width with centered content
 .container {
-    max-width: 1440px;
+    max-width: var(--max-container-width);
     margin: 0 auto;
     padding: 0 2rem;
 

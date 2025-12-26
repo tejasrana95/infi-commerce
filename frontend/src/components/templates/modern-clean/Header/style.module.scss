@@ -69,13 +69,21 @@
 }
 
 .topBarContainer {
-    max-width: 1280px;
+    max-width: var(--max-container-width);
     margin: 0 auto;
     padding: 0 1rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 1rem;
+}
+
+// ...
+
+.container {
+    max-width: var(--max-container-width);
+    margin: 0 auto;
+    padding: 0 1rem;
 }
 
 .topBarLeft {
@@ -154,8 +162,9 @@
     }
 }
 
+// ... (removed)
 .container {
-    max-width: 1280px;
+    max-width: var(--max-container-width);
     margin: 0 auto;
     padding: 0 1rem;
 }

@@ -161,6 +161,55 @@ export const AVAILABLE_MODULES: ModuleDefinition[] = [
         description: 'Brand logo showcase',
         defaultConfig: { showcaseId: '' },
     },
+    {
+        type: 'cta-button',
+        label: 'CTA Button',
+        icon: 'SmartButton',
+        category: 'standard',
+        description: 'Call to action button',
+        defaultConfig: {
+            text: 'Click Me',
+            link: '#',
+            variant: 'contained',
+            color: 'primary',
+            alignment: 'center',
+            size: 'medium'
+        },
+    },
+    {
+        type: 'strip-banner',
+        label: 'Strip Banner',
+        icon: 'ViewStream',
+        category: 'standard',
+        description: 'Full-width banner with CTA',
+        defaultConfig: {
+            content: 'Special Offer',
+            backgroundImage: '',
+            backgroundColor: '#f5f5f5',
+            textColor: '#000000',
+            ctaText: 'Shop Now',
+            ctaLink: '#',
+            ctaPosition: 'right', // 'bottom', 'left', 'right'
+            height: 120,
+        },
+    },
+    {
+        type: 'card-group',
+        label: 'Card Group',
+        icon: 'ViewModule',
+        category: 'standard',
+        description: 'Group of content cards',
+        defaultConfig: {
+            title: '',
+            layout: 'grid', // 'grid', 'carousel'
+            cards: [
+                { title: 'Card 1', description: 'Description', image: '', link: '#', ctaText: 'Learn More' },
+                { title: 'Card 2', description: 'Description', image: '', link: '#', ctaText: 'Learn More' },
+                { title: 'Card 3', description: 'Description', image: '', link: '#', ctaText: 'Learn More' },
+            ],
+            columns: { desktop: 3, tablet: 2, mobile: 1 },
+        },
+    },
 
     // Product modules
     {
@@ -243,7 +292,7 @@ export const AVAILABLE_MODULES: ModuleDefinition[] = [
         icon: 'Search',
         category: 'placeholder',
         description: 'Search results grid',
-        defaultConfig: { columns: 4, showFilters: true },
+        defaultConfig: { columns: 4, showFilters: true, showSort: true, perPage: 24 },
         allowedLayoutTypes: ['search'],
     },
     {
@@ -307,6 +356,15 @@ export const AVAILABLE_MODULES: ModuleDefinition[] = [
         icon: 'FilterList',
         category: 'placeholder',
         description: 'Product filters for search results',
+        defaultConfig: {},
+        allowedLayoutTypes: ['search'],
+    },
+    {
+        type: 'search-pagination',
+        label: 'Pagination',
+        icon: 'LastPage',
+        category: 'placeholder',
+        description: 'Page navigation / load more',
         defaultConfig: {},
         allowedLayoutTypes: ['search'],
     },
@@ -483,6 +541,7 @@ export const createSearchDefaultLayout = (
             width: mainWidthPercent,
             modules: [
                 createModule('search-results'),
+                createModule('search-pagination'),
             ],
         };
 
@@ -510,6 +569,7 @@ export const createSearchDefaultLayout = (
             modules: [
                 ...(filterPosition === 'top' ? [createModule('search-filters')] : []),
                 createModule('search-results'),
+                createModule('search-pagination'),
             ],
             visibility: { desktop: true, tablet: true, mobile: true },
             order: 1,

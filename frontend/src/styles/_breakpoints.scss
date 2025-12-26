@@ -148,7 +148,7 @@ $breakpoint-xlarge: 1536px;
 // Container width mixin
 @mixin container {
     width: 100%;
-    max-width: $breakpoint-large;
+    max-width: var(--max-container-width);
     margin-left: auto;
     margin-right: auto;
     padding-left: 1rem;

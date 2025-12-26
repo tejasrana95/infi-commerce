@@ -153,7 +153,7 @@ export default function ModernCleanSearchPageTemplate({
     );
 
     // ============================================
-    // Product Grid & Pagination
+    // Product Grid (No Pagination)
     // ============================================
     const renderProductGrid = () => {
         const cols = config.grid?.productsPerRow || { desktop: 4, tablet: 3, mobile: 2 };
@@ -184,32 +184,6 @@ export default function ModernCleanSearchPageTemplate({
                                 />
                             ))}
                         </div>
-                        {pagination.pages > 1 && config.pagination?.type !== 'infinite-scroll' && (
-                            <div className={styles.pagination}>
-                                <button
-                                    className={styles.pageBtn}
-                                    disabled={pagination.page <= 1}
-                                    onClick={() => onPageChange(pagination.page - 1)}
-                                >
-                                    Previous
-                                </button>
-                                <div className={styles.pageInfo}>
-                                    Page {pagination.page} of {pagination.pages}
-                                </div>
-                                <button
-                                    className={styles.pageBtn}
-                                    disabled={pagination.page >= pagination.pages}
-                                    onClick={() => onPageChange(pagination.page + 1)}
-                                >
-                                    Next
-                                </button>
-                            </div>
-                        )}
-                        {config.pagination?.type === 'infinite-scroll' && pagination.page < pagination.pages && (
-                            <div ref={loadMoreRef} className={styles.infiniteScrollTrigger}>
-                                {isLoading && <div className={styles.spinner}></div>}
-                            </div>
-                        )}
                     </>
                 ) : (
                     <div className={styles.emptyState}>
@@ -252,6 +226,41 @@ export default function ModernCleanSearchPageTemplate({
         </div>
     );
 
+    const renderPagination = () => {
+        if (products.length === 0 && !isLoading) return null;
+
+        return (
+            <div className={styles.productsSection}>
+                {pagination.pages > 1 && config.pagination?.type !== 'infinite-scroll' && (
+                    <div className={styles.pagination}>
+                        <button
+                            className={styles.pageBtn}
+                            disabled={pagination.page <= 1}
+                            onClick={() => onPageChange(pagination.page - 1)}
+                        >
+                            Previous
+                        </button>
+                        <div className={styles.pageInfo}>
+                            Page {pagination.page} of {pagination.pages}
+                        </div>
+                        <button
+                            className={styles.pageBtn}
+                            disabled={pagination.page >= pagination.pages}
+                            onClick={() => onPageChange(pagination.page + 1)}
+                        >
+                            Next
+                        </button>
+                    </div>
+                )}
+                {config.pagination?.type === 'infinite-scroll' && pagination.page < pagination.pages && (
+                    <div ref={loadMoreRef} className={styles.infiniteScrollTrigger}>
+                        {isLoading && <div className={styles.spinner}></div>}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     // ============================================
     // Layout Rendering (Section based)
     // ============================================
@@ -269,6 +278,8 @@ export default function ModernCleanSearchPageTemplate({
                 );
             case 'search-filters':
                 return <React.Fragment key={module.id}>{renderFilters()}</React.Fragment>;
+            case 'search-pagination':
+                return <React.Fragment key={module.id}>{renderPagination()}</React.Fragment>;
             default:
                 return <ModuleRenderer key={module.id} module={module} />;
         }

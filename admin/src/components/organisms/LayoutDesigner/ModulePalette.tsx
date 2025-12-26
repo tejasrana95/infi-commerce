@@ -21,6 +21,9 @@ import SearchIcon from '@mui/icons-material/Search';
 import ArticleIcon from '@mui/icons-material/Article';
 import RecommendIcon from '@mui/icons-material/Recommend';
 import HistoryIcon from '@mui/icons-material/History';
+import SmartButtonIcon from '@mui/icons-material/SmartButton';
+import ViewStreamIcon from '@mui/icons-material/ViewStream';
+import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { ModuleDefinition, AVAILABLE_MODULES, MODULE_CATEGORIES, getModulesByCategory } from './types';
@@ -46,6 +49,9 @@ const iconMap: Record<string, React.ElementType> = {
     Article: ArticleIcon,
     Recommend: RecommendIcon,
     History: HistoryIcon,
+    SmartButton: SmartButtonIcon,
+    ViewStream: ViewStreamIcon,
+    ViewModule: ViewModuleIcon,
 };
 
 interface DraggableModuleItemProps {

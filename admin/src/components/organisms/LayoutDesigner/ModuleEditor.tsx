@@ -23,6 +23,9 @@ import {
     CategoryShowcaseConfigPanel,
     RelatedProductsConfigPanel,
     RecentlyViewedConfigPanel,
+    CTAConfigPanel,
+    StripBannerConfigPanel,
+    CardGroupConfigPanel,
 } from '@/components/organisms/ModuleConfigPanels';
 
 interface ModuleEditorProps {
@@ -181,6 +184,30 @@ export default function ModuleEditor({ module, onChange, onDelete, storeId }: Mo
                         config={module.config as any}
                         onChange={updateConfig}
                         storeId={effectiveStoreId}
+                    />
+                );
+
+            case 'cta-button':
+                return (
+                    <CTAConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
+                    />
+                );
+
+            case 'strip-banner':
+                return (
+                    <StripBannerConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
+                    />
+                );
+
+            case 'card-group':
+                return (
+                    <CardGroupConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
                     />
                 );
 

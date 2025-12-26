@@ -801,7 +801,7 @@ export type ModuleType =
   // Standard modules
   | 'banner' | 'banner-slider' | 'text-block' | 'image' | 'image-gallery'
   | 'video' | 'spacer' | 'divider' | 'html' | 'newsletter' | 'testimonials'
-  | 'countdown' | 'brand-logos'
+  | 'countdown' | 'brand-logos' | 'cta-button' | 'strip-banner' | 'card-group'
   // Product modules
   | 'product-carousel' | 'product-grid' | 'category-showcase' | 'featured-product'
   | 'related-products' | 'recently-viewed'
