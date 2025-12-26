@@ -109,13 +109,18 @@ function SearchPageInner({
 
     // Initialize available filters from SSR or fetch on client if not available
     useEffect(() => {
+        console.log('initialFilters', initialFilters);
+        console.log('filters.availableFilters', filters.availableFilters);
         if (initialFilters) {
             filters.setAvailableFilters(initialFilters);
-        } else if (store?._id && !filters.availableFilters) {
-            // Fetch global filters on client side as fallback
-            const fetchGlobalFilters = async () => {
+        } else if (store?._id && currentSearchQuery && !filters.availableFilters) {
+            // Fetch search-specific filters on client side
+            const fetchSearchFilters = async () => {
                 try {
-                    const response = await api.get(`categories/all-products/filters?storeId=${store._id}`);
+                    const response = await api.get(`products/search/filters?storeId=${store._id}&search=${encodeURIComponent(currentSearchQuery)}`);
+
+                    console.log('response', response);
+
                     if (response) {
                         filters.setAvailableFilters(response);
                     }
@@ -123,9 +128,9 @@ function SearchPageInner({
                     console.error('Failed to fetch search filters:', error);
                 }
             };
-            fetchGlobalFilters();
+            fetchSearchFilters();
         }
-    }, [initialFilters, store?._id]);
+    }, [initialFilters, store?._id, currentSearchQuery]);
 
     // Fetch products
     const fetchProducts = useCallback(async (options: { page?: number; append?: boolean } = {}) => {

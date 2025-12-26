@@ -1095,3 +1095,197 @@ export const updateStock = asyncHandler(async (req: AuthRequest, res: Response) 
         },
     });
 });
+
+/**
+ * @swagger
+ * /api/products/search/filters:
+ *   get:
+ *     summary: Get available filters for search results
+ *     tags: [Products]
+ *     description: Returns aggregated filter data from products matching a search query
+ *     parameters:
+ *       - in: query
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: search
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Search query
+ *     responses:
+ *       200:
+ *         description: Filter data retrieved successfully
+ */
+export const getSearchFilters = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { storeId, search } = req.query;
+
+    if (!storeId) {
+        throw new AppError('storeId is required', 400);
+    }
+
+    if (!search) {
+        throw new AppError('search query is required', 400);
+    }
+
+    const Attribute = require('../models/Attribute').default;
+    const searchRegex = new RegExp(search as string, 'i');
+
+    // Build base match for products matching the search
+    const baseMatch: any = {
+        storeId: mongoose.Types.ObjectId.createFromHexString(storeId as string),
+        isActive: true,
+        $or: [
+            { name: searchRegex },
+            { sku: searchRegex },
+            { 'variants.sku': searchRegex },
+        ],
+    };
+
+    // Run aggregation pipelines in parallel
+    const [priceRange, brands, tags, ratings, availability] = await Promise.all([
+        // Price range
+        Product.aggregate([
+            { $match: baseMatch },
+            {
+                $group: {
+                    _id: null,
+                    minPrice: { $min: '$price' },
+                    maxPrice: { $max: '$price' },
+                },
+            },
+        ]),
+
+        // Brands with count (lookup brand name from brands collection)
+        // Normalize brand to string to handle mixed ObjectId/string storage
+        Product.aggregate([
+            { $match: { ...baseMatch, brand: { $exists: true, $nin: [null, ''] } } },
+            {
+                $addFields: {
+                    brandIdStr: { $toString: '$brand' },
+                },
+            },
+            { $group: { _id: '$brandIdStr', count: { $sum: 1 } } },
+            {
+                $addFields: {
+                    brandObjectId: { $toObjectId: '$_id' },
+                },
+            },
+            {
+                $lookup: {
+                    from: 'brands',
+                    localField: 'brandObjectId',
+                    foreignField: '_id',
+                    as: 'brandInfo',
+                },
+            },
+            { $unwind: { path: '$brandInfo', preserveNullAndEmptyArrays: true } },
+            // Group again by brand _id to merge any remaining duplicates
+            {
+                $group: {
+                    _id: '$brandInfo._id',
+                    value: { $first: '$_id' },
+                    label: { $first: '$brandInfo.name' },
+                    count: { $sum: '$count' },
+                },
+            },
+            { $match: { _id: { $ne: null } } }, // Filter out entries with no brand match
+            { $sort: { count: -1 } },
+            {
+                $project: {
+                    value: '$value',
+                    label: { $ifNull: ['$label', '$value'] },
+                    count: 1,
+                    _id: 0,
+                },
+            },
+        ]),
+
+        // Tags with count
+        Product.aggregate([
+            { $match: baseMatch },
+            { $unwind: '$tags' },
+            { $group: { _id: '$tags', count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 50 },
+            { $project: { value: '$_id', label: '$_id', count: 1, _id: 0 } },
+        ]),
+
+        // Rating distribution
+        Product.aggregate([
+            { $match: { ...baseMatch, averageRating: { $exists: true, $ne: null } } },
+            {
+                $bucket: {
+                    groupBy: '$averageRating',
+                    boundaries: [0, 1, 2, 3, 4, 5.1],
+                    default: 'Other',
+                    output: { count: { $sum: 1 } },
+                },
+            },
+        ]),
+
+        // Availability
+        Product.aggregate([
+            { $match: baseMatch },
+            { $group: { _id: '$stockStatus', count: { $sum: 1 } } },
+            { $project: { value: '$_id', status: '$_id', count: 1, _id: 0 } },
+        ]),
+    ]);
+
+    // Get filterable attributes with their values from search results
+    const filterableAttributes = await Attribute.find({
+        storeId: mongoose.Types.ObjectId.createFromHexString(storeId as string),
+        $or: [{ isFilterable: true }, { isFilterable: { $exists: false } }]
+    }).lean();
+
+    // Get attribute values used in products matching the search
+    const attributeValuesAgg = await Product.aggregate([
+        { $match: baseMatch },
+        { $unwind: '$specifications' },
+        {
+            $group: {
+                _id: {
+                    attributeId: '$specifications.attributeId',
+                    value: '$specifications.value',
+                },
+                count: { $sum: 1 },
+            },
+        },
+        {
+            $group: {
+                _id: '$_id.attributeId',
+                values: { $push: { value: '$_id.value', count: '$count' } },
+            },
+        },
+    ]);
+
+    // Merge attribute data with aggregated values
+    const attributes = filterableAttributes.map((attr: any) => {
+        const aggData = attributeValuesAgg.find(
+            (a: any) => a._id && String(a._id) === String(attr._id)
+        );
+        return {
+            _id: attr._id,
+            name: attr.name,
+            slug: attr.slug,
+            type: attr.type,
+            values: aggData ? aggData.values : [],
+            options: attr.options || [],
+        };
+    }).filter((attr: any) => attr.values.length > 0);
+
+    res.json({
+        priceRange: priceRange[0] || { minPrice: 0, maxPrice: 0 },
+        brands,
+        tags,
+        ratings: ratings.map((r: any) => ({
+            rating: r._id === 'Other' ? null : Math.floor(r._id),
+            count: r.count,
+        })).filter((r: any) => r.rating !== null),
+        availability,
+        subcategories: [], // Search doesn't have subcategories
+        attributes,
+    });
+});

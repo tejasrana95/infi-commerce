@@ -249,15 +249,15 @@ export async function fetchSearchProducts(
 }
 
 /**
- * Fetch global store filters (for search page)
- * Uses the "all-products" special category to get store-wide filters
+ * Fetch filters for search results (computed from matching products)
+ * Uses the /products/search/filters endpoint to get search-specific filters
  */
-export async function fetchSearchFilters(storeId: string): Promise<any | null> {
+export async function fetchSearchFilters(storeId: string, searchQuery: string): Promise<any | null> {
     try {
         const res = await fetch(
-            `${API_BASE}/categories/all-products/filters?storeId=${storeId}`,
+            `${API_BASE}/products/search/filters?storeId=${storeId}&search=${encodeURIComponent(searchQuery)}`,
             {
-                next: { revalidate: 60 },
+                next: { revalidate: 0 }, // Don't cache search-specific filters
                 headers: { 'Content-Type': 'application/json' },
             }
         );
@@ -289,10 +289,10 @@ export async function fetchSearchPageData(
         };
     }
 
-    // Fetch products, global filters, and search layout in parallel
+    // Fetch products, search-specific filters, and search layout in parallel
     const [searchResult, filters, layout] = await Promise.all([
         fetchSearchProducts(storeId, searchQuery, { sort: options.sort }),
-        fetchSearchFilters(storeId), // Fetch global store filters
+        fetchSearchFilters(storeId, searchQuery), // Fetch filters from search results
         fetchLayout(storeId, 'search'), // Use 'search' layout from layout builder
     ]);
 

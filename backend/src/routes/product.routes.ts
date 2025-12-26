@@ -12,7 +12,8 @@ import {
     updateStock,
     createProductValidation,
     updateProductValidation,
-    cloneProduct
+    cloneProduct,
+    getSearchFilters
 } from '../controllers/product.controller';
 import { authenticate, authorize } from '../middleware/auth';
 import { validate } from '../middleware/validation';
@@ -23,6 +24,7 @@ const router = Router();
 router.get('/', getProducts);
 router.get('/featured', getFeaturedProducts);
 router.get('/on-sale', getOnSaleProducts);
+router.get('/search/filters', getSearchFilters);
 router.get('/:id', getProductById);
 router.get('/slug/:storeId/:slug', getProductBySlug);
 router.post('/:id/check-shipping', checkShipping);

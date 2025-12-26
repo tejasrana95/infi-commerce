@@ -601,9 +601,15 @@ export const getCategoryFilters = asyncHandler(async (req: AuthRequest, res: Res
         ]),
 
         // Brands with count (lookup brand name from brands collection)
+        // Normalize brand to string to handle mixed ObjectId/string storage
         Product.aggregate([
             { $match: { ...baseMatch, brand: { $exists: true, $nin: [null, ''] } } },
-            { $group: { _id: '$brand', count: { $sum: 1 } } },
+            {
+                $addFields: {
+                    brandIdStr: { $toString: '$brand' },
+                },
+            },
+            { $group: { _id: '$brandIdStr', count: { $sum: 1 } } },
             {
                 $addFields: {
                     brandObjectId: { $toObjectId: '$_id' },
@@ -618,11 +624,21 @@ export const getCategoryFilters = asyncHandler(async (req: AuthRequest, res: Res
                 },
             },
             { $unwind: { path: '$brandInfo', preserveNullAndEmptyArrays: true } },
+            // Group again by brand _id to merge any remaining duplicates
+            {
+                $group: {
+                    _id: '$brandInfo._id',
+                    value: { $first: '$_id' },
+                    label: { $first: '$brandInfo.name' },
+                    count: { $sum: '$count' },
+                },
+            },
+            { $match: { _id: { $ne: null } } }, // Filter out entries with no brand match
             { $sort: { count: -1 } },
             {
                 $project: {
-                    value: '$_id',
-                    label: { $ifNull: ['$brandInfo.name', '$_id'] },
+                    value: '$value',
+                    label: { $ifNull: ['$label', '$value'] },
                     count: 1,
                     _id: 0,
                 },
