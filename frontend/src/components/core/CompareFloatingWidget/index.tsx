@@ -41,6 +41,7 @@ export default function CompareFloatingWidget() {
     const { items, removeFromCompare, clearCompare, config, compareCount } = useCompare();
     const [isVisible, setIsVisible] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
     // Show widget when there are items
     useEffect(() => {
@@ -59,6 +60,112 @@ export default function CompareFloatingWidget() {
         'bottom-left': styles.positionBottomLeft,
     }[config.widgetPosition] || styles.positionBottom;
 
+    // Render drawer-style widget
+    if (config.widgetStyle === 'drawer') {
+        return (
+            <>
+                {/* Floating trigger button */}
+                <button
+                    className={`${styles.drawerTrigger} ${positionClass}`}
+                    onClick={() => setIsDrawerOpen(true)}
+                    aria-label="Open compare drawer"
+                >
+                    <CompareIcon />
+                    <span className={styles.badge}>{compareCount}</span>
+                </button>
+
+                {/* Overlay */}
+                {isDrawerOpen && (
+                    <div
+                        className={styles.drawerOverlay}
+                        onClick={() => setIsDrawerOpen(false)}
+                    />
+                )}
+
+                {/* Drawer */}
+                <div className={`${styles.drawer} ${isDrawerOpen ? styles.drawerOpen : ''}`}>
+                    {/* Drawer Header */}
+                    <div className={styles.drawerHeader}>
+                        <div className={styles.headerTitle}>
+                            <CompareIcon />
+                            <span>Compare Products ({compareCount})</span>
+                        </div>
+                        <button
+                            className={styles.closeBtn}
+                            onClick={() => setIsDrawerOpen(false)}
+                            aria-label="Close drawer"
+                        >
+                            <CloseIcon />
+                        </button>
+                    </div>
+
+                    {/* Drawer Content */}
+                    <div className={styles.drawerContent}>
+                        {items.map((item) => (
+                            <div key={item.id} className={styles.drawerItem}>
+                                <div className={styles.drawerItemImage}>
+                                    {item.image ? (
+                                        <Image
+                                            src={item.image}
+                                            alt={item.name}
+                                            width={80}
+                                            height={80}
+                                            style={{ objectFit: 'contain' }}
+                                        />
+                                    ) : (
+                                        <div className={styles.noImage}>
+                                            <CompareIcon />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className={styles.drawerItemInfo}>
+                                    <span className={styles.drawerItemName}>{item.name}</span>
+                                </div>
+                                <button
+                                    className={styles.drawerRemoveBtn}
+                                    onClick={() => removeFromCompare(item.id)}
+                                    aria-label={`Remove ${item.name}`}
+                                >
+                                    <TrashIcon />
+                                </button>
+                            </div>
+                        ))}
+
+                        {compareCount < 2 && (
+                            <p className={styles.drawerHint}>
+                                Add at least 2 products to compare
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Drawer Footer */}
+                    <div className={styles.drawerFooter}>
+                        <button
+                            className={styles.clearAllBtn}
+                            onClick={clearCompare}
+                        >
+                            Clear All
+                        </button>
+                        <Link
+                            href="/compare"
+                            className={`${styles.compareNowBtn} ${compareCount < 2 ? styles.disabled : ''}`}
+                            onClick={(e) => {
+                                if (compareCount < 2) {
+                                    e.preventDefault();
+                                } else {
+                                    setIsDrawerOpen(false);
+                                }
+                            }}
+                        >
+                            Compare Now
+                        </Link>
+                    </div>
+                </div>
+            </>
+        );
+    }
+
+    // Render floating-style widget (default)
     return (
         <div className={`${styles.widget} ${positionClass} ${isMinimized ? styles.minimized : ''}`}>
             {/* Minimized view - just icon and count */}

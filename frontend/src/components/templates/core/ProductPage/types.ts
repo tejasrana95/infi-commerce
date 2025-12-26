@@ -279,6 +279,7 @@ export interface ProductPageTemplateProps {
     isWishlisted?: boolean;
     onAddToCompare: () => void;
     isInCompare?: boolean;
+    compareEnabled?: boolean;
     compareDisabled?: boolean;
     compareDisabledReason?: string;
     isAddingToCart: boolean;

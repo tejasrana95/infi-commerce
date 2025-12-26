@@ -21,6 +21,7 @@ import TemplateSelector from '@/components/organisms/TemplateSelector/TemplateSe
 import ProductCardSettings from '@/components/organisms/ProductCardSettings/ProductCardSettings';
 import CategorySettings from '@/components/organisms/CategorySettings/CategorySettings';
 import ProductPageSettings from '@/components/organisms/ProductPageSettings/ProductPageSettings';
+import CompareSettings from '@/components/organisms/CompareSettings/CompareSettings';
 import { ThemeConfig, Store } from '@/types';
 import { useNotification } from '@/contexts/NotificationContext';
 import api from '@/lib/api';
@@ -136,6 +137,7 @@ export default function ThemeSettingsPage() {
                     <Tab label="Product Card" />
                     <Tab label="Category" />
                     <Tab label="Product Page" />
+                    <Tab label="Compare" />
                     <Tab label="General" />
                 </Tabs>
 
@@ -188,6 +190,13 @@ export default function ThemeSettingsPage() {
                     )}
 
                     {activeTab === 6 && (
+                        <CompareSettings
+                            config={themeConfig}
+                            onChange={setThemeConfig}
+                        />
+                    )}
+
+                    {activeTab === 7 && (
                         <GeneralThemeSettings
                             config={themeConfig}
                             onChange={setThemeConfig}

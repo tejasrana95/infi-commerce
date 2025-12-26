@@ -559,6 +559,7 @@ export default function ProductPageContainer({
         isWishlisted,
         onAddToCompare: handleAddToCompare,
         isInCompare: isInCompare(product._id),
+        compareEnabled: compareConfig.enabled !== false && compareConfig.showInProductPage !== false,
         compareDisabled: (() => {
             const compareItem: CompareItem = {
                 id: product._id,
