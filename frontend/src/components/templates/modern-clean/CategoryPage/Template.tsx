@@ -142,6 +142,54 @@ export default function ModernCleanCategoryPageTemplate({
         );
     };
 
+    // Render sidebar filters (always sidebar position) - for mobile drawer
+    const renderSidebarFilters = () => {
+        const renderSubcategories = () => (
+            config.subcategories?.display !== 'none' && (availableFilters?.subcategories?.length ?? 0) > 0 ? (
+                <div className={styles.subcategories}>
+                    <h4>Categories</h4>
+                    <div className={styles.subcategoryList}>
+                        {availableFilters!.subcategories!.map(sub => (
+                            <Link
+                                key={sub._id}
+                                href={`/category/${sub.slug}`}
+                                className={styles.subcategoryItem}
+                            >
+                                <span>{sub.title}</span>
+                                <span className={styles.count}>({sub.productCount})</span>
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+            ) : null
+        );
+
+        return (
+            <CategoryFilters
+                availableFilters={availableFilters}
+                activeFilters={activeFilters}
+                activeFilterCount={activeFilterCount}
+                stagedFilters={stagedFilters}
+                onFilterChange={onFilterChange}
+                onClearFilter={onClearFilter}
+                onRemoveFilterValue={onRemoveFilterValue}
+                onClearAllFilters={onClearAllFilters}
+                onApplyFilters={onApplyFilters}
+                onClearStagedFilters={onClearStagedFilters}
+                hasUnappliedChanges={hasUnappliedChanges}
+                config={{ ...config, filters: { ...config.filters, position: 'left' } }}
+                currencySymbol={currencySymbol}
+                exchangeRate={exchangeRate}
+                currency={currency}
+                getBrandDisplay={getBrandDisplay}
+                isFilterValueActive={isFilterValueActive}
+                className={styles.filtersContent}
+            >
+                {renderSubcategories()}
+            </CategoryFilters>
+        );
+    };
+
     // Render horizontal top filters using extracted molecule properties
     const renderHorizontalFilters = () => (
         <CategoryFilters
@@ -181,10 +229,8 @@ export default function ModernCleanCategoryPageTemplate({
     // Calculate grid columns based on config
     const gridColumns = config.grid?.productsPerRow || { desktop: 4, tablet: 3, mobile: 2 };
 
-    const hasFilters = config.filters?.enabled &&
-        (config.filters.position === 'left' || config.filters.position === 'right');
-
-    const showTopFilters = config.filters?.enabled && config.filters.position === 'top';
+    // Check if filters are enabled at all (regardless of position)
+    const hasFilters = config.filters?.enabled && availableFilters != null;
 
     // State for collapsible description
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(
@@ -241,13 +287,16 @@ export default function ModernCleanCategoryPageTemplate({
         if (module.visibility?.desktop === false) return null;
 
         // Handle placeholder types with actual components
+        // Supports both category-* and search-* module types
         switch (module.type) {
             case 'category-header':
-                // The category header is already rendered separately at the top
+            case 'search-header':
+                // The category/search header is already rendered separately at the top
                 // This placeholder just marks where additional header customizations could go
                 return null;
 
             case 'category-filters':
+            case 'search-filters':
                 return (
                     <React.Fragment key={module.id}>
                         <h3 className={styles.sidebarTitle}>
@@ -261,6 +310,7 @@ export default function ModernCleanCategoryPageTemplate({
                 );
 
             case 'category-products':
+            case 'search-results':
                 return (
                     <React.Fragment key={module.id}>
                         {/* Toolbar */}
@@ -359,6 +409,7 @@ export default function ModernCleanCategoryPageTemplate({
                 );
 
             case 'category-pagination':
+            case 'search-pagination':
                 if (isLoading || products.length === 0 || pagination.pages <= 1) return null;
                 return (
                     <div key={module.id} className={styles.pagination}>
@@ -443,20 +494,23 @@ export default function ModernCleanCategoryPageTemplate({
 
     // ============================================
     // Section Rendering Helper
-    // Uses SectionRenderer for generic sections, special handling for category content
+    // Uses SectionRenderer for generic sections, special handling for category/search content
     // ============================================
     const renderSection = (section: any) => {
         // Check if this section has split columns with filters + products
+        // Support both category-* and search-* module types
         const isSplitSection = section.type?.startsWith('split-') && section.columns?.length > 0;
         const hasFiltersColumn = section.columns?.some((col: any) =>
-            col.modules?.some((m: any) => m.type === 'category-filters')
+            col.modules?.some((m: any) => m.type === 'category-filters' || m.type === 'search-filters')
         );
         const hasProductsColumn = section.columns?.some((col: any) =>
-            col.modules?.some((m: any) => m.type === 'category-products')
+            col.modules?.some((m: any) => m.type === 'category-products' || m.type === 'search-results')
         );
         const isCategoryContentSection = hasFiltersColumn && hasProductsColumn;
+        // Get filter position from config
+        const filterPosition = config.filters?.position || 'left';
 
-        // Special handling for main category content section (filters sidebar + products)
+        // Special handling for main category/search content section (filters sidebar + products)
         if (isSplitSection && isCategoryContentSection) {
             const sectionStyle = {
                 paddingTop: section.settings?.paddingTop || 0,
@@ -466,47 +520,93 @@ export default function ModernCleanCategoryPageTemplate({
                 backgroundPosition: section.settings?.backgroundPosition || 'center',
             };
 
+            // Find the filter and product columns
+            const filterColumn = section.columns.find((col: any) =>
+                col.modules?.some((m: any) => m.type === 'category-filters' || m.type === 'search-filters')
+            );
+            const productColumn = section.columns.find((col: any) =>
+                col.modules?.some((m: any) => m.type === 'category-products' || m.type === 'search-results')
+            );
+
+            // For 'top' or 'off-canvas' filter positions, don't show sidebar - show full width content
+            if (filterPosition === 'top' || filterPosition === 'off-canvas') {
+                return (
+                    <div
+                        key={section.id}
+                        className={styles.content}
+                        style={sectionStyle}
+                    >
+                        <main className={styles.main} style={{ width: '100%' }}>
+                            {filterPosition === 'top' && hasFilters && renderHorizontalFilters()}
+                            {productColumn?.modules?.map((module: any) => renderModule(module))}
+                        </main>
+                    </div>
+                );
+            }
+
+            // For 'left' or 'right' sidebar positions, render with proper order based on config
+            const shouldShowSidebar = hasFilters && (filterPosition === 'left' || filterPosition === 'right');
+
+            // Render sidebar
+            const renderFilterSidebar = () => filterColumn && shouldShowSidebar && (
+                <aside
+                    key={filterColumn.id}
+                    className={styles.sidebar}
+                    style={{ '--sidebar-width': `${config.filters?.sidebarWidth || 280}px` } as React.CSSProperties}
+                >
+                    <div className={`${styles.sidebarInner} ${config.filters?.style === 'sticky' ? styles.sticky : ''}`}>
+                        {filterColumn.modules?.map((module: any) => renderModule(module))}
+                    </div>
+                </aside>
+            );
+
+            // Render main content
+            const renderProductMain = () => productColumn && (
+                <main key={productColumn.id} className={styles.main}>
+                    {productColumn.modules?.map((module: any) => renderModule(module))}
+                </main>
+            );
+
             return (
                 <div
                     key={section.id}
-                    className={`${styles.content} ${hasFilters ? styles.withSidebar : ''} ${config.filters?.position === 'right' ? styles.sidebarRight : ''}`}
+                    className={`${styles.content} ${shouldShowSidebar ? styles.withSidebar : ''} ${filterPosition === 'right' ? styles.sidebarRight : ''}`}
                     style={sectionStyle}
                 >
-                    {section.columns.map((column: any) => {
-                        const isFilterColumn = column.modules?.some((m: any) => m.type === 'category-filters');
-                        const isProductColumn = column.modules?.some((m: any) => m.type === 'category-products');
+                    {/* Render columns in correct order based on config.filters.position */}
+                    {filterPosition === 'right' ? (
+                        <>
+                            {renderProductMain()}
+                            {renderFilterSidebar()}
+                        </>
+                    ) : (
+                        <>
+                            {renderFilterSidebar()}
+                            {renderProductMain()}
+                        </>
+                    )}
+                </div>
+            );
+        }
 
-                        if (isFilterColumn && hasFilters) {
-                            return (
-                                <aside
-                                    key={column.id}
-                                    className={styles.sidebar}
-                                    style={{ '--sidebar-width': `${config.filters?.sidebarWidth || 280}px` } as React.CSSProperties}
-                                >
-                                    <div className={`${styles.sidebarInner} ${config.filters?.style === 'sticky' ? styles.sticky : ''}`}>
-                                        {column.modules?.map((module: any) => renderModule(module))}
-                                    </div>
-                                </aside>
-                            );
-                        }
+        // For non-split sections that have search-results or category-products,
+        // render with horizontal filters if position is 'top'
+        const hasProductModules = section.modules?.some((m: any) =>
+            m.type === 'category-products' || m.type === 'search-results'
+        );
 
-                        if (isProductColumn) {
-                            return (
-                                <main key={column.id} className={styles.main}>
-                                    {showTopFilters && renderHorizontalFilters()}
-                                    {column.modules?.map((module: any) => renderModule(module))}
-                                </main>
-                            );
-                        }
+        if (hasProductModules && filterPosition === 'top' && hasFilters) {
+            const sectionStyle = {
+                paddingTop: section.settings?.paddingTop || 0,
+                paddingBottom: section.settings?.paddingBottom || 0,
+            };
 
-                        // Generic column
-                        const widthPercent = (column.width / 12) * 100;
-                        return (
-                            <div key={column.id} style={{ width: `${widthPercent}%` }}>
-                                {column.modules?.map((module: any) => renderModule(module))}
-                            </div>
-                        );
-                    })}
+            return (
+                <div key={section.id} className={styles.content} style={sectionStyle}>
+                    <main className={styles.main} style={{ width: '100%' }}>
+                        {renderHorizontalFilters()}
+                        {section.modules?.map((module: any) => renderModule(module))}
+                    </main>
                 </div>
             );
         }
@@ -622,7 +722,7 @@ export default function ModernCleanCategoryPageTemplate({
                             </button>
                         </div>
                         <div className={styles.drawerBody}>
-                            {renderFilters()}
+                            {renderSidebarFilters()}
                         </div>
                         <div className={styles.drawerFooter}>
                             <button onClick={onClearAllFilters} className={styles.clearBtn}>

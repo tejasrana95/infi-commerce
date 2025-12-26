@@ -431,7 +431,8 @@
     }
 
     &.sidebarRight {
-        flex-direction: row-reverse;
+        // DOM order already handles positioning (main before sidebar)
+        // This class is kept for potential styling differences
     }
 }
 

@@ -1,5 +1,5 @@
-// CategoryPage Container - Business logic, data fetching, state management
-// Uses CategoryFiltersContext for centralized filter state management
+// SearchPage Container - Business logic, data fetching, state management
+// Reuses CategoryFiltersContext and CategoryConfig for identical behavior
 
 'use client';
 
@@ -18,22 +18,17 @@ import {
     PaginationState,
     DEFAULT_SORT_OPTIONS,
     CategoryPageTemplateProps,
-} from './types';
-
-interface CategoryPageContainerProps {
-    category: Category;
-    initialProducts?: ProductListItem[];
-    initialFilters?: AvailableFilters | null;
-    initialLayout?: any;
-}
+} from '../CategoryPage/types';
+import { SearchPageContainerProps } from './types';
 
 // Inner component that uses the context
-function CategoryPageInner({
-    category,
+function SearchPageInner({
+    searchQuery,
     initialProducts = [],
     initialFilters = null,
     initialLayout = null,
-}: CategoryPageContainerProps) {
+    initialPagination = null,
+}: SearchPageContainerProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { store, currentCurrency } = useStore();
@@ -41,7 +36,7 @@ function CategoryPageInner({
     // Context for filter management
     const filters = useCategoryFilters();
 
-    // Get category config from theme - use deep merge for nested objects
+    // Get category config from theme (reuse category config for search) - use deep merge for nested objects
     const config: CategoryConfig = useMemo(() => {
         const storeConfig: Partial<CategoryConfig> = store?.theme?.category || {};
         return {
@@ -76,48 +71,65 @@ function CategoryPageInner({
 
     // State
     const [products, setProducts] = useState<ProductListItem[]>(initialProducts);
-    const [isLoading, setIsLoading] = useState(initialProducts.length === 0);
+    const [isLoading, setIsLoading] = useState(initialProducts.length === 0 && searchQuery.length > 0);
     const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+
+    // Current search query from URL (for live updates)
+    const currentSearchQuery = searchParams.get('q') || searchQuery;
 
     // Pagination state
     const [pagination, setPagination] = useState<PaginationState>({
         page: parseInt(searchParams.get('page') || '1'),
         limit: config.grid?.productsPerPage || 24,
-        total: 0,
-        pages: 0,
+        total: initialPagination?.total || 0,
+        pages: initialPagination?.pages || 0,
     });
 
     // Current sort
     const currentSort = searchParams.get('sort') || config.sorting?.defaultSort || 'featured';
 
-    // Initialize available filters
-    useEffect(() => {
-        if (initialFilters) {
-            filters.setAvailableFilters(initialFilters);
-        }
-    }, [initialFilters]);
+    // Create synthetic category for search results
+    const searchCategory: Category = useMemo(() => ({
+        _id: 'search',
+        title: currentSearchQuery ? `Search Results for "${currentSearchQuery}"` : 'Search Results',
+        slug: 'search',
+        description: currentSearchQuery
+            ? `Showing results for "${currentSearchQuery}"`
+            : 'Enter a search term to find products',
+    }), [currentSearchQuery]);
 
     // Build breadcrumbs
     const breadcrumbs = useMemo<BreadcrumbItem[]>(() => {
         const crumbs: BreadcrumbItem[] = [
             { label: 'Home', href: '/' },
+            { label: 'Search Results' },
         ];
-
-        if (category.parentCategory) {
-            crumbs.push({
-                label: category.parentCategory.title,
-                href: `/category/${category.parentCategory.slug}`,
-            });
-        }
-
-        crumbs.push({ label: category.title });
-
         return crumbs;
-    }, [category]);
+    }, []);
+
+    // Initialize available filters from SSR or fetch on client if not available
+    useEffect(() => {
+        if (initialFilters) {
+            filters.setAvailableFilters(initialFilters);
+        } else if (store?._id && !filters.availableFilters) {
+            // Fetch global filters on client side as fallback
+            const fetchGlobalFilters = async () => {
+                try {
+                    const response = await api.get(`categories/all-products/filters?storeId=${store._id}`);
+                    if (response) {
+                        filters.setAvailableFilters(response);
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch search filters:', error);
+                }
+            };
+            fetchGlobalFilters();
+        }
+    }, [initialFilters, store?._id]);
 
     // Fetch products
     const fetchProducts = useCallback(async (options: { page?: number; append?: boolean } = {}) => {
-        if (!store?._id) return;
+        if (!store?._id || !currentSearchQuery) return;
 
         const page = options.page || 1;
         const append = options.append || false;
@@ -127,9 +139,7 @@ function CategoryPageInner({
             // Build query params
             const params = new URLSearchParams();
             params.set('storeId', store._id);
-            if (category._id && category._id !== 'all-products') {
-                params.set('categoryId', category._id);
-            }
+            params.set('search', currentSearchQuery);
             params.set('page', page.toString());
             params.set('limit', pagination.limit.toString());
             params.set('sort', currentSort);
@@ -197,30 +207,18 @@ function CategoryPageInner({
         } finally {
             setIsLoading(false);
         }
-    }, [store?._id, category._id, pagination.limit, currentSort, filters.appliedFilters]);
+    }, [store?._id, currentSearchQuery, pagination.limit, currentSort, filters.appliedFilters]);
 
-    // Fetch available filters
-    const fetchFilters = useCallback(async () => {
-        if (!store?._id || filters.availableFilters) return;
-
-        try {
-            const response = await api.get(`/categories/${category._id}/filters?storeId=${store._id}`);
-            filters.setAvailableFilters(response);
-        } catch (error) {
-            console.error('Failed to fetch filters:', error);
+    // Fetch when search query or filters change
+    useEffect(() => {
+        if (currentSearchQuery) {
+            const currentPage = parseInt(searchParams.get('page') || '1');
+            fetchProducts({ page: currentPage });
+        } else {
+            setProducts([]);
+            setIsLoading(false);
         }
-    }, [store?._id, category._id, filters.availableFilters]);
-
-    // Initial fetch
-    useEffect(() => {
-        fetchFilters();
-    }, [fetchFilters]);
-
-    useEffect(() => {
-        // Fetch products when filters change (via URL)
-        const currentPage = parseInt(searchParams.get('page') || '1');
-        fetchProducts({ page: currentPage });
-    }, [fetchProducts, searchParams]);
+    }, [fetchProducts, searchParams, currentSearchQuery]);
 
     // Handler: Page change
     const handlePageChange = useCallback((page: number) => {
@@ -259,17 +257,15 @@ function CategoryPageInner({
         return DEFAULT_SORT_OPTIONS;
     }, [config.sorting?.availableSortOptions]);
 
-    // Get the template component
+    // Get the template component (reuse CategoryPageTemplate)
     const CategoryPageTemplate = getComponent<CategoryPageTemplateProps>(
         'CategoryPageTemplate',
         templateId
     );
 
-
-
     return (
         <CategoryPageTemplate
-            category={category}
+            category={searchCategory}
             breadcrumbs={breadcrumbs}
             products={products}
             isLoading={isLoading}
@@ -307,15 +303,15 @@ function CategoryPageInner({
 }
 
 // Main component that wraps with provider
-export default function CategoryPageContainer(props: CategoryPageContainerProps) {
+export default function SearchPageContainer(props: SearchPageContainerProps) {
     // Get available attribute slugs for URL parsing
     const attributeSlugs = useMemo(() => {
-        return props.initialFilters?.attributes?.map(a => a.slug) || [];
+        return props.initialFilters?.attributes?.map((a: any) => a.slug) || [];
     }, [props.initialFilters]);
 
     return (
         <CategoryFiltersProvider availableFilterSlugs={attributeSlugs}>
-            <CategoryPageInner {...props} />
+            <SearchPageInner {...props} />
         </CategoryFiltersProvider>
     );
 }

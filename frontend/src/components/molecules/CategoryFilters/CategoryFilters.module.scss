@@ -517,6 +517,29 @@
     }
 }
 
+.topFiltersActive {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding-right: 1rem;
+    border-right: 1px solid var(--category-border-color);
+    margin-right: 0.5rem;
+}
+
+.clearAllBtn {
+    background: none;
+    border: none;
+    color: var(--category-accent);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
 .filterDropdown {
     position: relative;
 }

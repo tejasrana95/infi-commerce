@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
+import styles from './CardGroup.module.scss';
 
 interface CardItem {
     title: string;
@@ -30,14 +32,23 @@ const CardGroup: React.FC<CardGroupProps> = ({
     cards = [],
     className,
 }) => {
-    // Carousel State
     const [currentIndex, setCurrentIndex] = useState(0);
     const [visibleCount, setVisibleCount] = useState(columns.desktop);
+    const [isTransitioning, setIsTransitioning] = useState(false);
 
-    // Update visible count on resize for Carousel
+    // For infinite loop, we clone cards
+    // [Clone of Last Group] [Original Cards] [Clone of First Group]
+    const clonedCards = [...cards.slice(-visibleCount), ...cards, ...cards.slice(0, visibleCount)];
+    const totalOriginal = cards.length;
+
+    // Initial position should be at the start of original cards
     useEffect(() => {
-        if (layout !== 'carousel') return;
+        if (layout === 'carousel') {
+            setCurrentIndex(visibleCount);
+        }
+    }, [layout, visibleCount]);
 
+    useEffect(() => {
         const handleResize = () => {
             const width = window.innerWidth;
             if (width < 640) setVisibleCount(columns.mobile);
@@ -45,205 +56,181 @@ const CardGroup: React.FC<CardGroupProps> = ({
             else setVisibleCount(columns.desktop);
         };
 
-        handleResize(); // Initial call
+        handleResize();
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
-    }, [layout, columns]);
+    }, [columns]);
 
-    // Autoplay & Pause State
-    const [isPaused, setIsPaused] = useState(false);
-    const autoplay = true; // Default to true or add to props if needed
-    const autoplayInterval = 4000;
+    const handleNext = useCallback(() => {
+        if (isTransitioning) return;
+        setIsTransitioning(true);
+        setCurrentIndex(prev => prev + 1);
+    }, [isTransitioning]);
 
+    const handlePrev = useCallback(() => {
+        if (isTransitioning) return;
+        setIsTransitioning(true);
+        setCurrentIndex(prev => prev - 1);
+    }, [isTransitioning]);
 
+    // Handle Infinite Loop Snap
+    useEffect(() => {
+        if (!isTransitioning) return;
+
+        const timer = setTimeout(() => {
+            setIsTransitioning(false);
+
+            // If we reached the end cloned set, jump back to start of original set
+            if (currentIndex >= totalOriginal + visibleCount) {
+                setCurrentIndex(visibleCount);
+            }
+            // If we reached the start cloned set, jump forward to end of original set
+            if (currentIndex < visibleCount) {
+                setCurrentIndex(totalOriginal + visibleCount - 1);
+            }
+        }, 600); // Matches transition duration in SCSS
+
+        return () => clearTimeout(timer);
+    }, [currentIndex, isTransitioning, totalOriginal, visibleCount]);
 
     if (!cards || cards.length === 0) return null;
 
-    const isGrid = layout === 'grid';
-    const maxIndex = Math.max(0, cards.length - visibleCount);
-
-    const nextSlide = useCallback(() => {
-        setCurrentIndex(prev => prev >= maxIndex ? 0 : prev + 1);
-    }, [maxIndex]);
-
-    const prevSlide = useCallback(() => {
-        setCurrentIndex(prev => prev <= 0 ? maxIndex : prev - 1);
-    }, [maxIndex]);
-
-    const goToSlide = (index: number) => {
-        setCurrentIndex(Math.min(Math.max(0, index), maxIndex));
-    };
-
-    // Autoplay Effect
-    useEffect(() => {
-        if (autoplay && cards.length > visibleCount && !isPaused) {
-            const timer = setInterval(nextSlide, autoplayInterval);
-            return () => clearInterval(timer);
-        }
-    }, [autoplay, autoplayInterval, cards.length, visibleCount, isPaused, nextSlide]);
-
-    const renderCard = (card: CardItem, index: number) => (
-        // ... (existing renderCard content) ...
-        <div
-            key={index}
-            className={`
-                flex flex-col bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 
-                hover:shadow-md transition-all duration-300 group h-full
-            `}
-        >
-            {card.image && (
-                <div className="relative aspect-[6/3] w-full bg-gray-100 overflow-hidden">
-                    <img
-                        src={card.image}
-                        alt={card.title}
-                        className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
-                    />
-                </div>
-            )}
-            <div className="p-6 flex flex-col flex-grow">
-                <h3 className="text-xl font-bold mb-3 text-gray-900">{card.title}</h3>
-                <p className="text-gray-600 mb-6 flex-grow text-sm leading-relaxed line-clamp-3">
-                    {card.description}
-                </p>
-                {card.ctaText && card.link && (
-                    <div className="mt-auto">
-                        {card.link.startsWith('/') ? (
-                            <Link href={card.link} className="text-primary-600 font-semibold text-sm hover:text-primary-700 inline-flex items-center group/link">
-                                {card.ctaText}
-                                <svg className="w-4 h-4 ml-1 transition-transform group-hover/link:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                                </svg>
-                            </Link>
-                        ) : (
-                            <a href={card.link} className="text-primary-600 font-semibold text-sm hover:text-primary-700 inline-flex items-center group/link" target="_blank" rel="noopener noreferrer">
-                                {card.ctaText}
-                                <svg className="w-4 h-4 ml-1 transition-transform group-hover/link:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                                </svg>
+    const renderCard = (card: CardItem, index: number) => {
+        const isExternal = !card.link.startsWith('/');
+        return (
+            <div className={styles.card} key={index}>
+                {card.image && (
+                    <div className={styles.imageWrapper}>
+                        {isExternal ? (
+                            <a href={card.link} target="_blank" rel="noopener noreferrer" className={styles.cta}>
+                                <Image src={card.image} alt={card.title} loading="lazy" width={425} height={265} />
                             </a>
+                        ) : (
+                            <Link href={card.link} className={styles.cta}>
+                                <Image src={card.image} alt={card.title} loading="lazy" width={425} height={265} />
+                            </Link>
                         )}
                     </div>
                 )}
+                <div className={styles.content}>
+                    {isExternal ? (
+                        <a href={card.link} target="_blank" rel="noopener noreferrer" className={styles.cta}>
+                            <h3 className={styles.cardTitle}>{card.title}</h3>
+                        </a>
+                    ) : (
+                        <Link href={card.link} className={styles.cta}>
+                            <h3 className={styles.cardTitle}>{card.title}</h3>
+                        </Link>
+                    )}
+
+                    <p className={styles.description}>{card.description}</p>
+                    {card.ctaText && card.link && (
+                        <div className={styles.ctaWrapper}>
+                            {linkComponent(card)}
+                        </div>
+                    )}
+                </div>
             </div>
-        </div>
-    );
+        )
+    };
+
+    const linkComponent = (card: CardItem) => {
+        const isExternal = !card.link.startsWith('/');
+        const content = (
+            <>
+                {card.ctaText}
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+            </>
+        );
+
+        return isExternal ? (
+            <a href={card.link} target="_blank" rel="noopener noreferrer" className={styles.cta}>
+                {content}
+            </a>
+        ) : (
+            <Link href={card.link} className={styles.cta}>
+                {content}
+            </Link>
+        );
+    };
 
     return (
-        <div className={`py-12 ${className || ''}`}>
-            {title && (
-                <div className="container mx-auto px-4 mb-10">
-                    <h2 className="text-3xl font-bold text-center text-gray-900">{title}</h2>
-                </div>
-            )}
+        <section className={`${styles.cardGroup} ${styles[layout]} ${className || ''}`}>
+            <div>
+                {title && (
+                    <div className={styles.titleWrapper}>
+                        <h2 className={styles.title}>{title}</h2>
+                        <div className={styles.divider} />
+                    </div>
+                )}
 
-            {isGrid ? (
-                <div className="container mx-auto px-4">
+                {layout === 'grid' ? (
                     <div
-                        className="grid-layout"
+                        className={styles.container}
                         style={{
                             '--cols-desktop': columns.desktop,
                             '--cols-tablet': columns.tablet,
                             '--cols-mobile': columns.mobile,
                         } as React.CSSProperties}
                     >
-                        <style jsx>{`
-                            .grid-layout {
-                                display: grid;
-                                gap: 2rem;
-                                grid-template-columns: repeat(var(--cols-mobile), minmax(0, 1fr));
-                            }
-                            @media (min-width: 640px) {
-                                .grid-layout {
-                                    grid-template-columns: repeat(var(--cols-tablet), minmax(0, 1fr));
-                                }
-                            }
-                            @media (min-width: 1024px) {
-                                .grid-layout {
-                                    grid-template-columns: repeat(var(--cols-desktop), minmax(0, 1fr));
-                                }
-                            }
-                        `}</style>
                         {cards.map((card, index) => renderCard(card, index))}
                     </div>
-                </div>
-            ) : (
-                <div className="container mx-auto px-4 relative group/carousel">
-                    <div
-                        className="overflow-hidden p-4 -m-4"
-                        onMouseEnter={() => setIsPaused(true)}
-                        onMouseLeave={() => setIsPaused(false)}
-                    >
-                        <div
-                            className="flex transition-transform duration-500 ease-out"
-                            style={{
-                                transform: `translateX(-${currentIndex * (100 / visibleCount)}%)`,
-                                width: `${(cards.length / visibleCount) * 100}%`
-                            }}
-                        >
-                            {cards.map((card, index) => (
-                                <div
-                                    key={index}
-                                    className="px-3"
-                                    style={{ width: `${100 / cards.length}%` }}
-                                >
-                                    {renderCard(card, index)}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Navigation Arrows */}
-                    {cards.length > visibleCount && (
-                        <>
-                            <button
-                                onClick={prevSlide}
-                                className={`
-                                    absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 md:-translate-x-full lg:-translate-x-12
-                                    w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center
-                                    text-gray-700 hover:text-primary-600 hover:shadow-lg transition-all z-10
-                                `}
+                ) : (
+                    <div className={styles.carouselWrapper}>
+                        <div className={styles.carouselViewport}>
+                            <div
+                                className={styles.carouselTrack}
+                                style={{
+                                    transform: `translateX(-${currentIndex * (100 / visibleCount)}%)`,
+                                    transition: isTransitioning ? 'transform 0.6s cubic-bezier(0.23, 1, 0.32, 1)' : 'none'
+                                }}
                             >
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                {clonedCards.map((card, index) => (
+                                    <div
+                                        className={styles.carouselSlide}
+                                        key={index}
+                                        style={{ width: `${100 / visibleCount}%` }}
+                                    >
+                                        {renderCard(card, index)}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className={styles.controls}>
+                            <button className={styles.navButton} onClick={handlePrev} aria-label="Previous">
+                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                                 </svg>
                             </button>
-                            <button
-                                onClick={nextSlide}
-                                className={`
-                                    absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 md:translate-x-full lg:translate-x-12
-                                    w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center
-                                    text-gray-700 hover:text-primary-600 hover:shadow-lg transition-all z-10
-                                `}
-                            >
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+
+                            <div className={styles.dots}>
+                                {cards.map((_, index) => (
+                                    <button
+                                        key={index}
+                                        className={`${styles.dot} ${(currentIndex - visibleCount + totalOriginal) % totalOriginal === index ? styles.active : ''}`}
+                                        onClick={() => {
+                                            if (isTransitioning) return;
+                                            setIsTransitioning(true);
+                                            setCurrentIndex(index + visibleCount);
+                                        }}
+                                        aria-label={`Go to slide ${index + 1}`}
+                                    />
+                                ))}
+                            </div>
+
+                            <button className={styles.navButton} onClick={handleNext} aria-label="Next">
+                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                 </svg>
                             </button>
-                        </>
-                    )}
-
-                    {/* Dots Navigation */}
-                    {cards.length > visibleCount && (
-                        <div className="flex justify-center gap-2 mt-6">
-                            {Array.from({ length: maxIndex + 1 }).map((_, index) => (
-                                <button
-                                    key={index}
-                                    className={`
-                                        w-2 h-2 rounded-full transition-all duration-300
-                                        ${index === currentIndex
-                                            ? 'bg-primary-600 w-6'
-                                            : 'bg-gray-300 hover:bg-gray-400'
-                                        }
-                                    `}
-                                    onClick={() => goToSlide(index)}
-                                    aria-label={`Go to slide ${index + 1}`}
-                                />
-                            ))}
                         </div>
-                    )}
-                </div>
-            )}
-        </div>
+                    </div>
+                )}
+            </div>
+        </section>
     );
 };
 

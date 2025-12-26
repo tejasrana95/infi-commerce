@@ -153,7 +153,7 @@ export default function CategoryFilters({
                                         const newValues = e.target.checked
                                             ? [...(currentValues || []), opt.value]
                                             : (currentValues || []).filter(v => v !== opt.value);
-                                        onFilterChange(filterKey === 'stock' ? 'stockStatus' : filterKey, newValues);
+                                        onFilterChange(filterKey, newValues);
                                     }}
                                 />
                                 <span className={styles.checkbox}>
@@ -506,7 +506,13 @@ export default function CategoryFilters({
     ) => {
         // Logic similar to checkbox but dropdown UI
         // Reusing logic but simpler UI
-        const currentValues = filterKey === 'brand' ? activeFilters.brands : activeFilters.attributes?.[filterKey] || [];
+        const currentValues = filterKey === 'brand'
+            ? activeFilters.brands
+            : filterKey === 'stock'
+                ? activeFilters.stockStatus
+                : filterKey === 'tags'
+                    ? activeFilters.tags
+                    : activeFilters.attributes?.[filterKey] || [];
         const isOpen = expandedFilters.has(filterKey);
         const isActive = (currentValues?.length || 0) > 0;
 
@@ -542,7 +548,7 @@ export default function CategoryFilters({
                                     </svg>
                                 </span>
                                 <span className={styles.labelText}>
-                                    {opt.label || opt.value}
+                                    {opt.label || (filterKey === 'stock' ? formatStockStatus(opt.status || opt.value) : opt.value)}
                                 </span>
                                 <span className={styles.count}>({opt.count})</span>
                             </label>
@@ -553,16 +559,105 @@ export default function CategoryFilters({
         );
     };
 
-    // If position is top, render horizontal filters (simplified)
+    // If position is top, render horizontal filters
     if (config.filters?.position === 'top') {
         return (
             <div className={styles.topFilters}>
-                {/* Horizontal logic would go here, reusing rendering functions */}
-                {/* For brevity, skipping full horizontal implementation unless requested,
-                    focusing on vertical sidebar as requested for Category/Search parity */}
-                {/* Just re-using standard display for now or implementing basic dropdowns */}
-                {renderDropdownFilter('Price', 'price', [])} {/* Placeholder */}
-                {/* ... */}
+                {/* Active filter count and clear all */}
+                {activeFilterCount > 0 && (
+                    <div className={styles.topFiltersActive}>
+                        <span className={styles.filterBadge}>{activeFilterCount} active</span>
+                        <button className={styles.clearAllBtn} onClick={onClearAllFilters}>
+                            Clear All
+                        </button>
+                    </div>
+                )}
+
+                {/* Price Filter Dropdown */}
+                {config.filters?.showPriceRange && availableFilters?.priceRange && (
+                    <div className={styles.filterDropdown}>
+                        <button
+                            className={`${styles.dropdownTrigger} ${isExpanded('price') ? styles.open : ''} ${activeFilters.price ? styles.active : ''}`}
+                            onClick={() => toggleFilter('price')}
+                        >
+                            <span>Price</span>
+                            {activeFilters.price && <span className={styles.filterBadge}>1</span>}
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        {isExpanded('price') && (
+                            <div className={styles.dropdownContent}>
+                                {renderPriceFilter()}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Brand Filter Dropdown */}
+                {config.filters?.showBrandFilter && (availableFilters?.brands?.length ?? 0) > 0 && (
+                    renderDropdownFilter('Brand', 'brand', availableFilters!.brands!)
+                )}
+
+                {/* Rating Filter Dropdown */}
+                {config.filters?.showRatingFilter && (
+                    <div className={styles.filterDropdown}>
+                        <button
+                            className={`${styles.dropdownTrigger} ${isExpanded('rating') ? styles.open : ''} ${activeFilters.rating ? styles.active : ''}`}
+                            onClick={() => toggleFilter('rating')}
+                        >
+                            <span>Rating</span>
+                            {activeFilters.rating && <span className={styles.filterBadge}>1</span>}
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        {isExpanded('rating') && (
+                            <div className={styles.dropdownContent}>
+                                {[4, 3, 2, 1].map(rating => (
+                                    <label key={rating} className={styles.ratingLabel}>
+                                        <input
+                                            type="radio"
+                                            name="rating-top"
+                                            checked={activeFilters.rating === rating}
+                                            onChange={() => onFilterChange('rating', activeFilters.rating === rating ? null : rating)}
+                                        />
+                                        <span className={styles.stars}>
+                                            {[...Array(5)].map((_, i) => (
+                                                <svg
+                                                    key={i}
+                                                    className={i < rating ? styles.starFilled : styles.starEmpty}
+                                                    viewBox="0 0 20 20"
+                                                    fill="currentColor"
+                                                >
+                                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                </svg>
+                                            ))}
+                                        </span>
+                                        <span>& up</span>
+                                    </label>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Availability Filter Dropdown */}
+                {config.filters?.showAvailabilityFilter && (availableFilters?.availability?.length ?? 0) > 0 && (
+                    renderDropdownFilter('Availability', 'stock', availableFilters!.availability!)
+                )}
+
+                {/* Attribute Filters Dropdowns */}
+                {config.filters?.showAttributeFilters && availableFilters?.attributes?.map(attr => (
+                    <React.Fragment key={attr._id}>
+                        {renderDropdownFilter(attr.name, attr.slug, attr.values)}
+                    </React.Fragment>
+                ))}
+
+                {/* Tags Filter Dropdown */}
+                {config.filters?.showTagFilter && (availableFilters?.tags?.length ?? 0) > 0 && (
+                    renderDropdownFilter('Tags', 'tags', availableFilters!.tags!)
+                )}
             </div>
         );
     }

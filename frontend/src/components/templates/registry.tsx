@@ -15,6 +15,7 @@ import CoreCategoryPageContainer from './core/CategoryPage/Container';
 import CoreProductPageContainer from './core/ProductPage/Container';
 import CoreAuthPageContainer from './core/AuthPage/Container';
 import CoreComparePageContainer from './core/ComparePage/Container';
+import CoreSearchPageContainer from './core/SearchPage/Container';
 
 
 // Core (Fallback) - Templates (pure presentation)
@@ -63,6 +64,7 @@ export type ComponentName =
     | 'AuthPageTemplate'
     | 'ComparePage'
     | 'ComparePageTemplate'
+    | 'SearchPage'
     | 'Banner';
 
 // ============================================
@@ -91,6 +93,7 @@ const TEMPLATE_COMPONENTS: Record<string, Record<string, React.ComponentType<any
         AuthPageTemplate: ModernCleanAuthPageTemplate,
         ComparePage: CoreComparePageContainer,
         ComparePageTemplate: ModernCleanComparePageTemplate,
+        SearchPage: CoreSearchPageContainer,
     },
     'classic-elegance': {
         // Containers (with business logic) - Use same Core containers
@@ -112,6 +115,7 @@ const TEMPLATE_COMPONENTS: Record<string, Record<string, React.ComponentType<any
         AuthPageTemplate: ModernCleanAuthPageTemplate, // Use modern-clean as fallback
         ComparePage: CoreComparePageContainer,
         ComparePageTemplate: ModernCleanComparePageTemplate,
+        SearchPage: CoreSearchPageContainer,
     },
 };
 
@@ -138,6 +142,7 @@ const CORE_COMPONENTS: Record<string, React.ComponentType<any>> = {
     AuthPageTemplate: React.lazy(() => import('./modern-clean/AuthPage/Template')),
     ComparePage: CoreComparePageContainer,
     ComparePageTemplate: ModernCleanComparePageTemplate,
+    SearchPage: CoreSearchPageContainer,
 };
 
 // ============================================

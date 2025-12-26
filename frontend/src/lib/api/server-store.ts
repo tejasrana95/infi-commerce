@@ -219,6 +219,93 @@ export async function fetchCategoryPageData(
 }
 
 // ============================================
+// Search Page Data Fetching
+// ============================================
+
+/**
+ * Fetch products by search query
+ */
+export async function fetchSearchProducts(
+    storeId: string,
+    searchQuery: string,
+    options: { limit?: number; sort?: string } = {}
+): Promise<{ products: any[]; pagination: any }> {
+    const { limit = 24, sort = 'featured' } = options;
+    try {
+        const url = `${API_BASE}/products?storeId=${storeId}&limit=${limit}&sort=${sort}&search=${encodeURIComponent(searchQuery)}`;
+
+        const res = await fetch(url, {
+            next: { revalidate: 0 }, // Don't cache search results
+            headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (!res.ok) return { products: [], pagination: null };
+        const data = await res.json();
+        return { products: data.products || [], pagination: data.pagination || null };
+    } catch (error) {
+        console.error('Error fetching search products:', error);
+        return { products: [], pagination: null };
+    }
+}
+
+/**
+ * Fetch global store filters (for search page)
+ * Uses the "all-products" special category to get store-wide filters
+ */
+export async function fetchSearchFilters(storeId: string): Promise<any | null> {
+    try {
+        const res = await fetch(
+            `${API_BASE}/categories/all-products/filters?storeId=${storeId}`,
+            {
+                next: { revalidate: 60 },
+                headers: { 'Content-Type': 'application/json' },
+            }
+        );
+
+        if (!res.ok) return null;
+        return await res.json();
+    } catch (error) {
+        console.error('Error fetching search filters:', error);
+        return null;
+    }
+}
+
+/**
+ * Fetch all search page data in one call
+ * Optimized for SSR - fetches everything in parallel
+ */
+export async function fetchSearchPageData(
+    storeId: string,
+    searchQuery: string,
+    options: { sort?: string } = {}
+) {
+    if (!searchQuery || searchQuery.trim() === '') {
+        return {
+            searchQuery: '',
+            products: [],
+            filters: null,
+            layout: null,
+            pagination: null
+        };
+    }
+
+    // Fetch products, global filters, and search layout in parallel
+    const [searchResult, filters, layout] = await Promise.all([
+        fetchSearchProducts(storeId, searchQuery, { sort: options.sort }),
+        fetchSearchFilters(storeId), // Fetch global store filters
+        fetchLayout(storeId, 'search'), // Use 'search' layout from layout builder
+    ]);
+
+    return {
+        searchQuery: searchQuery.trim(),
+        products: searchResult.products,
+        pagination: searchResult.pagination,
+        filters, // Global store filters for search
+        layout
+    };
+}
+
+// ============================================
 // Product Page Data Fetching (for future use)
 // ============================================
 
