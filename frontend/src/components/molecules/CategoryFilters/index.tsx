@@ -504,15 +504,16 @@ export default function CategoryFilters({
         filterKey: string,
         options: { value: string; label?: string; count: number; status?: string }[],
     ) => {
-        // Logic similar to checkbox but dropdown UI
-        // Reusing logic but simpler UI
+        // Get current values considering staged filters
         const currentValues = filterKey === 'brand'
-            ? activeFilters.brands
+            ? (stagedFilters?.brands !== undefined ? stagedFilters.brands : activeFilters.brands)
             : filterKey === 'stock'
-                ? activeFilters.stockStatus
+                ? (stagedFilters?.stockStatus !== undefined ? stagedFilters.stockStatus : activeFilters.stockStatus)
                 : filterKey === 'tags'
-                    ? activeFilters.tags
-                    : activeFilters.attributes?.[filterKey] || [];
+                    ? (stagedFilters?.tags !== undefined ? stagedFilters.tags : activeFilters.tags)
+                    : (stagedFilters?.attributes?.[filterKey] !== undefined
+                        ? stagedFilters.attributes[filterKey]
+                        : activeFilters.attributes?.[filterKey] || []);
         const isOpen = expandedFilters.has(filterKey);
         const isActive = (currentValues?.length || 0) > 0;
 
@@ -534,7 +535,10 @@ export default function CategoryFilters({
                             <label key={opt.value} className={styles.checkboxLabel}>
                                 <input
                                     type="checkbox"
-                                    checked={currentValues?.includes(opt.value)}
+                                    checked={isFilterValueActive
+                                        ? isFilterValueActive(filterKey, opt.value)
+                                        : currentValues?.includes(opt.value) || false
+                                    }
                                     onChange={(e) => {
                                         const newValues = e.target.checked
                                             ? [...(currentValues || []), opt.value]
@@ -553,6 +557,40 @@ export default function CategoryFilters({
                                 <span className={styles.count}>({opt.count})</span>
                             </label>
                         ))}
+                        {/* Apply/Reset buttons */}
+                        {(() => {
+                            const activeValues = filterKey === 'brand'
+                                ? activeFilters.brands
+                                : filterKey === 'tags'
+                                    ? activeFilters.tags
+                                    : filterKey === 'stock'
+                                        ? activeFilters.stockStatus
+                                        : activeFilters.attributes?.[filterKey];
+                            const stagedValues = filterKey === 'brand'
+                                ? stagedFilters?.brands
+                                : filterKey === 'tags'
+                                    ? stagedFilters?.tags
+                                    : filterKey === 'stock'
+                                        ? stagedFilters?.stockStatus
+                                        : stagedFilters?.attributes?.[filterKey];
+                            const hasChanges = JSON.stringify(stagedValues || []) !== JSON.stringify(activeValues || []) && stagedValues !== undefined;
+                            const isApplied = activeValues && activeValues.length > 0;
+
+                            return (hasChanges || isApplied) ? (
+                                <div className={styles.filterActions}>
+                                    {hasChanges && onApplyFilters && (
+                                        <button className={styles.filterApplyBtn} onClick={onApplyFilters}>
+                                            Apply
+                                        </button>
+                                    )}
+                                    {isApplied && (
+                                        <button className={styles.filterResetBtn} onClick={() => onClearFilter?.(filterKey)}>
+                                            Reset
+                                        </button>
+                                    )}
+                                </div>
+                            ) : null;
+                        })()}
                     </div>
                 )}
             </div>
@@ -614,29 +652,54 @@ export default function CategoryFilters({
                         </button>
                         {isExpanded('rating') && (
                             <div className={styles.dropdownContent}>
-                                {[4, 3, 2, 1].map(rating => (
-                                    <label key={rating} className={styles.ratingLabel}>
-                                        <input
-                                            type="radio"
-                                            name="rating-top"
-                                            checked={activeFilters.rating === rating}
-                                            onChange={() => onFilterChange('rating', activeFilters.rating === rating ? null : rating)}
-                                        />
-                                        <span className={styles.stars}>
-                                            {[...Array(5)].map((_, i) => (
-                                                <svg
-                                                    key={i}
-                                                    className={i < rating ? styles.starFilled : styles.starEmpty}
-                                                    viewBox="0 0 20 20"
-                                                    fill="currentColor"
-                                                >
-                                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                                </svg>
-                                            ))}
-                                        </span>
-                                        <span>& up</span>
-                                    </label>
-                                ))}
+                                {[4, 3, 2, 1].map(ratingValue => {
+                                    const currentRating = stagedFilters?.rating !== undefined ? stagedFilters.rating : activeFilters.rating;
+                                    return (
+                                        <label key={ratingValue} className={styles.ratingLabel}>
+                                            <input
+                                                type="radio"
+                                                name="rating-top"
+                                                checked={currentRating === ratingValue}
+                                                onChange={() => onFilterChange('rating', currentRating === ratingValue ? null : ratingValue)}
+                                            />
+                                            <span className={styles.radio} />
+                                            <span className={styles.stars}>
+                                                {[...Array(5)].map((_, i) => (
+                                                    <svg
+                                                        key={i}
+                                                        className={i < ratingValue ? styles.starFilled : styles.starEmpty}
+                                                        viewBox="0 0 20 20"
+                                                        fill="currentColor"
+                                                    >
+                                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                    </svg>
+                                                ))}
+                                            </span>
+                                            <span className={styles.ratingText}>& up</span>
+                                        </label>
+                                    );
+                                })}
+                                {/* Apply/Reset buttons for rating */}
+                                {(() => {
+                                    const isApplied = activeFilters.rating != null;
+                                    const stagedRating = stagedFilters?.rating;
+                                    const hasChanges = stagedRating !== undefined && stagedRating !== activeFilters.rating;
+
+                                    return (hasChanges || isApplied) ? (
+                                        <div className={styles.filterActions}>
+                                            {hasChanges && onApplyFilters && (
+                                                <button className={styles.filterApplyBtn} onClick={onApplyFilters}>
+                                                    Apply
+                                                </button>
+                                            )}
+                                            {isApplied && (
+                                                <button className={styles.filterResetBtn} onClick={() => onClearFilter?.('rating')}>
+                                                    Reset
+                                                </button>
+                                            )}
+                                        </div>
+                                    ) : null;
+                                })()}
                             </div>
                         )}
                     </div>
