@@ -138,7 +138,7 @@ export interface Product {
     videos?: ProductVideo[];
 
     // Categorization
-    categoryIds: string[];
+    categoryIds: Array<{ _id: string; title: string; slug: string }>;
     categories?: Array<{ _id: string; title: string; slug: string }>;
     tags: string[];
     brand?: string | { _id: string; name: string; slug: string; logo?: string };
@@ -278,6 +278,9 @@ export interface ProductPageTemplateProps {
     onAddToWishlist: () => void;
     isWishlisted?: boolean;
     onAddToCompare: () => void;
+    isInCompare?: boolean;
+    compareDisabled?: boolean;
+    compareDisabledReason?: string;
     isAddingToCart: boolean;
 
     // Reviews

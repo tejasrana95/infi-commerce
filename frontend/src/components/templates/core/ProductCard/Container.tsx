@@ -8,6 +8,7 @@ import { getComponent } from '@/components/templates/registry';
 import { ProductTemplateProps, Product } from './types';
 import { useStore, useThemeConfig } from '@/providers/StoreProvider';
 import { useWishlist } from '@/providers/WishlistProvider';
+import { useCompare, CompareItem } from '@/providers/CompareProvider';
 import { DEFAULT_PRODUCT_CARD_CONFIG, ProductCardConfig } from '@/types';
 import { formatPrice } from '@/lib/currency';
 
@@ -33,6 +34,13 @@ function isWithinSalePeriod(saleStartDate?: string, saleEndDate?: string): boole
     return true; // Within sale period or no date restrictions
 }
 
+function getBrandName(product: Product): string | undefined {
+    if (typeof product.brand === 'object' && product.brand) {
+        return product.brand.name;
+    }
+    return product.brandName || (typeof product.brand === 'string' ? product.brand : undefined);
+}
+
 // Process product data into template-ready props
 function processProductData(product: Product, currency: import('@/types').Currency | string): ProductTemplateProps {
     // Calculate values based on currency exchange rate
@@ -48,7 +56,7 @@ function processProductData(product: Product, currency: import('@/types').Curren
             id: product._id,
             name: product.name,
             slug: product.slug,
-            brand: product.brandName || product.brand,
+            brand: getBrandName(product),
             sku: product.sku,
             price: currentPrice,
             compareAtPrice,
@@ -93,7 +101,7 @@ function processProductData(product: Product, currency: import('@/types').Curren
         id: product._id,
         name: product.name,
         slug: product.slug,
-        brand: product.brandName || product.brand,
+        brand: getBrandName(product),
         sku: product.sku,
         price: currentPrice,
         compareAtPrice: displayCompareAt,
@@ -129,6 +137,20 @@ export default function ProductCardContainer({
     // Get wishlist functions from context (single API call for all products)
     const { isInWishlist, toggleWishlist } = useWishlist();
 
+    // Get compare functions from context
+    const { isInCompare, addToCompare, removeFromCompare, canAddToCompare, config: compareConfig } = useCompare();
+
+    // Check if this product can be added to compare
+    const compareItem: CompareItem = {
+        id: product._id,
+        name: product.name,
+        slug: product.slug,
+        image: product.images?.[0] || '',
+        price: product.pricing?.finalPrice || product.price,
+        categoryIds: (product as any).categoryIds || [],
+    };
+    const { canAdd: canCompare, reason: compareReason } = canAddToCompare(compareItem);
+
     // Use context currency if available, otherwise fallback to prop
     const activeCurrency = currentCurrency || initialCurrency;
 
@@ -152,16 +174,30 @@ export default function ProductCardContainer({
     // Process the product data
     const templateProps = processProductData(product, activeCurrency);
 
+    // Handle compare toggle
+    const handleCompareToggle = () => {
+        if (isInCompare(product._id)) {
+            removeFromCompare(product._id);
+        } else {
+            addToCompare(compareItem);
+        }
+    };
+
     // Get the template-specific presenter component
     const ProductCardTemplate = getComponent('ProductCardTemplate', templateId);
 
-    // Render the template with processed data, config, and wishlist props
+    // Render the template with processed data, config, and wishlist/compare props
     return (
         <ProductCardTemplate
             {...templateProps}
             cardConfig={productCardConfig}
             isWishlisted={isInWishlist(product._id)}
             onToggleWishlist={() => toggleWishlist(product._id)}
+            isInCompare={isInCompare(product._id)}
+            onCompare={handleCompareToggle}
+            showCompare={compareConfig.enabled && compareConfig.showInProductCard}
+            compareDisabled={!canCompare && !isInCompare(product._id)}
+            compareDisabledReason={compareReason}
         />
     );
 }

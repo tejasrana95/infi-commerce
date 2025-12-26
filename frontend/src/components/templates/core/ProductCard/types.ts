@@ -52,7 +52,7 @@ export interface Product {
     reviewCount?: number;
     isNew?: boolean;
     inStock?: boolean;
-    brand?: string;
+    brand?: string | { _id: string; name: string; slug: string; logo?: string };
     brandName?: string;  // Resolved brand name from API lookup
     sku?: string;
     stockStatus?: string;

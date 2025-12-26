@@ -32,6 +32,7 @@ export default function ModernCleanCategoryPageTemplate({
     activeFilterCount,
     onFilterChange,
     onClearFilter,
+    onRemoveFilterValue,
     onClearAllFilters,
     isFilterDrawerOpen,
     onOpenFilterDrawer,
@@ -46,6 +47,9 @@ export default function ModernCleanCategoryPageTemplate({
     hasUnappliedChanges,
     onApplyFilters,
     onClearStagedFilters,
+    brandLookup = {},
+    getBrandDisplay = (id) => brandLookup[id]?.name || id,
+    isFilterValueActive,
 }: CategoryPageTemplateProps) {
     const [expandedFilters, setExpandedFilters] = useState<Set<string>>(() => {
         const isTop = config.filters?.position === 'top';
@@ -111,7 +115,6 @@ export default function ModernCleanCategoryPageTemplate({
         });
     };
 
-    // Check if filter is expanded
     const isExpanded = (key: string) => expandedFilters.has(key);
 
     // Render filter checkbox group
@@ -152,7 +155,10 @@ export default function ModernCleanCategoryPageTemplate({
                             <label key={opt.value} className={styles.checkboxLabel}>
                                 <input
                                     type="checkbox"
-                                    checked={currentValues?.includes(opt.value) || false}
+                                    checked={isFilterValueActive
+                                        ? isFilterValueActive(filterKey, opt.value)
+                                        : currentValues?.includes(opt.value) || false
+                                    }
                                     onChange={(e) => {
                                         const newValues = e.target.checked
                                             ? [...(currentValues || []), opt.value]
@@ -190,8 +196,12 @@ export default function ModernCleanCategoryPageTemplate({
                                         : stagedFilters?.attributes?.[filterKey];
 
                             // Show button if staged differs from active (proper comparison without mutating)
-                            const activeSorted = activeValues ? [...activeValues].sort().join(',') : '';
-                            const stagedSorted = stagedValues ? [...stagedValues].sort().join(',') : '';
+                            const normalizeForComparison = (values: any[] | undefined): string => {
+                                if (!values) return '';
+                                return [...values].sort().join(',');
+                            };
+                            const activeSorted = normalizeForComparison(activeValues as any[]);
+                            const stagedSorted = normalizeForComparison(stagedValues as any[]);
                             const hasChanges = activeSorted !== stagedSorted;
                             const isApplied = activeValues && activeValues.length > 0;
 
@@ -412,10 +422,12 @@ export default function ModernCleanCategoryPageTemplate({
 
                         {/* Apply and Reset buttons */}
                         <div className={styles.filterActions}>
-                            {hasUnappliedChanges && (() => {
+                            {(() => {
                                 const stagedPrice = stagedFilters?.price;
                                 const activePrice = activeFilters.price;
-                                const hasChanges = JSON.stringify(stagedPrice) !== JSON.stringify(activePrice);
+                                // Only show hasChanges if price was explicitly staged
+                                const hasChanges = stagedPrice !== undefined &&
+                                    JSON.stringify(stagedPrice) !== JSON.stringify(activePrice);
 
                                 return hasChanges ? (
                                     <button className={styles.filterApplyBtn} onClick={onApplyFilters}>
@@ -491,8 +503,10 @@ export default function ModernCleanCategoryPageTemplate({
                             </label>
                         ))}
                         {(() => {
-                            const isApplied = activeFilters.rating;
-                            const hasChanges = stagedFilters?.rating !== activeFilters.rating;
+                            const isApplied = activeFilters.rating != null;
+                            // Compare properly: treat undefined as "not staged" meaning use active value
+                            const stagedRating = stagedFilters?.rating;
+                            const hasChanges = stagedRating !== undefined && stagedRating !== activeFilters.rating;
 
                             return (hasChanges || isApplied) ? (
                                 <div className={styles.filterActions}>
@@ -514,7 +528,6 @@ export default function ModernCleanCategoryPageTemplate({
             </div>
         );
     };
-
     // Render sidebar filters
     const renderFilters = () => (
         <div className={styles.filtersContent}>
@@ -526,15 +539,40 @@ export default function ModernCleanCategoryPageTemplate({
                         <button onClick={onClearAllFilters}>Clear All</button>
                     </div>
                     <div className={styles.activeFilterTags}>
-                        {activeFilters.brands?.map(brand => (
-                            <span key={brand} className={styles.filterTag}>
-                                {brand}
+                        {activeFilters.brands?.map(brandId => (
+                            <span key={brandId} className={styles.filterTag}>
+                                {getBrandDisplay(brandId)}
                                 <button onClick={() => {
-                                    const newBrands = activeFilters.brands?.filter(b => b !== brand);
-                                    onFilterChange('brand', newBrands);
+                                    onRemoveFilterValue('brand', brandId);
                                 }}>×</button>
                             </span>
                         ))}
+                        {activeFilters.stockStatus?.map(status => (
+                            <span key={status} className={styles.filterTag}>
+                                {formatStockStatus(status)}
+                                <button onClick={() => {
+                                    onRemoveFilterValue('stock', status);
+                                }}>×</button>
+                            </span>
+                        ))}
+                        {activeFilters.tags?.map(tag => (
+                            <span key={tag} className={styles.filterTag}>
+                                {tag}
+                                <button onClick={() => {
+                                    onRemoveFilterValue('tags', tag);
+                                }}>×</button>
+                            </span>
+                        ))}
+                        {activeFilters.attributes && Object.entries(activeFilters.attributes).map(([attrSlug, values]) =>
+                            values.map(value => (
+                                <span key={`${attrSlug}-${value}`} className={styles.filterTag}>
+                                    {value}
+                                    <button onClick={() => {
+                                        onRemoveFilterValue(attrSlug, value);
+                                    }}>×</button>
+                                </span>
+                            ))
+                        )}
                         {activeFilters.price && (() => {
                             const displayMin = Math.round(activeFilters.price.min * exchangeRate);
                             const displayMax = activeFilters.price.max === Infinity

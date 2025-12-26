@@ -150,6 +150,17 @@ export interface IStore extends Document {
                 indexFilteredPages?: boolean;
             };
         };
+        // Compare feature configuration
+        compare?: {
+            enabled?: boolean;
+            maxProducts?: 2 | 3 | 4;
+            maxProductsMobile?: 2;
+            requireSameCategory?: boolean;
+            showInProductCard?: boolean;
+            showInProductPage?: boolean;
+            widgetStyle?: 'floating' | 'drawer' | 'none';
+            widgetPosition?: 'bottom' | 'bottom-right' | 'bottom-left';
+        };
     };
 
     createdAt: Date;

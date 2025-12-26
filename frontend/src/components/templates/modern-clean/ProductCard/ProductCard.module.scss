@@ -200,6 +200,32 @@
             color: #ef4444;
         }
     }
+
+    &.inCompare {
+        background: var(--color-primary, #3b82f6);
+
+        svg {
+            color: #ffffff;
+        }
+    }
+
+    &.disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+        background: #e5e7eb;
+
+        svg {
+            color: #9ca3af;
+        }
+
+        &:hover {
+            transform: none;
+
+            svg {
+                color: #9ca3af;
+            }
+        }
+    }
 }
 
 .card:hover .iconBtn {

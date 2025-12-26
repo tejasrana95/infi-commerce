@@ -6,6 +6,7 @@ import { Box, Tooltip, IconButton, Typography, useTheme, Chip, Avatar } from '@m
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import api from '@/lib/api';
 import { Product } from '@/types';
 import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules';
@@ -58,7 +59,11 @@ export default function ProductsPage() {
       if (filterCategory) params.append('categoryId', filterCategory);
       if (filterType) params.append('type', filterType);
       if (filterStockStatus) params.append('stockStatus', filterStockStatus);
-      if (filterStatus) params.append('isActive', filterStatus === 'active' ? 'true' : 'false');
+      if (filterStatus) {
+        params.append('isActive', filterStatus === 'active' ? 'true' : 'false');
+      } else {
+        params.append('isActive', 'all');
+      }
 
       const queryString = params.toString();
       const url = queryString ? `/products?${queryString}` : '/products';
@@ -82,6 +87,17 @@ export default function ProductsPage() {
       showNotification('Product deleted successfully', 'success');
     } catch (err: any) {
       showNotification(err.response?.data?.message || 'Failed to delete', 'error');
+    }
+  };
+
+  const handleClone = async (id: string) => {
+    if (!confirm('Are you sure you want to clone this product?')) return;
+    try {
+      await api.post(`/products/${id}/clone`);
+      showNotification('Product cloned successfully', 'success');
+      fetchProducts(); // Refresh list to show new clone
+    } catch (err: any) {
+      showNotification(err.response?.data?.message || 'Failed to clone product', 'error');
     }
   };
 
@@ -240,6 +256,11 @@ export default function ProductsPage() {
       sortable: false,
       renderCell: (params: GridRenderCellParams) => (
         <Box>
+          <Tooltip title="Clone">
+            <IconButton onClick={() => handleClone(params.row._id)} size="small" color="info">
+              <ContentCopyIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
           <Tooltip title="Edit">
             <IconButton onClick={() => handleEdit(params.row._id)} size="small" color="primary">
               <EditIcon fontSize="small" />

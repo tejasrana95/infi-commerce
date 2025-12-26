@@ -6,6 +6,7 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { getComponent } from '@/components/templates/registry';
 import { useStore, useThemeConfig } from '@/providers/StoreProvider';
 import { useWishlist } from '@/providers/WishlistProvider';
+import { useCompare, CompareItem } from '@/providers/CompareProvider';
 import api from '@/lib/api';
 import {
     Product,
@@ -38,6 +39,7 @@ export default function ProductPageContainer({
     const themeConfig = useThemeConfig();
     const currency = useCurrency();
     const { isInWishlist, toggleWishlist } = useWishlist();
+    const { addToCompare, isInCompare, removeFromCompare, canAddToCompare, config: compareConfig } = useCompare();
 
     // Currency
     const currencySymbol = currentCurrency?.symbol || '$';
@@ -286,8 +288,24 @@ export default function ProductPageContainer({
     }, [toggleWishlist, product._id]);
 
     const handleAddToCompare = useCallback(() => {
-        console.log('Add to compare:', product._id);
-    }, [product._id]);
+        if (isInCompare(product._id)) {
+            removeFromCompare(product._id);
+        } else {
+            const compareItem: CompareItem = {
+                id: product._id,
+                name: product.name,
+                slug: product.slug,
+                image: product.featuredImage || product.images?.[0] || '',
+                price: product.pricing?.finalPrice || product.salePrice || product.price,
+                categoryIds: product.categoryIds || [],
+            };
+            const result = addToCompare(compareItem);
+            if (!result.success && result.error) {
+                console.warn('Compare error:', result.error);
+                // TODO: Show toast notification with error
+            }
+        }
+    }, [product._id, product.name, product.slug, product.featuredImage, product.images, product.pricing, product.salePrice, product.price, product.categoryIds, isInCompare, addToCompare, removeFromCompare]);
 
     // ============================================
     // User State (moved before Reviews so it's available for review handlers)
@@ -540,6 +558,31 @@ export default function ProductPageContainer({
         onAddToWishlist: handleToggleWishlist,
         isWishlisted,
         onAddToCompare: handleAddToCompare,
+        isInCompare: isInCompare(product._id),
+        compareDisabled: (() => {
+            const compareItem: CompareItem = {
+                id: product._id,
+                name: product.name,
+                slug: product.slug,
+                image: product.featuredImage || product.images?.[0] || '',
+                price: product.pricing?.finalPrice || product.salePrice || product.price,
+                categoryIds: product.categoryIds || [],
+            };
+            const { canAdd } = canAddToCompare(compareItem);
+            return !canAdd && !isInCompare(product._id);
+        })(),
+        compareDisabledReason: (() => {
+            const compareItem: CompareItem = {
+                id: product._id,
+                name: product.name,
+                slug: product.slug,
+                image: product.featuredImage || product.images?.[0] || '',
+                price: product.pricing?.finalPrice || product.salePrice || product.price,
+                categoryIds: product.categoryIds || [],
+            };
+            const { reason } = canAddToCompare(compareItem);
+            return reason;
+        })(),
         isAddingToCart,
         reviews,
         reviewStats,

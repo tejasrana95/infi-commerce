@@ -7,6 +7,8 @@ import { StoreProvider } from "@/providers/StoreProvider";
 import { UIProvider } from "@/providers/UIProvider";
 import { CustomerProvider } from "@/providers/AuthProvider";
 import { WishlistProvider } from "@/providers/WishlistProvider";
+import { CompareProvider } from "@/providers/CompareProvider";
+import CompareFloatingWidget from "@/components/core/CompareFloatingWidget";
 import AuthModal from "@/components/organisms/AuthModal/AuthModal";
 import { fetchCurrencies, getStore } from "@/lib/api";
 import { getEnrichedMenus } from "@/lib/server-menu";
@@ -162,24 +164,27 @@ export default async function RootLayout({
           <UIProvider>
             <CustomerProvider>
               <WishlistProvider>
-                <div className="min-h-screen flex flex-col">
-                  {/* Header - Template-specific container */}
-                  <Header
-                    config={store?.theme?.header}
-                    store={store}
-                    templateId={templateId}
-                    menus={menus}
-                  />
+                <CompareProvider>
+                  <div className="min-h-screen flex flex-col">
+                    {/* Header - Template-specific container */}
+                    <Header
+                      config={store?.theme?.header}
+                      store={store}
+                      templateId={templateId}
+                      menus={menus}
+                    />
 
-                  {/* Main Content */}
-                  <main className="flex-1">
-                    {children}
-                  </main>
+                    {/* Main Content */}
+                    <main className="flex-1">
+                      {children}
+                    </main>
 
-                  {/* Footer - Template-specific container */}
-                  <Footer config={store?.theme?.footer} store={store} templateId={templateId} />
-                </div>
-                <AuthModal />
+                    {/* Footer - Template-specific container */}
+                    <Footer config={store?.theme?.footer} store={store} templateId={templateId} />
+                  </div>
+                  <AuthModal />
+                  <CompareFloatingWidget />
+                </CompareProvider>
               </WishlistProvider>
             </CustomerProvider>
           </UIProvider>

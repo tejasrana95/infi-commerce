@@ -20,6 +20,10 @@ interface ExtendedProductTemplateProps extends ProductTemplateProps {
     onQuickView?: () => void;
     onCompare?: () => void;
     isWishlisted?: boolean;
+    isInCompare?: boolean;
+    showCompare?: boolean;
+    compareDisabled?: boolean;
+    compareDisabledReason?: string;
 }
 
 export default function ModernCleanProductCardTemplate({
@@ -45,6 +49,10 @@ export default function ModernCleanProductCardTemplate({
     onQuickView,
     onCompare,
     isWishlisted = false,
+    isInCompare = false,
+    showCompare = false,
+    compareDisabled = false,
+    compareDisabledReason,
 }: ExtendedProductTemplateProps) {
     // Extract config with defaults
     const {
@@ -98,7 +106,7 @@ export default function ModernCleanProductCardTemplate({
         showBuyNow = false,
         showWishlist = true,
         showQuickView = styleDefaults.showQuickView ?? true,
-        showCompare = false,
+        showCompare: showCompareConfig = false,
         // Button styles
         addToCartStyle = styleDefaults.addToCartStyle,
         buyNowStyle = 'outlined',
@@ -273,15 +281,18 @@ export default function ModernCleanProductCardTemplate({
                         )}
                         {showCompare && (
                             <button
-                                className={styles.iconBtn}
+                                className={`${styles.iconBtn} ${isInCompare ? styles.inCompare : ''} ${compareDisabled ? styles.disabled : ''}`}
                                 onClick={(e) => {
                                     e.preventDefault();
-                                    onCompare?.();
+                                    if (!compareDisabled) {
+                                        onCompare?.();
+                                    }
                                 }}
-                                aria-label="Compare"
-                                title="Compare"
+                                aria-label={compareDisabled ? compareDisabledReason : (isInCompare ? 'Remove from Compare' : 'Add to Compare')}
+                                title={compareDisabled ? compareDisabledReason : (isInCompare ? 'Remove from Compare' : 'Add to Compare')}
+                                disabled={compareDisabled}
                             >
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                <svg viewBox="0 0 24 24" fill={isInCompare ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.5}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                                 </svg>
                             </button>

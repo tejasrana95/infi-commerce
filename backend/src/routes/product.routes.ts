@@ -12,6 +12,7 @@ import {
     updateStock,
     createProductValidation,
     updateProductValidation,
+    cloneProduct
 } from '../controllers/product.controller';
 import { authenticate, authorize } from '../middleware/auth';
 import { validate } from '../middleware/validation';
@@ -33,6 +34,13 @@ router.post(
     authorize('admin', 'store_admin', 'super_admin'),
     validate(createProductValidation),
     createProduct
+);
+
+router.post(
+    '/:id/clone',
+    authenticate,
+    authorize('admin', 'store_admin', 'super_admin'),
+    cloneProduct
 );
 
 router.put(

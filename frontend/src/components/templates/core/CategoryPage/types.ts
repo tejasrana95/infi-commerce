@@ -72,14 +72,21 @@ export interface AvailableFilters {
     attributes: AttributeFilter[];
 }
 
-// Active filters state
+// Active filters state (simplified - always uses IDs internally)
 export interface ActiveFilters {
-    price?: { min: number; max: number };
+    price?: { min: number; max: number } | null;
     brands?: string[];
     tags?: string[];
-    rating?: number;
+    rating?: number | null;
     stockStatus?: string[];
     attributes?: Record<string, string[]>;
+}
+
+// Brand info for display
+export interface BrandInfo {
+    id: string;
+    name: string;
+    slug: string;
 }
 
 // Breadcrumb item
@@ -128,13 +135,19 @@ export interface CategoryPageTemplateProps {
     activeFilterCount: number;
     onFilterChange: (filterType: string, value: any) => void;
     onClearFilter: (filterType: string) => void;
+    onRemoveFilterValue: (filterType: string, valueToRemove: string) => void;
     onClearAllFilters: () => void;
 
     // Staged filters (Apply Filters button)
-    stagedFilters?: ActiveFilters;
+    stagedFilters?: Partial<ActiveFilters>;
     hasUnappliedChanges?: boolean;
     onApplyFilters?: () => void;
     onClearStagedFilters?: () => void;
+
+    // Brand display helpers
+    brandLookup?: Record<string, BrandInfo>;
+    getBrandDisplay?: (brandId: string) => string;
+    isFilterValueActive?: (filterType: string, value: string) => boolean;
 
     // Mobile filter state
     isFilterDrawerOpen: boolean;

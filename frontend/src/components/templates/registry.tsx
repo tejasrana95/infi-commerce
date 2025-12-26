@@ -14,6 +14,7 @@ import CoreCategoryCardContainer from './core/CategoryCard/Container';
 import CoreCategoryPageContainer from './core/CategoryPage/Container';
 import CoreProductPageContainer from './core/ProductPage/Container';
 import CoreAuthPageContainer from './core/AuthPage/Container';
+import CoreComparePageContainer from './core/ComparePage/Container';
 
 // Core (Fallback) - Templates (pure presentation)
 import CoreHeaderTemplate from './core/Header/Template';
@@ -30,6 +31,7 @@ import ModernCleanCategoryCardTemplate from './modern-clean/CategoryCard/Templat
 import ModernCleanCategoryPageTemplate from './modern-clean/CategoryPage/Template';
 import ModernCleanProductPageTemplate from './modern-clean/ProductPage/Template';
 import ModernCleanAuthPageTemplate from './modern-clean/AuthPage/Template';
+import ModernCleanComparePageTemplate from './modern-clean/ComparePage/Template';
 
 // Classic Elegance - Templates (pure presentation)
 import ClassicEleganceHeaderTemplate from './classic-elegance/Header/Template';
@@ -57,6 +59,8 @@ export type ComponentName =
     | 'ProductPageTemplate'
     | 'AuthPage'
     | 'AuthPageTemplate'
+    | 'ComparePage'
+    | 'ComparePageTemplate'
     | 'Banner';
 
 // ============================================
@@ -83,6 +87,8 @@ const TEMPLATE_COMPONENTS: Record<string, Record<string, React.ComponentType<any
         ProductPageTemplate: ModernCleanProductPageTemplate,
         AuthPage: CoreAuthPageContainer,
         AuthPageTemplate: ModernCleanAuthPageTemplate,
+        ComparePage: CoreComparePageContainer,
+        ComparePageTemplate: ModernCleanComparePageTemplate,
     },
     'classic-elegance': {
         // Containers (with business logic) - Use same Core containers
@@ -102,6 +108,8 @@ const TEMPLATE_COMPONENTS: Record<string, Record<string, React.ComponentType<any
         ProductPageTemplate: ModernCleanProductPageTemplate, // Use modern-clean as fallback
         AuthPage: CoreAuthPageContainer,
         AuthPageTemplate: ModernCleanAuthPageTemplate, // Use modern-clean as fallback
+        ComparePage: CoreComparePageContainer,
+        ComparePageTemplate: ModernCleanComparePageTemplate,
     },
 };
 
@@ -126,6 +134,8 @@ const CORE_COMPONENTS: Record<string, React.ComponentType<any>> = {
     // Auth
     AuthPage: React.lazy(() => import('./core/AuthPage/Container')),
     AuthPageTemplate: React.lazy(() => import('./modern-clean/AuthPage/Template')),
+    ComparePage: CoreComparePageContainer,
+    ComparePageTemplate: ModernCleanComparePageTemplate,
 };
 
 // ============================================

@@ -415,6 +415,32 @@ export interface ProductPageConfig {
 }
 
 // ============================================
+// Compare Configuration Types
+// ============================================
+
+export interface CompareConfig {
+    enabled: boolean;
+    maxProducts: 2 | 3 | 4;
+    maxProductsMobile: 2;
+    requireSameCategory: boolean;
+    showInProductCard: boolean;
+    showInProductPage: boolean;
+    widgetStyle: 'floating' | 'drawer' | 'none';
+    widgetPosition: 'bottom' | 'bottom-right' | 'bottom-left';
+}
+
+export const DEFAULT_COMPARE_CONFIG: CompareConfig = {
+    enabled: true,
+    maxProducts: 4,
+    maxProductsMobile: 2,
+    requireSameCategory: true,
+    showInProductCard: true,
+    showInProductPage: true,
+    widgetStyle: 'floating',
+    widgetPosition: 'bottom',
+};
+
+// ============================================
 // Theme Configuration
 // ============================================
 
@@ -427,6 +453,7 @@ export interface ThemeConfig {
     productCard?: ProductCardConfig;
     category?: CategoryConfig;
     product?: ProductPageConfig;
+    compare?: CompareConfig;
 }
 
 // ============================================

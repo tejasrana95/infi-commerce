@@ -580,6 +580,23 @@ $star-color: #fbbf24;
 
     &:hover {
         color: $primary-color;
+        background: rgba($primary-color, 0.05);
+    }
+
+    &.inCompare {
+        color: $primary-color;
+        background: rgba($primary-color, 0.1);
+    }
+
+    &.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        color: $text-muted;
+
+        &:hover {
+            color: $text-muted;
+            background: none;
+        }
     }
 }
 

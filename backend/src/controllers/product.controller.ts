@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import mongoose from 'mongoose';
 import { body, param } from 'express-validator';
 import Product from '../models/Product';
 import Store from '../models/Store';
@@ -263,6 +264,13 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
     // Build filter
     const filter: any = { isActive: true };
 
+    // Handle isActive filter
+    if (req.query.isActive === 'all') {
+        delete filter.isActive;
+    } else if (req.query.isActive === 'false') {
+        filter.isActive = false;
+    }
+
     // Support comma-separated IDs filter
     if (req.query.ids) {
         const ids = (req.query.ids as string).split(',').map(id => id.trim()).filter(id => id);
@@ -275,15 +283,38 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         filter.storeId = req.query.storeId;
     }
 
-    // Category filter - support single or multiple categories
+    // Category filter - support single or multiple categories (includes subcategories)
     if (req.query.categoryId) {
         const categoryIds = (req.query.categoryId as string).split(',').map(id => id.trim());
         const validCategoryIds = categoryIds.filter(id => id.match(/^[0-9a-fA-F]{24}$/));
 
         if (validCategoryIds.length > 0) {
-            filter.categoryIds = validCategoryIds.length === 1
-                ? validCategoryIds[0]
-                : { $in: validCategoryIds };
+            // Check if we should include subcategories (default: true)
+            const includeSubcategories = req.query.includeSubcategories !== 'false';
+
+            if (includeSubcategories && validCategoryIds.length === 1) {
+                // Get the category and all its subcategories via path matching
+                const Category = require('../models/Category').default;
+                const category = await Category.findById(validCategoryIds[0]);
+
+                if (category && category.path) {
+                    const subcategories = await Category.find({
+                        storeId: req.query.storeId,
+                        path: { $regex: new RegExp(`^${category.path}`) },
+                    }).select('_id');
+
+                    const allCategoryIds = subcategories.map((c: any) => c._id.toString());
+                    filter.categoryIds = { $in: allCategoryIds };
+                } else {
+                    // Fallback to just the provided category
+                    filter.categoryIds = validCategoryIds[0];
+                }
+            } else {
+                // Multiple categories or subcategories disabled
+                filter.categoryIds = validCategoryIds.length === 1
+                    ? validCategoryIds[0]
+                    : { $in: validCategoryIds };
+            }
         } else if (categoryIds.includes('all-products')) {
             // Explicitly ignore 'all-products' if passed, treating it as no category filter
         }
@@ -301,12 +332,65 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         if (req.query.maxPrice) filter.price.$lte = parseFloat(req.query.maxPrice as string);
     }
 
-    // Brand filter (SEO-friendly: brand=nike or brand=nike,adidas)
+    // Brand filter (SEO-friendly: brand=nike or brand=nike,adidas or brand=OBJECTID)
     if (req.query.brand) {
         const brands = (req.query.brand as string).split(',').map(b => b.trim());
-        filter.brand = brands.length === 1
-            ? { $regex: new RegExp(`^${brands[0]}$`, 'i') }
-            : { $in: brands.map(b => new RegExp(`^${b}$`, 'i')) };
+        const validObjectIds = brands.filter(b => b.match(/^[0-9a-fA-F]{24}$/));
+        const brandNames = brands.filter(b => !b.match(/^[0-9a-fA-F]{24}$/));
+        const brandConditions: any[] = [];
+
+        // Condition 1: Match by ID (handling both ObjectId and String storage)
+        if (validObjectIds.length > 0) {
+            const objectIds = validObjectIds.map(id => new mongoose.Types.ObjectId(id));
+
+            // We use an $or condition here to handle two cases:
+            // 1. { brand: { $in: objectIds } } -> Efficient index-based lookup for proper ObjectIds
+            // 2. { $expr: ... } -> Flexible lookup for legacy/inconsistent data where brand is stored as a string
+            //    $toString("$brand") ensures we compare the string representation of the DB field
+            //    against the string IDs provided.
+            brandConditions.push({
+                $or: [
+                    { brand: { $in: objectIds } },
+                    {
+                        $expr: {
+                            $in: [
+                                { $toString: '$brand' },
+                                validObjectIds
+                            ]
+                        }
+                    }
+                ]
+            });
+        }
+        // Condition 2: Match by name/slug (requiring lookup)
+        if (brandNames.length > 0) {
+            const Brand = require('../models/Brand').default;
+            // We need to await this, but we are in an async function so it's fine.
+            // Ideally we shouldn't do queries inside the filter builder if possible, but it's necessary here.
+            // To prevent slowing down too much, we'll do it.
+            const foundBrands = await Brand.find({
+                $or: [
+                    { name: { $in: brandNames.map(b => new RegExp(`^${b}$`, 'i')) } },
+                    { slug: { $in: brandNames.map(b => new RegExp(`^${b}$`, 'i')) } }
+                ]
+            }).select('_id');
+
+            if (foundBrands.length > 0) {
+                brandConditions.push({ brand: { $in: foundBrands.map((b: any) => b._id) } });
+            }
+        }
+
+        if (brandConditions.length > 0) {
+            if (brandConditions.length === 1) {
+                Object.assign(filter, brandConditions[0]);
+            } else {
+                filter.$or = [...(filter.$or || []), ...brandConditions];
+            }
+        } else if (brandNames.length > 0 && validObjectIds.length === 0) {
+            // If we searched for names but found nothing, and had no IDs, create a condition that matches nothing
+            // to accurately reflect "0 results" for that brand name.
+            filter.brand = null;
+        }
     }
 
     // Tags filter (SEO-friendly: tags=summer,new-arrival)
@@ -465,6 +549,7 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
             .populate('categoryIds', 'title slug')
             .populate('attributes.attributeId', 'name slug type values')
             .populate('taxClassId', 'name rate isSplit subTaxes')
+            .populate('brand', 'name slug logo')
             .skip(skip)
             .limit(limit)
             .sort(sort)
@@ -472,31 +557,39 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         Product.countDocuments(filter),
     ]);
 
-    // Look up brand names for products that have brand IDs
-    const brandIds = [...new Set(products.filter(p => p.brand).map(p => p.brand))];
-    if (brandIds.length > 0) {
-        const Brand = require('../models/Brand').default;
-        const mongoose = require('mongoose');
-        const validBrandIds = brandIds.filter(id => mongoose.Types.ObjectId.isValid(id));
-        if (validBrandIds.length > 0) {
-            const brands = await Brand.find({ _id: { $in: validBrandIds } }).select('_id name').lean();
-            const brandMap = new Map(brands.map((b: any) => [b._id.toString(), b.name]));
 
-            // Replace brand ID with brand name in products
-            products.forEach((product: any) => {
-                if (product.brand && brandMap.has(product.brand)) {
-                    product.brandName = brandMap.get(product.brand);
-                }
-            });
-        }
-    }
 
     // Add computed pricing fields to each product (including variants)
     const productsWithPricing = products.map((product: any) => addPricingToProduct(product));
 
     // Build active filters metadata for frontend URL reconstruction
-    const activeFilters: Record<string, string | string[]> = {};
-    if (req.query.brand) activeFilters.brand = req.query.brand as string;
+    const activeFilters: Record<string, any> = {};
+
+    if (req.query.brand) {
+        const brands = (req.query.brand as string).split(',').map(b => b.trim());
+        const validObjectIds = brands.filter(b => b.match(/^[0-9a-fA-F]{24}$/));
+        const brandNames = brands.filter(b => !b.match(/^[0-9a-fA-F]{24}$/));
+
+        const Brand = require('../models/Brand').default;
+        const foundBrands = await Brand.find({
+            $or: [
+                { _id: { $in: validObjectIds.length > 0 ? validObjectIds.map(id => new mongoose.Types.ObjectId(id)) : [] } },
+                { slug: { $in: brandNames.map(b => new RegExp(`^${b}$`, 'i')) } },
+                { name: { $in: brandNames.map(b => new RegExp(`^${b}$`, 'i')) } }
+            ]
+        }).select('_id name slug');
+
+        // If we found brands, return them as objects. If not (unlikely if results were found), fallback to string 
+        if (foundBrands.length > 0) {
+            activeFilters.brand = foundBrands.map((b: any) => ({
+                id: b._id,
+                name: b.name,
+                slug: b.slug
+            }));
+        } else {
+            activeFilters.brand = req.query.brand as string;
+        }
+    }
     if (req.query.tags) activeFilters.tags = req.query.tags as string;
     if (req.query.rating) activeFilters.rating = req.query.rating as string;
     if (req.query.stock) activeFilters.stock = req.query.stock as string;
@@ -619,7 +712,7 @@ export const getProductById = asyncHandler(async (req: AuthRequest, res: Respons
 export const getProductBySlug = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { storeId, slug } = req.params;
 
-    const product = await Product.findOne({ storeId, slug })
+    const product = await Product.findOne({ storeId, slug, isActive: true })
         .populate('storeId', 'name slug domain')
         .populate('categoryIds', 'title slug path')
         .populate('attributes.attributeId', 'name slug type values')
@@ -721,6 +814,15 @@ export const updateProduct = asyncHandler(async (req: AuthRequest, res: Response
     delete updates.__v;
     delete updates.createdAt;
     delete updates.updatedAt;
+
+    // Clean up empty strings for ObjectId fields (MongoDB can't cast "" to ObjectId)
+    const objectIdFields = ['taxClassId', 'brand'];
+    objectIdFields.forEach(field => {
+        if (updates[field] === '') {
+            updates[field] = undefined;
+        }
+    });
+
     // Update product
     Object.assign(product, updates);
     await product.save();
@@ -762,6 +864,64 @@ export const deleteProduct = asyncHandler(async (req: AuthRequest, res: Response
 
     res.json({
         message: 'Product deleted successfully',
+    });
+});
+
+/**
+ * @swagger
+ * /api/products/{id}/clone:
+ *   post:
+ *     summary: Clone product
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       201:
+ *         description: Product cloned successfully
+ *       404:
+ *         description: Product not found
+ *       401:
+ *         description: Unauthorized
+ */
+export const cloneProduct = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+        throw new AppError('Product not found', 404);
+    }
+
+    const productObj: any = product.toObject();
+
+    // Delete system fields
+    delete productObj._id;
+    delete productObj.createdAt;
+    delete productObj.updatedAt;
+    delete productObj.__v;
+
+    // Modify fields for clone
+    productObj.name = `[CLONE] ${product.name}`;
+    productObj.isActive = false;
+
+    // Generate unique slug
+    const timestamp = Date.now();
+    productObj.slug = `${product.slug}-clone-${timestamp}`;
+
+    // Handle SKU if present (append -clone to avoid duplicate key error if unique index exists)
+    if (productObj.sku) {
+        productObj.sku = `${productObj.sku}-clone-${timestamp}`;
+    }
+
+    const clonedProduct = await Product.create(productObj);
+
+    res.status(201).json({
+        message: 'Product cloned successfully',
+        product: clonedProduct,
     });
 });
 

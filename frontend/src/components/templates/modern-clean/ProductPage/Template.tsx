@@ -38,7 +38,11 @@ export default function ModernCleanProductPageTemplate({
     onAddToWishlist,
     isWishlisted = false,
     onAddToCompare,
+    isInCompare = false,
+    compareDisabled = false,
+    compareDisabledReason,
     isAddingToCart,
+
     reviews,
     reviewStats,
     reviewSettings,
@@ -410,11 +414,16 @@ export default function ModernCleanProductPageTemplate({
                     </svg>
                     {isWishlisted ? 'In Wishlist' : 'Add to Wishlist'}
                 </button>
-                <button className={styles.iconBtn} onClick={onAddToCompare}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <button
+                    className={`${styles.iconBtn} ${isInCompare ? styles.inCompare : ''} ${compareDisabled ? styles.disabled : ''}`}
+                    onClick={onAddToCompare}
+                    disabled={compareDisabled}
+                    title={compareDisabled ? compareDisabledReason : (isInCompare ? 'Remove from Compare' : 'Add to Compare')}
+                >
+                    <svg viewBox="0 0 24 24" fill={isInCompare ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2}>
                         <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5" />
                     </svg>
-                    Compare
+                    {isInCompare ? 'In Compare' : 'Compare'}
                 </button>
             </div>
 
