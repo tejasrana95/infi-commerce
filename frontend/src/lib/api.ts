@@ -320,6 +320,32 @@ class ApiClient {
         return this.request<T>(endpoint, { method: 'DELETE' }, config);
     }
 
+    // Get Blob (for file downloads)
+    async getBlob(endpoint: string, config?: ApiConfig): Promise<Blob> {
+        const url = `${this.baseUrl}/${endpoint}`;
+        const headers = this.buildHeaders(config?.headers);
+
+        try {
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    ...headers,
+                    ...config?.headers,
+                },
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => response.text());
+                throw new Error(error?.message || `HTTP ${response.status}`);
+            }
+
+            return await response.blob();
+        } catch (error) {
+            console.error(`API Error [${endpoint}]:`, error);
+            throw error;
+        }
+    }
+
     // Upload file (multipart/form-data)
     async upload<T = any>(
         endpoint: string,

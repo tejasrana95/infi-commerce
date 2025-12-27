@@ -805,10 +805,15 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
                 const taxAmount = (itemTotal * taxRate.rate) / 100;
                 totalTax += taxAmount;
 
+                // Set item tax details
+                item.taxRate = taxRate.rate;
+                item.taxAmount = parseFloat(taxAmount.toFixed(2));
+
                 // Check if tax breakdown already exists for this rate
                 const existingBreakdown = taxBreakdown.find(b => b.taxRateId.toString() === taxRate._id.toString());
                 if (existingBreakdown) {
                     existingBreakdown.amount += taxAmount;
+                    existingBreakdown.amount = parseFloat(existingBreakdown.amount.toFixed(2));
                 } else {
                     taxBreakdown.push({
                         name: taxRate.name,

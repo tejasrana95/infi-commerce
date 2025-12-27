@@ -8,6 +8,7 @@ import Coupon from '../models/Coupon';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import shippingCalculatorService from '../services/shipping-calculator.service';
+import { PdfService } from '../services/pdf.service';
 
 /**
  * Validation rules
@@ -868,7 +869,7 @@ export const getAllOrders = asyncHandler(async (req: AuthRequest, res: Response)
  */
 export const updateOrderStatus = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
-    const { status, trackingNumber, adminNote } = req.body;
+    const { status, trackingNumber, courierName, trackingUrl, adminNote } = req.body;
 
     const order = await Order.findById(id);
 
@@ -876,23 +877,22 @@ export const updateOrderStatus = asyncHandler(async (req: AuthRequest, res: Resp
         throw new AppError('Order not found', 404);
     }
 
-    // Update status
     order.status = status;
     if (adminNote) order.adminNote = adminNote;
 
-    // Set timestamps based on status
-    if (status === 'shipped' && !order.shippedAt) {
+    // Status specific updates
+    if (status === 'shipped') {
         order.shippedAt = new Date();
         if (trackingNumber) order.trackingNumber = trackingNumber;
-    }
-
-    if (status === 'delivered' && !order.deliveredAt) {
+        if (courierName) order.courierName = courierName;
+        if (trackingUrl) order.trackingUrl = trackingUrl;
+    } else if (status === 'delivered') {
         order.deliveredAt = new Date();
     }
 
     await order.save();
 
-    // TODO: Send email notification to customer
+    // TODO: Send email notification
 
     res.json({
         success: true,
@@ -1041,6 +1041,111 @@ export const trackOrder = asyncHandler(async (req: AuthRequest, res: Response) =
 
     res.json({
         success: true,
+        data: order,
+    });
+});
+
+/**
+ * @route   GET /api/orders/:id/invoice
+ * @desc    Download Order Invoice PDF
+ * @access  Private (Owner/Admin)
+ */
+export const downloadInvoice = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user!.id;
+    const userRole = req.user!.role;
+
+    const order = await Order.findById(id).populate('storeId');
+
+    if (!order) {
+        throw new AppError('Order not found', 404);
+    }
+
+    // Auth Check
+    const isAdmin = userRole === 'admin' || userRole === 'store_admin' || userRole === 'super_admin';
+    const isOwner = order.customerId?.toString() === userId;
+    // Guest check
+    const guestEmail = req.query.guestEmail as string;
+    const isGuestOwner = !order.customerId && order.guestEmail && guestEmail &&
+        order.guestEmail.toLowerCase() === guestEmail.toLowerCase();
+
+    if (!isAdmin && !isOwner && !isGuestOwner) {
+        throw new AppError('Not authorized', 403);
+    }
+
+    const pdfBuffer = await PdfService.generateInvoice(order);
+
+    res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename=invoice-${order.orderNumber}.pdf`,
+        'Content-Length': pdfBuffer.length,
+    });
+
+    res.send(pdfBuffer);
+});
+
+/**
+ * @route   GET /api/orders/:id/packing-slip
+ * @desc    Download Packing Slip PDF
+ * @access  Private (Admin only)
+ */
+export const downloadPackingSlip = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+
+    // Auth Check: Admin only (handled by route middleware usually, but double check here if needed)
+
+    const order = await Order.findById(id);
+    if (!order) {
+        throw new AppError('Order not found', 404);
+    }
+
+    const pdfBuffer = await PdfService.generatePackingSlip(order);
+
+    res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename=packing-slip-${order.orderNumber}.pdf`,
+        'Content-Length': pdfBuffer.length,
+    });
+
+    res.send(pdfBuffer);
+});
+
+export const updateTrackingValidation = [
+    param('id').isMongoId().withMessage('Valid order ID is required'),
+    body('trackingNumber').trim().notEmpty().withMessage('Tracking number is required'),
+    body('courierName').trim().notEmpty().withMessage('Courier name is required'),
+    body('trackingUrl').optional().isURL().withMessage('Valid tracking URL is required'),
+];
+
+/**
+ * @route   PATCH /api/orders/:id/tracking
+ * @desc    Update tracking information
+ * @access  Private (Admin only)
+ */
+export const updateTracking = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    const { trackingNumber, courierName, trackingUrl } = req.body;
+
+    const order = await Order.findById(id);
+    if (!order) {
+        throw new AppError('Order not found', 404);
+    }
+
+    order.trackingNumber = trackingNumber;
+    order.courierName = courierName;
+    if (trackingUrl) order.trackingUrl = trackingUrl;
+
+    // Automatically set status to shipped if it's currently pending or processing
+    if (order.status === 'pending' || order.status === 'processing') {
+        order.status = 'shipped';
+        order.shippedAt = new Date();
+    }
+
+    await order.save();
+
+    res.json({
+        success: true,
+        message: 'Tracking information updated',
         data: order,
     });
 });

@@ -17,6 +17,8 @@ export interface IOrder extends Document {
         image?: string;
         attributes?: Record<string, string>;
         weight?: number;
+        taxRate?: number;
+        taxAmount?: number;
     }>;
 
     // Pricing
@@ -79,6 +81,8 @@ export interface IOrder extends Document {
 
     // Tracking
     trackingNumber?: string;
+    courierName?: string;
+    trackingUrl?: string;
     shippedAt?: Date;
     deliveredAt?: Date;
 
@@ -128,6 +132,8 @@ const OrderSchema = new Schema<IOrder>(
                 image: String,
                 attributes: Schema.Types.Mixed,
                 weight: Number,
+                taxRate: { type: Number, default: 0 },
+                taxAmount: { type: Number, default: 0 },
             },
         ],
         subtotal: {
@@ -227,6 +233,8 @@ const OrderSchema = new Schema<IOrder>(
             default: 'pending',
         },
         trackingNumber: String,
+        courierName: String,
+        trackingUrl: String,
         shippedAt: Date,
         deliveredAt: Date,
         customerNote: String,

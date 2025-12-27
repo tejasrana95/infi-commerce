@@ -16,6 +16,10 @@ import {
     updateOrderStatusValidation,
     adminCreateOrderValidation,
     adminUpdateOrderValidation,
+    downloadInvoice,
+    downloadPackingSlip,
+    updateTracking,
+    updateTrackingValidation,
 } from '../controllers/order.controller';
 import { authenticate, authorize, optionalAuth } from '../middleware/auth';
 import { validate } from '../middleware/validation';
@@ -517,5 +521,37 @@ router.post('/:id/payment-success', authenticate, handlePaymentSuccess);
  *         description: Order not found
  */
 router.post('/:id/payment-failed', authenticate, handlePaymentFailed);
+
+/**
+ * @route   GET /api/orders/:id/invoice
+ * @desc    Download invoice PDF
+ * @access  Private (Owner/Admin)
+ */
+router.get('/:id/invoice', optionalAuth, downloadInvoice);
+
+/**
+ * @route   GET /api/orders/:id/packing-slip
+ * @desc    Download packing slip PDF
+ * @access  Private (Admin only)
+ */
+router.get(
+    '/:id/packing-slip',
+    authenticate,
+    authorize('admin', 'store_admin', 'super_admin'),
+    downloadPackingSlip
+);
+
+/**
+ * @route   PATCH /api/orders/:id/tracking
+ * @desc    Update tracking information
+ * @access  Private (Admin only)
+ */
+router.patch(
+    '/:id/tracking',
+    authenticate,
+    authorize('admin', 'store_admin', 'super_admin'),
+    validate(updateTrackingValidation),
+    updateTracking
+);
 
 export default router;

@@ -56,6 +56,8 @@ export interface Order {
 
     // Tracking
     trackingNumber?: string;
+    courierName?: string;
+    trackingUrl?: string;
     shippedAt?: string; // ISO date string
     deliveredAt?: string; // ISO date string
 

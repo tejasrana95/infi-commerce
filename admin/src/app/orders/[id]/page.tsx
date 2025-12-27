@@ -53,6 +53,8 @@ export default function OrderDetailPage() {
     const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
     const [shipDialogOpen, setShipDialogOpen] = useState(false);
     const [trackingNumber, setTrackingNumber] = useState('');
+    const [courierName, setCourierName] = useState('');
+    const [trackingUrl, setTrackingUrl] = useState('');
     const [cancelReason, setCancelReason] = useState('');
 
     useEffect(() => {
@@ -322,9 +324,30 @@ export default function OrderDetailPage() {
 
                                 {order.trackingNumber && (
                                     <Box mt={2} p={1.5} bgcolor="primary.50" borderRadius={1}>
-                                        <Typography variant="caption" fontWeight={600} color="primary.main">
-                                            Tracking Number: {order.trackingNumber}
+                                        <Typography variant="caption" fontWeight={600} color="primary.main" display="block">
+                                            Tracking Details
                                         </Typography>
+                                        {/* @ts-ignore */}
+                                        {order.courierName && (
+                                            <Typography variant="body2" component="span" display="block">
+                                                Courier: <strong>{order.courierName}</strong>
+                                            </Typography>
+                                        )}
+                                        <Typography variant="body2" component="span" display="block">
+                                            Number: <strong>{order.trackingNumber}</strong>
+                                        </Typography>
+                                        {/* @ts-ignore */}
+                                        {order.trackingUrl && (
+                                            <Button
+                                                variant="text"
+                                                size="small"
+                                                href={order.trackingUrl}
+                                                target="_blank"
+                                                sx={{ mt: 0.5, p: 0, minWidth: 'auto', textTransform: 'none' }}
+                                            >
+                                                Track Shipment →
+                                            </Button>
+                                        )}
                                     </Box>
                                 )}
                             </CardContent>
@@ -367,16 +390,40 @@ export default function OrderDetailPage() {
                     <TextField
                         autoFocus
                         margin="dense"
+                        label="Courier Name"
+                        fullWidth
+                        variant="outlined"
+                        value={courierName}
+                        onChange={(e) => setCourierName(e.target.value)}
+                        sx={{ mb: 2 }}
+                    />
+                    <TextField
+                        margin="dense"
                         label="Tracking Number"
                         fullWidth
                         variant="outlined"
                         value={trackingNumber}
                         onChange={(e) => setTrackingNumber(e.target.value)}
+                        sx={{ mb: 2 }}
+                    />
+                    <TextField
+                        margin="dense"
+                        label="Tracking URL"
+                        fullWidth
+                        variant="outlined"
+                        value={trackingUrl}
+                        onChange={(e) => setTrackingUrl(e.target.value)}
+                        placeholder="https://..."
+                        helperText="Provide full URL including https://"
                     />
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setShipDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={() => handleStatusUpdate('shipped', { trackingNumber })} variant="contained">
+                    <Button
+                        onClick={() => handleStatusUpdate('shipped', { trackingNumber, courierName, trackingUrl })}
+                        variant="contained"
+                        disabled={!trackingNumber || !courierName}
+                    >
                         Update Status
                     </Button>
                 </DialogActions>
