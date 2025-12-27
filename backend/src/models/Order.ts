@@ -23,7 +23,20 @@ export interface IOrder extends Document {
     subtotal: number;
     shippingCost: number;
     tax: number;
+    taxBreakdown?: Array<{
+        name: string;
+        rate: number;
+        amount: number;
+        taxRateId: mongoose.Types.ObjectId;
+        isSplit?: boolean;
+        subTaxes?: Array<{
+            name: string;
+            rate: number;
+        }>;
+    }>;
     discount: number;
+    couponId?: mongoose.Types.ObjectId;
+    couponCode?: string;
     total: number;
     currency: string;
 
@@ -132,10 +145,36 @@ const OrderSchema = new Schema<IOrder>(
             default: 0,
             min: 0,
         },
+        taxBreakdown: [
+            {
+                name: { type: String, required: true },
+                rate: { type: Number, required: true },
+                amount: { type: Number, required: true },
+                taxRateId: {
+                    type: Schema.Types.ObjectId,
+                    ref: 'TaxRate',
+                },
+                isSplit: Boolean,
+                subTaxes: [
+                    {
+                        name: String,
+                        rate: Number,
+                    },
+                ],
+            },
+        ],
         discount: {
             type: Number,
             default: 0,
             min: 0,
+        },
+        couponId: {
+            type: Schema.Types.ObjectId,
+            ref: 'Coupon',
+        },
+        couponCode: {
+            type: String,
+            uppercase: true,
         },
         total: {
             type: Number,

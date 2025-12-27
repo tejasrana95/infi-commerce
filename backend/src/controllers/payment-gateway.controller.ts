@@ -195,7 +195,7 @@ export const deleteGatewayConfig = asyncHandler(async (req: AuthRequest, res: Re
  * @access  Public
  */
 export const getAvailableGateways = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { storeId, country, currency } = req.body;
+    const { storeId, country, currency, amount } = req.body;
 
     if (!storeId || !country) {
         throw new AppError('Store ID and country are required', 400);
@@ -205,6 +205,7 @@ export const getAvailableGateways = asyncHandler(async (req: AuthRequest, res: R
         storeId,
         country,
         currency,
+        amount,
     });
 
     res.json({

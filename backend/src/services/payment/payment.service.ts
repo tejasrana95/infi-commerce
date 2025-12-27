@@ -15,12 +15,9 @@ export class PaymentService {
         storeId: string;
         country: string;
         currency?: string;
-    }): Promise<Array<{
-        gatewayType: string;
-        gatewayName: string;
-        priority: number;
-    }>> {
-        const { storeId, country, currency } = params;
+        amount?: number;
+    }): Promise<Array<any>> {
+        const { storeId, country, currency, amount } = params;
 
         // Find geo groups that include this country
         const geoGroups = await GeoGroup.find({
@@ -45,13 +42,39 @@ export class PaymentService {
             query['features.supportedCurrencies'] = currency.toUpperCase();
         }
 
-        const configs = await PaymentGatewayConfig.find(query)
+        let configs = await PaymentGatewayConfig.find(query)
             .sort({ priority: -1 })
-            .select('gatewayType gatewayName priority');
+            .select('gatewayType gatewayName displayName icon description extraCharge minAmount maxAmount priority features geoRestrictions');
+
+        // Post-filter for geo-restrictions (legacy array check) and amount limits
+        configs = configs.filter(config => {
+            // Check legacy geo-restrictions
+            if (config.geoRestrictions?.countries && config.geoRestrictions.countries.length > 0) {
+                if (!config.geoRestrictions.countries.includes(String(country).toUpperCase())) {
+                    return false;
+                }
+            }
+
+            // Check amount limits
+            if (amount !== undefined) {
+                if (config.minAmount && amount < config.minAmount) return false;
+                if (config.maxAmount && amount > config.maxAmount) return false;
+            }
+
+            return true;
+        });
 
         return configs.map((config) => ({
+            id: config.gatewayType,
             gatewayType: config.gatewayType,
-            gatewayName: config.gatewayName,
+            gatewayName: config.gatewayType, // Internal ID usage
+            name: config.displayName || config.gatewayName,
+            type: config.gatewayType === 'cod' ? 'offline' : 'online',
+            icon: config.icon,
+            description: config.description,
+            extraCharge: config.extraCharge || 0,
+            available: true,
+            supportedCurrencies: config.features?.supportedCurrencies || [],
             priority: config.priority,
         }));
     }

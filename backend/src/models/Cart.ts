@@ -40,6 +40,10 @@ export interface ICart extends Document {
         discountAmount: number;
         discountType: 'flat' | 'percentage';
     };
+    appliedCoupon?: {
+        code: string;
+        discountAmount: number;
+    };
     discount: number;
 
     // Totals
@@ -124,6 +128,10 @@ const CartSchema = new Schema<ICart>(
                 type: String,
                 enum: ['flat', 'percentage'],
             },
+        },
+        appliedCoupon: {
+            code: String,
+            discountAmount: Number,
         },
         discount: {
             type: Number,

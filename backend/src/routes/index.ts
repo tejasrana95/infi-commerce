@@ -12,6 +12,7 @@ import currencyRoutes from './currency.routes';
 import geoRoutes from './geo.routes';
 import geoGroupRoutes from './geo-group.routes';
 import cartRoutes from './cart.routes';
+import checkoutRoutes from './checkout.routes';
 import shippingRoutes from './shipping.routes';
 import couponRoutes from './coupon.routes';
 import orderRoutes from './order.routes';
@@ -79,6 +80,9 @@ router.use('/geo-groups', geoGroupRoutes);
 
 // Mount cart routes
 router.use('/cart', cartRoutes);
+
+// Mount checkout routes
+router.use('/checkout', checkoutRoutes);
 
 // Mount shipping routes
 router.use('/shipping', shippingRoutes);

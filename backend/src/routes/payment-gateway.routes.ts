@@ -11,6 +11,7 @@ import {
     createGatewayConfigValidation,
     updateGatewayConfigValidation,
 } from '../controllers/payment-gateway.controller';
+import { injectStoreIdFromHeader } from '../controllers/shipping.controller';
 import { authenticate, authorize } from '../middleware/auth';
 import { validate } from '../middleware/validation';
 
@@ -61,7 +62,7 @@ router.get('/supported', getSupportedGateways);
  *       200:
  *         description: Available payment gateways
  */
-router.post('/available', getAvailableGateways);
+router.post('/available', injectStoreIdFromHeader, getAvailableGateways);
 
 /**
  * @swagger

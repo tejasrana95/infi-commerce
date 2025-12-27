@@ -7,6 +7,7 @@ import { useToast } from '@/providers/ToastProvider';
 import { CartItem as CartItemType } from '@/types/cart';
 import { formatPrice } from '@/lib/currency';
 import { useCurrency } from '@/hooks/useCurrency';
+import { useThemeConfig } from '@/providers/StoreProvider';
 import styles from './CartItem.module.scss';
 
 interface CartItemProps {
@@ -28,6 +29,7 @@ interface CartItemProps {
 
 export default function CartItem({ item, onUpdateQuantity, onRemove, compact = false }: CartItemProps) {
     const currency = useCurrency();
+    const themeConfig = useThemeConfig();
     const toast = useToast();
     const [isUpdating, setIsUpdating] = useState(false);
     const [isRemoving, setIsRemoving] = useState(false);
@@ -78,7 +80,10 @@ export default function CartItem({ item, onUpdateQuantity, onRemove, compact = f
         }
     };
 
-    const itemTotal = item.price * item.quantity;
+    // Calculate price to display
+    const showTaxIncluded = themeConfig?.product?.pricing?.showTaxIncluded;
+    const priceToDisplay = (showTaxIncluded && item.priceWithTax) ? item.priceWithTax : item.price;
+    const itemTotal = priceToDisplay * item.quantity;
 
     return (
         <div className={`${styles.cartItem} ${compact ? styles.compact : ''} ${isRemoving ? styles.removing : ''}`}>
@@ -125,7 +130,7 @@ export default function CartItem({ item, onUpdateQuantity, onRemove, compact = f
 
                 {/* Price (Mobile) */}
                 <div className={styles.priceMobile}>
-                    {formatPrice(item.price, currency)}
+                    {formatPrice(priceToDisplay, currency)}
                     {item.quantity > 1 && (
                         <span className={styles.quantity}> × {item.quantity}</span>
                     )}
@@ -135,7 +140,7 @@ export default function CartItem({ item, onUpdateQuantity, onRemove, compact = f
             {/* Price (Desktop) */}
             {!compact && (
                 <div className={styles.price}>
-                    {formatPrice(item.price, currency)}
+                    {formatPrice(priceToDisplay, currency)}
                 </div>
             )}
 

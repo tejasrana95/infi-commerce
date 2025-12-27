@@ -3,6 +3,7 @@ import { body, param } from 'express-validator';
 import Cart from '../models/Cart';
 import Product from '../models/Product';
 import ProductOption from '../models/ProductOption';
+import TaxRate from '../models/TaxRate';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 
@@ -19,11 +20,15 @@ async function formatCartResponse(cart: any) {
     // Format each cart item
     const formattedItems = await Promise.all(
         cartObj.items.map(async (item: any) => {
-            // If there's a variantId, get variant details from the product
-            if (item.variantId && item.productId) {
-                const product = await Product.findById(item.productId._id || item.productId);
+            // Resolve product (use populated data or fetch if needed)
+            let product = item.productId;
+            if (product && !product.variants && (product._id || typeof product === 'string')) {
+                product = await Product.findById(product._id || product);
+            }
 
-                if (product && product.variants) {
+            // If there's a variantId, get variant details from the product
+            if (item.variantId && product) {
+                if (product.variants) {
                     const variant = product.variants.find((v: any) =>
                         v._id.toString() === item.variantId.toString()
                     );
@@ -64,14 +69,41 @@ async function formatCartResponse(cart: any) {
                 }
             }
 
+            // Calculate priceWithTax if product has a tax class
+            if (product && product.taxClassId) {
+                const taxRate = await TaxRate.findById(product.taxClassId);
+                if (taxRate) {
+                    const taxAmount = (item.price * taxRate.rate) / 100;
+                    item.priceWithTax = item.price + taxAmount;
+                }
+            }
+
             return item;
         })
     );
 
-    return {
+    // Calculate total tax and update cart totals
+    let totalTax = 0;
+    formattedItems.forEach((item: any) => {
+        if (item.priceWithTax) {
+            const itemTax = (item.priceWithTax - item.price) * item.quantity;
+            totalTax += itemTax;
+        }
+    });
+
+    const subtotal = cartObj.subtotal;
+    const shippingCost = cartObj.shippingCost || 0;
+    const discount = cartObj.discount || 0;
+
+    // Update cart object with calculated values
+    const finalCart = {
         ...cartObj,
         items: formattedItems,
+        tax: totalTax,
+        total: subtotal + shippingCost + totalTax - discount
     };
+
+    return finalCart;
 }
 
 // Validation rules
@@ -101,22 +133,29 @@ export const updateCartItemValidation = [
 export const getCart = asyncHandler(async (req: AuthRequest, res: Response) => {
     const userId = req.user?.id;
     const sessionId = req.headers['x-session-id'] as string;
+    const storeId = req.headers['x-store-id'] as string;
 
     if (!userId && !sessionId) {
         throw new AppError('User ID or session ID is required', 400);
     }
 
+    if (!storeId) {
+        throw new AppError('Store ID is required', 400);
+    }
+
     const filter: any = userId ? { userId } : { sessionId };
+    // Also filter by storeId to prevent cross-store cart contamination
+    filter.storeId = storeId;
 
     let cart = await Cart.findOne(filter)
-        .populate('items.productId', 'name slug images stockStatus stock manageStock variants productOptions');
+        .populate('items.productId', 'name slug images stockStatus stock manageStock variants productOptions taxClassId');
 
     if (!cart) {
         // Create empty cart
         cart = await Cart.create({
             userId,
             sessionId,
-            storeId: req.body.storeId || req.query.storeId,
+            storeId,
             items: [],
         });
     }
@@ -249,7 +288,7 @@ export const addToCart = asyncHandler(async (req: AuthRequest, res: Response) =>
     await cart.save();
 
     // Populate and format cart
-    await cart.populate('items.productId', 'name slug images stockStatus stock manageStock variants productOptions');
+    await cart.populate('items.productId', 'name slug images stockStatus stock manageStock variants productOptions taxClassId');
     const formattedCart = await formatCartResponse(cart);
 
     res.json({
@@ -327,7 +366,7 @@ export const updateCartItem = asyncHandler(async (req: AuthRequest, res: Respons
     await cart.save();
 
     // Populate and format cart
-    await cart.populate('items.productId', 'name slug images stockStatus stock manageStock variants productOptions');
+    await cart.populate('items.productId', 'name slug images stockStatus stock manageStock variants productOptions taxClassId');
     const formattedCart = await formatCartResponse(cart);
 
     res.json({
@@ -368,7 +407,7 @@ export const removeFromCart = asyncHandler(async (req: AuthRequest, res: Respons
     await cart.save();
 
     // Populate and format cart
-    await cart.populate('items.productId', 'name slug images stockStatus stock manageStock variants productOptions');
+    await cart.populate('items.productId', 'name slug images stockStatus stock manageStock variants productOptions taxClassId');
     const formattedCart = await formatCartResponse(cart);
 
     res.json({
@@ -402,7 +441,7 @@ export const clearCart = asyncHandler(async (req: AuthRequest, res: Response) =>
     await cart.save();
 
     // Populate and format cart
-    await cart.populate('items.productId', 'name slug images stockStatus stock manageStock variants productOptions');
+    await cart.populate('items.productId', 'name slug images stockStatus stock manageStock variants productOptions taxClassId');
     const formattedCart = await formatCartResponse(cart);
 
     res.json({

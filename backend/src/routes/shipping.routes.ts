@@ -12,6 +12,7 @@ import {
     createShippingRuleValidation,
     calculateShippingValidation,
     calculateSmartShippingValidation,
+    injectStoreIdFromHeader,
 } from '../controllers/shipping.controller';
 import { authenticate, authorize } from '../middleware/auth';
 import { validate } from '../middleware/validation';
@@ -20,7 +21,7 @@ const router = Router();
 
 // Public routes
 router.post('/calculate', validate(calculateShippingValidation), calculateShipping);
-router.post('/calculate-smart', validate(calculateSmartShippingValidation), calculateSmartShipping);
+router.post('/calculate-smart', injectStoreIdFromHeader, validate(calculateSmartShippingValidation), calculateSmartShipping);
 router.post('/apply', applyShippingToCart);
 router.get('/cart/summary', getCartSummary);
 

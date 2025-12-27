@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Response, NextFunction } from 'express';
 import { body, param } from 'express-validator';
 import ShippingRule from '../models/ShippingRule';
 import GeoGroup from '../models/GeoGroup';
@@ -443,7 +443,19 @@ export const getCartSummary = asyncHandler(async (req: AuthRequest, res: Respons
 });
 
 /**
+ * Middleware to inject storeId from header into body before validation
+ * This allows validation to pass when storeId is sent via X-Store-ID header
+ */
+export const injectStoreIdFromHeader = (req: AuthRequest, _res: Response, next: NextFunction) => {
+    if (!req.body.storeId && req.headers['x-store-id']) {
+        req.body.storeId = req.headers['x-store-id'];
+    }
+    next();
+};
+
+/**
  * Validation for smart shipping calculation
+ * Note: storeId can come from either body or X-Store-ID header (injected by middleware)
  */
 export const calculateSmartShippingValidation = [
     body('country').trim().notEmpty().withMessage('Country is required'),
@@ -471,8 +483,8 @@ export const calculateSmartShippingValidation = [
  *               items: { type: array, items: { type: object, properties: { productId: { type: string }, variantId: { type: string }, quantity: { type: integer } } } }
  */
 export const calculateSmartShipping = asyncHandler(async (req: AuthRequest, res: Response) => {
+    // storeId is now guaranteed to be in body (injected from header if needed)
     const { country, storeId, items, currency = 'INR' } = req.body;
-
     if (!items || !Array.isArray(items) || items.length === 0) {
         throw new AppError('Items are required', 400);
     }

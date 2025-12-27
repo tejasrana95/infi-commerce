@@ -664,9 +664,17 @@ export const getOrderById = asyncHandler(async (req: AuthRequest, res: Response)
 
     // Check authorization - user can only view their own orders unless admin
     const isAdmin = userRole === 'admin' || userRole === 'store_admin' || userRole === 'super_admin';
-    const isOwner = order.customerId && order.customerId.toString() === userId;
 
-    if (!isAdmin && !isOwner) {
+    // Handle populated customerId
+    const customerId = (order.customerId as any)?._id || order.customerId;
+    const isOwner = customerId && customerId.toString() === userId;
+
+    // Check for guest access via email verification
+    const guestEmail = req.query.guestEmail as string;
+    const isGuestOwner = !order.customerId && order.guestEmail &&
+        guestEmail && order.guestEmail.toLowerCase() === guestEmail.toLowerCase();
+
+    if (!isAdmin && !isOwner && !isGuestOwner) {
         throw new AppError('Not authorized to view this order', 403);
     }
 

@@ -10,6 +10,7 @@ export interface CartItem {
     quantity: number;
     image?: string;
     attributes?: Record<string, string>;
+    priceWithTax?: number;
 }
 
 export interface Cart {
