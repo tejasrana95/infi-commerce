@@ -38,9 +38,13 @@ class ApiClient {
 
     // Set session ID
     setSessionId(sessionId: string) {
-        this.sessionId = sessionId;
+        this.sessionId = sessionId || null;
         if (typeof window !== 'undefined') {
-            localStorage.setItem('sessionId', sessionId);
+            if (sessionId) {
+                localStorage.setItem('sessionId', sessionId);
+            } else {
+                localStorage.removeItem('sessionId');
+            }
         }
     }
 

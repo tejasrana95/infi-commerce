@@ -2,8 +2,77 @@ import { Response } from 'express';
 import { body, param } from 'express-validator';
 import Cart from '../models/Cart';
 import Product from '../models/Product';
+import ProductOption from '../models/ProductOption';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
+
+/**
+ * Helper function to format cart response with variant details and attribute labels
+ */
+async function formatCartResponse(cart: any) {
+    if (!cart || !cart.items || cart.items.length === 0) {
+        return cart;
+    }
+
+    const cartObj = cart.toObject();
+
+    // Format each cart item
+    const formattedItems = await Promise.all(
+        cartObj.items.map(async (item: any) => {
+            // If there's a variantId, get variant details from the product
+            if (item.variantId && item.productId) {
+                const product = await Product.findById(item.productId._id || item.productId);
+
+                if (product && product.variants) {
+                    const variant = product.variants.find((v: any) =>
+                        v._id.toString() === item.variantId.toString()
+                    );
+
+                    if (variant) {
+                        // Create variant object
+                        item.variant = {
+                            _id: (variant as any)._id,
+                            name: variant.sku,
+                            sku: variant.sku,
+                        };
+
+                        // Convert attribute IDs to labels
+                        if (variant.attributes && product.productOptions) {
+                            const attributeLabels: Record<string, string> = {};
+
+                            for (const [optionId, value] of Object.entries(variant.attributes)) {
+                                const option = await ProductOption.findById(optionId);
+                                if (option) {
+                                    // Find the matching option value
+                                    const optionValue = option.values.find((v: any) =>
+                                        v.value.toLowerCase() === (value as string).toLowerCase()
+                                    );
+
+                                    if (optionValue) {
+                                        attributeLabels[option.name] = optionValue.label;
+                                    }
+                                }
+                            }
+
+                            // Replace attributes with labels
+                            item.attributes = attributeLabels;
+                        }
+
+                        // Remove variantId field
+                        delete item.variantId;
+                    }
+                }
+            }
+
+            return item;
+        })
+    );
+
+    return {
+        ...cartObj,
+        items: formattedItems,
+    };
+}
 
 // Validation rules
 export const addToCartValidation = [
@@ -39,7 +108,8 @@ export const getCart = asyncHandler(async (req: AuthRequest, res: Response) => {
 
     const filter: any = userId ? { userId } : { sessionId };
 
-    let cart = await Cart.findOne(filter).populate('items.productId', 'name slug images stockStatus');
+    let cart = await Cart.findOne(filter)
+        .populate('items.productId', 'name slug images stockStatus stock manageStock variants productOptions');
 
     if (!cart) {
         // Create empty cart
@@ -51,7 +121,10 @@ export const getCart = asyncHandler(async (req: AuthRequest, res: Response) => {
         });
     }
 
-    res.json({ cart });
+    // Format cart with variant details
+    const formattedCart = await formatCartResponse(cart);
+
+    res.json({ cart: formattedCart });
 });
 
 /**
@@ -175,9 +248,13 @@ export const addToCart = asyncHandler(async (req: AuthRequest, res: Response) =>
 
     await cart.save();
 
+    // Populate and format cart
+    await cart.populate('items.productId', 'name slug images stockStatus stock manageStock variants productOptions');
+    const formattedCart = await formatCartResponse(cart);
+
     res.json({
         message: 'Item added to cart',
-        cart,
+        cart: formattedCart,
     });
 });
 
@@ -249,9 +326,13 @@ export const updateCartItem = asyncHandler(async (req: AuthRequest, res: Respons
     item.quantity = quantity;
     await cart.save();
 
+    // Populate and format cart
+    await cart.populate('items.productId', 'name slug images stockStatus stock manageStock variants productOptions');
+    const formattedCart = await formatCartResponse(cart);
+
     res.json({
         message: 'Cart item updated',
-        cart,
+        cart: formattedCart,
     });
 });
 
@@ -286,9 +367,13 @@ export const removeFromCart = asyncHandler(async (req: AuthRequest, res: Respons
     cart.items = cart.items.filter((item: any) => item._id.toString() !== itemId);
     await cart.save();
 
+    // Populate and format cart
+    await cart.populate('items.productId', 'name slug images stockStatus stock manageStock variants productOptions');
+    const formattedCart = await formatCartResponse(cart);
+
     res.json({
         message: 'Item removed from cart',
-        cart,
+        cart: formattedCart,
     });
 });
 
@@ -316,9 +401,13 @@ export const clearCart = asyncHandler(async (req: AuthRequest, res: Response) =>
     cart.items = [];
     await cart.save();
 
+    // Populate and format cart
+    await cart.populate('items.productId', 'name slug images stockStatus stock manageStock variants productOptions');
+    const formattedCart = await formatCartResponse(cart);
+
     res.json({
         message: 'Cart cleared',
-        cart,
+        cart: formattedCart,
     });
 });
 

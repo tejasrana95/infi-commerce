@@ -4,6 +4,7 @@
 import { HeaderConfig, Store, HeaderSection, HeaderElement } from '@/types';
 import { Menu } from '@/types/menu';
 import { getComponent } from '@/components/templates/registry';
+import ClientHeaderWrapper from './ClientWrapper';
 import api from '@/lib/api';
 import {
     HeaderTemplateProps,
@@ -225,6 +226,11 @@ export default async function HeaderContainer({
     // Get the template-specific presenter component
     const HeaderTemplate = getComponent('HeaderTemplate', templateId);
 
-    // Render the template with processed data
-    return <HeaderTemplate {...templateProps} />;
+    // Wrap with client component to inject cart count from context
+    return (
+        <ClientHeaderWrapper
+            TemplateComponent={HeaderTemplate}
+            templateProps={templateProps}
+        />
+    );
 }

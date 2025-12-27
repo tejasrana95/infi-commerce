@@ -11,34 +11,35 @@ import {
     addToCartValidation,
     updateCartItemValidation,
 } from '../controllers/cart.controller';
-import { authenticate } from '../middleware/auth';
+import { authenticate, optionalAuth } from '../middleware/auth';
 import { validate } from '../middleware/validation';
 
 const router = Router();
 
 // Cart routes (support both authenticated users and guest sessions)
 // Guest users should send x-session-id header
+// Authenticated users are identified via JWT token
 
 // Get cart (public - uses session or user)
-router.get('/', getCart);
+router.get('/', optionalAuth, getCart);
 
 // Get cart item count
-router.get('/count', getCartCount);
+router.get('/count', optionalAuth, getCartCount);
 
 // Validate cart
-router.post('/validate', validateCart);
+router.post('/validate', optionalAuth, validateCart);
 
 // Add item to cart
-router.post('/items', validate(addToCartValidation), addToCart);
+router.post('/items', optionalAuth, validate(addToCartValidation), addToCart);
 
 // Update cart item
-router.put('/items/:itemId', validate(updateCartItemValidation), updateCartItem);
+router.put('/items/:itemId', optionalAuth, validate(updateCartItemValidation), updateCartItem);
 
 // Remove item from cart
-router.delete('/items/:itemId', removeFromCart);
+router.delete('/items/:itemId', optionalAuth, removeFromCart);
 
 // Clear cart
-router.delete('/clear', clearCart);
+router.delete('/clear', optionalAuth, clearCart);
 
 // Merge guest cart with user cart (requires authentication)
 router.post('/merge', authenticate, mergeCart);

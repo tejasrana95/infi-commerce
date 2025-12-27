@@ -7,6 +7,7 @@ import { getComponent } from '@/components/templates/registry';
 import { useStore, useThemeConfig } from '@/providers/StoreProvider';
 import { useWishlist } from '@/providers/WishlistProvider';
 import { useCompare, CompareItem } from '@/providers/CompareProvider';
+import { useCart } from '@/providers/CartProvider';
 import api from '@/lib/api';
 import {
     Product,
@@ -40,6 +41,7 @@ export default function ProductPageContainer({
     const currency = useCurrency();
     const { isInWishlist, toggleWishlist } = useWishlist();
     const { addToCompare, isInCompare, removeFromCompare, canAddToCompare, config: compareConfig } = useCompare();
+    const { addToCart: addToCartAPI } = useCart();
 
     // Currency
     const currencySymbol = currentCurrency?.symbol || '$';
@@ -247,6 +249,7 @@ export default function ProductPageContainer({
         // For variable products, require all options to be selected
         if (product.type === 'variable' && !allOptionsSelected) {
             console.warn('Please select all options before adding to cart');
+            // TODO: Show toast notification
             return;
         }
 
@@ -256,24 +259,33 @@ export default function ProductPageContainer({
         // Only check stock level if stock management is enabled
         if (product.manageStock && currentStock <= 0) {
             console.warn('Product is out of stock');
+            // TODO: Show toast notification
             return;
         }
 
         setIsAddingToCart(true);
         try {
-            // TODO: Integrate with cart context/API
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            console.log('Add to cart:', {
+            const result = await addToCartAPI({
                 productId: product._id,
                 variantId: selectedVariant?._id,
-                variantSku: selectedVariant?.sku,
-                selectedOptions,
                 quantity,
+                storeId: store?._id || '',
             });
+
+            if (result.success) {
+                console.log('Added to cart successfully');
+                // TODO: Show success toast
+            } else {
+                console.error('Failed to add to cart:', result.error);
+                // TODO: Show error toast
+            }
+        } catch (error) {
+            console.error('Error adding to cart:', error);
+            // TODO: Show error toast
         } finally {
             setIsAddingToCart(false);
         }
-    }, [product._id, product.type, product.stock, selectedVariant, selectedOptions, quantity, allOptionsSelected]);
+    }, [product._id, product.type, product.stock, product.manageStock, selectedVariant, quantity, allOptionsSelected, addToCartAPI, store?._id]);
 
     const handleBuyNow = useCallback(async () => {
         await handleAddToCart();

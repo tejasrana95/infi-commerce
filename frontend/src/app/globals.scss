@@ -1,7 +1,7 @@
 @use "../styles/templates/modern-clean";
 @use "../styles/templates/classic-elegance";
 
-@import "tailwindcss";
+@use "tailwindcss";
 
 @layer base {
   :root {

@@ -8,6 +8,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { HeaderTemplateProps } from '@/components/templates/core/Header/types';
 import MenuBuilder from '@/components/core/MenuBuilder';
+import CartPopup from '@/components/core/CartPopup';
 import { useStore } from '@/providers/StoreProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import CurrencySelector from '@/components/molecules/CurrencySelector';
@@ -207,42 +208,7 @@ export default function ModernCleanHeaderTemplate({
                                 </span>
                             )}
                         </button>
-                        {cartOpen && (
-                            <div className={styles.cartDropdown}>
-                                <div className={styles.cartHeader}>
-                                    <span>{labels.cart} ({cartCount})</span>
-                                </div>
-                                <div className={styles.cartBody}>
-                                    {cartCount === 0 ? (
-                                        <div className={styles.emptyCart}>
-                                            <p>Your cart is empty</p>
-                                            <Link href="/shop" className={styles.shopBtn}>
-                                                Start Shopping
-                                            </Link>
-                                        </div>
-                                    ) : (
-                                        <div className={styles.cartItems}>
-                                            {/* Cart items will go here */}
-                                            <p>Cart items coming soon</p>
-                                        </div>
-                                    )}
-                                </div>
-                                {cartCount !== 0 && (
-                                    <div className={styles.cartFooter}>
-                                        <div className={styles.cartTotal}>
-                                            <span>Total:</span>
-                                            <span>{cartTotal}</span>
-                                        </div>
-                                        <Link href="/cart" className={styles.viewCartBtn}>
-                                            View Cart
-                                        </Link>
-                                        <Link href="/checkout" className={styles.checkoutBtn}>
-                                            Checkout
-                                        </Link>
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                        {cartOpen && <CartPopup onClose={() => setCartOpen(false)} />}
                     </div>
                 );
 

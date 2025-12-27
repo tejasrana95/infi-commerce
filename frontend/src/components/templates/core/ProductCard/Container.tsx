@@ -3,12 +3,14 @@
 // Core ProductCard Container - Handles business logic and data processing
 // Client Component to support dynamic currency updates
 
-import React from 'react';
+import React, { useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { getComponent } from '@/components/templates/registry';
 import { ProductTemplateProps, Product } from './types';
 import { useStore, useThemeConfig } from '@/providers/StoreProvider';
 import { useWishlist } from '@/providers/WishlistProvider';
 import { useCompare, CompareItem } from '@/providers/CompareProvider';
+import { useCart } from '@/providers/CartProvider';
 import { DEFAULT_PRODUCT_CARD_CONFIG, ProductCardConfig } from '@/types';
 import { formatPrice } from '@/lib/currency';
 
@@ -131,7 +133,8 @@ export default function ProductCardContainer({
     templateId = 'modern-clean',
     cardConfig,
 }: ProductCardContainerProps) {
-    const { currentCurrency } = useStore();
+    const router = useRouter();
+    const { store, currentCurrency } = useStore();
     const themeConfig = useThemeConfig();
 
     // Get wishlist functions from context (single API call for all products)
@@ -139,6 +142,10 @@ export default function ProductCardContainer({
 
     // Get compare functions from context
     const { isInCompare, addToCompare, removeFromCompare, canAddToCompare, config: compareConfig } = useCompare();
+
+    // Get cart functions from context
+    const { addToCart } = useCart();
+    const [isAddingToCart, setIsAddingToCart] = useState(false);
 
     // Check if this product can be added to compare
     const compareItem: CompareItem = {
@@ -183,6 +190,37 @@ export default function ProductCardContainer({
         }
     };
 
+    // Handle add to cart
+    const handleAddToCart = useCallback(async () => {
+        // For variable products, redirect to product page
+        if ((product as any).type === 'variable') {
+            router.push(`/product/${product.slug}`);
+            return;
+        }
+
+        // For simple products, add to cart
+        setIsAddingToCart(true);
+        try {
+            const result = await addToCart({
+                productId: product._id,
+                quantity: 1,
+                storeId: store?._id || '',
+            });
+
+            if (result.success) {
+                // TODO: Show success toast
+                console.log('Added to cart successfully');
+            } else {
+                // TODO: Show error toast
+                console.error('Failed to add to cart:', result.error);
+            }
+        } catch (error) {
+            console.error('Error adding to cart:', error);
+        } finally {
+            setIsAddingToCart(false);
+        }
+    }, [product, store?._id, addToCart, router]);
+
     // Get the template-specific presenter component
     const ProductCardTemplate = getComponent('ProductCardTemplate', templateId);
 
@@ -198,6 +236,8 @@ export default function ProductCardContainer({
             showCompare={compareConfig.enabled && compareConfig.showInProductCard}
             compareDisabled={!canCompare && !isInCompare(product._id)}
             compareDisabledReason={compareReason}
+            onAddToCart={handleAddToCart}
+            isAddingToCart={isAddingToCart}
         />
     );
 }

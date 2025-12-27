@@ -6,8 +6,10 @@ import "./globals.scss";
 import { StoreProvider } from "@/providers/StoreProvider";
 import { UIProvider } from "@/providers/UIProvider";
 import { CustomerProvider } from "@/providers/AuthProvider";
+import { CartProvider } from "@/providers/CartProvider";
 import { WishlistProvider } from "@/providers/WishlistProvider";
 import { CompareProvider } from "@/providers/CompareProvider";
+import { ToastProvider } from "@/providers/ToastProvider";
 import CompareFloatingWidget from "@/components/core/CompareFloatingWidget";
 import AuthModal from "@/components/organisms/AuthModal/AuthModal";
 import { fetchCurrencies, getStore } from "@/lib/api";
@@ -163,29 +165,28 @@ export default async function RootLayout({
         >
           <UIProvider>
             <CustomerProvider>
-              <WishlistProvider>
-                <CompareProvider>
-                  <div className="min-h-screen flex flex-col">
-                    {/* Header - Template-specific container */}
-                    <Header
-                      config={store?.theme?.header}
-                      store={store}
-                      templateId={templateId}
-                      menus={menus}
-                    />
+              <CartProvider>
+                <WishlistProvider>
+                  <CompareProvider>
+                    <ToastProvider>
+                      <div className="flex flex-col min-h-screen">
+                        {/* Header - Template-specific container */}
+                        <Header config={store?.theme?.header} store={store} templateId={templateId} menus={menus} />
 
-                    {/* Main Content */}
-                    <main className="flex-1">
-                      {children}
-                    </main>
+                        {/* Main Content */}
+                        <main className="flex-1">
+                          {children}
+                        </main>
 
-                    {/* Footer - Template-specific container */}
-                    <Footer config={store?.theme?.footer} store={store} templateId={templateId} />
-                  </div>
-                  <AuthModal />
-                  <CompareFloatingWidget />
-                </CompareProvider>
-              </WishlistProvider>
+                        {/* Footer - Template-specific container */}
+                        <Footer config={store?.theme?.footer} store={store} templateId={templateId} />
+                      </div>
+                      <AuthModal />
+                      <CompareFloatingWidget />
+                    </ToastProvider>
+                  </CompareProvider>
+                </WishlistProvider>
+              </CartProvider>
             </CustomerProvider>
           </UIProvider>
         </StoreProvider>
@@ -193,5 +194,3 @@ export default async function RootLayout({
     </html>
   );
 }
-
-

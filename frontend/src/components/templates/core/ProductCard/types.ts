@@ -42,6 +42,7 @@ export interface Product {
     _id: string;
     name: string;
     slug: string;
+    type?: 'simple' | 'variable';
     price: number;
     compareAtPrice?: number;
     salePrice?: number;
