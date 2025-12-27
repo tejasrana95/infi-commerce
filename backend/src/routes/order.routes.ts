@@ -20,6 +20,9 @@ import {
     downloadPackingSlip,
     updateTracking,
     updateTrackingValidation,
+    requestReturn,
+    updateReturnStatus,
+    processRefund,
 } from '../controllers/order.controller';
 import { authenticate, authorize, optionalAuth } from '../middleware/auth';
 import { validate } from '../middleware/validation';
@@ -552,6 +555,22 @@ router.patch(
     authorize('admin', 'store_admin', 'super_admin'),
     validate(updateTrackingValidation),
     updateTracking
+);
+
+router.post('/:id/return-request', authenticate, requestReturn);
+
+router.patch(
+    '/:id/return-status',
+    authenticate,
+    authorize('admin', 'store_admin', 'super_admin'),
+    updateReturnStatus
+);
+
+router.patch(
+    '/:id/refund',
+    authenticate,
+    authorize('admin', 'store_admin', 'super_admin'),
+    processRefund
 );
 
 export default router;

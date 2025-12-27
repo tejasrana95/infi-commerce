@@ -9,6 +9,7 @@
         "start": "node dist/server.js",
         "lint": "eslint src --ext .ts",
         "seed": "ts-node scripts/seed.ts",
+        "seed:geo": "ts-node scripts/seed-geo.ts",
         "test": "jest"
     },
     "keywords": [

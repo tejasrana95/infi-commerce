@@ -101,6 +101,33 @@ export default function OrderDetailPage() {
         }
     };
 
+    const handleProcessRefund = async () => {
+        if (!confirm('Are you sure you want to mark this order as refunded?')) return;
+        setActionLoading(true);
+        try {
+            await api.patch(`/orders/${id}/refund`);
+            await fetchOrder();
+        } catch (err: any) {
+            alert(err.response?.data?.message || 'Failed to refund');
+        } finally {
+            setActionLoading(false);
+            setAnchorEl(null);
+        }
+    };
+
+    const handleReturnUpdate = async (status: string) => {
+        setActionLoading(true);
+        try {
+            await api.patch(`/orders/${id}/return-status`, { status });
+            await fetchOrder();
+        } catch (err: any) {
+            alert(err.response?.data?.message || 'Failed to update return status');
+        } finally {
+            setActionLoading(false);
+            setAnchorEl(null);
+        }
+    };
+
     if (loading) return <LoadingSpinner />;
     if (error || !order) return <Alert severity="error">{error || 'Order not found'}</Alert>;
 
@@ -111,6 +138,9 @@ export default function OrderDetailPage() {
             case 'shipped': return 'primary';
             case 'delivered': return 'success';
             case 'cancelled': return 'error';
+            case 'refunded': return 'default';
+            case 'return_requested': return 'warning';
+            case 'returned': return 'info';
             default: return 'default';
         }
     };
@@ -154,7 +184,7 @@ export default function OrderDetailPage() {
                         variant="contained"
                         endIcon={<MoreVertIcon />}
                         onClick={(e) => setAnchorEl(e.currentTarget)}
-                        disabled={actionLoading || ['cancelled', 'delivered', 'refunded'].includes(order.status)}
+                        disabled={actionLoading || ['cancelled', 'refunded'].includes(order.status) && order.paymentStatus === 'refunded'}
                     >
                         Update Status
                     </Button>
@@ -173,10 +203,33 @@ export default function OrderDetailPage() {
                     {order.status === 'shipped' && (
                         <MenuItem onClick={() => handleStatusUpdate('delivered')}>Mark as Delivered</MenuItem>
                     )}
-                    <Divider />
-                    <MenuItem onClick={() => setCancelDialogOpen(true)} sx={{ color: 'error.main' }}>
-                        Cancel Order
-                    </MenuItem>
+
+                    {/* Return Workflow */}
+                    {order.status === 'delivered' && (
+                        <MenuItem onClick={() => handleReturnUpdate('return_requested')}>Initiate Return</MenuItem>
+                    )}
+                    {order.status === 'return_requested' && (
+                        <MenuItem onClick={() => handleReturnUpdate('returned')}>Complete Return</MenuItem>
+                    )}
+
+                    {/* Refund Workflow */}
+                    {['cancelled', 'returned'].includes(order.status) && order.paymentStatus !== 'refunded' && (
+                        <>
+                            <Divider />
+                            <MenuItem onClick={handleProcessRefund} sx={{ color: 'warning.main' }}>
+                                Process Refund
+                            </MenuItem>
+                        </>
+                    )}
+
+                    {!['cancelled', 'returned', 'refunded'].includes(order.status) && (
+                        <>
+                            <Divider />
+                            <MenuItem onClick={() => setCancelDialogOpen(true)} sx={{ color: 'error.main' }}>
+                                Cancel Order
+                            </MenuItem>
+                        </>
+                    )}
                 </Menu>
             </Box>
 

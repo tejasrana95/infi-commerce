@@ -1165,3 +1165,102 @@ export const updateTracking = asyncHandler(async (req: AuthRequest, res: Respons
         data: order,
     });
 });
+
+/**
+ * @route   POST /api/orders/:id/return-request
+ * @desc    Request a return for an order
+ * @access  Private (Owner only)
+ */
+export const requestReturn = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user!.id;
+    const { reason, note } = req.body;
+
+    const order = await Order.findById(id);
+    if (!order) {
+        throw new AppError('Order not found', 404);
+    }
+
+    // Auth check: Owner
+    if (order.customerId?.toString() !== userId) {
+        // Also allow if guest email matches? For now assume logged in user or strict owner.
+        // If guest, they can't easily call this API without auth token anyway unless we open it up.
+        // User said "customer can initiate", usually implies logged in.
+        throw new AppError('Not authorized', 403);
+    }
+
+    // Check status
+    if (order.status !== 'delivered') {
+        throw new AppError('Return can only be requested for delivered orders', 400);
+    }
+
+    order.status = 'return_requested';
+    // Append return note to customer note
+    const returnNote = `[Return Request] Reason: ${reason || 'No reason provided'}. Note: ${note || ''}`;
+    order.customerNote = order.customerNote ? `${order.customerNote}\n${returnNote}` : returnNote;
+
+    await order.save();
+
+    res.json({
+        success: true,
+        message: 'Return requested successfully',
+        data: order
+    });
+});
+
+/**
+ * @route   PATCH /api/orders/:id/return-status
+ * @desc    Update return status (Complete return)
+ * @access  Private (Admin only)
+ */
+export const updateReturnStatus = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['returned', 'return_requested'].includes(status)) {
+        throw new AppError('Invalid return status', 400);
+    }
+
+    const order = await Order.findById(id);
+    if (!order) {
+        throw new AppError('Order not found', 404);
+    }
+
+    order.status = status;
+    await order.save();
+
+    res.json({
+        success: true,
+        message: 'Return status updated',
+        data: order
+    });
+});
+
+/**
+ * @route   PATCH /api/orders/:id/refund
+ * @desc    Mark order as refunded
+ * @access  Private (Admin only)
+ */
+export const processRefund = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+
+    const order = await Order.findById(id);
+    if (!order) {
+        throw new AppError('Order not found', 404);
+    }
+
+    // "If order is cancelled then admin can set flag as refund"
+    // Allow refund for cancelled or returned orders
+    if (!['cancelled', 'returned'].includes(order.status)) {
+        throw new AppError('Refund is only allowed for cancelled or returned orders', 400);
+    }
+
+    order.paymentStatus = 'refunded';
+    await order.save();
+
+    res.json({
+        success: true,
+        message: 'Order marked as refunded',
+        data: order
+    });
+});

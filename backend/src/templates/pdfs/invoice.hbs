@@ -120,6 +120,23 @@
             background-color: #dc3545;
         }
 
+        .badge.refunded {
+            background-color: #6c757d;
+        }
+
+        .badge.cancelled {
+            background-color: #dc3545;
+        }
+
+        .badge.returned {
+            background-color: #17a2b8;
+        }
+
+        .badge.return_requested {
+            background-color: #ffc107;
+            color: #333;
+        }
+
         .footer {
             margin-top: 40px;
             text-align: center;
@@ -142,6 +159,15 @@
             <div class="meta">
                 <h2>Total: {{formatPrice order.total order.currency}}</h2>
                 <span class="badge {{order.paymentStatus}}">{{order.paymentStatus}}</span>
+                {{#if (eq order.status 'cancelled')}}
+                <br><br><span class="badge cancelled">CANCELLED</span>
+                {{/if}}
+                {{#if (eq order.status 'returned')}}
+                <br><br><span class="badge returned">RETURNED</span>
+                {{/if}}
+                {{#if (eq order.status 'return_requested')}}
+                <br><br><span class="badge return_requested">RETURN REQUESTED</span>
+                {{/if}}
             </div>
         </div>
 

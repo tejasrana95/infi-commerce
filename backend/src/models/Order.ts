@@ -77,7 +77,7 @@ export interface IOrder extends Document {
     paymentDetails?: Record<string, any>;
 
     // Order status
-    status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
+    status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'return_requested' | 'returned';
 
     // Tracking
     trackingNumber?: string;
@@ -229,7 +229,7 @@ const OrderSchema = new Schema<IOrder>(
         paymentDetails: Schema.Types.Mixed,
         status: {
             type: String,
-            enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'],
+            enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded', 'return_requested', 'returned'],
             default: 'pending',
         },
         trackingNumber: String,

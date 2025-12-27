@@ -161,24 +161,42 @@ export default function OrderConfirmationPage() {
         );
     }
 
+    const isCancelled = order.status === 'cancelled' || order.status === 'refunded';
+
     return (
         <div className={styles.confirmationPage}>
             <div className={styles.container}>
                 {/* Success Header */}
-                <div className={styles.successHeader}>
-                    <div className={styles.checkmark}>
-                        <svg viewBox="0 0 52 52">
-                            <circle className={styles.checkmarkCircle} cx="26" cy="26" r="25" fill="none" />
-                            <path className={styles.checkmarkCheck} fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
-                        </svg>
+                {isCancelled ? (
+                    <div className={styles.cancelledHeader}>
+                        <div className={styles.cross}>
+                            <svg viewBox="0 0 52 52">
+                                <circle className={styles.checkmarkCircle} cx="26" cy="26" r="25" fill="none" stroke="#e74c3c" />
+                                <path className={styles.checkmarkCheck} fill="none" d="M16 16 36 36 M36 16 16 36" stroke="#e74c3c" strokeWidth="3" />
+                            </svg>
+                        </div>
+                        <h1>Order Cancelled</h1>
+                        <p className={styles.orderNumber}>Order #{order.orderNumber}</p>
+                        <p className={styles.message}>
+                            This order has been cancelled. If you have any questions, please contact support.
+                        </p>
                     </div>
-                    <h1>Order Confirmed!</h1>
-                    <p className={styles.orderNumber}>Order #{order.orderNumber}</p>
-                    <p className={styles.thankYou}>
-                        Thank you for your order. We've sent a confirmation email to{' '}
-                        <strong>{order.guestEmail || 'your email'}</strong>
-                    </p>
-                </div>
+                ) : (
+                    <div className={styles.successHeader}>
+                        <div className={styles.checkmark}>
+                            <svg viewBox="0 0 52 52">
+                                <circle className={styles.checkmarkCircle} cx="26" cy="26" r="25" fill="none" />
+                                <path className={styles.checkmarkCheck} fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+                            </svg>
+                        </div>
+                        <h1>Order Confirmed!</h1>
+                        <p className={styles.orderNumber}>Order #{order.orderNumber}</p>
+                        <p className={styles.thankYou}>
+                            Thank you for your order. We've sent a confirmation email to{' '}
+                            <strong>{order.guestEmail || 'your email'}</strong>
+                        </p>
+                    </div>
+                )}
 
                 <div className={styles.contentGrid}>
                     {/* Order Details */}
@@ -336,23 +354,26 @@ export default function OrderConfirmationPage() {
                         </div>
 
                         {/* What's Next */}
-                        <div className={styles.nextSteps}>
-                            <h3>What's Next?</h3>
-                            <ul>
-                                <li>
-                                    <span className={styles.stepIcon}>📧</span>
-                                    <span>You'll receive an email confirmation shortly</span>
-                                </li>
-                                <li>
-                                    <span className={styles.stepIcon}>📦</span>
-                                    <span>We'll notify you when your order ships</span>
-                                </li>
-                                <li>
-                                    <span className={styles.stepIcon}>🚚</span>
-                                    <span>Track your order status in your account</span>
-                                </li>
-                            </ul>
-                        </div>
+                        {/* What's Next */}
+                        {!isCancelled && (
+                            <div className={styles.nextSteps}>
+                                <h3>What's Next?</h3>
+                                <ul>
+                                    <li>
+                                        <span className={styles.stepIcon}>📧</span>
+                                        <span>You'll receive an email confirmation shortly</span>
+                                    </li>
+                                    <li>
+                                        <span className={styles.stepIcon}>📦</span>
+                                        <span>We'll notify you when your order ships</span>
+                                    </li>
+                                    <li>
+                                        <span className={styles.stepIcon}>🚚</span>
+                                        <span>Track your order status in your account</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

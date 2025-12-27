@@ -41,7 +41,7 @@ export interface TaxBreakdown {
 export interface OrderDetails {
     _id: string;
     orderNumber: string;
-    status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
+    status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'return_requested' | 'returned';
     paymentStatus: string;
     paymentMethod: string;
     items: OrderItem[];
@@ -75,6 +75,30 @@ export default function OrderDetailsTemplate({ order, loading }: OrderDetailsTem
     const { isAuthenticated } = useAuth();
     const { addToast } = useToast();
     const [downloading, setDownloading] = useState(false);
+    const [showReturnModal, setShowReturnModal] = useState(false);
+    const [returnReason, setReturnReason] = useState('');
+    const [requestingReturn, setRequestingReturn] = useState(false);
+
+    const handleRequestReturn = async () => {
+        if (!returnReason.trim()) {
+            addToast('error', 'Please provide a reason for return');
+            return;
+        }
+        try {
+            setRequestingReturn(true);
+            await apiClient.post(`/orders/${order._id}/return-request`, {
+                reason: returnReason
+            });
+            addToast('success', 'Return requested successfully');
+            setShowReturnModal(false);
+            window.location.reload();
+        } catch (error) {
+            console.error(error);
+            addToast('error', 'Failed to request return');
+        } finally {
+            setRequestingReturn(false);
+        }
+    };
 
     // We can also allow overriding currency if strictly needed from order object
     // but standard approach is to use store currency context or handle conversion if needed.
@@ -103,7 +127,7 @@ export default function OrderDetailsTemplate({ order, loading }: OrderDetailsTem
 
     const getStatusStep = (status: string) => {
         const steps = ['pending', 'processing', 'shipped', 'delivered'];
-        if (status === 'cancelled' || status === 'refunded') return -1;
+        if (['cancelled', 'refunded', 'returned', 'return_requested'].includes(status)) return -1;
         return steps.indexOf(status);
     };
 
@@ -129,7 +153,7 @@ export default function OrderDetailsTemplate({ order, loading }: OrderDetailsTem
     if (!order) return null;
 
     const currentStep = getStatusStep(order.status);
-    const isCancelled = order.status === 'cancelled' || order.status === 'refunded';
+    const isCancelled = ['cancelled', 'refunded', 'returned', 'return_requested'].includes(order.status);
 
     const getAttributeLabel = (key: string) => {
         // If key looks like a MongoDB ID (24 hex chars), probably a variant ID.
@@ -159,6 +183,16 @@ export default function OrderDetailsTemplate({ order, loading }: OrderDetailsTem
                                 {downloading ? 'Downloading...' : 'Download Invoice'}
                             </button>
 
+                            {order.status === 'delivered' && (
+                                <button
+                                    className={styles.btnSecondary}
+                                    onClick={() => setShowReturnModal(true)}
+                                    style={{ marginLeft: '1rem' }}
+                                >
+                                    Request Return
+                                </button>
+                            )}
+
                             {order.trackingNumber && order.trackingUrl && (
                                 <a
                                     href={order.trackingUrl}
@@ -186,8 +220,8 @@ export default function OrderDetailsTemplate({ order, loading }: OrderDetailsTem
                     {/* Order Status Timeline */}
                     <div className={styles.timeline}>
                         {isCancelled ? (
-                            <div className={`${styles.statusBadge} ${styles.cancelled}`}>
-                                {order.status.toUpperCase()}
+                            <div className={`${styles.statusBadge} ${styles[order.status]}`}>
+                                {order.status.replace('_', ' ').toUpperCase()}
                             </div>
                         ) : (
                             <div className={styles.steps}>
@@ -357,6 +391,36 @@ export default function OrderDetailsTemplate({ order, loading }: OrderDetailsTem
                     </div>
                 </div>
             </div>
+
+            {showReturnModal && (
+                <div className={styles.modalOverlay}>
+                    <div className={styles.modalContent}>
+                        <h2>Request Return</h2>
+                        <label>Reason for Return</label>
+                        <textarea
+                            value={returnReason}
+                            onChange={(e) => setReturnReason(e.target.value)}
+                            placeholder="Please describe why you want to return this item..."
+                        />
+                        <div className={styles.modalActions}>
+                            <button
+                                className={styles.btnSecondary}
+                                onClick={() => setShowReturnModal(false)}
+                                disabled={requestingReturn}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className={styles.btnPrimary}
+                                onClick={handleRequestReturn}
+                                disabled={requestingReturn}
+                            >
+                                {requestingReturn ? 'Submitting...' : 'Submit Request'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

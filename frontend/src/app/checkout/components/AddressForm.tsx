@@ -2,7 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import type { Address } from '@/services/checkout.service';
+import { apiClient } from '@/services/api-client';
 import styles from './AddressForm.module.scss';
+
+// Types
+interface GeoCountry {
+    _id: string;
+    name: string;
+    code: string;
+}
+
+interface GeoState {
+    _id: string;
+    name: string;
+    code: string;
+}
 
 interface AddressFormProps {
     initialAddress?: Partial<Address>;
@@ -11,40 +25,6 @@ interface AddressFormProps {
     type?: 'shipping' | 'billing';
     submitLabel?: string;
 }
-
-// Common countries (you can expand this list)
-const COUNTRIES = [
-    { code: 'US', name: 'United States' },
-    { code: 'CA', name: 'Canada' },
-    { code: 'GB', name: 'United Kingdom' },
-    { code: 'IN', name: 'India' },
-    { code: 'AU', name: 'Australia' },
-    { code: 'DE', name: 'Germany' },
-    { code: 'FR', name: 'France' },
-    { code: 'JP', name: 'Japan' },
-    { code: 'CN', name: 'China' },
-    { code: 'BR', name: 'Brazil' },
-];
-
-// US States
-const US_STATES = [
-    'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware',
-    'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky',
-    'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi',
-    'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico',
-    'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania',
-    'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont',
-    'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'
-];
-
-// Indian States
-const INDIAN_STATES = [
-    'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat',
-    'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh',
-    'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
-    'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand',
-    'West Bengal'
-];
 
 export default function AddressForm({
     initialAddress,
@@ -61,7 +41,7 @@ export default function AddressForm({
         address2: '',
         city: '',
         state: '',
-        country: 'US',
+        country: 'US', // Default
         postalCode: '',
         phone: '',
         isDefault: false,
@@ -69,29 +49,66 @@ export default function AddressForm({
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const [states, setStates] = useState<string[]>(US_STATES);
 
-    // Update states list when country changes
+    // Geo Data
+    const [countries, setCountries] = useState<GeoCountry[]>([]);
+    const [states, setStates] = useState<GeoState[]>([]);
+    const [loadingCountries, setLoadingCountries] = useState(false);
+    const [loadingStates, setLoadingStates] = useState(false);
+
+    // Fetch Countries on Mount
     useEffect(() => {
-        if (formData.country === 'US') {
-            setStates(US_STATES);
-        } else if (formData.country === 'IN') {
-            setStates(INDIAN_STATES);
+        setLoadingCountries(true);
+        apiClient.get('/geo?type=country&isActive=true')
+            .then((res: any) => {
+                setCountries(res.data || []);
+            })
+            .catch(err => {
+                console.error('Failed to load countries', err);
+            })
+            .finally(() => setLoadingCountries(false));
+    }, []);
+
+    // Fetch States when Country changes
+    useEffect(() => {
+        if (!formData.country) {
+            setStates([]);
+            return;
+        }
+
+        const countryObj = countries.find(c => c.code === formData.country);
+        if (countryObj) {
+            setLoadingStates(true);
+            setStates([]); // Clear states while loading
+            apiClient.get(`/geo/countries/${countryObj._id}/states`)
+                .then((res: any) => {
+                    setStates(res.data || []);
+                })
+                .catch(err => console.error('Failed to load states', err))
+                .finally(() => setLoadingStates(false));
         } else {
+            // Country not found in list or invalid code
             setStates([]);
         }
-        // Reset state when country changes
-        setFormData(prev => ({ ...prev, state: '' }));
-    }, [formData.country]);
+    }, [formData.country, countries]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
         const checked = (e.target as HTMLInputElement).checked;
 
-        setFormData(prev => ({
-            ...prev,
-            [name]: type === 'checkbox' ? checked : value,
-        }));
+        setFormData(prev => {
+            const newData = {
+                ...prev,
+                [name]: type === 'checkbox' ? checked : value,
+            };
+
+            // Clear state logic is handled by user action or specific need.
+            // But if user changes country, we should reset state value.
+            if (name === 'country') {
+                newData.state = '';
+            }
+            return newData;
+        });
 
         // Clear error for this field
         if (errors[name]) {
@@ -106,33 +123,13 @@ export default function AddressForm({
     const validate = (): boolean => {
         const newErrors: Record<string, string> = {};
 
-        if (!formData.firstName?.trim()) {
-            newErrors.firstName = 'First name is required';
-        }
-
-        if (!formData.lastName?.trim()) {
-            newErrors.lastName = 'Last name is required';
-        }
-
-        if (!formData.address1?.trim()) {
-            newErrors.address1 = 'Address is required';
-        }
-
-        if (!formData.city?.trim()) {
-            newErrors.city = 'City is required';
-        }
-
-        if (!formData.state?.trim()) {
-            newErrors.state = 'State is required';
-        }
-
-        if (!formData.country?.trim()) {
-            newErrors.country = 'Country is required';
-        }
-
-        if (!formData.postalCode?.trim()) {
-            newErrors.postalCode = 'Postal code is required';
-        }
+        if (!formData.firstName?.trim()) newErrors.firstName = 'First name is required';
+        if (!formData.lastName?.trim()) newErrors.lastName = 'Last name is required';
+        if (!formData.address1?.trim()) newErrors.address1 = 'Address is required';
+        if (!formData.city?.trim()) newErrors.city = 'City is required';
+        if (!formData.state?.trim()) newErrors.state = 'State is required';
+        if (!formData.country?.trim()) newErrors.country = 'Country is required';
+        if (!formData.postalCode?.trim()) newErrors.postalCode = 'Postal code is required';
 
         if (!formData.phone?.trim()) {
             newErrors.phone = 'Phone number is required';
@@ -146,7 +143,6 @@ export default function AddressForm({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
         if (validate()) {
             onSubmit(formData as Address);
         }
@@ -245,11 +241,12 @@ export default function AddressForm({
                             value={formData.state || ''}
                             onChange={handleChange}
                             className={errors.state ? styles.error : ''}
+                            disabled={loadingStates}
                         >
                             <option value="">Select State</option>
                             {states.map(state => (
-                                <option key={state} value={state}>
-                                    {state}
+                                <option key={state._id} value={state.name}>
+                                    {state.name}
                                 </option>
                             ))}
                         </select>
@@ -261,6 +258,8 @@ export default function AddressForm({
                             value={formData.state || ''}
                             onChange={handleChange}
                             className={errors.state ? styles.error : ''}
+                            placeholder={loadingStates ? "Loading states..." : "Enter state"}
+                            disabled={loadingStates}
                         />
                     )}
                     {errors.state && <span className={styles.errorMessage}>{errors.state}</span>}
@@ -277,12 +276,18 @@ export default function AddressForm({
                         value={formData.country || ''}
                         onChange={handleChange}
                         className={errors.country ? styles.error : ''}
+                        disabled={loadingCountries}
                     >
-                        {COUNTRIES.map(country => (
-                            <option key={country.code} value={country.code}>
-                                {country.name}
-                            </option>
-                        ))}
+                        <option value="">Select Country</option>
+                        {countries.length > 0 ? (
+                            countries.map(country => (
+                                <option key={country._id} value={country.code}>
+                                    {country.name}
+                                </option>
+                            ))
+                        ) : (
+                            <option disabled>Loading countries...</option>
+                        )}
                     </select>
                     {errors.country && <span className={styles.errorMessage}>{errors.country}</span>}
                 </div>

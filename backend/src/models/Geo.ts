@@ -54,7 +54,13 @@ const GeoSchema = new Schema<IGeo>(
 // Indexes
 GeoSchema.index({ type: 1, isActive: 1 });
 GeoSchema.index({ parentId: 1 });
-GeoSchema.index({ code: 1, type: 1 }, { unique: true, sparse: true });
+GeoSchema.index(
+    { code: 1, type: 1 },
+    {
+        unique: true,
+        partialFilterExpression: { code: { $type: 'string' } },
+    }
+);
 GeoSchema.index({ name: 1, type: 1 });
 
 const Geo = mongoose.model<IGeo>('Geo', GeoSchema);
