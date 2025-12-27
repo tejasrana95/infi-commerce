@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from '@/providers/ToastProvider';
+import { useDialog } from '@/providers/DialogProvider';
 import styles from './page.module.scss';
 import { apiClient } from '@/services/api-client';
 import { useCurrency } from '@/hooks/useCurrency';
@@ -54,6 +55,7 @@ export default function OrderConfirmationPage() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const toast = useToast();
+    const { showConfirm } = useDialog();
     const currency = useCurrency();
     const orderId = params.orderId as string;
 
@@ -80,6 +82,63 @@ export default function OrderConfirmationPage() {
             setTimeout(() => router.push('/'), 3000);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleCancelOrder = async () => {
+        const confirmed = await showConfirm({
+            title: 'Cancel Order',
+            message: 'Are you sure you want to cancel this order? This action cannot be undone.',
+            confirmText: 'Yes, Cancel Order',
+            cancelText: 'No, Keep Order',
+            type: 'warning',
+            isDanger: true,
+        });
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            const guestEmail = searchParams.get('guestEmail');
+            const query = guestEmail ? `?guestEmail=${encodeURIComponent(guestEmail)}` : '';
+            await apiClient.put(`/orders/${orderId}/cancel${query}`);
+            toast.success('Order cancelled successfully');
+            loadOrderDetails(); // Reload to show updated status
+        } catch (error: any) {
+            console.error('Failed to cancel order:', error);
+            toast.error(error.response?.data?.message || 'Failed to cancel order');
+        }
+    };
+
+    const handlePayNow = () => {
+        const guestEmail = searchParams.get('guestEmail');
+        const query = guestEmail ? `?guestEmail=${encodeURIComponent(guestEmail)}` : '';
+        router.push(`/orders/${orderId}/payment${query}`);
+    };
+
+    const handleDownloadInvoice = async () => {
+        try {
+            const guestEmail = searchParams.get('guestEmail');
+            const query = guestEmail ? `?guestEmail=${encodeURIComponent(guestEmail)}` : '';
+
+            // Use getBlob which handles binary response correctly
+            const blob = await apiClient.getBlob(`orders/${orderId}/invoice${query}`);
+
+            // Create blob link to download
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `invoice-${order?.orderNumber}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+
+            toast.success('Invoice downloaded successfully');
+        } catch (error) {
+            console.error('Download error:', error);
+            toast.error('Failed to download invoice');
         }
     };
 
@@ -241,6 +300,26 @@ export default function OrderConfirmationPage() {
                             </div>
 
                             <div className={styles.actions}>
+                                {/* Pay Now button - only show if payment is pending */}
+                                {order.paymentStatus === 'pending' && (
+                                    <button
+                                        className={styles.btnPrimary}
+                                        onClick={handlePayNow}
+                                    >
+                                        Pay Now
+                                    </button>
+                                )}
+
+                                {/* Cancel Order button - only show if order is not shipped or completed */}
+                                {!['shipped', 'delivered', 'completed', 'cancelled'].includes(order.status) && (
+                                    <button
+                                        className={styles.btnDanger}
+                                        onClick={handleCancelOrder}
+                                    >
+                                        Cancel Order
+                                    </button>
+                                )}
+
                                 <button
                                     className={styles.btnPrimary}
                                     onClick={() => router.push('/')}
@@ -249,9 +328,9 @@ export default function OrderConfirmationPage() {
                                 </button>
                                 <button
                                     className={styles.btnSecondary}
-                                    onClick={() => window.print()}
+                                    onClick={handleDownloadInvoice}
                                 >
-                                    Print Order
+                                    Download Invoice
                                 </button>
                             </div>
                         </div>

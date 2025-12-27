@@ -118,9 +118,6 @@ function SearchPageInner({
             const fetchSearchFilters = async () => {
                 try {
                     const response = await api.get(`products/search/filters?storeId=${store._id}&search=${encodeURIComponent(currentSearchQuery)}`);
-
-                    console.log('response', response);
-
                     if (response) {
                         filters.setAvailableFilters(response);
                     }

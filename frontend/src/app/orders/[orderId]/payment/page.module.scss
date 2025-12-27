@@ -1,0 +1,286 @@
+@use '@/styles/breakpoints' as *;
+
+.paymentPage {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+    padding: 2rem 1rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+
+    @include mobile {
+        padding: 1rem;
+    }
+}
+
+.container {
+    width: 100%;
+    max-width: 600px;
+}
+
+.card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.header {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #eee;
+    text-align: center;
+
+    h1 {
+        margin: 0 0 0.5rem;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1a1a2e;
+    }
+
+    .orderNumber {
+        color: #666;
+        font-size: 0.9rem;
+    }
+}
+
+.orderSummary {
+    padding: 1.5rem 2rem;
+    background: #fafafa;
+    border-bottom: 1px solid #eee;
+
+    h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 0 0 1rem;
+        color: #333;
+    }
+}
+
+.summaryRow {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    font-size: 0.9rem;
+    color: #555;
+
+    &.total {
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: #1a1a2e;
+        padding-top: 1rem;
+        margin-top: 0.5rem;
+        border-top: 1px solid #ddd;
+    }
+}
+
+.paymentSection {
+    padding: 2rem;
+}
+
+.paymentMethod {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: #f0f7ff;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+
+    .methodIcon {
+        width: 48px;
+        height: 48px;
+        background: white;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+        img {
+            max-width: 32px;
+            max-height: 32px;
+        }
+    }
+
+    .methodInfo {
+        flex: 1;
+
+        h3 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+
+        p {
+            margin: 0.25rem 0 0;
+            font-size: 0.85rem;
+            color: #666;
+        }
+    }
+}
+
+// Stripe Elements Container
+.stripeContainer {
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.actions {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.payButton {
+    width: 100%;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: white;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+    }
+
+    &:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+    }
+}
+
+.cancelLink {
+    text-align: center;
+    color: #888;
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 0.5rem;
+
+    &:hover {
+        color: #ef4444;
+        text-decoration: underline;
+    }
+}
+
+// Loading state
+.loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    text-align: center;
+
+    .spinner {
+        width: 48px;
+        height: 48px;
+        border: 4px solid #eee;
+        border-top-color: #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    p {
+        margin-top: 1rem;
+        color: #666;
+    }
+}
+
+// Error state
+.error {
+    text-align: center;
+    padding: 3rem 2rem;
+
+    .errorIcon {
+        width: 64px;
+        height: 64px;
+        background: #fee2e2;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        color: #ef4444;
+
+        svg {
+            width: 32px;
+            height: 32px;
+        }
+    }
+
+    h2 {
+        margin: 0 0 0.5rem;
+        color: #1a1a2e;
+    }
+
+    p {
+        color: #666;
+        margin: 0 0 1.5rem;
+    }
+
+    button {
+        padding: 0.75rem 2rem;
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 500;
+
+        &:hover {
+            background: #5568d6;
+        }
+    }
+}
+
+// COD Notice
+.codNotice {
+    text-align: center;
+    padding: 2rem;
+
+    .checkIcon {
+        width: 64px;
+        height: 64px;
+        background: #d1fae5;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        color: #10b981;
+
+        svg {
+            width: 32px;
+            height: 32px;
+        }
+    }
+
+    h2 {
+        margin: 0 0 0.5rem;
+        color: #1a1a2e;
+    }
+
+    p {
+        color: #666;
+        margin: 0 0 1.5rem;
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}

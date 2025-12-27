@@ -556,14 +556,18 @@ export const initializePayment = asyncHandler(async (req: AuthRequest, res: Resp
     // Import PaymentService dynamically to avoid circular dependency
     const { PaymentService } = await import('../services/payment/payment.service');
 
+    // Extract storeId - handle both populated and non-populated cases
+    const storeIdValue = order.storeId as any;
+    const storeId = storeIdValue?._id ? storeIdValue._id.toString() : storeIdValue.toString();
+
     // Get payment gateway instance
     const gateway = await PaymentService.selectGateway({
-        storeId: order.storeId.toString(),
+        storeId,
         country: order.billingAddress.country,
         currency: order.currency,
         preferredGateway: order.paymentMethod,
     });
-
+    console.log('gateway', gateway);
     // Create payment with gateway
     const payment = await gateway.instance.createPayment({
         orderId: order.orderNumber,
@@ -579,9 +583,13 @@ export const initializePayment = asyncHandler(async (req: AuthRequest, res: Resp
             guestEmail: order.guestEmail,
         },
     });
-
+    console.log('payment', payment);
     if (!payment.success) {
-        throw new AppError('Failed to initialize payment', 500);
+        console.error('Payment initialization failed:', payment);
+        const errorMessage = payment.gatewayResponse?.error?.description
+            || payment.gatewayResponse?.message
+            || 'Failed to initialize payment';
+        throw new AppError(errorMessage, 500);
     }
 
     // Store payment ID in order
@@ -607,7 +615,7 @@ export const initializePayment = asyncHandler(async (req: AuthRequest, res: Resp
     if (gateway.gatewayType === 'razorpay') {
         // For Razorpay, frontend needs key and order ID
         const config = await PaymentService.getGatewayConfig({
-            storeId: order.storeId.toString(),
+            storeId,
             gatewayType: 'razorpay',
         });
 
@@ -629,7 +637,7 @@ export const initializePayment = asyncHandler(async (req: AuthRequest, res: Resp
         response.data.stripe = {
             clientSecret: payment.clientSecret,
             publishableKey: (await PaymentService.getGatewayConfig({
-                storeId: order.storeId.toString(),
+                storeId,
                 gatewayType: 'stripe',
             })).credentials.publishableKey,
         };
@@ -908,8 +916,8 @@ export const updateOrderStatus = asyncHandler(async (req: AuthRequest, res: Resp
  */
 export const cancelOrder = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
-    const userId = req.user!.id;
-    const userRole = req.user!.role;
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
 
     const order = await Order.findById(id);
 
@@ -917,8 +925,16 @@ export const cancelOrder = asyncHandler(async (req: AuthRequest, res: Response) 
         throw new AppError('Order not found', 404);
     }
 
-    // Check authorization
-    if (userRole !== 'admin' && userRole !== 'store_admin' && order.customerId?.toString() !== userId) {
+    // Check authorization - support both logged-in users and guest orders
+    const isAdmin = userRole === 'admin' || userRole === 'store_admin' || userRole === 'super_admin';
+    const isOwner = order.customerId && order.customerId.toString() === userId;
+
+    // Check for guest access via email verification
+    const guestEmail = req.query.guestEmail as string || req.body.guestEmail;
+    const isGuestOwner = !order.customerId && order.guestEmail &&
+        guestEmail && order.guestEmail.toLowerCase() === guestEmail.toLowerCase();
+
+    if (!isAdmin && !isOwner && !isGuestOwner) {
         throw new AppError('Not authorized to cancel this order', 403);
     }
 
@@ -1052,8 +1068,8 @@ export const trackOrder = asyncHandler(async (req: AuthRequest, res: Response) =
  */
 export const downloadInvoice = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
-    const userId = req.user!.id;
-    const userRole = req.user!.role;
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
 
     const order = await Order.findById(id).populate('storeId');
 
@@ -1063,7 +1079,7 @@ export const downloadInvoice = asyncHandler(async (req: AuthRequest, res: Respon
 
     // Auth Check
     const isAdmin = userRole === 'admin' || userRole === 'store_admin' || userRole === 'super_admin';
-    const isOwner = order.customerId?.toString() === userId;
+    const isOwner = userId && order.customerId?.toString() === userId;
     // Guest check
     const guestEmail = req.query.guestEmail as string;
     const isGuestOwner = !order.customerId && order.guestEmail && guestEmail &&

@@ -116,7 +116,6 @@ export default function CheckoutPage() {
             if (customer) {
                 const { addresses } = await checkoutService.getAddresses();
                 setSavedAddresses(addresses);
-                console.log('addresses', addresses);
                 // Auto-select default address
                 const defaultAddress = addresses.find(addr => addr.isDefault && addr.type === 'shipping');
                 if (defaultAddress) {
@@ -231,12 +230,11 @@ export default function CheckoutPage() {
     // Load payment methods
     const loadPaymentMethods = async () => {
         if (!shippingAddress) return;
-
         try {
             const { methods } = await checkoutService.getPaymentMethods(
                 shippingAddress.country,
                 orderSummary.total,
-                storeConfig?.currency || 'USD'
+                typeof currency === 'string' ? currency : (currency?.code || 'USD')
             );
             setPaymentMethods(methods);
 
@@ -316,7 +314,7 @@ export default function CheckoutPage() {
 
     // Handle order submission
     const handlePlaceOrder = async () => {
-        if (!shippingAddress || !billingAddress || !selectedPayment) {
+        if (!shippingAddress || (!billingAddress && !sameAsShipping) || !selectedPayment) {
             toast.error('Please complete all required fields');
             return;
         }
@@ -331,7 +329,7 @@ export default function CheckoutPage() {
 
             const orderData = {
                 shippingAddress,
-                billingAddress: sameAsShipping ? shippingAddress : billingAddress,
+                billingAddress: (sameAsShipping ? shippingAddress : billingAddress) as Address,
                 shippingCost: shippingCost,
                 paymentMethod: selectedPayment.id,
                 customerNote,
@@ -351,9 +349,10 @@ export default function CheckoutPage() {
             const queryString = redirectParams.toString() ? `?${redirectParams.toString()}` : '';
 
             if (result.order.paymentRequired) {
-                // TODO: Initialize payment gateway
+                // Redirect to payment page for gateway initialization
                 router.push(`/orders/${result.order.orderId}/payment${queryString}`);
             } else {
+                // COD or offline payment - go directly to confirmation
                 router.push(`/orders/${result.order.orderId}/confirmation${queryString}`);
             }
         } catch (error: any) {
@@ -653,11 +652,6 @@ export default function CheckoutPage() {
                                                 <div>
                                                     <strong>{method.name}</strong>
                                                     <p>{method.description}</p>
-                                                    {method.extraCharge && method.extraCharge > 0 && (
-                                                        <p className={styles.extraCharge}>
-                                                            Extra charge: {formatPrice(method.extraCharge, currency)}
-                                                        </p>
-                                                    )}
                                                 </div>
                                             </div>
                                         </div>

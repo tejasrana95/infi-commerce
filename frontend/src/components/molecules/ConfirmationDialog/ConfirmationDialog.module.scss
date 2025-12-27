@@ -1,0 +1,100 @@
+@use '@/styles/breakpoints' as *;
+
+.dialogBody {
+    display: flex;
+    gap: 1rem;
+    padding-top: 0.5rem;
+}
+
+.icon {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.info {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+    }
+
+    &.success {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+    }
+
+    &.warning {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+    }
+
+    &.error {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+    }
+
+    svg {
+        width: 24px;
+        height: 24px;
+        stroke-width: 2;
+    }
+}
+
+.message {
+    flex: 1;
+
+    h3 {
+        margin: 0 0 0.5rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    p {
+        margin: 0;
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+}
+
+// Buttons
+.btn {
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    cursor: pointer;
+    border: 1px solid transparent;
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+}
+
+.cancel {
+    background: white;
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+
+    &:hover:not(:disabled) {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+    }
+}
+
+.confirm {
+    background: var(--color-primary);
+    color: white;
+
+    &:hover:not(:disabled) {
+        filter: brightness(1.1);
+    }
+
+    &.danger {
+        background: #ef4444;
+    }
+}

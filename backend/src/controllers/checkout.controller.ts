@@ -962,7 +962,18 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
     // ===== STEP 11: CLEAR CART =====
     await Cart.findByIdAndDelete(cart._id);
 
-    // ===== STEP 12: RETURN ORDER DETAILS =====
+    // ===== STEP 12: DETERMINE IF PAYMENT IS REQUIRED =====
+    // Check if the payment gateway is online or offline
+    const gatewayConfig = await (await import('../models/PaymentGatewayConfig')).default.findOne({
+        storeId,
+        gatewayType: paymentMethod,
+        isActive: true,
+    });
+
+    // Determine if payment is required (online gateways require payment, offline like COD don't)
+    const paymentRequired = gatewayConfig ? gatewayConfig.gatewayType !== 'cod' : paymentMethod !== 'cod';
+
+    // ===== STEP 13: RETURN ORDER DETAILS =====
     res.status(201).json({
         success: true,
         message: 'Order created successfully',
@@ -972,7 +983,7 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
             total: order.total,
             currency: order.currency,
             paymentMethod: order.paymentMethod,
-            paymentRequired: paymentMethod !== 'cod',
+            paymentRequired,
             status: order.status,
         },
     });

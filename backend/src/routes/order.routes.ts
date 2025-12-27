@@ -454,7 +454,7 @@ router.put(
  *       404:
  *         description: Order not found
  */
-router.post('/:id/cancel', authenticate, cancelOrder);
+router.put('/:id/cancel', optionalAuth, cancelOrder);
 
 /**
  * @swagger
