@@ -332,6 +332,7 @@ export default function CheckoutPage() {
                 billingAddress: (sameAsShipping ? shippingAddress : billingAddress) as Address,
                 shippingCost: shippingCost,
                 paymentMethod: selectedPayment.id,
+                currency: typeof currency === 'string' ? currency : (currency?.code || 'USD'),
                 customerNote,
                 guestEmail: !customer ? guestEmail : undefined,
                 saveAddress: customer ? saveAddress : false,

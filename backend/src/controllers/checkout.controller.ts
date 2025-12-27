@@ -646,6 +646,7 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
         billingAddress,
         shippingMethodId,
         paymentMethod,
+        currency,
         customerNote,
         guestEmail,
         saveAddress = false,
@@ -762,45 +763,50 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
     }
 
     // ===== STEP 2: CALCULATE SHIPPING =====
-    let shippingCost = 0;
+    // Use ShippingCalculatorService for consistent logic
+    const shippingCalculatorService = (await import('../services/shipping-calculator.service')).default;
 
-    if (store.settings?.shippingEnabled && shippingMethodId) {
-        const shippingRule = await ShippingRule.findById(shippingMethodId);
-        if (!shippingRule) {
-            throw new AppError('Invalid shipping method', 400);
-        }
+    const shippingResult = await shippingCalculatorService.calculateShipping({
+        storeId,
+        items: orderItems.map(item => ({
+            productId: item.productId.toString(),
+            quantity: item.quantity,
+        })),
+        destination: {
+            country: shippingAddress.country,
+            state: shippingAddress.state,
+            city: shippingAddress.city,
+        },
+        subtotal,
+    });
 
-        // Calculate shipping cost
-        let totalWeight = 0;
-        for (const item of orderItems) {
-            totalWeight += item.weight * item.quantity;
-        }
+    const shippingCost = shippingResult.cost;
 
-        switch (shippingRule.rateType) {
-            case 'flat':
-                shippingCost = shippingRule.rate;
-                break;
-            case 'per_kg':
-                shippingCost = shippingRule.rate * totalWeight;
-                break;
-            case 'free':
-                shippingCost = 0;
-                break;
-            case 'percentage':
-                shippingCost = (subtotal * shippingRule.rate) / 100;
-                break;
-        }
-    }
+    console.log('🚚 Shipping Calculation (via Service):');
+    console.log('  - Matched rule:', shippingResult.ruleName);
+    console.log('  - Shipping cost:', shippingCost);
 
     // ===== STEP 3: CALCULATE TAX =====
     const taxBreakdown: any[] = [];
     let totalTax = 0;
 
+    console.log('💰 Tax Calculation:');
+    console.log('  - Number of items:', orderItems.length);
+
     for (const item of orderItems) {
         const product = await Product.findById(item.productId);
+        console.log(`  - Item: ${item.name}`);
+        console.log(`    - Has product: ${!!product}`);
+        console.log(`    - Has taxClassId: ${!!product?.taxClassId}`);
+
         if (product && product.taxClassId) {
             const taxRate = await TaxRate.findById(product.taxClassId);
+            console.log(`    - Tax rate found: ${!!taxRate}`);
+
             if (taxRate) {
+                console.log(`    - Tax rate name: ${taxRate.name}`);
+                console.log(`    - Tax rate %: ${taxRate.rate}`);
+
                 const itemTotal = item.price * item.quantity;
                 const taxAmount = (itemTotal * taxRate.rate) / 100;
                 totalTax += taxAmount;
@@ -875,6 +881,20 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
     // ===== STEP 6: GENERATE ORDER NUMBER =====
     const orderNumber = await generateOrderNumber();
 
+    // Validate currency
+    if (!currency) {
+        throw new AppError('Currency is required', 400);
+    }
+
+    // Fetch exchange rate from Currency model
+    const Currency = (await import('../models/Currency')).default;
+    const currencyDoc = await Currency.findOne({
+        code: currency.toUpperCase(),
+        isActive: true
+    });
+
+    const exchangeRate = currencyDoc?.exchangeRate || 1;
+
     // ===== STEP 7: CREATE ORDER =====
     const order = await (await import('../models/Order')).default.create({
         storeId,
@@ -890,7 +910,8 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
         couponId,
         couponCode,
         total: parseFloat(total.toFixed(2)),
-        currency: store.currency || 'USD',
+        currency: currency.toUpperCase(),
+        exchangeRate: exchangeRate || 1, // Store exchange rate, default to 1 if not provided
         shippingAddress,
         billingAddress,
         paymentMethod,

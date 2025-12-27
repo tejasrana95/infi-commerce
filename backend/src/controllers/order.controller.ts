@@ -15,6 +15,7 @@ import { PdfService } from '../services/pdf.service';
  */
 export const createOrderValidation = [
     body('storeId').isMongoId().withMessage('Valid store ID is required'),
+    body('currency').trim().notEmpty().withMessage('Currency is required'),
     body('shippingAddress').isObject().withMessage('Shipping address is required'),
     body('shippingAddress.firstName').trim().notEmpty(),
     body('shippingAddress.lastName').trim().notEmpty(),
@@ -330,6 +331,7 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
         customerNote,
         guestEmail,
         sessionId,
+        currency, // Accept currency from frontend
     } = req.body;
 
     // Validate: Either logged in OR guest email provided
@@ -450,6 +452,11 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
     // Generate order number
     const orderNumber = await generateOrderNumber();
 
+    // Currency must be provided from frontend
+    if (!currency) {
+        throw new AppError('Currency is required', 400);
+    }
+
     // Create order
     const order = await Order.create({
         storeId,
@@ -472,7 +479,7 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
         tax,
         discount,
         total,
-        currency: shippingResult.currency,
+        currency: currency.toUpperCase(),
         shippingAddress,
         billingAddress,
         paymentMethod,
@@ -567,15 +574,32 @@ export const initializePayment = asyncHandler(async (req: AuthRequest, res: Resp
         currency: order.currency,
         preferredGateway: order.paymentMethod,
     });
-    console.log('gateway', gateway);
+
+    // Get base currency from Currency table
+    const Currency = (await import('../models/Currency')).default;
+    const baseCurrencyDoc = await Currency.findOne({ isBaseCurrency: true });
+
+    if (!baseCurrencyDoc) {
+        throw new AppError('Base currency not configured', 500);
+    }
+
+    const baseCurrency = baseCurrencyDoc.code;
+    let paymentAmount = order.total;
+
+    if (order.currency !== baseCurrency && order.exchangeRate) {
+        // Convert from base currency to order currency using exchange rate
+        paymentAmount = order.total * order.exchangeRate;
+    }
+
     // Create payment with gateway
     const payment = await gateway.instance.createPayment({
         orderId: order.orderNumber,
-        amount: order.total,
+        amount: paymentAmount,
         currency: order.currency,
         customerEmail: userId ? req.user!.email : order.guestEmail!,
         customerName: `${order.shippingAddress.firstName} ${order.shippingAddress.lastName}`,
         description: `Order ${order.orderNumber}`,
+        shippingAddress: order.shippingAddress,
         metadata: {
             orderId: order._id.toString(),
             orderNumber: order.orderNumber,
@@ -583,7 +607,7 @@ export const initializePayment = asyncHandler(async (req: AuthRequest, res: Resp
             guestEmail: order.guestEmail,
         },
     });
-    console.log('payment', payment);
+
     if (!payment.success) {
         console.error('Payment initialization failed:', payment);
         const errorMessage = payment.gatewayResponse?.error?.description
@@ -603,7 +627,7 @@ export const initializePayment = asyncHandler(async (req: AuthRequest, res: Resp
         data: {
             orderId: order._id,
             orderNumber: order.orderNumber,
-            amount: order.total,
+            amount: paymentAmount, // Use converted amount, not order.total
             currency: order.currency,
             paymentMethod: order.paymentMethod,
             gatewayType: gateway.gatewayType,
@@ -654,13 +678,13 @@ export const initializePayment = asyncHandler(async (req: AuthRequest, res: Resp
 
 /**
  * @route   GET /api/orders/:id
- * @desc    Get order by ID
- * @access  Private
+ * @desc    Get order by ID (supports guest access via guestEmail query param)
+ * @access  Public (optionalAuth)
  */
 export const getOrderById = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
-    const userId = req.user!.id;
-    const userRole = req.user!.role;
+    const userId = req.user?.id; // Optional for guest access
+    const userRole = req.user?.role;
 
     const order = await Order.findById(id)
         .populate('items.productId', 'name slug images')
@@ -672,11 +696,11 @@ export const getOrderById = asyncHandler(async (req: AuthRequest, res: Response)
     }
 
     // Check authorization - user can only view their own orders unless admin
-    const isAdmin = userRole === 'admin' || userRole === 'store_admin' || userRole === 'super_admin';
+    const isAdmin = userRole && (userRole === 'admin' || userRole === 'store_admin' || userRole === 'super_admin');
 
     // Handle populated customerId
     const customerId = (order.customerId as any)?._id || order.customerId;
-    const isOwner = customerId && customerId.toString() === userId;
+    const isOwner = userId && customerId && customerId.toString() === userId;
 
     // Check for guest access via email verification
     const guestEmail = req.query.guestEmail as string;
@@ -970,11 +994,26 @@ export const cancelOrder = asyncHandler(async (req: AuthRequest, res: Response) 
 export const handlePaymentSuccess = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const { paymentId, paymentDetails } = req.body;
+    const userId = req.user?.id;
 
     const order = await Order.findById(id);
 
     if (!order) {
         throw new AppError('Order not found', 404);
+    }
+
+    // Verify ownership - either authenticated user or guest with matching email
+    if (userId) {
+        // Authenticated user - check if order belongs to them
+        if (order.customerId && order.customerId.toString() !== userId) {
+            throw new AppError('Unauthorized to access this order', 403);
+        }
+    } else {
+        // Guest user - verify email from request body
+        const guestEmail = req.body.guestEmail;
+        if (!guestEmail || order.guestEmail !== guestEmail.toLowerCase()) {
+            throw new AppError('Unauthorized to access this order', 403);
+        }
     }
 
     // Update payment status

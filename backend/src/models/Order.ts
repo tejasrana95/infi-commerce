@@ -41,6 +41,7 @@ export interface IOrder extends Document {
     couponCode?: string;
     total: number;
     currency: string;
+    exchangeRate?: number; // Exchange rate at time of order creation
 
     // Shipping
     shippingAddress: {
@@ -192,6 +193,10 @@ const OrderSchema = new Schema<IOrder>(
             required: true,
             uppercase: true,
             maxlength: 3,
+        },
+        exchangeRate: {
+            type: Number,
+            required: false,
         },
         shippingAddress: {
             firstName: { type: String, required: true },

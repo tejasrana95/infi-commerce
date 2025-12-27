@@ -44,7 +44,6 @@ export default function NewShippingRulePage() {
     geoGroupId: '',
     rateType: 'flat' as 'flat' | 'per_kg' | 'free' | 'percentage',
     rate: 0,
-    currency: 'USD',
     minWeight: '',
     maxWeight: '',
     minOrderValue: '',
@@ -210,7 +209,7 @@ export default function NewShippingRulePage() {
         <Paper sx={{ p: 3, mb: 3 }}>
           <Typography variant="h6" gutterBottom>Rate Configuration</Typography>
           <Grid container spacing={3}>
-            <Grid size={{ xs: 12, md: 4 }}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth required>
                 <InputLabel>Rate Type</InputLabel>
                 <Select
@@ -225,7 +224,7 @@ export default function NewShippingRulePage() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 required={formData.rateType !== 'free'}
@@ -236,22 +235,6 @@ export default function NewShippingRulePage() {
                 disabled={formData.rateType === 'free'}
                 inputProps={{ min: 0, step: 0.01 }}
               />
-            </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <FormControl fullWidth required>
-                <InputLabel>Currency</InputLabel>
-                <Select
-                  value={formData.currency}
-                  label="Currency"
-                  onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                  disabled={formData.rateType === 'free'}
-                >
-                  <MenuItem value="USD">USD</MenuItem>
-                  <MenuItem value="EUR">EUR</MenuItem>
-                  <MenuItem value="GBP">GBP</MenuItem>
-                  <MenuItem value="INR">INR</MenuItem>
-                </Select>
-              </FormControl>
             </Grid>
           </Grid>
         </Paper>

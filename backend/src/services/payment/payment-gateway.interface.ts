@@ -45,6 +45,17 @@ export interface IPaymentGateway {
         customerName?: string;
         description?: string;
         metadata?: Record<string, any>;
+        shippingAddress?: {
+            firstName: string;
+            lastName: string;
+            address1: string;
+            address2?: string;
+            city: string;
+            state: string;
+            country: string;
+            postalCode: string;
+            phone: string;
+        };
     }): Promise<PaymentResponse>;
 
     /**
@@ -96,6 +107,17 @@ export abstract class BasePaymentGateway implements IPaymentGateway {
         customerName?: string;
         description?: string;
         metadata?: Record<string, any>;
+        shippingAddress?: {
+            firstName: string;
+            lastName: string;
+            address1: string;
+            address2?: string;
+            city: string;
+            state: string;
+            country: string;
+            postalCode: string;
+            phone: string;
+        };
     }): Promise<PaymentResponse>;
 
     abstract verifyWebhook(params: {

@@ -381,7 +381,7 @@ router.get('/:orderNumber/track', trackOrder);
  *       404:
  *         description: Order not found
  */
-router.get('/:id', authenticate, getOrderById);
+router.get('/:id', optionalAuth, getOrderById);
 
 /**
  * @swagger
@@ -492,7 +492,7 @@ router.put('/:id/cancel', optionalAuth, cancelOrder);
  *       404:
  *         description: Order not found
  */
-router.post('/:id/payment-success', authenticate, handlePaymentSuccess);
+router.post('/:id/payment-success', optionalAuth, handlePaymentSuccess);
 
 /**
  * @swagger

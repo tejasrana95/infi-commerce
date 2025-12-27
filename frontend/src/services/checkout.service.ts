@@ -199,6 +199,7 @@ export async function createOrder(orderData: {
     billingAddress: Address;
     shippingMethodId?: string;
     paymentMethod: string;
+    currency: string;
     customerNote?: string;
     guestEmail?: string;
     saveAddress?: boolean;

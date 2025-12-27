@@ -1,5 +1,5 @@
 // Format price based on currency object or code
-export function formatPrice(price: number, currency: import('@/types').Currency | string): string {
+export function formatPrice(price: number, currency: import('@/types').Currency | string, convert = true): string {
     if (typeof currency === 'string') {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
@@ -8,7 +8,11 @@ export function formatPrice(price: number, currency: import('@/types').Currency 
     }
 
     // Custom formatting using Currency object
-    const val = price * (currency.exchangeRate || 1);
+
+    let val = price * (currency.exchangeRate || 1);
+    if (!convert) {
+        val = price;
+    }
     const formatted = val.toFixed(currency.decimalPlaces || 2);
 
     // Add thousands separator if needed (simplified)

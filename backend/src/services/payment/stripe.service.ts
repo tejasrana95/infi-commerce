@@ -31,10 +31,29 @@ export class StripeService extends BasePaymentGateway {
         customerName?: string;
         description?: string;
         metadata?: Record<string, any>;
+        shippingAddress?: {
+            firstName: string;
+            lastName: string;
+            address1: string;
+            address2?: string;
+            city: string;
+            state: string;
+            country: string;
+            postalCode: string;
+            phone: string;
+        };
     }): Promise<PaymentResponse> {
         try {
+            // Convert amount from dollars to cents (Stripe expects smallest currency unit)
+            const amountInCents = Math.round(params.amount * 100);
+
+            console.log('💰 Stripe Payment Creation:');
+            console.log('  - Original amount (dollars):', params.amount);
+            console.log('  - Currency:', params.currency);
+            console.log('  - Amount in cents:', amountInCents);
+
             const paymentIntent = await this.stripe.paymentIntents.create({
-                amount: this.formatAmount(params.amount, params.currency),
+                amount: amountInCents,
                 currency: params.currency.toLowerCase(),
                 description: params.description || `Order ${params.orderId}`,
                 metadata: {
@@ -43,6 +62,19 @@ export class StripeService extends BasePaymentGateway {
                     ...params.metadata,
                 },
                 receipt_email: params.customerEmail,
+                // Add shipping details for Indian export compliance
+                shipping: params.shippingAddress ? {
+                    name: `${params.shippingAddress.firstName} ${params.shippingAddress.lastName}`,
+                    address: {
+                        line1: params.shippingAddress.address1,
+                        line2: params.shippingAddress.address2 || undefined,
+                        city: params.shippingAddress.city,
+                        state: params.shippingAddress.state,
+                        postal_code: params.shippingAddress.postalCode,
+                        country: params.shippingAddress.country,
+                    },
+                    phone: params.shippingAddress.phone,
+                } : undefined,
             });
 
             return {

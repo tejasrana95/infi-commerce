@@ -18,7 +18,6 @@ interface ShippingCalculationParams {
 
 interface ShippingResult {
     cost: number;
-    currency: string;
     ruleName: string;
     ruleId: string;
 }
@@ -26,6 +25,7 @@ interface ShippingResult {
 export class ShippingCalculatorService {
     /**
      * Calculate shipping cost based on rules
+     * Uses geoGroupId for country matching (consistent with calculate-smart)
      */
     async calculateShipping(params: ShippingCalculationParams): Promise<ShippingResult> {
         const { storeId, items, destination, subtotal } = params;
@@ -49,11 +49,13 @@ export class ShippingCalculatorService {
             }
         });
 
-        // Get applicable shipping rules (sorted by priority)
+        // Get applicable shipping rules with geoGroupId populated (sorted by priority)
         const rules = await ShippingRule.find({
             storeId: new mongoose.Types.ObjectId(storeId),
             isActive: true,
-        }).sort({ priority: -1 });
+        })
+            .populate('geoGroupId')
+            .sort({ priority: -1 });
 
         // Find the first matching rule
         for (const rule of rules) {
@@ -62,7 +64,6 @@ export class ShippingCalculatorService {
 
                 return {
                     cost,
-                    currency: rule.currency,
                     ruleName: rule.name,
                     ruleId: rule._id.toString(),
                 };
@@ -72,7 +73,6 @@ export class ShippingCalculatorService {
         // No rule found - return default shipping
         return {
             cost: 0,
-            currency: 'USD',
             ruleName: 'No shipping rule found',
             ruleId: '',
         };
@@ -80,6 +80,7 @@ export class ShippingCalculatorService {
 
     /**
      * Check if a rule is applicable based on conditions
+     * Uses geoGroupId for country matching
      */
     private isRuleApplicable(
         rule: any,
@@ -88,52 +89,38 @@ export class ShippingCalculatorService {
         subtotal: number,
         categoryIds: string[]
     ): boolean {
-        const { conditions } = rule;
-
-        // Check country
-        if (conditions.countries && conditions.countries.length > 0) {
-            if (!conditions.countries.includes(destination.country)) {
-                return false;
-            }
-        }
-
-        // Check state
-        if (conditions.states && conditions.states.length > 0) {
-            if (!destination.state || !conditions.states.includes(destination.state)) {
-                return false;
-            }
-        }
-
-        // Check city
-        if (conditions.cities && conditions.cities.length > 0) {
-            if (!destination.city || !conditions.cities.includes(destination.city)) {
-                return false;
+        // Check geo matching using geoGroupId (same as calculate-smart)
+        if (rule.geoGroupId) {
+            const geoGroup = rule.geoGroupId as any;
+            if (geoGroup.countries && geoGroup.countries.length > 0) {
+                if (!geoGroup.countries.includes(destination.country.toUpperCase())) {
+                    return false;
+                }
             }
         }
 
         // Check categories
-        if (conditions.categoryIds && conditions.categoryIds.length > 0) {
-            const hasMatchingCategory = conditions.categoryIds.some((catId: any) =>
-                categoryIds.includes(catId.toString())
-            );
+        if (rule.categoryIds && rule.categoryIds.length > 0) {
+            const ruleCategoryIds = rule.categoryIds.map((id: any) => id.toString());
+            const hasMatchingCategory = categoryIds.some(catId => ruleCategoryIds.includes(catId));
             if (!hasMatchingCategory) {
                 return false;
             }
         }
 
         // Check weight range
-        if (conditions.minWeight !== undefined && totalWeight < conditions.minWeight) {
+        if (rule.minWeight !== undefined && totalWeight < rule.minWeight) {
             return false;
         }
-        if (conditions.maxWeight !== undefined && totalWeight > conditions.maxWeight) {
+        if (rule.maxWeight !== undefined && totalWeight > rule.maxWeight) {
             return false;
         }
 
         // Check order value range
-        if (conditions.minOrderValue !== undefined && subtotal < conditions.minOrderValue) {
+        if (rule.minOrderValue !== undefined && subtotal < rule.minOrderValue) {
             return false;
         }
-        if (conditions.maxOrderValue !== undefined && subtotal > conditions.maxOrderValue) {
+        if (rule.maxOrderValue !== undefined && subtotal > rule.maxOrderValue) {
             return false;
         }
 

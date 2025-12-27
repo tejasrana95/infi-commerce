@@ -8,6 +8,9 @@ import { useDialog } from '@/providers/DialogProvider';
 import { apiClient } from '@/services/api-client';
 import { useCurrency } from '@/hooks/useCurrency';
 import { formatPrice } from '@/lib/currency';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements } from '@stripe/react-stripe-js';
+import StripePaymentForm from '@/components/payment/StripePaymentForm';
 import styles from './page.module.scss';
 
 interface OrderData {
@@ -71,6 +74,7 @@ export default function OrderPaymentPage() {
     const [order, setOrder] = useState<OrderData | null>(null);
     const [paymentData, setPaymentData] = useState<PaymentInitData | null>(null);
     const [isCOD, setIsCOD] = useState(false);
+    const [stripePromise, setStripePromise] = useState<Promise<any> | null>(null);
 
     const guestEmail = searchParams.get('guestEmail');
     const queryString = guestEmail ? `?guestEmail=${encodeURIComponent(guestEmail)}` : '';
@@ -118,7 +122,11 @@ export default function OrderPaymentPage() {
             if (gateway === 'razorpay') {
                 await loadRazorpayScript();
             } else if (gateway === 'stripe') {
-                // Stripe Elements will be loaded separately
+                // Load Stripe with publishable key
+                if (paymentResponse.data.stripe?.publishableKey) {
+                    const stripe = loadStripe(paymentResponse.data.stripe.publishableKey);
+                    setStripePromise(stripe);
+                }
             } else if (gateway === 'paypal') {
                 // PayPal redirect happens on button click
             }
@@ -211,6 +219,32 @@ export default function OrderPaymentPage() {
         if (paymentData?.paypal?.redirectUrl) {
             window.location.href = paymentData.paypal.redirectUrl;
         }
+    };
+
+    // Handle Stripe payment success
+    const handleStripeSuccess = async () => {
+        try {
+            setProcessing(true);
+            await apiClient.post(`/orders/${orderId}/payment-success`, {
+                paymentId: paymentData?.paymentId,
+                guestEmail: guestEmail || undefined,
+                paymentDetails: {
+                    gateway: 'stripe',
+                },
+            });
+            toast.success('Payment successful!');
+            router.replace(`/orders/${orderId}/confirmation${queryString}`);
+        } catch (err) {
+            console.error('Error confirming payment:', err);
+            toast.error('Payment received but confirmation failed. Please contact support.');
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    // Handle Stripe payment error
+    const handleStripeError = (error: string) => {
+        toast.error(`Payment failed: ${error}`);
     };
 
     // Handle pay button click
@@ -378,7 +412,7 @@ export default function OrderPaymentPage() {
                                     <img src="https://razorpay.com/favicon.png" alt="Razorpay" />
                                 )}
                                 {paymentData?.gatewayType === 'stripe' && (
-                                    <img src="https://stripe.com/img/v3/favicon/apple-touch-icon.png" alt="Stripe" />
+                                    <img src="/images/payment/Stripe_icon.svg" alt="Stripe" />
                                 )}
                                 {paymentData?.gatewayType === 'paypal' && (
                                     <img src="https://www.paypalobjects.com/webstatic/icon/pp258.png" alt="PayPal" />
@@ -394,19 +428,50 @@ export default function OrderPaymentPage() {
                             </div>
                         </div>
 
-                        <div className={styles.actions}>
-                            <button
-                                className={styles.payButton}
-                                onClick={handlePayNow}
-                                disabled={processing}
-                            >
-                                {processing ? 'Processing...' : `Pay ${formatPrice(order?.total || 0, currency)}`}
-                            </button>
-
-                            <div className={styles.cancelLink} onClick={handleCancel}>
-                                Pay Later
+                        {/* Stripe Payment Form */}
+                        {paymentData?.gatewayType === 'stripe' && stripePromise && paymentData.stripe?.clientSecret ? (
+                            <div className={styles.stripeContainer}>
+                                <Elements
+                                    stripe={stripePromise}
+                                    options={{
+                                        clientSecret: paymentData.stripe.clientSecret,
+                                        appearance: {
+                                            theme: 'stripe',
+                                            variables: {
+                                                colorPrimary: '#667eea',
+                                            },
+                                        },
+                                    }}
+                                >
+                                    <StripePaymentForm
+                                        amount={paymentData.amount}
+                                        currency={order?.currency || 'USD'}
+                                        orderId={orderId}
+                                        onSuccess={handleStripeSuccess}
+                                        onError={handleStripeError}
+                                        queryString={queryString}
+                                    />
+                                </Elements>
+                                <div className={styles.cancelLink} onClick={handleCancel}>
+                                    Pay Later
+                                </div>
                             </div>
-                        </div>
+                        ) : (
+                            /* Other payment methods */
+                            <div className={styles.actions}>
+                                <button
+                                    className={styles.payButton}
+                                    onClick={handlePayNow}
+                                    disabled={processing}
+                                >
+                                    {processing ? 'Processing...' : `Pay ${formatPrice(order?.total || 0, currency)}`}
+                                </button>
+
+                                <div className={styles.cancelLink} onClick={handleCancel}>
+                                    Pay Later
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

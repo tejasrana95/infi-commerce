@@ -104,9 +104,9 @@ export default function ShippingPage() {
       case 'free':
         return 'Free';
       case 'flat':
-        return `${rule.currency} ${rule.rate.toFixed(2)}`;
+        return rule.rate.toFixed(2);
       case 'per_kg':
-        return `${rule.currency} ${rule.rate.toFixed(2)}/kg`;
+        return `${rule.rate.toFixed(2)}/kg`;
       case 'percentage':
         return `${rule.rate}%`;
       default:
