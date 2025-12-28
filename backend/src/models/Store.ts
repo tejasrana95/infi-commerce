@@ -25,12 +25,17 @@ export interface IStore extends Document {
     settings: {
         emailNotifications?: boolean;
         orderNotifications?: boolean;
+        smsNotifications?: boolean;
+        whatsappNotifications?: boolean;
         maintenanceMode?: boolean;
         allowGuestCheckout?: boolean;
         requireEmailVerification?: boolean;
         minOrderAmount?: number;
         maxOrderAmount?: number;
         shippingEnabled?: boolean;
+        emailSettings?: any;
+        smsSettings?: any;
+        whatsappSettings?: any;
         socialLogin?: {
             google: {
                 enabled: boolean;

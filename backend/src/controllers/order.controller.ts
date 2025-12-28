@@ -9,6 +9,7 @@ import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import shippingCalculatorService from '../services/shipping-calculator.service';
 import { PdfService } from '../services/pdf.service';
+import { transactionalNotificationService } from '../services/transactional-notification.service';
 
 /**
  * Validation rules
@@ -190,6 +191,8 @@ export const adminUpdateOrderValidation = [
     body('shippingCost').optional().isNumeric(),
     body('tax').optional().isNumeric(),
     body('discount').optional().isNumeric(),
+    body('courierName').optional().isString(),
+    body('trackingUrl').optional().isString(),
 ];
 
 /**
@@ -212,9 +215,11 @@ export const adminUpdateOrder = asyncHandler(async (req: AuthRequest, res: Respo
         customerNote,
         adminNote,
         trackingNumber,
+        courierName,
+        trackingUrl,
     } = req.body;
 
-    const order = await Order.findById(id);
+    const order = await Order.findById(id).populate('storeId customerId');
     if (!order) {
         throw new AppError('Order not found', 404);
     }
@@ -261,6 +266,9 @@ export const adminUpdateOrder = asyncHandler(async (req: AuthRequest, res: Respo
         order.subtotal = subtotal;
     }
 
+    const oldStatus = order.status;
+    const oldTrackingNumber = order.trackingNumber;
+
     // Update other fields
     if (shippingAddress !== undefined) order.shippingAddress = shippingAddress;
     if (billingAddress !== undefined) order.billingAddress = billingAddress;
@@ -273,11 +281,33 @@ export const adminUpdateOrder = asyncHandler(async (req: AuthRequest, res: Respo
     if (customerNote !== undefined) order.customerNote = customerNote;
     if (adminNote !== undefined) order.adminNote = adminNote;
     if (trackingNumber !== undefined) order.trackingNumber = trackingNumber;
+    if (courierName !== undefined) order.courierName = courierName;
+    if (trackingUrl !== undefined) order.trackingUrl = trackingUrl;
 
     // Recalculate total
     order.total = order.subtotal + order.shippingCost + order.tax - order.discount;
 
     await order.save();
+
+    // Send notifications if status or tracking number changed
+    if (status && status !== oldStatus) {
+        await transactionalNotificationService.sendOrderStatusUpdate(
+            order.storeId._id.toString(),
+            (order.storeId as any).name,
+            order,
+            status
+        );
+    } else if (trackingNumber && trackingNumber !== oldTrackingNumber) {
+        // If only tracking changed but status is already shipped, send shipped update again
+        if (order.status === 'shipped') {
+            await transactionalNotificationService.sendOrderStatusUpdate(
+                order.storeId._id.toString(),
+                (order.storeId as any).name,
+                order,
+                'shipped'
+            );
+        }
+    }
 
     res.json({
         success: true,
@@ -903,7 +933,7 @@ export const updateOrderStatus = asyncHandler(async (req: AuthRequest, res: Resp
     const { id } = req.params;
     const { status, trackingNumber, courierName, trackingUrl, adminNote } = req.body;
 
-    const order = await Order.findById(id);
+    const order = await Order.findById(id).populate('storeId customerId');
 
     if (!order) {
         throw new AppError('Order not found', 404);
@@ -924,7 +954,13 @@ export const updateOrderStatus = asyncHandler(async (req: AuthRequest, res: Resp
 
     await order.save();
 
-    // TODO: Send email notification
+    // Trigger notification
+    await transactionalNotificationService.sendOrderStatusUpdate(
+        order.storeId._id.toString(),
+        (order.storeId as any).name,
+        order,
+        status
+    );
 
     res.json({
         success: true,
@@ -943,7 +979,7 @@ export const cancelOrder = asyncHandler(async (req: AuthRequest, res: Response) 
     const userId = req.user?.id;
     const userRole = req.user?.role;
 
-    const order = await Order.findById(id);
+    const order = await Order.findById(id).populate('storeId customerId');
 
     if (!order) {
         throw new AppError('Order not found', 404);
@@ -951,24 +987,32 @@ export const cancelOrder = asyncHandler(async (req: AuthRequest, res: Response) 
 
     // Check authorization - support both logged-in users and guest orders
     const isAdmin = userRole === 'admin' || userRole === 'store_admin' || userRole === 'super_admin';
-    const isOwner = order.customerId && order.customerId.toString() === userId;
+    const isOwner = order.customerId && order.customerId._id.toString() === userId;
 
     // Check for guest access via email verification
-    const guestEmail = req.query.guestEmail as string || req.body.guestEmail;
+    const guestEmailInput = req.query.guestEmail as string || req.body.guestEmail;
     const isGuestOwner = !order.customerId && order.guestEmail &&
-        guestEmail && order.guestEmail.toLowerCase() === guestEmail.toLowerCase();
+        guestEmailInput && order.guestEmail.toLowerCase() === guestEmailInput.toLowerCase();
 
     if (!isAdmin && !isOwner && !isGuestOwner) {
         throw new AppError('Not authorized to cancel this order', 403);
     }
 
     // Can only cancel pending or processing orders
-    if (!['pending', 'processing'].includes(order.status)) {
+    if (!isAdmin && !['pending', 'processing'].includes(order.status)) {
         throw new AppError('Cannot cancel order in current status', 400);
     }
 
     order.status = 'cancelled';
     await order.save();
+
+    // Send notification
+    await transactionalNotificationService.sendOrderStatusUpdate(
+        order.storeId._id.toString(),
+        (order.storeId as any).name,
+        order,
+        'cancelled'
+    );
 
     // Restore product stock
     for (const item of order.items) {
@@ -1181,7 +1225,7 @@ export const updateTracking = asyncHandler(async (req: AuthRequest, res: Respons
     const { id } = req.params;
     const { trackingNumber, courierName, trackingUrl } = req.body;
 
-    const order = await Order.findById(id);
+    const order = await Order.findById(id).populate('storeId customerId');
     if (!order) {
         throw new AppError('Order not found', 404);
     }
@@ -1191,12 +1235,24 @@ export const updateTracking = asyncHandler(async (req: AuthRequest, res: Respons
     if (trackingUrl) order.trackingUrl = trackingUrl;
 
     // Automatically set status to shipped if it's currently pending or processing
+    let statusToNotify = order.status;
     if (order.status === 'pending' || order.status === 'processing') {
         order.status = 'shipped';
         order.shippedAt = new Date();
+        statusToNotify = 'shipped';
     }
 
     await order.save();
+
+    // Send notification if status changed to shipped OR if tracking number changed and it's already shipped
+    if (statusToNotify === 'shipped') {
+        await transactionalNotificationService.sendOrderStatusUpdate(
+            order.storeId._id.toString(),
+            (order.storeId as any).name,
+            order,
+            'shipped'
+        );
+    }
 
     res.json({
         success: true,
@@ -1260,13 +1316,21 @@ export const updateReturnStatus = asyncHandler(async (req: AuthRequest, res: Res
         throw new AppError('Invalid return status', 400);
     }
 
-    const order = await Order.findById(id);
+    const order = await Order.findById(id).populate('storeId customerId');
     if (!order) {
         throw new AppError('Order not found', 404);
     }
 
     order.status = status;
     await order.save();
+
+    // Send notification
+    await transactionalNotificationService.sendOrderStatusUpdate(
+        order.storeId._id.toString(),
+        (order.storeId as any).name,
+        order,
+        status
+    );
 
     res.json({
         success: true,
@@ -1283,7 +1347,7 @@ export const updateReturnStatus = asyncHandler(async (req: AuthRequest, res: Res
 export const processRefund = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
 
-    const order = await Order.findById(id);
+    const order = await Order.findById(id).populate('storeId customerId');
     if (!order) {
         throw new AppError('Order not found', 404);
     }
@@ -1295,7 +1359,16 @@ export const processRefund = asyncHandler(async (req: AuthRequest, res: Response
     }
 
     order.paymentStatus = 'refunded';
+    // We should also have a notification for refunded
     await order.save();
+
+    // Trigger notification for refunded
+    await transactionalNotificationService.sendOrderStatusUpdate(
+        order.storeId._id.toString(),
+        (order.storeId as any).name,
+        order,
+        'refunded'
+    );
 
     res.json({
         success: true,

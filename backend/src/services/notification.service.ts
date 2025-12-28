@@ -47,6 +47,30 @@ export interface EmailSettings {
 }
 
 // ============================================
+// SMS & WhatsApp Provider Types
+// ============================================
+
+export type SmsProvider = 'twilio' | 'msg91' | 'd7networks';
+
+export interface SmsSettings {
+    enabled: boolean;
+    provider: SmsProvider;
+    twilio?: { accountSid: string; authToken: string; fromNumber: string };
+    msg91?: { apiKey: string; senderId: string; templateId?: string };
+    d7networks?: { token: string; originator: string };
+}
+
+export type WhatsappProvider = 'meta' | 'twilio' | 'd7networks';
+
+export interface WhatsappSettings {
+    enabled: boolean;
+    provider: WhatsappProvider;
+    meta?: { phoneNumberId: string; accessToken: string; businessAccountId?: string };
+    twilio?: { accountSid: string; authToken: string; fromWhatsAppNumber: string };
+    d7networks?: { token: string; originator: string };
+}
+
+// ============================================
 // Queue Notification Params
 // ============================================
 
@@ -270,11 +294,19 @@ class NotificationService {
                     await this.sendEmail(notification, emailSettings);
                     break;
                 case 'sms':
-                    // TODO: Implement in Phase 3
-                    throw new Error('SMS not yet implemented');
+                    const smsSettings = store.settings?.smsSettings as SmsSettings | undefined;
+                    if (!smsSettings || !smsSettings.enabled) {
+                        throw new Error('SMS settings not configured or disabled');
+                    }
+                    await this.sendSms(notification, smsSettings);
+                    break;
                 case 'whatsapp':
-                    // TODO: Implement in Phase 3
-                    throw new Error('WhatsApp not yet implemented');
+                    const whatsappSettings = store.settings?.whatsappSettings as WhatsappSettings | undefined;
+                    if (!whatsappSettings || !whatsappSettings.enabled) {
+                        throw new Error('WhatsApp settings not configured or disabled');
+                    }
+                    await this.sendWhatsapp(notification, whatsappSettings);
+                    break;
             }
 
             // Mark as sent
@@ -318,7 +350,7 @@ class NotificationService {
                 throw new Error(`Unknown email provider: ${provider}`);
         }
 
-        console.log(`[NotificationService] Email sent to ${notification.recipient} via ${provider}`);
+
     }
 
     /**
@@ -458,6 +490,240 @@ class NotificationService {
         if (!response.ok) {
             const error = await response.text();
             throw new Error(`Mailjet error: ${error}`);
+        }
+    }
+
+    /**
+     * Send SMS via configured provider
+     */
+    async sendSms(notification: INotificationQueue, settings: SmsSettings): Promise<void> {
+        const { provider } = settings;
+
+        switch (provider) {
+            case 'd7networks':
+                await this.sendViaD7SMS(notification, settings.d7networks!);
+                break;
+            case 'twilio':
+                await this.sendViaTwilioSMS(notification, settings.twilio!);
+                break;
+            case 'msg91':
+                await this.sendViaMSG91SMS(notification, settings.msg91!);
+                break;
+            default:
+                throw new Error(`Unknown SMS provider: ${provider}`);
+        }
+
+
+    }
+
+    /**
+     * Send via D7Networks SMS
+     */
+    private async sendViaD7SMS(notification: INotificationQueue, config: { token: string; originator: string }): Promise<void> {
+        const response = await fetch('https://api.d7networks.com/messages/v1/send', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${config.token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+                messages: [
+                    {
+                        channel: 'sms',
+                        recipients: [notification.recipient],
+                        content: notification.content,
+                        msg_type: 'text',
+                        data_coding: 'text',
+                        originator: config.originator,
+                    }
+                ]
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(`D7Networks SMS error: ${error}`);
+        }
+    }
+
+    /**
+     * Send WhatsApp via configured provider
+     */
+    async sendWhatsapp(notification: INotificationQueue, settings: WhatsappSettings): Promise<void> {
+        const { provider } = settings;
+
+        switch (provider) {
+            case 'd7networks':
+                await this.sendViaD7WhatsApp(notification, settings.d7networks!);
+                break;
+            case 'meta':
+                await this.sendViaMetaWhatsApp(notification, settings.meta!);
+                break;
+            case 'twilio':
+                await this.sendViaTwilioWhatsApp(notification, settings.twilio!);
+                break;
+            default:
+                throw new Error(`Unknown WhatsApp provider: ${provider}`);
+        }
+
+
+    }
+
+    /**
+     * Send via D7Networks WhatsApp
+     */
+    private async sendViaD7WhatsApp(notification: INotificationQueue, config: { token: string; originator: string }): Promise<void> {
+        const response = await fetch('https://api.d7networks.com/messages/v1/send', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${config.token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+                messages: [
+                    {
+                        channel: 'whatsapp',
+                        recipients: [notification.recipient],
+                        content: notification.content,
+                        msg_type: 'text',
+                        originator: config.originator,
+                    }
+                ]
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(`D7Networks WhatsApp error: ${error}`);
+        }
+    }
+
+    /**
+     * Send via Meta WhatsApp
+     */
+    private async sendViaMetaWhatsApp(notification: INotificationQueue, config: { phoneNumberId: string; accessToken: string }): Promise<void> {
+        // Meta requires phone number without any symbols like + or ()
+        const to = notification.recipient.replace(/\D/g, '');
+
+        const response = await fetch(`https://graph.facebook.com/v21.0/${config.phoneNumberId}/messages`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${config.accessToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                messaging_product: 'whatsapp',
+                to,
+                type: 'text',
+                text: { body: notification.content }
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json() as any;
+            throw new Error(`Meta WhatsApp error: ${JSON.stringify(error)}`);
+        }
+    }
+
+    /**
+     * Send via Twilio WhatsApp
+     */
+    private async sendViaTwilioWhatsApp(notification: INotificationQueue, config: { accountSid: string; authToken: string; fromWhatsAppNumber: string }): Promise<void> {
+        const auth = Buffer.from(`${config.accountSid}:${config.authToken}`).toString('base64');
+        const params = new URLSearchParams();
+
+        // E.164 format for Twilio: +[country code][number]
+        const digits = notification.recipient.replace(/\D/g, '');
+        params.append('To', `whatsapp:+${digits}`);
+        params.append('From', `whatsapp:${config.fromWhatsAppNumber.startsWith('+') ? config.fromWhatsAppNumber : '+' + config.fromWhatsAppNumber}`);
+        params.append('Body', notification.content);
+
+        const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${config.accountSid}/Messages.json`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Basic ${auth}`,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: params.toString(),
+        });
+
+        if (!response.ok) {
+            const error = await response.json() as any;
+            throw new Error(`Twilio WhatsApp error: ${error.message}`);
+        }
+    }
+
+    /**
+     * Send via Twilio SMS
+     */
+    private async sendViaTwilioSMS(notification: INotificationQueue, config: { accountSid: string; authToken: string; fromNumber: string }): Promise<void> {
+        const auth = Buffer.from(`${config.accountSid}:${config.authToken}`).toString('base64');
+        const params = new URLSearchParams();
+        params.append('To', notification.recipient);
+        params.append('From', config.fromNumber);
+        params.append('Body', notification.content);
+
+        const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${config.accountSid}/Messages.json`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Basic ${auth}`,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: params.toString(),
+        });
+
+        if (!response.ok) {
+            const error = await response.json() as any;
+            throw new Error(`Twilio SMS error: ${error.message}`);
+        }
+    }
+
+    /**
+     * Send via MSG91 SMS
+     */
+    private async sendViaMSG91SMS(notification: INotificationQueue, config: { apiKey: string; senderId: string; templateId?: string }): Promise<void> {
+        // Handle flow-based (transactional) if templateId exists, otherwise simple SMS
+        const url = config.templateId
+            ? 'https://api.msg91.com/api/v5/flow/'
+            : 'https://control.msg91.com/api/v5/otp/send'; // Using OTP API as simpler transaction for plain text
+
+        const body = config.templateId
+            ? {
+                template_id: config.templateId,
+                sender: config.senderId,
+                short_url: '0',
+                recipients: [
+                    {
+                        mobiles: notification.recipient,
+                        // If it's a template, we'd need mapped variables, but here we only have content.
+                        // For simplicity in this generic implementation, we'll try to pass content if possible.
+                        // Most users will use templates for fixed messages.
+                        content: notification.content
+                    }
+                ]
+            }
+            : {
+                template_id: '', // Not used for direct OTP-like send
+                mobile: notification.recipient,
+                authkey: config.apiKey,
+                message: notification.content,
+                sender: config.senderId
+            };
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'authkey': config.apiKey,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body),
+        });
+
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(`MSG91 error: ${error}`);
         }
     }
 

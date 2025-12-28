@@ -2,7 +2,7 @@
  * Send WhatsApp message using configured provider
  */
 export async function sendWhatsApp(
-    to: string,
+    _to: string,
     message: string,
     data?: Record<string, any>
 ): Promise<void> {
@@ -13,7 +13,7 @@ export async function sendWhatsApp(
     // - Gupshup
     // - MessageBird
 
-    console.log(`[WhatsApp] Sending to ${to}:`, message);
+
 
     // Example template rendering
     let finalMessage = message;
@@ -32,5 +32,5 @@ export async function sendWhatsApp(
     //     to: `whatsapp:${to}`
     // });
 
-    console.log(`[WhatsApp] Message sent successfully to ${to}`);
+
 }

@@ -44,13 +44,8 @@ export class StripeService extends BasePaymentGateway {
         };
     }): Promise<PaymentResponse> {
         try {
-            // Convert amount from dollars to cents (Stripe expects smallest currency unit)
             const amountInCents = Math.round(params.amount * 100);
 
-            console.log('💰 Stripe Payment Creation:');
-            console.log('  - Original amount (dollars):', params.amount);
-            console.log('  - Currency:', params.currency);
-            console.log('  - Amount in cents:', amountInCents);
 
             const paymentIntent = await this.stripe.paymentIntents.create({
                 amount: amountInCents,

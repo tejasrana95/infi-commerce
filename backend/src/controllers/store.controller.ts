@@ -778,6 +778,229 @@ export const testEmailSettings = asyncHandler(async (req: AuthRequest, res: Resp
     }
 });
 
+// ============================================
+// SMS Settings Endpoints
+// ============================================
+
+/**
+ * @swagger
+ * /api/stores/{id}/sms-settings:
+ *   get:
+ *     summary: Get store SMS settings
+ *     tags: [Stores]
+ *     security:
+ *       - bearerAuth: []
+ */
+export const getSmsSettings = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const store = await Store.findById(req.params.id);
+
+    if (!store) {
+        throw new AppError('Store not found', 404);
+    }
+
+    const settings = store.settings?.smsSettings || null;
+
+    if (settings) {
+        const masked = { ...settings };
+        if (masked.twilio?.authToken) masked.twilio.authToken = '••••••••';
+        if (masked.msg91?.apiKey) masked.msg91.apiKey = '••••••••';
+        if (masked.d7networks?.token) masked.d7networks.token = '••••••••';
+
+        res.json({ success: true, smsSettings: masked });
+    } else {
+        res.json({ success: true, smsSettings: null });
+    }
+});
+
+/**
+ * @swagger
+ * /api/stores/{id}/sms-settings:
+ *   put:
+ *     summary: Update store SMS settings
+ *     tags: [Stores]
+ *     security:
+ *       - bearerAuth: []
+ */
+export const updateSmsSettings = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const store = await Store.findById(req.params.id);
+
+    if (!store) {
+        throw new AppError('Store not found', 404);
+    }
+
+    const { enabled, provider, twilio, msg91, d7networks } = req.body;
+
+    if (!provider && enabled) {
+        throw new AppError('SMS provider is required when enabled', 400);
+    }
+
+    const smsSettings: any = {
+        enabled: enabled ?? false,
+        provider,
+    };
+
+    if (provider === 'twilio') {
+        if (!twilio?.accountSid || !twilio?.authToken || !twilio?.fromNumber) {
+            throw new AppError('Twilio accountSid, authToken, and fromNumber are required', 400);
+        }
+        const existingTwilio = store.settings?.smsSettings?.twilio;
+        smsSettings.twilio = {
+            accountSid: twilio.accountSid,
+            authToken: twilio.authToken === '••••••••' ? existingTwilio?.authToken : twilio.authToken,
+            fromNumber: twilio.fromNumber,
+        };
+    } else if (provider === 'msg91') {
+        if (!msg91?.apiKey || !msg91?.senderId) {
+            throw new AppError('MSG91 apiKey and senderId are required', 400);
+        }
+        const existingMsg91 = store.settings?.smsSettings?.msg91;
+        smsSettings.msg91 = {
+            apiKey: msg91.apiKey === '••••••••' ? existingMsg91?.apiKey : msg91.apiKey,
+            senderId: msg91.senderId,
+            templateId: msg91.templateId,
+        };
+    } else if (provider === 'd7networks') {
+        if (!d7networks?.token || !d7networks?.originator) {
+            throw new AppError('D7Networks token and originator are required', 400);
+        }
+        const existingD7 = store.settings?.smsSettings?.d7networks;
+        smsSettings.d7networks = {
+            token: d7networks.token === '••••••••' ? existingD7?.token : d7networks.token,
+            originator: d7networks.originator,
+        };
+    }
+
+    store.settings = {
+        ...store.settings,
+        smsNotifications: enabled,
+        smsSettings,
+    };
+    await store.save();
+
+    res.json({
+        success: true,
+        message: 'SMS settings updated successfully',
+    });
+});
+
+// ============================================
+// WhatsApp Settings Endpoints
+// ============================================
+
+/**
+ * @swagger
+ * /api/stores/{id}/whatsapp-settings:
+ *   get:
+ *     summary: Get store WhatsApp settings
+ *     tags: [Stores]
+ *     security:
+ *       - bearerAuth: []
+ */
+export const getWhatsappSettings = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const store = await Store.findById(req.params.id);
+
+    if (!store) {
+        throw new AppError('Store not found', 404);
+    }
+
+    const settings = store.settings?.whatsappSettings || null;
+
+    if (settings) {
+        const masked = { ...settings };
+        if (masked.meta?.accessToken) masked.meta.accessToken = '••••••••';
+        if (masked.twilio?.authToken) masked.twilio.authToken = '••••••••';
+        if (masked.d7networks?.token) masked.d7networks.token = '••••••••';
+
+        res.json({ success: true, whatsappSettings: masked });
+    } else {
+        res.json({ success: true, whatsappSettings: null });
+    }
+});
+
+/**
+ * @swagger
+ * /api/stores/{id}/whatsapp-settings:
+ *   put:
+ *     summary: Update store WhatsApp settings
+ *     tags: [Stores]
+ *     security:
+ *       - bearerAuth: []
+ */
+export const updateWhatsappSettings = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const store = await Store.findById(req.params.id);
+
+    if (!store) {
+        throw new AppError('Store not found', 404);
+    }
+
+    const { enabled, provider, meta, twilio, d7networks } = req.body;
+
+    if (!provider && enabled) {
+        throw new AppError('WhatsApp provider is required when enabled', 400);
+    }
+
+    const whatsappSettings: any = {
+        enabled: enabled ?? false,
+        provider,
+    };
+
+    if (provider === 'meta') {
+        if (!meta?.phoneNumberId || !meta?.accessToken) {
+            throw new AppError('Meta phoneNumberId and accessToken are required', 400);
+        }
+        const existingMeta = store.settings?.whatsappSettings?.meta;
+        whatsappSettings.meta = {
+            phoneNumberId: meta.phoneNumberId,
+            accessToken: meta.accessToken === '••••••••' ? existingMeta?.accessToken : meta.accessToken,
+            businessAccountId: meta.businessAccountId,
+        };
+    } else if (provider === 'twilio') {
+        if (!twilio?.accountSid || !twilio?.authToken || !twilio?.fromWhatsAppNumber) {
+            throw new AppError('Twilio accountSid, authToken, and fromWhatsAppNumber are required', 400);
+        }
+        const existingTwilio = store.settings?.whatsappSettings?.twilio;
+        whatsappSettings.twilio = {
+            accountSid: twilio.accountSid,
+            authToken: twilio.authToken === '••••••••' ? existingTwilio?.authToken : twilio.authToken,
+            fromWhatsAppNumber: twilio.fromWhatsAppNumber,
+        };
+    } else if (provider === 'd7networks') {
+        if (!d7networks?.token || !d7networks?.originator) {
+            throw new AppError('D7Networks token and originator are required', 400);
+        }
+        const existingD7 = store.settings?.whatsappSettings?.d7networks;
+        whatsappSettings.d7networks = {
+            token: d7networks.token === '••••••••' ? existingD7?.token : d7networks.token,
+            originator: d7networks.originator,
+        };
+    }
+
+    store.settings = {
+        ...store.settings,
+        whatsappNotifications: enabled,
+        whatsappSettings,
+    };
+    await store.save();
+
+    res.json({
+        success: true,
+        message: 'WhatsApp settings updated successfully',
+    });
+});
+
+// Validation for settings
+export const updateSmsSettingsValidation = [
+    param('id').isMongoId().withMessage('Invalid store ID'),
+    body('enabled').optional().isBoolean(),
+    body('provider').optional().isIn(['twilio', 'msg91', 'd7networks']).withMessage('Invalid SMS provider'),
+];
+
+export const updateWhatsappSettingsValidation = [
+    param('id').isMongoId().withMessage('Invalid store ID'),
+    body('enabled').optional().isBoolean(),
+    body('provider').optional().isIn(['meta', 'twilio', 'd7networks']).withMessage('Invalid WhatsApp provider'),
+];
+
 // Validation for email settings
 export const updateEmailSettingsValidation = [
     param('id').isMongoId().withMessage('Invalid store ID'),

@@ -103,32 +103,8 @@ export const validateCheckout = asyncHandler(async (req: AuthRequest, res: Respo
 
         // Handle variant pricing
         if (item.variantId && product.variants && product.variants.length > 0) {
-            console.log(`[DEBUG] Handling item: ${item.name}`);
-            console.log(`[DEBUG] Looking for variantId: ${item.variantId} (Type: ${typeof item.variantId})`);
-            console.log(`[DEBUG] Product variants count: ${product.variants.length}`);
-
-            // Robust matching: convert both to string to avoid ObjectId vs String issues
-            const variant = product.variants.find((v: any) => {
-                const match = String(v._id) === String(item.variantId) ||
-                    (v.id && String(v.id) === String(item.variantId));
-                if (match) console.log(`[DEBUG] Match found! Variant ID: ${v._id}, SKU: ${v.sku}`);
-                return match;
-            });
-
-            if (variant) {
-                console.log(`[DEBUG] Variant Found! Price: ${variant.price} SalePrice: ${variant.salePrice}`);
-                if (variant.salePrice) itemPrice = variant.salePrice;
-                else if (variant.price) itemPrice = variant.price;
-                console.log(`[DEBUG] Final Item Price: ${itemPrice}`);
-            } else {
-                console.log(`[DEBUG] Variant NOT found in product.variants list. Available IDs: ${product.variants.map((v: any) => v._id)}`);
-                // Variant was requested but not found in the product!
-                issues.push(`Variant no longer exists for ${product.name}`);
-                continue;
-            }
-        } else {
-            if (item.variantId) console.log(`[DEBUG] variantId present (${item.variantId}) but variants array missing/empty? Length: ${product.variants?.length}`);
         }
+
 
         subtotal += itemPrice * item.quantity;
     }
@@ -644,7 +620,6 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
     const {
         shippingAddress,
         billingAddress,
-        shippingMethodId,
         paymentMethod,
         currency,
         customerNote,
@@ -782,31 +757,18 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
 
     const shippingCost = shippingResult.cost;
 
-    console.log('🚚 Shipping Calculation (via Service):');
-    console.log('  - Matched rule:', shippingResult.ruleName);
-    console.log('  - Shipping cost:', shippingCost);
 
     // ===== STEP 3: CALCULATE TAX =====
     const taxBreakdown: any[] = [];
     let totalTax = 0;
 
-    console.log('💰 Tax Calculation:');
-    console.log('  - Number of items:', orderItems.length);
-
     for (const item of orderItems) {
         const product = await Product.findById(item.productId);
-        console.log(`  - Item: ${item.name}`);
-        console.log(`    - Has product: ${!!product}`);
-        console.log(`    - Has taxClassId: ${!!product?.taxClassId}`);
 
         if (product && product.taxClassId) {
             const taxRate = await TaxRate.findById(product.taxClassId);
-            console.log(`    - Tax rate found: ${!!taxRate}`);
 
             if (taxRate) {
-                console.log(`    - Tax rate name: ${taxRate.name}`);
-                console.log(`    - Tax rate %: ${taxRate.rate}`);
-
                 const itemTotal = item.price * item.quantity;
                 const taxAmount = (itemTotal * taxRate.rate) / 100;
                 totalTax += taxAmount;
@@ -968,11 +930,6 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
                     country: shippingAddress.country,
                     postalCode: shippingAddress.postalCode,
                 },
-            },
-            {
-                email: store.settings?.notifications?.orderConfirmation?.email ?? true,
-                sms: store.settings?.notifications?.orderConfirmation?.sms ?? false,
-                whatsapp: store.settings?.notifications?.orderConfirmation?.whatsapp ?? false,
             }
         );
     } catch (notificationError) {

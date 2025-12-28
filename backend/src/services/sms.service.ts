@@ -2,7 +2,7 @@
  * Send SMS using configured SMS provider
  */
 export async function sendSMS(
-    to: string,
+    _to: string,
     message: string,
     data?: Record<string, any>
 ): Promise<void> {
@@ -13,7 +13,7 @@ export async function sendSMS(
     // - Vonage (Nexmo)
     // - MSG91 (for India)
 
-    console.log(`[SMS] Sending to ${to}:`, message);
+
 
     // Example template rendering
     let finalMessage = message;
@@ -32,5 +32,5 @@ export async function sendSMS(
     //     to: to
     // });
 
-    console.log(`[SMS] Message sent successfully to ${to}`);
+
 }

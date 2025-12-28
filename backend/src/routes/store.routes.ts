@@ -11,9 +11,15 @@ import {
     getEmailSettings,
     updateEmailSettings,
     testEmailSettings,
+    getSmsSettings,
+    updateSmsSettings,
+    getWhatsappSettings,
+    updateWhatsappSettings,
     createStoreValidation,
     updateStoreValidation,
     updateEmailSettingsValidation,
+    updateSmsSettingsValidation,
+    updateWhatsappSettingsValidation,
     testEmailSettingsValidation,
 } from '../controllers/store.controller';
 import { authenticate, authorize } from '../middleware/auth';
@@ -73,6 +79,38 @@ router.put(
     authorize('admin', 'store_admin', 'super_admin'),
     validate(updateEmailSettingsValidation),
     updateEmailSettings
+);
+
+// SMS settings routes
+router.get(
+    '/:id/sms-settings',
+    authenticate,
+    authorize('admin', 'store_admin', 'super_admin'),
+    getSmsSettings
+);
+
+router.put(
+    '/:id/sms-settings',
+    authenticate,
+    authorize('admin', 'store_admin', 'super_admin'),
+    validate(updateSmsSettingsValidation),
+    updateSmsSettings
+);
+
+// WhatsApp settings routes
+router.get(
+    '/:id/whatsapp-settings',
+    authenticate,
+    authorize('admin', 'store_admin', 'super_admin'),
+    getWhatsappSettings
+);
+
+router.put(
+    '/:id/whatsapp-settings',
+    authenticate,
+    authorize('admin', 'store_admin', 'super_admin'),
+    validate(updateWhatsappSettingsValidation),
+    updateWhatsappSettings
 );
 
 router.post(

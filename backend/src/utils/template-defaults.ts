@@ -37,6 +37,16 @@ export const TEMPLATE_TYPES = {
         description: 'Sent when order is placed',
         variables: ['firstName', 'orderNumber', 'total', 'itemCount', 'orderUrl', 'storeName'],
     },
+    order_pending: {
+        label: 'Order Pending',
+        description: 'Sent when order is marked as pending',
+        variables: ['firstName', 'orderNumber', 'total', 'itemCount', 'orderUrl', 'storeName'],
+    },
+    order_processing: {
+        label: 'Order Processing',
+        description: 'Sent when order is being processed',
+        variables: ['firstName', 'orderNumber', 'total', 'itemCount', 'orderUrl', 'storeName'],
+    },
     order_shipped: {
         label: 'Order Shipped',
         description: 'Sent when order is shipped',
@@ -56,22 +66,7 @@ export const TEMPLATE_TYPES = {
         label: 'Order Refunded',
         description: 'Sent when refund is processed',
         variables: ['firstName', 'orderNumber', 'amount', 'storeName'],
-    },
-    cart_abandoned: {
-        label: 'Cart Abandoned',
-        description: 'Sent to remind about abandoned cart',
-        variables: ['firstName', 'itemCount', 'cartUrl', 'storeName'],
-    },
-    review_request: {
-        label: 'Review Request',
-        description: 'Sent to request product review',
-        variables: ['firstName', 'productName', 'reviewUrl', 'storeName'],
-    },
-    back_in_stock: {
-        label: 'Back In Stock',
-        description: 'Sent when product is back in stock',
-        variables: ['firstName', 'productName', 'productUrl', 'storeName'],
-    },
+    }
 } as const;
 
 export type TemplateType = keyof typeof TEMPLATE_TYPES;
@@ -111,6 +106,13 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         textContent: 'Welcome to {{storeName}}, {{firstName}}! Thank you for joining us.',
         variables: ['firstName', 'storeName'],
     },
+    {
+        type: 'welcome',
+        channel: 'whatsapp',
+        name: 'Welcome WhatsApp',
+        textContent: 'Welcome to {{storeName}}, {{firstName}}! Thank you for joining us.',
+        variables: ['firstName', 'storeName'],
+    },
 
     // ============================================
     // Verify Email
@@ -139,6 +141,20 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         textContent: 'Hi {{firstName}}, verify your email at {{verifyUrl}}. This link expires in 24 hours.',
         variables: ['firstName', 'verifyUrl'],
     },
+    {
+        type: 'verify_email',
+        channel: 'sms',
+        name: 'Email Verification SMS',
+        textContent: 'Hi {{firstName}}, please verify your email for {{storeName}} at: {{verifyUrl}}',
+        variables: ['firstName', 'storeName', 'verifyUrl'],
+    },
+    {
+        type: 'verify_email',
+        channel: 'whatsapp',
+        name: 'Email Verification WhatsApp',
+        textContent: 'Hi {{firstName}}, please verify your email for {{storeName}} by clicking here: {{verifyUrl}}',
+        variables: ['firstName', 'storeName', 'verifyUrl'],
+    },
 
     // ============================================
     // Password Reset
@@ -166,6 +182,20 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
 </html>`,
         textContent: 'Hi {{firstName}}, reset your password at {{resetUrl}}. This link expires in 1 hour.',
         variables: ['firstName', 'resetUrl'],
+    },
+    {
+        type: 'password_reset',
+        channel: 'sms',
+        name: 'Password Reset SMS',
+        textContent: 'Hi {{firstName}}, reset your password for {{storeName}} at: {{resetUrl}}',
+        variables: ['firstName', 'storeName', 'resetUrl'],
+    },
+    {
+        type: 'password_reset',
+        channel: 'whatsapp',
+        name: 'Password Reset WhatsApp',
+        textContent: 'Hi {{firstName}}, you requested a password reset for {{storeName}}. Link: {{resetUrl}}',
+        variables: ['firstName', 'storeName', 'resetUrl'],
     },
 
     // ============================================
@@ -205,7 +235,101 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         textContent: 'Order #{{orderNumber}} confirmed! Total: {{total}}. Track at {{orderUrl}}',
         variables: ['orderNumber', 'total', 'orderUrl'],
     },
-
+    {
+        type: 'order_created',
+        channel: 'whatsapp',
+        name: 'Order Confirmation WhatsApp',
+        textContent: 'Hi {{firstName}}, your order #{{orderNumber}} from {{storeName}} has been confirmed! Total: {{total}}.',
+        variables: ['firstName', 'orderNumber', 'storeName', 'total'],
+    },
+    // ============================================
+    // Order Pending
+    // ============================================
+    {
+        type: 'order_pending',
+        channel: 'email',
+        name: 'Order Pending Email',
+        subject: 'Update Regarding Your Order #{{orderNumber}}',
+        htmlContent: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; background: #f5f5f5;">
+    <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <h1 style="color: #333; margin-bottom: 24px;">Order Status: Pending</h1>
+        <p style="color: #666; line-height: 1.6;">Hi {{firstName}},</p>
+        <p style="color: #666; line-height: 1.6;">Your order <strong>#{{orderNumber}}</strong> is currently pending. We will notify you once it moves to the next stage.</p>
+        <div style="background: #f9f9f9; border-radius: 8px; padding: 20px; margin: 24px 0;">
+            <p style="margin: 0; color: #333;"><strong>Order Total:</strong> {{total}}</p>
+            <p style="margin: 8px 0 0; color: #666;"><strong>Items:</strong> {{itemCount}}</p>
+        </div>
+        <div style="text-align: center; margin: 32px 0;">
+            <a href="{{orderUrl}}" style="display: inline-block; background: #000; color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px;">View Order Status</a>
+        </div>
+    </div>
+</body>
+</html>`,
+        textContent: 'Hi {{firstName}}, your order #{{orderNumber}} for {{total}} is currently pending. View status at {{orderUrl}}',
+        variables: ['firstName', 'orderNumber', 'total', 'itemCount', 'orderUrl'],
+    },
+    {
+        type: 'order_pending',
+        channel: 'sms',
+        name: 'Order Pending SMS',
+        textContent: 'Order #{{orderNumber}} is pending. Total: {{total}}. View at {{orderUrl}}',
+        variables: ['orderNumber', 'total', 'orderUrl'],
+    },
+    {
+        type: 'order_pending',
+        channel: 'whatsapp',
+        name: 'Order Pending WhatsApp',
+        textContent: 'Hi {{firstName}}, your order #{{orderNumber}} from {{storeName}} is currently pending.',
+        variables: ['firstName', 'orderNumber', 'storeName'],
+    },
+    // ============================================
+    // Order Processing
+    // ============================================
+    {
+        type: 'order_processing',
+        channel: 'email',
+        name: 'Order Processing Email',
+        subject: 'We are processing your order #{{orderNumber}}',
+        htmlContent: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; background: #f5f5f5;">
+    <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <h1 style="color: #333; margin-bottom: 24px;">Your Order is Being Processed</h1>
+        <p style="color: #666; line-height: 1.6;">Hi {{firstName}},</p>
+        <p style="color: #666; line-height: 1.6;">Good news! We're now processing your order <strong>#{{orderNumber}}</strong> and getting it ready for shipment.</p>
+        <div style="background: #f9f9f9; border-radius: 8px; padding: 20px; margin: 24px 0;">
+            <p style="margin: 0; color: #333;"><strong>Order Total:</strong> {{total}}</p>
+            <p style="margin: 8px 0 0; color: #666;"><strong>Items:</strong> {{itemCount}}</p>
+        </div>
+        <div style="text-align: center; margin: 32px 0;">
+            <a href="{{orderUrl}}" style="display: inline-block; background: #000; color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px;">Check Details</a>
+        </div>
+    </div>
+</body>
+</html>`,
+        textContent: 'Hi {{firstName}}, we are now processing your order #{{orderNumber}}. View details at {{orderUrl}}',
+        variables: ['firstName', 'orderNumber', 'total', 'itemCount', 'orderUrl'],
+    },
+    {
+        type: 'order_processing',
+        channel: 'sms',
+        name: 'Order Processing SMS',
+        textContent: 'Order #{{orderNumber}} is being processed. View at {{orderUrl}}',
+        variables: ['orderNumber', 'orderUrl'],
+    },
+    {
+        type: 'order_processing',
+        channel: 'whatsapp',
+        name: 'Order Processing WhatsApp',
+        textContent: 'Hi {{firstName}}, we are now processing your order #{{orderNumber}} from {{storeName}}.',
+        variables: ['firstName', 'orderNumber', 'storeName'],
+    },
     // ============================================
     // Order Shipped
     // ============================================
@@ -242,7 +366,13 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         textContent: 'Order #{{orderNumber}} shipped! Track: {{trackingUrl}}',
         variables: ['orderNumber', 'trackingUrl'],
     },
-
+    {
+        type: 'order_shipped',
+        channel: 'whatsapp',
+        name: 'Order Shipped WhatsApp',
+        textContent: 'Hi {{firstName}}, your order #{{orderNumber}} from {{storeName}} has been shipped! Track here: {{trackingUrl}}',
+        variables: ['firstName', 'orderNumber', 'storeName', 'trackingUrl'],
+    },
     // ============================================
     // Order Delivered
     // ============================================
@@ -268,6 +398,20 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
 </html>`,
         textContent: 'Hi {{firstName}}, your order #{{orderNumber}} has been delivered! Leave a review at {{reviewUrl}}',
         variables: ['firstName', 'orderNumber', 'reviewUrl'],
+    },
+    {
+        type: 'order_delivered',
+        channel: 'sms',
+        name: 'Order Delivered SMS',
+        textContent: 'Hi {{firstName}}, your order #{{orderNumber}} from {{storeName}} has been delivered! Review: {{reviewUrl}}',
+        variables: ['firstName', 'orderNumber', 'storeName', 'reviewUrl'],
+    },
+    {
+        type: 'order_delivered',
+        channel: 'whatsapp',
+        name: 'Order Delivered WhatsApp',
+        textContent: 'Hi {{firstName}}, your order #{{orderNumber}} from {{storeName}} has been delivered! We hope you love it. Review: {{reviewUrl}}',
+        variables: ['firstName', 'orderNumber', 'storeName', 'reviewUrl'],
     },
 
     // ============================================
@@ -295,6 +439,20 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         textContent: 'Hi {{firstName}}, your order #{{orderNumber}} has been cancelled. {{#if reason}}Reason: {{reason}}{{/if}}',
         variables: ['firstName', 'orderNumber', 'reason'],
     },
+    {
+        type: 'order_cancelled',
+        channel: 'sms',
+        name: 'Order Cancelled SMS',
+        textContent: 'Order #{{orderNumber}} from {{storeName}} has been cancelled.',
+        variables: ['orderNumber', 'storeName'],
+    },
+    {
+        type: 'order_cancelled',
+        channel: 'whatsapp',
+        name: 'Order Cancelled WhatsApp',
+        textContent: 'Hi {{firstName}}, we regret to inform you that your order #{{orderNumber}} from {{storeName}} has been cancelled.',
+        variables: ['firstName', 'orderNumber', 'storeName'],
+    },
 
     // ============================================
     // Order Refunded
@@ -319,6 +477,20 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
 </html>`,
         textContent: 'Hi {{firstName}}, a refund of {{amount}} for order #{{orderNumber}} has been processed.',
         variables: ['firstName', 'orderNumber', 'amount'],
+    },
+    {
+        type: 'order_refunded',
+        channel: 'sms',
+        name: 'Order Refunded SMS',
+        textContent: 'Refund of {{amount}} for order #{{orderNumber}} from {{storeName}} has been processed.',
+        variables: ['amount', 'orderNumber', 'storeName'],
+    },
+    {
+        type: 'order_refunded',
+        channel: 'whatsapp',
+        name: 'Order Refunded WhatsApp',
+        textContent: 'Hi {{firstName}}, a refund of {{amount}} for order #{{orderNumber}} from {{storeName}} has been processed.',
+        variables: ['firstName', 'amount', 'orderNumber', 'storeName'],
     },
 
     // ============================================

@@ -57,10 +57,7 @@ export class PayPalService extends BasePaymentGateway {
         metadata?: Record<string, any>;
     }): Promise<PaymentResponse> {
         try {
-            console.log('💳 PayPal Payment Creation:');
-            console.log('  - Amount:', params.amount);
-            console.log('  - Currency:', params.currency);
-            console.log('  - Order ID:', params.orderId);
+
 
             const accessToken = await this.getAccessToken();
 
@@ -83,7 +80,7 @@ export class PayPalService extends BasePaymentGateway {
                 },
             };
 
-            console.log('  - PayPal Order Data:', JSON.stringify(orderData, null, 2));
+
 
             const response = await axios.post(
                 `${this.baseUrl}/v2/checkout/orders`,

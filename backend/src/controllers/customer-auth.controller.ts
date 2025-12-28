@@ -4,11 +4,11 @@ import jwt, { SignOptions } from 'jsonwebtoken';
 import axios from 'axios';
 import crypto from 'crypto';
 import Customer from '../models/Customer';
-import Store from '../models/Store';
+import StoreModel from '../models/Store';
 import { config } from '../config';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
-import { sendPasswordResetEmail, sendEmailVerificationEmail } from '../services/email.service';
+import { transactionalNotificationService } from '../services/transactional-notification.service';
 
 // Validation rules
 export const customerRegisterValidation = [
@@ -120,12 +120,13 @@ export const registerCustomer = asyncHandler(async (req: AuthRequest, res: Respo
     });
 
     // Send verification email via notification queue
-    await sendEmailVerificationEmail(
+    await transactionalNotificationService.sendEmailVerification(
         storeId,
         storeName,
         customer.email,
+        customer.firstName,
         verificationToken,
-        customer.firstName
+        customer.phone
     );
 
     // Don't return access token - customer must verify email first
@@ -394,7 +395,7 @@ export const updateCustomerProfile = asyncHandler(async (req: AuthRequest, res: 
 export const socialLogin = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { provider, token, storeId } = req.body;
 
-    const store = await Store.findById(storeId);
+    const store = await StoreModel.findById(storeId);
     if (!store) {
         throw new AppError('Store not found', 404);
     }
@@ -609,12 +610,13 @@ export const forgotPassword = asyncHandler(async (req: AuthRequest, res: Respons
     await customer.save();
 
     // Send email via notification queue
-    await sendPasswordResetEmail(
+    await transactionalNotificationService.sendPasswordReset(
         storeId,
         storeName,
         customer.email,
+        customer.firstName,
         resetToken,
-        customer.firstName
+        customer.phone
     );
 
     res.json({ message: successMessage });
@@ -721,11 +723,22 @@ export const verifyEmail = asyncHandler(async (req: AuthRequest, res: Response) 
         throw new AppError('Invalid or expired verification token', 400);
     }
 
-    // Mark email as verified
     customer.emailVerified = true;
     customer.emailVerificationToken = undefined;
     customer.emailVerificationExpires = undefined;
     await customer.save();
+
+    // Send Welcome notification after successful verification
+    const store = await StoreModel.findById(req.storeId);
+    if (store) {
+        await transactionalNotificationService.sendWelcome(
+            store._id.toString(),
+            store.name,
+            customer.email,
+            customer.firstName,
+            customer.phone
+        );
+    }
 
     res.json({ message: 'Email verified successfully' });
 });
@@ -768,12 +781,13 @@ export const resendVerification = asyncHandler(async (req: AuthRequest, res: Res
     await customer.save();
 
     // Send email via notification queue
-    await sendEmailVerificationEmail(
+    await transactionalNotificationService.sendEmailVerification(
         storeId,
         storeName,
         customer.email,
+        customer.firstName,
         verificationToken,
-        customer.firstName
+        customer.phone
     );
 
     res.json({ message: 'Verification email sent' });

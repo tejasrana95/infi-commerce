@@ -9,7 +9,7 @@ import {
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { Visibility, VisibilityOff, EmailOutlined, Send } from '@mui/icons-material';
+import { Visibility, VisibilityOff, EmailOutlined, Send, SmsOutlined, WhatsApp } from '@mui/icons-material';
 import api from '@/lib/api';
 import StoreForm from '@/components/organisms/StoreForm';
 import { LoadingSpinner } from '@/components/atoms';
@@ -28,6 +28,26 @@ interface EmailSettings {
     ses?: { region: string; accessKeyId: string; secretAccessKey: string };
     sendgrid?: { apiKey: string };
     mailjet?: { apiKey: string; secretKey: string };
+}
+
+type SmsProvider = 'twilio' | 'msg91' | 'd7networks';
+
+interface SmsSettings {
+    enabled: boolean;
+    provider: SmsProvider;
+    twilio?: { accountSid: string; authToken: string; fromNumber: string };
+    msg91?: { apiKey: string; senderId: string; templateId?: string };
+    d7networks?: { token: string; originator: string };
+}
+
+type WhatsappProvider = 'meta' | 'twilio' | 'd7networks';
+
+interface WhatsappSettings {
+    enabled: boolean;
+    provider: WhatsappProvider;
+    meta?: { phoneNumberId: string; accessToken: string; businessAccountId?: string };
+    twilio?: { accountSid: string; authToken: string; fromWhatsAppNumber: string };
+    d7networks?: { token: string; originator: string };
 }
 
 interface TabPanelProps {
@@ -69,6 +89,22 @@ export default function EditStorePage() {
     const [showPassword, setShowPassword] = useState(false);
     const [testEmail, setTestEmail] = useState('');
 
+    // SMS settings state
+    const [smsSettings, setSmsSettings] = useState<SmsSettings>({
+        enabled: false,
+        provider: 'twilio',
+        twilio: { accountSid: '', authToken: '', fromNumber: '' },
+    });
+    const [savingSms, setSavingSms] = useState(false);
+
+    // WhatsApp settings state
+    const [whatsappSettings, setWhatsappSettings] = useState<WhatsappSettings>({
+        enabled: false,
+        provider: 'meta',
+        meta: { phoneNumberId: '', accessToken: '', businessAccountId: '' },
+    });
+    const [savingWhatsapp, setSavingWhatsapp] = useState(false);
+
     useEffect(() => {
         fetchStore();
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -83,6 +119,18 @@ export default function EditStorePage() {
             const emailRes = await api.get(`/stores/${id}/email-settings`);
             if (emailRes.data.emailSettings) {
                 setEmailSettings(emailRes.data.emailSettings);
+            }
+
+            // Fetch SMS settings
+            const smsRes = await api.get(`/stores/${id}/sms-settings`);
+            if (smsRes.data.smsSettings) {
+                setSmsSettings(smsRes.data.smsSettings);
+            }
+
+            // Fetch WhatsApp settings
+            const whatsappRes = await api.get(`/stores/${id}/whatsapp-settings`);
+            if (whatsappRes.data.whatsappSettings) {
+                setWhatsappSettings(whatsappRes.data.whatsappSettings);
             }
         } catch (err) {
             showNotification('Failed to load store', 'error');
@@ -164,6 +212,50 @@ export default function EditStorePage() {
         }
     };
 
+    const handleSmsProviderChange = (provider: SmsProvider) => {
+        setSmsSettings({
+            ...smsSettings,
+            provider,
+            twilio: provider === 'twilio' ? smsSettings.twilio || { accountSid: '', authToken: '', fromNumber: '' } : undefined,
+            msg91: provider === 'msg91' ? smsSettings.msg91 || { apiKey: '', senderId: '' } : undefined,
+            d7networks: provider === 'd7networks' ? smsSettings.d7networks || { token: '', originator: '' } : undefined,
+        });
+    };
+
+    const handleSaveSms = async () => {
+        setSavingSms(true);
+        try {
+            await api.put(`/stores/${id}/sms-settings`, smsSettings);
+            showNotification('SMS settings saved successfully', 'success');
+        } catch (err: any) {
+            showNotification(err.response?.data?.message || 'Failed to save SMS settings', 'error');
+        } finally {
+            setSavingSms(false);
+        }
+    };
+
+    const handleWhatsappProviderChange = (provider: WhatsappProvider) => {
+        setWhatsappSettings({
+            ...whatsappSettings,
+            provider,
+            meta: provider === 'meta' ? whatsappSettings.meta || { phoneNumberId: '', accessToken: '' } : undefined,
+            twilio: provider === 'twilio' ? whatsappSettings.twilio || { accountSid: '', authToken: '', fromWhatsAppNumber: '' } : undefined,
+            d7networks: provider === 'd7networks' ? whatsappSettings.d7networks || { token: '', originator: '' } : undefined,
+        });
+    };
+
+    const handleSaveWhatsapp = async () => {
+        setSavingWhatsapp(true);
+        try {
+            await api.put(`/stores/${id}/whatsapp-settings`, whatsappSettings);
+            showNotification('WhatsApp settings saved successfully', 'success');
+        } catch (err: any) {
+            showNotification(err.response?.data?.message || 'Failed to save WhatsApp settings', 'error');
+        } finally {
+            setSavingWhatsapp(false);
+        }
+    };
+
     if (loading) return <LoadingSpinner message="Loading store..." />;
 
     return (
@@ -191,6 +283,8 @@ export default function EditStorePage() {
                     <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}>
                         <Tab label="General" />
                         <Tab label="Email Settings" />
+                        <Tab label="SMS Settings" />
+                        <Tab label="WhatsApp Settings" />
                     </Tabs>
                 </Box>
 
@@ -534,6 +628,412 @@ export default function EditStorePage() {
                                         </Button>
                                     </Grid>
                                 </Grid>
+                            </CardContent>
+                        </Card>
+                    </Box>
+                </TabPanel>
+
+                {/* SMS Settings Tab */}
+                <TabPanel value={activeTab} index={2}>
+                    <Box sx={{ p: 3, pt: 0 }}>
+                        <Card sx={{ mb: 3 }}>
+                            <CardContent>
+                                <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+                                    <Typography variant="h6">SMS Configuration</Typography>
+                                    <Button
+                                        variant={smsSettings.enabled ? "contained" : "outlined"}
+                                        color={smsSettings.enabled ? "success" : "inherit"}
+                                        onClick={() => setSmsSettings({ ...smsSettings, enabled: !smsSettings.enabled })}
+                                    >
+                                        {smsSettings.enabled ? "Enabled" : "Disabled"}
+                                    </Button>
+                                </Box>
+
+                                <Grid container spacing={3}>
+                                    <Grid size={{ xs: 12, md: 6 }}>
+                                        <FormControl fullWidth>
+                                            <InputLabel>SMS Provider</InputLabel>
+                                            <Select
+                                                value={smsSettings.provider}
+                                                label="SMS Provider"
+                                                onChange={(e) => handleSmsProviderChange(e.target.value as SmsProvider)}
+                                                disabled={!smsSettings.enabled}
+                                            >
+                                                <MenuItem value="twilio">Twilio</MenuItem>
+                                                <MenuItem value="msg91">MSG91</MenuItem>
+                                                <MenuItem value="d7networks">D7Networks</MenuItem>
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
+                                </Grid>
+
+                                <Divider sx={{ my: 3 }} />
+
+                                {smsSettings.provider === 'd7networks' && (
+                                    <>
+                                        <Typography variant="subtitle1" fontWeight={600} mb={2}>D7Networks Settings</Typography>
+                                        <Grid container spacing={3}>
+                                            <Grid size={{ xs: 12, md: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="API Token"
+                                                    type={showPassword ? 'text' : 'password'}
+                                                    value={smsSettings.d7networks?.token || ''}
+                                                    onChange={(e) => setSmsSettings({
+                                                        ...smsSettings,
+                                                        d7networks: { ...smsSettings.d7networks!, token: e.target.value }
+                                                    })}
+                                                    disabled={!smsSettings.enabled}
+                                                    InputProps={{
+                                                        endAdornment: (
+                                                            <InputAdornment position="end">
+                                                                <IconButton onClick={() => setShowPassword(!showPassword)}>
+                                                                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                                                                </IconButton>
+                                                            </InputAdornment>
+                                                        ),
+                                                    }}
+                                                />
+                                            </Grid>
+                                            <Grid size={{ xs: 12, md: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Originator (Sender ID)"
+                                                    value={smsSettings.d7networks?.originator || ''}
+                                                    onChange={(e) => setSmsSettings({
+                                                        ...smsSettings,
+                                                        d7networks: { ...smsSettings.d7networks!, originator: e.target.value }
+                                                    })}
+                                                    disabled={!smsSettings.enabled}
+                                                    placeholder="MyBrand"
+                                                />
+                                            </Grid>
+                                        </Grid>
+                                    </>
+                                )}
+
+                                {smsSettings.provider === 'twilio' && (
+                                    <>
+                                        <Typography variant="subtitle1" fontWeight={600} mb={2}>Twilio Settings</Typography>
+                                        <Grid container spacing={3}>
+                                            <Grid size={{ xs: 12, md: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Account SID"
+                                                    value={smsSettings.twilio?.accountSid || ''}
+                                                    onChange={(e) => setSmsSettings({
+                                                        ...smsSettings,
+                                                        twilio: { ...smsSettings.twilio!, accountSid: e.target.value }
+                                                    })}
+                                                    disabled={!smsSettings.enabled}
+                                                />
+                                            </Grid>
+                                            <Grid size={{ xs: 12, md: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Auth Token"
+                                                    type={showPassword ? 'text' : 'password'}
+                                                    value={smsSettings.twilio?.authToken || ''}
+                                                    onChange={(e) => setSmsSettings({
+                                                        ...smsSettings,
+                                                        twilio: { ...smsSettings.twilio!, authToken: e.target.value }
+                                                    })}
+                                                    disabled={!smsSettings.enabled}
+                                                    InputProps={{
+                                                        endAdornment: (
+                                                            <InputAdornment position="end">
+                                                                <IconButton onClick={() => setShowPassword(!showPassword)}>
+                                                                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                                                                </IconButton>
+                                                            </InputAdornment>
+                                                        ),
+                                                    }}
+                                                />
+                                            </Grid>
+                                            <Grid size={{ xs: 12, md: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="From Number"
+                                                    value={smsSettings.twilio?.fromNumber || ''}
+                                                    onChange={(e) => setSmsSettings({
+                                                        ...smsSettings,
+                                                        twilio: { ...smsSettings.twilio!, fromNumber: e.target.value }
+                                                    })}
+                                                    disabled={!smsSettings.enabled}
+                                                    placeholder="+1234567890"
+                                                />
+                                            </Grid>
+                                        </Grid>
+                                    </>
+                                )}
+
+                                {smsSettings.provider === 'msg91' && (
+                                    <>
+                                        <Typography variant="subtitle1" fontWeight={600} mb={2}>MSG91 Settings</Typography>
+                                        <Grid container spacing={3}>
+                                            <Grid size={{ xs: 12, md: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Auth Key"
+                                                    type={showPassword ? 'text' : 'password'}
+                                                    value={smsSettings.msg91?.apiKey || ''}
+                                                    onChange={(e) => setSmsSettings({
+                                                        ...smsSettings,
+                                                        msg91: { ...smsSettings.msg91!, apiKey: e.target.value }
+                                                    })}
+                                                    disabled={!smsSettings.enabled}
+                                                    InputProps={{
+                                                        endAdornment: (
+                                                            <InputAdornment position="end">
+                                                                <IconButton onClick={() => setShowPassword(!showPassword)}>
+                                                                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                                                                </IconButton>
+                                                            </InputAdornment>
+                                                        ),
+                                                    }}
+                                                />
+                                            </Grid>
+                                            <Grid size={{ xs: 12, md: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Sender ID"
+                                                    value={smsSettings.msg91?.senderId || ''}
+                                                    onChange={(e) => setSmsSettings({
+                                                        ...smsSettings,
+                                                        msg91: { ...smsSettings.msg91!, senderId: e.target.value }
+                                                    })}
+                                                    disabled={!smsSettings.enabled}
+                                                />
+                                            </Grid>
+                                            <Grid size={{ xs: 12, md: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Template ID (Default)"
+                                                    value={smsSettings.msg91?.templateId || ''}
+                                                    onChange={(e) => setSmsSettings({
+                                                        ...smsSettings,
+                                                        msg91: { ...smsSettings.msg91!, templateId: e.target.value }
+                                                    })}
+                                                    disabled={!smsSettings.enabled}
+                                                />
+                                            </Grid>
+                                        </Grid>
+                                    </>
+                                )}
+
+                                <Box sx={{ mt: 4 }}>
+                                    <Button
+                                        variant="contained"
+                                        onClick={handleSaveSms}
+                                        disabled={savingSms}
+                                        startIcon={savingSms ? <CircularProgress size={20} /> : <SmsOutlined />}
+                                    >
+                                        {savingSms ? 'Saving...' : 'Save SMS Settings'}
+                                    </Button>
+                                </Box>
+                            </CardContent>
+                        </Card>
+                    </Box>
+                </TabPanel>
+
+                {/* WhatsApp Settings Tab */}
+                <TabPanel value={activeTab} index={3}>
+                    <Box sx={{ p: 3, pt: 0 }}>
+                        <Card sx={{ mb: 3 }}>
+                            <CardContent>
+                                <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+                                    <Typography variant="h6">WhatsApp Configuration</Typography>
+                                    <Button
+                                        variant={whatsappSettings.enabled ? "contained" : "outlined"}
+                                        color={whatsappSettings.enabled ? "success" : "inherit"}
+                                        onClick={() => setWhatsappSettings({ ...whatsappSettings, enabled: !whatsappSettings.enabled })}
+                                    >
+                                        {whatsappSettings.enabled ? "Enabled" : "Disabled"}
+                                    </Button>
+                                </Box>
+
+                                <Grid container spacing={3}>
+                                    <Grid size={{ xs: 12, md: 6 }}>
+                                        <FormControl fullWidth>
+                                            <InputLabel>WhatsApp Provider</InputLabel>
+                                            <Select
+                                                value={whatsappSettings.provider}
+                                                label="WhatsApp Provider"
+                                                onChange={(e) => handleWhatsappProviderChange(e.target.value as WhatsappProvider)}
+                                                disabled={!whatsappSettings.enabled}
+                                            >
+                                                <MenuItem value="meta">Meta (Direct API)</MenuItem>
+                                                <MenuItem value="twilio">Twilio WhatsApp</MenuItem>
+                                                <MenuItem value="d7networks">D7Networks WhatsApp</MenuItem>
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
+                                </Grid>
+
+                                <Divider sx={{ my: 3 }} />
+
+                                {whatsappSettings.provider === 'd7networks' && (
+                                    <>
+                                        <Typography variant="subtitle1" fontWeight={600} mb={2}>D7Networks WhatsApp Settings</Typography>
+                                        <Grid container spacing={3}>
+                                            <Grid size={{ xs: 12, md: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="API Token"
+                                                    type={showPassword ? 'text' : 'password'}
+                                                    value={whatsappSettings.d7networks?.token || ''}
+                                                    onChange={(e) => setWhatsappSettings({
+                                                        ...whatsappSettings,
+                                                        d7networks: { ...whatsappSettings.d7networks!, token: e.target.value }
+                                                    })}
+                                                    disabled={!whatsappSettings.enabled}
+                                                    InputProps={{
+                                                        endAdornment: (
+                                                            <InputAdornment position="end">
+                                                                <IconButton onClick={() => setShowPassword(!showPassword)}>
+                                                                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                                                                </IconButton>
+                                                            </InputAdornment>
+                                                        ),
+                                                    }}
+                                                />
+                                            </Grid>
+                                            <Grid size={{ xs: 12, md: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Originator (Registered Number)"
+                                                    value={whatsappSettings.d7networks?.originator || ''}
+                                                    onChange={(e) => setWhatsappSettings({
+                                                        ...whatsappSettings,
+                                                        d7networks: { ...whatsappSettings.d7networks!, originator: e.target.value }
+                                                    })}
+                                                    disabled={!whatsappSettings.enabled}
+                                                    placeholder="1234567890"
+                                                />
+                                            </Grid>
+                                        </Grid>
+                                    </>
+                                )}
+
+                                {whatsappSettings.provider === 'meta' && (
+                                    <>
+                                        <Typography variant="subtitle1" fontWeight={600} mb={2}>Meta WhatsApp Business API Settings</Typography>
+                                        <Grid container spacing={3}>
+                                            <Grid size={{ xs: 12, md: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Phone Number ID"
+                                                    value={whatsappSettings.meta?.phoneNumberId || ''}
+                                                    onChange={(e) => setWhatsappSettings({
+                                                        ...whatsappSettings,
+                                                        meta: { ...whatsappSettings.meta!, phoneNumberId: e.target.value }
+                                                    })}
+                                                    disabled={!whatsappSettings.enabled}
+                                                />
+                                            </Grid>
+                                            <Grid size={{ xs: 12, md: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="WhatsApp Business Account ID"
+                                                    value={whatsappSettings.meta?.businessAccountId || ''}
+                                                    onChange={(e) => setWhatsappSettings({
+                                                        ...whatsappSettings,
+                                                        meta: { ...whatsappSettings.meta!, businessAccountId: e.target.value }
+                                                    })}
+                                                    disabled={!whatsappSettings.enabled}
+                                                />
+                                            </Grid>
+                                            <Grid size={{ xs: 12 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Access Token (Permanent Recommended)"
+                                                    type={showPassword ? 'text' : 'password'}
+                                                    value={whatsappSettings.meta?.accessToken || ''}
+                                                    onChange={(e) => setWhatsappSettings({
+                                                        ...whatsappSettings,
+                                                        meta: { ...whatsappSettings.meta!, accessToken: e.target.value }
+                                                    })}
+                                                    disabled={!whatsappSettings.enabled}
+                                                    InputProps={{
+                                                        endAdornment: (
+                                                            <InputAdornment position="end">
+                                                                <IconButton onClick={() => setShowPassword(!showPassword)}>
+                                                                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                                                                </IconButton>
+                                                            </InputAdornment>
+                                                        ),
+                                                    }}
+                                                />
+                                            </Grid>
+                                        </Grid>
+                                    </>
+                                )}
+
+                                {whatsappSettings.provider === 'twilio' && (
+                                    <>
+                                        <Typography variant="subtitle1" fontWeight={600} mb={2}>Twilio WhatsApp Settings</Typography>
+                                        <Grid container spacing={3}>
+                                            <Grid size={{ xs: 12, md: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Account SID"
+                                                    value={whatsappSettings.twilio?.accountSid || ''}
+                                                    onChange={(e) => setWhatsappSettings({
+                                                        ...whatsappSettings,
+                                                        twilio: { ...whatsappSettings.twilio!, accountSid: e.target.value }
+                                                    })}
+                                                    disabled={!whatsappSettings.enabled}
+                                                />
+                                            </Grid>
+                                            <Grid size={{ xs: 12, md: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Auth Token"
+                                                    type={showPassword ? 'text' : 'password'}
+                                                    value={whatsappSettings.twilio?.authToken || ''}
+                                                    onChange={(e) => setWhatsappSettings({
+                                                        ...whatsappSettings,
+                                                        twilio: { ...whatsappSettings.twilio!, authToken: e.target.value }
+                                                    })}
+                                                    disabled={!whatsappSettings.enabled}
+                                                    InputProps={{
+                                                        endAdornment: (
+                                                            <InputAdornment position="end">
+                                                                <IconButton onClick={() => setShowPassword(!showPassword)}>
+                                                                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                                                                </IconButton>
+                                                            </InputAdornment>
+                                                        ),
+                                                    }}
+                                                />
+                                            </Grid>
+                                            <Grid size={{ xs: 12, md: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="From WhatsApp Number"
+                                                    value={whatsappSettings.twilio?.fromWhatsAppNumber || ''}
+                                                    onChange={(e) => setWhatsappSettings({
+                                                        ...whatsappSettings,
+                                                        twilio: { ...whatsappSettings.twilio!, fromWhatsAppNumber: e.target.value }
+                                                    })}
+                                                    disabled={!whatsappSettings.enabled}
+                                                    placeholder="whatsapp:+1234567890"
+                                                />
+                                            </Grid>
+                                        </Grid>
+                                    </>
+                                )}
+
+                                <Box sx={{ mt: 4 }}>
+                                    <Button
+                                        variant="contained"
+                                        onClick={handleSaveWhatsapp}
+                                        disabled={savingWhatsapp}
+                                        startIcon={savingWhatsapp ? <CircularProgress size={20} /> : <WhatsApp />}
+                                    >
+                                        {savingWhatsapp ? 'Saving...' : 'Save WhatsApp Settings'}
+                                    </Button>
+                                </Box>
                             </CardContent>
                         </Card>
                     </Box>

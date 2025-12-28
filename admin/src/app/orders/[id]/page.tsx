@@ -56,6 +56,7 @@ export default function OrderDetailPage() {
     const [courierName, setCourierName] = useState('');
     const [trackingUrl, setTrackingUrl] = useState('');
     const [cancelReason, setCancelReason] = useState('');
+    const [isEditingTracking, setIsEditingTracking] = useState(false);
 
     useEffect(() => {
         if (id) fetchOrder();
@@ -357,6 +358,22 @@ export default function OrderDetailPage() {
                                 title="Shipping Address"
                                 avatar={<LocalShippingIcon color="action" />}
                                 titleTypographyProps={{ variant: 'subtitle1', fontWeight: 600 }}
+                                action={
+                                    order.status === 'shipped' && (
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => {
+                                                setIsEditingTracking(true);
+                                                setCourierName(order.courierName || '');
+                                                setTrackingNumber(order.trackingNumber || '');
+                                                setTrackingUrl(order.trackingUrl || '');
+                                                setShipDialogOpen(true);
+                                            }}
+                                        >
+                                            <EditIcon fontSize="small" />
+                                        </IconButton>
+                                    )
+                                }
                             />
                             <Divider />
                             <CardContent>
@@ -437,8 +454,11 @@ export default function OrderDetailPage() {
             </Grid>
 
             {/* Ship Dialog */}
-            <Dialog open={shipDialogOpen} onClose={() => setShipDialogOpen(false)}>
-                <DialogTitle>Mark as Shipped</DialogTitle>
+            <Dialog open={shipDialogOpen} onClose={() => {
+                setShipDialogOpen(false);
+                setIsEditingTracking(false);
+            }}>
+                <DialogTitle>{isEditingTracking ? 'Edit Tracking Details' : 'Mark as Shipped'}</DialogTitle>
                 <DialogContent>
                     <TextField
                         autoFocus
@@ -471,13 +491,16 @@ export default function OrderDetailPage() {
                     />
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setShipDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={() => {
+                        setShipDialogOpen(false);
+                        setIsEditingTracking(false);
+                    }}>Cancel</Button>
                     <Button
                         onClick={() => handleStatusUpdate('shipped', { trackingNumber, courierName, trackingUrl })}
                         variant="contained"
                         disabled={!trackingNumber || !courierName}
                     >
-                        Update Status
+                        {isEditingTracking ? 'Update Tracking' : 'Update Status'}
                     </Button>
                 </DialogActions>
             </Dialog>

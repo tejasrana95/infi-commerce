@@ -1,9 +1,4 @@
-/**
- * Notification Queue Wrapper for Checkout
- * Uses the existing notification service instead of Bull
- */
-
-import { notificationService } from './notification.service';
+import { transactionalNotificationService } from './transactional-notification.service';
 
 export interface OrderNotificationData {
     orderId: string;
@@ -24,6 +19,9 @@ export interface OrderNotificationData {
         state: string;
         country: string;
         postalCode: string;
+        phone?: string;
+        firstName?: string;
+        lastName?: string;
     };
 }
 
@@ -31,81 +29,43 @@ export interface OrderNotificationData {
  * Queue order confirmation notifications
  */
 export async function queueOrderConfirmation(
-    data: OrderNotificationData & { storeId?: string },
-    channels: {
-        email?: boolean;
-        sms?: boolean;
-        whatsapp?: boolean;
-    }
+    data: OrderNotificationData & { storeId?: string }
 ) {
     try {
-        const storeId = data.storeId || data.orderId; // Fallback to orderId if storeId not provided
+        const storeId = data.storeId;
+        if (!storeId) return;
 
-        // Email notification
-        if (channels.email && data.customerEmail) {
-            await notificationService.queueNotification({
-                storeId,
-                channel: 'email',
-                priority: 'high',
-                type: 'order_confirmed',
-                recipient: data.customerEmail,
-                recipientName: data.customerName,
-                subject: `Order Confirmation - ${data.orderNumber}`,
-                templateData: {
-                    orderNumber: data.orderNumber,
-                    customerName: data.customerName,
-                    total: data.total,
-                    currency: data.currency,
-                    items: data.items,
-                    shippingAddress: data.shippingAddress,
-                },
-                orderId: data.orderId,
-            });
-            console.log(`[Email] Queued order confirmation to ${data.customerEmail}`);
-        }
+        // Use the unified transactional service
+        // We need to fetch the store name to satisfy the service interface
+        const Store = (await import('../models/Store')).default;
+        const store = await Store.findById(storeId).select('name').lean();
+        const activeStoreName = store?.name || 'Store';
 
-        // SMS notification
-        if (channels.sms && data.customerPhone) {
-            await notificationService.queueNotification({
-                storeId,
-                channel: 'sms',
-                priority: 'high',
-                type: 'order_confirmed',
-                recipient: data.customerPhone,
-                recipientName: data.customerName,
-                templateData: {
-                    orderNumber: data.orderNumber,
-                    total: data.total,
-                    currency: data.currency,
-                },
-                orderId: data.orderId,
-            });
-            console.log(`[SMS] Queued order confirmation to ${data.customerPhone}`);
-        }
+        // Map data to order object for the service
+        const order = {
+            _id: data.orderId,
+            orderNumber: data.orderNumber,
+            total: data.total,
+            currency: data.currency,
+            guestEmail: data.customerEmail,
+            shippingAddress: {
+                ...data.shippingAddress,
+                firstName: data.shippingAddress.firstName || data.customerName.split(' ')[0],
+                lastName: data.shippingAddress.lastName || data.customerName.split(' ').slice(1).join(' '),
+                phone: data.customerPhone || (data.shippingAddress as any).phone
+            }
+        };
 
-        // WhatsApp notification
-        if (channels.whatsapp && data.customerPhone) {
-            await notificationService.queueNotification({
-                storeId,
-                channel: 'whatsapp',
-                priority: 'high',
-                type: 'order_confirmed',
-                recipient: data.customerPhone,
-                recipientName: data.customerName,
-                templateData: {
-                    orderNumber: data.orderNumber,
-                    customerName: data.customerName,
-                    total: data.total,
-                    currency: data.currency,
-                    items: data.items,
-                },
-                orderId: data.orderId,
-            });
-            console.log(`[WhatsApp] Queued order confirmation to ${data.customerPhone}`);
-        }
+        await transactionalNotificationService.sendOrderStatusUpdate(
+            storeId,
+            activeStoreName,
+            order,
+            'created'
+        );
+
+
     } catch (error) {
         console.error('Error queuing order confirmation:', error);
-        // Don't throw - notifications are not critical
     }
 }
 
@@ -114,65 +74,31 @@ export async function queueOrderConfirmation(
  */
 export async function queueOrderStatusUpdate(
     data: OrderNotificationData & { status: string; storeId?: string },
-    channels: {
-        email?: boolean;
-        sms?: boolean;
-        whatsapp?: boolean;
-    }
+    _channels: any
 ) {
     try {
-        const storeId = data.storeId || data.orderId;
+        const storeId = data.storeId;
+        if (!storeId) return;
 
-        if (channels.email && data.customerEmail) {
-            await notificationService.queueNotification({
-                storeId,
-                channel: 'email',
-                priority: 'normal',
-                type: 'order_' + data.status.toLowerCase(),
-                recipient: data.customerEmail,
-                recipientName: data.customerName,
-                subject: `Order ${data.status} - ${data.orderNumber}`,
-                templateData: {
-                    orderNumber: data.orderNumber,
-                    customerName: data.customerName,
-                    status: data.status,
-                },
-                orderId: data.orderId,
-            });
-        }
+        const Store = (await import('../models/Store')).default;
+        const store = await Store.findById(storeId).select('name').lean();
+        const storeName = store?.name || 'Store';
 
-        if (channels.sms && data.customerPhone) {
-            await notificationService.queueNotification({
-                storeId,
-                channel: 'sms',
-                priority: 'normal',
-                type: 'order_' + data.status.toLowerCase(),
-                recipient: data.customerPhone,
-                recipientName: data.customerName,
-                templateData: {
-                    orderNumber: data.orderNumber,
-                    status: data.status,
-                },
-                orderId: data.orderId,
-            });
-        }
+        const order = {
+            _id: data.orderId,
+            orderNumber: data.orderNumber,
+            total: data.total,
+            currency: data.currency,
+            guestEmail: data.customerEmail,
+            shippingAddress: data.shippingAddress
+        };
 
-        if (channels.whatsapp && data.customerPhone) {
-            await notificationService.queueNotification({
-                storeId,
-                channel: 'whatsapp',
-                priority: 'normal',
-                type: 'order_' + data.status.toLowerCase(),
-                recipient: data.customerPhone,
-                recipientName: data.customerName,
-                templateData: {
-                    orderNumber: data.orderNumber,
-                    customerName: data.customerName,
-                    status: data.status,
-                },
-                orderId: data.orderId,
-            });
-        }
+        await transactionalNotificationService.sendOrderStatusUpdate(
+            storeId,
+            storeName,
+            order,
+            data.status
+        );
     } catch (error) {
         console.error('Error queuing status update:', error);
     }
@@ -183,67 +109,33 @@ export async function queueOrderStatusUpdate(
  */
 export async function queueShippingNotification(
     data: OrderNotificationData & { trackingNumber: string; carrier: string; storeId?: string },
-    channels: {
-        email?: boolean;
-        sms?: boolean;
-        whatsapp?: boolean;
-    }
+    _channels: any
 ) {
     try {
-        const storeId = data.storeId || data.orderId;
+        const storeId = data.storeId;
+        if (!storeId) return;
 
-        if (channels.email && data.customerEmail) {
-            await notificationService.queueNotification({
-                storeId,
-                channel: 'email',
-                priority: 'normal',
-                type: 'order_shipped',
-                recipient: data.customerEmail,
-                recipientName: data.customerName,
-                subject: `Your Order Has Shipped - ${data.orderNumber}`,
-                templateData: {
-                    orderNumber: data.orderNumber,
-                    customerName: data.customerName,
-                    trackingNumber: data.trackingNumber,
-                    carrier: data.carrier,
-                },
-                orderId: data.orderId,
-            });
-        }
+        const Store = (await import('../models/Store')).default;
+        const store = await Store.findById(storeId).select('name').lean();
+        const storeName = store?.name || 'Store';
 
-        if (channels.sms && data.customerPhone) {
-            await notificationService.queueNotification({
-                storeId,
-                channel: 'sms',
-                priority: 'normal',
-                type: 'order_shipped',
-                recipient: data.customerPhone,
-                recipientName: data.customerName,
-                templateData: {
-                    orderNumber: data.orderNumber,
-                    trackingNumber: data.trackingNumber,
-                },
-                orderId: data.orderId,
-            });
-        }
+        const order = {
+            _id: data.orderId,
+            orderNumber: data.orderNumber,
+            total: data.total,
+            currency: data.currency,
+            guestEmail: data.customerEmail,
+            shippingAddress: data.shippingAddress,
+            trackingNumber: data.trackingNumber,
+            courierName: data.carrier
+        };
 
-        if (channels.whatsapp && data.customerPhone) {
-            await notificationService.queueNotification({
-                storeId,
-                channel: 'whatsapp',
-                priority: 'normal',
-                type: 'order_shipped',
-                recipient: data.customerPhone,
-                recipientName: data.customerName,
-                templateData: {
-                    orderNumber: data.orderNumber,
-                    customerName: data.customerName,
-                    trackingNumber: data.trackingNumber,
-                    carrier: data.carrier,
-                },
-                orderId: data.orderId,
-            });
-        }
+        await transactionalNotificationService.sendOrderStatusUpdate(
+            storeId,
+            storeName,
+            order,
+            'shipped'
+        );
     } catch (error) {
         console.error('Error queuing shipping notification:', error);
     }

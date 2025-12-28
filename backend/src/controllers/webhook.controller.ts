@@ -198,7 +198,7 @@ async function processSuccessfulPayment(order: any, paymentId: string, paymentDa
     }
 
     // TODO: Send order confirmation email
-    console.log(`Order ${order.orderNumber} payment successful`);
+
 }
 
 /**
@@ -215,5 +215,5 @@ async function processFailedPayment(order: any, paymentData: any) {
     await order.save();
 
     // TODO: Send payment failed email
-    console.log(`Order ${order.orderNumber} payment failed`);
+
 }

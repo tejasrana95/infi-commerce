@@ -5,6 +5,8 @@ import User from '../models/User';
 import { config } from '../config';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
+import { transactionalNotificationService } from '../services/transactional-notification.service';
+import StoreModel from '../models/Store';
 
 // Validation rules
 export const adminRegisterValidation = [
@@ -122,6 +124,23 @@ export const registerAdmin = asyncHandler(async (req: AuthRequest, res: Response
         role,
         storeId: storeId || undefined,
     });
+
+    // Send Welcome notification to the new admin
+    // Note: Admin might not have a storeId if they are super_admin, 
+    // but for transactional notifications we usually need a store context.
+    // If it's a store_admin, we use their store.
+    if (storeId) {
+        const store = await StoreModel.findById(storeId);
+        if (store) {
+            await transactionalNotificationService.sendWelcome(
+                store._id.toString(),
+                store.name,
+                user.email,
+                user.firstName,
+                user.phone
+            );
+        }
+    }
 
     res.status(201).json({
         message: 'Admin user registered successfully',
