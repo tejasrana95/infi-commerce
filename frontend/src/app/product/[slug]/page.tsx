@@ -29,7 +29,6 @@ async function getProduct(storeId: string, slug: string) {
         }
 
         const data = await response.json();
-        console.log('data', data);
         return data.product || data;
     } catch (error) {
         console.error('Failed to fetch product:', error);

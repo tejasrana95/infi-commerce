@@ -26,6 +26,16 @@ import {
     CTAConfigPanel,
     StripBannerConfigPanel,
     CardGroupConfigPanel,
+    // Blog Config Panels
+    BlogGridConfigPanel,
+    BlogCategoriesSidebarConfigPanel,
+    RecentPostsConfigPanel,
+    PopularPostsConfigPanel,
+    TagsCloudConfigPanel,
+    NewsletterSignupConfigPanel,
+    AuthorCardConfigPanel,
+    PageContentConfigPanel,
+    PageHeroConfigPanel,
 } from '@/components/organisms/ModuleConfigPanels';
 
 interface ModuleEditorProps {
@@ -211,12 +221,87 @@ export default function ModuleEditor({ module, onChange, onDelete, storeId }: Mo
                     />
                 );
 
+            // Blog modules
+            case 'blog-grid':
+            case 'blog-listing':
+                return (
+                    <BlogGridConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
+                    />
+                );
+
+            case 'blog-categories-sidebar':
+                return (
+                    <BlogCategoriesSidebarConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
+                    />
+                );
+
+            case 'recent-posts':
+                return (
+                    <RecentPostsConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
+                    />
+                );
+
+            case 'popular-posts':
+                return (
+                    <PopularPostsConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
+                    />
+                );
+
+            case 'tags-cloud':
+                return (
+                    <TagsCloudConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
+                    />
+                );
+
+            case 'newsletter-signup':
+                return (
+                    <NewsletterSignupConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
+                    />
+                );
+
+            case 'author-card':
+                return (
+                    <AuthorCardConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
+                    />
+                );
+
+            case 'page-content':
+                return (
+                    <PageContentConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
+                    />
+                );
+
+            case 'page-hero':
+                return (
+                    <PageHeroConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
+                    />
+                );
+
             // Placeholder modules - minimal config
             case 'category-products':
             case 'product-details':
             case 'search-results':
-            case 'blog-listing':
             case 'blog-content':
+            case 'page-content':
+            case 'page-hero':
                 return (
                     <Box>
                         <Typography variant="body2" color="primary" gutterBottom>

@@ -80,7 +80,6 @@ export default function LoginForm({ isModal = false, onSuccess }: LoginFormProps
 
             <SocialLoginButtons
                 onSuccess={(data) => {
-                    console.log('Social login success', data);
                     if (onSuccess) onSuccess();
                 }}
                 onError={(err) => setError(err)}

@@ -23,6 +23,19 @@ import RecentlyViewedModule from './standard/RecentlyViewed';
 import CTAButtonModule from './standard/CTAButton';
 import StripBannerModule from './standard/StripBanner';
 import CardGroupModule from './standard/CardGroup';
+import PageContentModule from './standard/PageContent';
+import PageHeroModule from './standard/PageHero';
+
+// Blog Modules
+import BlogHeroModule from './blog/BlogHero';
+import BlogGridModule from './blog/BlogGrid';
+import RelatedBlogsModule from './blog/RelatedBlogs';
+import BlogCategoriesSidebarModule from './blog/BlogCategoriesSidebar';
+import RecentPostsModule from './blog/RecentPosts';
+import PopularPostsModule from './blog/PopularPosts';
+import NewsletterSignupModule from './blog/NewsletterSignup';
+import TagsCloudModule from './blog/TagsCloud';
+import AuthorCardModule from './blog/AuthorCard';
 
 export interface ModuleProps {
     config: Record<string, any>;
@@ -53,6 +66,20 @@ export const moduleRegistry: Record<string, ModuleComponent> = {
     'cta-button': CTAButtonModule,
     'strip-banner': StripBannerModule,
     'card-group': CardGroupModule,
+    // Blog modules
+    'blog-hero': BlogHeroModule,
+    'blog-grid': BlogGridModule,
+    'blog-listing': BlogGridModule, // Alias for admin layout builder compatibility
+    'related-blogs': RelatedBlogsModule,
+    'blog-categories-sidebar': BlogCategoriesSidebarModule,
+    'recent-posts': RecentPostsModule,
+    'popular-posts': PopularPostsModule,
+    'newsletter-signup': NewsletterSignupModule,
+    'tags-cloud': TagsCloudModule,
+    'author-card': AuthorCardModule,
+    // Static page modules
+    'page-content': PageContentModule,
+    'page-hero': PageHeroModule,
 };
 
 /**
@@ -61,3 +88,4 @@ export const moduleRegistry: Record<string, ModuleComponent> = {
 export function registerModule(type: string, component: ModuleComponent) {
     moduleRegistry[type] = component;
 }
+

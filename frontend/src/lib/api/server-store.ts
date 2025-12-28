@@ -25,7 +25,6 @@ export async function getServerStore(): Promise<Store | null> {
 
     // Fallback for localhost development
     if (!store && domain.includes('localhost')) {
-        console.log(`Using fallback store for localhost. Domain was: ${domain}`);
         store = await fetchStoreById(FALLBACK_STORE_ID);
     }
 
@@ -331,16 +330,109 @@ export async function fetchProductBySlug(storeId: string, slug: string): Promise
 
 export async function fetchBlogPostBySlug(storeId: string, slug: string): Promise<any | null> {
     try {
-        const res = await fetch(`${API_BASE}/blog/posts/slug/${slug}?storeId=${storeId}`, {
-            next: { revalidate: 60 },
-            headers: { 'Content-Type': 'application/json' },
-        });
 
-        if (!res.ok) return null;
-        const data = await res.json();
-        return data.post || null;
+        const [postsRes, layout] = await Promise.all([
+            fetch(`${API_BASE}/blog/posts/slug/${slug}`, {
+                next: { revalidate: 60 },
+                headers: { 'Content-Type': 'application/json' },
+            }),
+            fetchLayout(storeId, 'blog-post'),
+        ]);
+
+        if (!postsRes.ok) return null;
+        const data = await postsRes.json();
+
+        return {
+            data,
+            layout,
+        };
     } catch (error) {
         console.error('Error fetching blog post by slug:', error);
         return null;
     }
 }
+
+/**
+ * Fetch all blog listing page data in one call
+ * Optimized for SSR - fetches everything in parallel
+ */
+export async function fetchBlogPageData(
+    storeId: string,
+    options: { page?: number; limit?: number; category?: string; tag?: string; search?: string } = {}
+) {
+    const { page = 1, limit = 12, category, tag, search } = options;
+
+    try {
+        // Build blog posts query string
+        let postsUrl = `${API_BASE}/blog/posts?storeId=${storeId}&page=${page}&limit=${limit}`;
+        if (category) postsUrl += `&category=${encodeURIComponent(category)}`;
+        if (tag) postsUrl += `&tag=${encodeURIComponent(tag)}`;
+        if (search) postsUrl += `&search=${encodeURIComponent(search)}`;
+
+        // Fetch posts, categories, tags, and layout in parallel
+        const [postsRes, categoriesRes, tagsRes, layout] = await Promise.all([
+            fetch(postsUrl, {
+                next: { revalidate: 60 },
+                headers: { 'Content-Type': 'application/json' },
+            }),
+            fetch(`${API_BASE}/blog/categories?storeId=${storeId}`, {
+                next: { revalidate: 60 },
+                headers: { 'Content-Type': 'application/json' },
+            }),
+            fetch(`${API_BASE}/blog/tags?storeId=${storeId}`, {
+                next: { revalidate: 60 },
+                headers: { 'Content-Type': 'application/json' },
+            }),
+            fetchLayout(storeId, 'blog-list'),
+        ]);
+
+        // Parse responses
+        const postsData = postsRes.ok ? await postsRes.json() : { data: [], pagination: { page: 1, limit: 12, total: 0, pages: 0 } };
+        const categoriesData = categoriesRes.ok ? await categoriesRes.json() : { data: [] };
+        const tagsData = tagsRes.ok ? await tagsRes.json() : { data: [] };
+
+        return {
+            posts: postsData.data || [],
+            pagination: postsData.pagination || { page: 1, limit: 12, total: 0, pages: 0 },
+            categories: categoriesData.data || categoriesData || [],
+            tags: tagsData.data || tagsData || [],
+            layout,
+        };
+    } catch (error) {
+        console.error('Error fetching blog page data:', error);
+        return {
+            posts: [],
+            pagination: { page: 1, limit: 12, total: 0, pages: 0 },
+            categories: [],
+            tags: [],
+            layout: null,
+        };
+    }
+}
+
+// ============================================
+// Static Page Data Fetching
+// ============================================
+
+export async function fetchPageBySlug(storeId: string, slug: string): Promise<any | null> {
+    try {
+        const [pageRes, layout] = await Promise.all([
+            fetch(`${API_BASE}/pages/slug/${slug}`, {
+                next: { revalidate: 60 },
+                headers: { 'Content-Type': 'application/json' },
+            }),
+            fetchLayout(storeId, 'page'),
+        ]);
+        if (!pageRes.ok) return null;
+        const data = await pageRes.json();
+        return {
+            data,
+            layout,
+        };
+    } catch (error) {
+        console.error('Error fetching page by slug:', error);
+        return null;
+    }
+}
+
+

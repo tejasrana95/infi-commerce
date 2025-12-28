@@ -35,7 +35,8 @@ export default function BlogPostsPage() {
         try {
             setLoading(true);
             const response = await api.get('/blog/posts');
-            setPosts(response.data.posts || []);
+            console.log('response.data.data', response.data.data);
+            setPosts(response.data.data || []);
         } catch (err: any) {
             console.error('Failed to fetch posts', err);
             showNotification(err.response?.data?.message || 'Failed to load posts', 'error');
@@ -193,14 +194,14 @@ export default function BlogPostsPage() {
             ),
         },
         {
-            field: 'stats',
+            field: 'viewCount',
             headerName: 'Views',
             width: 80,
             align: 'center',
             renderCell: (params: GridRenderCellParams) => (
                 <Box display="flex" alignItems="center" gap={0.5}>
                     <VisibilityIcon fontSize="small" color="action" />
-                    <Typography variant="caption">{params.value?.views || 0}</Typography>
+                    <Typography variant="caption">{params.value || 0}</Typography>
                 </Box>
             )
         },

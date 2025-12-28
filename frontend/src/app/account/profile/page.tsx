@@ -103,8 +103,6 @@ export default function ProfilePage() {
         );
     }
 
-    console.log('customer', customer);
-
     return (
         <div className={styles.container}>
             <header className={styles.header}>

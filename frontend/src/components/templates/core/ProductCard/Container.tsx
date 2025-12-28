@@ -221,6 +221,35 @@ export default function ProductCardContainer({
         }
     }, [product, store?._id, addToCart, router]);
 
+    // Handle buy now
+    const handleBuyNow = useCallback(async () => {
+        // For variable products, redirect to product page
+        if ((product as any).type === 'variable') {
+            router.push(`/product/${product.slug}`);
+            return;
+        }
+
+        // For simple products, add to cart and redirect to checkout
+        setIsAddingToCart(true);
+        try {
+            const result = await addToCart({
+                productId: product._id,
+                quantity: 1,
+                storeId: store?._id || '',
+            });
+
+            if (result.success) {
+                router.push('/checkout');
+            } else {
+                console.error('Failed to add to cart for Buy Now:', result.error);
+            }
+        } catch (error) {
+            console.error('Error during Buy Now:', error);
+        } finally {
+            setIsAddingToCart(false);
+        }
+    }, [product, store?._id, addToCart, router]);
+
     // Get the template-specific presenter component
     const ProductCardTemplate = getComponent('ProductCardTemplate', templateId);
 
@@ -237,6 +266,7 @@ export default function ProductCardContainer({
             compareDisabled={!canCompare && !isInCompare(product._id)}
             compareDisabledReason={compareReason}
             onAddToCart={handleAddToCart}
+            onBuyNow={handleBuyNow}
             isAddingToCart={isAddingToCart}
         />
     );

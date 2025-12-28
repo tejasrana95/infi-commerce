@@ -453,7 +453,6 @@ export async function getStore(domain: string): Promise<Store | null> {
 
     // Fallback for localhost development
     if (!store && domain.includes('localhost')) {
-        console.log(`Using fallback store for localhost. Domain was: ${domain}`);
         store = await fetchStoreById(FALLBACK_STORE_ID);
     }
 
@@ -476,3 +475,116 @@ export async function fetchCurrencies(storeId: string): Promise<import('@/types'
     }
 }
 
+// ============================================
+// Server-Side Blog & Page Fetch Functions (SSR)
+// ============================================
+
+export async function fetchBlogPosts(storeId: string, params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    category?: string;
+    tag?: string;
+    search?: string;
+}) {
+    try {
+        const queryParams = new URLSearchParams();
+        queryParams.append('page', (params?.page || 1).toString());
+        queryParams.append('limit', (params?.limit || 12).toString());
+        queryParams.append('status', params?.status || 'published');
+
+        if (params?.category) queryParams.append('category', params.category);
+        if (params?.tag) queryParams.append('tag', params.tag);
+        if (params?.search) queryParams.append('search', params.search);
+
+        const res = await fetch(`${API_BASE_URL}/blog/posts?${queryParams.toString()}`, {
+            cache: 'no-store',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Store-ID': storeId,
+            },
+        });
+
+        if (!res.ok) return { data: [], pagination: { page: 1, pages: 1, total: 0, limit: 12 } };
+        return await res.json();
+    } catch (error) {
+        console.error('Error fetching blog posts:', error);
+        return { data: [], pagination: { page: 1, pages: 1, total: 0, limit: 12 } };
+    }
+}
+
+export async function fetchBlogPostBySlug(storeId: string, slug: string) {
+    try {
+        const res = await fetch(`${API_BASE_URL}/blog/posts/slug/${slug}`, {
+            cache: 'no-store',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Store-ID': storeId,
+            },
+        });
+
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.data;
+    } catch (error) {
+        console.error('Error fetching blog post:', error);
+        return null;
+    }
+}
+
+export async function fetchBlogCategories(storeId: string) {
+    try {
+        const res = await fetch(`${API_BASE_URL}/blog/categories`, {
+            cache: 'no-store',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Store-ID': storeId,
+            },
+        });
+
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data.data || [];
+    } catch (error) {
+        console.error('Error fetching blog categories:', error);
+        return [];
+    }
+}
+
+export async function fetchBlogTags(storeId: string, limit: number = 20) {
+    try {
+        const res = await fetch(`${API_BASE_URL}/blog/posts/tags?limit=${limit}`, {
+            cache: 'no-store',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Store-ID': storeId,
+            },
+        });
+
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data.data || [];
+    } catch (error) {
+        console.error('Error fetching blog tags:', error);
+        return [];
+    }
+}
+
+export async function fetchPageBySlug(storeId: string, slug: string) {
+    try {
+        const res = await fetch(`${API_BASE_URL}/pages/slug/${slug}`, {
+            cache: 'no-store',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Store-ID': storeId,
+            },
+        });
+
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.data;
+    } catch (error) {
+        console.error('Error fetching page:', error);
+        return null;
+    }
+}

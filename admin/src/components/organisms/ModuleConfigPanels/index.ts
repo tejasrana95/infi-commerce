@@ -36,3 +36,12 @@ export type { RecentlyViewedConfig } from './RecentlyViewedConfigPanel';
 export * from './CTAConfigPanel';
 export * from './StripBannerConfigPanel';
 export * from './CardGroupConfigPanel';
+
+// Blog Config Panels
+export * from './BlogConfigPanels';
+
+// Static Page Config Panels
+export * from './PageContentConfigPanel';
+export * from './PageHeroConfigPanel';
+
+

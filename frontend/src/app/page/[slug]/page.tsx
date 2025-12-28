@@ -1,37 +1,63 @@
-'use client';
+import { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import { getServerStore, fetchPageBySlug } from '@/lib/api/server-store';
+import StaticPageContainer from '@/components/templates/core/StaticPage/Container';
 
-import { use } from 'react';
-import styles from './page.module.scss';
-
-interface PageContentProps {
-    params: Promise<{ slug: string }>;
+interface PageProps {
+    params: Promise<{
+        slug: string;
+    }>;
 }
 
-export default function PageContent({ params }: PageContentProps) {
-    const { slug } = use(params);
+// Generate metadata for SEO
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+    const { slug } = await params;
+    const store = await getServerStore();
 
-    return (
-        <div className={styles.container}>
-            <div className={styles.content}>
-                <div className={styles.breadcrumb}>
-                    <a href="/">Home</a>
-                    <span>/</span>
-                    <span>{slug.replace(/-/g, ' ')}</span>
-                </div>
+    if (!store?._id) {
+        return { title: 'Page Not Found' };
+    }
 
-                <h1 className={styles.title}>{slug.replace(/-/g, ' ')}</h1>
+    const result = await fetchPageBySlug(store._id, slug);
 
-                <div className={styles.pageContent}>
-                    <p>
-                        This is a placeholder for the <strong>{slug}</strong> page.
-                        Content will be loaded from the CMS.
-                    </p>
-                </div>
+    if (!result || !result.data.data) {
+        return { title: 'Page Not Found' };
+    }
 
-                <div className={styles.notice}>
-                    <p>🚧 This page is under development. Content will be fetched from the API.</p>
-                </div>
-            </div>
-        </div>
-    );
+    const page = result.data.data;
+
+    return {
+        title: page.seo?.metaTitle || page.title,
+        description: page.seo?.metaDescription,
+        keywords: page.seo?.metaKeywords,
+        openGraph: {
+            title: page.seo?.metaTitle || page.title,
+            description: page.seo?.metaDescription,
+            type: 'website',
+            images: page.seo?.ogImage || page.featuredImage ? [page.seo?.ogImage || page.featuredImage] : [],
+        },
+        alternates: {
+            canonical: page.seo?.canonicalUrl,
+        },
+    };
+}
+
+export default async function StaticPage({ params }: PageProps) {
+    const { slug } = await params;
+    const store = await getServerStore();
+
+    if (!store?._id) {
+        notFound();
+    }
+
+    const result = await fetchPageBySlug(store._id, slug);
+
+    if (!result || !result.data || !result.data.data) {
+        notFound();
+    }
+
+    const page = result.data.data;
+    const layout = result.layout;
+
+    return <StaticPageContainer page={page} initialLayout={layout} />;
 }

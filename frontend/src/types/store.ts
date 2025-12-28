@@ -444,6 +444,30 @@ export const DEFAULT_COMPARE_CONFIG: CompareConfig = {
 // Theme Configuration
 // ============================================
 
+// Blog configuration type for ThemeConfig
+export interface BlogConfig {
+    header?: {
+        showBanner?: boolean;
+        bannerImage?: string;
+        title?: string;
+        subtitle?: string;
+    };
+    grid?: {
+        columns?: 2 | 3 | 4;
+        postsPerPage?: number;
+    };
+    sidebar?: {
+        position?: 'left' | 'right' | 'none';
+        showCategories?: boolean;
+        showTags?: boolean;
+        showSearch?: boolean;
+    };
+    featured?: {
+        showFeaturedPosts?: boolean;
+        featuredCount?: number;
+    };
+}
+
 export interface ThemeConfig {
     templateId: string;
     colors?: ThemeColors;
@@ -454,6 +478,7 @@ export interface ThemeConfig {
     category?: CategoryConfig;
     product?: ProductPageConfig;
     compare?: CompareConfig;
+    blog?: BlogConfig;
 }
 
 // ============================================

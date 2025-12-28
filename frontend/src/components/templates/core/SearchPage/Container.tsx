@@ -109,8 +109,6 @@ function SearchPageInner({
 
     // Initialize available filters from SSR or fetch on client if not available
     useEffect(() => {
-        console.log('initialFilters', initialFilters);
-        console.log('filters.availableFilters', filters.availableFilters);
         if (initialFilters) {
             filters.setAvailableFilters(initialFilters);
         } else if (store?._id && currentSearchQuery && !filters.availableFilters) {

@@ -3,6 +3,7 @@ import {
     createPage,
     getPages,
     getPageById,
+    getPageBySlug,
     updatePage,
     deletePage,
     createPageValidation,
@@ -12,6 +13,9 @@ import { authenticate, authorize } from '../middleware/auth';
 import { validate } from '../middleware/validation';
 
 const router = express.Router();
+
+// Public route (no auth required)
+router.get('/slug/:slug', getPageBySlug);
 
 router.use(authenticate);
 

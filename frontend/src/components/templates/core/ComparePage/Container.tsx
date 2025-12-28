@@ -82,7 +82,6 @@ export default function ComparePageContainer() {
 
     const handleAddToCart = useCallback((productId: string) => {
         // This will be implemented via CartContext
-        console.log('Add to cart:', productId);
     }, []);
 
     const handleAddToWishlist = useCallback((productId: string) => {

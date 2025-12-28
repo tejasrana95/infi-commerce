@@ -1,0 +1,119 @@
+.tagsCloud {
+    background: var(--card-background, white);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+}
+
+.title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: var(--text-primary, #1a1a1a);
+}
+
+.tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+
+    &.list {
+        flex-direction: column;
+
+        .tag {
+            justify-content: flex-start;
+        }
+    }
+}
+
+.tag {
+    padding: 8px 16px;
+    background: var(--background, #f8f9fa);
+    border: 1px solid var(--border, #e0e0e0);
+    border-radius: 20px;
+    font-size: 14px;
+    color: var(--text-primary, #333);
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+
+    &:hover {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+        transform: translateY(-2px);
+    }
+
+    &.small {
+        font-size: 12px;
+        padding: 6px 12px;
+    }
+
+    &.medium {
+        font-size: 14px;
+        padding: 8px 16px;
+    }
+
+    &.large {
+        font-size: 16px;
+        padding: 10px 20px;
+        font-weight: 600;
+    }
+}
+
+.gradient {
+    .tag {
+        &:nth-child(3n+1) {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+        }
+
+        &:nth-child(3n+2) {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+        }
+
+        &:nth-child(3n+3) {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+        }
+
+        &:hover {
+            transform: translateY(-2px) scale(1.05);
+        }
+    }
+}
+
+.monochrome {
+    .tag {
+        background: var(--text-primary, #1a1a1a);
+        color: white;
+        border: none;
+
+        &:hover {
+            background: #667eea;
+        }
+    }
+}
+
+.skeleton {
+    height: 120px;
+    background: var(--background, #f8f9fa);
+    border-radius: 12px;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}

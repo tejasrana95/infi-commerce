@@ -16,6 +16,9 @@ import CoreProductPageContainer from './core/ProductPage/Container';
 import CoreAuthPageContainer from './core/AuthPage/Container';
 import CoreComparePageContainer from './core/ComparePage/Container';
 import CoreSearchPageContainer from './core/SearchPage/Container';
+import CoreBlogListingContainer from './core/BlogListing/Container';
+import CoreBlogPostContainer from './core/BlogPost/Container';
+import CoreStaticPageContainer from './core/StaticPage/Container';
 
 
 // Core (Fallback) - Templates (pure presentation)
@@ -34,6 +37,9 @@ import ModernCleanCategoryPageTemplate from './modern-clean/CategoryPage/Templat
 import ModernCleanProductPageTemplate from './modern-clean/ProductPage/Template';
 import ModernCleanAuthPageTemplate from './modern-clean/AuthPage/Template';
 import ModernCleanComparePageTemplate from './modern-clean/ComparePage/Template';
+import ModernCleanBlogListingTemplate from './modern-clean/BlogListing/Template';
+import ModernCleanBlogPostTemplate from './modern-clean/BlogPost/Template';
+import ModernCleanStaticPageTemplate from './modern-clean/StaticPage/Template';
 
 
 // Classic Elegance - Templates (pure presentation)
@@ -65,6 +71,12 @@ export type ComponentName =
     | 'ComparePage'
     | 'ComparePageTemplate'
     | 'SearchPage'
+    | 'BlogListing'
+    | 'BlogListingTemplate'
+    | 'BlogPost'
+    | 'BlogPostTemplate'
+    | 'StaticPage'
+    | 'StaticPageTemplate'
     | 'Banner';
 
 // ============================================
@@ -94,6 +106,13 @@ const TEMPLATE_COMPONENTS: Record<string, Record<string, React.ComponentType<any
         ComparePage: CoreComparePageContainer,
         ComparePageTemplate: ModernCleanComparePageTemplate,
         SearchPage: CoreSearchPageContainer,
+        // Blog & Static Page
+        BlogListing: CoreBlogListingContainer,
+        BlogListingTemplate: ModernCleanBlogListingTemplate,
+        BlogPost: CoreBlogPostContainer,
+        BlogPostTemplate: ModernCleanBlogPostTemplate,
+        StaticPage: CoreStaticPageContainer,
+        StaticPageTemplate: ModernCleanStaticPageTemplate,
     },
     'classic-elegance': {
         // Containers (with business logic) - Use same Core containers
@@ -116,6 +135,13 @@ const TEMPLATE_COMPONENTS: Record<string, Record<string, React.ComponentType<any
         ComparePage: CoreComparePageContainer,
         ComparePageTemplate: ModernCleanComparePageTemplate,
         SearchPage: CoreSearchPageContainer,
+        // Blog & Static Page - Use modern-clean as fallback
+        BlogListing: CoreBlogListingContainer,
+        BlogListingTemplate: ModernCleanBlogListingTemplate,
+        BlogPost: CoreBlogPostContainer,
+        BlogPostTemplate: ModernCleanBlogPostTemplate,
+        StaticPage: CoreStaticPageContainer,
+        StaticPageTemplate: ModernCleanStaticPageTemplate,
     },
 };
 
@@ -143,6 +169,13 @@ const CORE_COMPONENTS: Record<string, React.ComponentType<any>> = {
     ComparePage: CoreComparePageContainer,
     ComparePageTemplate: ModernCleanComparePageTemplate,
     SearchPage: CoreSearchPageContainer,
+    // Blog & Static Page
+    BlogListing: CoreBlogListingContainer,
+    BlogListingTemplate: ModernCleanBlogListingTemplate,
+    BlogPost: CoreBlogPostContainer,
+    BlogPostTemplate: ModernCleanBlogPostTemplate,
+    StaticPage: CoreStaticPageContainer,
+    StaticPageTemplate: ModernCleanStaticPageTemplate,
 };
 
 // ============================================
@@ -198,3 +231,4 @@ export function getAvailableTemplates(): string[] {
 export function hasTemplateComponent(templateId: string, componentName: ComponentName): boolean {
     return !!(TEMPLATE_COMPONENTS[templateId]?.[componentName]);
 }
+

@@ -34,7 +34,8 @@ export default function BlogCategoriesPage() {
         try {
             setLoading(true);
             const response = await api.get('/blog/categories');
-            setCategories(response.data.categories || []);
+            console.log('response', response.data.data);
+            setCategories(response.data.data || []);
         } catch (err: any) {
             console.error('Failed to fetch blog categories', err);
             showNotification(err.response?.data?.message || 'Failed to load categories', 'error');

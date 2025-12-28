@@ -213,3 +213,43 @@ export const deletePage = asyncHandler(async (req: AuthRequest, res: Response) =
         message: 'Page deleted successfully',
     });
 });
+
+/**
+ * @swagger
+ * /api/pages/slug/{slug}:
+ *   get:
+ *     summary: Get page by slug (public)
+ *     tags: [Pages]
+ *     parameters:
+ *       - in: path
+ *         name: slug
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: storeId
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Page retrieved successfully
+ */
+export const getPageBySlug = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { slug } = req.params;
+    const filter: any = { slug, status: 'published' };
+
+    // Get store ID from header (for public routes) or query
+    const storeId = req.headers['x-store-id'] || req.query.storeId;
+
+    if (storeId) {
+        filter.storeId = storeId;
+    }
+
+    const page = await Page.findOne(filter).populate('layoutId');
+
+    if (!page) {
+        throw new AppError('Page not found', 404);
+    }
+
+    res.json({ data: page });
+});

@@ -5,6 +5,7 @@ import BlogPost from '../models/BlogPost';
 import User from '../models/User';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
+import mongoose from 'mongoose';
 
 
 // --- Blog Categories ---
@@ -65,14 +66,62 @@ export const createBlogCategory = asyncHandler(async (req: AuthRequest, res: Res
  */
 export const getBlogCategories = asyncHandler(async (req: AuthRequest, res: Response) => {
     const filter: any = {};
-    if (req.query.storeId) {
-        filter.storeId = req.query.storeId;
-    } else if (req.user?.storeId) {
-        filter.storeId = req.user.storeId;
+
+    // Get store ID from header (for public routes) or from authenticated user
+    const storeId = req.headers['x-store-id'] || req.query.storeId || req.user?.storeId;
+
+    if (storeId) {
+        filter.storeId = new mongoose.Types.ObjectId(storeId as string);
     }
 
-    const categories = await BlogCategory.find(filter).sort({ sortOrder: 1, name: 1 });
-    res.json({ categories });
+    // Use aggregation to get dynamic post counts and "populate" storeId
+    const categories = await BlogCategory.aggregate([
+        { $match: filter },
+        {
+            $lookup: {
+                from: 'stores',
+                localField: 'storeId',
+                foreignField: '_id',
+                as: 'storeData'
+            }
+        },
+        {
+            $unwind: {
+                path: '$storeData',
+                preserveNullAndEmptyArrays: true
+            }
+        },
+        {
+            $lookup: {
+                from: 'blogposts',
+                localField: '_id',
+                foreignField: 'categoryIds',
+                as: 'posts'
+            }
+        },
+        {
+            $addFields: {
+                postCount: {
+                    $size: {
+                        $filter: {
+                            input: '$posts',
+                            as: 'post',
+                            cond: { $eq: ['$$post.status', 'published'] }
+                        }
+                    }
+                },
+                storeId: {
+                    _id: '$storeData._id',
+                    name: '$storeData.name',
+                    slug: '$storeData.slug'
+                }
+            }
+        },
+        { $project: { posts: 0, storeData: 0 } },
+        { $sort: { sortOrder: 1, name: 1 } }
+    ]);
+
+    res.json({ data: categories });
 });
 
 /**
@@ -83,7 +132,7 @@ export const getBlogCategories = asyncHandler(async (req: AuthRequest, res: Resp
  *     tags: [Blog]
  */
 export const getBlogCategoryById = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const category = await BlogCategory.findById(req.params.id);
+    const category = await BlogCategory.findById(req.params.id).populate('storeId', 'name slug')
     if (!category) {
         throw new AppError('Category not found', 404);
     }
@@ -236,21 +285,67 @@ export const createBlogPost = asyncHandler(async (req: AuthRequest, res: Respons
  *     tags: [Blog]
  */
 export const getBlogPosts = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { storeId, status, categoryId, tag, limit = 10, page = 1 } = req.query;
+    const { status, category, tag, search, limit = 10, page = 1, sortBy = 'date' } = req.query;
 
     const filter: any = {};
+
+    // Get store ID from header (for public routes) or query or authenticated user
+    const storeId = req.headers['x-store-id'] || req.query.storeId || req.user?.storeId;
+
     if (storeId) {
         filter.storeId = storeId;
-    } else if (req.user?.storeId) {
-        filter.storeId = req.user.storeId;
     }
 
     if (status) filter.status = status;
-    if (categoryId) filter.categoryIds = categoryId;
+
+    // Handle category filter - support both slug and ID
+    if (category) {
+        // Check if it's a valid MongoDB ObjectId (24 hex characters)
+        const isObjectId = /^[0-9a-fA-F]{24}$/.test(category as string);
+
+        if (isObjectId) {
+            // It's an ID, use directly
+            filter.categoryIds = category;
+        } else {
+            // It's a slug, look up the category first
+            const categoryDoc = await BlogCategory.findOne({
+                slug: category,
+                ...(storeId ? { storeId } : {})
+            });
+
+            if (categoryDoc) {
+                filter.categoryIds = categoryDoc._id;
+            } else {
+                // Category not found, return empty results
+                return res.json({
+                    data: [],
+                    pagination: {
+                        total: 0,
+                        page: Number(page),
+                        pages: 0,
+                        limit: Number(limit),
+                    }
+                });
+            }
+        }
+    }
+
     if (tag) filter.tags = tag;
+    if (search) {
+        filter.$or = [
+            { title: { $regex: search, $options: 'i' } },
+            { excerpt: { $regex: search, $options: 'i' } },
+            { content: { $regex: search, $options: 'i' } },
+        ];
+    }
+
+    let sort: any = { updatedAt: -1 };
+    if (sortBy === 'views') sort = { viewCount: -1 };
+    if (sortBy === 'likes') sort = { likeCount: -1 };
 
     const posts = await BlogPost.find(filter)
-        .sort({ updatedAt: -1 })
+        .populate('storeId', 'name slug')
+        .sort(sort)
         .limit(Number(limit))
         .skip((Number(page) - 1) * Number(limit))
         .populate('categoryIds', 'name slug');
@@ -258,11 +353,12 @@ export const getBlogPosts = asyncHandler(async (req: AuthRequest, res: Response)
     const total = await BlogPost.countDocuments(filter);
 
     res.json({
-        posts,
+        data: posts,
         pagination: {
             total,
             page: Number(page),
-            pages: Math.ceil(total / Number(limit))
+            pages: Math.ceil(total / Number(limit)),
+            limit: Number(limit),
         }
     });
 });
@@ -284,6 +380,113 @@ export const getBlogPostById = asyncHandler(async (req: AuthRequest, res: Respon
     }
 
     res.json({ post });
+});
+
+/**
+ * @swagger
+ * /api/blog/posts/slug/{slug}:
+ *   get:
+ *     summary: Get blog post by slug (public)
+ *     tags: [Blog]
+ */
+export const getBlogPostBySlug = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { slug } = req.params;
+    const filter: any = { slug, status: 'published' };
+
+    // Get store ID from header (for public routes) or query
+    const storeId = req.headers['x-store-id'] || req.query.storeId;
+
+    if (storeId) {
+        filter.storeId = storeId;
+    }
+
+    const post = await BlogPost.findOne(filter)
+        .populate('categoryIds', 'name slug')
+        .populate('author.userId', 'firstName lastName');
+
+    if (!post) {
+        throw new AppError('Post not found', 404);
+    }
+
+    res.json({ data: post });
+});
+
+/**
+ * @swagger
+ * /api/blog/posts/tags:
+ *   get:
+ *     summary: Get popular tags
+ *     tags: [Blog]
+ */
+export const getPopularTags = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { limit = 20 } = req.query;
+
+    const filter: any = { status: 'published' };
+
+    // Get store ID from header (for public routes) or query
+    const storeId = req.headers['x-store-id'] || req.query.storeId;
+
+    if (storeId) {
+        filter.storeId = storeId;
+    }
+
+    const posts = await BlogPost.find(filter).select('tags');
+    const tagCounts: Record<string, number> = {};
+
+    posts.forEach(post => {
+        post.tags?.forEach(tag => {
+            tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+        });
+    });
+
+    const sortedTags = Object.entries(tagCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, Number(limit))
+        .map(([tag]) => tag);
+
+    res.json({ data: sortedTags });
+});
+
+/**
+ * @swagger
+ * /api/blog/posts/{id}/view:
+ *   post:
+ *     summary: Track blog post view
+ *     tags: [Blog]
+ */
+export const trackBlogView = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const post = await BlogPost.findByIdAndUpdate(
+        req.params.id,
+        { $inc: { viewCount: 1 } },
+        { new: true }
+    );
+
+    if (!post) {
+        throw new AppError('Post not found', 404);
+    }
+
+    res.json({ success: true });
+});
+
+/**
+ * @swagger
+ * /api/blog/posts/{id}/like:
+ *   post:
+ *     summary: Like blog post
+ *     tags: [Blog]
+ */
+export const likeBlogPost = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const post = await BlogPost.findByIdAndUpdate(
+        req.params.id,
+        { $inc: { likeCount: 1 } },
+        { new: true }
+    );
+
+    if (!post) {
+        throw new AppError('Post not found', 404);
+    }
+
+    res.json({ success: true, likeCount: post.likeCount });
 });
 
 /**
@@ -336,11 +539,7 @@ export const deleteBlogPost = asyncHandler(async (req: AuthRequest, res: Respons
         throw new AppError('Post not found', 404);
     }
 
-    // Trigger update of category counts logic which is in middleware or should be manually called?
-    // The BlogPost model post schema logic handles updating counts on SAVE, but maybe not on Delete.
-    // Let's manually trigger a count update helper or ensure the logic exists.
-    // For now, simpler implementation:
-
+    // Update category counts
     if (post.categoryIds && post.categoryIds.length > 0) {
         for (const catId of post.categoryIds) {
             const count = await BlogPost.countDocuments({ categoryIds: catId, status: 'published' });

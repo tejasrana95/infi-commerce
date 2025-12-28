@@ -125,7 +125,6 @@ export default function RegisterForm({ isModal = false, onSuccess }: RegisterFor
                     {/* Social Login First */}
                     <SocialLoginButtons
                         onSuccess={(data) => {
-                            console.log('Social register success', data);
                             if (onSuccess) onSuccess();
                         }}
                         onError={(err) => setError(err)}

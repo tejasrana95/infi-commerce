@@ -808,7 +808,10 @@ export type ModuleType =
   // Placeholder modules (required, page-specific)
   | 'category-header' | 'category-products' | 'category-filters' | 'category-pagination' | 'product-details'
   | 'search-header' | 'search-results' | 'search-filters' | 'search-pagination'
-  | 'blog-listing' | 'blog-content';
+  | 'blog-listing' | 'blog-content' | 'page-content' | 'page-hero'
+  // Blog modules
+  | 'blog-grid' | 'blog-categories-sidebar' | 'recent-posts' | 'popular-posts'
+  | 'tags-cloud' | 'newsletter-signup' | 'author-card' | 'blog-hero' | 'related-blogs';
 
 export type SectionType = 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';
 
