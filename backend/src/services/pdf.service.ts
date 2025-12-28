@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import handlebars from 'handlebars';
 import { IOrder } from '../models/Order';
-// import { formatPrice } from '../utils/currency'; // Removed as unused and possibly missing
+import { storageService } from './storage';
 
 import { formatPrice } from '../utils/currency';
 
@@ -38,31 +38,31 @@ export class PdfService {
         return template(data);
     }
 
-    private static readonly INVOICE_DIR = path.join(process.env.UPLOAD_DIR || path.join(__dirname, '..', '..', 'uploads'), 'invoices');
+    // Invoice folder path for storage provider
+    private static readonly INVOICE_FOLDER = '/invoices';
 
-    // Ensure directory exists
-    private static async ensureDir() {
-        if (!fs.existsSync(this.INVOICE_DIR)) {
-            await fs.promises.mkdir(this.INVOICE_DIR, { recursive: true });
+    // Ensure invoice folder exists using storage provider
+    private static async ensureInvoiceFolder() {
+        const provider = storageService.getStorageProvider();
+        const folderExists = await provider.exists(this.INVOICE_FOLDER);
+        if (!folderExists) {
+            await provider.createFolder(this.INVOICE_FOLDER);
         }
     }
 
     static async generateInvoice(order: IOrder): Promise<Buffer> {
         try {
-            await this.ensureDir();
-            const filePath = path.join(this.INVOICE_DIR, `invoice-${order._id}.pdf`);
+            await this.ensureInvoiceFolder();
+            const provider = storageService.getStorageProvider();
+            const invoicePath = `${this.INVOICE_FOLDER}/invoice-${order._id}.pdf`;
 
-            // Check if file exists and is fresh
-            if (fs.existsSync(filePath)) {
-                const stats = await fs.promises.stat(filePath);
-                const orderUpdated = new Date(order.updatedAt).getTime();
-                const fileUpdated = stats.mtime.getTime();
-
-                // If order hasn't been updated since file creation, return cached file
-                // Adding a small buffer (1s) to avoid race conditions where they are equal
-                if (fileUpdated > orderUpdated) {
-                    return await fs.promises.readFile(filePath);
-                }
+            // Check if cached file exists
+            const fileExists = await provider.exists(invoicePath);
+            if (fileExists) {
+                // For simplicity, we regenerate if order was updated
+                // Since storage providers don't expose mtime, we'll always regenerate
+                // to ensure the latest order data is reflected
+                // This is a trade-off for unified storage support
             }
 
             const htmlContent = await this.compileTemplate('invoice', { order: order.toObject() });
@@ -88,10 +88,11 @@ export class PdfService {
 
             await browser.close();
 
-            // Save to cache
-            await fs.promises.writeFile(filePath, pdf);
+            // Save to storage using the storage provider
+            const pdfBuffer = Buffer.from(pdf);
+            await provider.upload(pdfBuffer, invoicePath, 'application/pdf', `invoice-${order._id}.pdf`);
 
-            return Buffer.from(pdf);
+            return pdfBuffer;
         } catch (error) {
             console.error('Error generating Invoice PDF:', error);
             throw new Error('Failed to generate Invoice PDF');
@@ -100,19 +101,14 @@ export class PdfService {
 
     static async generatePackingSlip(order: IOrder): Promise<Buffer> {
         try {
-            await this.ensureDir();
-            const filePath = path.join(this.INVOICE_DIR, `packing-slip-${order._id}.pdf`);
+            await this.ensureInvoiceFolder();
+            const provider = storageService.getStorageProvider();
+            const packingSlipPath = `${this.INVOICE_FOLDER}/packing-slip-${order._id}.pdf`;
 
-            // Check if file exists and is fresh
-            if (fs.existsSync(filePath)) {
-                const stats = await fs.promises.stat(filePath);
-                const orderUpdated = new Date(order.updatedAt).getTime();
-                const fileUpdated = stats.mtime.getTime();
-
-                // If order hasn't been updated since file creation, return cached file
-                if (fileUpdated > orderUpdated) {
-                    return await fs.promises.readFile(filePath);
-                }
+            // Check if cached file exists (same trade-off as generateInvoice)
+            const fileExists = await provider.exists(packingSlipPath);
+            if (fileExists) {
+                // Regenerate for latest data
             }
 
             const htmlContent = await this.compileTemplate('packing-slip', { order: order.toObject() });
@@ -138,10 +134,11 @@ export class PdfService {
 
             await browser.close();
 
-            // Save to cache
-            await fs.promises.writeFile(filePath, pdf);
+            // Save to storage using the storage provider
+            const pdfBuffer = Buffer.from(pdf);
+            await provider.upload(pdfBuffer, packingSlipPath, 'application/pdf', `packing-slip-${order._id}.pdf`);
 
-            return Buffer.from(pdf);
+            return pdfBuffer;
         } catch (error) {
             console.error('Error generating Packing Slip PDF:', error);
             throw new Error('Failed to generate Packing Slip PDF');
