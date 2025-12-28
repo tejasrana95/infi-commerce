@@ -11,6 +11,7 @@ import { useStore, useThemeConfig } from '@/providers/StoreProvider';
 import { useWishlist } from '@/providers/WishlistProvider';
 import { useCompare, CompareItem } from '@/providers/CompareProvider';
 import { useCart } from '@/providers/CartProvider';
+import { useToast } from '@/providers/ToastProvider';
 import { DEFAULT_PRODUCT_CARD_CONFIG, ProductCardConfig } from '@/types';
 import { formatPrice } from '@/lib/currency';
 
@@ -145,6 +146,7 @@ export default function ProductCardContainer({
 
     // Get cart functions from context
     const { addToCart } = useCart();
+    const { success, error: toastError } = useToast();
     const [isAddingToCart, setIsAddingToCart] = useState(false);
 
     // Check if this product can be added to compare
@@ -208,11 +210,9 @@ export default function ProductCardContainer({
             });
 
             if (result.success) {
-                // TODO: Show success toast
-                console.log('Added to cart successfully');
+                success(`${product.name} added to cart`);
             } else {
-                // TODO: Show error toast
-                console.error('Failed to add to cart:', result.error);
+                toastError(`Failed to add to cart: ${result.error}`);
             }
         } catch (error) {
             console.error('Error adding to cart:', error);

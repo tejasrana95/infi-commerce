@@ -8,6 +8,7 @@ import { useStore, useThemeConfig } from '@/providers/StoreProvider';
 import { useWishlist } from '@/providers/WishlistProvider';
 import { useCompare, CompareItem } from '@/providers/CompareProvider';
 import { useCart } from '@/providers/CartProvider';
+import { useToast } from '@/providers/ToastProvider';
 import api from '@/lib/api';
 import {
     Product,
@@ -42,6 +43,7 @@ export default function ProductPageContainer({
     const { isInWishlist, toggleWishlist } = useWishlist();
     const { addToCompare, isInCompare, removeFromCompare, canAddToCompare, config: compareConfig } = useCompare();
     const { addToCart: addToCartAPI } = useCart();
+    const { success, error: toastError, warning } = useToast();
 
     // Currency
     const currencySymbol = currentCurrency?.symbol || '$';
@@ -248,8 +250,7 @@ export default function ProductPageContainer({
     const handleAddToCart = useCallback(async () => {
         // For variable products, require all options to be selected
         if (product.type === 'variable' && !allOptionsSelected) {
-            console.warn('Please select all options before adding to cart');
-            // TODO: Show toast notification
+            warning('Please select all options before adding to cart');
             return;
         }
 
@@ -258,8 +259,7 @@ export default function ProductPageContainer({
 
         // Only check stock level if stock management is enabled
         if (product.manageStock && currentStock <= 0) {
-            console.warn('Product is out of stock');
-            // TODO: Show toast notification
+            warning('Product is out of stock');
             return;
         }
 
@@ -273,15 +273,13 @@ export default function ProductPageContainer({
             });
 
             if (result.success) {
-                console.log('Added to cart successfully');
-                // TODO: Show success toast
+                success(`${product.name} added to cart`);
             } else {
-                console.error('Failed to add to cart:', result.error);
-                // TODO: Show error toast
+                toastError(`Failed to add to cart: ${result.error}`);
             }
         } catch (error) {
             console.error('Error adding to cart:', error);
-            // TODO: Show error toast
+            toastError('An error occurred while adding to cart');
         } finally {
             setIsAddingToCart(false);
         }
@@ -313,8 +311,7 @@ export default function ProductPageContainer({
             };
             const result = addToCompare(compareItem);
             if (!result.success && result.error) {
-                console.warn('Compare error:', result.error);
-                // TODO: Show toast notification with error
+                warning(result.error);
             }
         }
     }, [product._id, product.name, product.slug, product.featuredImage, product.images, product.pricing, product.salePrice, product.price, product.categoryIds, isInCompare, addToCompare, removeFromCompare]);
