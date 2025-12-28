@@ -527,17 +527,17 @@ export interface StoreSEO {
 }
 
 export interface Currency {
-    _id: string;
-    code: string;
-    name: string;
-    symbol: string;
-    exchangeRate: number;
-    isBaseCurrency: boolean;
-    isActive: boolean;
-    decimalPlaces: number;
-    symbolPosition: 'before' | 'after';
-    thousandsSeparator: string;
-    decimalSeparator: string;
+    _id?: string;
+    code?: string;
+    name?: string;
+    symbol?: string;
+    exchangeRate?: number;
+    isBaseCurrency?: boolean;
+    isActive?: boolean;
+    decimalPlaces?: number;
+    symbolPosition?: 'before' | 'after';
+    thousandsSeparator?: string;
+    decimalSeparator?: string;
     createdAt?: string;
     updatedAt?: string;
 }

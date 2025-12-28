@@ -7,6 +7,7 @@ import { useCurrency } from '@/hooks/useCurrency';
 import { formatPrice } from '@/lib/currency';
 import CartItem from '@/components/core/CartItem';
 import styles from './page.module.scss';
+import EmptyCheckout from '../checkout/components/EmptyCheckout';
 
 export default function CartPage() {
     const { cart, items, cartCount, updateCartItem, removeFromCart, isLoading } = useCart();
@@ -37,23 +38,8 @@ export default function CartPage() {
         );
     }
 
-    if (cartCount === 0) {
-        return (
-            <div className={styles.container}>
-                <div className={styles.content}>
-                    <div className={styles.emptyCart}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className={styles.emptyIcon}>
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                        </svg>
-                        <h2>Your cart is empty</h2>
-                        <p>Add some products to get started</p>
-                        <Link href="/" className={styles.shopBtn}>
-                            Continue Shopping
-                        </Link>
-                    </div>
-                </div>
-            </div>
-        );
+    if (cartCount === 0 && !isLoading) {
+        return <EmptyCheckout />
     }
 
     return (

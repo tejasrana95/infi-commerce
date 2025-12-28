@@ -30,7 +30,6 @@ export default function AccountOrderPage() {
             const response = await apiClient.get(`/orders/${orderId}`);
             setOrder(response.data);
         } catch (error: any) {
-            console.error('Error fetching order:', error);
             const message = error.response?.data?.message || 'Failed to load order';
             toast.error(message);
 

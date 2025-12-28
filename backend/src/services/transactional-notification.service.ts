@@ -202,10 +202,10 @@ export class TransactionalNotificationService {
             templateData: {
                 orderNumber: order.orderNumber,
                 firstName: order.shippingAddress?.firstName || recipientName.split(' ')[0],
-                total: `${order.currency} ${order.total}`,
+                total: `${order.currency} ${(order.total * (order.exchangeRate || 1)).toFixed(2)}`,
                 status,
                 trackingNumber: order.trackingNumber,
-                trackingUrl: order.trackingNumber ? `/orders/${order._id}/track` : undefined,
+                trackingUrl: order.trackingUrl || (order.trackingNumber ? `https://${(await Store.findById(storeId).select('domain').lean())?.domain}/orders/${order._id}/track` : undefined),
             }
         });
     }

@@ -157,7 +157,7 @@
                 <p><strong>Date:</strong> {{formatDate order.createdAt}}</p>
             </div>
             <div class="meta">
-                <h2>Total: {{formatPrice order.total order.currency}}</h2>
+                <h2>Total: {{formatPrice order.total order.currency order.exchangeRate}}</h2>
                 <span class="badge {{order.paymentStatus}}">{{order.paymentStatus}}</span>
                 {{#if (eq order.status 'cancelled')}}
                 <br><br><span class="badge cancelled">CANCELLED</span>
@@ -213,30 +213,31 @@
                     <strong>{{this.name}}</strong><br>
                     <small>SKU: {{this.sku}}</small>
                 </td>
-                <td class="text-right">{{formatPrice this.price ../order.currency}}</td>
+                <td class="text-right">{{formatPrice this.price ../order.currency ../order.exchangeRate}}</td>
                 <td class="text-right">{{this.quantity}}</td>
                 <td class="text-right">
                     {{#if this.taxRate}}
-                    {{this.taxRate}}% ({{formatPrice this.taxAmount ../order.currency}})
+                    {{this.taxRate}}% ({{formatPrice this.taxAmount ../order.currency ../order.exchangeRate}})
                     {{else}}
                     -
                     {{/if}}
                 </td>
-                <td class="text-right">{{formatPrice (multiply this.price this.quantity) ../order.currency}}</td>
+                <td class="text-right">{{formatPrice (multiply this.price this.quantity) ../order.currency
+                    ../order.exchangeRate}}</td>
             </tr>
             {{/each}}
 
             <tr class="total">
                 <td colspan="4" class="text-right">Subtotal:</td>
-                <td class="text-right">{{formatPrice order.subtotal order.currency}}</td>
+                <td class="text-right">{{formatPrice order.subtotal order.currency order.exchangeRate}}</td>
             </tr>
             <tr class="total">
                 <td colspan="4" class="text-right">Total Tax:</td>
-                <td class="text-right">{{formatPrice order.tax order.currency}}</td>
+                <td class="text-right">{{formatPrice order.tax order.currency order.exchangeRate}}</td>
             </tr>
             <tr class="total">
                 <td colspan="4" class="text-right">Shipping:</td>
-                <td class="text-right">{{formatPrice order.shippingCost order.currency}}</td>
+                <td class="text-right">{{formatPrice order.shippingCost order.currency order.exchangeRate}}</td>
             </tr>
             {{#if order.taxBreakdown}}
             {{#each order.taxBreakdown}}
@@ -246,13 +247,14 @@
                 <td colspan="4" class="text-right">{{this.name}} ({{this.rate}}%):</td>
                 {{!-- Assuming equal split for now, or use formula: totalAmount * (subRate / totalRate) --}}
                 {{!-- For standard GST (18 -> 9+9), it's just amount / 2 --}}
-                <td class="text-right">{{formatPrice (divide ../amount 2) ../../order.currency}}</td>
+                <td class="text-right">{{formatPrice (divide ../amount 2) ../../order.currency
+                    ../../order.exchangeRate}}</td>
             </tr>
             {{/each}}
             {{else}}
             <tr class="total" style="color: #666; font-size: 0.9em;">
                 <td colspan="4" class="text-right">{{this.name}} ({{this.rate}}%):</td>
-                <td class="text-right">{{formatPrice this.amount ../order.currency}}</td>
+                <td class="text-right">{{formatPrice this.amount ../order.currency ../order.exchangeRate}}</td>
             </tr>
             {{/if}}
             {{/each}}
@@ -260,12 +262,12 @@
             {{#if order.discount}}
             <tr class="total">
                 <td colspan="4" class="text-right">Discount:</td>
-                <td class="text-right">-{{formatPrice order.discount order.currency}}</td>
+                <td class="text-right">-{{formatPrice order.discount order.currency order.exchangeRate}}</td>
             </tr>
             {{/if}}
             <tr class="heading">
                 <td colspan="4" class="text-right">Grand Total:</td>
-                <td class="text-right">{{formatPrice order.total order.currency}}</td>
+                <td class="text-right">{{formatPrice order.total order.currency order.exchangeRate}}</td>
             </tr>
         </table>
 

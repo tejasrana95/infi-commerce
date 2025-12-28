@@ -22,6 +22,6 @@ export function formatPrice(price: number, currency: import('@/types').Currency 
     const result = parts.join(currency.decimalSeparator || '.');
 
     return currency.symbolPosition === 'after'
-        ? `${result} ${currency.symbol}`
-        : `${currency.symbol}${result}`;
+        ? `${result} ${currency.symbol || `${currency.code} `}`
+        : `${currency.symbol || `${currency.code} `}${result}`;
 }

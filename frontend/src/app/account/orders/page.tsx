@@ -9,11 +9,8 @@ import { formatPrice } from '@/lib/currency';
 import Loader from '@/components/molecules/Loader';
 
 interface OrderItem {
-    product: {
-        _id: string;
-        name: string;
-        images: string[];
-    };
+    name: string;
+    image: string;
     quantity: number;
     price: number;
 }
@@ -27,6 +24,7 @@ interface Order {
     shipping: number;
     tax: number;
     currency: string;
+    exchangeRate: number;
     createdAt: string;
     items: OrderItem[];
     shippingAddress: {
@@ -132,18 +130,18 @@ export default function OrdersPage() {
                                     {order.items.slice(0, 3).map((item, index) => (
                                         <div key={index} className={styles.itemRow}>
                                             <div className={styles.itemImage}>
-                                                {item.product?.images?.[0] ? (
-                                                    <img src={item.product.images[0]} alt={item.product.name} />
+                                                {item.image ? (
+                                                    <img src={item.image} alt={item.name} />
                                                 ) : (
                                                     <div className={styles.placeholder}>📦</div>
                                                 )}
                                             </div>
                                             <div className={styles.itemDetails}>
-                                                <span className={styles.itemName}>{item.product?.name || 'Product'}</span>
+                                                <span className={styles.itemName}>{item.name || 'Product'}</span>
                                                 <span className={styles.itemQty}>Qty: {item.quantity}</span>
                                             </div>
                                             <span className={styles.itemPrice}>
-                                                {formatPrice(item.price * item.quantity, order.currency)}
+                                                {formatPrice(item.price * item.quantity, { code: order.currency, exchangeRate: order.exchangeRate })}
                                             </span>
                                         </div>
                                     ))}
@@ -157,7 +155,7 @@ export default function OrdersPage() {
                                 <div className={styles.orderFooter}>
                                     <div className={styles.orderTotal}>
                                         <span>Total</span>
-                                        <strong>{formatPrice(order.total, order.currency)}</strong>
+                                        <strong>{formatPrice(order.total, { code: order.currency, exchangeRate: order.exchangeRate })}</strong>
                                     </div>
                                     <div className={styles.orderActions}>
                                         <Link href={`/account/orders/${order._id}`} className={styles.detailsBtn}>

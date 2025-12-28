@@ -55,6 +55,7 @@ export interface OrderDetails {
     couponCode?: string;
     total: number;
     currency: string;
+    exchangeRate: number;
     customerNote?: string;
     createdAt: string;
     shippedAt?: string;
@@ -278,11 +279,11 @@ export default function OrderDetailsTemplate({ order, loading }: OrderDetailsTem
                                         </div>
                                         <div className={styles.itemMeta}>
                                             <span className={styles.price}>
-                                                {formatPrice(item.price, currency)}
+                                                {formatPrice(item.price, { code: order.currency, exchangeRate: order.exchangeRate })}
                                             </span>
                                             <span className={styles.quantity}>Qty: {item.quantity}</span>
                                             <span className={styles.totalPrice}>
-                                                {formatPrice(item.price * item.quantity, currency)}
+                                                {formatPrice(item.price * item.quantity, { code: order.currency, exchangeRate: order.exchangeRate })}
                                             </span>
                                         </div>
                                     </div>
@@ -304,7 +305,10 @@ export default function OrderDetailsTemplate({ order, loading }: OrderDetailsTem
                                 </address>
                                 {order.trackingNumber && (
                                     <div className={styles.trackingInfo}>
-                                        <strong>Tracking Number:</strong> {order.trackingNumber}
+                                        <h2>Tracking Information</h2>
+                                        <div><strong>Courier:</strong> {order.courierName}</div>
+                                        <div><strong>Tracking Number:</strong> {order.trackingNumber}</div>
+                                        <div><strong>Tracking URL:</strong> <a href={order.trackingUrl} target="_blank" rel="noopener noreferrer">{order.trackingUrl}</a></div>
                                     </div>
                                 )}
                             </div>
@@ -329,31 +333,31 @@ export default function OrderDetailsTemplate({ order, loading }: OrderDetailsTem
                             <div className={styles.summaryRows}>
                                 <div className={styles.row}>
                                     <span>Subtotal</span>
-                                    <span>{formatPrice(order.subtotal, currency)}</span>
+                                    <span>{formatPrice(order.subtotal, { code: order.currency, exchangeRate: order.exchangeRate })}</span>
                                 </div>
                                 <div className={styles.row}>
                                     <span>Shipping</span>
-                                    <span>{formatPrice(order.shippingCost, currency)}</span>
+                                    <span>{formatPrice(order.shippingCost, { code: order.currency, exchangeRate: order.exchangeRate })}</span>
                                 </div>
                                 <div className={styles.row}>
                                     <span>Tax</span>
-                                    <span>{formatPrice(order.tax, currency)}</span>
+                                    <span>{formatPrice(order.tax, { code: order.currency, exchangeRate: order.exchangeRate })}</span>
                                 </div>
                                 {order.taxBreakdown?.map((t, i) => (
                                     <div key={i} className={`${styles.row} ${styles.subTx}`}>
                                         <span>{t.name} ({t.rate}%)</span>
-                                        <span>{formatPrice(t.amount, currency)}</span>
+                                        <span>{formatPrice(t.amount, { code: order.currency, exchangeRate: order.exchangeRate })}</span>
                                     </div>
                                 ))}
                                 {order.discount > 0 && (
                                     <div className={`${styles.row} ${styles.discount}`}>
                                         <span>Discount {order.couponCode && `(${order.couponCode})`}</span>
-                                        <span>-{formatPrice(order.discount, currency)}</span>
+                                        <span>-{formatPrice(order.discount, { code: order.currency, exchangeRate: order.exchangeRate })}</span>
                                     </div>
                                 )}
                                 <div className={`${styles.row} ${styles.total}`}>
                                     <span>Total</span>
-                                    <span>{formatPrice(order.total, currency)}</span>
+                                    <span>{formatPrice(order.total, { code: order.currency, exchangeRate: order.exchangeRate })}</span>
                                 </div>
                             </div>
 

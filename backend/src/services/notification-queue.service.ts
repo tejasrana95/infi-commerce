@@ -8,6 +8,7 @@ export interface OrderNotificationData {
     customerPhone?: string;
     total: number;
     currency: string;
+    exchangeRate?: number;
     items: Array<{
         name: string;
         quantity: number;
@@ -47,6 +48,7 @@ export async function queueOrderConfirmation(
             orderNumber: data.orderNumber,
             total: data.total,
             currency: data.currency,
+            exchangeRate: data.exchangeRate,
             guestEmail: data.customerEmail,
             shippingAddress: {
                 ...data.shippingAddress,
@@ -89,6 +91,7 @@ export async function queueOrderStatusUpdate(
             orderNumber: data.orderNumber,
             total: data.total,
             currency: data.currency,
+            exchangeRate: data.exchangeRate,
             guestEmail: data.customerEmail,
             shippingAddress: data.shippingAddress
         };
@@ -124,6 +127,7 @@ export async function queueShippingNotification(
             orderNumber: data.orderNumber,
             total: data.total,
             currency: data.currency,
+            exchangeRate: data.exchangeRate,
             guestEmail: data.customerEmail,
             shippingAddress: data.shippingAddress,
             trackingNumber: data.trackingNumber,

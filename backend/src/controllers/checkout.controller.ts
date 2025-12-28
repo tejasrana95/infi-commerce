@@ -918,6 +918,7 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
                 customerPhone: shippingAddress.phone,
                 total: order.total,
                 currency: order.currency,
+                exchangeRate: order.exchangeRate,
                 items: orderItems.map(item => ({
                     name: item.name,
                     quantity: item.quantity,

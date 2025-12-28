@@ -5,13 +5,13 @@ import handlebars from 'handlebars';
 import { IOrder } from '../models/Order';
 // import { formatPrice } from '../utils/currency'; // Removed as unused and possibly missing
 
-// Helper to format currency if not available
-handlebars.registerHelper('formatPrice', (amount: number, currency: string) => {
-    return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: currency || 'INR',
-        minimumFractionDigits: 2
-    }).format(amount);
+import { formatPrice } from '../utils/currency';
+
+// Helper to format currency
+handlebars.registerHelper('formatPrice', (amount: number, currency: string, exchangeRate: number) => {
+    // If exchangeRate is an object (Handlebars options), default to 1
+    const rate = typeof exchangeRate === 'number' ? exchangeRate : 1;
+    return formatPrice(amount, { code: currency, exchangeRate: rate });
 });
 
 handlebars.registerHelper('formatDate', (date: Date) => {
@@ -38,7 +38,7 @@ export class PdfService {
         return template(data);
     }
 
-    private static readonly INVOICE_DIR = path.join(__dirname, '../../storage/invoices');
+    private static readonly INVOICE_DIR = path.join(process.env.UPLOAD_DIR || path.join(__dirname, '..', '..', 'uploads'), 'invoices');
 
     // Ensure directory exists
     private static async ensureDir() {

@@ -9,6 +9,7 @@ import { formatPrice } from '@/lib/currency';
 import * as checkoutService from '@/services/checkout.service';
 import type { Address, PaymentMethod, TaxBreakdown } from '@/services/checkout.service';
 import AddressForm from './components/AddressForm';
+import EmptyCheckout from './components/EmptyCheckout';
 import styles from './page.module.scss';
 
 interface OrderSummary {
@@ -32,6 +33,7 @@ export default function CheckoutPage() {
 
     // Cart validation
     const [cartValid, setCartValid] = useState(false);
+    const [showEmptyState, setShowEmptyState] = useState(false);
     const [cartItems, setCartItems] = useState<any[]>([]);
     const [storeConfig, setStoreConfig] = useState<any>(null);
 
@@ -91,8 +93,9 @@ export default function CheckoutPage() {
             const validation = await checkoutService.validateCheckout();
 
             if (!validation || !validation.valid) {
-                toast.error(validation?.issues?.join(', ') || 'Cart validation failed');
-                router.push('/cart');
+                // Instead of redirecting to cart page, show the beautiful empty state
+                setShowEmptyState(true);
+                setLoading(false);
                 return;
             }
 
@@ -127,7 +130,13 @@ export default function CheckoutPage() {
             setLoading(false);
         } catch (error: any) {
             console.error('Checkout initialization error:', error);
-            toast.error(error.response?.data?.message || 'Failed to initialize checkout');
+            const message = error.response?.data?.message || error.message;
+
+            if (message === 'Cart is empty') {
+                setShowEmptyState(true);
+            } else {
+                toast.error(message || 'Failed to initialize checkout');
+            }
             setLoading(false);
         }
     };
@@ -399,6 +408,10 @@ export default function CheckoutPage() {
                 <p>Loading checkout...</p>
             </div>
         );
+    }
+
+    if (showEmptyState) {
+        return <EmptyCheckout />;
     }
 
     if (!cartValid) {
