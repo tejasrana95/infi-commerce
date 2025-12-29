@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
+import { AdminNotificationProvider } from "@/contexts/AdminNotificationContext";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import MUIThemeProvider from "@/theme/MUIThemeProvider";
 
@@ -32,9 +33,11 @@ export default function RootLayout({
         <MUIThemeProvider>
           <NotificationProvider>
             <AuthProvider>
-              <CurrencyProvider>
-                {children}
-              </CurrencyProvider>
+              <AdminNotificationProvider>
+                <CurrencyProvider>
+                  {children}
+                </CurrencyProvider>
+              </AdminNotificationProvider>
             </AuthProvider>
           </NotificationProvider>
         </MUIThemeProvider>

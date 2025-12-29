@@ -461,13 +461,15 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
                                 </button>
                             )}
                             {currentStep < 4 ? (
-                                <button
-                                    className={styles.nextButton}
-                                    onClick={handleNextStep}
-                                    disabled={!canProceedToStep(currentStep + 1)}
-                                >
-                                    Continue
-                                </button>
+                                (currentStep !== 1 || shippingAddress) ? (
+                                    <button
+                                        className={styles.nextButton}
+                                        onClick={handleNextStep}
+                                        disabled={!canProceedToStep(currentStep + 1)}
+                                    >
+                                        Continue
+                                    </button>
+                                ) : null
                             ) : (
                                 <button
                                     className={styles.placeOrderButton}

@@ -35,12 +35,12 @@
     }
 
     @include desktop {
-        padding: 4rem 1rem;
+        padding: 4rem 0;
     }
 }
 
 .content {
-    max-width: 1200px;
+    max-width: 100%;
     margin: 0 auto;
 }
 

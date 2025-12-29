@@ -22,7 +22,7 @@ import {
     updateTrackingValidation,
     requestReturn,
     updateReturnStatus,
-    processRefund,
+    markOrderAsRefunded,
 } from '../controllers/order.controller';
 import { authenticate, authorize, optionalAuth } from '../middleware/auth';
 import { validate } from '../middleware/validation';
@@ -570,7 +570,7 @@ router.patch(
     '/:id/refund',
     authenticate,
     authorize('admin', 'store_admin', 'super_admin'),
-    processRefund
+    markOrderAsRefunded
 );
 
 export default router;

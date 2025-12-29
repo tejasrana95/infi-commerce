@@ -173,6 +173,7 @@ export default function OrderPaymentPage() {
                     setProcessing(true);
                     await apiClient.post(`/orders/${orderId}/payment-success`, {
                         paymentId: response.razorpay_payment_id,
+                        guestEmail: guestEmail || order?.guestEmail || undefined,
                         paymentDetails: {
                             razorpay_order_id: response.razorpay_order_id,
                             razorpay_payment_id: response.razorpay_payment_id,
@@ -227,7 +228,7 @@ export default function OrderPaymentPage() {
             setProcessing(true);
             await apiClient.post(`/orders/${orderId}/payment-success`, {
                 paymentId: paymentData?.paymentId,
-                guestEmail: guestEmail || undefined,
+                guestEmail: guestEmail || order?.guestEmail || undefined,
                 paymentDetails: {
                     gateway: 'stripe',
                 },

@@ -76,7 +76,7 @@ export interface IOrder extends Document {
     paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
     paymentId?: string;
     paymentDetails?: Record<string, any>;
-
+    refundedAt?: Date;
     // Order status
     status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'return_requested' | 'returned';
 
@@ -244,6 +244,7 @@ const OrderSchema = new Schema<IOrder>(
         deliveredAt: Date,
         customerNote: String,
         adminNote: String,
+        refundedAt: Date,
     },
     {
         timestamps: true,

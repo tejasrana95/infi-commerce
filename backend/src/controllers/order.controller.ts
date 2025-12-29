@@ -10,6 +10,7 @@ import { asyncHandler, AppError } from '../middleware/validation';
 import shippingCalculatorService from '../services/shipping-calculator.service';
 import { PdfService } from '../services/pdf.service';
 import { transactionalNotificationService } from '../services/transactional-notification.service';
+import { notificationService } from '../services/notification.service';
 
 /**
  * Validation rules
@@ -308,6 +309,19 @@ export const adminUpdateOrder = asyncHandler(async (req: AuthRequest, res: Respo
             );
         }
     }
+
+
+    // Notify Admin (General update)
+    await notificationService.createAdminNotification({
+        type: 'order',
+        title: 'Order Updated',
+        message: `Order #${order.orderNumber} details updated by admin`,
+        data: {
+            orderId: order._id.toString(),
+            orderNumber: order.orderNumber,
+            updatedBy: req.user?.id
+        }
+    });
 
     res.json({
         success: true,
@@ -682,7 +696,7 @@ export const initializePayment = asyncHandler(async (req: AuthRequest, res: Resp
             description: `Order ${order.orderNumber}`,
             prefill: {
                 name: `${order.shippingAddress.firstName} ${order.shippingAddress.lastName}`,
-                email: req.user!.email,
+                email: userId ? req.user!.email : order.guestEmail,
                 contact: order.shippingAddress.phone,
             },
         };
@@ -962,10 +976,85 @@ export const updateOrderStatus = asyncHandler(async (req: AuthRequest, res: Resp
         status
     );
 
+    // Notify Admin
+    await notificationService.createAdminNotification({
+        type: 'order',
+        title: 'Order Status Updated',
+        message: `Order #${order.orderNumber} status updated to ${status}`,
+        data: {
+            orderId: order._id.toString(),
+            orderNumber: order.orderNumber,
+            status: status
+        }
+    });
+
     res.json({
         success: true,
         message: 'Order status updated successfully',
         data: order,
+    });
+});
+
+/**
+ * @route   POST /api/orders/:id/refund
+ * @desc    Process order refund
+ * @access  Private (Admin/Store Admin)
+ */
+export const processRefund = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    const { adminNote } = req.body; // Assuming refund details might come from req.body
+
+    const order = await Order.findById(id).populate('storeId customerId');
+
+    if (!order) {
+        throw new AppError('Order not found', 404);
+    }
+
+    // Only allow refund for paid or processing orders
+    if (!['paid', 'processing', 'shipped', 'delivered'].includes(order.paymentStatus)) {
+        throw new AppError('Cannot refund an order that is not paid or processing', 400);
+    }
+
+    // Update order status and payment status
+    order.status = 'refunded';
+    order.paymentStatus = 'refunded';
+    order.refundedAt = new Date();
+    if (adminNote) order.adminNote = adminNote;
+
+    await order.save();
+
+    // Restore product stock (if not already done by cancellation)
+    // This logic might need to be more sophisticated depending on partial refunds, etc.
+    for (const item of order.items) {
+        await Product.findByIdAndUpdate(item.productId, {
+            $inc: { stock: item.quantity },
+        });
+    }
+
+    // Trigger notification for refunded
+    await transactionalNotificationService.sendOrderStatusUpdate(
+        order.storeId._id.toString(),
+        (order.storeId as any).name,
+        order,
+        'refunded'
+    );
+
+    // Notify Admin
+    await notificationService.createAdminNotification({
+        type: 'order',
+        title: 'Order Refunded',
+        message: `Order #${order.orderNumber} has been refunded`,
+        data: {
+            orderId: order._id.toString(),
+            orderNumber: order.orderNumber,
+            status: 'refunded'
+        }
+    });
+
+    res.json({
+        success: true,
+        message: 'Order marked as refunded',
+        data: order
     });
 });
 
@@ -1013,6 +1102,18 @@ export const cancelOrder = asyncHandler(async (req: AuthRequest, res: Response) 
         order,
         'cancelled'
     );
+
+    // Notify Admin
+    await notificationService.createAdminNotification({
+        type: 'order',
+        title: 'Order Cancelled',
+        message: `Order #${order.orderNumber} has been cancelled`,
+        data: {
+            orderId: order._id.toString(),
+            orderNumber: order.orderNumber,
+            status: 'cancelled'
+        }
+    });
 
     // Restore product stock
     for (const item of order.items) {
@@ -1297,6 +1398,18 @@ export const updateTracking = asyncHandler(async (req: AuthRequest, res: Respons
         );
     }
 
+    // Notify Admin
+    await notificationService.createAdminNotification({
+        type: 'order',
+        title: 'Order Tracking Updated',
+        message: `Tracking info updated for Order #${order.orderNumber}`,
+        data: {
+            orderId: order._id.toString(),
+            orderNumber: order.orderNumber,
+            trackingNumber: trackingNumber
+        }
+    });
+
     res.json({
         success: true,
         message: 'Tracking information updated',
@@ -1339,10 +1452,22 @@ export const requestReturn = asyncHandler(async (req: AuthRequest, res: Response
 
     await order.save();
 
+    // Notify Admin
+    await notificationService.createAdminNotification({
+        type: 'return',
+        title: 'Return Requested',
+        message: `Return requested for Order #${order.orderNumber}`,
+        data: {
+            orderId: order._id.toString(),
+            orderNumber: order.orderNumber,
+            reason: reason
+        }
+    });
+
     res.json({
         success: true,
         message: 'Return requested successfully',
-        data: order
+        data: order,
     });
 });
 
@@ -1387,7 +1512,7 @@ export const updateReturnStatus = asyncHandler(async (req: AuthRequest, res: Res
  * @desc    Mark order as refunded
  * @access  Private (Admin only)
  */
-export const processRefund = asyncHandler(async (req: AuthRequest, res: Response) => {
+export const markOrderAsRefunded = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
 
     const order = await Order.findById(id).populate('storeId customerId');
@@ -1412,6 +1537,18 @@ export const processRefund = asyncHandler(async (req: AuthRequest, res: Response
         order,
         'refunded'
     );
+
+    // Notify Admin
+    await notificationService.createAdminNotification({
+        type: 'order',
+        title: 'Order Refunded',
+        message: `Order #${order.orderNumber} has been refunded`,
+        data: {
+            orderId: order._id.toString(),
+            orderNumber: order.orderNumber,
+            status: 'refunded'
+        }
+    });
 
     res.json({
         success: true,

@@ -214,23 +214,29 @@ export default function OrderDetailPage() {
                     )}
 
                     {/* Refund Workflow */}
-                    {['cancelled', 'returned'].includes(order.status) && order.paymentStatus !== 'refunded' && (
-                        <>
-                            <Divider />
-                            <MenuItem onClick={handleProcessRefund} sx={{ color: 'warning.main' }}>
+                    {['cancelled', 'returned'].includes(order.status) &&
+                        order.paymentStatus !== 'refunded' && [
+                            <Divider key="refund-divider" />,
+                            <MenuItem
+                                key="refund"
+                                onClick={handleProcessRefund}
+                                sx={{ color: 'warning.main' }}
+                            >
                                 Process Refund
-                            </MenuItem>
-                        </>
-                    )}
+                            </MenuItem>,
+                        ]}
 
-                    {!['cancelled', 'returned', 'refunded'].includes(order.status) && (
-                        <>
-                            <Divider />
-                            <MenuItem onClick={() => setCancelDialogOpen(true)} sx={{ color: 'error.main' }}>
-                                Cancel Order
-                            </MenuItem>
-                        </>
-                    )}
+                    {/* Cancel Order */}
+                    {!['cancelled', 'returned', 'refunded'].includes(order.status) && [
+                        <Divider key="cancel-divider" />,
+                        <MenuItem
+                            key="cancel"
+                            onClick={() => setCancelDialogOpen(true)}
+                            sx={{ color: 'error.main' }}
+                        >
+                            Cancel Order
+                        </MenuItem>,
+                    ]}
                 </Menu>
             </Box>
 

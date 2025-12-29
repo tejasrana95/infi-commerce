@@ -18,6 +18,11 @@ import {
     processQueueValidation,
     createTemplateValidation,
     updateTemplateValidation,
+    getAdminNotifications,
+    markAsRead,
+    markAllAsRead,
+    createAdminNotification,
+    createAdminNotificationValidation,
 } from '../controllers/notification.controller';
 import { authenticate, authorize } from '../middleware/auth';
 import { validate } from '../middleware/validation';
@@ -26,6 +31,22 @@ const router = Router();
 
 // All routes require authentication
 router.use(authenticate);
+
+// ============================================
+// Admin Notification Routes
+// ============================================
+
+// Get admin notifications
+router.get('/admin', authorize('admin', 'store_admin', 'super_admin'), getAdminNotifications);
+
+// Create admin notification (manual)
+router.post('/admin', authorize('admin', 'store_admin', 'super_admin'), validate(createAdminNotificationValidation), createAdminNotification);
+
+// Mark as read
+router.put('/admin/:id/read', authorize('admin', 'store_admin', 'super_admin'), markAsRead);
+
+// Mark all as read
+router.put('/admin/read-all', authorize('admin', 'store_admin', 'super_admin'), markAllAsRead);
 
 // ============================================
 // Notification Queue Routes

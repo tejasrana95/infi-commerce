@@ -9,6 +9,7 @@ import { config } from '../config';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import { transactionalNotificationService } from '../services/transactional-notification.service';
+import { notificationService } from '../services/notification.service';
 
 // Validation rules
 export const customerRegisterValidation = [
@@ -128,6 +129,17 @@ export const registerCustomer = asyncHandler(async (req: AuthRequest, res: Respo
         verificationToken,
         customer.phone
     );
+
+    // Notify Admin
+    await notificationService.createAdminNotification({
+        type: 'customer',
+        title: 'New Customer',
+        message: `New customer registered: ${firstName} ${lastName}`,
+        data: {
+            customerId: customer._id.toString(),
+            email: customer.email
+        }
+    });
 
     // Don't return access token - customer must verify email first
     res.status(201).json({

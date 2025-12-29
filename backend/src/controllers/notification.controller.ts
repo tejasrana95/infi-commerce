@@ -494,3 +494,58 @@ export const updateTemplateValidation = [
     body('name').optional().notEmpty().withMessage('Name cannot be empty'),
     body('textContent').optional().notEmpty().withMessage('Text content cannot be empty'),
 ];
+
+// ============================================
+// Admin Notification Controller
+// ============================================
+
+/**
+ * Get admin notifications
+ */
+export const getAdminNotifications = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { page = 1, limit = 20, unreadOnly, recipient } = req.query;
+
+    const result = await notificationService.getAdminNotifications({
+        page: Number(page),
+        limit: Number(limit),
+        unreadOnly: unreadOnly === 'true',
+        recipient: recipient as string,
+    });
+
+    res.json({
+        success: true,
+        ...result,
+    });
+});
+
+/**
+ * Mark notification as read
+ */
+export const markAsRead = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const success = await notificationService.markAsRead(req.params.id);
+    res.json({ success });
+});
+
+/**
+ * Mark all notifications as read
+ */
+export const markAllAsRead = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { recipient } = req.body; // Optional: mark only for specific recipient
+    const success = await notificationService.markAllAsRead(recipient);
+    res.json({ success });
+});
+
+/**
+ * Create admin notification (Manual/Test)
+ */
+export const createAdminNotification = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const notification = await notificationService.createAdminNotification(req.body);
+    res.status(201).json({ success: true, notification });
+});
+
+export const createAdminNotificationValidation = [
+    body('type').notEmpty().withMessage('Type is required'),
+    body('title').notEmpty().withMessage('Title is required'),
+    body('message').notEmpty().withMessage('Message is required'),
+    body('recipient').optional().isMongoId().withMessage('Invalid recipient ID'),
+];

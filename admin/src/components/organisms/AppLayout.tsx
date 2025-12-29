@@ -24,6 +24,7 @@ import {
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
+import NotificationMenu from './NotificationMenu';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import CategoryIcon from '@mui/icons-material/Category';
 import StyleIcon from '@mui/icons-material/Style';
@@ -441,7 +442,7 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
             />
           </Box>
           <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.6875rem' }}>
-            © 2025 Infi Commerce
+            © 2026 Infi Commerce
           </Typography>
         </Box>
       </Box>
@@ -480,16 +481,8 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
           {/* Header Actions */}
           <Box display="flex" alignItems="center" gap={1}>
             {/* Notifications */}
-            <IconButton size="small" sx={{ color: 'text.secondary' }}>
-              <Badge badgeContent={3} color="error">
-                <NotificationsOutlinedIcon fontSize="small" />
-              </Badge>
-            </IconButton>
+            <NotificationMenu />
 
-            {/* Settings */}
-            <IconButton size="small" sx={{ color: 'text.secondary', display: { xs: 'none', sm: 'flex' } }}>
-              <SettingsOutlinedIcon fontSize="small" />
-            </IconButton>
 
             <Divider orientation="vertical" flexItem sx={{ mx: 1, display: { xs: 'none', sm: 'block' } }} />
 

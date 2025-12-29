@@ -549,11 +549,11 @@ export default function CheckoutAddress({ config: propsConfig }: CheckoutAddress
                 />
             )}
 
-            {/* View 3: Selected Summary (if address selected and form hidden) */}
-            {isLoggedIn && shippingAddress && !showShippingForm && (
+            {/* View 3: Selected Summary (if address selected and form hidden, and we aren't showing the list) */}
+            {shippingAddress && !showShippingForm && (!isLoggedIn || savedAddresses.length === 0) && (
                 <SelectedAddressDisplay
                     address={shippingAddress}
-                    onChange={savedAddresses.length > 0 ? () => setShowShippingForm(true) : undefined}
+                    onChange={() => setShowShippingForm(true)}
                 />
             )}
 

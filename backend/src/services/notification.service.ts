@@ -791,6 +791,126 @@ class NotificationService {
 
         return result;
     }
+
+    // ============================================
+    // Admin Notification Methods
+    // ============================================
+
+    /**
+     * Create a notification for admin(s)
+     */
+    async createAdminNotification(params: {
+        type: string;
+        title: string;
+        message: string;
+        data?: Record<string, any>;
+        recipient?: string;
+    }): Promise<any> { // Using any temporarily to avoid circular dep issues on import if strict
+        const Notification = (await import('../models/Notification')).default;
+
+        const notification = await Notification.create({
+            type: params.type,
+            title: params.title,
+            message: params.message,
+            data: params.data,
+            recipient: params.recipient || null,
+            isRead: false
+        });
+
+        return notification;
+    }
+
+    /**
+     * Get admin notifications
+     */
+    async getAdminNotifications(params: {
+        page?: number;
+        limit?: number;
+        unreadOnly?: boolean;
+        recipient?: string;
+    }): Promise<{ notifications: any[], total: number, unreadCount: number }> {
+        const Notification = (await import('../models/Notification')).default;
+
+        const page = params.page || 1;
+        const limit = params.limit || 20;
+        const skip = (page - 1) * limit;
+
+        const query: any = {};
+
+        if (params.unreadOnly) {
+            query.isRead = false;
+        }
+
+        // If recipient provided, match recipient OR global (null)
+        // If no recipient provided (super admin viewing all?), might want to fit logic
+        // usually admin panel calls this with current user ID
+        if (params.recipient) {
+            query.$or = [
+                { recipient: params.recipient },
+                { recipient: null }
+            ];
+        }
+
+        const notifications = await Notification.find(query)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        const total = await Notification.countDocuments(query);
+
+        // Always get total unread count for badge
+        const unreadQuery = { ...query };
+        unreadQuery.isRead = false;
+        // If we were filtering by unreadOnly, query is same. if not, we need to ensure unread.
+        // But above 'query' might have $or for recipient.
+        // Let's reset unread query to be safe
+        const unreadMatch: any = { isRead: false };
+        if (params.recipient) {
+            unreadMatch.$or = [
+                { recipient: params.recipient },
+                { recipient: null }
+            ];
+        }
+        const unreadCount = await Notification.countDocuments(unreadMatch);
+
+        return { notifications, total, unreadCount };
+    }
+
+    /**
+     * Mark notification as read
+     */
+    async markAsRead(id: string): Promise<boolean> {
+        const Notification = (await import('../models/Notification')).default;
+
+        const result = await Notification.updateOne(
+            { _id: id },
+            { $set: { isRead: true } }
+        );
+
+        return result.modifiedCount > 0;
+    }
+
+    /**
+     * Mark all notifications as read for a recipient
+     */
+    async markAllAsRead(recipient: string): Promise<boolean> {
+        const Notification = (await import('../models/Notification')).default;
+
+        const query: any = {
+            isRead: false,
+            $or: [
+                { recipient: recipient },
+                { recipient: null }
+            ]
+        };
+
+        const result = await Notification.updateMany(
+            query,
+            { $set: { isRead: true } }
+        );
+
+        return result.modifiedCount > 0;
+    }
 }
 
 export const notificationService = new NotificationService();

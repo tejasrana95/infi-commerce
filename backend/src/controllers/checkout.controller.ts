@@ -11,6 +11,7 @@ import Coupon from '../models/Coupon';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import { queueOrderConfirmation } from '../services/notification-queue.service';
+import { notificationService } from '../services/notification.service';
 
 /**
  * Validation rules
@@ -908,6 +909,7 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
 
     // ===== STEP 10: QUEUE NOTIFICATIONS =====
     try {
+        // 1. Customer Notification (Email)
         await queueOrderConfirmation(
             {
                 storeId,
@@ -933,6 +935,17 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
                 },
             }
         );
+
+        // 2. Admin Notification (Dashboard)
+        await notificationService.createAdminNotification({
+            type: 'order',
+            title: 'New Order',
+            message: `New order ${order.orderNumber} placed by ${shippingAddress.firstName} ${shippingAddress.lastName}`,
+            data: {
+                orderId: order._id.toString(),
+                orderNumber: order.orderNumber
+            }
+        });
     } catch (notificationError) {
         // Log error but don't fail the order
         console.error('Failed to queue notifications:', notificationError);

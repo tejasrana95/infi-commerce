@@ -25,6 +25,7 @@ interface Order {
 export default function AccountPage() {
     const { customer, defaultShippingAddress } = useCustomer();
     const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+    const [totalOrders, setTotalOrders] = useState<number>(0);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -32,6 +33,7 @@ export default function AccountPage() {
             try {
                 const response = await api.get('orders/user/me?limit=3');
                 setRecentOrders(response.orders || []);
+                setTotalOrders(response.pagination.total || 0);
             } catch (error) {
                 console.error('Failed to fetch orders:', error);
             } finally {
@@ -85,7 +87,7 @@ export default function AccountPage() {
                         </svg>
                     </div>
                     <div className={styles.statContent}>
-                        <span className={styles.statValue}>{recentOrders.length}</span>
+                        <span className={styles.statValue}>{totalOrders}</span>
                         <span className={styles.statLabel}>Total Orders</span>
                     </div>
                 </div>
