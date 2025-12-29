@@ -17,7 +17,7 @@ import { formatPrice } from '@/lib/currency';
 
 interface ProductCardContainerProps {
     product: Product;
-    currency?: import('@/types').Currency | string;
+    currency: import('@/types').Currency | string;
     templateId?: string;
     cardConfig?: Partial<ProductCardConfig>;
 }
@@ -78,7 +78,7 @@ function processProductData(product: Product, currency: import('@/types').Curren
             inStock: product.inStock ?? true,
             stockStatus: product.stockStatus,
             productUrl: `/product/${product.slug}`,
-            currency: typeof currency === 'string' ? currency : currency.code,
+            currency: typeof currency === 'string' ? currency : currency.code || 'USD',
         };
     }
 
@@ -123,7 +123,7 @@ function processProductData(product: Product, currency: import('@/types').Curren
         inStock: product.inStock ?? true,
         stockStatus: product.stockStatus,
         productUrl: `/product/${product.slug}`,
-        currency: typeof currency === 'string' ? currency : currency.code,
+        currency: typeof currency === 'string' ? currency : currency.code || 'USD',
     };
 }
 
