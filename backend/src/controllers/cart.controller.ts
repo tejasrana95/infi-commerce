@@ -350,10 +350,12 @@ export const updateCartItem = asyncHandler(async (req: AuthRequest, res: Respons
     }
 
     let availableStock = product.stock;
+    let itemPrice = product.salePrice || product.price;
     if (item.variantId && product.type === 'variable') {
         const variant = product.variants?.find((v: any) => v._id.toString() === item.variantId);
         if (variant) {
             availableStock = variant.stock;
+            itemPrice = variant.salePrice || variant.price;
         }
     }
 
@@ -361,8 +363,9 @@ export const updateCartItem = asyncHandler(async (req: AuthRequest, res: Respons
         throw new AppError(`Only ${availableStock} items available in stock`, 400);
     }
 
-    // Update quantity
+    // Update quantity and price
     item.quantity = quantity;
+    item.price = itemPrice;
     await cart.save();
 
     // Populate and format cart

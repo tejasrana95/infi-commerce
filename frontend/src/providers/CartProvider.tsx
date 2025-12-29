@@ -93,8 +93,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             setCart(response.cart || null);
         } catch (error: any) {
             console.error('Failed to fetch cart:', error);
-            // If cart doesn't exist, that's okay - it will be created on first add
-            if (error.status !== 404) {
+            // If cart doesn't exist (404), clear local state
+            // This is important after order creation when backend deletes the cart
+            if (error.status === 404 || error.message === 'Cart not found') {
                 setCart(null);
             }
         } finally {
@@ -205,7 +206,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
             return { success: false, error: 'Failed to clear cart' };
         } catch (error: any) {
-            console.error('Failed to clear cart:', error);
+            // If cart is already gone (404), that's fine, we should still clear local state
+            if (error.status === 404 || error.message === 'Cart not found') {
+                setCart(null);
+                return { success: true };
+            }
             return {
                 success: false,
                 error: error.message || 'Failed to clear cart'

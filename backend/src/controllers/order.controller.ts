@@ -5,12 +5,14 @@ import Order from '../models/Order';
 import Cart from '../models/Cart';
 import Product from '../models/Product';
 import Coupon from '../models/Coupon';
+import ProductOption from '../models/ProductOption';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import shippingCalculatorService from '../services/shipping-calculator.service';
 import { PdfService } from '../services/pdf.service';
 import { transactionalNotificationService } from '../services/transactional-notification.service';
 import { notificationService } from '../services/notification.service';
+import InventoryService from '../services/inventory.service';
 
 /**
  * Validation rules
@@ -97,6 +99,17 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
     const orderItems = [];
     let subtotal = 0;
 
+    // Get attribute names and value labels
+    const allOptions = await ProductOption.find({ storeId });
+    const optionMap: Record<string, { name: string, values: Record<string, string> }> = {};
+    allOptions.forEach(opt => {
+        const valueLabels: Record<string, string> = {};
+        opt.values.forEach(v => {
+            valueLabels[v.value] = v.label;
+        });
+        optionMap[opt._id.toString()] = { name: opt.name, values: valueLabels };
+    });
+
     for (const item of items) {
         const product = await Product.findById(item.productId);
         if (!product) {
@@ -107,13 +120,24 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
         let price = product.salePrice || product.price;
         let sku = product.sku;
         let variantAttributes: Record<string, string> = {};
+        let itemImage = product.images?.[0] || '';
 
         if (item.variantId && product.variants) {
             const variant = product.variants.find((v: any) => v._id?.toString() === item.variantId);
             if (variant) {
                 price = variant.salePrice || variant.price || price;
                 sku = variant.sku || sku;
-                variantAttributes = variant.attributes || {};
+                if (variant.attributes) {
+                    Object.entries(variant.attributes).forEach(([key, value]) => {
+                        const option = optionMap[key];
+                        const name = option ? option.name : key;
+                        const label = option ? (option.values[value as string] || value) : value;
+                        variantAttributes[name] = label as string;
+                    });
+                }
+                if (variant.images && variant.images.length > 0) {
+                    itemImage = variant.images[0];
+                }
             }
         }
 
@@ -127,7 +151,7 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
             sku,
             price,
             quantity: item.quantity,
-            image: product.images?.[0] || '',
+            image: itemImage,
             attributes: variantAttributes,
             weight: product.weight || 0,
         });
@@ -162,13 +186,7 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
 
     // Reduce stock if payment is marked as paid
     if (paymentStatus === 'paid') {
-        for (const item of orderItems) {
-            const product = await Product.findById(item.productId);
-            if (product && product.manageStock) {
-                product.stock = Math.max(0, product.stock - item.quantity);
-                await product.save();
-            }
-        }
+        await InventoryService.reduceStock(orderItems);
     }
 
     res.status(201).json({
@@ -230,6 +248,17 @@ export const adminUpdateOrder = asyncHandler(async (req: AuthRequest, res: Respo
         const orderItems = [];
         let subtotal = 0;
 
+        // Get attribute names and value labels
+        const allOptions = await ProductOption.find({ storeId: order.storeId._id });
+        const optionMap: Record<string, { name: string, values: Record<string, string> }> = {};
+        allOptions.forEach(opt => {
+            const valueLabels: Record<string, string> = {};
+            opt.values.forEach(v => {
+                valueLabels[v.value] = v.label;
+            });
+            optionMap[opt._id.toString()] = { name: opt.name, values: valueLabels };
+        });
+
         for (const item of items) {
             const product = await Product.findById(item.productId);
             if (!product) continue;
@@ -237,14 +266,25 @@ export const adminUpdateOrder = asyncHandler(async (req: AuthRequest, res: Respo
             let price = product.salePrice || product.price;
             let sku = product.sku;
             let name = product.name;
-            let attributes = {};
+            let attributes: Record<string, string> = {};
+            let itemImage = product.images?.[0];
 
             if (item.variantId && product.variants) {
                 const variant = product.variants.find((v: any) => v._id.toString() === item.variantId);
                 if (variant) {
                     price = variant.salePrice || variant.price || price;
                     sku = variant.sku || sku;
-                    attributes = variant.attributes || {};
+                    if (variant.attributes) {
+                        Object.entries(variant.attributes).forEach(([key, value]) => {
+                            const option = optionMap[key];
+                            const name = option ? option.name : key;
+                            const label = option ? (option.values[value as string] || value) : value;
+                            attributes[name] = label as string;
+                        });
+                    }
+                    if (variant.images && variant.images.length > 0) {
+                        itemImage = variant.images[0];
+                    }
                 }
             }
 
@@ -259,7 +299,7 @@ export const adminUpdateOrder = asyncHandler(async (req: AuthRequest, res: Respo
                 price,
                 quantity: item.quantity,
                 attributes,
-                image: product.images?.[0],
+                image: itemImage,
             });
         }
 
@@ -284,6 +324,11 @@ export const adminUpdateOrder = asyncHandler(async (req: AuthRequest, res: Respo
     if (trackingNumber !== undefined) order.trackingNumber = trackingNumber;
     if (courierName !== undefined) order.courierName = courierName;
     if (trackingUrl !== undefined) order.trackingUrl = trackingUrl;
+
+    // Handle stock if payment status changed to paid
+    if (paymentStatus === 'paid' && order.paymentStatus !== 'paid') {
+        await InventoryService.reduceStock(order.items);
+    }
 
     // Recalculate total
     order.total = order.subtotal + order.shippingCost + order.tax - order.discount;
@@ -400,6 +445,17 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
     }
 
     // Validate product availability and stock
+    // Get attribute names and value labels
+    const allOptions = await ProductOption.find({ storeId });
+    const optionMap: Record<string, { name: string, values: Record<string, string> }> = {};
+    allOptions.forEach(opt => {
+        const valueLabels: Record<string, string> = {};
+        opt.values.forEach(v => {
+            valueLabels[v.value] = v.label;
+        });
+        optionMap[opt._id.toString()] = { name: opt.name, values: valueLabels };
+    });
+
     for (const item of cart.items) {
         const product = await Product.findById(item.productId);
 
@@ -502,22 +558,48 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
     }
 
     // Create order
-    const order = await Order.create({
-        storeId,
-        customerId: userId ? new mongoose.Types.ObjectId(userId) : undefined,
-        guestEmail: !userId ? guestEmail.toLowerCase() : undefined,
-        orderNumber,
-        items: cart.items.map((item) => ({
+    const orderItems = cart.items.map((item) => {
+        const product = item.productId as any;
+        let itemImage = item.image;
+
+        if (item.variantId && product.variants) {
+            const variant = product.variants.find((v: any) => v._id?.toString() === item.variantId);
+            if (variant) {
+                if (variant.images && variant.images.length > 0) {
+                    itemImage = variant.images[0];
+                }
+                if (variant.attributes) {
+                    const resolvedAttributes: Record<string, string> = {};
+                    Object.entries(variant.attributes).forEach(([key, value]) => {
+                        const option = optionMap[key];
+                        const name = option ? option.name : key;
+                        const label = option ? (option.values[value as string] || value) : value;
+                        resolvedAttributes[name] = label as string;
+                    });
+                    item.attributes = resolvedAttributes;
+                }
+            }
+        }
+
+        return {
             productId: item.productId,
             variantId: item.variantId,
             name: item.name,
             sku: item.sku,
             price: item.price,
             quantity: item.quantity,
-            image: item.image,
+            image: itemImage,
             attributes: item.attributes,
-            weight: (item.productId as any).weight,
-        })),
+            weight: product.weight,
+        };
+    });
+
+    const order = await Order.create({
+        storeId,
+        customerId: userId ? new mongoose.Types.ObjectId(userId) : undefined,
+        guestEmail: !userId ? guestEmail.toLowerCase() : undefined,
+        orderNumber,
+        items: orderItems,
         subtotal,
         shippingCost,
         tax,
@@ -1025,11 +1107,7 @@ export const processRefund = asyncHandler(async (req: AuthRequest, res: Response
 
     // Restore product stock (if not already done by cancellation)
     // This logic might need to be more sophisticated depending on partial refunds, etc.
-    for (const item of order.items) {
-        await Product.findByIdAndUpdate(item.productId, {
-            $inc: { stock: item.quantity },
-        });
-    }
+    await InventoryService.restoreStock(order.items);
 
     // Trigger notification for refunded
     await transactionalNotificationService.sendOrderStatusUpdate(
@@ -1116,11 +1194,7 @@ export const cancelOrder = asyncHandler(async (req: AuthRequest, res: Response) 
     });
 
     // Restore product stock
-    for (const item of order.items) {
-        await Product.findByIdAndUpdate(item.productId, {
-            $inc: { stock: item.quantity },
-        });
-    }
+    await InventoryService.restoreStock(order.items);
 
     // TODO: Process refund if payment was made
 
@@ -1171,13 +1245,7 @@ export const handlePaymentSuccess = asyncHandler(async (req: AuthRequest, res: R
     await order.save();
 
     // Reduce product stock
-    for (const item of order.items) {
-        const product = await Product.findById(item.productId);
-        if (product && product.manageStock) {
-            product.stock = Math.max(0, product.stock - item.quantity);
-            await product.save();
-        }
-    }
+    await InventoryService.reduceStock(order.items);
 
     // Increment coupon usage if coupon was used
     if (order.couponId) {

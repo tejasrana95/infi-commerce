@@ -147,6 +147,20 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
         }
     }, [authLoading, initializeCheckout]);
 
+    // Handle multi-tab sync (refresh when tab is focused)
+    useEffect(() => {
+        const handleFocus = () => {
+            if (!authLoading) {
+                initializeCheckout();
+            }
+        };
+
+        window.addEventListener('focus', handleFocus);
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+        };
+    }, [authLoading, initializeCheckout]);
+
     // Load shipping when address changes
     useEffect(() => {
         const loadShipping = async () => {

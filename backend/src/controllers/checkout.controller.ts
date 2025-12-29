@@ -7,11 +7,13 @@ import Store from '../models/Store';
 import ShippingRule from '../models/ShippingRule';
 import TaxRate from '../models/TaxRate';
 import Coupon from '../models/Coupon';
+import ProductOption from '../models/ProductOption';
 
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import { queueOrderConfirmation } from '../services/notification-queue.service';
 import { notificationService } from '../services/notification.service';
+import InventoryService from '../services/inventory.service';
 
 /**
  * Validation rules
@@ -104,6 +106,11 @@ export const validateCheckout = asyncHandler(async (req: AuthRequest, res: Respo
 
         // Handle variant pricing
         if (item.variantId && product.variants && product.variants.length > 0) {
+            const variant = product.variants.find((v: any) => v._id.toString() === item.variantId);
+            if (variant) {
+                if (variant.salePrice) itemPrice = variant.salePrice;
+                else if (variant.price) itemPrice = variant.price;
+            }
         }
 
 
@@ -672,6 +679,17 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
     let subtotal = 0;
     const orderItems: any[] = [];
 
+    // Get all attributes for this store to resolve IDs to names and values to labels
+    const allOptions = await ProductOption.find({ storeId });
+    const optionMap: Record<string, { name: string, values: Record<string, string> }> = {};
+    allOptions.forEach(opt => {
+        const valueLabels: Record<string, string> = {};
+        opt.values.forEach(v => {
+            valueLabels[v.value] = v.label;
+        });
+        optionMap[opt._id.toString()] = { name: opt.name, values: valueLabels };
+    });
+
     for (const item of cart.items) {
         const product = await Product.findById(item.productId);
 
@@ -696,6 +714,7 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
         let itemSku = product.sku;
         let itemAttributes: Record<string, string> = {};
         let itemWeight = product.weight || 0;
+        let itemImage = product.images?.[0] || item.image;
 
         // Handle variant pricing
         if (item.variantId && product.variants && product.variants.length > 0) {
@@ -704,8 +723,19 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
                 if (variant.salePrice) itemPrice = variant.salePrice;
                 else if (variant.price) itemPrice = variant.price;
                 if (variant.sku) itemSku = variant.sku;
-                if (variant.attributes) itemAttributes = variant.attributes;
+                if (variant.attributes) {
+                    // Resolve attribute IDs to names and values to labels
+                    Object.entries(variant.attributes).forEach(([key, value]) => {
+                        const option = optionMap[key];
+                        const name = option ? option.name : key;
+                        const label = option ? (option.values[value as string] || value) : value;
+                        itemAttributes[name] = label;
+                    });
+                }
                 if (variant.weight) itemWeight = variant.weight;
+                if (variant.images && variant.images.length > 0) {
+                    itemImage = variant.images[0];
+                }
             }
         }
 
@@ -719,7 +749,7 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
             sku: itemSku,
             price: itemPrice,
             quantity: item.quantity,
-            image: product.images?.[0] || item.image,
+            image: itemImage,
             attributes: itemAttributes,
             weight: itemWeight,
         });
@@ -882,6 +912,11 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
         status: 'pending',
         customerNote,
     });
+
+    // ===== STEP 7.1: REDUCE STOCK FOR COD =====
+    if (paymentMethod === 'cod') {
+        await InventoryService.reduceStock(orderItems);
+    }
 
     // ===== STEP 8: SAVE ADDRESS (if requested) =====
     if (userId && saveAddress) {

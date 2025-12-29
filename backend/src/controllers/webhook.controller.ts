@@ -4,6 +4,7 @@ import Product from '../models/Product';
 import Coupon from '../models/Coupon';
 import { asyncHandler, AppError } from '../middleware/validation';
 import { PaymentService } from '../services/payment/payment.service';
+import InventoryService from '../services/inventory.service';
 
 /**
  * @route   POST /api/webhooks/razorpay
@@ -180,13 +181,7 @@ async function processSuccessfulPayment(order: any, paymentId: string, paymentDa
     await order.save();
 
     // Reduce product stock
-    for (const item of order.items) {
-        const product = await Product.findById(item.productId);
-        if (product && product.manageStock) {
-            product.stock = Math.max(0, product.stock - item.quantity);
-            await product.save();
-        }
-    }
+    await InventoryService.reduceStock(order.items);
 
     // Increment coupon usage if coupon was used
     const couponId = order.paymentDetails?.couponId;

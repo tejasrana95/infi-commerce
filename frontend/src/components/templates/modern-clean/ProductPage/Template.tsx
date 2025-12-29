@@ -18,6 +18,7 @@ import { ProductVariantSelector } from '@/components/molecules/ProductVariantSel
 import { ProductSocialShare } from '@/components/molecules/ProductSocialShare';
 import { ProductTabs } from '@/components/molecules/ProductTabs';
 import { ProductVideoGallery } from '@/components/molecules/ProductVideoGallery';
+import ShippingCalculator from '@/components/organisms/ShippingCalculator';
 
 import styles from './ProductPage.module.scss';
 import { formatPrice } from '@/lib/currency';
@@ -63,6 +64,10 @@ export default function ModernCleanProductPageTemplate({
     cardConfig,
     layout,
     isLoggedIn,
+
+    shippingEstimate,
+    userDefaultCountry,
+    onCalculateShipping,
 }: ProductPageTemplateProps) {
     // Get ProductCard component
     const ProductCard = getComponent('ProductCard', templateId);
@@ -83,9 +88,6 @@ export default function ModernCleanProductPageTemplate({
     // Main image state
     const [mainImageIndex, setMainImageIndex] = useState(0);
 
-    // Shipping Calculator State
-    const [shippingZip, setShippingZip] = useState('');
-    const [shippingCountry, setShippingCountry] = useState('US');
 
     // Get current variant for display (either fully selected or partial match for preview)
     const displayVariant = selectedVariant || matchingVariant;
@@ -435,6 +437,17 @@ export default function ModernCleanProductPageTemplate({
                 <ProductSocialShare
                     productName={product.name}
                     productImage={product.images[0]}
+                />
+            )}
+
+            {config.shipping?.showCalculator && (
+                <ShippingCalculator
+                    productId={product._id}
+                    variantId={selectedVariant?._id}
+                    quantity={quantity}
+                    userDefaultCountry={userDefaultCountry}
+                    onCalculate={onCalculateShipping}
+                    estimate={shippingEstimate}
                 />
             )}
 

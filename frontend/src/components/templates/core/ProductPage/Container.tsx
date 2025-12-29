@@ -9,6 +9,7 @@ import { useWishlist } from '@/providers/WishlistProvider';
 import { useCompare, CompareItem } from '@/providers/CompareProvider';
 import { useCart } from '@/providers/CartProvider';
 import { useToast } from '@/providers/ToastProvider';
+import { useCustomer } from '@/providers/AuthProvider';
 import api from '@/lib/api';
 import {
     Product,
@@ -44,6 +45,7 @@ export default function ProductPageContainer({
     const { addToCompare, isInCompare, removeFromCompare, canAddToCompare, config: compareConfig } = useCompare();
     const { addToCart: addToCartAPI } = useCart();
     const { success, error: toastError, warning } = useToast();
+    const { customer, defaultShippingAddress } = useCustomer();
 
     // Currency
     const currencySymbol = currentCurrency?.symbol || '$';
@@ -525,26 +527,44 @@ export default function ProductPageContainer({
         loading: boolean;
         error?: string;
         cost?: number;
-        formattedCost?: string;
-        days?: string;
+        description?: string;
+        name?: string;
     }>({ loading: false });
 
     const handleCalculateShipping = useCallback(async (zip: string, country: string) => {
         setShippingEstimate({ loading: true });
         try {
-            // Mock API call
-            await new Promise(resolve => setTimeout(resolve, 800));
-            const cost = 15; // Mock cost
-            setShippingEstimate({
-                loading: false,
-                cost,
-                formattedCost: formatPrice(cost, { symbol: currencySymbol, exchangeRate } as any),
-                days: '3-5 business days'
+            const response = await api.post('shipping/calculate-smart', {
+                storeId: store?._id,
+                country,
+                zip,
+                items: [{
+                    productId: product._id,
+                    variantId: selectedVariant?._id,
+                    quantity
+                }],
+                currency: typeof currency === 'string' ? currency : currency.code
             });
-        } catch (e) {
-            setShippingEstimate({ loading: false, error: 'Failed to calculate shipping' });
+
+            if (response.success) {
+                setShippingEstimate({
+                    loading: false,
+                    cost: response.shippingCost,
+                    description: response.description,
+                    name: response.name
+                });
+            } else {
+                setShippingEstimate({
+                    loading: false,
+                    error: response.message || 'No shipping options available for this location'
+                });
+            }
+        } catch (e: any) {
+            setShippingEstimate({ loading: false, error: e.message || 'Failed to calculate shipping' });
         }
-    }, [currencySymbol, exchangeRate]);
+    }, [store?._id, product._id, selectedVariant?._id, quantity, currency]);
+
+    const userDefaultCountry = defaultShippingAddress?.country;
 
     // ============================================
     // Render Template
@@ -614,6 +634,7 @@ export default function ProductPageContainer({
         isLoggedIn,
         userId,
         shippingEstimate,
+        userDefaultCountry,
         onCalculateShipping: handleCalculateShipping,
     };
 

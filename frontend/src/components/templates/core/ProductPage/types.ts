@@ -330,7 +330,9 @@ export interface ProductPageTemplateProps {
         cost?: number;
         formattedCost?: string;
         days?: string;
+        name?: string;
     };
+    userDefaultCountry?: string;
     onCalculateShipping?: (zip: string, country: string) => Promise<void>;
 }
 
