@@ -7,6 +7,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
 import { useToast } from '@/providers/ToastProvider';
+import { useCart } from '@/providers/CartProvider';
 import { useCurrency } from '@/hooks/useCurrency';
 import * as checkoutService from '@/services/checkout.service';
 import type { Address, PaymentMethod, TaxBreakdown } from '@/services/checkout.service';
@@ -49,6 +50,7 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
     const router = useRouter();
     const { customer, isLoading: authLoading } = useAuth();
     const toast = useToast();
+    const { clearCart } = useCart();
     const currency = useCurrency();
 
     // Step management
@@ -348,6 +350,10 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
                 saveAddress: customer ? saveAddress : false,
             };
             const result = await checkoutService.createOrder(orderData);
+
+            // Clear cart after successful order creation
+            await clearCart();
+
             toast.success('Order placed successfully!');
             const redirectParams = new URLSearchParams();
             if (!customer && guestEmail) {
@@ -365,7 +371,7 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
         } finally {
             setSubmitting(false);
         }
-    }, [shippingAddress, billingAddress, sameAsShipping, selectedPayment, customer, guestEmail, currency, customerNote, saveAddress, router, toast]);
+    }, [shippingAddress, billingAddress, sameAsShipping, selectedPayment, customer, guestEmail, currency, customerNote, saveAddress, router, toast, clearCart]);
 
     // Empty state
     if (showEmptyState) {
