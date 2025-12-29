@@ -189,11 +189,25 @@ export default function OrderConfirmationPage() {
                                 <path className={styles.checkmarkCheck} fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
                             </svg>
                         </div>
-                        <h1>Order Confirmed!</h1>
+                        <h1>Order {order.paymentStatus === 'paid' ? 'Confirmed!' : order.paymentStatus === 'failed' ? 'Failed!' : 'Pending!'}</h1>
                         <p className={styles.orderNumber}>Order #{order.orderNumber}</p>
                         <p className={styles.thankYou}>
-                            Thank you for your order. We've sent a confirmation email to{' '}
-                            <strong>{order.guestEmail || 'your email'}</strong>
+                            {order.paymentStatus === 'paid' && (
+                                <>
+                                    Thank you for your order. We've sent a confirmation email to{' '}
+                                    <strong>{order.guestEmail || 'your email'}</strong>
+                                </>
+                            )}
+                            {order.paymentStatus === 'pending' && (
+                                <>
+                                    Thank you for your order. We are processing your payment.
+                                </>
+                            )}
+                            {order.paymentStatus === 'failed' && (
+                                <>
+                                    Payment failed. Please try again.
+                                </>
+                            )}
                         </p>
                     </div>
                 )}

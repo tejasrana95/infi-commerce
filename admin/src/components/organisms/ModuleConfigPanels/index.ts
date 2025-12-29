@@ -44,4 +44,7 @@ export * from './BlogConfigPanels';
 export * from './PageContentConfigPanel';
 export * from './PageHeroConfigPanel';
 
+// Checkout Config Panel
+export { default as CheckoutContentConfigPanel, defaultCheckoutContentConfig } from './CheckoutConfigPanels';
+export type { CheckoutContentConfig } from './CheckoutConfigPanels';
 

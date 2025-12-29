@@ -25,6 +25,7 @@ import StripBannerModule from './standard/StripBanner';
 import CardGroupModule from './standard/CardGroup';
 import PageContentModule from './standard/PageContent';
 import PageHeroModule from './standard/PageHero';
+import CheckoutContentModule from './checkout/CheckoutContent';
 
 // Blog Modules
 import BlogHeroModule from './blog/BlogHero';
@@ -80,6 +81,8 @@ export const moduleRegistry: Record<string, ModuleComponent> = {
     // Static page modules
     'page-content': PageContentModule,
     'page-hero': PageHeroModule,
+    // Checkout module
+    'checkout-content': CheckoutContentModule,
 };
 
 /**

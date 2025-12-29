@@ -1,0 +1,137 @@
+// CheckoutShipping Module Styles
+
+.shippingModule {
+    // Parent handles container styles
+}
+
+.title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    text-align: center;
+    color: #64748b;
+    background: #f8fafc;
+    border-radius: 12px;
+
+    svg {
+        opacity: 0.5;
+        margin-bottom: 1rem;
+    }
+
+    p {
+        margin: 0;
+    }
+}
+
+.methodList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.methodHeader {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: #f8fafc;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+    }
+}
+
+.methodIcon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border-radius: 8px;
+    color: var(--color-primary);
+
+    svg {
+        width: 24px;
+        height: 24px;
+    }
+}
+
+.methodInfo {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.methodName {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.carrier {
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.delivery {
+    font-size: 0.75rem;
+    color: var(--color-primary);
+}
+
+.methodPrice {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 1rem;
+}
+
+.totalShipping {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem;
+    background: #f8fafc;
+    border-radius: 10px;
+
+    span {
+        color: #475569;
+    }
+
+    strong {
+        font-size: 1.125rem;
+        color: #1e293b;
+    }
+}
+
+.freeShippingBadge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border-radius: 8px;
+    color: #059669;
+    font-size: 0.875rem;
+    font-weight: 500;
+
+    svg {
+        flex-shrink: 0;
+    }
+}

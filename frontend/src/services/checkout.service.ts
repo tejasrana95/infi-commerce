@@ -112,6 +112,8 @@ export async function getShippingMethods(
 ): Promise<{
     shippingCost: number;
     currency: string;
+    name?: string;
+    description?: string;
     breakdown: any[];
     orderSummary: any;
 }> {
@@ -205,5 +207,32 @@ export async function createOrder(orderData: {
     saveAddress?: boolean;
 }): Promise<OrderResponse> {
     const response = await apiClient.post('/checkout/create-order', orderData);
+    return response;
+}
+
+export interface GeoCountry {
+    _id: string;
+    countryCode: string;
+    countryName: string;
+    isActive: boolean;
+    isShippingAvailable: boolean;
+    states: {
+        _id: string;
+        code: string;
+        name: string;
+        isActive: boolean;
+        cities: {
+            _id: string;
+            name: string;
+            isActive: boolean;
+        }[];
+    }[];
+}
+
+/**
+ * Get countries hierarchical data
+ */
+export async function getCountries(): Promise<{ countries: GeoCountry[] }> {
+    const response = await apiClient.get('/geo/countries');
     return response;
 }

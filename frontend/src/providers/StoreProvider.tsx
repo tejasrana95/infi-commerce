@@ -58,7 +58,7 @@ interface StoreProviderProps {
 export function StoreProvider({ store, children, currentCurrency, availableCurrencies }: StoreProviderProps) {
     const templateId = store?.theme?.templateId || DEFAULT_TEMPLATE_ID;
     const themeConfig = store?.theme || null;
-
+    console.log('themeConfig', themeConfig);
     // Set store ID on API client for X-Store-ID header
     useEffect(() => {
         if (store?._id) {

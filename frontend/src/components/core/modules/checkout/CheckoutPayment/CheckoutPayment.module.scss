@@ -1,0 +1,135 @@
+// CheckoutPayment Module Styles
+
+.paymentModule {
+    // Parent handles container
+}
+
+.title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.emptyState {
+    padding: 2rem;
+    text-align: center;
+    color: #64748b;
+    background: #f8fafc;
+    border-radius: 12px;
+}
+
+.methodsContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+
+    &.gridLayout {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+}
+
+.methodCard {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: white;
+
+    &:hover {
+        border-color: var(--color-primary);
+        background: #f8fafc;
+    }
+
+    &.selected {
+        border-color: var(--color-primary);
+        background: #f8fafc; // Keep neutral or light primary
+    }
+}
+
+.radio {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--color-primary);
+    flex-shrink: 0;
+}
+
+.methodIcon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+    border-radius: 8px;
+    color: #475569;
+    flex-shrink: 0;
+
+    svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    .selected & {
+        background: #dbeafe; // Maybe use primary with opacity or leave as is if hard to match var
+        color: var(--color-primary);
+    }
+}
+
+.methodInfo {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.methodName {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.methodDesc {
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.extraCharge {
+    font-size: 0.75rem;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.secureNote {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+    padding: 0.75rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    color: #64748b;
+    font-size: 0.75rem;
+
+    svg {
+        color: var(--color-primary);
+        flex-shrink: 0;
+    }
+}
+
+@media (max-width: 640px) {
+    .methodsContainer.gridLayout {
+        grid-template-columns: 1fr;
+    }
+}

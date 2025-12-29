@@ -596,6 +596,7 @@ export const calculateSmartShipping = asyncHandler(async (req: AuthRequest, res:
     interface ShippingBreakdown {
         itemProductIds: string[];
         ruleName: string;
+        ruleDescription?: string;
         ruleId: string;
         ruleType: 'category' | 'geo' | 'universal';
         weight: number;
@@ -661,6 +662,7 @@ export const calculateSmartShipping = asyncHandler(async (req: AuthRequest, res:
             breakdown.push({
                 itemProductIds: itemsToProcess.map(i => i.productId),
                 ruleName: ruleInfo.rule.name,
+                ruleDescription: ruleInfo.rule.description,
                 ruleId: ruleInfo.rule._id.toString(),
                 ruleType: 'category',
                 weight: itemsToProcess.reduce((sum, i) => sum + i.weight, 0),
@@ -688,6 +690,7 @@ export const calculateSmartShipping = asyncHandler(async (req: AuthRequest, res:
         breakdown.push({
             itemProductIds: remainingItems.map(i => i.productId),
             ruleName: geoRule.rule.name,
+            ruleDescription: geoRule.rule.description,
             ruleId: geoRule.rule._id.toString(),
             ruleType: 'geo',
             weight: remainingItems.reduce((sum, i) => sum + i.weight, 0),
@@ -716,6 +719,7 @@ export const calculateSmartShipping = asyncHandler(async (req: AuthRequest, res:
         breakdown.push({
             itemProductIds: stillRemaining.map(i => i.productId),
             ruleName: universalRule.rule.name,
+            ruleDescription: universalRule.rule.description,
             ruleId: universalRule.rule._id.toString(),
             ruleType: 'universal',
             weight: stillRemaining.reduce((sum, i) => sum + i.weight, 0),
@@ -733,10 +737,25 @@ export const calculateSmartShipping = asyncHandler(async (req: AuthRequest, res:
     // Items without any applicable rule
     const itemsWithoutRule = itemDetails.filter((_, idx) => !processedItems.has(idx));
 
+
+    // Determine generic or specific name/description
+    let methodName = 'Standard Shipping';
+    let methodDescription = 'Calculated based on your order items';
+
+    if (breakdown.length === 1) {
+        methodName = breakdown[0].ruleName;
+        methodDescription = breakdown[0].ruleDescription || methodDescription;
+    } else if (breakdown.length > 1) {
+        methodName = 'Combined Shipping';
+        methodDescription = 'Optimized shipping for different items';
+    }
+
     res.json({
         success: true,
         shippingCost: parseFloat(totalShippingCost.toFixed(2)),
         currency,
+        name: methodName,
+        description: methodDescription,
         breakdown,
         itemsWithoutShipping: itemsWithoutRule.length > 0 ? itemsWithoutRule.map(i => ({
             productId: i.productId,

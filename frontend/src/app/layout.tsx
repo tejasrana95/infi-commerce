@@ -63,6 +63,30 @@ function generateThemeCSSVariables(themeConfig: any): string {
 }
 
 // ============================================
+// Generate Google Fonts URL
+// ============================================
+function generateGoogleFontsUrl(themeConfig: any): string | null {
+  if (!themeConfig?.fonts) return null;
+
+  const { heading, body } = themeConfig.fonts;
+  const fontsToLoad = new Set<string>();
+
+  if (heading) fontsToLoad.add(heading);
+  if (body) fontsToLoad.add(body);
+
+  if (fontsToLoad.size === 0) return null;
+
+  const fontFamilies = Array.from(fontsToLoad).map(font => {
+    // Replace spaces with + for URL
+    const family = font.replace(/\s+/g, '+');
+    // Load standard weights: 300, 400, 500, 600, 700
+    return `family=${family}:wght@300;400;500;600;700`;
+  });
+
+  return `https://fonts.googleapis.com/css2?${fontFamilies.join('&')}&display=swap`;
+}
+
+// ============================================
 // Metadata Generation
 // ============================================
 
@@ -113,8 +137,8 @@ export default async function RootLayout({
   // Get template ID
   const templateId = store?.theme?.templateId || DEFAULT_TEMPLATE_ID;
 
-  // Generate CSS variables on server (prevents CLS)
   const themeCSSVariables = generateThemeCSSVariables(store?.theme);
+  const googleFontsUrl = generateGoogleFontsUrl(store?.theme);
 
   // Fetch currencies
   let currencies: Currency[] = [];
@@ -140,6 +164,14 @@ export default async function RootLayout({
         {/* Server-rendered CSS variables - prevents CLS */}
         {themeCSSVariables && (
           <style dangerouslySetInnerHTML={{ __html: themeCSSVariables }} />
+        )}
+        {/* Dynamic Google Fonts Loading */}
+        {googleFontsUrl && (
+          <>
+            <link rel="preconnect" href="https://fonts.googleapis.com" />
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+            <link href={googleFontsUrl} rel="stylesheet" />
+          </>
         )}
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>

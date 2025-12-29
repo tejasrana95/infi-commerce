@@ -1,0 +1,165 @@
+// CheckoutProgress Module Styles
+
+.progressContainer {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem 2rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.progressBar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    position: relative;
+    user-select: none;
+
+    &.clickable {
+        cursor: pointer;
+
+        &:hover .stepCircle {
+            transform: scale(1.05);
+        }
+    }
+}
+
+.stepCircle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid transparent;
+    position: relative;
+    z-index: 1;
+}
+
+.checkIcon {
+    width: 18px;
+    height: 18px;
+}
+
+.stepLabel {
+    font-size: 0.75rem;
+    color: #64748b;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: color 0.3s ease;
+    white-space: nowrap;
+}
+
+// Active state
+.step.active {
+    .stepCircle {
+        background: var(--color-primary); // Simplify gradient to solid color or use CSS var in gradient if possible
+        // Ideally: background: linear-gradient(135deg, var(--color-primary) 0%, darken(var(--color-primary), 10%) 100%);
+        // But since we can't easily darken vars in pure CSS without color-mix (support?), let's stick to solid var or simple gradient if we accept the limitation.
+        color: white;
+        box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .stepLabel {
+        color: var(--color-primary);
+        font-weight: 600;
+    }
+}
+
+// Completed state
+.step.completed {
+    .stepCircle {
+        background: var(--color-primary); // Using primary for completed too, as planned for consistency
+        color: white;
+    }
+
+    .stepLabel {
+        color: var(--color-primary);
+    }
+}
+
+// Connector line
+.connector {
+    width: 80px;
+    height: 2px;
+    background: #e2e8f0;
+    margin: 0 0.5rem;
+
+    position: relative;
+    overflow: hidden;
+
+    &.showLabels {
+        margin-bottom: 1.75rem; // Align with circle center when labels are shown
+    }
+
+    &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 0;
+        height: 100%;
+        background: var(--color-primary);
+        transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    &.completed::after {
+        width: 100%;
+    }
+}
+
+// Responsive
+@media (max-width: 768px) {
+    .progressContainer {
+        padding: 1rem;
+    }
+
+    .stepCircle {
+        width: 36px;
+        height: 36px;
+        font-size: 0.875rem;
+    }
+
+    .stepLabel {
+        font-size: 0.625rem;
+    }
+
+    .connector {
+        width: 40px;
+        margin-bottom: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .stepLabel {
+        display: none;
+    }
+
+    .stepCircle {
+        width: 32px;
+        height: 32px;
+        font-size: 0.75rem;
+    }
+
+    .connector {
+        width: 24px;
+        margin-bottom: 0;
+    }
+
+    .checkIcon {
+        width: 14px;
+        height: 14px;
+    }
+}

@@ -811,7 +811,9 @@ export type ModuleType =
   | 'blog-listing' | 'blog-content' | 'page-content' | 'page-hero'
   // Blog modules
   | 'blog-grid' | 'blog-categories-sidebar' | 'recent-posts' | 'popular-posts'
-  | 'tags-cloud' | 'newsletter-signup' | 'author-card' | 'blog-hero' | 'related-blogs';
+  | 'tags-cloud' | 'newsletter-signup' | 'author-card' | 'blog-hero' | 'related-blogs'
+  // Checkout modules
+  | 'checkout-content';
 
 export type SectionType = 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';
 

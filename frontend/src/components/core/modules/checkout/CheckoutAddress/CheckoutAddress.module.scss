@@ -1,0 +1,404 @@
+// CheckoutAddress Module Styles
+
+
+
+.title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.subtitle {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #475569;
+    margin-bottom: 1rem;
+}
+
+// Guest Email Section
+.guestSection {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #475569;
+    margin-bottom: 0.5rem;
+}
+
+.required {
+    color: #ef4444;
+}
+
+.input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+
+    &:focus {
+        outline: none;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1); // Simplify shadow or use primary with opacity if possible, but generic is improved
+    }
+}
+
+.helper {
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-top: 0.5rem;
+}
+
+// Address Grid (Cards Display)
+.addressGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.addressCard {
+    padding: 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: white;
+
+    &:hover {
+        border-color: var(--color-primary);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    &.selected {
+        border-color: var(--color-primary);
+        background: #f8fafc; // Keep neutral or use very light primary opacity if available
+    }
+
+    &.addNew {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 180px;
+        border-style: dashed;
+        background: #f8fafc;
+
+        &:hover {
+            background: #eff6ff;
+        }
+    }
+
+    &.showMore {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 180px;
+        background: #f8fafc;
+        border: 2px solid #e2e8f0;
+
+        &:hover {
+            border-color: var(--color-primary);
+            background: #f8fafc;
+        }
+    }
+}
+
+.cardHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+
+.radio {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--color-primary);
+}
+
+.defaultBadge {
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0.25rem 0.5rem;
+    background: #10b981;
+    color: white;
+    border-radius: 4px;
+}
+
+.cardBody {
+    strong {
+        display: block;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+    }
+
+    p {
+        margin: 0.25rem 0;
+        color: #475569;
+        font-size: 0.875rem;
+        line-height: 1.4;
+    }
+
+    .phone {
+        margin-top: 0.5rem;
+        color: #64748b;
+    }
+}
+
+.addNewContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--color-primary);
+
+    svg {
+        opacity: 0.7;
+    }
+
+    span {
+        font-weight: 500;
+    }
+}
+
+// Dropdown Style
+.dropdownSection {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 1rem;
+    background: white;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.75rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+
+    &:focus {
+        outline: none;
+        border-color: var(--color-primary);
+    }
+}
+
+.addNewBtn {
+    align-self: flex-start;
+    padding: 0.5rem 1rem;
+    background: none;
+    border: 1px solid var(--color-primary);
+    color: var(--color-primary);
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+        background: #f8fafc;
+    }
+}
+
+// Selected Address Display
+.selectedAddress {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    border-left: 4px solid var(--color-primary);
+}
+
+.selectedHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+
+    h4 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #475569;
+        margin: 0;
+    }
+
+    button {
+        background: none;
+        border: none;
+        color: var(--color-primary);
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+
+        &:hover {
+            text-decoration: underline;
+        }
+    }
+}
+
+.selectedBody {
+    strong {
+        display: block;
+        color: #1e293b;
+        margin-bottom: 0.25rem;
+    }
+
+    p {
+        margin: 0.125rem 0;
+        color: #475569;
+        font-size: 0.875rem;
+    }
+}
+
+// Billing Toggle
+.billingToggle {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+.checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+
+    span {
+        font-size: 0.875rem;
+        color: #475569;
+    }
+}
+
+.checkbox {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--color-primary);
+}
+
+// Address Form Styles
+.addressForm {
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.formTitle {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 1.5rem;
+}
+
+.formRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+
+    @media (max-width: 640px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.formGroup {
+    margin-bottom: 1rem;
+
+    label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+        margin-bottom: 0.5rem;
+    }
+
+    input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.2s;
+        background: white;
+
+        &:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+        }
+    }
+}
+
+.formActions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    justify-content: flex-end;
+}
+
+.submitBtn {
+    padding: 0.75rem 1.5rem;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+
+    &:hover {
+        filter: brightness(0.9);
+    }
+}
+
+.cancelBtn {
+    padding: 0.75rem 1.5rem;
+    background: white;
+    color: #64748b;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+        background: #f1f5f9;
+        color: #475569;
+    }
+}
+
+// Responsive
+@media (max-width: 640px) {
+    .addressGrid {
+        grid-template-columns: 1fr;
+    }
+}

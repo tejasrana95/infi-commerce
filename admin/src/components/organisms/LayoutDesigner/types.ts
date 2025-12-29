@@ -532,6 +532,72 @@ export const AVAILABLE_MODULES: ModuleDefinition[] = [
             showPostCount: false,
         },
     },
+
+    // Checkout module - SINGLE required placeholder with all config
+    {
+        type: 'checkout-content',
+        label: 'Checkout (Required)',
+        icon: 'ShoppingCartCheckout',
+        category: 'placeholder',
+        description: 'Complete checkout flow with address, shipping, payment, and review',
+        defaultConfig: {
+            // Checkout mode
+            mode: 'stepper', // 'stepper' | 'one-page'
+
+            // Progress bar config
+            progress: {
+                style: 'numbered', // 'numbered' | 'icons'
+                showLabels: true,
+                steps: ['Address', 'Shipping', 'Payment', 'Review'],
+            },
+
+            // Address section config
+            address: {
+                displayStyle: 'cards', // 'cards' | 'dropdown'
+                showBillingToggle: true,
+                showSaveAddress: true,
+                maxSavedAddresses: 5,
+            },
+
+            // Shipping section config
+            shipping: {
+                showEstimatedDates: true,
+                groupByCarrier: false,
+                showShippingBreakdown: true,
+            },
+
+            // Payment section config
+            payment: {
+                showIcons: true,
+                layout: 'list', // 'grid' | 'list'
+                showExtraCharges: true,
+            },
+
+            // Review section config
+            review: {
+                showItemImages: true,
+                showEditButtons: true,
+                showCustomerNote: true,
+            },
+
+            // Order summary sidebar config
+            summary: {
+                sticky: true,
+                showCoupon: true,
+                collapsibleMobile: true,
+                showCartItems: true,
+                maxVisibleItems: 3,
+            },
+
+            // One-page specific config (only used when mode = 'one-page')
+            onePage: {
+                expandedByDefault: 'address',
+                showSectionNumbers: true,
+                allowMultipleExpanded: false,
+            },
+        },
+        allowedLayoutTypes: ['checkout'],
+    },
 ];
 
 // Get modules by category
@@ -756,4 +822,45 @@ export const isSearchLayoutEmpty = (sections: LayoutSection[]): boolean => {
     );
 
     return !hasSearchResults;
+};
+
+// Checkout layout mode type
+export type CheckoutLayoutMode = 'stepper' | 'one-page';
+
+// Create default checkout page layout - uses single checkout-content module
+export const createCheckoutDefaultLayout = (
+    mode: CheckoutLayoutMode = 'stepper'
+): LayoutSection[] => {
+    // Create the checkout-content module with mode set
+    const checkoutModule = createModule('checkout-content');
+    checkoutModule.config = {
+        ...checkoutModule.config,
+        mode: mode,
+    };
+
+    // Single full-width section containing checkout
+    const checkoutSection: LayoutSection = {
+        id: crypto.randomUUID(),
+        name: 'Checkout',
+        type: 'full-width',
+        settings: { paddingTop: 20, paddingBottom: 40 },
+        modules: [checkoutModule],
+        visibility: { desktop: true, tablet: true, mobile: true },
+        order: 0,
+    };
+
+    return [checkoutSection];
+};
+
+// Check if a layout needs default checkout sections
+export const isCheckoutLayoutEmpty = (sections: LayoutSection[]): boolean => {
+    if (sections.length === 0) return true;
+
+    // Check if any section has checkout-content module
+    const hasCheckoutContent = sections.some(s =>
+        s.modules.some(m => m.type === 'checkout-content') ||
+        s.columns?.some(c => c.modules.some(m => m.type === 'checkout-content'))
+    );
+
+    return !hasCheckoutContent;
 };

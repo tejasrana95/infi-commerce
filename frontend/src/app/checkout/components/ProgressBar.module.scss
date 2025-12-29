@@ -1,0 +1,79 @@
+.progressBar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 3rem;
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    position: relative;
+    transition: color 0.3s ease;
+}
+
+.stepNumber {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    color: #999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.stepLabel {
+    font-size: 0.875rem;
+    color: #666;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.active .stepNumber {
+    background: #3498db;
+    color: white;
+    box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.2);
+}
+
+.completed .stepNumber {
+    background: #27ae60;
+    color: white;
+}
+
+.active .stepLabel {
+    color: #3498db;
+    font-weight: 600;
+}
+
+.stepLine {
+    width: 80px;
+    height: 2px;
+    background: #e0e0e0;
+    margin: 0 1rem;
+    margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .progressBar {
+        flex-direction: column;
+        padding: 1rem;
+    }
+
+    .stepLine {
+        width: 40px;
+        margin: 0.5rem 0;
+    }
+
+    .stepLabel {
+        display: none;
+    }
+}

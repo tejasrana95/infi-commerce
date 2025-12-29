@@ -5,6 +5,7 @@ import styles from './page.module.scss';
 import { useCustomer } from '@/providers/AuthProvider';
 import api from '@/lib/api';
 import Loader from '@/components/molecules/Loader';
+import { getCountries, type GeoCountry } from '@/services/checkout.service';
 
 interface Address {
     _id?: string;
@@ -43,6 +44,23 @@ export default function AddressesPage() {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+    // Geo API state
+    const [availableCountries, setAvailableCountries] = useState<GeoCountry[]>([]);
+    const [availableStates, setAvailableStates] = useState<any[]>([]);
+    const [availableCities, setAvailableCities] = useState<any[]>([]);
+
+    useEffect(() => {
+        const fetchCountries = async () => {
+            try {
+                const { countries } = await getCountries();
+                setAvailableCountries(countries.filter(c => c.isShippingAvailable !== false));
+            } catch (error) {
+                console.error('Failed to load countries', error);
+            }
+        };
+        fetchCountries();
+    }, []);
+
     const addresses = customer?.addresses || [];
 
     const openAddModal = () => {
@@ -64,6 +82,38 @@ export default function AddressesPage() {
         setMessage(null);
     };
 
+    const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const countryId = e.target.value;
+        const country = availableCountries.find(c => c._id === countryId);
+
+        if (country) {
+            setFormData(prev => ({
+                ...prev,
+                country: country.countryCode || country.countryName, // Fallback to name if code is missing
+                state: '',
+            }));
+            setAvailableStates(country.states || []);
+            setAvailableCities([]);
+        } else {
+            setFormData(prev => ({ ...prev, country: '', state: '' }));
+            setAvailableStates([]);
+            setAvailableCities([]);
+        }
+    };
+
+    const handleStateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const stateCode = e.target.value;
+        const state = availableStates.find(s => s.name === stateCode);
+
+        setFormData(prev => ({ ...prev, state: stateCode }));
+
+        if (state) {
+            setAvailableCities(state.cities || []);
+        } else {
+            setAvailableCities([]);
+        }
+    };
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
         setFormData(prev => ({
@@ -74,6 +124,14 @@ export default function AddressesPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validate phone number: +Code then digits, no spaces
+        const phoneRegex = /^\+\d{1,4}\d{6,14}$/; // Basic E.164 check without spaces
+        if (!phoneRegex.test(formData.phone)) {
+            setMessage({ type: 'error', text: 'Phone number must start with + and contain no spaces. Example: +919876543210' });
+            return;
+        }
+
         setLoading(true);
         setMessage(null);
 
@@ -246,11 +304,45 @@ export default function AddressesPage() {
                                     </div>
                                     <div className={styles.formGroup}>
                                         <label>City</label>
-                                        <input type="text" name="city" value={formData.city} onChange={handleChange} required />
+                                        {availableCities.length > 0 ? (
+                                            <select
+                                                name="city"
+                                                value={formData.city}
+                                                onChange={e => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                                                required
+                                                className={styles.select}
+                                            >
+                                                <option value="">Select City</option>
+                                                {availableCities.map((city: any) => (
+                                                    <option key={city._id} value={city.name}>
+                                                        {city.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <input type="text" name="city" value={formData.city} onChange={handleChange} required />
+                                        )}
                                     </div>
                                     <div className={styles.formGroup}>
                                         <label>State / Province</label>
-                                        <input type="text" name="state" value={formData.state} onChange={handleChange} required />
+                                        {availableStates.length > 0 ? (
+                                            <select
+                                                name="state"
+                                                value={formData.state}
+                                                onChange={handleStateChange}
+                                                required
+                                                className={styles.select}
+                                            >
+                                                <option value="">Select State</option>
+                                                {availableStates.map((state: any) => (
+                                                    <option key={state._id} value={state.name}>
+                                                        {state.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <input type="text" name="state" value={formData.state} onChange={handleChange} required />
+                                        )}
                                     </div>
                                     <div className={styles.formGroup}>
                                         <label>Postal Code</label>
@@ -258,11 +350,31 @@ export default function AddressesPage() {
                                     </div>
                                     <div className={styles.formGroup}>
                                         <label>Country</label>
-                                        <input type="text" name="country" value={formData.country} onChange={handleChange} required />
+                                        <select
+                                            name="country"
+                                            value={formData.country}
+                                            onChange={handleCountryChange}
+                                            required
+                                            className={styles.select}
+                                        >
+                                            <option value="">Select Country</option>
+                                            {availableCountries.map(country => (
+                                                <option key={country._id} value={country.countryCode}>
+                                                    {country.countryName}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
                                     <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-                                        <label>Phone Number</label>
-                                        <input type="tel" name="phone" value={formData.phone} onChange={handleChange} required />
+                                        <label>Phone Number (e.g. +919876543210)</label>
+                                        <input
+                                            type="tel"
+                                            name="phone"
+                                            value={formData.phone}
+                                            onChange={handleChange}
+                                            placeholder="+919876543210"
+                                            required
+                                        />
                                     </div>
                                     <div className={`${styles.formGroup} ${styles.fullWidth}`}>
                                         <label className={styles.checkboxLabel}>

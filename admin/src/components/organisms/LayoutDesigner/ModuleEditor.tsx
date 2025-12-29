@@ -36,6 +36,8 @@ import {
     AuthorCardConfigPanel,
     PageContentConfigPanel,
     PageHeroConfigPanel,
+    // Checkout Config Panel
+    CheckoutContentConfigPanel,
 } from '@/components/organisms/ModuleConfigPanels';
 
 interface ModuleEditorProps {
@@ -295,13 +297,20 @@ export default function ModuleEditor({ module, onChange, onDelete, storeId }: Mo
                     />
                 );
 
+            // Checkout module - single unified config
+            case 'checkout-content':
+                return (
+                    <CheckoutContentConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
+                    />
+                );
+
             // Placeholder modules - minimal config
             case 'category-products':
             case 'product-details':
             case 'search-results':
             case 'blog-content':
-            case 'page-content':
-            case 'page-hero':
                 return (
                     <Box>
                         <Typography variant="body2" color="primary" gutterBottom>
