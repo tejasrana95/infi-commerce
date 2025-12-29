@@ -261,7 +261,7 @@
             {{/if}}
             {{#if order.discount}}
             <tr class="total">
-                <td colspan="4" class="text-right">Discount:</td>
+                <td colspan="4" class="text-right">Discount{{#if order.couponCode}} ({{order.couponCode}}){{/if}}:</td>
                 <td class="text-right">-{{formatPrice order.discount order.currency order.exchangeRate}}</td>
             </tr>
             {{/if}}

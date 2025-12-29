@@ -36,7 +36,6 @@ export class TransactionalNotificationService {
             const emailEnabled = store.settings?.emailNotifications !== false && !!store.settings?.emailSettings?.provider;
             const smsEnabled = store.settings?.smsNotifications && store.settings?.smsSettings?.enabled;
             const whatsappEnabled = store.settings?.whatsappNotifications && store.settings?.whatsappSettings?.enabled;
-
             // 1. Email Notification
             if (emailEnabled && recipientEmail) {
                 await notificationService.queueNotification({
@@ -89,7 +88,7 @@ export class TransactionalNotificationService {
                 });
             }
         } catch (error) {
-            // Log the error but don't rethrow, as queuing failures shouldn't block main process
+            console.error('Failed to queue notification:', error);
         }
     }
 
@@ -155,6 +154,10 @@ export class TransactionalNotificationService {
      */
     async sendOrderStatusUpdate(storeId: string, storeName: string, order: any, status: string) {
         const type = `order_${status.toLowerCase()}`;
+        const store = await Store.findById(storeId);
+        if (!store || store.settings?.orderNotifications === false) {
+            return;
+        }
 
         // Extract recipient info robustly
         let recipientEmail = order.guestEmail;
@@ -189,7 +192,6 @@ export class TransactionalNotificationService {
                 }
             }
         }
-
         await this.notify({
             storeId,
             storeName,
@@ -204,6 +206,7 @@ export class TransactionalNotificationService {
                 firstName: order.shippingAddress?.firstName || recipientName.split(' ')[0],
                 total: `${order.currency} ${(order.total * (order.exchangeRate || 1)).toFixed(2)}`,
                 status,
+                orderUrl: `${frontendUrl}/orders/${order._id}`,
                 trackingNumber: order.trackingNumber,
                 trackingUrl: order.trackingUrl || (order.trackingNumber ? `https://${(await Store.findById(storeId).select('domain').lean())?.domain}/orders/${order._id}/track` : undefined),
             }

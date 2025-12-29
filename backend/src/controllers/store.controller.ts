@@ -423,6 +423,7 @@ export const getStoreBySlug = asyncHandler(async (req: AuthRequest, res: Respons
 export const updateStore = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const updates = req.body;
+    const { settings, ...otherUpdates } = updates;
 
     // If slug or domain is being updated, check for conflicts
     if (updates.slug || updates.domain) {
@@ -449,7 +450,24 @@ export const updateStore = asyncHandler(async (req: AuthRequest, res: Response) 
         }
     }
 
-    const store = await Store.findByIdAndUpdate(id, updates, {
+    // Flatten settings to avoid overwriting the whole object
+    const finalUpdates: any = { ...otherUpdates };
+    if (settings && typeof settings === 'object') {
+        const flattenObject = (obj: any, prefix = 'settings') => {
+            Object.keys(obj).forEach(key => {
+                const value = obj[key];
+                const path = `${prefix}.${key}`;
+                if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+                    flattenObject(value, path);
+                } else {
+                    finalUpdates[path] = value;
+                }
+            });
+        };
+        flattenObject(settings);
+    }
+
+    const store = await Store.findByIdAndUpdate(id, finalUpdates, {
         new: true,
         runValidators: true,
     });

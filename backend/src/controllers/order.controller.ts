@@ -1040,7 +1040,7 @@ export const handlePaymentSuccess = asyncHandler(async (req: AuthRequest, res: R
     const { paymentId, paymentDetails } = req.body;
     const userId = req.user?.id;
 
-    const order = await Order.findById(id);
+    const order = await Order.findById(id).populate('storeId customerId');
 
     if (!order) {
         throw new AppError('Order not found', 404);
@@ -1049,7 +1049,8 @@ export const handlePaymentSuccess = asyncHandler(async (req: AuthRequest, res: R
     // Verify ownership - either authenticated user or guest with matching email
     if (userId) {
         // Authenticated user - check if order belongs to them
-        if (order.customerId && order.customerId.toString() !== userId) {
+        const orderCustomerId = (order.customerId as any)?._id?.toString() || order.customerId?.toString();
+        if (orderCustomerId && orderCustomerId !== userId) {
             throw new AppError('Unauthorized to access this order', 403);
         }
     } else {
@@ -1078,15 +1079,27 @@ export const handlePaymentSuccess = asyncHandler(async (req: AuthRequest, res: R
     }
 
     // Increment coupon usage if coupon was used
-    const couponId = order.paymentDetails?.couponId;
-    if (couponId) {
-        const coupon = await Coupon.findById(couponId);
+    if (order.couponId) {
+        const coupon = await (await import('../models/Coupon')).default.findById(order.couponId);
         if (coupon) {
-            await coupon.incrementUsage(order.customerId?.toString() || '');
+            // Use customer ID or guest email as identifier
+            const customerIdentifier = order.customerId?.toString() || order.guestEmail || '';
+            await coupon.incrementUsage(customerIdentifier);
         }
     }
 
-    // TODO: Send order confirmation email
+    // Send order confirmation/payment success notification
+    try {
+        console.log('Sending payment failed notification...');
+        await transactionalNotificationService.sendOrderStatusUpdate(
+            order.storeId._id.toString(),
+            (order.storeId as any).name,
+            order,
+            'processing'
+        );
+    } catch (notificationError) {
+        console.error('Failed to send payment success notification:', notificationError);
+    }
 
     res.json({
         success: true,
@@ -1104,16 +1117,46 @@ export const handlePaymentFailed = asyncHandler(async (req: AuthRequest, res: Re
     const { id } = req.params;
     const { paymentDetails } = req.body;
 
-    const order = await Order.findById(id);
+    const order = await Order.findById(id).populate('storeId customerId');
 
     if (!order) {
         throw new AppError('Order not found', 404);
+    }
+
+    const userId = req.user?.id;
+
+    // Verify ownership - either authenticated user or guest with matching email
+    if (userId) {
+        // Authenticated user - check if order belongs to them
+        const orderCustomerId = (order.customerId as any)?._id?.toString() || order.customerId?.toString();
+        if (orderCustomerId && orderCustomerId !== userId) {
+            throw new AppError('Unauthorized to access this order', 403);
+        }
+    } else {
+        // Guest user - verify email from request body
+        const guestEmail = req.body.guestEmail;
+        if (!guestEmail || order.guestEmail !== guestEmail.toLowerCase()) {
+            throw new AppError('Unauthorized to access this order', 403);
+        }
     }
 
     order.paymentStatus = 'failed';
     order.paymentDetails = { ...order.paymentDetails, ...paymentDetails };
 
     await order.save();
+
+    // Send payment failed notification
+    try {
+        console.log('Sending payment failed notification...');
+        await transactionalNotificationService.sendOrderStatusUpdate(
+            order.storeId._id.toString(),
+            (order.storeId as any).name,
+            order,
+            'failed'
+        );
+    } catch (notificationError) {
+        console.error('Failed to send payment failure notification:', notificationError);
+    }
 
     res.json({
         success: true,

@@ -308,7 +308,7 @@ export default function OrderDetailPage() {
                             </Box>
                             {order.discount > 0 && (
                                 <Box display="flex" justifyContent="space-between" mb={1} color="success.main">
-                                    <Typography>Discount</Typography>
+                                    <Typography>Discount{order.couponCode && ` (${order.couponCode})`}</Typography>
                                     <Typography>-{convertAndFormat(order.discount, order.currency)}</Typography>
                                 </Box>
                             )}

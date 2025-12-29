@@ -66,6 +66,11 @@ export const TEMPLATE_TYPES = {
         label: 'Order Refunded',
         description: 'Sent when refund is processed',
         variables: ['firstName', 'orderNumber', 'amount', 'storeName'],
+    },
+    order_failed: {
+        label: 'Order Failed',
+        description: 'Sent when payment fails',
+        variables: ['firstName', 'orderNumber', 'total', 'orderUrl', 'storeName'],
     }
 } as const;
 
@@ -572,6 +577,50 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
 </html>`,
         textContent: 'Hi {{firstName}}, {{productName}} is back in stock! Shop now at {{productUrl}}',
         variables: ['firstName', 'productName', 'productUrl'],
+    },
+    // ============================================
+    // Order Failed
+    // ============================================
+    {
+        type: 'order_failed',
+        channel: 'email',
+        name: 'Order Failed Email',
+        subject: 'Payment Failed: Order #{{orderNumber}}',
+        htmlContent: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; background: #f5f5f5;">
+    <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <h1 style="color: #d32f2f; margin-bottom: 24px;">Payment Failed</h1>
+        <p style="color: #666; line-height: 1.6;">Hi {{firstName}},</p>
+        <p style="color: #666; line-height: 1.6;">We were unable to process the payment for your order <strong>#{{orderNumber}}</strong>.</p>
+        <div style="background: #fff5f5; border: 1px solid #feb2b2; border-radius: 8px; padding: 20px; margin: 24px 0;">
+            <p style="margin: 0; color: #c53030;"><strong>Order Total:</strong> {{total}}</p>
+        </div>
+        <p style="color: #666; line-height: 1.6;">Please visit your order page to try the payment again or use a different payment method.</p>
+        <div style="text-align: center; margin: 32px 0;">
+            <a href="{{orderUrl}}" style="display: inline-block; background: #000; color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px;">Retry Payment</a>
+        </div>
+    </div>
+</body>
+</html>`,
+        textContent: 'Hi {{firstName}}, payment for order #{{orderNumber}} from {{storeName}} has failed. Total: {{total}}. Please try again: {{orderUrl}}',
+        variables: ['firstName', 'orderNumber', 'total', 'orderUrl'],
+    },
+    {
+        type: 'order_failed',
+        channel: 'sms',
+        name: 'Order Failed SMS',
+        textContent: 'Payment failed for Order #{{orderNumber}}. Total: {{total}}. Please visit {{orderUrl}} to retry.',
+        variables: ['orderNumber', 'total', 'orderUrl'],
+    },
+    {
+        type: 'order_failed',
+        channel: 'whatsapp',
+        name: 'Order Failed WhatsApp',
+        textContent: 'Hi {{firstName}}, payment for order #{{orderNumber}} from {{storeName}} has failed. Total: {{total}}. Retry here: {{orderUrl}}',
+        variables: ['firstName', 'orderNumber', 'storeName', 'total', 'orderUrl'],
     },
 ];
 

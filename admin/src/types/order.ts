@@ -40,6 +40,8 @@ export interface Order {
     shippingCost: number;
     tax: number;
     discount: number;
+    couponId?: string;
+    couponCode?: string;
     total: number;
     currency: string;
 
