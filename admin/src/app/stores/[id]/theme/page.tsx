@@ -13,6 +13,7 @@ import {
     Alert,
 } from '@mui/material';
 import { Save as SaveIcon } from '@mui/icons-material';
+import { TextField } from '@mui/material';
 import PageHeader from '@/components/molecules/PageHeader';
 import HeaderDesigner from '@/components/organisms/HeaderDesigner/HeaderDesigner';
 import FooterDesigner from '@/components/organisms/FooterDesigner/FooterDesigner';
@@ -139,6 +140,7 @@ export default function ThemeSettingsPage() {
                     <Tab label="Product Page" />
                     <Tab label="Compare" />
                     <Tab label="General" />
+                    <Tab label="Advanced" />
                 </Tabs>
 
                 <Box sx={{ p: 3 }}>
@@ -201,6 +203,48 @@ export default function ThemeSettingsPage() {
                             config={themeConfig}
                             onChange={setThemeConfig}
                         />
+                    )}
+
+                    {activeTab === 8 && (
+                        <Box sx={{ p: 3 }}>
+                            <Alert severity="warning" sx={{ mb: 2 }}>
+                                Please ensure you only inject scripts from verified authors. Improper scripts may affect site security and performance.
+                            </Alert>
+                            <Box mt={2}>
+                                <TextField
+                                    label="Header Script (HTML/JS/CSS)"
+                                    multiline
+                                    rows={6}
+                                    fullWidth
+                                    variant="outlined"
+                                    value={themeConfig.customScripts?.header || ''}
+                                    onChange={(e) => setThemeConfig(prev => ({
+                                        ...prev,
+                                        customScripts: {
+                                            ...prev.customScripts,
+                                            header: e.target.value,
+                                        },
+                                    }))}
+                                />
+                            </Box>
+                            <Box mt={2}>
+                                <TextField
+                                    label="Footer Script (HTML/JS/CSS)"
+                                    multiline
+                                    rows={6}
+                                    fullWidth
+                                    variant="outlined"
+                                    value={themeConfig.customScripts?.footer || ''}
+                                    onChange={(e) => setThemeConfig(prev => ({
+                                        ...prev,
+                                        customScripts: {
+                                            ...prev.customScripts,
+                                            footer: e.target.value,
+                                        },
+                                    }))}
+                                />
+                            </Box>
+                        </Box>
                     )}
                 </Box>
             </Paper>

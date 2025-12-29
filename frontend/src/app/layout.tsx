@@ -14,6 +14,7 @@ import { DialogProvider } from "@/providers/DialogProvider";
 import CompareFloatingWidget from "@/components/core/CompareFloatingWidget";
 import AuthModal from "@/components/organisms/AuthModal/AuthModal";
 import { fetchCurrencies, getStore } from "@/lib/api";
+import ThemeScriptInjector from "@/components/ThemeScriptInjector";
 import { getEnrichedMenus } from "@/lib/server-menu";
 import { getComponent } from "@/components/templates/registry";
 import { Currency, DEFAULT_TEMPLATE_ID } from "@/types";
@@ -197,6 +198,10 @@ export default async function RootLayout({
           availableCurrencies={currencies}
         >
           <UIProvider>
+            <ThemeScriptInjector
+              header={store?.theme?.customScripts?.header}
+              footer={store?.theme?.customScripts?.footer}
+            />
             <CustomerProvider>
               <CartProvider>
                 <WishlistProvider>

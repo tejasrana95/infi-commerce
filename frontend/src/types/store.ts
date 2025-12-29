@@ -479,6 +479,10 @@ export interface ThemeConfig {
     product?: ProductPageConfig;
     compare?: CompareConfig;
     blog?: BlogConfig;
+    customScripts?: {
+        header?: string;
+        footer?: string;
+    };
 }
 
 // ============================================

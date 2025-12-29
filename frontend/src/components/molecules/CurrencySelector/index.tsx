@@ -23,7 +23,8 @@ export default function CurrencySelector() {
         };
     }, []);
 
-    const handleCurrencySelect = (code: string) => {
+    const handleCurrencySelect = (code?: string) => {
+        if (!code) return;
         setCurrency?.(code);
         setIsOpen(false);
     };

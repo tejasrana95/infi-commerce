@@ -442,6 +442,7 @@ export const DEFAULT_COMPARE_CONFIG: CompareConfig = {
 };
 
 export interface ThemeConfig {
+  // Existing fields...
   templateId: string; // ID of the specific template (e.g., 'modern-clean', 'classic-elegance')
   header?: {
     topBar?: HeaderTopBar;
@@ -467,7 +468,13 @@ export interface ThemeConfig {
     heading?: string;
     body?: string;
   };
+  // New field for custom script injection
+  customScripts?: {
+    header?: string; // HTML/JS/CSS to inject into <head>
+    footer?: string; // HTML/JS/CSS to inject before </body>
+  };
 }
+
 
 // ============ END HEADER & FOOTER TYPES ============
 
