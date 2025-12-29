@@ -36,7 +36,6 @@ export default function CheckoutShipping({ config: propsConfig }: CheckoutShippi
     if (!shippingAddress) {
         return <div className={styles.placeholder}>Please select a shipping address first.</div>;
     }
-    console.log('shippingDetails', shippingDetails);
     // Default shipping method display
     return (
         <div className={styles.shippingModule}>
