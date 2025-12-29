@@ -307,6 +307,13 @@ class NotificationService {
                     }
                     await this.sendWhatsapp(notification, whatsappSettings);
                     break;
+                case 'telegram':
+                    const telegramSettings = store.settings?.telegramSettings as any;
+                    if (!telegramSettings || !telegramSettings.enabled || !telegramSettings.botToken || !telegramSettings.chatId) {
+                        throw new Error('Telegram settings not configured or disabled');
+                    }
+                    await this.sendViaTelegram(notification, telegramSettings);
+                    break;
             }
 
             // Mark as sent
@@ -724,6 +731,98 @@ class NotificationService {
         if (!response.ok) {
             const error = await response.text();
             throw new Error(`MSG91 error: ${error}`);
+        }
+    }
+
+    /**
+     * Send via Telegram
+     */
+    private async sendViaTelegram(notification: INotificationQueue, config: { botToken: string; chatId: string }): Promise<void> {
+        const url = `https://api.telegram.org/bot${config.botToken}/sendMessage`;
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                chat_id: config.chatId,
+                text: notification.content,
+                parse_mode: 'HTML',
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json() as any;
+            throw new Error(`Telegram error: ${error.description || JSON.stringify(error)}`);
+        }
+    }
+
+    /**
+     * Trigger admin notifications for a specific event
+     */
+    async triggerAdminNotifications(
+        storeId: string,
+        event: 'newOrder' | 'orderStatus' | 'returnRequest' | 'orderCancel' | 'newCustomer',
+        data: Record<string, any>
+    ) {
+        const Store = (await import('../models/Store')).default;
+        const store = await Store.findById(storeId);
+        if (!store) return;
+
+        const adminSettings = store.settings?.adminNotificationSettings;
+        const telegramSettings = store.settings?.telegramSettings;
+
+        // Map event keys to notification types
+        const eventTypeMap: Record<string, string> = {
+            newOrder: 'admin_order_created',
+            orderStatus: 'admin_order_updated',
+            returnRequest: 'admin_return_requested',
+            orderCancel: 'admin_order_cancelled',
+            newCustomer: 'admin_customer_signup',
+        };
+
+        const type = eventTypeMap[event];
+
+        // 1. Admin Email Notifications
+        if (adminSettings?.notifications?.emailEnabled && adminSettings?.notifications[event]) {
+            const emails = adminSettings.emails?.split(',').map((e: string) => e.trim()).filter((e: string) => e) || [];
+            for (const email of emails) {
+                try {
+                    await this.queueNotification({
+                        storeId: storeId.toString(),
+                        channel: 'email',
+                        priority: 'high',
+                        type,
+                        recipient: email,
+                        templateData: {
+                            ...data,
+                            storeName: store.name,
+                        },
+                    });
+                } catch (error) {
+                    console.error(`Failed to queue admin email for ${event}:`, error);
+                }
+            }
+        }
+
+        // 2. Telegram Notifications
+        if (telegramSettings?.enabled && telegramSettings?.notifications[event]) {
+            try {
+                await this.queueNotification({
+                    storeId: storeId.toString(),
+                    channel: 'telegram',
+                    priority: 'high',
+                    type,
+                    recipient: telegramSettings.chatId || '',
+                    templateData: {
+                        ...data,
+                        storeName: store.name,
+                    },
+                });
+            } catch (error) {
+                console.error(`Failed to queue telegram notification for ${event}:`, error);
+            }
         }
     }
 

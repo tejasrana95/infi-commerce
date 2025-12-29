@@ -109,6 +109,13 @@ export class TransactionalNotificationService {
                 loginUrl: `${frontendUrl}/login`,
             }
         });
+
+        // Trigger admin notification
+        try {
+            await notificationService.triggerAdminNotifications(storeId, 'newCustomer', { email, firstName, phone });
+        } catch (error) {
+            console.error('Failed to trigger admin welcome notification:', error);
+        }
     }
 
     /**
@@ -211,6 +218,27 @@ export class TransactionalNotificationService {
                 trackingUrl: order.trackingUrl || (order.trackingNumber ? `https://${(await Store.findById(storeId).select('domain').lean())?.domain}/orders/${order._id}/track` : undefined),
             }
         });
+
+        // Trigger admin notifications
+        try {
+            let adminEvent: 'newOrder' | 'orderStatus' | 'orderCancel' | 'returnRequest' | undefined;
+            if (status === 'created') adminEvent = 'newOrder';
+            else if (status === 'cancelled') adminEvent = 'orderCancel';
+            else if (status === 'return_requested') adminEvent = 'returnRequest';
+            else adminEvent = 'orderStatus';
+
+            if (adminEvent) {
+                await notificationService.triggerAdminNotifications(storeId, adminEvent, {
+                    orderNumber: order.orderNumber,
+                    customerName: recipientName,
+                    total: `${order.currency} ${(order.total * (order.exchangeRate || 1)).toFixed(2)}`,
+                    status,
+                    orderId: order._id
+                });
+            }
+        } catch (error) {
+            console.error('Failed to trigger admin order notification:', error);
+        }
     }
 }
 

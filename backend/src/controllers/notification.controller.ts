@@ -469,7 +469,7 @@ export const getNotificationsValidation = [
     query('page').optional().isInt({ min: 1 }),
     query('limit').optional().isInt({ min: 1, max: 100 }),
     query('status').optional().isIn(['pending', 'processing', 'sent', 'failed', 'cancelled']),
-    query('channel').optional().isIn(['email', 'sms', 'whatsapp']),
+    query('channel').optional().isIn(['email', 'sms', 'whatsapp', 'telegram']),
     query('priority').optional().isIn(['high', 'normal', 'low']),
 ];
 
@@ -482,7 +482,7 @@ export const createTemplateValidation = [
     body('storeIds').isArray({ min: 1 }).withMessage('At least one store must be selected'),
     body('storeIds.*').isMongoId().withMessage('Invalid store ID'),
     body('type').notEmpty().withMessage('Type is required'),
-    body('channel').isIn(['email', 'sms', 'whatsapp']).withMessage('Valid channel is required'),
+    body('channel').isIn(['email', 'sms', 'whatsapp', 'telegram']).withMessage('Valid channel is required'),
     body('name').notEmpty().withMessage('Name is required'),
     body('textContent').notEmpty().withMessage('Text content is required'),
 ];

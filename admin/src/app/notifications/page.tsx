@@ -14,6 +14,7 @@ import {
 import {
     Visibility, Refresh, PlayArrow, Email, Sms, WhatsApp,
     CheckCircle, Error, Schedule, Cancel, Close, Store as StoreIcon,
+    Telegram,
 } from '@mui/icons-material';
 import api from '@/lib/api';
 
@@ -184,6 +185,7 @@ export default function NotificationsPage() {
             case 'email': return <Email fontSize="small" />;
             case 'sms': return <Sms fontSize="small" />;
             case 'whatsapp': return <WhatsApp fontSize="small" />;
+            case 'telegram': return <Telegram fontSize="small" />;
             default: return null;
         }
     };

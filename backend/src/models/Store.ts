@@ -36,6 +36,29 @@ export interface IStore extends Document {
         emailSettings?: any;
         smsSettings?: any;
         whatsappSettings?: any;
+        telegramSettings?: {
+            enabled: boolean;
+            botToken?: string;
+            chatId?: string;
+            notifications: {
+                newOrder: boolean;
+                orderStatus: boolean;
+                returnRequest: boolean;
+                orderCancel: boolean;
+                newCustomer: boolean;
+            }
+        };
+        adminNotificationSettings?: {
+            emails: string; // comma separated
+            notifications: {
+                emailEnabled: boolean;
+                newOrder: boolean;
+                orderStatus: boolean;
+                returnRequest: boolean;
+                orderCancel: boolean;
+                newCustomer: boolean;
+            }
+        };
         socialLogin?: {
             google: {
                 enabled: boolean;

@@ -17,6 +17,7 @@ import {
     Edit, Visibility, Refresh, Email, Sms, WhatsApp,
     Close, Info, Add, Delete,
     ContentCopy, RestartAlt,
+    Telegram,
 } from '@mui/icons-material';
 import api from '@/lib/api';
 import { useNotification } from '@/contexts/NotificationContext';
@@ -53,7 +54,7 @@ interface NotificationTemplate {
 interface TemplateFormData {
     storeIds: string[];
     type: string;
-    channel: 'email' | 'sms' | 'whatsapp';
+    channel: 'email' | 'sms' | 'whatsapp' | 'telegram';
     name: string;
     subject: string;
     htmlContent: string;
@@ -329,6 +330,7 @@ export default function NotificationTemplatesPage() {
             case 'email': return <Email fontSize="small" />;
             case 'sms': return <Sms fontSize="small" />;
             case 'whatsapp': return <WhatsApp fontSize="small" />;
+            case 'telegram': return <Telegram fontSize="small" />;
             default: return null;
         }
     };
@@ -338,6 +340,7 @@ export default function NotificationTemplatesPage() {
             case 'email': return 'primary';
             case 'sms': return 'warning';
             case 'whatsapp': return 'success';
+            case 'telegram': return 'success';
             default: return 'primary';
         }
     };
@@ -498,6 +501,7 @@ export default function NotificationTemplatesPage() {
                                     <MenuItem value="email">Email</MenuItem>
                                     <MenuItem value="sms">SMS</MenuItem>
                                     <MenuItem value="whatsapp">WhatsApp</MenuItem>
+                                    <MenuItem value="telegram">Telegram</MenuItem>
                                 </Select>
                             </FormControl>
                         </Grid>
@@ -617,8 +621,8 @@ export default function NotificationTemplatesPage() {
                                         <Select
                                             value={formData.channel}
                                             label="Channel *"
-                                            onChange={(e: SelectChangeEvent<'email' | 'sms' | 'whatsapp'>) => {
-                                                const channel = e.target.value as 'email' | 'sms' | 'whatsapp';
+                                            onChange={(e: SelectChangeEvent<'email' | 'sms' | 'whatsapp' | 'telegram'>) => {
+                                                const channel = e.target.value as 'email' | 'sms' | 'whatsapp' | 'telegram';
                                                 setFormData(prev => ({ ...prev, channel }));
                                             }}
                                         >
@@ -635,6 +639,11 @@ export default function NotificationTemplatesPage() {
                                             <MenuItem value="whatsapp">
                                                 <Stack direction="row" alignItems="center" spacing={1}>
                                                     <WhatsApp fontSize="small" /> <span>WhatsApp</span>
+                                                </Stack>
+                                            </MenuItem>
+                                            <MenuItem value="telegram">
+                                                <Stack direction="row" alignItems="center" spacing={1}>
+                                                    <Telegram fontSize="small" /> <span>Telegram</span>
                                                 </Stack>
                                             </MenuItem>
                                         </Select>

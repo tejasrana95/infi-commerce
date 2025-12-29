@@ -6,7 +6,7 @@ import mongoose, { Schema, Document } from 'mongoose';
  * Supports email, SMS, and WhatsApp channels
  */
 
-export type NotificationChannel = 'email' | 'sms' | 'whatsapp';
+export type NotificationChannel = 'email' | 'sms' | 'whatsapp' | 'telegram';
 export type NotificationPriority = 'high' | 'normal' | 'low';
 export type NotificationStatus = 'pending' | 'processing' | 'sent' | 'failed' | 'cancelled';
 
@@ -21,6 +21,13 @@ export type NotificationType =
     | 'order_delivered'
     | 'order_cancelled'
     | 'order_refunded'
+    | 'return_requested'
+    | 'customer_signup'
+    | 'admin_order_created'
+    | 'admin_order_updated'
+    | 'admin_return_requested'
+    | 'admin_order_cancelled'
+    | 'admin_customer_signup'
     | 'cart_abandoned'
     | 'review_request'
     | 'back_in_stock'
@@ -71,7 +78,7 @@ const NotificationQueueSchema = new Schema<INotificationQueue>(
         },
         channel: {
             type: String,
-            enum: ['email', 'sms', 'whatsapp'],
+            enum: ['email', 'sms', 'whatsapp', 'telegram'],
             required: true,
             default: 'email',
         },

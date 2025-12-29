@@ -11,7 +11,7 @@ import mongoose, { Schema, Document } from 'mongoose';
  * Inactive templates are allowed as duplicates (for versioning/backup purposes).
  */
 
-export type TemplateChannel = 'email' | 'sms' | 'whatsapp';
+export type TemplateChannel = 'email' | 'sms' | 'whatsapp' | 'telegram';
 
 export interface INotificationTemplate extends Document {
     storeIds: mongoose.Types.ObjectId[];  // array for multi-store support
@@ -41,7 +41,7 @@ const NotificationTemplateSchema = new Schema<INotificationTemplate>(
         },
         channel: {
             type: String,
-            enum: ['email', 'sms', 'whatsapp'],
+            enum: ['email', 'sms', 'whatsapp', 'telegram'],
             required: true,
         },
         name: {

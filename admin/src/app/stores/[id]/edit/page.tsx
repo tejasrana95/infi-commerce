@@ -6,10 +6,14 @@ import {
     Box, Button, Paper, Typography, Tabs, Tab, Card, CardContent,
     TextField, FormControl, InputLabel, Select, MenuItem,
     Divider, InputAdornment, IconButton, CircularProgress, Alert,
+    FormControlLabel, Checkbox, FormGroup,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { Visibility, VisibilityOff, EmailOutlined, Send, SmsOutlined, WhatsApp } from '@mui/icons-material';
+import {
+    Visibility, VisibilityOff, EmailOutlined, Send, SmsOutlined, WhatsApp,
+    Telegram, NotificationsActive
+} from '@mui/icons-material';
 import api from '@/lib/api';
 import StoreForm from '@/components/organisms/StoreForm';
 import { LoadingSpinner } from '@/components/atoms';
@@ -48,6 +52,31 @@ interface WhatsappSettings {
     meta?: { phoneNumberId: string; accessToken: string; businessAccountId?: string };
     twilio?: { accountSid: string; authToken: string; fromWhatsAppNumber: string };
     d7networks?: { token: string; originator: string };
+}
+
+interface TelegramSettings {
+    enabled: boolean;
+    botToken: string;
+    chatId: string;
+    notifications: {
+        newOrder: boolean;
+        orderStatus: boolean;
+        returnRequest: boolean;
+        orderCancel: boolean;
+        newCustomer: boolean;
+    };
+}
+
+interface AdminNotificationSettings {
+    emails: string;
+    notifications: {
+        emailEnabled: boolean;
+        newOrder: boolean;
+        orderStatus: boolean;
+        returnRequest: boolean;
+        orderCancel: boolean;
+        newCustomer: boolean;
+    };
 }
 
 interface TabPanelProps {
@@ -105,6 +134,35 @@ export default function EditStorePage() {
     });
     const [savingWhatsapp, setSavingWhatsapp] = useState(false);
 
+    // Telegram settings state
+    const [telegramSettings, setTelegramSettings] = useState<TelegramSettings>({
+        enabled: false,
+        botToken: '',
+        chatId: '',
+        notifications: {
+            newOrder: true,
+            orderStatus: true,
+            returnRequest: true,
+            orderCancel: true,
+            newCustomer: true,
+        },
+    });
+    const [savingTelegram, setSavingTelegram] = useState(false);
+
+    // Admin Notification settings state
+    const [adminNotificationSettings, setAdminNotificationSettings] = useState<AdminNotificationSettings>({
+        emails: '',
+        notifications: {
+            emailEnabled: true,
+            newOrder: true,
+            orderStatus: true,
+            returnRequest: true,
+            orderCancel: true,
+            newCustomer: true,
+        },
+    });
+    const [savingAdminNotif, setSavingAdminNotif] = useState(false);
+
     useEffect(() => {
         fetchStore();
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -132,7 +190,16 @@ export default function EditStorePage() {
             if (whatsappRes.data.whatsappSettings) {
                 setWhatsappSettings(whatsappRes.data.whatsappSettings);
             }
-        } catch (err) {
+
+            // Sync with store settings for new fields
+            const currentStore = response.data.store || response.data.data;
+            if (currentStore?.settings?.telegramSettings) {
+                setTelegramSettings(currentStore.settings.telegramSettings);
+            }
+            if (currentStore?.settings?.adminNotificationSettings) {
+                setAdminNotificationSettings(currentStore.settings.adminNotificationSettings);
+            }
+        } catch (_err) {
             showNotification('Failed to load store', 'error');
             router.push('/stores');
         } finally {
@@ -227,8 +294,9 @@ export default function EditStorePage() {
         try {
             await api.put(`/stores/${id}/sms-settings`, smsSettings);
             showNotification('SMS settings saved successfully', 'success');
-        } catch (err: any) {
-            showNotification(err.response?.data?.message || 'Failed to save SMS settings', 'error');
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } } };
+            showNotification(error.response?.data?.message || 'Failed to save SMS settings', 'error');
         } finally {
             setSavingSms(false);
         }
@@ -249,10 +317,37 @@ export default function EditStorePage() {
         try {
             await api.put(`/stores/${id}/whatsapp-settings`, whatsappSettings);
             showNotification('WhatsApp settings saved successfully', 'success');
-        } catch (err: any) {
-            showNotification(err.response?.data?.message || 'Failed to save WhatsApp settings', 'error');
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } } };
+            showNotification(error.response?.data?.message || 'Failed to save WhatsApp settings', 'error');
         } finally {
             setSavingWhatsapp(false);
+        }
+    };
+
+    const handleSaveTelegram = async () => {
+        setSavingTelegram(true);
+        try {
+            await api.put(`/stores/${id}`, { settings: { telegramSettings } });
+            showNotification('Telegram settings saved successfully', 'success');
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } } };
+            showNotification(error.response?.data?.message || 'Failed to save Telegram settings', 'error');
+        } finally {
+            setSavingTelegram(false);
+        }
+    };
+
+    const handleSaveAdminNotif = async () => {
+        setSavingAdminNotif(true);
+        try {
+            await api.put(`/stores/${id}`, { settings: { adminNotificationSettings } });
+            showNotification('Admin notification settings saved successfully', 'success');
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } } };
+            showNotification(error.response?.data?.message || 'Failed to save Admin notification settings', 'error');
+        } finally {
+            setSavingAdminNotif(false);
         }
     };
 
@@ -285,6 +380,8 @@ export default function EditStorePage() {
                         <Tab label="Email Settings" />
                         <Tab label="SMS Settings" />
                         <Tab label="WhatsApp Settings" />
+                        <Tab label="Telegram Settings" />
+                        <Tab label="Admin Notifications" />
                     </Tabs>
                 </Box>
 
@@ -838,6 +935,7 @@ export default function EditStorePage() {
 
                 {/* WhatsApp Settings Tab */}
                 <TabPanel value={activeTab} index={3}>
+                    {/* ... existing whatsapp content ... */}
                     <Box sx={{ p: 3, pt: 0 }}>
                         <Card sx={{ mb: 3 }}>
                             <CardContent>
@@ -1032,6 +1130,188 @@ export default function EditStorePage() {
                                         startIcon={savingWhatsapp ? <CircularProgress size={20} /> : <WhatsApp />}
                                     >
                                         {savingWhatsapp ? 'Saving...' : 'Save WhatsApp Settings'}
+                                    </Button>
+                                </Box>
+                            </CardContent>
+                        </Card>
+                    </Box>
+                </TabPanel>
+
+                {/* Telegram Settings Tab */}
+                <TabPanel value={activeTab} index={4}>
+                    <Box sx={{ p: 3, pt: 0 }}>
+                        <Card sx={{ mb: 3 }}>
+                            <CardContent>
+                                <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+                                    <Typography variant="h6">Telegram Integration</Typography>
+                                    <Button
+                                        variant={telegramSettings.enabled ? "contained" : "outlined"}
+                                        color={telegramSettings.enabled ? "success" : "inherit"}
+                                        onClick={() => setTelegramSettings({ ...telegramSettings, enabled: !telegramSettings.enabled })}
+                                    >
+                                        {telegramSettings.enabled ? "Enabled" : "Disabled"}
+                                    </Button>
+                                </Box>
+
+                                <Grid container spacing={3}>
+                                    <Grid size={{ xs: 12, md: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Bot Token"
+                                            value={telegramSettings.botToken}
+                                            onChange={(e) => setTelegramSettings({ ...telegramSettings, botToken: e.target.value })}
+                                            disabled={!telegramSettings.enabled}
+                                            type={showPassword ? 'text' : 'password'}
+                                            InputProps={{
+                                                endAdornment: (
+                                                    <InputAdornment position="end">
+                                                        <IconButton onClick={() => setShowPassword(!showPassword)}>
+                                                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                                                        </IconButton>
+                                                    </InputAdornment>
+                                                ),
+                                            }}
+                                        />
+                                    </Grid>
+                                    <Grid size={{ xs: 12, md: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Chat ID"
+                                            value={telegramSettings.chatId}
+                                            onChange={(e) => setTelegramSettings({ ...telegramSettings, chatId: e.target.value })}
+                                            disabled={!telegramSettings.enabled}
+                                            placeholder="e.g. 123456789"
+                                        />
+                                    </Grid>
+                                </Grid>
+
+                                <Divider sx={{ my: 3 }} />
+
+                                <Typography variant="h6" sx={{ mb: 2 }}>Notification Types</Typography>
+                                <FormGroup>
+                                    <Grid container spacing={1}>
+                                        <Grid size={{ xs: 12, md: 6 }}>
+                                            <FormControlLabel
+                                                control={<Checkbox checked={telegramSettings.notifications.newOrder} onChange={(e) => setTelegramSettings({ ...telegramSettings, notifications: { ...telegramSettings.notifications, newOrder: e.target.checked } })} />}
+                                                label="New Order Notification"
+                                                disabled={!telegramSettings.enabled}
+                                            />
+                                        </Grid>
+                                        <Grid size={{ xs: 12, md: 6 }}>
+                                            <FormControlLabel
+                                                control={<Checkbox checked={telegramSettings.notifications.orderStatus} onChange={(e) => setTelegramSettings({ ...telegramSettings, notifications: { ...telegramSettings.notifications, orderStatus: e.target.checked } })} />}
+                                                label="Order Status Update"
+                                                disabled={!telegramSettings.enabled}
+                                            />
+                                        </Grid>
+                                        <Grid size={{ xs: 12, md: 6 }}>
+                                            <FormControlLabel
+                                                control={<Checkbox checked={telegramSettings.notifications.returnRequest} onChange={(e) => setTelegramSettings({ ...telegramSettings, notifications: { ...telegramSettings.notifications, returnRequest: e.target.checked } })} />}
+                                                label="Return Request"
+                                                disabled={!telegramSettings.enabled}
+                                            />
+                                        </Grid>
+                                        <Grid size={{ xs: 12, md: 6 }}>
+                                            <FormControlLabel
+                                                control={<Checkbox checked={telegramSettings.notifications.orderCancel} onChange={(e) => setTelegramSettings({ ...telegramSettings, notifications: { ...telegramSettings.notifications, orderCancel: e.target.checked } })} />}
+                                                label="Order Cancel"
+                                                disabled={!telegramSettings.enabled}
+                                            />
+                                        </Grid>
+                                        <Grid size={{ xs: 12, md: 6 }}>
+                                            <FormControlLabel
+                                                control={<Checkbox checked={telegramSettings.notifications.newCustomer} onChange={(e) => setTelegramSettings({ ...telegramSettings, notifications: { ...telegramSettings.notifications, newCustomer: e.target.checked } })} />}
+                                                label="New Customer Signup"
+                                                disabled={!telegramSettings.enabled}
+                                            />
+                                        </Grid>
+                                    </Grid>
+                                </FormGroup>
+
+                                <Box sx={{ mt: 4 }}>
+                                    <Button
+                                        variant="contained"
+                                        onClick={handleSaveTelegram}
+                                        disabled={savingTelegram}
+                                        startIcon={savingTelegram ? <CircularProgress size={20} /> : <Telegram />}
+                                    >
+                                        {savingTelegram ? 'Saving...' : 'Save Telegram Settings'}
+                                    </Button>
+                                </Box>
+                            </CardContent>
+                        </Card>
+                    </Box>
+                </TabPanel>
+
+                {/* Admin Notification Settings Tab */}
+                <TabPanel value={activeTab} index={5}>
+                    <Box sx={{ p: 3, pt: 0 }}>
+                        <Card sx={{ mb: 3 }}>
+                            <CardContent>
+                                <Typography variant="h6" sx={{ mb: 3 }}>Admin Email Notifications</Typography>
+                                <Grid container spacing={3}>
+                                    <Grid size={{ xs: 12 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Admin Email Addresses"
+                                            value={adminNotificationSettings.emails}
+                                            onChange={(e) => setAdminNotificationSettings({ ...adminNotificationSettings, emails: e.target.value })}
+                                            placeholder="comma-separated emails, e.g. admin1@example.com, admin2@example.com"
+                                            helperText="Multiple emails should be separated by commas"
+                                        />
+                                    </Grid>
+                                </Grid>
+
+                                <Divider sx={{ my: 3 }} />
+
+                                <Typography variant="h6" sx={{ mb: 2 }}>Notification Types</Typography>
+                                <FormGroup>
+                                    <FormControlLabel
+                                        control={<Checkbox checked={adminNotificationSettings.notifications.emailEnabled} onChange={(e) => setAdminNotificationSettings({ ...adminNotificationSettings, notifications: { ...adminNotificationSettings.notifications, emailEnabled: e.target.checked } })} />}
+                                        label="Enable Email Notifications"
+                                    />
+                                    <Grid container spacing={1} sx={{ mt: 1, pl: 2 }}>
+                                        <Grid size={{ xs: 12, md: 6 }}>
+                                            <FormControlLabel
+                                                control={<Checkbox checked={adminNotificationSettings.notifications.newOrder} onChange={(e) => setAdminNotificationSettings({ ...adminNotificationSettings, notifications: { ...adminNotificationSettings.notifications, newOrder: e.target.checked } })} />}
+                                                label="New Order Notification"
+                                            />
+                                        </Grid>
+                                        <Grid size={{ xs: 12, md: 6 }}>
+                                            <FormControlLabel
+                                                control={<Checkbox checked={adminNotificationSettings.notifications.orderStatus} onChange={(e) => setAdminNotificationSettings({ ...adminNotificationSettings, notifications: { ...adminNotificationSettings.notifications, orderStatus: e.target.checked } })} />}
+                                                label="Order Status Update"
+                                            />
+                                        </Grid>
+                                        <Grid size={{ xs: 12, md: 6 }}>
+                                            <FormControlLabel
+                                                control={<Checkbox checked={adminNotificationSettings.notifications.returnRequest} onChange={(e) => setAdminNotificationSettings({ ...adminNotificationSettings, notifications: { ...adminNotificationSettings.notifications, returnRequest: e.target.checked } })} />}
+                                                label="Return Request"
+                                            />
+                                        </Grid>
+                                        <Grid size={{ xs: 12, md: 6 }}>
+                                            <FormControlLabel
+                                                control={<Checkbox checked={adminNotificationSettings.notifications.orderCancel} onChange={(e) => setAdminNotificationSettings({ ...adminNotificationSettings, notifications: { ...adminNotificationSettings.notifications, orderCancel: e.target.checked } })} />}
+                                                label="Order Cancel"
+                                            />
+                                        </Grid>
+                                        <Grid size={{ xs: 12, md: 6 }}>
+                                            <FormControlLabel
+                                                control={<Checkbox checked={adminNotificationSettings.notifications.newCustomer} onChange={(e) => setAdminNotificationSettings({ ...adminNotificationSettings, notifications: { ...adminNotificationSettings.notifications, newCustomer: e.target.checked } })} />}
+                                                label="New Customer Signup"
+                                            />
+                                        </Grid>
+                                    </Grid>
+                                </FormGroup>
+
+                                <Box sx={{ mt: 4 }}>
+                                    <Button
+                                        variant="contained"
+                                        onClick={handleSaveAdminNotif}
+                                        disabled={savingAdminNotif}
+                                        startIcon={savingAdminNotif ? <CircularProgress size={20} /> : <NotificationsActive />}
+                                    >
+                                        {savingAdminNotif ? 'Saving...' : 'Save Admin Notification Settings'}
                                     </Button>
                                 </Box>
                             </CardContent>

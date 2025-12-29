@@ -7,7 +7,7 @@
 
 export interface DefaultTemplate {
     type: string;
-    channel: 'email' | 'sms' | 'whatsapp';
+    channel: 'email' | 'sms' | 'whatsapp' | 'telegram';
     name: string;
     subject?: string;
     htmlContent?: string;
@@ -71,6 +71,31 @@ export const TEMPLATE_TYPES = {
         label: 'Order Failed',
         description: 'Sent when payment fails',
         variables: ['firstName', 'orderNumber', 'total', 'orderUrl', 'storeName'],
+    },
+    admin_order_created: {
+        label: 'Admin: New Order',
+        description: 'Sent to admin when a new order is placed',
+        variables: ['orderNumber', 'customerName', 'total', 'status', 'orderId', 'storeName'],
+    },
+    admin_order_updated: {
+        label: 'Admin: Order Updated',
+        description: 'Sent to admin when an order status is updated',
+        variables: ['orderNumber', 'customerName', 'total', 'status', 'orderId', 'storeName'],
+    },
+    admin_return_requested: {
+        label: 'Admin: Return Requested',
+        description: 'Sent to admin when a return is requested',
+        variables: ['orderNumber', 'customerName', 'total', 'status', 'orderId', 'storeName'],
+    },
+    admin_order_cancelled: {
+        label: 'Admin: Order Cancelled',
+        description: 'Sent to admin when an order is cancelled',
+        variables: ['orderNumber', 'customerName', 'total', 'status', 'orderId', 'storeName'],
+    },
+    admin_customer_signup: {
+        label: 'Admin: New Customer',
+        description: 'Sent to admin when a new customer registers',
+        variables: ['email', 'firstName', 'phone', 'storeName'],
     }
 } as const;
 
@@ -622,12 +647,142 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         textContent: 'Hi {{firstName}}, payment for order #{{orderNumber}} from {{storeName}} has failed. Total: {{total}}. Retry here: {{orderUrl}}',
         variables: ['firstName', 'orderNumber', 'storeName', 'total', 'orderUrl'],
     },
+    {
+        type: 'order_created',
+        channel: 'telegram',
+        name: 'Order Confirmation Telegram',
+        textContent: 'Hi {{firstName}}, your order #<b>{{orderNumber}}</b> from {{storeName}} has been confirmed! Total: {{total}}.',
+        variables: ['firstName', 'orderNumber', 'storeName', 'total'],
+    },
+    {
+        type: 'order_shipped',
+        channel: 'telegram',
+        name: 'Order Shipped Telegram',
+        textContent: 'Hi {{firstName}}, your order #<b>{{orderNumber}}</b> from {{storeName}} has been shipped! Track here: {{trackingUrl}}',
+        variables: ['firstName', 'orderNumber', 'storeName', 'trackingUrl'],
+    },
+
+    // ============================================
+    // Admin Notifications
+    // ============================================
+    {
+        type: 'admin_order_created',
+        channel: 'email',
+        name: 'Admin: New Order Notification',
+        subject: '[New Order] #{{orderNumber}} - {{total}}',
+        htmlContent: `
+<!DOCTYPE html>
+<html>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h2>New Order Received!</h2>
+    <p><strong>Order Number:</strong> #{{orderNumber}}</p>
+    <p><strong>Customer:</strong> {{customerName}}</p>
+    <p><strong>Total:</strong> {{total}}</p>
+    <p><strong>Status:</strong> {{status}}</p>
+    <p><a href="{{storeUrl}}/admin/orders/{{orderId}}" style="padding: 10px 20px; background: #000; color: #fff; text-decoration: none; border-radius: 5px;">View Order in Admin</a></p>
+</body>
+</html>`,
+        textContent: 'New Order Received! Order #{{orderNumber}}, Customer: {{customerName}}, Total: {{total}}, Status: {{status}}',
+        variables: ['orderNumber', 'customerName', 'total', 'status', 'orderId'],
+    },
+    {
+        type: 'admin_order_created',
+        channel: 'telegram',
+        name: 'Admin: New Order Telegram',
+        textContent: '🚀 <b>New Order Received in {{storeName}}!</b>\n\n<b>Order:</b> #{{orderNumber}}\n<b>Customer:</b> {{customerName}}\n<b>Total:</b> {{total}}\n<b>Status:</b> {{status}}',
+        variables: ['orderNumber', 'customerName', 'total', 'status', 'storeName'],
+    },
+    {
+        type: 'admin_order_updated',
+        channel: 'email',
+        name: 'Admin: Order Status Updated',
+        subject: '[Order Updated] #{{orderNumber}} is now {{status}}',
+        htmlContent: `
+<!DOCTYPE html>
+<html>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h2>Order Status Updated</h2>
+    <p><strong>Order Number:</strong> #{{orderNumber}}</p>
+    <p><strong>Customer:</strong> {{customerName}}</p>
+    <p><strong>New Status:</strong> {{status}}</p>
+    <p><a href="{{storeUrl}}/admin/orders/{{orderId}}" style="padding: 10px 20px; background: #000; color: #fff; text-decoration: none; border-radius: 5px;">Update Details</a></p>
+</body>
+</html>`,
+        textContent: 'Order #{{orderNumber}} status updated to {{status}}. Customer: {{customerName}}',
+        variables: ['orderNumber', 'customerName', 'status', 'orderId'],
+    },
+    {
+        type: 'admin_order_updated',
+        channel: 'telegram',
+        name: 'Admin: Order Updated Telegram',
+        textContent: '📝 <b>Order Status Updated in {{storeName}}!</b>\n\n<b>Order:</b> #{{orderNumber}}\n<b>Customer:</b> {{customerName}}\n<b>New Status:</b> {{status}}',
+        variables: ['orderNumber', 'customerName', 'status', 'storeName'],
+    },
+    {
+        type: 'admin_customer_signup',
+        channel: 'email',
+        name: 'Admin: New Customer Signup',
+        subject: '[New Customer] {{firstName}} has registered',
+        htmlContent: `
+<!DOCTYPE html>
+<html>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h2>New Customer Registration</h2>
+    <p><strong>Name:</strong> {{firstName}}</p>
+    <p><strong>Email:</strong> {{email}}</p>
+    {{#if phone}}<p><strong>Phone:</strong> {{phone}}</p>{{/if}}
+</body>
+</html>`,
+        textContent: 'New Customer Registered: {{firstName}} ({{email}}). Phone: {{phone}}',
+        variables: ['firstName', 'email', 'phone', 'storeName'],
+    },
+    {
+        type: 'admin_order_cancelled',
+        channel: 'email',
+        name: 'Admin: Order Cancelled',
+        subject: '[Order Cancelled] #{{orderNumber}} - {{total}}',
+        htmlContent: `
+<!DOCTYPE html>
+<html>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h2>Order Cancelled</h2>
+    <p><strong>Order Number:</strong> #{{orderNumber}}</p>
+    <p><strong>Customer:</strong> {{customerName}}</p>
+    <p><strong>Total:</strong> {{total}}</p>
+    <p><strong>Status:</strong> {{status}}</p>
+    <p><a href="{{storeUrl}}/admin/orders/{{orderId}}" style="padding: 10px 20px; background: #000; color: #fff; text-decoration: none; border-radius: 5px;">Update Details</a></p>
+</body>
+</html>`,
+        textContent: 'Order #{{orderNumber}} cancelled. Customer: {{customerName}}, Total: {{total}}, Status: {{status}}',
+        variables: ['orderNumber', 'customerName', 'total', 'status', 'orderId', 'storeUrl', 'storeName'],
+    },
+    {
+        type: 'admin_customer_signup',
+        channel: 'telegram',
+        name: 'Admin: New Customer Telegram',
+        textContent: '👤 <b>New Customer Registered in {{storeName}}!</b>\n\n<b>Name:</b> {{firstName}}\n<b>Email:</b> {{email}}\n<b>Phone:</b> {{phone}}',
+        variables: ['firstName', 'email', 'phone', 'storeName'],
+    },
+    {
+        type: 'admin_order_cancelled',
+        channel: 'telegram',
+        name: 'Admin: Order Cancelled Telegram',
+        textContent: '❌ <b>Order Cancelled in {{storeName}}!</b>\n\n<b>Order:</b> #{{orderNumber}}\n<b>Customer:</b> {{customerName}}\n<b>Total:</b> {{total}}',
+        variables: ['orderNumber', 'customerName', 'total', 'storeName'],
+    },
+    {
+        type: 'admin_return_requested',
+        channel: 'telegram',
+        name: 'Admin: Return Requested Telegram',
+        textContent: '↩️ <b>Return Requested in {{storeName}}!</b>\n\n<b>Order:</b> #{{orderNumber}}\n<b>Customer:</b> {{customerName}}\n<b>Total:</b> {{total}}',
+        variables: ['orderNumber', 'customerName', 'total', 'storeName'],
+    }
 ];
 
 /**
  * Get default template by type and channel
  */
-export function getDefaultTemplateContent(type: string, channel: 'email' | 'sms' | 'whatsapp'): DefaultTemplate | null {
+export function getDefaultTemplateContent(type: string, channel: 'email' | 'sms' | 'whatsapp' | 'telegram'): DefaultTemplate | null {
     return DEFAULT_TEMPLATES.find(t => t.type === type && t.channel === channel) || null;
 }
 
