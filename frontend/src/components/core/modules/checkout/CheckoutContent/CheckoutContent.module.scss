@@ -5,6 +5,31 @@
     font-family: var(--font-body);
 }
 
+.checkoutBody {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 2rem;
+    align-items: start;
+
+    @media (max-width: 1024px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.mainContent {
+    min-width: 0; // Prevent flex/grid item overflow
+}
+
+.sidebar {
+    position: sticky;
+    top: 2rem;
+    order: 2;
+
+    @media (max-width: 1024px) {
+        display: none; // Handled by mobile summary toggler inside CheckoutSummary
+    }
+}
+
 .spinner {
     width: 48px;
     height: 48px;
