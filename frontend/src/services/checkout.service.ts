@@ -116,6 +116,8 @@ export async function getShippingMethods(
     description?: string;
     breakdown: any[];
     orderSummary: any;
+    success?: boolean;
+    restrictedItems?: string[];
 }> {
     // Transform cart items to the format expected by the API
     const items = cartItems.map(item => ({

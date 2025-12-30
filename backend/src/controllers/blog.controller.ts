@@ -352,7 +352,7 @@ export const getBlogPosts = asyncHandler(async (req: AuthRequest, res: Response)
 
     const total = await BlogPost.countDocuments(filter);
 
-    res.json({
+    return res.json({
         data: posts,
         pagination: {
             total,

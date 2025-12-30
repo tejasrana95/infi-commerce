@@ -146,26 +146,46 @@ export const updateGatewayConfig = asyncHandler(async (req: AuthRequest, res: Re
     delete updateData.storeId;
     delete updateData.gatewayType;
 
-    // Encrypt credentials if provided
-    if (updateData.credentials) {
-        updateData.credentials = encryptCredentials(updateData.credentials);
-    }
-
-    const config = await PaymentGatewayConfig.findByIdAndUpdate(id, updateData, {
-        new: true,
-        runValidators: true,
-    })
-        .populate('geoGroupId', 'name countries')
-        .select('-credentials');
+    const config = await PaymentGatewayConfig.findById(id);
 
     if (!config) {
         throw new AppError('Payment gateway configuration not found', 404);
     }
 
+    // Handle credentials merge
+    if (updateData.credentials && Object.keys(updateData.credentials).length > 0) {
+        // Merge with existing credentials to prevent data loss on partial updates
+        const mergedCredentials = {
+            ...config.credentials,
+            ...updateData.credentials
+        };
+        updateData.credentials = encryptCredentials(mergedCredentials);
+    } else {
+        // If credentials are empty, don't update/overwrite them
+        delete updateData.credentials;
+    }
+
+    // Update fields
+    Object.assign(config, updateData);
+
+    // Explicitly mark credentials as modified if they were updated
+    if (updateData.credentials) {
+        config.markModified('credentials');
+    }
+
+    await config.save();
+
+    // Re-populate for response
+    await config.populate('geoGroupId', 'name countries');
+
+    // Remove credentials from response for security
+    const configObj = config.toObject();
+    delete (configObj as any).credentials;
+
     res.json({
         success: true,
         message: 'Payment gateway configuration updated successfully',
-        data: config,
+        data: configObj,
     });
 });
 

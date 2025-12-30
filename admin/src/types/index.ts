@@ -2,7 +2,8 @@ export interface User {
   _id: string;
   name: string;
   email: string;
-  role: 'admin' | 'manager' | 'staff';
+  role: 'admin' | 'manager' | 'staff' | 'super_admin' | 'store_admin';
+  storeId?: string;
 }
 
 // ============ TAX RATE TYPES ============

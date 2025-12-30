@@ -8,17 +8,22 @@ export class InventoryService {
     static async reduceStock(items: any[]) {
         for (const item of items) {
             const product = await Product.findById(item.productId);
-            if (!product || !product.manageStock) continue;
+            if (!product) continue;
 
-            if (item.variantId && product.variants && product.variants.length > 0) {
-                // Handle variant stock
-                const variant = product.variants.find((v: any) => v._id.toString() === item.variantId);
-                if (variant) {
-                    variant.stock = Math.max(0, (variant.stock || 0) - item.quantity);
+            // Increment sales count regardless of manageStock setting
+            product.salesCount = (product.salesCount || 0) + item.quantity;
+
+            if (product.manageStock) {
+                if (item.variantId && product.variants && product.variants.length > 0) {
+                    // Handle variant stock
+                    const variant = product.variants.find((v: any) => v._id.toString() === item.variantId);
+                    if (variant) {
+                        variant.stock = Math.max(0, (variant.stock || 0) - item.quantity);
+                    }
+                } else {
+                    // Handle simple product stock
+                    product.stock = Math.max(0, product.stock - item.quantity);
                 }
-            } else {
-                // Handle simple product stock
-                product.stock = Math.max(0, product.stock - item.quantity);
             }
 
             await product.save();
@@ -32,17 +37,22 @@ export class InventoryService {
     static async restoreStock(items: any[]) {
         for (const item of items) {
             const product = await Product.findById(item.productId);
-            if (!product || !product.manageStock) continue;
+            if (!product) continue;
 
-            if (item.variantId && product.variants && product.variants.length > 0) {
-                // Handle variant stock
-                const variant = product.variants.find((v: any) => v._id.toString() === item.variantId);
-                if (variant) {
-                    variant.stock = (variant.stock || 0) + item.quantity;
+            // Decrement sales count when order is cancelled/returned
+            product.salesCount = Math.max(0, (product.salesCount || 0) - item.quantity);
+
+            if (product.manageStock) {
+                if (item.variantId && product.variants && product.variants.length > 0) {
+                    // Handle variant stock
+                    const variant = product.variants.find((v: any) => v._id.toString() === item.variantId);
+                    if (variant) {
+                        variant.stock = (variant.stock || 0) + item.quantity;
+                    }
+                } else {
+                    // Handle simple product stock
+                    product.stock = product.stock + item.quantity;
                 }
-            } else {
-                // Handle simple product stock
-                product.stock = product.stock + item.quantity;
             }
 
             await product.save();

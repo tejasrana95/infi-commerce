@@ -212,12 +212,12 @@ export default function CheckoutOnePage({ config: propsConfig, children, complet
 }
 
 function PlaceOrderButtonWrapper() {
-    const { handlePlaceOrder, submitting } = useCheckout();
+    const { handlePlaceOrder, submitting, restrictedItems = [], storeConfig, shippingDetails } = useCheckout();
     return (
         <button
             className={styles.placeOrderBtn}
             onClick={handlePlaceOrder}
-            disabled={submitting}
+            disabled={submitting || restrictedItems.length > 0 || (storeConfig?.shippingEnabled && !shippingDetails)}
         >
             {submitting ? 'Placing Order...' : 'Place Order'}
         </button>

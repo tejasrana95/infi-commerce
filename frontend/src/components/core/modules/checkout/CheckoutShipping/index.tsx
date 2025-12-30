@@ -18,7 +18,8 @@ export default function CheckoutShipping({ config: propsConfig }: CheckoutShippi
         shippingAddress,
         shippingCost,
         shippingDetails,
-        storeConfig
+        storeConfig,
+        restrictedItems
     } = useCheckout();
 
     // Re-check context... I did not expose storeConfig or shippingMethods list.
@@ -36,6 +37,25 @@ export default function CheckoutShipping({ config: propsConfig }: CheckoutShippi
     if (!shippingAddress) {
         return <div className={styles.placeholder}>Please select a shipping address first.</div>;
     }
+
+    if (restrictedItems && restrictedItems.length > 0) {
+        return (
+            <div className={styles.shippingModule}>
+                <h2 className={styles.title}>Shipping Method</h2>
+                <div className={styles.errorContainer} style={{ padding: '15px', backgroundColor: '#fff5f5', border: '1px solid #fed7d7', borderRadius: '4px', color: '#c53030' }}>
+                    <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '10px' }}>Shipping Restrictions</h3>
+                    <p style={{ marginBottom: '10px' }}>{`The following item${restrictedItems.length > 1 ? 's' : ''} cannot be shipped to your selected location`}:</p>
+                    <ul style={{ paddingLeft: '20px', listStyleType: 'disc' }}>
+                        {restrictedItems.map((item, index) => (
+                            <li key={index} style={{ marginBottom: '4px' }}>{item}</li>
+                        ))}
+                    </ul>
+                    <p style={{ marginTop: '10px', fontSize: '14px' }}>Please remove these items or select a different shipping address.</p>
+                </div>
+            </div>
+        );
+    }
+
     // Default shipping method display
     return (
         <div className={styles.shippingModule}>

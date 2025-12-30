@@ -312,6 +312,7 @@ export const adminUpdateOrder = asyncHandler(async (req: AuthRequest, res: Respo
     }
 
     const oldStatus = order.status;
+    const oldPaymentStatus = order.paymentStatus;
     const oldTrackingNumber = order.trackingNumber;
 
     // Update other fields
@@ -330,8 +331,14 @@ export const adminUpdateOrder = asyncHandler(async (req: AuthRequest, res: Respo
     if (trackingUrl !== undefined) order.trackingUrl = trackingUrl;
 
     // Handle stock if payment status changed to paid
-    if (paymentStatus === 'paid' && order.paymentStatus !== 'paid') {
+    if (paymentStatus === 'paid' && oldPaymentStatus !== 'paid') {
         await InventoryService.reduceStock(order.items);
+    }
+
+    // Handle stock restoration if status changed to cancelled or refunded
+    if ((status === 'cancelled' || status === 'refunded') &&
+        (oldStatus !== 'cancelled' && oldStatus !== 'refunded')) {
+        await InventoryService.restoreStock(order.items);
     }
 
     // Recalculate total
@@ -745,11 +752,18 @@ export const initializePayment = asyncHandler(async (req: AuthRequest, res: Resp
     });
 
     if (!payment.success) {
-        console.error('Payment initialization failed:', payment);
-        const errorMessage = payment.gatewayResponse?.error?.description
-            || payment.gatewayResponse?.message
+        console.error(`Payment initialization failed for order ${order.orderNumber}:`, JSON.stringify(payment, null, 2));
+
+        // Extract the best possible error message from different gateways
+        const gr = payment.gatewayResponse;
+        const errorMessage = gr?.error?.description
+            || gr?.description
+            || gr?.message
+            || gr?.error_description
+            || (typeof gr === 'string' ? gr : null)
             || 'Failed to initialize payment';
-        throw new AppError(errorMessage, 500);
+
+        throw new AppError(errorMessage, 400); // Changed to 400 as it's often a client/configuration issue
     }
 
     // Store payment ID in order

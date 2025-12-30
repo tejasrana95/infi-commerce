@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import Order from '../models/Order';
-import Product from '../models/Product';
 import Coupon from '../models/Coupon';
 import { asyncHandler, AppError } from '../middleware/validation';
 import { PaymentService } from '../services/payment/payment.service';

@@ -502,11 +502,18 @@ export const calculateSmartShipping = asyncHandler(async (req: AuthRequest, res:
 
     const itemDetails: ItemDetails[] = [];
     let totalSubtotal = 0;
+    const restrictedItems: string[] = []; // Track restricted items
 
     for (const item of items) {
         const product = await Product.findById(item.productId);
         if (!product) {
             throw new AppError(`Product not found: ${item.productId}`, 404);
+        }
+
+        // Check if product can ship to this location
+        // Note: country is available from req.body
+        if (!product.canShipTo(country)) {
+            restrictedItems.push(product.name);
         }
 
         let itemWeight = product.weight || 0;
@@ -535,6 +542,16 @@ export const calculateSmartShipping = asyncHandler(async (req: AuthRequest, res:
         });
 
         totalSubtotal += itemPrice * item.quantity;
+    }
+
+    // If there are restricted items, return them
+    if (restrictedItems.length > 0) {
+        res.status(200).json({
+            success: false,
+            restrictedItems,
+            shippingMethods: []
+        });
+        return;
     }
 
     // Step 2: Fetch all active shipping rules for the store

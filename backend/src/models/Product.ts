@@ -130,6 +130,10 @@ export interface IProduct extends Document {
 
     createdAt: Date;
     updatedAt: Date;
+
+    // Methods
+    getEffectivePrice(): number;
+    canShipTo(country?: string, state?: string, city?: string): boolean;
 }
 
 const ProductSchema = new Schema<IProduct>(

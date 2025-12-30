@@ -1,0 +1,127 @@
+import { Response } from 'express';
+import Order from '../models/Order';
+import Customer from '../models/Customer';
+import Product from '../models/Product';
+import Review from '../models/Review';
+import mongoose from 'mongoose';
+import { AuthRequest } from '../middleware/auth';
+
+/**
+ * Get Dashboard Statistics
+ * Aggregates data from orders, customers, products and reviews
+ */
+export const getDashboardStats = async (req: AuthRequest, res: Response) => {
+    try {
+        let storeId = req.query.storeId as string;
+        const userRole = req.user?.role;
+        const isStoreAdmin = userRole === 'store_admin';
+
+        // If store_admin, always force their assigned storeId
+        if (isStoreAdmin && req.user?.storeId) {
+            storeId = req.user.storeId.toString();
+        }
+
+        const filter: any = {};
+        if (storeId && storeId !== 'all') {
+            filter.storeId = new mongoose.Types.ObjectId(storeId);
+        }
+
+        // 1. Basic Stats (Counts)
+        // For customerCount: if store-specific, count customers who have orders in this store
+        // If all stores, count all unique customers in the system
+        const getCustomerCount = async () => {
+            if (filter.storeId) {
+                const results = await Order.distinct('customerId', { storeId: filter.storeId });
+                return results.length;
+            }
+            return Customer.countDocuments({});
+        };
+
+        const [
+            ordersCount,
+            customersCount,
+            productsCount,
+            lowStockCount,
+            pendingReviewsCount
+        ] = await Promise.all([
+            Order.countDocuments(filter),
+            getCustomerCount(),
+            Product.countDocuments(filter),
+            Product.countDocuments({
+                ...filter,
+                manageStock: true,
+                $expr: { $lte: ['$stock', { $ifNull: ['$lowStockThreshold', 5] }] }
+            }),
+            Review.countDocuments({ ...filter, isApproved: false })
+        ]);
+
+        // 2. Revenue Calculation (Paid orders)
+        const revenueResult = await Order.aggregate([
+            { $match: { ...filter, paymentStatus: 'paid' } },
+            { $group: { _id: null, total: { $sum: '$total' } } }
+        ]);
+        const totalRevenue = revenueResult.length > 0 ? revenueResult[0].total : 0;
+
+        // 3. Recent Orders
+        const recentOrders = await Order.find(filter)
+            .sort({ createdAt: -1 })
+            .limit(5)
+            .populate('customerId', 'firstName lastName email');
+
+        // 4. Top Selling Products
+        const topProducts = await Product.find(filter)
+            .sort({ salesCount: -1 })
+            .limit(5)
+            .select('name sku salesCount price featuredImage salePrice images');
+
+        // 5. Sales Data (Last 30 days)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const salesData = await Order.aggregate([
+            {
+                $match: {
+                    ...filter,
+                    paymentStatus: 'paid',
+                    createdAt: { $gte: thirtyDaysAgo }
+                }
+            },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                    revenue: { $sum: "$total" },
+                    orders: { $sum: 1 }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]);
+
+        // 6. Order Status Distribution
+        const statusDistribution = await Order.aggregate([
+            { $match: filter },
+            { $group: { _id: "$status", count: { $sum: 1 } } }
+        ]);
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                stats: {
+                    totalRevenue,
+                    ordersCount,
+                    customersCount,
+                    productsCount,
+                    lowStockCount,
+                    pendingReviewsCount
+                },
+                recentOrders,
+                topProducts,
+                salesData,
+                statusDistribution
+            }
+        });
+
+    } catch (error: any) {
+        console.error('Dashboard Stats Error:', error);
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};

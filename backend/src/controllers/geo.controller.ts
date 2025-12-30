@@ -305,7 +305,7 @@ export const deleteGeo = asyncHandler(async (req: AuthRequest, res: Response) =>
  *       200:
  *         description: Countries retrieved successfully
  */
-export const getCountriesHierarchical = asyncHandler(async (req: AuthRequest, res: Response) => {
+export const getCountriesHierarchical = asyncHandler(async (_req: AuthRequest, res: Response) => {
     // Get all countries
     const countries = await Geo.find({ type: 'country' }).sort({ name: 1 });
 

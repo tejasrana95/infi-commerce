@@ -72,10 +72,9 @@ const GATEWAY_TYPES = [
     { value: 'paypal', label: 'PayPal' },
 ];
 
-const COMMON_CURRENCIES = ['USD', 'EUR', 'GBP', 'INR', 'CAD', 'AUD', 'JPY', 'SGD', 'AED'];
-
 export default function PaymentGatewayForm({ initialData, onSubmit, isSubmitting = false }: PaymentGatewayFormProps) {
     const [currencyInput, setCurrencyInput] = useState('');
+    const [availableCurrencies, setAvailableCurrencies] = useState<string[]>([]);
 
     const {
         control,
@@ -108,7 +107,7 @@ export default function PaymentGatewayForm({ initialData, onSubmit, isSubmitting
                 supportsRefund: true,
                 supportsPartialRefund: true,
                 supportsRecurring: false,
-                supportedCurrencies: ['USD'],
+                supportedCurrencies: [],
             },
         },
     });
@@ -116,6 +115,37 @@ export default function PaymentGatewayForm({ initialData, onSubmit, isSubmitting
     const watchGatewayType = watch('gatewayType');
     const watchStoreId = watch('storeId');
     const watchCurrencies = watch('features.supportedCurrencies') || [];
+
+    // Fetch available currencies and base currency from API
+    useEffect(() => {
+        const fetchCurrencies = async () => {
+            try {
+                const currenciesRes = await api.get('/currencies?isActive=true');
+                if (currenciesRes.data?.currencies) {
+                    const codes = currenciesRes.data.currencies.map((c: any) => c.code);
+                    setAvailableCurrencies(codes);
+
+                    // If no initialData, set base currency as default supported
+                    if (!initialData) {
+                        try {
+                            const baseRes = await api.get('/currencies/base');
+                            if (baseRes.data?.currency?.code && codes.includes(baseRes.data.currency.code)) {
+                                setValue('features.supportedCurrencies', [baseRes.data.currency.code]);
+                            }
+                        } catch (error) {
+                            console.error('Failed to fetch base currency:', error);
+                            if (codes.length > 0) {
+                                setValue('features.supportedCurrencies', [codes[0]]);
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to fetch currencies:', error);
+            }
+        };
+        fetchCurrencies();
+    }, [initialData, setValue]);
 
     // Initialize form with existing data
     useEffect(() => {
@@ -134,7 +164,7 @@ export default function PaymentGatewayForm({ initialData, onSubmit, isSubmitting
                     supportsRefund: initialData.features.supportsRefund ?? true,
                     supportsPartialRefund: initialData.features.supportsPartialRefund ?? true,
                     supportsRecurring: initialData.features.supportsRecurring ?? false,
-                    supportedCurrencies: initialData.features.supportedCurrencies || ['USD'],
+                    supportedCurrencies: initialData.features.supportedCurrencies || [],
                 });
             }
         }
@@ -503,9 +533,9 @@ export default function PaymentGatewayForm({ initialData, onSubmit, isSubmitting
 
                     <Grid size={{ xs: 12 }}>
                         <Divider sx={{ my: 1 }} />
-                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Supported Currencies</Typography>
+                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Supported Currencies (Active in Store)</Typography>
                         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-                            {COMMON_CURRENCIES.map(currency => (
+                            {availableCurrencies.map(currency => (
                                 <Chip
                                     key={currency}
                                     label={currency}
@@ -522,8 +552,11 @@ export default function PaymentGatewayForm({ initialData, onSubmit, isSubmitting
                                 />
                             ))}
                         </Box>
+                        {availableCurrencies.length === 0 && (
+                            <Typography variant="body2" color="text.secondary">No active currencies found in store settings.</Typography>
+                        )}
                         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                            {watchCurrencies.filter(c => !COMMON_CURRENCIES.includes(c)).map(currency => (
+                            {watchCurrencies.filter(c => !availableCurrencies.includes(c)).map(currency => (
                                 <Chip
                                     key={currency}
                                     label={currency}

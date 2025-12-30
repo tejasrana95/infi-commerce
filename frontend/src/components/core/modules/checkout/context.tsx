@@ -107,6 +107,7 @@ export interface CheckoutContextType {
     orderSummary: OrderSummary;
     customerNote: string;
     saveAddress: boolean;
+    restrictedItems?: string[]; // List of product names that cannot be shipped
 
     // Actions
     handleNextStep: () => void;

@@ -77,6 +77,7 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
     const [shippingCost, setShippingCost] = useState(0);
     const [shippingDetails, setShippingDetails] = useState<any | null>(null);
     const [storeConfig, setStoreConfig] = useState<any>(null);
+    const [restrictedItems, setRestrictedItems] = useState<string[]>([]); // Track restricted items
 
     // Payment state
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
@@ -167,20 +168,29 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
             if (!shippingAddress || !storeConfig?.shippingEnabled || !cartItems.length) return;
             try {
                 const result = await checkoutService.getShippingMethods(shippingAddress, cartItems);
-                setShippingCost(result.shippingCost);
-                // Set shipping details
-                setShippingDetails({
-                    name: result.name || 'Standard Shipping',
-                    description: result.description,
-                    cost: result.shippingCost
-                });
-                setOrderSummary(prev => ({
-                    ...prev,
-                    shipping: result.shippingCost,
-                    total: prev.subtotal + result.shippingCost + prev.tax - prev.discount,
-                }));
-            } catch (error) {
+
+                if (result.success === false && result.restrictedItems) {
+                    setRestrictedItems(result.restrictedItems);
+                    setShippingCost(0);
+                    setShippingDetails(null);
+                } else {
+                    setRestrictedItems([]); // Clear restrictions
+                    setShippingCost(result.shippingCost);
+                    // Set shipping details
+                    setShippingDetails({
+                        name: result.name || 'Standard Shipping',
+                        description: result.description,
+                        cost: result.shippingCost
+                    });
+                    setOrderSummary(prev => ({
+                        ...prev,
+                        shipping: result.shippingCost,
+                        total: prev.subtotal + result.shippingCost + prev.tax - prev.discount,
+                    }));
+                }
+            } catch (error: any) {
                 console.error('Failed to calculate shipping:', error);
+                toast.error(error.response?.data?.message || 'Failed to calculate shipping');
             }
         };
         loadShipping();
@@ -228,13 +238,16 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
 
     // Step navigation
     const canProceedToStep = useCallback((step: number): boolean => {
+        // Block progress if there are restricted items
+        if (restrictedItems.length > 0) return false;
+
         switch (step) {
             case 2: return !!shippingAddress;
             case 3: return !!shippingAddress && (storeConfig?.shippingEnabled ? shippingCost >= 0 : true);
             case 4: return !!shippingAddress && !!selectedPayment && (sameAsShipping || !!billingAddress);
             default: return true;
         }
-    }, [shippingAddress, storeConfig?.shippingEnabled, shippingCost, selectedPayment, sameAsShipping, billingAddress]);
+    }, [shippingAddress, storeConfig?.shippingEnabled, shippingCost, selectedPayment, sameAsShipping, billingAddress, restrictedItems]);
 
     const handleNextStep = useCallback(() => {
         if (canProceedToStep(currentStep + 1)) {
@@ -344,8 +357,16 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
 
     // Place order
     const handlePlaceOrder = useCallback(async () => {
+        if (restrictedItems.length > 0) {
+            toast.error('Please remove restricted items');
+            return;
+        }
         if (!shippingAddress || (!billingAddress && !sameAsShipping) || !selectedPayment) {
             toast.error('Please complete all required fields');
+            return;
+        }
+        if (storeConfig?.shippingEnabled && !shippingDetails) {
+            toast.error('Please select a valid shipping method');
             return;
         }
         if (!customer && !guestEmail) {
@@ -385,7 +406,7 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
         } finally {
             setSubmitting(false);
         }
-    }, [shippingAddress, billingAddress, sameAsShipping, selectedPayment, customer, guestEmail, currency, customerNote, saveAddress, router, toast, clearCart]);
+    }, [shippingAddress, billingAddress, sameAsShipping, selectedPayment, customer, guestEmail, currency, customerNote, saveAddress, router, toast, clearCart, restrictedItems, storeConfig, shippingDetails]);
 
     // Empty state
     if (showEmptyState) {
@@ -408,7 +429,7 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
         currentStep, checkoutMode, loading, submitting, cartItems, customer, isLoggedIn: !!customer, guestEmail,
         savedAddresses, shippingAddress, billingAddress, selectedAddressId, sameAsShipping,
         shippingCost, shippingDetails, paymentMethods, selectedPayment, taxBreakdown, couponCode, appliedCoupon,
-        couponLoading, orderSummary, customerNote, saveAddress, storeConfig,
+        couponLoading, orderSummary, customerNote, saveAddress, storeConfig, restrictedItems,
         handleNextStep, handlePreviousStep, goToStep, canProceedToStep, handleAddressSelect,
         handleAddressSubmit, handleBillingAddressSelect, handleBillingAddressSubmit,
         setSameAsShipping, handlePaymentSelect, handleApplyCoupon,
@@ -422,11 +443,25 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
                 <div className={styles.checkoutContainer}>
                     <div className={styles.checkoutBody}>
                         <div className={styles.mainContent}>
+                            {restrictedItems.length > 0 && (
+                                <div className={styles.shippingModule}>
+                                    <div className={styles.errorContainer} style={{ padding: '15px', backgroundColor: '#fff5f5', border: '1px solid #fed7d7', borderRadius: '4px', color: '#c53030', marginBottom: '20px' }}>
+                                        <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '10px' }}>Shipping Restrictions</h3>
+                                        <p style={{ marginBottom: '10px' }}>{`The following item${restrictedItems.length > 1 ? 's' : ''} cannot be shipped to your selected location`}:</p>
+                                        <ul style={{ paddingLeft: '20px', listStyleType: 'disc' }}>
+                                            {restrictedItems.map((item, index) => (
+                                                <li key={index} style={{ marginBottom: '4px' }}>{item}</li>
+                                            ))}
+                                        </ul>
+                                        <p style={{ marginTop: '10px', fontSize: '14px' }}>Please remove these items or select a different shipping address.</p>
+                                    </div>
+                                </div>
+                            )}
                             <CheckoutOnePage
                                 config={config.onePage}
                                 completedSections={{
-                                    address: !!shippingAddress,
-                                    shipping: shippingCost >= 0,
+                                    address: !!shippingAddress && restrictedItems.length === 0,
+                                    shipping: shippingCost >= 0 && !!shippingDetails,
                                     payment: !!selectedPayment,
                                 }}
                             >
@@ -465,6 +500,21 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
                         {currentStep === 3 && <CheckoutPayment />}
                         {currentStep === 4 && <CheckoutReview />}
 
+                        {restrictedItems.length > 0 && (
+                            <div className={styles.shippingModule}>
+                                <div className={styles.errorContainer} style={{ marginTop: '20px', padding: '15px', backgroundColor: '#fff5f5', border: '1px solid #fed7d7', borderRadius: '4px', color: '#c53030' }}>
+                                    <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '10px' }}>Shipping Restrictions</h3>
+                                    <p style={{ marginBottom: '10px' }}>{`The following item${restrictedItems.length > 1 ? 's' : ''} cannot be shipped to your selected location`}:</p>
+                                    <ul style={{ paddingLeft: '20px', listStyleType: 'disc' }}>
+                                        {restrictedItems.map((item, index) => (
+                                            <li key={index} style={{ marginBottom: '4px' }}>{item}</li>
+                                        ))}
+                                    </ul>
+                                    <p style={{ marginTop: '10px', fontSize: '14px' }}>Please remove these items or select a different shipping address.</p>
+                                </div>
+                            </div>
+                        )}
+
                         <div className={styles.stepActions}>
                             {currentStep > 1 && (
                                 <button
@@ -474,6 +524,8 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
                                     Back
                                 </button>
                             )}
+
+
                             {currentStep < 4 ? (
                                 (currentStep !== 1 || shippingAddress) ? (
                                     <button
@@ -488,7 +540,7 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
                                 <button
                                     className={styles.placeOrderButton}
                                     onClick={handlePlaceOrder}
-                                    disabled={submitting}
+                                    disabled={submitting || restrictedItems.length > 0 || (storeConfig?.shippingEnabled && !shippingDetails)}
                                 >
                                     {submitting ? 'Placing Order...' : 'Place Order'}
                                 </button>

@@ -259,6 +259,11 @@ export const getShippingMethods = asyncHandler(async (req: AuthRequest, res: Res
         const product = await Product.findById(item.productId);
         if (!product) continue;
 
+        // Check if product can ship to this location
+        if (!product.canShipTo(shippingAddress.country, shippingAddress.state, shippingAddress.city)) {
+            throw new AppError(`One or more products cannot ship to your selected location (${product.name})`, 400);
+        }
+
         let itemWeight = product.weight || 0;
         let itemPrice = product.salePrice || product.price;
 
@@ -700,6 +705,12 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
 
         if (!product.isActive) {
             issues.push(`${product.name} is no longer available`);
+            continue;
+        }
+
+        // Check if product can ship to this location
+        if (!product.canShipTo(shippingAddress.country, shippingAddress.state, shippingAddress.city)) {
+            issues.push(`${product.name} cannot be shipped to your selected location`);
             continue;
         }
 

@@ -26,6 +26,7 @@ import taxRateRoutes from './taxRate.routes';
 import wishlistRoutes from './wishlist.routes';
 import notificationRoutes from './notification.routes';
 import compareRoutes from './compare.routes';
+import dashboardRoutes from './dashboard.routes';
 
 // Layout Designer Routes
 import themeRoutes from './theme.routes';
@@ -147,6 +148,9 @@ router.use('/brand-showcases', brandShowcaseRoutes);
 
 // Mount compare routes
 router.use('/compare', compareRoutes);
+
+// Mount dashboard routes
+router.use('/dashboard', dashboardRoutes);
 
 export default router;
 
