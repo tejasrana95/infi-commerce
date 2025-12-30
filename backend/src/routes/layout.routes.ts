@@ -6,6 +6,7 @@ import {
     updateLayout,
     deleteLayout,
     duplicateLayout,
+    resolveLayout,
     createLayoutValidation,
     updateLayoutValidation
 } from '../controllers/layout.controller';
@@ -16,6 +17,7 @@ const router = express.Router();
 
 // Public routes for frontend
 router.get('/', getLayouts);
+router.get('/resolve', resolveLayout);  // Must be before /:id to avoid matching
 router.get('/:id', getLayoutById);
 
 // Protected routes for admin

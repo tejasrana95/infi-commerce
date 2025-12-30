@@ -50,7 +50,15 @@ export const updateLayoutValidation = [
  *         description: Layout created successfully
  */
 export const createLayout = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { storeId, themeId, name, description, type, sections, settings, seo, isDefault, status } = req.body;
+    const { storeId, themeId, name, description, type, slug, sections, settings, seo, isDefault, status } = req.body;
+
+    // If slug is provided, check for uniqueness (storeId + type + slug)
+    if (slug) {
+        const existingLayout = await Layout.findOne({ storeId, type, slug: slug.toLowerCase().trim() });
+        if (existingLayout) {
+            throw new AppError(`A layout for this type with slug "${slug}" already exists`, 400);
+        }
+    }
 
     const layout = await Layout.create({
         storeId,
@@ -58,6 +66,7 @@ export const createLayout = asyncHandler(async (req: AuthRequest, res: Response)
         name,
         description,
         type,
+        slug: slug ? slug.toLowerCase().trim() : undefined,
         sections: sections || [],
         settings,
         seo,
@@ -106,6 +115,11 @@ export const getLayouts = asyncHandler(async (req: AuthRequest, res: Response) =
 
     if (req.query.status) {
         filter.status = req.query.status;
+    }
+
+    // Filter by slug if provided
+    if (req.query.slug) {
+        filter.slug = (req.query.slug as string).toLowerCase().trim();
     }
 
     // Support filtering by templates
@@ -257,17 +271,97 @@ export const duplicateLayout = asyncHandler(async (req: AuthRequest, res: Respon
         throw new AppError('Layout not found', 404);
     }
 
+    // Convert to plain object and remove fields that shouldn't be copied
+    const layoutObj = layout.toObject();
+    const { _id, slug, createdAt, updatedAt, ...layoutData } = layoutObj;
+
     const newLayout = await Layout.create({
-        ...layout.toObject(),
-        _id: undefined,
+        ...layoutData,
         name: `${layout.name} (Copy)`,
         isDefault: false,
-        createdAt: undefined,
-        updatedAt: undefined,
+        // slug is intentionally omitted (not set to undefined/null) to avoid unique index issues
     });
 
     res.status(201).json({
         message: 'Layout duplicated successfully',
         layout: newLayout,
     });
+});
+
+/**
+ * @swagger
+ * /api/layouts/resolve:
+ *   get:
+ *     summary: Resolve layout by type and optional slug (with fallback)
+ *     tags: [Layouts]
+ *     parameters:
+ *       - in: query
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: type
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: slug
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Optional page slug for slug-specific layout
+ *     responses:
+ *       200:
+ *         description: Layout resolved successfully
+ *       404:
+ *         description: No layout found for this type
+ */
+export const resolveLayout = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { storeId, type, slug } = req.query;
+
+    if (!storeId || !type) {
+        throw new AppError('storeId and type are required', 400);
+    }
+
+    let layout = null;
+
+    // Step 1: If slug is provided, try to find slug-specific layout
+    if (slug) {
+        layout = await Layout.findOne({
+            storeId,
+            type,
+            slug: (slug as string).toLowerCase().trim(),
+            status: 'published',
+            isTemplate: false,
+        });
+    }
+
+    // Step 2: If no slug-specific layout found, fallback to default layout
+    if (!layout) {
+        layout = await Layout.findOne({
+            storeId,
+            type,
+            isDefault: true,
+            status: 'published',
+            isTemplate: false,
+        });
+    }
+
+    // Step 3: If still no layout, try any published layout of this type
+    if (!layout) {
+        layout = await Layout.findOne({
+            storeId,
+            type,
+            status: 'published',
+            isTemplate: false,
+        }).sort({ updatedAt: -1 });
+    }
+
+    if (!layout) {
+        res.json({ layout: null });
+        return;
+    }
+
+    res.json({ layout });
 });

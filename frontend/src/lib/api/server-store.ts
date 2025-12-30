@@ -156,17 +156,25 @@ export async function fetchCategoryFilters(storeId: string, categoryId: string):
 // Layout Data Fetching
 // ============================================
 
-export async function fetchLayout(storeId: string, type: string): Promise<any | null> {
+/**
+ * Fetch layout by type and optional slug with fallback
+ * Uses the /resolve endpoint which handles slug-specific → default fallback automatically
+ */
+export async function fetchLayout(storeId: string, type: string, slug?: string): Promise<any | null> {
     try {
-        const res = await fetch(`${API_BASE}/layouts?storeId=${storeId}&type=${type}`, {
+        let url = `${API_BASE}/layouts/resolve?storeId=${storeId}&type=${type}`;
+        if (slug) {
+            url += `&slug=${encodeURIComponent(slug)}`;
+        }
+
+        const res = await fetch(url, {
             next: { revalidate: 60 },
             headers: { 'Content-Type': 'application/json' },
         });
 
         if (!res.ok) return null;
         const data = await res.json();
-        // Return the first layout (assuming it's the active/default one due to sorting)
-        return data.data?.[0] || null;
+        return data.layout || null;
     } catch (error) {
         console.error('Error fetching layout:', error);
         return null;
@@ -211,7 +219,7 @@ export async function fetchCategoryPageData(
     const [products, filters, layout] = await Promise.all([
         fetchCategoryProducts(storeId, categoryId, { sort: options.sort }),
         categoryId ? fetchCategoryFilters(storeId, categoryId) : Promise.resolve(null), // TODO: Fetch global filters?
-        fetchLayout(storeId, 'category'),
+        fetchLayout(storeId, 'category', slug || undefined),  // Pass slug for slug-specific layout
     ]);
 
     return { category, products, filters, layout };
@@ -336,7 +344,7 @@ export async function fetchBlogPostBySlug(storeId: string, slug: string): Promis
                 next: { revalidate: 60 },
                 headers: { 'Content-Type': 'application/json' },
             }),
-            fetchLayout(storeId, 'blog-post'),
+            fetchLayout(storeId, 'blog-post', slug),  // Pass slug for slug-specific layout
         ]);
 
         if (!postsRes.ok) return null;
@@ -421,7 +429,7 @@ export async function fetchPageBySlug(storeId: string, slug: string): Promise<an
                 next: { revalidate: 60 },
                 headers: { 'Content-Type': 'application/json' },
             }),
-            fetchLayout(storeId, 'page'),
+            fetchLayout(storeId, 'page', slug),  // Pass slug for slug-specific layout
         ]);
         if (!pageRes.ok) return null;
         const data = await pageRes.json();

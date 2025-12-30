@@ -887,6 +887,7 @@ export interface Layout {
   name: string;
   description?: string;
   type: LayoutType;
+  slug?: string;                    // Optional slug for page-specific layouts
   sections: LayoutSection[];
   settings: {
     backgroundColor?: string;

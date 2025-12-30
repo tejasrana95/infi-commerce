@@ -165,6 +165,25 @@ export default function LayoutsPage() {
             },
         },
         {
+            field: 'slug',
+            headerName: 'Slug',
+            width: 150,
+            renderCell: (params: GridRenderCellParams) => {
+                if (!params.value) {
+                    return <Typography variant="caption" color="text.secondary">—</Typography>;
+                }
+                return (
+                    <Chip
+                        label={params.value}
+                        size="small"
+                        color="secondary"
+                        variant="outlined"
+                        sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
+                    />
+                );
+            },
+        },
+        {
             field: 'isDefault',
             headerName: 'Default',
             width: 100,

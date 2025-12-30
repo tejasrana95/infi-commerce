@@ -139,6 +139,7 @@ export default function LayoutDesignerPage({ params }: { params: PageParams }) {
                 name: layout.name,
                 description: layout.description,
                 type: layout.type,
+                slug: layout.slug,  // Include slug in save
                 sections: layout.sections,
                 settings: layout.settings,
                 seo: layout.seo,

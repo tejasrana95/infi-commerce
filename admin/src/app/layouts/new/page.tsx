@@ -41,11 +41,15 @@ export default function NewLayoutPage() {
         name: '',
         description: '',
         type: 'homepage' as LayoutType,
+        slug: '',
         storeId: '',
         isDefault: false,
         status: 'draft' as 'draft' | 'published',
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Types that support slug-specific layouts
+    const slugSupportedTypes: LayoutType[] = ['category', 'product', 'blog-post', 'page'];
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -61,11 +65,18 @@ export default function NewLayoutPage() {
 
         try {
             setIsSubmitting(true);
-            const response = await api.post('/layouts', {
+            const payload: any = {
                 ...formData,
                 sections: [], // Start with empty sections
                 settings: {},
-            });
+            };
+            // Only include slug if it has a value and type supports it
+            if (formData.slug && slugSupportedTypes.includes(formData.type)) {
+                payload.slug = formData.slug.toLowerCase().trim();
+            } else {
+                delete payload.slug;
+            }
+            const response = await api.post('/layouts', payload);
 
             showNotification('Layout created successfully', 'success');
             // Navigate to the layout designer
@@ -139,6 +150,20 @@ export default function NewLayoutPage() {
                                 ))}
                             </TextField>
                         </Grid>
+
+                        {/* Slug field - only show for types that support slug-specific layouts */}
+                        {slugSupportedTypes.includes(formData.type) && (
+                            <Grid size={{ xs: 12 }}>
+                                <TextField
+                                    label="Page Slug (Optional)"
+                                    value={formData.slug}
+                                    onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-/]/g, '') })}
+                                    fullWidth
+                                    placeholder="e.g., about, marble-statues, category/summer-collection"
+                                    helperText="Leave empty for a default layout. Enter a slug to create a page-specific layout and only slug not the prefix  (e.g., 'about' for /page/about, 'electronics' for /category/electronics)."
+                                />
+                            </Grid>
+                        )}
 
                         <Grid size={{ xs: 12 }}>
                             <TextField

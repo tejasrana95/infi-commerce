@@ -73,6 +73,7 @@ export interface Layout {
     name: string;
     description?: string;
     type: 'homepage' | 'category' | 'product' | 'search' | 'blog-list' | 'blog-post' | 'page' | 'cart' | 'checkout' | 'account';
+    slug?: string;                      // Optional slug for page-specific layouts
     sections: Section[];
     settings: {
         backgroundColor?: string;

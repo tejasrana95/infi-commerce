@@ -8,8 +8,17 @@ import {
     Button,
     IconButton,
     Chip,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    TextField,
+    FormControlLabel,
+    Switch,
+    MenuItem,
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
+import SettingsIcon from '@mui/icons-material/Settings';
 import DesktopWindowsIcon from '@mui/icons-material/DesktopWindows';
 import TabletIcon from '@mui/icons-material/Tablet';
 import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
@@ -35,7 +44,7 @@ import {
     UniqueIdentifier,
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
-import { Layout, LayoutSection, LayoutModule, ModuleType } from '@/types';
+import { Layout, LayoutSection, LayoutModule, ModuleType, LayoutType } from '@/types';
 import ModulePalette from './ModulePalette';
 import SectionList from './SectionList';
 import SectionEditor from './SectionEditor';
@@ -62,7 +71,11 @@ export default function LayoutDesigner({
     const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
     const [activeId, setActiveId] = useState<string | null>(null);
     const [activeDragData, setActiveDragData] = useState<any>(null);
+    const [settingsOpen, setSettingsOpen] = useState(false);
     const { showNotification } = useNotification();
+
+    // Types that support slug-specific layouts
+    const slugSupportedTypes: LayoutType[] = ['category', 'product', 'blog-post', 'page'];
 
     // Confirmation Dialog State
     const [confirmOpen, setConfirmOpen] = useState(false);
@@ -516,8 +529,17 @@ export default function LayoutDesigner({
                             <Typography variant="h6" fontWeight={600}>
                                 {layout.name}
                             </Typography>
-                            <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
+                            <Box sx={{ display: 'flex', gap: 1, mt: 0.5, alignItems: 'center' }}>
                                 <Chip label={layout.type} size="small" color="primary" variant="outlined" />
+                                {layout.slug && (
+                                    <Chip
+                                        label={`/${layout.slug}`}
+                                        size="small"
+                                        color="secondary"
+                                        variant="outlined"
+                                        sx={{ fontFamily: 'monospace', fontSize: '0.7rem' }}
+                                    />
+                                )}
                                 <Chip
                                     label={layout.status}
                                     size="small"
@@ -526,6 +548,11 @@ export default function LayoutDesigner({
                                 {layout.isDefault && <Chip label="Default" size="small" color="warning" />}
                             </Box>
                         </Box>
+
+                        {/* Settings Button */}
+                        <IconButton onClick={() => setSettingsOpen(true)} title="Layout Settings">
+                            <SettingsIcon />
+                        </IconButton>
 
                         {/* Device Toggle */}
                         <Box sx={{ display: 'flex', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
@@ -672,6 +699,62 @@ export default function LayoutDesigner({
                 severity="error"
                 confirmLabel="Delete"
             />
+
+            {/* Layout Settings Dialog */}
+            <Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>Layout Settings</DialogTitle>
+                <DialogContent>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+                        <TextField
+                            label="Layout Name"
+                            value={layout.name}
+                            onChange={(e) => onChange({ ...layout, name: e.target.value })}
+                            fullWidth
+                            required
+                        />
+                        <TextField
+                            label="Description"
+                            value={layout.description || ''}
+                            onChange={(e) => onChange({ ...layout, description: e.target.value })}
+                            fullWidth
+                            multiline
+                            rows={2}
+                        />
+                        {slugSupportedTypes.includes(layout.type) && (
+                            <TextField
+                                label="Page Slug (Optional)"
+                                value={layout.slug || ''}
+                                onChange={(e) => onChange({ ...layout, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-/]/g, '') })}
+                                fullWidth
+                                placeholder="e.g., about, marble-statues"
+                                helperText="Leave empty for a default layout. Enter a slug to create a page-specific layout and only slug not the prefix like category, product, etc."
+                            />
+                        )}
+                        <TextField
+                            select
+                            label="Status"
+                            value={layout.status}
+                            onChange={(e) => onChange({ ...layout, status: e.target.value as 'draft' | 'published' })}
+                            fullWidth
+                        >
+                            <MenuItem value="draft">Draft</MenuItem>
+                            <MenuItem value="published">Published</MenuItem>
+                        </TextField>
+                        <FormControlLabel
+                            control={
+                                <Switch
+                                    checked={layout.isDefault}
+                                    onChange={(e) => onChange({ ...layout, isDefault: e.target.checked })}
+                                />
+                            }
+                            label="Set as default layout for this type"
+                        />
+                    </Box>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setSettingsOpen(false)}>Close</Button>
+                </DialogActions>
+            </Dialog>
         </DndContext>
     );
 }

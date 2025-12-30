@@ -75,6 +75,7 @@ export interface ILayout extends Document {
     name: string;
     description?: string;
     type: 'homepage' | 'category' | 'product' | 'search' | 'blog-list' | 'blog-post' | 'page' | 'cart' | 'checkout' | 'account';
+    slug?: string;                      // Optional slug for page-specific layouts (e.g., 'about', 'marble-statues')
 
     sections: ISection[];
 
@@ -204,6 +205,13 @@ const LayoutSchema = new Schema<ILayout>(
             required: true,
             index: true,
         },
+        slug: {
+            type: String,
+            trim: true,
+            lowercase: true,
+            maxlength: 500,
+            sparse: true,  // Allow multiple null values
+        },
 
         sections: {
             type: [SectionSchema],
@@ -252,6 +260,15 @@ LayoutSchema.index({ storeId: 1, type: 1 });
 LayoutSchema.index({ storeId: 1, type: 1, isDefault: 1 });
 LayoutSchema.index({ storeId: 1, status: 1 });
 LayoutSchema.index({ isTemplate: 1, templateCategory: 1 });
+// Partial unique index for slug-specific layouts - only enforces uniqueness when slug is set
+// This allows multiple layouts with null/undefined slug (default layouts)
+LayoutSchema.index(
+    { storeId: 1, type: 1, slug: 1 },
+    {
+        unique: true,
+        partialFilterExpression: { slug: { $type: 'string' } }
+    }
+);
 
 // Ensure only one default layout per type per store
 LayoutSchema.pre('save', async function (next) {
