@@ -10,6 +10,7 @@ import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import { transactionalNotificationService } from '../services/transactional-notification.service';
 import { notificationService } from '../services/notification.service';
+import { emitCustomerEvent } from '../events';
 
 // Validation rules
 export const customerRegisterValidation = [
@@ -141,6 +142,9 @@ export const registerCustomer = asyncHandler(async (req: AuthRequest, res: Respo
         }
     });
 
+    // Emit customer creation event
+    emitCustomerEvent('customerCreate', customer, storeId);
+
     // Don't return access token - customer must verify email first
     res.status(201).json({
         message: 'Registration successful! Please check your email to verify your account.',
@@ -188,7 +192,7 @@ export const registerCustomer = asyncHandler(async (req: AuthRequest, res: Respo
  */
 export const loginCustomer = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { email, password } = req.body;
-
+    const storeId = req.headers['x-store-id'];
     // Find customer
     const customer = await Customer.findOne({ email });
     if (!customer) {
@@ -214,6 +218,9 @@ export const loginCustomer = asyncHandler(async (req: AuthRequest, res: Response
     // Update last login
     customer.lastLogin = new Date();
     await customer.save();
+
+    // Emit customer login event
+    emitCustomerEvent('customerLogin', customer, storeId as string);
 
     // Generate tokens
     const { accessToken, refreshToken } = generateCustomerTokens(
@@ -351,7 +358,7 @@ export const getCustomerProfile = asyncHandler(async (req: AuthRequest, res: Res
  */
 export const updateCustomerProfile = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { firstName, lastName, phone, addresses, preferences } = req.body;
-
+    const storeId = req.headers['x-store-id'];
     // Build update object with only provided fields
     const updateData: Record<string, any> = {};
     if (firstName !== undefined) updateData.firstName = firstName;
@@ -369,6 +376,9 @@ export const updateCustomerProfile = asyncHandler(async (req: AuthRequest, res: 
     if (!customer) {
         throw new AppError('Customer not found', 404);
     }
+
+    // Emit customer update event
+    emitCustomerEvent('customerUpdate', customer, storeId as string);
 
     res.json({
         message: 'Profile updated successfully',
@@ -490,7 +500,13 @@ export const socialLogin = asyncHandler(async (req: AuthRequest, res: Response) 
             isActive: true,
             socialAccounts: [{ provider, providerId }]
         });
+
+        // Emit customer creation event
+        emitCustomerEvent('customerCreate', customer, storeId);
     }
+
+    // Emit customer login event (for social login)
+    emitCustomerEvent('customerLogin', customer, storeId);
 
     const tokens = generateCustomerTokens(customer._id.toString(), customer.email);
 
@@ -542,7 +558,7 @@ export const socialLogin = asyncHandler(async (req: AuthRequest, res: Response) 
  */
 export const changePassword = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { currentPassword, newPassword } = req.body;
-
+    const storeId = req.headers['x-store-id'];
     if (!currentPassword || !newPassword) {
         throw new AppError('Current password and new password are required', 400);
     }
@@ -565,7 +581,7 @@ export const changePassword = asyncHandler(async (req: AuthRequest, res: Respons
     // Update password (will be hashed by pre-save hook)
     customer.password = newPassword;
     await customer.save();
-
+    emitCustomerEvent('customerUpdate', customer, storeId as string);
     res.json({ message: 'Password changed successfully' });
 });
 
@@ -620,7 +636,7 @@ export const forgotPassword = asyncHandler(async (req: AuthRequest, res: Respons
     customer.passwordResetToken = hashedToken;
     customer.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000);
     await customer.save();
-
+    emitCustomerEvent('customerPasswordResetRequest', customer, storeId as string);
     // Send email via notification queue
     await transactionalNotificationService.sendPasswordReset(
         storeId,
@@ -663,7 +679,7 @@ export const forgotPassword = asyncHandler(async (req: AuthRequest, res: Respons
  */
 export const resetPassword = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { token, newPassword } = req.body;
-
+    const storeId = req.headers['x-store-id'];
     if (!token || !newPassword) {
         throw new AppError('Token and new password are required', 400);
     }
@@ -689,7 +705,7 @@ export const resetPassword = asyncHandler(async (req: AuthRequest, res: Response
     customer.passwordResetToken = undefined;
     customer.passwordResetExpires = undefined;
     await customer.save();
-
+    emitCustomerEvent('customerPasswordReset', customer, storeId as string);
     res.json({ message: 'Password reset successfully' });
 });
 

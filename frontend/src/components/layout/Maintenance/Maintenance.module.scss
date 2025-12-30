@@ -1,0 +1,255 @@
+.container {
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 9999;
+    overflow: hidden;
+    padding: 40px 20px;
+}
+
+.content {
+    text-align: center;
+    position: relative;
+    z-index: 10;
+    max-width: 600px;
+}
+
+// Stars Background
+.stars {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+}
+
+.star {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: #fff;
+    border-radius: 50%;
+    animation: twinkle 2s infinite;
+}
+
+@keyframes twinkle {
+
+    0%,
+    100% {
+        opacity: 0.3;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+}
+
+// Visual Container
+.visualContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 40px;
+}
+
+.planet {
+    width: clamp(100px, 20vw, 180px);
+    height: clamp(100px, 20vw, 180px);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    position: relative;
+    box-shadow:
+        inset -20px -20px 40px rgba(0, 0, 0, 0.3),
+        0 0 60px rgba(102, 126, 234, 0.5);
+    animation: float 6s ease-in-out infinite;
+}
+
+.ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotateX(70deg);
+    width: 180%;
+    height: 30px;
+    border: 4px solid rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+}
+
+.crater {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+
+    &:nth-child(2) {
+        width: 20%;
+        height: 20%;
+        top: 20%;
+        left: 25%;
+    }
+
+    &:nth-child(3) {
+        width: 15%;
+        height: 15%;
+        top: 50%;
+        right: 20%;
+    }
+
+    &:nth-child(4) {
+        width: 10%;
+        height: 10%;
+        bottom: 25%;
+        left: 40%;
+    }
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-20px);
+    }
+}
+
+// Astronaut
+.astronaut {
+    position: absolute;
+    top: 15%;
+    right: -50px;
+    width: 80px;
+    height: 100px;
+    animation: drift 8s ease-in-out infinite;
+
+    @media (max-width: 768px) {
+        display: none;
+    }
+}
+
+.helmet {
+    width: 40px;
+    height: 45px;
+    background: #fff;
+    border-radius: 50% 50% 45% 45%;
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.visor {
+    width: 28px;
+    height: 20px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-radius: 30% 30% 50% 50%;
+    position: absolute;
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.body {
+    width: 35px;
+    height: 40px;
+    background: #fff;
+    border-radius: 8px;
+    position: absolute;
+    top: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.armLeft,
+.armRight {
+    width: 12px;
+    height: 30px;
+    background: #fff;
+    border-radius: 6px;
+    position: absolute;
+    top: 45px;
+}
+
+.armLeft {
+    left: 5px;
+    transform: rotate(20deg);
+}
+
+.armRight {
+    right: 5px;
+    transform: rotate(-20deg);
+}
+
+.legLeft,
+.legRight {
+    width: 12px;
+    height: 25px;
+    background: #fff;
+    border-radius: 6px;
+    position: absolute;
+    bottom: 0;
+}
+
+.legLeft {
+    left: 20px;
+    transform: rotate(10deg);
+}
+
+.legRight {
+    right: 20px;
+    transform: rotate(-10deg);
+}
+
+@keyframes drift {
+
+    0%,
+    100% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+
+    25% {
+        transform: translate(-20px, 30px) rotate(10deg);
+    }
+
+    50% {
+        transform: translate(0, 60px) rotate(-5deg);
+    }
+
+    75% {
+        transform: translate(20px, 30px) rotate(5deg);
+    }
+}
+
+// Text Content
+.title {
+    font-size: clamp(28px, 6vw, 42px);
+    font-weight: 800;
+    color: #fff;
+    margin: 0 0 16px;
+    letter-spacing: -0.02em;
+}
+
+.message {
+    font-size: clamp(16px, 3vw, 20px);
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.6;
+    margin: 0 0 32px;
+}
+
+.footer {
+    p {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 14px;
+        margin: 0;
+    }
+}

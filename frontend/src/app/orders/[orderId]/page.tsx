@@ -53,5 +53,5 @@ export default function OrderPage() {
         }
     };
 
-    return <OrderDetailsTemplate order={order as OrderDetails} loading={loading} />;
+    return <OrderDetailsTemplate order={order as OrderDetails} loading={loading} onRefresh={fetchOrder} />;
 }

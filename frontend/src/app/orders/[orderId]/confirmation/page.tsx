@@ -102,7 +102,7 @@ export default function OrderConfirmationPage() {
         try {
             const guestEmail = searchParams.get('guestEmail');
             const query = guestEmail ? `?guestEmail=${encodeURIComponent(guestEmail)}` : '';
-            await apiClient.put(`/orders/${orderId}/cancel${query}`);
+            await apiClient.post(`/orders/${orderId}/cancel${query}`);
             toast.success('Order cancelled successfully');
             loadOrderDetails(); // Reload to show updated status
         } catch (error: any) {

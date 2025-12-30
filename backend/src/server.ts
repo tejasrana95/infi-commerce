@@ -9,6 +9,7 @@ import { config } from './config';
 import { connectDatabase } from './config/database';
 import { swaggerSpec } from './config/swagger';
 import apiRoutes from './routes';
+import { registerEventHandlers } from './events/handlers';
 
 const app: Express = express();
 
@@ -111,6 +112,9 @@ app.use((err: any, _req: Request, res: Response, _next: Function) => {
 // Start server
 const startServer = async () => {
     try {
+        // Register event handlers
+        registerEventHandlers();
+
         // Connect to database
         await connectDatabase();
 

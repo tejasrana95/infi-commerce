@@ -23,6 +23,8 @@ import {
     requestReturn,
     updateReturnStatus,
     markOrderAsRefunded,
+    requestRefund,
+    updateRefundStatus,
 } from '../controllers/order.controller';
 import { authenticate, authorize, optionalAuth } from '../middleware/auth';
 import { validate } from '../middleware/validation';
@@ -457,7 +459,7 @@ router.put(
  *       404:
  *         description: Order not found
  */
-router.put('/:id/cancel', optionalAuth, cancelOrder);
+router.post('/:id/cancel', optionalAuth, cancelOrder);
 
 /**
  * @swagger
@@ -572,5 +574,14 @@ router.patch(
     authorize('admin', 'store_admin', 'super_admin'),
     markOrderAsRefunded
 );
+
+router.patch(
+    '/:id/refund-status',
+    authenticate,
+    authorize('admin', 'store_admin', 'super_admin'),
+    updateRefundStatus
+);
+
+router.post('/:id/refund-request', authenticate, requestRefund);
 
 export default router;

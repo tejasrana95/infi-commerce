@@ -3,6 +3,7 @@ import { body, param } from 'express-validator';
 import Customer from '../models/Customer';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
+import { emitCustomerEvent } from '../events';
 
 /**
  * Validation rules
@@ -115,6 +116,9 @@ export const createCustomer = asyncHandler(async (req: AuthRequest, res: Respons
         addresses,
     });
 
+    // Emit customer creation event
+    emitCustomerEvent('customerCreate', customer, (req as any).storeId || 'common');
+
     // Remove password from response
     const customerResponse = customer.toObject();
     delete (customerResponse as any).password;
@@ -161,6 +165,9 @@ export const updateCustomer = asyncHandler(async (req: AuthRequest, res: Respons
 
     await customer.save();
 
+    // Emit customer update event
+    emitCustomerEvent('customerUpdate', customer, (req as any).storeId || 'common');
+
     // Remove password from response
     const customerResponse = customer.toObject();
     delete (customerResponse as any).password;
@@ -185,6 +192,9 @@ export const deleteCustomer = asyncHandler(async (req: AuthRequest, res: Respons
     if (!customer) {
         throw new AppError('Customer not found', 404);
     }
+
+    // Emit customer delete event
+    emitCustomerEvent('customerDelete', customer, (req as any).storeId || 'common');
 
     res.json({
         success: true,

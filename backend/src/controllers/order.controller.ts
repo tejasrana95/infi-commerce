@@ -13,6 +13,7 @@ import { PdfService } from '../services/pdf.service';
 import { transactionalNotificationService } from '../services/transactional-notification.service';
 import { notificationService } from '../services/notification.service';
 import InventoryService from '../services/inventory.service';
+import { emitOrderEvent } from '../events';
 
 /**
  * Validation rules
@@ -189,6 +190,9 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
         await InventoryService.reduceStock(orderItems);
     }
 
+    // Emit order creation event
+    emitOrderEvent('orderCreate', order, storeId, order._id.toString(), order.customerId?.toString());
+
     res.status(201).json({
         success: true,
         message: 'Order created successfully',
@@ -334,6 +338,9 @@ export const adminUpdateOrder = asyncHandler(async (req: AuthRequest, res: Respo
     order.total = order.subtotal + order.shippingCost + order.tax - order.discount;
 
     await order.save();
+
+    // Emit order update event
+    emitOrderEvent('orderUpdate', order, order.storeId._id.toString(), order._id.toString(), order.customerId?.toString());
 
     // Send notifications if status or tracking number changed
     if (status && status !== oldStatus) {
@@ -616,6 +623,9 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
 
     // Clear cart
     await Cart.findByIdAndDelete(cart._id);
+
+    // Emit order creation event
+    emitOrderEvent('orderCreate', order, storeId, order._id.toString(), order.customerId?.toString());
 
     // Increment coupon usage (we'll do this after successful payment)
     // Store coupon ID in order for later use
@@ -1050,6 +1060,19 @@ export const updateOrderStatus = asyncHandler(async (req: AuthRequest, res: Resp
 
     await order.save();
 
+    // Emit appropriate event based on status
+    if (status === 'shipped') {
+        emitOrderEvent('orderShipped', order, order.storeId._id.toString(), order._id.toString(), order.customerId?.toString());
+    } else if (status === 'delivered') {
+        emitOrderEvent('orderDelivered', order, order.storeId._id.toString(), order._id.toString(), order.customerId?.toString());
+    } else if (status === 'cancelled') {
+        emitOrderEvent('orderCancel', order, order.storeId._id.toString(), order._id.toString(), order.customerId?.toString());
+    } else if (status === 'refunded') {
+        emitOrderEvent('orderRefund', order, order.storeId._id.toString(), order._id.toString(), order.customerId?.toString());
+    } else {
+        emitOrderEvent('orderUpdate', order, order.storeId._id.toString(), order._id.toString(), order.customerId?.toString());
+    }
+
     // Trigger notification
     await transactionalNotificationService.sendOrderStatusUpdate(
         order.storeId._id.toString(),
@@ -1104,6 +1127,9 @@ export const processRefund = asyncHandler(async (req: AuthRequest, res: Response
     if (adminNote) order.adminNote = adminNote;
 
     await order.save();
+
+    // Emit order refund event
+    emitOrderEvent('orderRefund', order, order.storeId._id.toString(), order._id.toString(), order.customerId?.toString());
 
     // Restore product stock (if not already done by cancellation)
     // This logic might need to be more sophisticated depending on partial refunds, etc.
@@ -1172,6 +1198,9 @@ export const cancelOrder = asyncHandler(async (req: AuthRequest, res: Response) 
 
     order.status = 'cancelled';
     await order.save();
+
+    // Emit order cancel event
+    emitOrderEvent('orderCancel', order, order.storeId._id.toString(), order._id.toString(), order.customerId?.toString());
 
     // Send notification
     await transactionalNotificationService.sendOrderStatusUpdate(
@@ -1244,6 +1273,9 @@ export const handlePaymentSuccess = asyncHandler(async (req: AuthRequest, res: R
 
     await order.save();
 
+    // Emit order paid event
+    emitOrderEvent('orderPaid', order, order.storeId.toString(), order._id.toString(), order.customerId?.toString());
+
     // Reduce product stock
     await InventoryService.reduceStock(order.items);
 
@@ -1313,6 +1345,9 @@ export const handlePaymentFailed = asyncHandler(async (req: AuthRequest, res: Re
     order.paymentDetails = { ...order.paymentDetails, ...paymentDetails };
 
     await order.save();
+
+    // Emit order failed event
+    emitOrderEvent('orderFailed', order, order.storeId._id.toString(), order._id.toString(), order.customerId?.toString());
 
     // Send payment failed notification
     try {
@@ -1456,6 +1491,13 @@ export const updateTracking = asyncHandler(async (req: AuthRequest, res: Respons
 
     await order.save();
 
+    // Emit order update or shipped event
+    if (statusToNotify === 'shipped') {
+        emitOrderEvent('orderShipped', order, order.storeId._id.toString(), order._id.toString(), order.customerId?.toString());
+    } else {
+        emitOrderEvent('orderUpdate', order, order.storeId._id.toString(), order._id.toString(), order.customerId?.toString());
+    }
+
     // Send notification if status changed to shipped OR if tracking number changed and it's already shipped
     if (statusToNotify === 'shipped') {
         await transactionalNotificationService.sendOrderStatusUpdate(
@@ -1532,6 +1574,7 @@ export const requestReturn = asyncHandler(async (req: AuthRequest, res: Response
         }
     });
 
+    emitOrderEvent('orderReturn', order, order.storeId._id.toString(), order._id.toString(), order.customerId?.toString());
     res.json({
         success: true,
         message: 'Return requested successfully',
@@ -1598,6 +1641,9 @@ export const markOrderAsRefunded = asyncHandler(async (req: AuthRequest, res: Re
     // We should also have a notification for refunded
     await order.save();
 
+    // Emit order refund event
+    emitOrderEvent('orderRefund', order, order.storeId._id.toString(), order._id.toString(), order.customerId?.toString());
+
     // Trigger notification for refunded
     await transactionalNotificationService.sendOrderStatusUpdate(
         order.storeId._id.toString(),
@@ -1622,5 +1668,98 @@ export const markOrderAsRefunded = asyncHandler(async (req: AuthRequest, res: Re
         success: true,
         message: 'Order marked as refunded',
         data: order
+    });
+});
+
+/**
+ * @route   POST /api/orders/:id/refund-request
+ * @desc    Request a refund for an order
+ * @access  Private (Owner only)
+ */
+export const requestRefund = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user!.id;
+    const { reason, note } = req.body;
+
+    const order = await Order.findById(id).populate('storeId customerId');
+    if (!order) {
+        throw new AppError('Order not found', 404);
+    }
+
+    // Auth check: Owner
+    const orderCustomerId = (order.customerId as any)?._id?.toString() || order.customerId?.toString();
+    if (orderCustomerId !== userId) {
+        throw new AppError('Not authorized', 403);
+    }
+
+    // Check payment status
+    if (order.paymentStatus !== 'paid') {
+        throw new AppError('Refund can only be requested for paid orders', 400);
+    }
+
+    // Persist refund request data
+    order.refundStatus = 'requested';
+    order.refundReason = reason;
+    order.refundRequestedAt = new Date();
+
+    await order.save();
+
+    // Emit refund request event
+    emitOrderEvent('orderRefundRequest', order, order.storeId._id.toString(), order._id.toString(), order.customerId?.toString());
+
+    // Notify Admin
+    await notificationService.createAdminNotification({
+        type: 'refund',
+        title: 'Refund Requested',
+        message: `Refund requested for Order #${order.orderNumber}`,
+        data: {
+            orderId: order._id.toString(),
+            orderNumber: order.orderNumber,
+            reason: reason,
+            note: note
+        }
+    });
+
+    res.json({
+        success: true,
+        message: 'Refund request submitted successfully'
+    });
+});
+
+/**
+ * @desc Update refund status (Admin only)
+ * @route PATCH /api/orders/:id/refund-status
+ * @access Private/Admin
+ */
+export const updateRefundStatus = asyncHandler(async (req: any, res: Response) => {
+    const { status, adminNote } = req.body;
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+        throw new AppError('Order not found', 404);
+    }
+
+    if (!['requested', 'approved', 'rejected', 'processed', 'none'].includes(status)) {
+        throw new AppError('Invalid refund status', 400);
+    }
+
+    order.refundStatus = status as any;
+    if (adminNote !== undefined) {
+        order.adminNote = adminNote;
+    }
+
+    // If status is processed, we also update the order payment status and order status
+    if (status === 'processed') {
+        order.paymentStatus = 'refunded';
+        order.status = 'refunded';
+        order.refundedAt = new Date();
+    }
+
+    await order.save();
+
+    res.json({
+        success: true,
+        data: order,
+        message: `Refund request updated to ${status}`
     });
 });

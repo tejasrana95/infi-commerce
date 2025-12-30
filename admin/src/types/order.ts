@@ -55,6 +55,9 @@ export interface Order {
     paymentMethod: PaymentMethod;
     paymentId?: string;
     paymentDetails?: Record<string, any>;
+    refundStatus?: 'none' | 'requested' | 'approved' | 'rejected' | 'processed';
+    refundReason?: string;
+    refundRequestedAt?: string; // ISO date string
 
     // Tracking
     trackingNumber?: string;

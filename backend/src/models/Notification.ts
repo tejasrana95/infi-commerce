@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-export type NotificationType = 'order' | 'customer' | 'return' | 'system';
+export type NotificationType = 'order' | 'customer' | 'return' | 'refund' | 'system';
 
 export interface INotification extends Document {
     recipient?: string; // Optional: user ID if targeting specific admin, null for all
@@ -15,7 +15,7 @@ export interface INotification extends Document {
 
 const NotificationSchema = new Schema({
     recipient: { type: Schema.Types.ObjectId, ref: 'User', default: null },
-    type: { type: String, required: true, enum: ['order', 'customer', 'return', 'system'] },
+    type: { type: String, required: true, enum: ['order', 'customer', 'return', 'refund', 'system'] },
     title: { type: String, required: true },
     message: { type: String, required: true },
     data: { type: Schema.Types.Mixed },

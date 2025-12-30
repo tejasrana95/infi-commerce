@@ -47,25 +47,41 @@ export default function OrdersPage() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<string>('all');
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalOrders, setTotalOrders] = useState(0);
+    const limit = 10;
+
+    const fetchOrders = async (pageNum: number, statusFilter: string) => {
+        setLoading(true);
+        try {
+            const queryParams = new URLSearchParams();
+            queryParams.append('page', pageNum.toString());
+            queryParams.append('limit', limit.toString());
+            if (statusFilter !== 'all') {
+                queryParams.append('status', statusFilter);
+            }
+
+            const response = await api.get(`orders/user/me?${queryParams.toString()}`);
+            setOrders(response.orders || []);
+            setTotalPages(response.pagination?.pages || 1);
+            setTotalOrders(response.pagination?.total || 0);
+        } catch (error) {
+            console.error('Failed to fetch orders:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchOrders = async () => {
-            try {
-                const response = await api.get('orders/user/me');
-                setOrders(response.orders || []);
-            } catch (error) {
-                console.error('Failed to fetch orders:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
+        fetchOrders(page, filter);
+    }, [page, filter]);
 
-        fetchOrders();
-    }, []);
+    const handleFilterChange = (newFilter: string) => {
+        setFilter(newFilter);
+        setPage(1); // Reset to first page on filter change
+    };
 
-    const filteredOrders = filter === 'all'
-        ? orders
-        : orders.filter(order => order.status === filter);
 
     const getStatusStyle = (status: string) => {
         return STATUS_COLORS[status] || { bg: '#f3f4f6', text: '#4b5563' };
@@ -88,90 +104,124 @@ export default function OrdersPage() {
                 </div>
             </header>
 
-            {/* Filter Tabs */}
             <div className={styles.filterTabs}>
                 {['all', 'pending', 'processing', 'shipped', 'delivered', 'cancelled'].map((status) => (
                     <button
                         key={status}
                         className={`${styles.filterTab} ${filter === status ? styles.active : ''}`}
-                        onClick={() => setFilter(status)}
+                        onClick={() => handleFilterChange(status)}
                     >
                         {status.charAt(0).toUpperCase() + status.slice(1)}
-                        {status === 'all' && ` (${orders.length})`}
+                        {status === 'all' && ` (${totalOrders})`}
                     </button>
                 ))}
             </div>
 
-            {filteredOrders.length > 0 ? (
-                <div className={styles.orderList}>
-                    {filteredOrders.map((order) => {
-                        const statusStyle = getStatusStyle(order.status);
-                        return (
-                            <div key={order._id} className={styles.orderCard}>
-                                <div className={styles.orderHeader}>
-                                    <div className={styles.orderMeta}>
-                                        <span className={styles.orderNumber}>Order #{order.orderNumber}</span>
-                                        <span className={styles.orderDate}>
-                                            {formatDate(order.createdAt, 'long')}
-                                        </span>
-                                    </div>
-                                    <span
-                                        className={styles.statusBadge}
-                                        style={{
-                                            backgroundColor: statusStyle.bg,
-                                            color: statusStyle.text
-                                        }}
-                                    >
-                                        {order.status}
-                                    </span>
-                                </div>
-
-                                <div className={styles.orderItems}>
-                                    {order.items.slice(0, 3).map((item, index) => (
-                                        <div key={index} className={styles.itemRow}>
-                                            <div className={styles.itemImage}>
-                                                {item.image ? (
-                                                    <img src={item.image} alt={item.name} />
-                                                ) : (
-                                                    <div className={styles.placeholder}>📦</div>
-                                                )}
-                                            </div>
-                                            <div className={styles.itemDetails}>
-                                                <span className={styles.itemName}>{item.name || 'Product'}</span>
-                                                <span className={styles.itemQty}>Qty: {item.quantity}</span>
-                                            </div>
-                                            <span className={styles.itemPrice}>
-                                                {formatPrice(item.price * item.quantity, { code: order.currency, exchangeRate: order.exchangeRate })}
+            {orders.length > 0 ? (
+                <>
+                    <div className={styles.orderList}>
+                        {orders.map((order) => {
+                            const statusStyle = getStatusStyle(order.status);
+                            return (
+                                <div key={order._id} className={styles.orderCard}>
+                                    <div className={styles.orderHeader}>
+                                        <div className={styles.orderMeta}>
+                                            <span className={styles.orderNumber}>Order #{order.orderNumber}</span>
+                                            <span className={styles.orderDate}>
+                                                {formatDate(order.createdAt, 'long')}
                                             </span>
                                         </div>
-                                    ))}
-                                    {order.items.length > 3 && (
-                                        <p className={styles.moreItems}>
-                                            +{order.items.length - 3} more item(s)
-                                        </p>
-                                    )}
-                                </div>
-
-                                <div className={styles.orderFooter}>
-                                    <div className={styles.orderTotal}>
-                                        <span>Total</span>
-                                        <strong>{formatPrice(order.total, { code: order.currency, exchangeRate: order.exchangeRate })}</strong>
+                                        <span
+                                            className={styles.statusBadge}
+                                            style={{
+                                                backgroundColor: statusStyle.bg,
+                                                color: statusStyle.text
+                                            }}
+                                        >
+                                            {order.status}
+                                        </span>
                                     </div>
-                                    <div className={styles.orderActions}>
-                                        <Link href={`/account/orders/${order._id}`} className={styles.detailsBtn}>
-                                            View Details
-                                        </Link>
-                                        {['shipped', 'processing'].includes(order.status) && (
-                                            <Link href={`/track/${order.orderNumber}`} className={styles.trackBtn}>
-                                                Track Order
-                                            </Link>
+
+                                    <div className={styles.orderItems}>
+                                        {order.items.slice(0, 3).map((item, index) => (
+                                            <div key={index} className={styles.itemRow}>
+                                                <div className={styles.itemImage}>
+                                                    {item.image ? (
+                                                        <img src={item.image} alt={item.name} />
+                                                    ) : (
+                                                        <div className={styles.placeholder}>📦</div>
+                                                    )}
+                                                </div>
+                                                <div className={styles.itemDetails}>
+                                                    <span className={styles.itemName}>{item.name || 'Product'}</span>
+                                                    <span className={styles.itemQty}>Qty: {item.quantity}</span>
+                                                </div>
+                                                <span className={styles.itemPrice}>
+                                                    {formatPrice(item.price * item.quantity, { code: order.currency, exchangeRate: order.exchangeRate })}
+                                                </span>
+                                            </div>
+                                        ))}
+                                        {order.items.length > 3 && (
+                                            <p className={styles.moreItems}>
+                                                +{order.items.length - 3} more item(s)
+                                            </p>
                                         )}
                                     </div>
+
+                                    <div className={styles.orderFooter}>
+                                        <div className={styles.orderTotal}>
+                                            <span>Total</span>
+                                            <strong>{formatPrice(order.total, { code: order.currency, exchangeRate: order.exchangeRate })}</strong>
+                                        </div>
+                                        <div className={styles.orderActions}>
+                                            <Link href={`/account/orders/${order._id}`} className={styles.detailsBtn}>
+                                                View Details
+                                            </Link>
+                                            {['shipped', 'processing'].includes(order.status) && (
+                                                <Link href={`/track/${order.orderNumber}`} className={styles.trackBtn}>
+                                                    Track Order
+                                                </Link>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <div className={styles.pagination}>
+                            <button
+                                className={styles.pageBtn}
+                                onClick={() => setPage(prev => Math.max(1, prev - 1))}
+                                disabled={page === 1}
+                            >
+                                Previous
+                            </button>
+
+                            <div className={styles.pageNumbers}>
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => (
+                                    <button
+                                        key={pageNum}
+                                        className={`${styles.pageNumber} ${page === pageNum ? styles.active : ''}`}
+                                        onClick={() => setPage(pageNum)}
+                                    >
+                                        {pageNum}
+                                    </button>
+                                ))}
                             </div>
-                        );
-                    })}
-                </div>
+
+                            <button
+                                className={styles.pageBtn}
+                                onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}
+                                disabled={page === totalPages}
+                            >
+                                Next
+                            </button>
+                        </div>
+                    )}
+                </>
             ) : (
                 <div className={styles.emptyState}>
                     <div className={styles.emptyIcon}>

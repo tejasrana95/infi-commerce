@@ -653,3 +653,60 @@
         cursor: not-allowed;
     }
 }
+.refundStatusBanner {
+    margin-top: 1.5rem;
+    padding: 1.25rem;
+    border-radius: 12px;
+    border-left: 4px solid #9ca3af;
+    background-color: #f3f4f6;
+
+    .statusLabel {
+        margin-bottom: 0.5rem;
+        font-size: 1.1rem;
+        color: #374151;
+
+        strong {
+            text-transform: capitalize;
+            color: var(--color-text, #111827);
+        }
+    }
+
+    p {
+        color: #6b7280;
+        margin: 0;
+    }
+
+    &.requested {
+        border-color: #f59e0b;
+        background-color: #fffbeb;
+    }
+
+    &.approved {
+        border-color: #10b981;
+        background-color: #f0fdf4;
+    }
+
+    &.rejected {
+        border-color: #ef4444;
+        background-color: #fef2f2;
+    }
+
+    .rejectedMessage {
+        p {
+            color: #dc2626;
+            font-weight: 500;
+        }
+    }
+
+    .adminNote {
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px dashed rgba(239, 68, 68, 0.2);
+        font-size: 0.95rem;
+        color: #4b5563;
+
+        strong {
+            color: #1f2937;
+        }
+    }
+}

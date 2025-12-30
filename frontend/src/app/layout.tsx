@@ -13,6 +13,7 @@ import { ToastProvider } from "@/providers/ToastProvider";
 import { DialogProvider } from "@/providers/DialogProvider";
 import CompareFloatingWidget from "@/components/core/CompareFloatingWidget";
 import AuthModal from "@/components/organisms/AuthModal/AuthModal";
+import { Maintenance } from "@/components/layout/Maintenance/Maintenance";
 import { fetchCurrencies, getStore } from "@/lib/api";
 import ThemeScriptInjector from "@/components/ThemeScriptInjector";
 import { getEnrichedMenus } from "@/lib/server-menu";
@@ -208,20 +209,24 @@ export default async function RootLayout({
                   <CompareProvider>
                     <ToastProvider>
                       <DialogProvider>
-                        <div className="flex flex-col min-h-screen">
-                          {/* Header - Template-specific container */}
-                          <Header config={store?.theme?.header} store={store} templateId={templateId} menus={menus} />
+                        {store?.settings?.maintenanceMode ? (
+                          <Maintenance />
+                        ) : (
+                          <div className="flex flex-col min-h-screen">
+                            {/* Header - Template-specific container */}
+                            <Header config={store?.theme?.header} store={store} templateId={templateId} menus={menus} />
 
-                          {/* Main Content */}
-                          <main className="flex-1">
-                            {children}
-                          </main>
+                            {/* Main Content */}
+                            <main className="flex-1">
+                              {children}
+                            </main>
 
-                          {/* Footer - Template-specific container */}
-                          <Footer config={store?.theme?.footer} store={store} templateId={templateId} />
-                        </div>
+                            {/* Footer - Template-specific container */}
+                            <Footer config={store?.theme?.footer} store={store} templateId={templateId} />
+                          </div>
+                        )}
                         <AuthModal />
-                        <CompareFloatingWidget />
+                        {!store?.settings?.maintenanceMode && <CompareFloatingWidget />}
                       </DialogProvider>
                     </ToastProvider>
                   </CompareProvider>

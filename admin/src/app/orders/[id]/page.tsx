@@ -57,6 +57,9 @@ export default function OrderDetailPage() {
     const [trackingUrl, setTrackingUrl] = useState('');
     const [cancelReason, setCancelReason] = useState('');
     const [isEditingTracking, setIsEditingTracking] = useState(false);
+    const [refundDialogOpen, setRefundDialogOpen] = useState(false);
+    const [refundAction, setRefundAction] = useState<'approved' | 'rejected' | 'processed'>('approved');
+    const [adminNote, setAdminNote] = useState('');
 
     useEffect(() => {
         if (id) fetchOrder();
@@ -126,6 +129,23 @@ export default function OrderDetailPage() {
         } finally {
             setActionLoading(false);
             setAnchorEl(null);
+        }
+    };
+
+    const handleRefundUpdate = async () => {
+        setActionLoading(true);
+        try {
+            await api.patch(`/orders/${id}/refund-status`, {
+                status: refundAction,
+                adminNote: adminNote
+            });
+            await fetchOrder();
+            setRefundDialogOpen(false);
+            setAdminNote('');
+        } catch (err: any) {
+            alert(err.response?.data?.message || 'Failed to update refund status');
+        } finally {
+            setActionLoading(false);
         }
     };
 
@@ -215,7 +235,7 @@ export default function OrderDetailPage() {
 
                     {/* Refund Workflow */}
                     {['cancelled', 'returned'].includes(order.status) &&
-                        order.paymentStatus !== 'refunded' && [
+                        order.paymentStatus !== 'refunded' && order.paymentStatus === 'paid' && [
                             <Divider key="refund-divider" />,
                             <MenuItem
                                 key="refund"
@@ -353,6 +373,36 @@ export default function OrderDetailPage() {
                                     <Alert severity="info" sx={{ mt: 2 }}>
                                         <Typography variant="caption" fontWeight={600} display="block">Note:</Typography>
                                         {order.customerNote}
+                                    </Alert>
+                                )}
+                                {/* @ts-ignore */}
+                                {order.refundStatus === 'requested' && (
+                                    <Alert severity="warning" sx={{ mt: 2 }}>
+                                        <Typography variant="caption" fontWeight={600} display="block">Refund Requested:</Typography>
+                                        {/* @ts-ignore */}
+                                        {order.refundReason || 'No reason provided'}
+                                        <Button
+                                            size="small"
+                                            variant="contained"
+                                            color="warning"
+                                            sx={{ mt: 1, display: 'block' }}
+                                            onClick={() => {
+                                                setRefundAction('approved');
+                                                setRefundDialogOpen(true);
+                                            }}
+                                        >
+                                            Manage Refund
+                                        </Button>
+                                    </Alert>
+                                )}
+                                {/* @ts-ignore */}
+                                {order.refundStatus && !['none', 'requested'].includes(order.refundStatus) && (
+                                    <Alert severity={order.refundStatus === 'rejected' ? 'error' : 'success'} sx={{ mt: 2 }}>
+                                        <Typography variant="caption" fontWeight={600} display="block">
+                                            Refund {order.refundStatus}:
+                                        </Typography>
+                                        {/* @ts-ignore */}
+                                        {order.adminNote}
                                     </Alert>
                                 )}
                             </CardContent>
@@ -534,6 +584,59 @@ export default function OrderDetailPage() {
                     <Button onClick={() => setCancelDialogOpen(false)}>Back</Button>
                     <Button onClick={handleCancelOrder} variant="contained" color="error">
                         Confirm Cancel
+                    </Button>
+                </DialogActions>
+            </Dialog>
+            {/* Refund Management Dialog */}
+            <Dialog open={refundDialogOpen} onClose={() => setRefundDialogOpen(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>Manage Refund Request</DialogTitle>
+                <DialogContent>
+                    <Box sx={{ mt: 2 }}>
+                        <Typography variant="subtitle2" gutterBottom>Action</Typography>
+                        <Box display="flex" gap={2} mb={3}>
+                            <Button
+                                variant={refundAction === 'approved' ? 'contained' : 'outlined'}
+                                color="success"
+                                onClick={() => setRefundAction('approved')}
+                            >
+                                Approve
+                            </Button>
+                            <Button
+                                variant={refundAction === 'rejected' ? 'contained' : 'outlined'}
+                                color="error"
+                                onClick={() => setRefundAction('rejected')}
+                            >
+                                Reject
+                            </Button>
+                            <Button
+                                variant={refundAction === 'processed' ? 'contained' : 'outlined'}
+                                color="primary"
+                                onClick={() => setRefundAction('processed')}
+                            >
+                                Mark as Processed
+                            </Button>
+                        </Box>
+
+                        <TextField
+                            label={refundAction === 'rejected' ? 'Rejection Reason' : 'Admin Note'}
+                            fullWidth
+                            multiline
+                            rows={3}
+                            value={adminNote}
+                            onChange={(e) => setAdminNote(e.target.value)}
+                            placeholder={refundAction === 'rejected' ? 'Explain why the refund was rejected...' : 'Add a note for the customer...'}
+                            helperText="This note will be visible to the customer."
+                        />
+                    </Box>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setRefundDialogOpen(false)}>Cancel</Button>
+                    <Button
+                        onClick={handleRefundUpdate}
+                        variant="contained"
+                        disabled={actionLoading || (refundAction === 'rejected' && !adminNote)}
+                    >
+                        Confirm {refundAction}
                     </Button>
                 </DialogActions>
             </Dialog>

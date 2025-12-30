@@ -3,12 +3,14 @@
 import React from 'react';
 import Link from 'next/link';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useCurrency } from '@/hooks/useCurrency';
 import { formatPrice } from '@/lib/currency';
 import styles from './OrderDetails.module.scss';
 import { useAuth } from '@/providers/AuthProvider';
 import { apiClient } from '@/services/api-client';
 import { useToast } from '@/providers/ToastProvider';
+import { useDialog } from '@/providers/DialogProvider';
 
 // Types reuse
 export interface OrderItem {
@@ -57,6 +59,10 @@ export interface OrderDetails {
     currency: string;
     exchangeRate: number;
     customerNote?: string;
+    adminNote?: string;
+    refundStatus?: 'none' | 'requested' | 'approved' | 'rejected' | 'processed';
+    refundReason?: string;
+    refundRequestedAt?: string;
     createdAt: string;
     shippedAt?: string;
     deliveredAt?: string;
@@ -69,9 +75,11 @@ export interface OrderDetails {
 interface OrderDetailsTemplateProps {
     order: OrderDetails;
     loading?: boolean;
+    onRefresh?: () => Promise<void>;
 }
 
-export default function OrderDetailsTemplate({ order, loading }: OrderDetailsTemplateProps) {
+export default function OrderDetailsTemplate({ order, loading, onRefresh }: OrderDetailsTemplateProps) {
+    const router = useRouter();
     const currency = useCurrency();
     const { isAuthenticated } = useAuth();
     const { addToast } = useToast();
@@ -79,6 +87,66 @@ export default function OrderDetailsTemplate({ order, loading }: OrderDetailsTem
     const [showReturnModal, setShowReturnModal] = useState(false);
     const [returnReason, setReturnReason] = useState('');
     const [requestingReturn, setRequestingReturn] = useState(false);
+    const [cancellingOrder, setCancellingOrder] = useState(false);
+    const [showRefundModal, setShowRefundModal] = useState(false);
+    const [refundReason, setRefundReason] = useState('');
+    const [requestingRefund, setRequestingRefund] = useState(false);
+    const { showConfirm } = useDialog();
+    const handleCancelOrder = async () => {
+
+        const confirmed = await showConfirm({
+            title: 'Cancel Order',
+            message: 'Are you sure you want to cancel this order? This action cannot be undone.',
+            confirmText: 'Yes, Cancel Order',
+            cancelText: 'No, Keep Order',
+            type: 'warning',
+            isDanger: true,
+        });
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            setCancellingOrder(true);
+            await apiClient.post(`/orders/${order._id}/cancel`);
+            addToast('success', 'Order cancelled successfully');
+            if (onRefresh) {
+                await onRefresh();
+            } else {
+                router.refresh();
+            }
+        } catch (error) {
+            addToast('error', 'Failed to cancel order');
+        } finally {
+            setCancellingOrder(false);
+        }
+    };
+
+    const handleRequestRefund = async () => {
+        if (!refundReason.trim()) {
+            addToast('error', 'Please provide a reason for refund');
+            return;
+        }
+        try {
+            setRequestingRefund(true);
+            await apiClient.post(`/orders/${order._id}/refund-request`, {
+                reason: refundReason
+            });
+            addToast('success', 'Refund request submitted successfully');
+            setShowRefundModal(false);
+            if (onRefresh) {
+                await onRefresh();
+            } else {
+                router.refresh();
+            }
+        } catch (error) {
+            console.error(error);
+            addToast('error', 'Failed to request refund');
+        } finally {
+            setRequestingRefund(false);
+        }
+    };
 
     const handleRequestReturn = async () => {
         if (!returnReason.trim()) {
@@ -92,7 +160,11 @@ export default function OrderDetailsTemplate({ order, loading }: OrderDetailsTem
             });
             addToast('success', 'Return requested successfully');
             setShowReturnModal(false);
-            window.location.reload();
+            if (onRefresh) {
+                await onRefresh();
+            } else {
+                router.refresh();
+            }
         } catch (error) {
             console.error(error);
             addToast('error', 'Failed to request return');
@@ -191,6 +263,27 @@ export default function OrderDetailsTemplate({ order, loading }: OrderDetailsTem
                                     style={{ marginLeft: '1rem' }}
                                 >
                                     Request Return
+                                </button>
+                            )}
+
+                            {(order.status === 'pending' || order.status === 'processing') && (
+                                <button
+                                    className={styles.btnSecondary}
+                                    onClick={handleCancelOrder}
+                                    disabled={cancellingOrder}
+                                    style={{ marginLeft: '1rem', color: 'var(--color-error, #dc3545)' }}
+                                >
+                                    {cancellingOrder ? 'Cancelling...' : 'Cancel Order'}
+                                </button>
+                            )}
+
+                            {order.paymentStatus === 'paid' && (!order.refundStatus || order.refundStatus === 'none' || order.refundStatus === 'rejected') && order.status !== 'refunded' && (
+                                <button
+                                    className={styles.btnSecondary}
+                                    onClick={() => setShowRefundModal(true)}
+                                    style={{ marginLeft: '1rem' }}
+                                >
+                                    {order.refundStatus === 'rejected' ? 'Re-request Refund' : 'Request Refund'}
                                 </button>
                             )}
 
@@ -394,6 +487,30 @@ export default function OrderDetailsTemplate({ order, loading }: OrderDetailsTem
                         )}
                     </div>
                 </div>
+
+                {order.refundStatus && order.refundStatus !== 'none' && (
+                    <div className={`${styles.refundStatusBanner} ${styles[order.refundStatus]}`}>
+                        <div className={styles.statusLabel}>
+                            Refund Status: <strong>{order.refundStatus.replace('_', ' ')}</strong>
+                        </div>
+                        {order.refundStatus === 'requested' && (
+                            <p>Your refund request is currently being reviewed by our team.</p>
+                        )}
+                        {order.refundStatus === 'rejected' && (
+                            <div className={styles.rejectedMessage}>
+                                <p>Your refund request was declined.</p>
+                                {order.adminNote && (
+                                    <div className={styles.adminNote}>
+                                        <strong>Reason from Store:</strong> {order.adminNote}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        {order.refundStatus === 'approved' && (
+                            <p>Your refund request has been approved and is being processed.</p>
+                        )}
+                    </div>
+                )}
             </div>
 
             {showReturnModal && (
@@ -420,6 +537,36 @@ export default function OrderDetailsTemplate({ order, loading }: OrderDetailsTem
                                 disabled={requestingReturn}
                             >
                                 {requestingReturn ? 'Submitting...' : 'Submit Request'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showRefundModal && (
+                <div className={styles.modalOverlay}>
+                    <div className={styles.modalContent}>
+                        <h2>Request Refund</h2>
+                        <label>Reason for Refund</label>
+                        <textarea
+                            value={refundReason}
+                            onChange={(e) => setRefundReason(e.target.value)}
+                            placeholder="Please explain why you are requesting a refund..."
+                        />
+                        <div className={styles.modalActions}>
+                            <button
+                                className={styles.btnSecondary}
+                                onClick={() => setShowRefundModal(false)}
+                                disabled={requestingRefund}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className={styles.btnPrimary}
+                                onClick={handleRequestRefund}
+                                disabled={requestingRefund}
+                            >
+                                {requestingRefund ? 'Submitting...' : 'Submit Request'}
                             </button>
                         </div>
                     </div>

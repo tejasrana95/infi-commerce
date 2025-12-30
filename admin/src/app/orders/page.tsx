@@ -235,12 +235,28 @@ export default function OrdersPage() {
             headerName: 'Status',
             width: 120,
             renderCell: (params: GridRenderCellParams) => (
-                <Chip
-                    label={params.value}
-                    size="small"
-                    color={getStatusColor(params.value)}
-                    sx={{ textTransform: 'capitalize' }}
-                />
+                <Box display="flex" flexDirection="column" gap={0.5}>
+                    <Chip
+                        label={params.value}
+                        size="small"
+                        color={getStatusColor(params.value)}
+                        sx={{ textTransform: 'capitalize' }}
+                    />
+                    {params.row.refundStatus === 'requested' && (
+                        <Chip
+                            label="Refund Requested"
+                            size="small"
+                            color="error"
+                            variant="filled"
+                            sx={{
+                                fontSize: '0.65rem',
+                                height: 18,
+                                fontWeight: 700,
+                                textTransform: 'uppercase'
+                            }}
+                        />
+                    )}
+                </Box>
             ),
         },
         {

@@ -76,6 +76,9 @@ export interface IOrder extends Document {
     paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
     paymentId?: string;
     paymentDetails?: Record<string, any>;
+    refundStatus?: 'none' | 'requested' | 'approved' | 'rejected' | 'processed';
+    refundReason?: string;
+    refundRequestedAt?: Date;
     refundedAt?: Date;
     // Order status
     status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'return_requested' | 'returned';
@@ -232,6 +235,13 @@ const OrderSchema = new Schema<IOrder>(
         },
         paymentId: String,
         paymentDetails: Schema.Types.Mixed,
+        refundStatus: {
+            type: String,
+            enum: ['none', 'requested', 'approved', 'rejected', 'processed'],
+            default: 'none',
+        },
+        refundReason: String,
+        refundRequestedAt: Date,
         status: {
             type: String,
             enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded', 'return_requested', 'returned'],
