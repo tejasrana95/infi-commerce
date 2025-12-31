@@ -56,16 +56,19 @@ export default function Modal({
     const modalContent = (
         <div className={styles.overlay} ref={overlayRef} onClick={handleOverlayClick}>
             <div className={`${styles.modal} ${size === 'large' ? styles.large : ''}`}>
-                {(title || showCloseButton) && (
+                {/* Close button positioned outside modal */}
+                {showCloseButton && (
+                    <button className={styles.closeButton} onClick={onClose} aria-label="Close">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                    </button>
+                )}
+
+                {/* Header with title (only if title exists) */}
+                {title && (
                     <div className={styles.header}>
-                        {title && <h2>{title}</h2>}
-                        {showCloseButton && (
-                            <button className={styles.closeButton} onClick={onClose} aria-label="Close">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                            </button>
-                        )}
+                        <h2>{title}</h2>
                     </div>
                 )}
 

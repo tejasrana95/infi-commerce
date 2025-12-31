@@ -14,6 +14,7 @@ import { useCart } from '@/providers/CartProvider';
 import { useToast } from '@/providers/ToastProvider';
 import { DEFAULT_PRODUCT_CARD_CONFIG, ProductCardConfig } from '@/types';
 import { formatPrice } from '@/lib/currency';
+import QuickViewModal from '@/components/organisms/QuickViewModal';
 
 interface ProductCardContainerProps {
     product: Product;
@@ -148,6 +149,7 @@ export default function ProductCardContainer({
     const { addToCart } = useCart();
     const { success, error: toastError } = useToast();
     const [isAddingToCart, setIsAddingToCart] = useState(false);
+    const [showQuickView, setShowQuickView] = useState(false);
 
     // Check if this product can be added to compare
     const compareItem: CompareItem = {
@@ -255,19 +257,28 @@ export default function ProductCardContainer({
 
     // Render the template with processed data, config, and wishlist/compare props
     return (
-        <ProductCardTemplate
-            {...templateProps}
-            cardConfig={productCardConfig}
-            isWishlisted={isInWishlist(product._id)}
-            onToggleWishlist={() => toggleWishlist(product._id)}
-            isInCompare={isInCompare(product._id)}
-            onCompare={handleCompareToggle}
-            showCompare={compareConfig.enabled && compareConfig.showInProductCard}
-            compareDisabled={!canCompare && !isInCompare(product._id)}
-            compareDisabledReason={compareReason}
-            onAddToCart={handleAddToCart}
-            onBuyNow={handleBuyNow}
-            isAddingToCart={isAddingToCart}
-        />
+        <>
+            <ProductCardTemplate
+                {...templateProps}
+                cardConfig={productCardConfig}
+                isWishlisted={isInWishlist(product._id)}
+                onToggleWishlist={() => toggleWishlist(product._id)}
+                isInCompare={isInCompare(product._id)}
+                onCompare={handleCompareToggle}
+                showCompare={compareConfig.enabled && compareConfig.showInProductCard}
+                compareDisabled={!canCompare && !isInCompare(product._id)}
+                compareDisabledReason={compareReason}
+                onAddToCart={handleAddToCart}
+                onBuyNow={handleBuyNow}
+                onQuickView={() => setShowQuickView(true)}
+                isAddingToCart={isAddingToCart}
+            />
+            <QuickViewModal
+                isOpen={showQuickView}
+                onClose={() => setShowQuickView(false)}
+                product={product}
+                currency={activeCurrency}
+            />
+        </>
     );
 }

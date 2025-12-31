@@ -516,7 +516,7 @@ export default function CheckoutAddress({ config: propsConfig }: CheckoutAddress
             {/* --- SHIPPING SECTION --- */}
             <h2 className={styles.title}>Shipping Address</h2>
 
-            {/* View 1: Saved Addresses List (only if logged in and not adding new) */}
+            {/* View 1: Saved Addresses List (only if logged in and has addresses and not adding new) */}
             {isLoggedIn && savedAddresses.length > 0 && !showShippingForm && (
                 <SavedAddressList
                     addresses={savedAddresses}
@@ -531,18 +531,18 @@ export default function CheckoutAddress({ config: propsConfig }: CheckoutAddress
                 />
             )}
 
-            {/* View 2: Address Form (if adding new OR guest OR no saved addresses) */}
-            {(showShippingForm || (!isLoggedIn && !shippingAddress)) && (
+            {/* View 2: Address Form (if adding new OR guest with no address OR logged in with no saved addresses) */}
+            {(showShippingForm || (!isLoggedIn && !shippingAddress) || (isLoggedIn && savedAddresses.length === 0 && !shippingAddress)) && (
                 <AddressForm
                     title={isLoggedIn ? 'Add New Address' : 'Enter Shipping Details'}
                     submitLabel={isLoggedIn ? 'Save Address' : 'Continue'}
                     countries={availableCountries}
                     onSubmit={handleNewShippingSubmit}
-                    onCancel={isLoggedIn ? () => {
+                    onCancel={isLoggedIn && savedAddresses.length > 0 ? () => {
                         setShowShippingForm(false);
                         setIsAddingNewShipping(false);
                     } : undefined}
-                    showCancel={isLoggedIn}
+                    showCancel={isLoggedIn && savedAddresses.length > 0}
                     isGuest={!isLoggedIn}
                     guestEmail={guestEmail}
                     setGuestEmail={setGuestEmail}
@@ -578,7 +578,7 @@ export default function CheckoutAddress({ config: propsConfig }: CheckoutAddress
                 <div className={styles.billingSection}>
                     <h3 className={styles.subtitle} style={{ marginTop: '2rem' }}>Billing Address</h3>
 
-                    {/* View 1: Saved Addresses (reuse saved addresses for billing) */}
+                    {/* View 1: Saved Addresses List (only if logged in and has addresses) */}
                     {isLoggedIn && savedAddresses.length > 0 && !showBillingForm && (
                         <SavedAddressList
                             addresses={savedAddresses}
@@ -593,20 +593,18 @@ export default function CheckoutAddress({ config: propsConfig }: CheckoutAddress
                         />
                     )}
 
-                    {/* View 2: Billing Form */}
-                    {(showBillingForm || (!isLoggedIn && !billingAddress)) && (
+                    {/* View 2: Billing Form (if adding new OR guest with no billing OR logged in with no saved addresses) */}
+                    {(showBillingForm || (!isLoggedIn && !billingAddress) || (isLoggedIn && savedAddresses.length === 0 && !billingAddress)) && (
                         <AddressForm
                             title="Enter Billing Address"
                             submitLabel="Save Billing Address"
                             countries={availableCountries}
                             onSubmit={handleNewBillingSubmit}
-                            onCancel={() => {
-                                // If they cancel, we revert to list? 
-                                // Or if they have no billing address yet?
+                            onCancel={savedAddresses.length > 0 ? () => {
                                 setShowBillingForm(false);
                                 setIsAddingNewBilling(false);
-                            }}
-                            showCancel={isLoggedIn || savedAddresses.length > 0} // Show cancel if we can go back to list
+                            } : undefined}
+                            showCancel={savedAddresses.length > 0}
                         />
                     )}
 
