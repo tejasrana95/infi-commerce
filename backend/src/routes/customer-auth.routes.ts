@@ -11,6 +11,10 @@ import {
     resetPassword,
     verifyEmail,
     resendVerification,
+    setupCustomer2FA,
+    verifyAndEnableCustomer2FA,
+    disableCustomer2FA,
+    verifyCustomer2FALogin,
     customerRegisterValidation,
     customerLoginValidation,
     changePasswordValidation,
@@ -27,6 +31,7 @@ const router = Router();
 // Public routes with store context (for email notifications)
 router.post('/register', storeContext.required, validate(customerRegisterValidation), registerCustomer);
 router.post('/login', validate(customerLoginValidation), loginCustomer);
+router.post('/2fa/verify-login', verifyCustomer2FALogin);
 router.post('/refresh', refreshCustomerToken);
 router.post('/social-login', socialLogin);
 
@@ -42,6 +47,11 @@ router.get('/me', authenticate, getCustomerProfile);
 router.put('/me', authenticate, updateCustomerProfile);
 router.post('/change-password', authenticate, validate(changePasswordValidation), changePassword);
 router.post('/resend-verification', authenticate, storeContext.required, resendVerification);
+
+// 2FA management
+router.post('/2fa/setup', authenticate, storeContext.optional, setupCustomer2FA);
+router.post('/2fa/verify', authenticate, verifyAndEnableCustomer2FA);
+router.post('/2fa/disable', authenticate, disableCustomer2FA);
 
 export default router;
 

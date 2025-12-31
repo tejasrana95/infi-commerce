@@ -7,6 +7,7 @@ import api from '@/lib/api';
 import { formatDate } from '@/lib/date';
 import Loader from '@/components/molecules/Loader';
 import { ModuleProps } from '@/components/core/modules';
+import TwoFactorSetup from '@/components/molecules/TwoFactorSetup/TwoFactorSetup';
 
 export default function AccountProfileModule({ config = {} }: ModuleProps) {
     const { customer, refreshCustomer } = useCustomer();
@@ -231,6 +232,16 @@ export default function AccountProfileModule({ config = {} }: ModuleProps) {
                     </button>
                 </div>
             </form>
+
+            {/* Two-Factor Authentication */}
+            <div className={styles.card}>
+                <div className={styles.cardHeader}>
+                    <h2>Two-Factor Authentication</h2>
+                </div>
+                <div className={styles.cardBody}>
+                    <TwoFactorSetup />
+                </div>
+            </div>
 
             {/* Account Status */}
             <div className={styles.card}>

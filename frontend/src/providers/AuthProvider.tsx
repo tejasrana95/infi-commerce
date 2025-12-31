@@ -40,6 +40,7 @@ export interface Customer {
     addresses: CustomerAddress[];
     wishlist: string[];
     preferences: CustomerPreferences;
+    twoFactorEnabled?: boolean;
     lastLogin?: Date;
     createdAt?: Date;
     updatedAt?: Date;
@@ -72,7 +73,8 @@ interface CustomerContextType {
     defaultBillingAddress: CustomerAddress | null;
 
     // Auth Actions
-    login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+    login: (email: string, password: string) => Promise<{ success: boolean; error?: string; mfaRequired?: boolean; mfaToken?: string }>;
+    verify2FA: (mfaToken: string, code: string) => Promise<{ success: boolean; error?: string }>;
     register: (data: RegisterData) => Promise<{ success: boolean; error?: string; requiresVerification?: boolean }>;
     logout: () => void;
 
@@ -102,6 +104,7 @@ const CustomerContext = createContext<CustomerContextType>({
     defaultShippingAddress: null,
     defaultBillingAddress: null,
     login: async () => ({ success: false }),
+    verify2FA: async () => ({ success: false }),
     register: async () => ({ success: false }),
     logout: () => { },
     updateCustomer: () => { },
@@ -130,6 +133,7 @@ export function useAuth() {
         isAuthenticated: ctx.isAuthenticated,
         isLoading: ctx.isLoading,
         login: ctx.login,
+        verify2FA: ctx.verify2FA,
         register: ctx.register,
         logout: ctx.logout,
     };
@@ -209,6 +213,7 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
                     addresses: response.customer.addresses || [],
                     wishlist: response.customer.wishlist || [],
                     preferences: response.customer.preferences || {},
+                    twoFactorEnabled: response.customer.twoFactorEnabled,
                 };
                 setCustomer(customerData);
                 localStorage.setItem('customer', JSON.stringify(customerData));
@@ -221,7 +226,7 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
     // ============================================
     // Login
     // ============================================
-    const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string; mfaRequired?: boolean; mfaToken?: string }> => {
         setIsLoading(true);
         try {
             // Call actual backend API
@@ -229,6 +234,11 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
                 email,
                 password,
             });
+
+            if (response.mfaRequired) {
+                setIsLoading(false);
+                return { success: false, mfaRequired: true, mfaToken: response.mfaToken };
+            }
 
             if (!response.accessToken || !response.customer) {
                 setIsLoading(false);
@@ -249,6 +259,7 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
                     language: 'en',
                     newsletter: false,
                 },
+                twoFactorEnabled: response.customer.twoFactorEnabled,
                 createdAt: response.customer.createdAt,
                 updatedAt: response.customer.updatedAt,
             };
@@ -267,6 +278,48 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
         } catch (error: any) {
             setIsLoading(false);
             return { success: false, error: error.message || 'Invalid email or password' };
+        }
+    }, [router]);
+
+    const verify2FA = useCallback(async (mfaToken: string, code: string): Promise<{ success: boolean; error?: string }> => {
+        setIsLoading(true);
+        try {
+            const response = await api.post('auth/customer/2fa/verify-login', { mfaToken, code });
+
+            if (!response.accessToken || !response.customer) {
+                setIsLoading(false);
+                return { success: false, error: response.message || 'Verification failed' };
+            }
+
+            const customerData: Customer = {
+                _id: response.customer.id || response.customer._id,
+                email: response.customer.email,
+                firstName: response.customer.firstName,
+                lastName: response.customer.lastName,
+                phone: response.customer.phone,
+                emailVerified: response.customer.emailVerified,
+                addresses: response.customer.addresses || [],
+                wishlist: response.customer.wishlist || [],
+                preferences: response.customer.preferences || {},
+                twoFactorEnabled: response.customer.twoFactorEnabled,
+                createdAt: response.customer.createdAt,
+                updatedAt: response.customer.updatedAt,
+            };
+
+            api.setToken(response.accessToken);
+            if (response.refreshToken) {
+                api.setRefreshToken(response.refreshToken);
+            }
+            localStorage.setItem('customer', JSON.stringify(customerData));
+            setToken(response.accessToken);
+            setCustomer(customerData);
+            setIsLoading(false);
+
+            router.push('/account');
+            return { success: true };
+        } catch (error: any) {
+            setIsLoading(false);
+            return { success: false, error: error.message || '2FA Verification failed' };
         }
     }, [router]);
 
@@ -314,6 +367,7 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
                     language: 'en',
                     newsletter: false,
                 },
+                twoFactorEnabled: response.customer.twoFactorEnabled,
                 createdAt: response.customer.createdAt,
                 updatedAt: response.customer.updatedAt,
             };
@@ -455,6 +509,7 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
             removeAddress,
             setDefaultAddress,
             refreshCustomer,
+            verify2FA,
         }}>
             {children}
         </CustomerContext.Provider>

@@ -37,6 +37,9 @@ export interface ICustomer extends Document {
         language?: string;
         newsletter?: boolean;
     };
+    twoFactorEnabled: boolean;
+    twoFactorSecret?: string;
+    twoFactorBackupCodes?: string[];
     lastLogin?: Date;
     // Token fields for password reset and email verification
     passwordResetToken?: string;
@@ -147,6 +150,17 @@ const CustomerSchema = new Schema<ICustomer>(
                 type: Boolean,
                 default: false,
             },
+        },
+        twoFactorEnabled: {
+            type: Boolean,
+            default: false,
+        },
+        twoFactorSecret: {
+            type: String,
+        },
+        twoFactorBackupCodes: {
+            type: [String],
+            default: [],
         },
         lastLogin: {
             type: Date,

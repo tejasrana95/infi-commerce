@@ -8,8 +8,10 @@ import { User } from '@/types';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<{ mfaRequired: boolean; mfaToken?: string }>;
+  verify2FA: (mfaToken: string, code: string) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -39,6 +41,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     try {
       const response = await api.post('/auth/admin/login', { email, password });
+
+      if (response.data.mfaRequired) {
+        return { mfaRequired: true, mfaToken: response.data.mfaToken };
+      }
+
+      const { accessToken, user, refreshToken } = response.data;
+      localStorage.setItem('accesstoken', accessToken);
+      localStorage.setItem('refreshToken', refreshToken);
+      localStorage.setItem('adminUser', JSON.stringify(user));
+      setUser(user);
+
+      router.push('/dashboard');
+      return { mfaRequired: false };
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Login failed');
+    }
+  }, [router]);
+
+  const verify2FA = useCallback(async (mfaToken: string, code: string) => {
+    try {
+      const response = await api.post('/auth/admin/2fa/verify-login', { mfaToken, code });
       const { accessToken, user, refreshToken } = response.data;
 
       localStorage.setItem('accesstoken', accessToken);
@@ -48,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       router.push('/dashboard');
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Login failed');
+      throw new Error(error.response?.data?.message || '2FA Verification failed');
     }
   }, [router]);
 
@@ -60,13 +83,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push('/login');
   }, [router]);
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const response = await api.get('/auth/admin/me');
+      const { user } = response.data;
+      localStorage.setItem('adminUser', JSON.stringify(user));
+      setUser(user);
+    } catch (error) {
+      console.error('Failed to refresh user:', error);
+    }
+  }, []);
+
   const value = useMemo(() => ({
     user,
     loading,
     login,
+    verify2FA,
     logout,
+    refreshUser,
     isAuthenticated: !!user,
-  }), [user, loading, login, logout]);
+  }), [user, loading, login, verify2FA, logout, refreshUser]);
 
   return (
     <AuthContext.Provider value={value}>

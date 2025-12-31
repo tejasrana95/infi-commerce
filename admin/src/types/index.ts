@@ -1,9 +1,14 @@
 export interface User {
   _id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
+  name?: string;
   email: string;
+  phone?: string;
   role: 'admin' | 'manager' | 'staff' | 'super_admin' | 'store_admin';
   storeId?: string;
+  permissions?: string[];
+  twoFactorEnabled?: boolean;
 }
 
 // ============ TAX RATE TYPES ============

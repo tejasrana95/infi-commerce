@@ -260,3 +260,40 @@
         transform: rotate(360deg);
     }
 }
+
+.mfaHeader {
+    text-align: center;
+    margin-bottom: 24px;
+
+    h3 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 8px;
+    }
+
+    p {
+        color: #6b7280;
+        font-size: 0.95rem;
+    }
+}
+
+.backBtn {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #6b7280;
+    font-weight: 500;
+    font-size: 0.875rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: color 0.2s;
+    margin-top: 16px;
+    width: 100%;
+    text-align: center;
+
+    &:hover {
+        color: #111827;
+        text-decoration: underline;
+    }
+}

@@ -30,8 +30,11 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { login } = useAuth();
+  const { login, verify2FA } = useAuth();
   const [open, setOpen] = useState(false);
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [mfaToken, setMfaToken] = useState('');
+  const [mfaCode, setMfaCode] = useState('');
 
   const handleClickOpen = () => {
     setOpen(true);
@@ -40,19 +43,38 @@ export default function LoginPage() {
   const handleClose = () => {
     setOpen(false);
   };
+
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      await login(email, password);
+      const result = await login(email, password);
+      if (result.mfaRequired) {
+        setMfaRequired(true);
+        setMfaToken(result.mfaToken || '');
+      }
     } catch (err: any) {
       setError(err.message || 'Invalid email or password');
     } finally {
       setLoading(false);
     }
   }, [email, password, login]);
+
+  const handleMfaSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      await verify2FA(mfaToken, mfaCode);
+    } catch (err: any) {
+      setError(err.message || 'Verification failed');
+    } finally {
+      setLoading(false);
+    }
+  }, [mfaToken, mfaCode, verify2FA]);
 
   return (
     <Box
@@ -206,107 +228,161 @@ export default function LoginPage() {
             </Alert>
           </Collapse>
 
-          {/* Login Form */}
-          <Box component="form" onSubmit={handleSubmit} noValidate>
-            <TextField
-              fullWidth
-              label="Email Address"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              autoFocus
-              required
-              sx={{ mb: 2 }}
-            />
-
-            <TextField
-              fullWidth
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-              required
-              sx={{ mb: 2 }}
-            />
-
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                mb: 3,
-              }}
-            >
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    size="small"
-                  />
-                }
-                label={
-                  <Typography variant="body2" color="text.secondary">
-                    Remember me
-                  </Typography>
-                }
+          {/* Login or MFA Form */}
+          {!mfaRequired ? (
+            <Box component="form" onSubmit={handleSubmit} noValidate>
+              <TextField
+                fullWidth
+                label="Email Address"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                autoFocus
+                required
+                sx={{ mb: 2 }}
               />
-              <MuiLink
-                onClick={handleClickOpen}
-                variant="body2"
+
+              <TextField
+                fullWidth
+                label="Password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                required
+                sx={{ mb: 2 }}
+              />
+
+              <Box
                 sx={{
-                  color: 'primary.main',
-                  textDecoration: 'none',
-                  '&:hover': {
-                    textDecoration: 'underline',
-                  },
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  mb: 3,
                 }}
               >
-                Forgot password?
-              </MuiLink>
-            </Box>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      size="small"
+                    />
+                  }
+                  label={
+                    <Typography variant="body2" color="text.secondary">
+                      Remember me
+                    </Typography>
+                  }
+                />
+                <MuiLink
+                  onClick={handleClickOpen}
+                  variant="body2"
+                  sx={{
+                    color: 'primary.main',
+                    textDecoration: 'none',
+                    '&:hover': {
+                      textDecoration: 'underline',
+                    },
+                  }}
+                >
+                  Forgot password?
+                </MuiLink>
+              </Box>
 
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              size="large"
-              disabled={loading || !email || !password}
-              sx={{
-                py: 1.5,
-                fontSize: '0.9375rem',
-                fontWeight: 600,
-              }}
-            >
-              {loading ? (
-                <CircularProgress size={24} color="inherit" />
-              ) : (
-                'Sign In'
-              )}
-            </Button>
-          </Box>
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                size="large"
+                disabled={loading || !email || !password}
+                sx={{
+                  py: 1.5,
+                  fontSize: '0.9375rem',
+                  fontWeight: 600,
+                }}
+              >
+                {loading ? (
+                  <CircularProgress size={24} color="inherit" />
+                ) : (
+                  'Sign In'
+                )}
+              </Button>
+            </Box>
+          ) : (
+            <Box component="form" onSubmit={handleMfaSubmit} noValidate>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Enter the 6-digit code from your authenticator app to complete the sign-in.
+              </Typography>
+
+              <TextField
+                fullWidth
+                label="2FA Code"
+                value={mfaCode}
+                onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                autoFocus
+                required
+                sx={{ mb: 3 }}
+                inputProps={{
+                  maxLength: 6,
+                  inputMode: 'numeric',
+                  pattern: '[0-9]*'
+                }}
+              />
+
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                size="large"
+                disabled={loading || mfaCode.length !== 6}
+                sx={{
+                  py: 1.5,
+                  fontSize: '0.9375rem',
+                  fontWeight: 600,
+                }}
+              >
+                {loading ? (
+                  <CircularProgress size={24} color="inherit" />
+                ) : (
+                  'Verify & Sign In'
+                )}
+              </Button>
+
+              <Button
+                fullWidth
+                variant="text"
+                size="small"
+                onClick={() => setMfaRequired(false)}
+                sx={{ mt: 2 }}
+              >
+                Back to Login
+              </Button>
+            </Box>
+          )}
 
           {/* Footer */}
-          <Box sx={{ mt: 4, textAlign: 'center' }}>
-            <Typography variant="body2" color="text.secondary">
-              Don't have an account?{' '}
-              <MuiLink
-                onClick={handleClickOpen}
-                sx={{
-                  color: 'primary.main',
-                  textDecoration: 'none',
-                  fontWeight: 500,
-                  '&:hover': {
-                    textDecoration: 'underline',
-                  },
-                }}
-              >
-                Contact administrator
-              </MuiLink>
-            </Typography>
-          </Box>
+          {!mfaRequired && (
+            <Box sx={{ mt: 4, textAlign: 'center' }}>
+              <Typography variant="body2" color="text.secondary">
+                Don't have an account?{' '}
+                <MuiLink
+                  onClick={handleClickOpen}
+                  sx={{
+                    color: 'primary.main',
+                    textDecoration: 'none',
+                    fontWeight: 500,
+                    '&:hover': {
+                      textDecoration: 'underline',
+                    },
+                  }}
+                >
+                  Contact administrator
+                </MuiLink>
+              </Typography>
+            </Box>
+          )}
         </Box>
       </Box>
       <Dialog

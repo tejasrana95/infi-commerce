@@ -11,6 +11,7 @@ import { asyncHandler, AppError } from '../middleware/validation';
 import { transactionalNotificationService } from '../services/transactional-notification.service';
 import { notificationService } from '../services/notification.service';
 import { emitCustomerEvent } from '../events';
+import { TwoFactorService } from '../services/two-factor.service';
 
 // Validation rules
 export const customerRegisterValidation = [
@@ -47,6 +48,15 @@ const generateCustomerTokens = (customerId: string, email: string) => {
     );
 
     return { accessToken, refreshToken };
+};
+
+// Generate MFA session token for customer
+const generateCustomerMfaToken = (customerId: string, email: string) => {
+    return jwt.sign(
+        { id: customerId, email, type: 'mfa_challenge_customer' },
+        config.jwt.secret as string,
+        { expiresIn: '5m' }
+    );
 };
 
 /**
@@ -222,6 +232,17 @@ export const loginCustomer = asyncHandler(async (req: AuthRequest, res: Response
     // Emit customer login event
     emitCustomerEvent('customerLogin', customer, storeId as string);
 
+    // Check if 2FA is enabled
+    if (customer.twoFactorEnabled) {
+        const mfaToken = generateCustomerMfaToken(customer._id.toString(), customer.email);
+        res.json({
+            message: 'MFA required',
+            mfaRequired: true,
+            mfaToken,
+        });
+        return;
+    }
+
     // Generate tokens
     const { accessToken, refreshToken } = generateCustomerTokens(
         customer._id.toString(),
@@ -240,6 +261,7 @@ export const loginCustomer = asyncHandler(async (req: AuthRequest, res: Response
             addresses: customer.addresses,
             wishlist: customer.wishlist,
             preferences: customer.preferences,
+            twoFactorEnabled: customer.twoFactorEnabled,
             createdAt: customer.createdAt,
             updatedAt: customer.updatedAt,
         },
@@ -521,6 +543,210 @@ export const socialLogin = asyncHandler(async (req: AuthRequest, res: Response) 
         },
         ...tokens,
     });
+});
+
+/**
+ * @swagger
+ * /api/auth/customer/2fa/setup:
+ *   post:
+ *     summary: Initiate customer 2FA setup
+ *     tags: [Customer Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: 2FA setup initiated
+ */
+export const setupCustomer2FA = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const customer = await Customer.findById(req.user!.id);
+    if (!customer) {
+        throw new AppError('Customer not found', 404);
+    }
+
+    if (customer.twoFactorEnabled) {
+        throw new AppError('2FA is already enabled', 400);
+    }
+
+    const secret = TwoFactorService.generateSecret();
+    const issuer = req.store?.name || config.mfaIssuer;
+    const keyUri = TwoFactorService.generateKeyUri(customer.email, issuer, secret);
+    const qrCode = await TwoFactorService.generateQrCode(keyUri);
+
+    // Store secret temporarily
+    customer.twoFactorSecret = secret;
+    await customer.save();
+
+    res.json({
+        secret,
+        qrCode,
+    });
+});
+
+/**
+ * @swagger
+ * /api/auth/customer/2fa/verify:
+ *   post:
+ *     summary: Verify and enable customer 2FA
+ *     tags: [Customer Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [code]
+ *             properties:
+ *               code: { type: string }
+ *     responses:
+ *       200:
+ *         description: 2FA enabled successfully
+ */
+export const verifyAndEnableCustomer2FA = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { code } = req.body;
+    const customer = await Customer.findById(req.user!.id);
+
+    if (!customer || !customer.twoFactorSecret) {
+        throw new AppError('2FA setup not initiated', 400);
+    }
+
+    const isValid = TwoFactorService.verifyCode(code, customer.twoFactorSecret);
+    if (!isValid) {
+        throw new AppError('Invalid verification code', 400);
+    }
+
+    customer.twoFactorEnabled = true;
+    const backupCodes = TwoFactorService.generateBackupCodes();
+    customer.twoFactorBackupCodes = backupCodes;
+    await customer.save();
+
+    res.json({
+        message: '2FA enabled successfully',
+        backupCodes,
+    });
+});
+
+/**
+ * @swagger
+ * /api/auth/customer/2fa/disable:
+ *   post:
+ *     summary: Disable customer 2FA
+ *     tags: [Customer Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [code]
+ *             properties:
+ *               code: { type: string }
+ *     responses:
+ *       200:
+ *         description: 2FA disabled successfully
+ */
+export const disableCustomer2FA = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { code } = req.body;
+    const customer = await Customer.findById(req.user!.id);
+
+    if (!customer || !customer.twoFactorEnabled) {
+        throw new AppError('2FA is not enabled', 400);
+    }
+
+    const isValid = TwoFactorService.verifyCode(code, customer.twoFactorSecret!);
+    if (!isValid) {
+        throw new AppError('Invalid verification code', 400);
+    }
+
+    customer.twoFactorEnabled = false;
+    customer.twoFactorSecret = undefined;
+    customer.twoFactorBackupCodes = [];
+    await customer.save();
+
+    res.json({ message: '2FA disabled successfully' });
+});
+
+/**
+ * @swagger
+ * /api/auth/customer/2fa/verify-login:
+ *   post:
+ *     summary: Verify customer 2FA code during login
+ *     tags: [Customer Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [mfaToken, code]
+ *             properties:
+ *               mfaToken: { type: string }
+ *               code: { type: string }
+ *     responses:
+ *       200:
+ *         description: Login successful
+ */
+export const verifyCustomer2FALogin = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { mfaToken, code } = req.body;
+    const storeId = req.headers['x-store-id'];
+
+    try {
+        const decoded = jwt.verify(mfaToken, config.jwt.secret) as any;
+        if (decoded.type !== 'mfa_challenge_customer') {
+            throw new AppError('Invalid MFA token', 401);
+        }
+
+        const customer = await Customer.findById(decoded.id);
+        if (!customer || !customer.isActive || !customer.twoFactorEnabled) {
+            throw new AppError('Invalid MFA session', 401);
+        }
+
+        const isValid = TwoFactorService.verifyCode(code, customer.twoFactorSecret!);
+        if (!isValid) {
+            // Check backup codes
+            const backupIndex = customer.twoFactorBackupCodes?.indexOf(code.toUpperCase());
+            if (backupIndex !== undefined && backupIndex > -1) {
+                customer.twoFactorBackupCodes?.splice(backupIndex, 1);
+                await customer.save();
+            } else {
+                throw new AppError('Invalid 2FA code', 401);
+            }
+        }
+
+        // Generate tokens
+        const tokens = generateCustomerTokens(
+            customer._id.toString(),
+            customer.email
+        );
+
+        // Emit customer login event
+        emitCustomerEvent('customerLogin', customer, storeId as string);
+
+        res.json({
+            message: 'Login successful',
+            customer: {
+                id: customer._id,
+                email: customer.email,
+                firstName: customer.firstName,
+                lastName: customer.lastName,
+                phone: customer.phone,
+                emailVerified: customer.emailVerified,
+                addresses: customer.addresses,
+                wishlist: customer.wishlist,
+                preferences: customer.preferences,
+                twoFactorEnabled: customer.twoFactorEnabled,
+                createdAt: customer.createdAt,
+                updatedAt: customer.updatedAt,
+            },
+            ...tokens,
+        });
+    } catch (error) {
+        if (error instanceof AppError) throw error;
+        throw new AppError('Invalid or expired MFA token', 401);
+    }
 });
 
 // ============================================

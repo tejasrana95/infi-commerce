@@ -14,11 +14,14 @@ interface LoginFormProps {
 
 export default function LoginForm({ isModal = false, onSuccess }: LoginFormProps) {
     const router = useRouter();
-    const { login } = useAuth();
+    const { login, verify2FA } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [mfaRequired, setMfaRequired] = useState(false);
+    const [mfaToken, setMfaToken] = useState('');
+    const [mfaCode, setMfaCode] = useState('');
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -31,12 +34,71 @@ export default function LoginForm({ isModal = false, onSuccess }: LoginFormProps
             if (onSuccess) {
                 onSuccess();
             }
+        } else if (result.mfaRequired) {
+            setMfaRequired(true);
+            setMfaToken(result.mfaToken || '');
         } else {
             setError(result.error || 'Invalid email or password');
         }
 
         setLoading(false);
     };
+
+    const handleMfaSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+
+        const result = await verify2FA(mfaToken, mfaCode);
+
+        if (result.success) {
+            if (onSuccess) {
+                onSuccess();
+            }
+        } else {
+            setError(result.error || 'Invalid verification code');
+        }
+
+        setLoading(false);
+    };
+
+    if (mfaRequired) {
+        return (
+            <div className={styles.formContainer}>
+                <div className={styles.mfaHeader}>
+                    <h3>Two-Factor Authentication</h3>
+                    <p>Please enter the 6-digit code from your authenticator app.</p>
+                </div>
+
+                <form onSubmit={handleMfaSubmit} className={styles.form}>
+                    {error && <div className={styles.error}>{error}</div>}
+
+                    <div className={styles.inputGroup}>
+                        <label htmlFor="mfa-code">Verification Code</label>
+                        <input
+                            type="text"
+                            id="mfa-code"
+                            value={mfaCode}
+                            onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                            placeholder="000000"
+                            required
+                            autoFocus
+                            inputMode="numeric"
+                            autoComplete="one-time-code"
+                        />
+                    </div>
+
+                    <button type="submit" className={styles.submitBtn} disabled={loading || mfaCode.length !== 6}>
+                        {loading ? 'Verifying...' : 'Verify & Sign In'}
+                    </button>
+
+                    <button type="button" className={styles.backBtn} onClick={() => setMfaRequired(false)}>
+                        Back to Login
+                    </button>
+                </form>
+            </div>
+        );
+    }
 
     return (
         <div className={styles.formContainer}>

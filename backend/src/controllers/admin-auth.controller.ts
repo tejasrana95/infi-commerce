@@ -7,6 +7,7 @@ import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import { transactionalNotificationService } from '../services/transactional-notification.service';
 import StoreModel from '../models/Store';
+import { TwoFactorService } from '../services/two-factor.service';
 
 // Validation rules
 export const adminRegisterValidation = [
@@ -37,6 +38,15 @@ const generateAdminTokens = (userId: string, email: string, role: string, storeI
     );
 
     return { accessToken, refreshToken };
+};
+
+// Generate MFA session token
+const generateMfaToken = (userId: string, email: string) => {
+    return jwt.sign(
+        { id: userId, email, type: 'mfa_challenge' },
+        config.jwt.secret as string,
+        { expiresIn: '5m' }
+    );
 };
 
 /**
@@ -212,6 +222,17 @@ export const loginAdmin = asyncHandler(async (req: AuthRequest, res: Response) =
     user.lastLogin = new Date();
     await user.save();
 
+    // Check if 2FA is enabled
+    if (user.twoFactorEnabled) {
+        const mfaToken = generateMfaToken(user._id.toString(), user.email);
+        res.json({
+            message: 'MFA required',
+            mfaRequired: true,
+            mfaToken,
+        });
+        return;
+    }
+
     // Generate tokens
     const { accessToken, refreshToken } = generateAdminTokens(
         user._id.toString(),
@@ -230,10 +251,209 @@ export const loginAdmin = asyncHandler(async (req: AuthRequest, res: Response) =
             role: user.role,
             storeId: user.storeId,
             permissions: user.permissions,
+            twoFactorEnabled: user.twoFactorEnabled,
         },
         accessToken,
         refreshToken,
     });
+});
+
+/**
+ * @swagger
+ * /api/auth/admin/2fa/setup:
+ *   post:
+ *     summary: Initiate 2FA setup
+ *     tags: [Admin Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: 2FA setup initiated
+ */
+export const setup2FA = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const user = await User.findById(req.user!.id);
+    if (!user) {
+        throw new AppError('User not found', 404);
+    }
+
+    if (user.twoFactorEnabled) {
+        throw new AppError('2FA is already enabled', 400);
+    }
+
+    const secret = TwoFactorService.generateSecret();
+    const keyUri = TwoFactorService.generateKeyUri(user.email, config.mfaIssuer, secret);
+    const qrCode = await TwoFactorService.generateQrCode(keyUri);
+
+    // Store secret temporarily
+    user.twoFactorSecret = secret;
+    await user.save();
+
+    res.json({
+        secret,
+        qrCode,
+    });
+});
+
+/**
+ * @swagger
+ * /api/auth/admin/2fa/verify:
+ *   post:
+ *     summary: Verify and enable 2FA
+ *     tags: [Admin Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [code]
+ *             properties:
+ *               code: { type: string }
+ *     responses:
+ *       200:
+ *         description: 2FA enabled successfully
+ */
+export const verifyAndEnable2FA = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { code } = req.body;
+    const user = await User.findById(req.user!.id);
+
+    if (!user || !user.twoFactorSecret) {
+        throw new AppError('2FA setup not initiated', 400);
+    }
+
+    const isValid = TwoFactorService.verifyCode(code, user.twoFactorSecret);
+    if (!isValid) {
+        throw new AppError('Invalid verification code', 400);
+    }
+
+    user.twoFactorEnabled = true;
+    const backupCodes = TwoFactorService.generateBackupCodes();
+    user.twoFactorBackupCodes = backupCodes; // In real app, hash these
+    await user.save();
+
+    res.json({
+        message: '2FA enabled successfully',
+        backupCodes,
+    });
+});
+
+/**
+ * @swagger
+ * /api/auth/admin/2fa/disable:
+ *   post:
+ *     summary: Disable 2FA
+ *     tags: [Admin Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [code]
+ *             properties:
+ *               code: { type: string }
+ *     responses:
+ *       200:
+ *         description: 2FA disabled successfully
+ */
+export const disable2FA = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { code } = req.body;
+    const user = await User.findById(req.user!.id);
+
+    if (!user || !user.twoFactorEnabled) {
+        throw new AppError('2FA is not enabled', 400);
+    }
+
+    const isValid = TwoFactorService.verifyCode(code, user.twoFactorSecret!);
+    if (!isValid) {
+        throw new AppError('Invalid verification code', 400);
+    }
+
+    user.twoFactorEnabled = false;
+    user.twoFactorSecret = undefined;
+    user.twoFactorBackupCodes = [];
+    await user.save();
+
+    res.json({ message: '2FA disabled successfully' });
+});
+
+/**
+ * @swagger
+ * /api/auth/admin/2fa/verify-login:
+ *   post:
+ *     summary: Verify 2FA code during login
+ *     tags: [Admin Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [mfaToken, code]
+ *             properties:
+ *               mfaToken: { type: string }
+ *               code: { type: string }
+ *     responses:
+ *       200:
+ *         description: Login successful
+ */
+export const verify2FALogin = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { mfaToken, code } = req.body;
+
+    try {
+        const decoded = jwt.verify(mfaToken, config.jwt.secret) as any;
+        if (decoded.type !== 'mfa_challenge') {
+            throw new AppError('Invalid MFA token', 401);
+        }
+
+        const user = await User.findById(decoded.id);
+        if (!user || !user.isActive || !user.twoFactorEnabled) {
+            throw new AppError('Invalid MFA session', 401);
+        }
+
+        const isValid = TwoFactorService.verifyCode(code, user.twoFactorSecret!);
+        if (!isValid) {
+            // Check backup codes
+            const backupIndex = user.twoFactorBackupCodes?.indexOf(code.toUpperCase());
+            if (backupIndex !== undefined && backupIndex > -1) {
+                user.twoFactorBackupCodes?.splice(backupIndex, 1);
+                await user.save();
+            } else {
+                throw new AppError('Invalid 2FA code', 401);
+            }
+        }
+
+        // Generate final tokens
+        const { accessToken, refreshToken } = generateAdminTokens(
+            user._id.toString(),
+            user.email,
+            user.role,
+            user.storeId?.toString()
+        );
+
+        res.json({
+            message: 'Login successful',
+            user: {
+                id: user._id,
+                email: user.email,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                role: user.role,
+                storeId: user.storeId,
+                permissions: user.permissions,
+                twoFactorEnabled: user.twoFactorEnabled,
+            },
+            accessToken,
+            refreshToken,
+        });
+    } catch (error) {
+        if (error instanceof AppError) throw error;
+        throw new AppError('Invalid or expired MFA token', 401);
+    }
 });
 
 /**
@@ -346,6 +566,57 @@ export const getAdminProfile = asyncHandler(async (req: AuthRequest, res: Respon
  *       401:
  *         description: Unauthorized
  */
+/**
+ * @swagger
+ * /api/auth/admin/change-password:
+ *   post:
+ *     summary: Change admin password
+ *     tags: [Admin Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [oldPassword, newPassword]
+ *             properties:
+ *               oldPassword: { type: string }
+ *               newPassword: { type: string, minLength: 8 }
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ */
+export const changeAdminPassword = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) {
+        throw new AppError('Old password and new password are required', 400);
+    }
+
+    if (newPassword.length < 8) {
+        throw new AppError('New password must be at least 8 characters long', 400);
+    }
+
+    const user = await User.findById(req.user!.id);
+    if (!user) {
+        throw new AppError('User not found', 404);
+    }
+
+    // Verify old password
+    const isMatch = await user.comparePassword(oldPassword);
+    if (!isMatch) {
+        throw new AppError('Incorrect old password', 400);
+    }
+
+    // Set new password (will be hashed in pre-save hook)
+    user.password = newPassword;
+    await user.save();
+
+    res.json({ message: 'Password changed successfully' });
+});
+
 export const updateAdminProfile = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { firstName, lastName, phone } = req.body;
 

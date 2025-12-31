@@ -565,17 +565,11 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
                 </div>
               </Box>
 
-              <MenuItem onClick={handleMenuClose} sx={{ py: 1, fontSize: '0.875rem' }}>
+              <MenuItem component={Link} href="/profile" onClick={handleMenuClose} sx={{ py: 1, fontSize: '0.875rem' }}>
                 <ListItemIcon>
                   <PersonOutlineIcon fontSize="small" />
                 </ListItemIcon>
                 My Profile
-              </MenuItem>
-              <MenuItem onClick={handleMenuClose} sx={{ py: 1, fontSize: '0.875rem' }}>
-                <ListItemIcon>
-                  <SettingsOutlinedIcon fontSize="small" />
-                </ListItemIcon>
-                Settings
               </MenuItem>
               <Divider sx={{ my: 0.5 }} />
               <MenuItem onClick={handleLogout} sx={{ py: 1, fontSize: '0.875rem', color: 'error.main' }}>

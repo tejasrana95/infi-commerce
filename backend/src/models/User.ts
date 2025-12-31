@@ -16,6 +16,9 @@ export interface IUser extends Document {
     isActive: boolean;
     emailVerified: boolean;
     permissions?: string[]; // For granular permissions
+    twoFactorEnabled: boolean;
+    twoFactorSecret?: string;
+    twoFactorBackupCodes?: string[];
     lastLogin?: Date;
     createdAt: Date;
     updatedAt: Date;
@@ -71,6 +74,17 @@ const UserSchema = new Schema<IUser>(
             default: false,
         },
         permissions: {
+            type: [String],
+            default: [],
+        },
+        twoFactorEnabled: {
+            type: Boolean,
+            default: false,
+        },
+        twoFactorSecret: {
+            type: String,
+        },
+        twoFactorBackupCodes: {
             type: [String],
             default: [],
         },
