@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import pkg from "../../package.json";
 import { Geist, Geist_Mono } from "next/font/google";
 import { headers, cookies } from "next/headers";
 import "./globals.scss";
@@ -101,7 +102,7 @@ export async function generateMetadata() {
 
   if (!store) {
     return {
-      title: "Infi-Commerce",
+      title: "Store",
       description: "Store not found",
     };
   }
@@ -113,7 +114,10 @@ export async function generateMetadata() {
   const selectedCurrency = currencies.find(c => c.code === currencyCode) || currencies[0];
 
   return {
-    title: store.seo?.metaTitle || store.name || "Infi-Commerce",
+    title: {
+      default: store.seo?.metaTitle || store.name || "Store",
+      template: `%s | ${store.name || "Store"}`
+    },
     description: store.seo?.metaDescription || store.description || "Your one-stop e-commerce solution",
     other: {
       "currency": selectedCurrency?.code || "USD",
@@ -177,6 +181,14 @@ export default async function RootLayout({
             <link href={googleFontsUrl} rel="stylesheet" />
           </>
         )}
+        {/* Infi Commerce Identification for Tools (BuiltWith, etc.) */}
+        <meta name="generator" content={`Infi Commerce v${pkg.version}`} />
+        <meta name="application-name" content="Infi Commerce" />
+        <meta name="platform" content="Infi Commerce" />
+        {/*
+          Powered by Infi Commerce v${pkg.version}
+          https://inficommerce.com
+        */}
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         {store && (

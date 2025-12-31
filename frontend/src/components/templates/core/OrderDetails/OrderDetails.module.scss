@@ -27,22 +27,27 @@
 
 .pageContainer {
     padding: 2rem 1rem;
-    background-color: #f9fafb; // gray-50
+    background-color: #f9fafb;
     min-height: calc(100vh - 80px);
-
 
     @include tablet {
         padding: 3rem 2rem;
     }
 
     @include desktop {
-        padding: 4rem 0;
+        padding: 4rem 2rem; // Keep some gutter even if container is wide
     }
 }
 
 .container {
-    max-width: var(--max-container-width);
+    width: 100%;
+    max-width: 1280px; // More standard container width
     margin: 0 auto;
+    padding: 0 1rem; // Responsive horizontal padding
+
+    @include tablet {
+        padding: 0 2rem;
+    }
 }
 
 .content {

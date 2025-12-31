@@ -7,7 +7,7 @@ import { getLayoutByType } from "@/lib/api/layouts";
 import { Section } from '@/types/layout';
 
 export const metadata: Metadata = {
-    title: 'My Orders | Infi Commerce',
+    title: 'My Orders',
     description: 'View your order history.',
 };
 
