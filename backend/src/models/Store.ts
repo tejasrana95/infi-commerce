@@ -71,6 +71,10 @@ export interface IStore extends Document {
                 clientSecret?: string;
             };
         };
+        googleAnalytics?: {
+            enabled: boolean;
+            trackingId?: string;
+        };
         [key: string]: any;
     };
 
@@ -306,6 +310,10 @@ const StoreSchema = new Schema<IStore>(
                         clientId: '',
                         clientSecret: '',
                     },
+                },
+                googleAnalytics: {
+                    enabled: false,
+                    trackingId: '',
                 },
             },
         },

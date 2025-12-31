@@ -19,6 +19,8 @@ import ThemeScriptInjector from "@/components/ThemeScriptInjector";
 import { getEnrichedMenus } from "@/lib/server-menu";
 import { getComponent } from "@/components/templates/registry";
 import { Currency, DEFAULT_TEMPLATE_ID } from "@/types";
+import { AnalyticsProvider } from "@/providers/AnalyticsProvider";
+import AutoAnalytics from "@/components/analytics/AutoAnalytics";
 
 // Optimized font loading with display: swap to prevent FOIT
 const geistSans = Geist({
@@ -199,40 +201,43 @@ export default async function RootLayout({
           availableCurrencies={currencies}
         >
           <UIProvider>
-            <ThemeScriptInjector
-              header={store?.theme?.customScripts?.header}
-              footer={store?.theme?.customScripts?.footer}
-            />
-            <CustomerProvider>
-              <CartProvider>
-                <WishlistProvider>
-                  <CompareProvider>
-                    <ToastProvider>
-                      <DialogProvider>
-                        {store?.settings?.maintenanceMode ? (
-                          <Maintenance />
-                        ) : (
-                          <div className="flex flex-col min-h-screen">
-                            {/* Header - Template-specific container */}
-                            <Header config={store?.theme?.header} store={store} templateId={templateId} menus={menus} />
+            <AnalyticsProvider>
+              <AutoAnalytics />
+              <ThemeScriptInjector
+                header={store?.theme?.customScripts?.header}
+                footer={store?.theme?.customScripts?.footer}
+              />
+              <CustomerProvider>
+                <CartProvider>
+                  <WishlistProvider>
+                    <CompareProvider>
+                      <ToastProvider>
+                        <DialogProvider>
+                          {store?.settings?.maintenanceMode ? (
+                            <Maintenance />
+                          ) : (
+                            <div className="flex flex-col min-h-screen">
+                              {/* Header - Template-specific container */}
+                              <Header config={store?.theme?.header} store={store} templateId={templateId} menus={menus} />
 
-                            {/* Main Content */}
-                            <main className="flex-1">
-                              {children}
-                            </main>
+                              {/* Main Content */}
+                              <main className="flex-1">
+                                {children}
+                              </main>
 
-                            {/* Footer - Template-specific container */}
-                            <Footer config={store?.theme?.footer} store={store} templateId={templateId} />
-                          </div>
-                        )}
-                        <AuthModal />
-                        {!store?.settings?.maintenanceMode && <CompareFloatingWidget />}
-                      </DialogProvider>
-                    </ToastProvider>
-                  </CompareProvider>
-                </WishlistProvider>
-              </CartProvider>
-            </CustomerProvider>
+                              {/* Footer - Template-specific container */}
+                              <Footer config={store?.theme?.footer} store={store} templateId={templateId} />
+                            </div>
+                          )}
+                          <AuthModal />
+                          {!store?.settings?.maintenanceMode && <CompareFloatingWidget />}
+                        </DialogProvider>
+                      </ToastProvider>
+                    </CompareProvider>
+                  </WishlistProvider>
+                </CartProvider>
+              </CustomerProvider>
+            </AnalyticsProvider>
           </UIProvider>
         </StoreProvider>
       </body>

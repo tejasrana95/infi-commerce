@@ -479,6 +479,12 @@ export default function ModernCleanProductPageTemplate({
                     className={styles.addToCartBtn}
                     onClick={onAddToCart}
                     disabled={!canOrder || isAddingToCart || (product.type === 'variable' && !allOptionsSelected)}
+                    data-track="add_to_cart"
+                    data-item-id={product._id}
+                    data-item-name={product.name}
+                    data-price={effectivePrice}
+                    data-currency={typeof currency === 'object' ? currency.code : currency}
+                    data-quantity={quantity}
                 >
                     {isAddingToCart ? 'Adding...' : 'Add to Cart'}
                 </button>
@@ -486,6 +492,12 @@ export default function ModernCleanProductPageTemplate({
                     className={styles.buyNowBtn}
                     onClick={onBuyNow}
                     disabled={!canOrder || isAddingToCart || (product.type === 'variable' && !allOptionsSelected)}
+                    data-track="begin_checkout"
+                    data-item-id={product._id}
+                    data-item-name={product.name}
+                    data-price={effectivePrice}
+                    data-currency={typeof currency === 'object' ? currency.code : currency}
+                    data-quantity={quantity}
                 >
                     Buy Now
                 </button>
@@ -496,6 +508,10 @@ export default function ModernCleanProductPageTemplate({
                 <button
                     className={`${styles.iconBtn} ${isWishlisted ? styles.wishlisted : ''}`}
                     onClick={onAddToWishlist}
+                    data-track="add_to_wishlist"
+                    data-item-id={product._id}
+                    data-item-name={product.name}
+                    data-price={effectivePrice}
                 >
                     <svg viewBox="0 0 24 24" fill={isWishlisted ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2}>
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />

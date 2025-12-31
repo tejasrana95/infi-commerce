@@ -95,6 +95,11 @@ const schema = z.object({
                 clientSecret: z.string().optional(),
             }),
         }).optional(),
+        // Google Analytics
+        googleAnalytics: z.object({
+            enabled: z.boolean(),
+            trackingId: z.string().optional(),
+        }).optional(),
     }).optional(),
 });
 
@@ -142,6 +147,10 @@ const defaultValues: FormData = {
         socialLogin: {
             google: { enabled: false, clientId: '', clientSecret: '' },
             facebook: { enabled: false, clientId: '', clientSecret: '' },
+        },
+        googleAnalytics: {
+            enabled: false,
+            trackingId: '',
         },
     },
 };
@@ -204,6 +213,10 @@ export default function StoreForm({ initialData, onSubmit, isSubmitting = false 
                             clientSecret: initialData.settings?.socialLogin?.facebook?.clientSecret ?? '',
                         },
                     },
+                    googleAnalytics: {
+                        enabled: initialData.settings?.googleAnalytics?.enabled ?? false,
+                        trackingId: initialData.settings?.googleAnalytics?.trackingId ?? '',
+                    },
                 },
             });
         } else {
@@ -229,7 +242,44 @@ export default function StoreForm({ initialData, onSubmit, isSubmitting = false 
                 <Tab label="SEO" />
                 <Tab label="Settings" />
                 <Tab label="Social Login" />
+                <Tab label="Analytics" />
             </Tabs>
+
+            {/* Tab 4: Analytics */}
+            {activeTab === 4 && (
+                <Grid container spacing={3}>
+                    <Grid size={{ xs: 12 }}>
+                        <Typography variant="h6" gutterBottom>Google Analytics</Typography>
+                    </Grid>
+                    <Grid size={{ xs: 12 }}>
+                        <Controller
+                            name="settings.googleAnalytics.enabled"
+                            control={control}
+                            render={({ field }) => (
+                                <FormControlLabel
+                                    control={<Switch checked={field.value} onChange={field.onChange} />}
+                                    label="Enable Google Analytics Tracking"
+                                />
+                            )}
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <Controller
+                            name="settings.googleAnalytics.trackingId"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField
+                                    {...field}
+                                    label="Tracking ID"
+                                    fullWidth
+                                    placeholder="G-XXXXXXXXXX"
+                                    helperText="Enter your Google Analytics 4 Measurement ID"
+                                />
+                            )}
+                        />
+                    </Grid>
+                </Grid>
+            )}
 
             {/* Tab 0: Basic Info */}
             {activeTab === 0 && (

@@ -519,6 +519,11 @@ export interface StoreSettings {
             clientId?: string;
         };
     };
+    // Google Analytics
+    googleAnalytics?: {
+        enabled: boolean;
+        trackingId?: string;
+    };
 }
 
 export interface StoreSEO {

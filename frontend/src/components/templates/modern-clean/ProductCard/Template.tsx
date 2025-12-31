@@ -27,7 +27,10 @@ interface ExtendedProductTemplateProps extends ProductTemplateProps {
 }
 
 export default function ModernCleanProductCardTemplate({
+    id,
     name,
+    price,
+    currency,
     formattedPrice,
     formattedCompareAtPrice,
     hasDiscount,
@@ -255,6 +258,11 @@ export default function ModernCleanProductCardTemplate({
                                 onAddToCart?.();
                             }}
                             aria-label="Add to Cart"
+                            data-track="add_to_cart"
+                            data-item-id={id}
+                            data-item-name={name}
+                            data-price={price}
+                            data-currency={currency}
                         >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -344,6 +352,11 @@ export default function ModernCleanProductCardTemplate({
                                                 onAddToCart?.();
                                             }}
                                             title="Add to Cart"
+                                            data-track="add_to_cart"
+                                            data-item-id={id}
+                                            data-item-name={name}
+                                            data-price={price}
+                                            data-currency={currency}
                                         >
                                             {addToCartStyle === 'icon-only' ? (
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
@@ -362,6 +375,11 @@ export default function ModernCleanProductCardTemplate({
                                                 onBuyNow?.();
                                             }}
                                             title="Buy Now"
+                                            data-track="begin_checkout"
+                                            data-item-id={id}
+                                            data-item-name={name}
+                                            data-price={price}
+                                            data-currency={currency}
                                         >
                                             Buy Now
                                         </button>
@@ -433,6 +451,11 @@ export default function ModernCleanProductCardTemplate({
                                     e.preventDefault();
                                     onAddToCart?.();
                                 }}
+                                data-track="add_to_cart"
+                                data-item-id={id}
+                                data-item-name={name}
+                                data-price={price}
+                                data-currency={currency}
                             >
                                 {addToCartStyle === 'icon-only' ? (
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
@@ -450,6 +473,11 @@ export default function ModernCleanProductCardTemplate({
                                     e.preventDefault();
                                     onBuyNow?.();
                                 }}
+                                data-track="begin_checkout"
+                                data-item-id={id}
+                                data-item-name={name}
+                                data-price={price}
+                                data-currency={currency}
                             >
                                 Buy Now
                             </button>
@@ -468,6 +496,11 @@ export default function ModernCleanProductCardTemplate({
                                 e.preventDefault();
                                 onAddToCart?.();
                             }}
+                            data-track="add_to_cart"
+                            data-item-id={id}
+                            data-item-name={name}
+                            data-price={price}
+                            data-currency={currency}
                         >
                             Add to Cart
                         </button>
@@ -479,6 +512,11 @@ export default function ModernCleanProductCardTemplate({
                                 e.preventDefault();
                                 onBuyNow?.();
                             }}
+                            data-track="begin_checkout"
+                            data-item-id={id}
+                            data-item-name={name}
+                            data-price={price}
+                            data-currency={currency}
                         >
                             Buy Now
                         </button>
