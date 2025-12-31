@@ -201,6 +201,16 @@ export const createReview = asyncHandler(async (req: AuthRequest, res: Response)
         throw new AppError('Guest reviews are not allowed for this store', 400);
     }
 
+    // Check image settings
+    if (images && images.length > 0) {
+        if (!reviewSettings.allowImages) {
+            throw new AppError('Image uploads are not enabled for reviews in this store', 400);
+        }
+        if (reviewSettings.maxImagesPerReview && images.length > reviewSettings.maxImagesPerReview) {
+            throw new AppError(`You can upload a maximum of ${reviewSettings.maxImagesPerReview} images per review`, 400);
+        }
+    }
+
     // If customer review, check if already reviewed
     if (!isGuestReview && customerId) {
         const existingReview = await Review.findOne({ productId, customerId });

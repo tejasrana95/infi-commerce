@@ -22,6 +22,8 @@ import ShippingCalculator from '@/components/organisms/ShippingCalculator';
 
 import styles from './ProductPage.module.scss';
 import { formatPrice } from '@/lib/currency';
+import api from '@/lib/api';
+import { useToast } from '@/providers/ToastProvider';
 
 export default function ModernCleanProductPageTemplate({
     product,
@@ -69,6 +71,7 @@ export default function ModernCleanProductPageTemplate({
     userDefaultCountry,
     onCalculateShipping,
 }: ProductPageTemplateProps) {
+    const { error: toastError } = useToast();
     // Get ProductCard component
     const ProductCard = getComponent('ProductCard', templateId);
 
@@ -80,10 +83,66 @@ export default function ModernCleanProductPageTemplate({
         content: '',
         guestName: '',
         guestEmail: '',
+        images: [] as string[],
     });
 
-    // Active tab for description/specs/reviews
-    const [activeTab, setActiveTab] = useState<'description' | 'specifications' | 'reviews'>('description');
+    const [uploading, setUploading] = useState(false);
+    const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        // Validation
+        if (!reviewSettings.allowImages) {
+            toastError("Image uploads are not enabled.");
+            return;
+        }
+
+        const currentCount = reviewFormData.images.length;
+        const maxAllowed = reviewSettings.maxImagesPerReview || 3;
+
+        if (currentCount + files.length > maxAllowed) {
+            toastError(`You can only upload a maximum of ${maxAllowed} images.`);
+            return;
+        }
+
+        // Upload
+        setUploading(true);
+        const formData = new FormData();
+        Array.from(files).forEach(file => {
+            formData.append('files', file);
+        });
+        formData.append('folder', `reviews/${product._id}`);
+
+        try {
+            const response = await api.upload('/files/upload', formData);
+
+            if (response.files && response.files.length > 0) {
+                const urls = response.files.map((f: any) => f.url);
+                setReviewFormData(prev => ({
+                    ...prev,
+                    images: [...prev.images, ...urls]
+                }));
+            } else {
+                toastError('Failed to upload images.');
+            }
+        } catch (error) {
+            console.error('Upload error:', error);
+            toastError('An error occurred while uploading.');
+        } finally {
+            setUploading(false);
+            // Reset input
+            e.target.value = '';
+        }
+    };
+
+    const handleRemoveImage = (index: number) => {
+        setReviewFormData(prev => ({
+            ...prev,
+            images: prev.images.filter((_, i) => i !== index)
+        }));
+    };
 
     // Main image state
     const [mainImageIndex, setMainImageIndex] = useState(0);
@@ -219,8 +278,34 @@ export default function ModernCleanProductPageTemplate({
             default:
                 // Non-placeholder modules - use ModuleRenderer for layout builder modules
                 // This includes 'related-products' and 'recently-viewed' modules
+                // This includes 'related-products' and 'recently-viewed' modules
                 return <ModuleRenderer key={module.id} module={module} />;
         }
+    };
+
+    // ============================================
+    // Lightbox
+    // ============================================
+    const renderLightbox = () => {
+        if (!lightboxImage) return null;
+
+        return (
+            <div className={styles.lightboxOverlay} onClick={() => setLightboxImage(null)}>
+                <div className={styles.lightboxContent} onClick={(e) => e.stopPropagation()}>
+                    <button
+                        className={styles.lightboxClose}
+                        onClick={() => setLightboxImage(null)}
+                    >
+                        ×
+                    </button>
+                    <img
+                        src={lightboxImage}
+                        alt="Review Full Size"
+                        className={styles.lightboxImage}
+                    />
+                </div>
+            </div>
+        );
     };
 
     // ============================================
@@ -451,6 +536,18 @@ export default function ModernCleanProductPageTemplate({
                 />
             )}
 
+            {config.shipping?.showCalculator && (
+                <ShippingCalculator
+                    productId={product._id}
+                    variantId={selectedVariant?._id}
+                    quantity={quantity}
+                    userDefaultCountry={userDefaultCountry}
+                    onCalculate={onCalculateShipping}
+                    estimate={shippingEstimate}
+                />
+            )}
+
+            {renderLightbox()}
         </div >
     );
 
@@ -567,7 +664,8 @@ export default function ModernCleanProductPageTemplate({
                             const success = await onSubmitReview(reviewFormData);
                             if (success) {
                                 setShowReviewForm(false);
-                                setReviewFormData({ rating: 5, title: '', content: '', guestName: '', guestEmail: '' });
+                                setShowReviewForm(false);
+                                setReviewFormData({ rating: 5, title: '', content: '', guestName: '', guestEmail: '', images: [] });
                             }
                         }}
                     >
@@ -628,6 +726,46 @@ export default function ModernCleanProductPageTemplate({
                             className={styles.textarea}
                         />
 
+                        {/* Image Upload */}
+                        {reviewSettings.allowImages && (
+                            <div className={styles.imageUploadSection}>
+                                <div className={styles.uploadHeader}>
+                                    <label className={styles.uploadBtn}>
+                                        <input
+                                            type="file"
+                                            multiple
+                                            accept="image/*"
+                                            onChange={handleImageUpload}
+                                            disabled={uploading || (reviewSettings.maxImagesPerReview ? reviewFormData.images.length >= reviewSettings.maxImagesPerReview : false)}
+                                            style={{ display: 'none' }}
+                                        />
+                                        <span className={styles.uploadIcon}>📷</span>
+                                        {uploading ? 'Uploading...' : 'Add Photos'}
+                                    </label>
+                                    <span className={styles.uploadLimit}>
+                                        {reviewFormData.images.length} / {reviewSettings.maxImagesPerReview || 3}
+                                    </span>
+                                </div>
+
+                                {reviewFormData.images.length > 0 && (
+                                    <div className={styles.imagePreviews}>
+                                        {reviewFormData.images.map((url, idx) => (
+                                            <div key={idx} className={styles.previewItem}>
+                                                <Image src={url} alt="Review" width={60} height={60} className={styles.previewInfo} />
+                                                <button
+                                                    type="button"
+                                                    className={styles.removeImageBtn}
+                                                    onClick={() => handleRemoveImage(idx)}
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         <button
                             type="submit"
                             className={styles.submitReviewBtn}
@@ -674,10 +812,18 @@ export default function ModernCleanProductPageTemplate({
                                 <h4 className={styles.reviewTitle}>{review.title}</h4>
                                 <p className={styles.reviewContent}>{review.content}</p>
                                 {review.images && review.images.length > 0 && (
+
                                     <div className={styles.reviewImages}>
                                         {review.images.map((img, idx) => (
-                                            <Image key={idx} src={img} alt="" width={80} height={80} />
+                                            <div
+                                                key={idx}
+                                                className={styles.reviewImageWrapper}
+                                                onClick={() => setLightboxImage(img)}
+                                            >
+                                                <Image src={img} alt="" width={80} height={80} className={styles.reviewImage} />
+                                            </div>
                                         ))}
+
                                     </div>
                                 )}
                                 <div className={styles.reviewMeta}>
@@ -723,34 +869,6 @@ export default function ModernCleanProductPageTemplate({
                     )
                 }
             </div >
-        );
-    };
-
-    // ============================================
-    // Related Products
-    // ============================================
-    const renderRelatedProducts = () => {
-        if (!config.relatedProducts?.enabled || relatedProducts.length === 0) {
-            return null;
-        }
-
-        return (
-            <div className={styles.relatedSection}>
-                <h2 className={styles.sectionTitle}>
-                    {config.relatedProducts.title || 'You May Also Like'}
-                </h2>
-                <div className={styles.relatedGrid}>
-                    {relatedProducts.map((related) => (
-                        <ProductCard
-                            key={related._id}
-                            product={related}
-                            currency={currency}
-                            templateId={templateId}
-                            cardConfig={cardConfig}
-                        />
-                    ))}
-                </div>
-            </div>
         );
     };
 

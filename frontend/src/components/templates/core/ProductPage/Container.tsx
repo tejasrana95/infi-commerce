@@ -44,7 +44,7 @@ export default function ProductPageContainer({
     const { isInWishlist, toggleWishlist } = useWishlist();
     const { addToCompare, isInCompare, removeFromCompare, canAddToCompare, config: compareConfig } = useCompare();
     const { addToCart: addToCartAPI } = useCart();
-    const { success, error: toastError, warning } = useToast();
+    const { success: toastSuccess, error: toastError, warning } = useToast();
     const { customer, defaultShippingAddress } = useCustomer();
 
     // Currency
@@ -275,7 +275,7 @@ export default function ProductPageContainer({
             });
 
             if (result.success) {
-                success(`${product.name} added to cart`);
+                toastSuccess(`${product.name} added to cart`);
             } else {
                 toastError(`Failed to add to cart: ${result.error}`);
             }
@@ -422,9 +422,12 @@ export default function ProductPageContainer({
             });
 
             await fetchReviews(1);
+            toastSuccess('Review submitted successfully. Our system will review it and publish it soon.');
             return true;
         } catch (error) {
-            console.error('Failed to submit review:', error);
+            if (error instanceof Error && error.message === 'Customer has already reviewed this product') {
+                toastError('You have already reviewed this product');
+            }
             return false;
         } finally {
             setIsSubmittingReview(false);

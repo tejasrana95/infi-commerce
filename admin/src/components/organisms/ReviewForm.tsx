@@ -14,7 +14,13 @@ import {
     ToggleButton,
     ToggleButtonGroup,
     Alert,
+    Button,
+    IconButton,
 } from '@mui/material';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import CloseIcon from '@mui/icons-material/Close';
+import api from '@/lib/api';
+import { useNotification } from '@/contexts/NotificationContext';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -35,6 +41,7 @@ const schema = z.object({
     rating: z.number().min(1, 'Rating is required').max(5),
     title: z.string().min(3, 'Title must be at least 3 characters').max(200),
     content: z.string().min(10, 'Review must be at least 10 characters').max(5000),
+    images: z.array(z.string()).optional(),
     isApproved: z.boolean(),
     isVerifiedPurchase: z.boolean(),
 });
@@ -50,6 +57,8 @@ interface ReviewFormProps {
 export default function ReviewForm({ initialData, onSubmit, isSubmitting = false }: ReviewFormProps) {
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
     const [selectedCustomer, setSelectedCustomer] = useState<CustomerOption | null>(null);
+    const [uploading, setUploading] = useState(false);
+    const { showNotification } = useNotification();
 
     const {
         control,
@@ -70,6 +79,7 @@ export default function ReviewForm({ initialData, onSubmit, isSubmitting = false
             rating: 5,
             title: '',
             content: '',
+            images: [],
             isApproved: false,
             isVerifiedPurchase: false,
         },
@@ -95,6 +105,7 @@ export default function ReviewForm({ initialData, onSubmit, isSubmitting = false
             setValue('rating', initialData.rating || 5);
             setValue('title', initialData.title || '');
             setValue('content', initialData.content || '');
+            setValue('images', initialData.images || []);
             setValue('isApproved', initialData.isApproved || false);
             setValue('isVerifiedPurchase', initialData.isVerifiedPurchase || false);
 
@@ -112,6 +123,52 @@ export default function ReviewForm({ initialData, onSubmit, isSubmitting = false
             }
         }
     }, [initialData, setValue]);
+
+    const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const files = event.target.files;
+        if (!files || files.length === 0) return;
+
+        try {
+            setUploading(true);
+            const formData = new FormData();
+            Array.from(files).forEach((file) => {
+                formData.append('files', file);
+            });
+
+            // If product is selected, use it for folder path
+            const productId = watch('productId');
+            if (productId) {
+                formData.append('folder', `reviews/${productId}`);
+            } else {
+                formData.append('folder', 'reviews/general');
+            }
+
+            const response = await api.post('/files/upload', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            if (response.data && response.data.files && response.data.files.length > 0) {
+                const newUrls = response.data.files.map((f: any) => f.url);
+                const currentImages = watch('images') || [];
+                setValue('images', [...currentImages, ...newUrls]);
+                showNotification('Images uploaded successfully', 'success');
+            }
+        } catch (error) {
+            console.error('Upload failed:', error);
+            showNotification('Failed to upload images', 'error');
+        } finally {
+            setUploading(false);
+            // Reset input
+            event.target.value = '';
+        }
+    };
+
+    const handleRemoveImage = (indexToRemove: number) => {
+        const currentImages = watch('images') || [];
+        setValue('images', currentImages.filter((_, index) => index !== indexToRemove));
+    };
 
     const handleFormSubmit = handleSubmit((data) => {
         // Validate guest vs customer
@@ -357,6 +414,81 @@ export default function ReviewForm({ initialData, onSubmit, isSubmitting = false
                                 )}
                             />
                         </Grid>
+                    </Grid>
+                </Paper>
+
+                {/* Images */}
+                <Paper sx={{ p: 3 }}>
+                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                        <Typography variant="h6">Images</Typography>
+                        <Button
+                            variant="outlined"
+                            component="label"
+                            startIcon={<CloudUploadIcon />}
+                            disabled={uploading}
+                        >
+                            {uploading ? 'Uploading...' : 'Upload Images'}
+                            <input
+                                type="file"
+                                hidden
+                                multiple
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                            />
+                        </Button>
+                    </Box>
+
+                    <Grid container spacing={2}>
+                        {watch('images')?.map((url, index) => (
+                            <Grid size={{ xs: 6, sm: 4, md: 3 }} key={index}>
+                                <Box
+                                    sx={{
+                                        position: 'relative',
+                                        paddingTop: '100%',
+                                        borderRadius: 1,
+                                        overflow: 'hidden',
+                                        border: '1px solid',
+                                        borderColor: 'divider',
+                                    }}
+                                >
+                                    <img
+                                        src={url}
+                                        alt={`Review image ${index + 1}`}
+                                        style={{
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: 0,
+                                            width: '100%',
+                                            height: '100%',
+                                            objectFit: 'cover',
+                                        }}
+                                    />
+                                    <IconButton
+                                        size="small"
+                                        color="error"
+                                        onClick={() => handleRemoveImage(index)}
+                                        sx={{
+                                            position: 'absolute',
+                                            top: 4,
+                                            right: 4,
+                                            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                                            '&:hover': {
+                                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                            },
+                                        }}
+                                    >
+                                        <CloseIcon fontSize="small" />
+                                    </IconButton>
+                                </Box>
+                            </Grid>
+                        ))}
+                        {(!watch('images') || watch('images')?.length === 0) && (
+                            <Grid size={{ xs: 12 }}>
+                                <Typography variant="body2" color="text.secondary" align="center" py={2}>
+                                    No images uploaded
+                                </Typography>
+                            </Grid>
+                        )}
                     </Grid>
                 </Paper>
 
