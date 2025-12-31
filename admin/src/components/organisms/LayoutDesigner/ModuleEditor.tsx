@@ -309,6 +309,9 @@ export default function ModuleEditor({ module, onChange, onDelete, storeId }: Mo
             // Placeholder modules - minimal config
             case 'category-products':
             case 'product-details':
+            case 'cart-details':
+            case 'account-sidebar':
+            case 'account-dashboard':
             case 'search-results':
             case 'blog-content':
                 return (

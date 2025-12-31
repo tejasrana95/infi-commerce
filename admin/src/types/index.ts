@@ -821,7 +821,11 @@ export type ModuleType =
   | 'blog-grid' | 'blog-categories-sidebar' | 'recent-posts' | 'popular-posts'
   | 'tags-cloud' | 'newsletter-signup' | 'author-card' | 'blog-hero' | 'related-blogs'
   // Checkout modules
-  | 'checkout-content';
+  | 'checkout-content'
+  // Cart modules
+  | 'cart-details'
+  // Account modules
+  | 'account-sidebar' | 'account-dashboard' | 'account-orders' | 'account-profile' | 'account-addresses';
 
 export type SectionType = 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';
 

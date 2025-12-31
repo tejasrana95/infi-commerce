@@ -1,0 +1,387 @@
+// Orders Page Styles
+// Modern order list with filters and cards
+
+.loadingContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+}
+
+.container {
+    width: 100%;
+    margin: 0 auto;
+    margin-top: 1rem;
+}
+
+// Header
+.header {
+    margin-bottom: 2rem;
+}
+
+.titleSection {
+    h1 {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #111;
+        margin: 0 0 0.5rem 0;
+    }
+
+    p {
+        color: #666;
+        margin: 0;
+    }
+}
+
+// Filter Tabs
+.filterTabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.filterTab {
+    padding: 0.5rem 1rem;
+    background: white;
+    border: 1px solid #e5e5e5;
+    border-radius: 999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #666;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+
+    &:hover {
+        border-color: #111;
+        color: #111;
+    }
+
+    &.active {
+        background: #111;
+        border-color: #111;
+        color: white;
+    }
+}
+
+// Order List
+.orderList {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.orderCard {
+    background: white;
+    border-radius: 1rem;
+    border: 1px solid #f0f0f0;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.2s;
+
+    &:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+}
+
+.orderHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fafafa;
+}
+
+.orderMeta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.orderNumber {
+    font-weight: 600;
+    color: #111;
+}
+
+.orderDate {
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.statusBadge {
+    padding: 0.375rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+// Order Items
+.orderItems {
+    padding: 1.25rem 1.5rem;
+}
+
+.itemRow {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 0;
+
+    &:not(:last-child) {
+        border-bottom: 1px solid #f5f5f5;
+    }
+}
+
+.itemImage {
+    width: 56px;
+    height: 56px;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: #f5f5f5;
+    flex-shrink: 0;
+
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+}
+
+.placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.itemDetails {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.itemName {
+    font-weight: 500;
+    color: #111;
+    font-size: 0.9rem;
+}
+
+.itemQty {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.itemPrice {
+    font-weight: 600;
+    color: #111;
+}
+
+.moreItems {
+    margin: 0.5rem 0 0 0;
+    font-size: 0.85rem;
+    color: #666;
+    font-style: italic;
+}
+
+// Order Footer
+.orderFooter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid #f0f0f0;
+    background: #fafafa;
+
+    @media (max-width: 640px) {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+    }
+}
+
+.orderTotal {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    span {
+        color: #666;
+    }
+
+    strong {
+        font-size: 1.25rem;
+        color: #111;
+    }
+}
+
+.orderActions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.detailsBtn,
+.trackBtn {
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.detailsBtn {
+    background: #111;
+    color: white;
+
+    &:hover {
+        opacity: 0.9;
+    }
+}
+
+// Pagination
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #f0f0f0;
+
+    @media (max-width: 640px) {
+        flex-direction: column;
+        gap: 1rem;
+    }
+}
+
+.pageNumbers {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.pageBtn {
+    padding: 0.5rem 1.25rem;
+    background: white;
+    border: 1px solid #e5e5e5;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #111;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover:not(:disabled) {
+        border-color: #111;
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: #f9f9f9;
+        color: #999;
+    }
+}
+
+.pageNumber {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border: 1px solid #e5e5e5;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+        border-color: #111;
+        color: #111;
+    }
+
+    &.active {
+        background: #111;
+        border-color: #111;
+        color: white;
+    }
+}
+
+.trackBtn {
+    background: white;
+    color: #111;
+    border: 1px solid #e5e5e5;
+
+    &:hover {
+        border-color: #111;
+    }
+}
+
+// Empty State
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    text-align: center;
+    background: white;
+    border-radius: 1rem;
+    border: 1px solid #f0f0f0;
+}
+
+.emptyIcon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+
+    svg {
+        width: 40px;
+        height: 40px;
+        color: #999;
+    }
+}
+
+.emptyState h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #111;
+    margin: 0 0 0.5rem 0;
+}
+
+.emptyState p {
+    color: #666;
+    margin: 0 0 1.5rem 0;
+}
+
+.shopBtn {
+    display: inline-block;
+    padding: 0.75rem 2rem;
+    background: #111;
+    color: white;
+    text-decoration: none;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    transition: opacity 0.2s;
+
+    &:hover {
+        opacity: 0.9;
+    }
+}

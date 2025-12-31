@@ -12,14 +12,7 @@ export default function AccountLayout({
 }) {
     return (
         <ProtectedRoute>
-            <div className={styles.dashboardContainer}>
-                <div className={styles.wrapper}>
-                    <Sidebar />
-                    <main className={styles.content}>
-                        {children}
-                    </main>
-                </div>
-            </div>
+            {children}
         </ProtectedRoute>
     );
 }

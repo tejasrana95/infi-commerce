@@ -7,6 +7,9 @@ import styles from './page.module.scss';
 import api from '@/lib/api';
 import Loader from '@/components/molecules/Loader';
 import { useAuth } from '@/providers/AuthProvider';
+import { useCart } from '@/providers/CartProvider';
+import { useToast } from '@/providers/ToastProvider';
+import { useStore } from '@/providers/StoreProvider';
 
 interface WishlistProduct {
     _id: string;
@@ -20,9 +23,13 @@ interface WishlistProduct {
 
 export default function WishlistPage() {
     const { isAuthenticated } = useAuth();
+    const { addToCart } = useCart();
+    const { store } = useStore();
+    const { success, error } = useToast();
     const [wishlist, setWishlist] = useState<WishlistProduct[]>([]);
     const [loading, setLoading] = useState(true);
     const [removing, setRemoving] = useState<string | null>(null);
+    const [addingToCart, setAddingToCart] = useState<string | null>(null);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -49,10 +56,39 @@ export default function WishlistPage() {
         try {
             await api.delete(`wishlist/${productId}`);
             setWishlist(prev => prev.filter(item => item._id !== productId));
-        } catch (error) {
-            console.error('Failed to remove from wishlist:', error);
+            success('Item removed from wishlist');
+        } catch (err) {
+            console.error('Failed to remove from wishlist:', err);
+            error('Failed to remove item');
         } finally {
             setRemoving(null);
+        }
+    };
+
+    const handleAddToCart = async (product: WishlistProduct) => {
+        if (product.stockStatus === 'out_of_stock') return;
+        if (!store?._id) {
+            error('Store unavailable');
+            return;
+        }
+
+        setAddingToCart(product._id);
+        try {
+            const result = await addToCart({
+                productId: product._id,
+                quantity: 1,
+                storeId: store._id
+            });
+            if (result.success) {
+                success('Added to cart');
+            } else {
+                error(result.error || 'Failed to add to cart');
+            }
+        } catch (err) {
+            console.error('Failed to add to cart:', err);
+            error('Failed to add to cart');
+        } finally {
+            setAddingToCart(null);
         }
     };
 
@@ -153,8 +189,13 @@ export default function WishlistPage() {
                                 </div>
                             </Link>
 
-                            <button className={styles.addToCartBtn}>
-                                Add to Cart
+                            <button
+                                className={styles.addToCartBtn}
+                                onClick={() => handleAddToCart(product)}
+                                disabled={addingToCart === product._id || product.stockStatus === 'out_of_stock'}
+                            >
+                                {addingToCart === product._id ? 'Adding...' :
+                                    product.stockStatus === 'out_of_stock' ? 'Out of Stock' : 'Add to Cart'}
                             </button>
                         </div>
                     ))}

@@ -1,111 +1,60 @@
-'use client';
+// Cart Page (Server Component)
+// Defines the layout for cart and renders the container
 
-import React from 'react';
-import Link from 'next/link';
-import { useCart } from '@/providers/CartProvider';
-import { useCurrency } from '@/hooks/useCurrency';
-import { formatPrice } from '@/lib/currency';
-import CartItem from '@/components/core/CartItem';
-import styles from './page.module.scss';
-import EmptyCheckout from '../checkout/components/EmptyCheckout';
+import { getServerStore } from "@/lib/api/server-store";
+import { getLayoutByType } from "@/lib/api/layouts";
+import CartPageContainer from '@/components/templates/core/CartPage/Container';
+import { Section } from '@/types/layout';
 
-export default function CartPage() {
-    const { cart, items, cartCount, updateCartItem, removeFromCart, isLoading } = useCart();
-    const currency = useCurrency();
-
-    // Calculate totals
-    const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const tax = cart?.tax || 0;
-    const shipping = cart?.shippingCost || 0;
-    const total = cart?.total || subtotal + tax + shipping;
-
-    // Wrapper functions to match CartItem's expected signatures
-    const handleUpdateQuantity = async (itemId: string, quantity: number) => {
-        return await updateCartItem({ itemId, quantity });
-    };
-
-    const handleRemoveItem = async (itemId: string) => {
-        return await removeFromCart(itemId);
-    };
-
-    if (isLoading) {
-        return (
-            <div className={styles.container}>
-                <div className={styles.content}>
-                    <div className={styles.loading}>Loading your cart...</div>
-                </div>
-            </div>
-        );
+// Default fallback layout in case backend layout is missing
+const fallbackCartLayout: Section[] = [
+    {
+        id: 'cart-section',
+        type: 'container',
+        settings: {
+            paddingTop: 4,
+            paddingBottom: 4
+        },
+        visibility: {
+            desktop: true,
+            tablet: true,
+            mobile: true
+        },
+        order: 0,
+        modules: [
+            {
+                id: 'cart-module',
+                type: 'cart-details',
+                styling: {},
+                visibility: {
+                    desktop: true,
+                    tablet: true,
+                    mobile: true
+                },
+                isPlaceholder: false,
+                isRemovable: false,
+                order: 0,
+                config: {}
+            }
+        ]
     }
+];
 
-    if (cartCount === 0 && !isLoading) {
-        return <EmptyCheckout />
+export default async function CartPage() {
+    const store = await getServerStore();
+
+    let layoutSections = fallbackCartLayout;
+
+    if (store?._id) {
+        // We might want to use a specific layout type for cart if 'cart' is not available yet in backend types
+        // Assuming 'cart' is or will be a valid layout type
+        const layout = await getLayoutByType('cart', store._id);
+        if (layout?.sections && layout.sections.length > 0) {
+            layoutSections = layout.sections;
+        }
     }
 
     return (
-        <div className={styles.container}>
-            <div className={styles.content}>
-                <h1 className={styles.title}>Shopping Cart ({cartCount} {cartCount === 1 ? 'item' : 'items'})</h1>
-
-                <div className={styles.layout}>
-                    {/* Cart Items */}
-                    <div className={styles.cartItems}>
-                        <div className={styles.cartHeader}>
-                            <div className={styles.headerProduct}>Product</div>
-                            <div className={styles.headerPrice}>Price</div>
-                            <div className={styles.headerQuantity}>Quantity</div>
-                            <div className={styles.headerTotal}>Total</div>
-                            <div className={styles.headerRemove}></div>
-                        </div>
-
-                        {items.map((item) => (
-                            <CartItem
-                                key={item._id}
-                                item={item as any}
-                                onUpdateQuantity={handleUpdateQuantity}
-                                onRemove={handleRemoveItem}
-                            />
-                        ))}
-                    </div>
-
-                    {/* Order Summary */}
-                    <div className={styles.summary}>
-                        <h2>Order Summary</h2>
-
-                        <div className={styles.summaryRow}>
-                            <span>Subtotal</span>
-                            <span>{formatPrice(subtotal, currency)}</span>
-                        </div>
-
-                        {tax > 0 && (
-                            <div className={styles.summaryRow}>
-                                <span>Tax</span>
-                                <span>{formatPrice(tax, currency)}</span>
-                            </div>
-                        )}
-
-                        <div className={styles.summaryRow}>
-                            <span>Shipping</span>
-                            <span>{shipping > 0 ? formatPrice(shipping, currency) : 'Calculated at checkout'}</span>
-                        </div>
-
-                        <div className={styles.divider}></div>
-
-                        <div className={`${styles.summaryRow} ${styles.total}`}>
-                            <span>Total</span>
-                            <span>{formatPrice(total, currency)}</span>
-                        </div>
-
-                        <Link href="/checkout" className={styles.checkoutBtn}>
-                            Proceed to Checkout
-                        </Link>
-
-                        <Link href="/" className={styles.continueLink}>
-                            Continue Shopping
-                        </Link>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <CartPageContainer initialLayout={layoutSections} />
     );
 }

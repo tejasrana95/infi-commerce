@@ -7,7 +7,7 @@ export interface ModuleDefinition {
     type: ModuleType;
     label: string;
     icon: string; // MUI icon name
-    category: 'standard' | 'product' | 'placeholder';
+    category: 'standard' | 'product' | 'placeholder' | 'account';
     description: string;
     defaultConfig: Record<string, any>;
     allowedLayoutTypes?: string[]; // Restrict to certain layout types
@@ -68,6 +68,7 @@ export const MODULE_CATEGORIES = {
     standard: 'Standard',
     product: 'Products',
     placeholder: 'Page Content',
+    account: 'Account',
 } as const;
 
 // Available modules catalog
@@ -598,10 +599,39 @@ export const AVAILABLE_MODULES: ModuleDefinition[] = [
         },
         allowedLayoutTypes: ['checkout'],
     },
+    // Cart module - SINGLE required placeholder
+    {
+        type: 'cart-details',
+        label: 'Cart Details (Required)',
+        icon: 'ShoppingCart',
+        category: 'placeholder',
+        description: 'Shopping cart items and summary',
+        defaultConfig: {},
+        allowedLayoutTypes: ['cart'],
+    },
+    // Account Modules
+    {
+        type: 'account-sidebar',
+        label: 'Account Sidebar',
+        icon: 'Layout', // Using Layout icon or similar
+        category: 'account',
+        description: 'Account navigation menu',
+        defaultConfig: {},
+        allowedLayoutTypes: ['account'],
+    },
+    {
+        type: 'account-dashboard',
+        label: 'Account Detail',
+        icon: 'Grid',
+        category: 'account',
+        description: 'Dynamic account content (Dashboard, Orders, Profile, etc.)',
+        defaultConfig: {},
+        allowedLayoutTypes: ['account'],
+    },
 ];
 
 // Get modules by category
-export const getModulesByCategory = (category: 'standard' | 'product' | 'placeholder') =>
+export const getModulesByCategory = (category: 'standard' | 'product' | 'placeholder' | 'account') =>
     AVAILABLE_MODULES.filter(m => m.category === category);
 
 // Get module definition by type

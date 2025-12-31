@@ -26,6 +26,13 @@ import CardGroupModule from './standard/CardGroup';
 import PageContentModule from './standard/PageContent';
 import PageHeroModule from './standard/PageHero';
 import CheckoutContentModule from './checkout/CheckoutContent';
+import CartModule from './cart/CartModule';
+// Account Modules
+import AccountSidebarModule from './account/AccountSidebar';
+import AccountDashboardModule from './account/AccountDashboard';
+import AccountOrdersModule from './account/AccountOrders';
+import AccountProfileModule from './account/AccountProfile';
+import AccountAddressesModule from './account/AccountAddresses';
 
 // Blog Modules
 import BlogHeroModule from './blog/BlogHero';
@@ -83,6 +90,14 @@ export const moduleRegistry: Record<string, ModuleComponent> = {
     'page-hero': PageHeroModule,
     // Checkout module
     'checkout-content': CheckoutContentModule,
+    // Cart module
+    'cart-details': CartModule,
+    // Account modules
+    'account-sidebar': AccountSidebarModule,
+    'account-dashboard': AccountDashboardModule,
+    'account-orders': AccountOrdersModule,
+    'account-profile': AccountProfileModule,
+    'account-addresses': AccountAddressesModule,
 };
 
 /**
