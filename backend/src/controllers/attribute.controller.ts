@@ -25,6 +25,8 @@ export const updateAttributeValidation = [
  *   post:
  *     summary: Create a new product attribute (for specifications)
  *     tags: [Attributes]
+ *     deprecated: true
+ *     description: This endpoint is legacy. Use ProductOptions for variant-related features.
  *     security:
  *       - bearerAuth: []
  */
@@ -71,6 +73,8 @@ export const createAttribute = asyncHandler(async (req: AuthRequest, res: Respon
  *   get:
  *     summary: Get all product attributes
  *     tags: [Attributes]
+ *     deprecated: true
+ *     description: This endpoint is legacy. Use ProductOptions for variant-related features.
  */
 export const getAttributes = asyncHandler(async (req: AuthRequest, res: Response) => {
     const filter: any = {};
@@ -112,6 +116,8 @@ export const getAttributes = asyncHandler(async (req: AuthRequest, res: Response
  *   get:
  *     summary: Get attribute by ID
  *     tags: [Attributes]
+ *     deprecated: true
+ *     description: This endpoint is legacy. Use ProductOptions for variant-related features.
  */
 export const getAttributeById = asyncHandler(async (req: AuthRequest, res: Response) => {
     const attribute = await Attribute.findById(req.params.id)
@@ -134,6 +140,8 @@ export const getAttributeById = asyncHandler(async (req: AuthRequest, res: Respo
  *   put:
  *     summary: Update attribute
  *     tags: [Attributes]
+ *     deprecated: true
+ *     description: This endpoint is legacy. Use ProductOptions for variant-related features.
  */
 export const updateAttribute = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
@@ -173,6 +181,8 @@ export const updateAttribute = asyncHandler(async (req: AuthRequest, res: Respon
  *   delete:
  *     summary: Delete attribute
  *     tags: [Attributes]
+ *     deprecated: true
+ *     description: This endpoint is legacy. Use ProductOptions for variant-related features.
  */
 export const deleteAttribute = asyncHandler(async (req: AuthRequest, res: Response) => {
     const attribute = await Attribute.findByIdAndDelete(req.params.id);
@@ -193,6 +203,8 @@ export const deleteAttribute = asyncHandler(async (req: AuthRequest, res: Respon
  *   get:
  *     summary: Get filterable attributes for product filters
  *     tags: [Attributes]
+ *     deprecated: true
+ *     description: This endpoint is legacy. Use ProductOptions for variant-related features.
  */
 export const getFilterableAttributes = asyncHandler(async (req: AuthRequest, res: Response) => {
     if (!req.query.storeId) {
@@ -226,6 +238,8 @@ export const getFilterableAttributes = asyncHandler(async (req: AuthRequest, res
  *   get:
  *     summary: Get comparable attributes for product comparison
  *     tags: [Attributes]
+ *     deprecated: true
+ *     description: This endpoint is legacy. Use ProductOptions for variant-related features.
  */
 export const getComparableAttributes = asyncHandler(async (req: AuthRequest, res: Response) => {
     if (!req.query.storeId) {
@@ -258,6 +272,8 @@ export const getComparableAttributes = asyncHandler(async (req: AuthRequest, res
  *   post:
  *     summary: Add option to select/multiselect attribute
  *     tags: [Attributes]
+ *     deprecated: true
+ *     description: This endpoint is legacy. Use ProductOptions for variant-related features.
  */
 export const addAttributeOption = asyncHandler(async (req: AuthRequest, res: Response) => {
     const attribute = await Attribute.findById(req.params.id);
@@ -295,6 +311,8 @@ export const addAttributeOption = asyncHandler(async (req: AuthRequest, res: Res
  *   delete:
  *     summary: Remove option from attribute
  *     tags: [Attributes]
+ *     deprecated: true
+ *     description: This endpoint is legacy. Use ProductOptions for variant-related features.
  */
 export const removeAttributeOption = asyncHandler(async (req: AuthRequest, res: Response) => {
     const attribute = await Attribute.findById(req.params.id);

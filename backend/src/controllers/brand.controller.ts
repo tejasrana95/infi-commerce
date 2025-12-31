@@ -36,28 +36,20 @@ export const updateBrandValidation = [
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - name
- *               - slug
- *               - storeId
+ *             required: [name, slug, storeId]
  *             properties:
- *               name:
- *                 type: string
- *               slug:
- *                 type: string
- *               storeId:
- *                 type: string
- *               logo:
- *                 type: string
- *               description:
- *                 type: string
- *               website:
- *                 type: string
- *               isActive:
- *                 type: boolean
+ *               name: { type: string }
+ *               slug: { type: string }
+ *               storeId: { type: string }
+ *               logo: { type: string }
+ *               description: { type: string }
+ *               website: { type: string }
+ *               isActive: { type: boolean }
  *     responses:
  *       201:
  *         description: Brand created successfully
+ *       400:
+ *         description: Validation error or slug exists
  */
 export const createBrand = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { name, slug, storeId, logo, description, website, isActive } = req.body;
@@ -168,8 +160,7 @@ export const getBrandById = asyncHandler(async (req: AuthRequest, res: Response)
  *       - in: path
  *         name: id
  *         required: true
- *         schema:
- *           type: string
+ *         schema: { type: string }
  *     requestBody:
  *       required: true
  *       content:
@@ -179,6 +170,8 @@ export const getBrandById = asyncHandler(async (req: AuthRequest, res: Response)
  *     responses:
  *       200:
  *         description: Brand updated successfully
+ *       404:
+ *         description: Brand not found
  */
 export const updateBrand = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;

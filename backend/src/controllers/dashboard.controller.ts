@@ -7,8 +7,70 @@ import mongoose from 'mongoose';
 import { AuthRequest } from '../middleware/auth';
 
 /**
- * Get Dashboard Statistics
- * Aggregates data from orders, customers, products and reviews
+ * @swagger
+ * /api/dashboard/stats:
+ *   get:
+ *     summary: Get administrative dashboard statistics
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     description: |
+ *       Aggregated data for orders, revenue, customers, and inventory.
+ *       - Super Admin: Can view all stores or filter by storeId.
+ *       - Store Admin: Restricted to their assigned store.
+ *     parameters:
+ *       - in: query
+ *         name: storeId
+ *         schema:
+ *           type: string
+ *         description: Optional store ID to filter data (Super Admins only)
+ *     responses:
+ *       200:
+ *         description: Dashboard statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     stats:
+ *                       type: object
+ *                       properties:
+ *                         totalRevenue: { type: 'number' }
+ *                         ordersCount: { type: 'number' }
+ *                         customersCount: { type: 'number' }
+ *                         productsCount: { type: 'number' }
+ *                         lowStockCount: { type: 'number' }
+ *                         pendingReviewsCount: { type: 'number' }
+ *                     recentOrders:
+ *                       type: array
+ *                       items: { $ref: '#/components/schemas/Order' }
+ *                     topProducts:
+ *                       type: array
+ *                       items: { $ref: '#/components/schemas/Product' }
+ *                     salesData:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           _id: { type: 'string', description: 'Date string' }
+ *                           revenue: { type: 'number' }
+ *                           orders: { type: 'number' }
+ *                     statusDistribution:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           _id: { type: 'string', description: 'Status name' }
+ *                           count: { type: 'number' }
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Requires admin role
  */
 export const getDashboardStats = async (req: AuthRequest, res: Response) => {
     try {

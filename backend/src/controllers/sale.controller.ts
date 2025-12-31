@@ -23,7 +23,7 @@ export const createSaleValidation = [
  * /api/sales:
  *   post:
  *     summary: Create a new sale
- *     tags: [Sales]
+ *     tags: [Promotions]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -128,7 +128,7 @@ export const createSale = asyncHandler(async (req: AuthRequest, res: Response) =
  * /api/sales:
  *   get:
  *     summary: Get all sales
- *     tags: [Sales]
+ *     tags: [Promotions]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -169,7 +169,7 @@ export const getSales = asyncHandler(async (req: AuthRequest, res: Response) => 
  * /api/sales/active:
  *   get:
  *     summary: Get currently active sales
- *     tags: [Sales]
+ *     tags: [Promotions]
  *     parameters:
  *       - in: query
  *         name: storeId
@@ -204,7 +204,7 @@ export const getActiveSales = asyncHandler(async (req: AuthRequest, res: Respons
  * /api/sales/{id}:
  *   get:
  *     summary: Get sale by ID
- *     tags: [Sales]
+ *     tags: [Promotions]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -235,7 +235,7 @@ export const getSaleById = asyncHandler(async (req: AuthRequest, res: Response) 
  * /api/sales/{id}:
  *   put:
  *     summary: Update sale
- *     tags: [Sales]
+ *     tags: [Promotions]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -290,7 +290,7 @@ export const updateSale = asyncHandler(async (req: AuthRequest, res: Response) =
  * /api/sales/{id}:
  *   delete:
  *     summary: Delete sale
- *     tags: [Sales]
+ *     tags: [Promotions]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -324,7 +324,7 @@ export const deleteSale = asyncHandler(async (req: AuthRequest, res: Response) =
  * /api/sales/{id}/apply:
  *   post:
  *     summary: Manually apply sale to products
- *     tags: [Sales]
+ *     tags: [Promotions]
  *     security:
  *       - bearerAuth: []
  *     parameters:

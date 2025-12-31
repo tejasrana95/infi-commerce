@@ -433,10 +433,6 @@ const swaggerDefinition = {
     },
     tags: [
         {
-            name: 'Health',
-            description: 'Health check endpoints',
-        },
-        {
             name: 'Customer Auth',
             description: 'Customer authentication and profile management',
         },
@@ -457,12 +453,44 @@ const swaggerDefinition = {
             description: 'Category management endpoints',
         },
         {
-            name: 'Attributes',
-            description: 'Product attributes for filters and variations',
+            name: 'Brands',
+            description: 'Brand management endpoints',
         },
         {
-            name: 'Sales',
-            description: 'Sales and discount management',
+            name: 'ProductOptions',
+            description: 'Product options for variations (New system)',
+        },
+        {
+            name: 'Attributes',
+            description: 'Product attributes for filters (Legacy system)',
+        },
+        {
+            name: 'Reviews',
+            description: 'Product reviews and ratings',
+        },
+        {
+            name: 'Banners',
+            description: 'Store banner management',
+        },
+        {
+            name: 'Promotions',
+            description: 'Sales and voucher management',
+        },
+        {
+            name: 'Tax Rates',
+            description: 'Tax rate management',
+        },
+        {
+            name: 'Notifications',
+            description: 'Notification queue and templates',
+        },
+        {
+            name: 'Dashboard',
+            description: 'Admin dashboard statistics',
+        },
+        {
+            name: 'Layout',
+            description: 'Store layout and content management',
         },
         {
             name: 'Currencies',
@@ -487,6 +515,10 @@ const swaggerDefinition = {
         {
             name: 'Shipping',
             description: 'Shipping and delivery endpoints',
+        },
+        {
+            name: 'Blog',
+            description: 'Blog categories and posts management',
         },
     ],
 };

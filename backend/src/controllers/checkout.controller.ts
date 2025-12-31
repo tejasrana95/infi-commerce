@@ -753,6 +753,14 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
         const itemTotal = itemPrice * item.quantity;
         subtotal += itemTotal;
 
+        // Calculate download expiry if applicable
+        let downloadExpiresAt = undefined;
+        if (product.downloadable && product.downloadExpiry) {
+            const expiryDate = new Date();
+            expiryDate.setDate(expiryDate.getDate() + product.downloadExpiry);
+            downloadExpiresAt = expiryDate;
+        }
+
         orderItems.push({
             productId: product._id,
             variantId: item.variantId,
@@ -763,6 +771,11 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
             image: itemImage,
             attributes: itemAttributes,
             weight: itemWeight,
+            // Digital product fields
+            downloadable: product.downloadable,
+            downloadFiles: product.downloadFiles,
+            downloadLimit: product.downloadLimit,
+            downloadExpiresAt,
         });
     }
 

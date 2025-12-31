@@ -28,8 +28,18 @@ export const updateTaxRateValidation = [
 ];
 
 /**
- * Get all tax rates
- * GET /api/tax-rates
+ * @swagger
+ * /api/tax-rates:
+ *   get:
+ *     summary: Get all tax rates
+ *     tags: [Tax Rates]
+ *     parameters:
+ *       - in: query
+ *         name: isActive
+ *         schema: { type: boolean }
+ *     responses:
+ *       200:
+ *         description: Tax rates retrieved successfully
  */
 export const getTaxRates = asyncHandler(async (req: Request, res: Response) => {
     const { isActive } = req.query;
@@ -49,8 +59,21 @@ export const getTaxRates = asyncHandler(async (req: Request, res: Response) => {
 });
 
 /**
- * Get tax rate by ID
- * GET /api/tax-rates/:id
+ * @swagger
+ * /api/tax-rates/{id}:
+ *   get:
+ *     summary: Get tax rate by ID
+ *     tags: [Tax Rates]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Tax rate retrieved successfully
+ *       404:
+ *         description: Tax rate not found
  */
 export const getTaxRateById = asyncHandler(async (req: Request, res: Response) => {
     const taxRate = await TaxRate.findById(req.params.id);
@@ -69,8 +92,36 @@ export const getTaxRateById = asyncHandler(async (req: Request, res: Response) =
 });
 
 /**
- * Create tax rate
- * POST /api/tax-rates
+ * @swagger
+ * /api/tax-rates:
+ *   post:
+ *     summary: Create tax rate
+ *     tags: [Tax Rates]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name]
+ *             properties:
+ *               name: { type: string }
+ *               rate: { type: number }
+ *               isSplit: { type: boolean }
+ *               subTaxes:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     name: { type: string }
+ *                     rate: { type: number }
+ *               description: { type: string }
+ *               isActive: { type: boolean }
+ *     responses:
+ *       201:
+ *         description: Tax rate created successfully
  */
 export const createTaxRate = asyncHandler(async (req: Request, res: Response) => {
     const { name, rate, isSplit, subTaxes, description, isActive } = req.body;
@@ -109,8 +160,29 @@ export const createTaxRate = asyncHandler(async (req: Request, res: Response) =>
 });
 
 /**
- * Update tax rate
- * PUT /api/tax-rates/:id
+ * @swagger
+ * /api/tax-rates/{id}:
+ *   put:
+ *     summary: Update tax rate
+ *     tags: [Tax Rates]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Tax rate updated successfully
+ *       404:
+ *         description: Tax rate not found
  */
 export const updateTaxRate = asyncHandler(async (req: Request, res: Response) => {
     const taxRate = await TaxRate.findById(req.params.id);
@@ -165,8 +237,23 @@ export const updateTaxRate = asyncHandler(async (req: Request, res: Response) =>
 });
 
 /**
- * Delete tax rate
- * DELETE /api/tax-rates/:id
+ * @swagger
+ * /api/tax-rates/{id}:
+ *   delete:
+ *     summary: Delete tax rate
+ *     tags: [Tax Rates]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Tax rate deleted successfully
+ *       404:
+ *         description: Tax rate not found
  */
 export const deleteTaxRate = asyncHandler(async (req: Request, res: Response) => {
     const taxRate = await TaxRate.findById(req.params.id);

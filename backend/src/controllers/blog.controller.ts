@@ -30,6 +30,20 @@ export const updateBlogCategoryValidation = [
  *     tags: [Blog]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [storeId, name, slug]
+ *             properties:
+ *               storeId: { type: string }
+ *               name: { type: string }
+ *               slug: { type: string }
+ *     responses:
+ *       201:
+ *         description: Category created successfully
  */
 export const createBlogCategory = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { storeId, name, slug, description, image, parentId, seo, isActive, sortOrder } = req.body;
@@ -63,6 +77,13 @@ export const createBlogCategory = asyncHandler(async (req: AuthRequest, res: Res
  *   get:
  *     summary: Get blog categories
  *     tags: [Blog]
+ *     parameters:
+ *       - in: query
+ *         name: storeId
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Categories retrieved successfully
  */
 export const getBlogCategories = asyncHandler(async (req: AuthRequest, res: Response) => {
     const filter: any = {};
@@ -130,6 +151,16 @@ export const getBlogCategories = asyncHandler(async (req: AuthRequest, res: Resp
  *   get:
  *     summary: Get blog category by ID
  *     tags: [Blog]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Category retrieved successfully
+ *       404:
+ *         description: Category not found
  */
 export const getBlogCategoryById = asyncHandler(async (req: AuthRequest, res: Response) => {
     const category = await BlogCategory.findById(req.params.id).populate('storeId', 'name slug')
@@ -145,6 +176,16 @@ export const getBlogCategoryById = asyncHandler(async (req: AuthRequest, res: Re
  *   put:
  *     summary: Update blog category
  *     tags: [Blog]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Category updated successfully
  */
 export const updateBlogCategory = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
@@ -182,6 +223,16 @@ export const updateBlogCategory = asyncHandler(async (req: AuthRequest, res: Res
  *   delete:
  *     summary: Delete blog category
  *     tags: [Blog]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Category deleted successfully
  */
 export const deleteBlogCategory = asyncHandler(async (req: AuthRequest, res: Response) => {
     const category = await BlogCategory.findById(req.params.id);
@@ -221,6 +272,18 @@ export const createBlogPostValidation = [
  *   post:
  *     summary: Create a blog post
  *     tags: [Blog]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [storeId, title, slug, content]
+ *     responses:
+ *       201:
+ *         description: Post created successfully
  */
 export const createBlogPost = asyncHandler(async (req: AuthRequest, res: Response) => {
     const {
@@ -283,6 +346,16 @@ export const createBlogPost = asyncHandler(async (req: AuthRequest, res: Respons
  *   get:
  *     summary: Get blog posts
  *     tags: [Blog]
+ *     parameters:
+ *       - in: query
+ *         name: storeId
+ *         schema: { type: string }
+ *       - in: query
+ *         name: status
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Posts retrieved successfully
  */
 export const getBlogPosts = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { status, category, tag, search, limit = 10, page = 1, sortBy = 'date' } = req.query;
@@ -369,6 +442,14 @@ export const getBlogPosts = asyncHandler(async (req: AuthRequest, res: Response)
  *   get:
  *     summary: Get blog post by ID
  *     tags: [Blog]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Post retrieved successfully
  */
 export const getBlogPostById = asyncHandler(async (req: AuthRequest, res: Response) => {
     const post = await BlogPost.findById(req.params.id)
@@ -388,6 +469,14 @@ export const getBlogPostById = asyncHandler(async (req: AuthRequest, res: Respon
  *   get:
  *     summary: Get blog post by slug (public)
  *     tags: [Blog]
+ *     parameters:
+ *       - in: path
+ *         name: slug
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Post retrieved successfully
  */
 export const getBlogPostBySlug = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { slug } = req.params;
@@ -417,6 +506,9 @@ export const getBlogPostBySlug = asyncHandler(async (req: AuthRequest, res: Resp
  *   get:
  *     summary: Get popular tags
  *     tags: [Blog]
+ *     responses:
+ *       200:
+ *         description: Tags retrieved successfully
  */
 export const getPopularTags = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { limit = 20 } = req.query;
@@ -453,6 +545,14 @@ export const getPopularTags = asyncHandler(async (req: AuthRequest, res: Respons
  *   post:
  *     summary: Track blog post view
  *     tags: [Blog]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: View tracked successfully
  */
 export const trackBlogView = asyncHandler(async (req: AuthRequest, res: Response) => {
     const post = await BlogPost.findByIdAndUpdate(
@@ -474,6 +574,14 @@ export const trackBlogView = asyncHandler(async (req: AuthRequest, res: Response
  *   post:
  *     summary: Like blog post
  *     tags: [Blog]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Like tracked successfully
  */
 export const likeBlogPost = asyncHandler(async (req: AuthRequest, res: Response) => {
     const post = await BlogPost.findByIdAndUpdate(
@@ -495,6 +603,16 @@ export const likeBlogPost = asyncHandler(async (req: AuthRequest, res: Response)
  *   put:
  *     summary: Update blog post
  *     tags: [Blog]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Post updated successfully
  */
 export const updateBlogPost = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
@@ -532,6 +650,16 @@ export const updateBlogPost = asyncHandler(async (req: AuthRequest, res: Respons
  *   delete:
  *     summary: Delete blog post
  *     tags: [Blog]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Post deleted successfully
  */
 export const deleteBlogPost = asyncHandler(async (req: AuthRequest, res: Response) => {
     const post = await BlogPost.findByIdAndDelete(req.params.id);

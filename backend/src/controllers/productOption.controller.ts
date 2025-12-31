@@ -28,6 +28,34 @@ export const updateProductOptionValidation = [
  *     tags: [ProductOptions]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, slug, storeId, type, values]
+ *             properties:
+ *               name: { type: string }
+ *               slug: { type: string }
+ *               storeId: { type: string }
+ *               type: { type: string, enum: [select, multiselect, color, size] }
+ *               values:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     label: { type: string }
+ *                     value: { type: string }
+ *                     colorCode: { type: string }
+ *                     image: { type: string }
+ *               isFilterable: { type: boolean }
+ *               sortOrder: { type: number }
+ *     responses:
+ *       201:
+ *         description: Product option created successfully
+ *       400:
+ *         description: Validation error
  */
 export const createProductOption = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { name, slug, storeId, type, values, isFilterable, sortOrder } = req.body;
@@ -67,6 +95,16 @@ export const createProductOption = asyncHandler(async (req: AuthRequest, res: Re
  *   get:
  *     summary: Get all product options
  *     tags: [ProductOptions]
+ *     parameters:
+ *       - in: query
+ *         name: storeId
+ *         schema: { type: string }
+ *       - in: query
+ *         name: isFilterable
+ *         schema: { type: boolean }
+ *     responses:
+ *       200:
+ *         description: Product options retrieved successfully
  */
 export const getProductOptions = asyncHandler(async (req: AuthRequest, res: Response) => {
     const filter: any = {};
@@ -92,6 +130,16 @@ export const getProductOptions = asyncHandler(async (req: AuthRequest, res: Resp
  *   get:
  *     summary: Get product option by ID
  *     tags: [ProductOptions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Product option retrieved successfully
+ *       404:
+ *         description: Product option not found
  */
 export const getProductOptionById = asyncHandler(async (req: AuthRequest, res: Response) => {
     const productOption = await ProductOption.findById(req.params.id).populate('storeId', 'name slug');
@@ -109,6 +157,24 @@ export const getProductOptionById = asyncHandler(async (req: AuthRequest, res: R
  *   put:
  *     summary: Update product option
  *     tags: [ProductOptions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Product option updated successfully
+ *       404:
+ *         description: Product option not found
  */
 export const updateProductOption = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
@@ -147,6 +213,18 @@ export const updateProductOption = asyncHandler(async (req: AuthRequest, res: Re
  *   delete:
  *     summary: Delete product option
  *     tags: [ProductOptions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Product option deleted successfully
+ *       404:
+ *         description: Product option not found
  */
 export const deleteProductOption = asyncHandler(async (req: AuthRequest, res: Response) => {
     const productOption = await ProductOption.findByIdAndDelete(req.params.id);
@@ -166,6 +244,14 @@ export const deleteProductOption = asyncHandler(async (req: AuthRequest, res: Re
  *   get:
  *     summary: Get filterable product options for product filters
  *     tags: [ProductOptions]
+ *     parameters:
+ *       - in: query
+ *         name: storeId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Filterable product options retrieved successfully
  */
 export const getFilterableProductOptions = asyncHandler(async (req: AuthRequest, res: Response) => {
     if (!req.query.storeId) {
@@ -186,6 +272,30 @@ export const getFilterableProductOptions = asyncHandler(async (req: AuthRequest,
  *   post:
  *     summary: Add value to product option
  *     tags: [ProductOptions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [label, value]
+ *             properties:
+ *               label: { type: string }
+ *               value: { type: string }
+ *               colorCode: { type: string }
+ *               image: { type: string }
+ *     responses:
+ *       200:
+ *         description: Value added successfully
+ *       404:
+ *         description: Product option not found
  */
 export const addProductOptionValue = asyncHandler(async (req: AuthRequest, res: Response) => {
     const productOption = await ProductOption.findById(req.params.id);
@@ -216,6 +326,22 @@ export const addProductOptionValue = asyncHandler(async (req: AuthRequest, res: 
  *   delete:
  *     summary: Remove value from product option
  *     tags: [ProductOptions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *       - in: path
+ *         name: valueId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Value removed successfully
+ *       404:
+ *         description: Product option not found
  */
 export const removeProductOptionValue = asyncHandler(async (req: AuthRequest, res: Response) => {
     const productOption = await ProductOption.findById(req.params.id);

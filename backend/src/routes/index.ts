@@ -152,6 +152,11 @@ router.use('/compare', compareRoutes);
 // Mount dashboard routes
 router.use('/dashboard', dashboardRoutes);
 
+// Mount download routes
+import downloadRoutes from './download.routes';
+router.use('/downloads', downloadRoutes);
+
+
 export default router;
 
 

@@ -153,15 +153,25 @@ export const getReviewById = asyncHandler(async (req: AuthRequest, res: Response
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - storeId
- *               - productId
- *               - rating
- *               - title
- *               - content
+ *             required: [storeId, productId, rating, title, content]
+ *             properties:
+ *               storeId: { type: string }
+ *               productId: { type: string }
+ *               customerId: { type: string }
+ *               isGuestReview: { type: boolean }
+ *               guestName: { type: string }
+ *               guestEmail: { type: string }
+ *               rating: { type: number, minimum: 1, maximum: 5 }
+ *               title: { type: string }
+ *               content: { type: string }
+ *               images: { type: array, items: { type: string } }
  *     responses:
  *       201:
  *         description: Review created successfully
+ *       400:
+ *         description: Validation error or reviews disabled
+ *       404:
+ *         description: Store or Product not found
  */
 export const createReview = asyncHandler(async (req: AuthRequest, res: Response) => {
     const {
@@ -277,9 +287,16 @@ export const createReview = asyncHandler(async (req: AuthRequest, res: Response)
  *         application/json:
  *           schema:
  *             type: object
+ *             properties:
+ *               rating: { type: number }
+ *               title: { type: string }
+ *               content: { type: string }
+ *               isApproved: { type: boolean }
  *     responses:
  *       200:
  *         description: Review updated successfully
+ *       404:
+ *         description: Review not found
  */
 export const updateReview = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;

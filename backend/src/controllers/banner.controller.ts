@@ -3,9 +3,25 @@ import Banner from '../models/Banner';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/validation';
 
-// @desc    Get all banners
-// @route   GET /api/banners
-// @access  Private/Admin
+/**
+ * @swagger
+ * /api/banners:
+ *   get:
+ *     summary: Get all banners
+ *     tags: [Banners]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: storeId
+ *         schema: { type: string }
+ *       - in: query
+ *         name: isActive
+ *         schema: { type: boolean }
+ *     responses:
+ *       200:
+ *         description: Banners retrieved successfully
+ */
 export const getBanners = asyncHandler(async (req: AuthRequest, res: Response) => {
     const filter: any = {};
 
@@ -28,9 +44,25 @@ export const getBanners = asyncHandler(async (req: AuthRequest, res: Response) =
     res.json({ success: true, count: banners.length, banners });
 });
 
-// @desc    Get single banner
-// @route   GET /api/banners/:id
-// @access  Private/Admin
+/**
+ * @swagger
+ * /api/banners/{id}:
+ *   get:
+ *     summary: Get single banner
+ *     tags: [Banners]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Banner retrieved successfully
+ *       404:
+ *         description: Banner not found
+ */
 export const getBannerById = asyncHandler(async (req: Request, res: Response) => {
     const banner = await Banner.findById(req.params.id).populate('storeId', 'name');
 
@@ -42,9 +74,31 @@ export const getBannerById = asyncHandler(async (req: Request, res: Response) =>
     res.json({ success: true, banner });
 });
 
-// @desc    Create banner
-// @route   POST /api/banners
-// @access  Private/Admin
+/**
+ * @swagger
+ * /api/banners:
+ *   post:
+ *     summary: Create banner
+ *     tags: [Banners]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title, image]
+ *             properties:
+ *               title: { type: string }
+ *               image: { type: string }
+ *               link: { type: string }
+ *               storeId: { type: string }
+ *               isActive: { type: boolean }
+ *     responses:
+ *       201:
+ *         description: Banner created successfully
+ */
 export const createBanner = asyncHandler(async (req: AuthRequest, res: Response) => {
     const bannerData = req.body;
 
@@ -56,9 +110,31 @@ export const createBanner = asyncHandler(async (req: AuthRequest, res: Response)
     res.status(201).json({ success: true, banner });
 });
 
-// @desc    Update banner
-// @route   PUT /api/banners/:id
-// @access  Private/Admin
+/**
+ * @swagger
+ * /api/banners/{id}:
+ *   put:
+ *     summary: Update banner
+ *     tags: [Banners]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Banner updated successfully
+ *       404:
+ *         description: Banner not found
+ */
 export const updateBanner = asyncHandler(async (req: Request, res: Response) => {
     const banner = await Banner.findByIdAndUpdate(
         req.params.id,
@@ -74,9 +150,25 @@ export const updateBanner = asyncHandler(async (req: Request, res: Response) => 
     res.json({ success: true, banner });
 });
 
-// @desc    Delete banner
-// @route   DELETE /api/banners/:id
-// @access  Private/Admin
+/**
+ * @swagger
+ * /api/banners/{id}:
+ *   delete:
+ *     summary: Delete banner
+ *     tags: [Banners]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Banner deleted successfully
+ *       404:
+ *         description: Banner not found
+ */
 export const deleteBanner = asyncHandler(async (req: Request, res: Response) => {
     const banner = await Banner.findByIdAndDelete(req.params.id);
 

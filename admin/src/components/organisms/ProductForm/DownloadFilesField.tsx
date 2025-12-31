@@ -4,6 +4,7 @@ import { Box, Paper, Grid, Typography, IconButton, TextField, Button } from '@mu
 import { Controller } from 'react-hook-form';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
+import FileManagerButton from '../../molecules/FileManagerButton';
 
 interface DownloadFilesFieldProps {
     control: any;
@@ -48,17 +49,37 @@ export default function DownloadFilesField({ control }: DownloadFilesFieldProps)
                                             />
                                         </Grid>
                                         <Grid size={{ xs: 12, md: 6 }}>
-                                            <TextField
-                                                value={file.url}
-                                                onChange={(e) => {
-                                                    const updated = [...files];
-                                                    updated[index] = { ...updated[index], url: e.target.value };
-                                                    field.onChange(updated);
-                                                }}
-                                                label="File URL"
-                                                fullWidth
-                                                size="small"
-                                            />
+                                            <Box sx={{ display: 'flex', gap: 1 }}>
+                                                <TextField
+                                                    value={file.url}
+                                                    onChange={(e) => {
+                                                        const updated = [...files];
+                                                        updated[index] = { ...updated[index], url: e.target.value };
+                                                        field.onChange(updated);
+                                                    }}
+                                                    label="File URL"
+                                                    fullWidth
+                                                    size="small"
+                                                />
+                                                <FileManagerButton
+                                                    onSelect={(selectedFiles) => {
+                                                        if (selectedFiles.length > 0) {
+                                                            const selectedFile = selectedFiles[0];
+                                                            const updated = [...files];
+                                                            updated[index] = {
+                                                                ...updated[index],
+                                                                url: selectedFile.url,
+                                                                name: updated[index].name || selectedFile.originalName,
+                                                                fileSize: selectedFile.size || updated[index].fileSize
+                                                            };
+                                                            field.onChange(updated);
+                                                        }
+                                                    }}
+                                                    multiple={false}
+                                                    label="Select"
+                                                    size="small"
+                                                />
+                                            </Box>
                                         </Grid>
                                         <Grid size={{ xs: 12, md: 2 }}>
                                             <TextField

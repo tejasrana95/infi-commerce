@@ -31,9 +31,35 @@ export const validateCouponValidation = [
 ];
 
 /**
- * @route   POST /api/coupons
- * @desc    Create a new coupon (Admin/Store Admin only)
- * @access  Private
+ * @swagger
+ * /api/coupons:
+ *   post:
+ *     summary: Create a new coupon (Admin/Store Admin only)
+ *     tags: [Promotions]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [code, storeId, discountType, discountValue, applyTo, startDate, endDate]
+ *             properties:
+ *               code: { type: string }
+ *               storeId: { type: string }
+ *               description: { type: string }
+ *               discountType: { type: string, enum: [flat, percentage] }
+ *               discountValue: { type: number }
+ *               applyTo: { type: string, enum: [store, categories] }
+ *               categoryIds: { type: array, items: { type: string } }
+ *               minCartValue: { type: number }
+ *               usageLimit: { type: number }
+ *               startDate: { type: string, format: date-time }
+ *               endDate: { type: string, format: date-time }
+ *     responses:
+ *       201:
+ *         description: Coupon created successfully
  */
 export const createCoupon = asyncHandler(async (req: AuthRequest, res: Response) => {
     const {
@@ -95,9 +121,23 @@ export const createCoupon = asyncHandler(async (req: AuthRequest, res: Response)
 });
 
 /**
- * @route   GET /api/coupons
- * @desc    Get all coupons for a store (Admin/Store Admin only)
- * @access  Private
+ * @swagger
+ * /api/coupons:
+ *   get:
+ *     summary: Get all coupons for a store (Admin/Store Admin only)
+ *     tags: [Promotions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: storeId
+ *         schema: { type: string }
+ *       - in: query
+ *         name: isActive
+ *         schema: { type: boolean }
+ *     responses:
+ *       200:
+ *         description: Coupons retrieved successfully
  */
 export const getCoupons = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { storeId, isActive, page = 1, limit = 20 } = req.query;
@@ -130,9 +170,21 @@ export const getCoupons = asyncHandler(async (req: AuthRequest, res: Response) =
 });
 
 /**
- * @route   GET /api/coupons/:id
- * @desc    Get coupon by ID
- * @access  Private
+ * @swagger
+ * /api/coupons/{id}:
+ *   get:
+ *     summary: Get coupon by ID
+ *     tags: [Promotions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Coupon retrieved successfully
  */
 export const getCouponById = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
@@ -150,9 +202,21 @@ export const getCouponById = asyncHandler(async (req: AuthRequest, res: Response
 });
 
 /**
- * @route   PUT /api/coupons/:id
- * @desc    Update coupon
- * @access  Private (Admin/Store Admin)
+ * @swagger
+ * /api/coupons/{id}:
+ *   put:
+ *     summary: Update coupon
+ *     tags: [Promotions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Coupon updated successfully
  */
 export const updateCoupon = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
@@ -188,9 +252,21 @@ export const updateCoupon = asyncHandler(async (req: AuthRequest, res: Response)
 });
 
 /**
- * @route   DELETE /api/coupons/:id
- * @desc    Delete coupon
- * @access  Private (Admin/Store Admin)
+ * @swagger
+ * /api/coupons/{id}:
+ *   delete:
+ *     summary: Delete coupon
+ *     tags: [Promotions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Coupon deleted successfully
  */
 export const deleteCoupon = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
@@ -208,9 +284,29 @@ export const deleteCoupon = asyncHandler(async (req: AuthRequest, res: Response)
 });
 
 /**
- * @route   POST /api/coupons/validate
- * @desc    Validate a coupon code and calculate discount (Public)
- * @access  Public
+ * @swagger
+ * /api/coupons/validate:
+ *   post:
+ *     summary: Validate a coupon code and calculate discount
+ *     tags: [Promotions]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [code, storeId]
+ *             properties:
+ *               code: { type: string }
+ *               storeId: { type: string }
+ *               cartId: { type: string }
+ *     responses:
+ *       200:
+ *         description: Coupon is valid
+ *       400:
+ *         description: Coupon is invalid or conditions not met
+ *       404:
+ *         description: Coupon not found
  */
 export const validateCoupon = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { code, storeId, cartId } = req.body;
@@ -302,9 +398,21 @@ export const validateCoupon = asyncHandler(async (req: AuthRequest, res: Respons
 });
 
 /**
- * @route   POST /api/coupons/:id/apply
- * @desc    Apply coupon to cart (increments usage)
- * @access  Private
+ * @swagger
+ * /api/coupons/{id}/apply:
+ *   post:
+ *     summary: Apply coupon to cart (increments usage)
+ *     tags: [Promotions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Coupon applied successfully
  */
 export const applyCoupon = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
@@ -339,9 +447,19 @@ export const applyCoupon = asyncHandler(async (req: AuthRequest, res: Response) 
 });
 
 /**
- * @route   GET /api/coupons/store/:storeId/active
- * @desc    Get all active coupons for a store (Public - for display)
- * @access  Public
+ * @swagger
+ * /api/coupons/store/{storeId}/active:
+ *   get:
+ *     summary: Get all active coupons for a store
+ *     tags: [Promotions]
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Active coupons retrieved successfully
  */
 export const getActiveCoupons = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { storeId } = req.params;

@@ -159,6 +159,14 @@ export const createProduct = asyncHandler(async (req: AuthRequest, res: Response
         }
     }
 
+    // Clean up empty strings for ObjectId fields (MongoDB can't cast "" to ObjectId)
+    const objectIdFields = ['taxClassId', 'brand'];
+    objectIdFields.forEach(field => {
+        if (productData[field] === '') {
+            productData[field] = undefined;
+        }
+    });
+
     // Create product
     const product = await Product.create(productData);
 

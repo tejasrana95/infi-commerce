@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
 import { useToast } from '@/providers/ToastProvider';
 import { apiClient } from '@/services/api-client';
-import OrderDetailsTemplate, { OrderDetails } from '@/components/templates/order/OrderDetails';
+import OrderDetailsTemplate, { OrderDetails } from '@/components/templates/core/OrderDetails';
 
 export default function AccountOrderPage() {
     const params = useParams();

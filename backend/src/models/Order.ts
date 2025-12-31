@@ -19,6 +19,16 @@ export interface IOrder extends Document {
         weight?: number;
         taxRate?: number;
         taxAmount?: number;
+        // Digital product fields
+        downloadable?: boolean;
+        downloadFiles?: Array<{
+            name: string;
+            url: string;
+            fileSize: number;
+        }>;
+        downloadLimit?: number;
+        downloadCount?: number;
+        downloadExpiresAt?: Date;
     }>;
 
     // Pricing
@@ -138,6 +148,18 @@ const OrderSchema = new Schema<IOrder>(
                 weight: Number,
                 taxRate: { type: Number, default: 0 },
                 taxAmount: { type: Number, default: 0 },
+                // Digital product fields
+                downloadable: { type: Boolean, default: false },
+                downloadFiles: [
+                    {
+                        name: String,
+                        url: String,
+                        fileSize: Number,
+                    },
+                ],
+                downloadLimit: Number,
+                downloadCount: { type: Number, default: 0 },
+                downloadExpiresAt: Date,
             },
         ],
         subtotal: {

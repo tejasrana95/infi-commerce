@@ -89,7 +89,23 @@ export const getNotifications = asyncHandler(async (req: AuthRequest, res: Respo
 });
 
 /**
- * Get single notification
+ * @swagger
+ * /api/notifications/{id}:
+ *   get:
+ *     summary: Get single notification
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Notification retrieved successfully
+ *       404:
+ *         description: Notification not found
  */
 export const getNotification = asyncHandler(async (req: AuthRequest, res: Response) => {
     const notification = await NotificationQueue.findById(req.params.id)
@@ -104,7 +120,20 @@ export const getNotification = asyncHandler(async (req: AuthRequest, res: Respon
 });
 
 /**
- * Get queue statistics
+ * @swagger
+ * /api/notifications/stats:
+ *   get:
+ *     summary: Get queue statistics
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: storeId
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Queue statistics retrieved successfully
  */
 export const getQueueStats = asyncHandler(async (req: AuthRequest, res: Response) => {
     const storeId = (req.query.storeId || req.user?.storeId) as string | undefined;
@@ -114,7 +143,24 @@ export const getQueueStats = asyncHandler(async (req: AuthRequest, res: Response
 });
 
 /**
- * Process queue (manual trigger)
+ * @swagger
+ * /api/notifications/process:
+ *   post:
+ *     summary: Process queue (manual trigger)
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               priority: { type: string, enum: [high, normal, low] }
+ *               limit: { type: number }
+ *     responses:
+ *       200:
+ *         description: Queue processed successfully
  */
 export const processQueue = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { priority = 'normal', limit = 30 } = req.body;
@@ -129,7 +175,21 @@ export const processQueue = asyncHandler(async (req: AuthRequest, res: Response)
 });
 
 /**
- * Retry a failed notification
+ * @swagger
+ * /api/notifications/{id}/retry:
+ *   post:
+ *     summary: Retry a failed notification
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Notification queued for retry
  */
 export const retryNotification = asyncHandler(async (req: AuthRequest, res: Response) => {
     const success = await notificationService.retryNotification(req.params.id);
@@ -141,7 +201,21 @@ export const retryNotification = asyncHandler(async (req: AuthRequest, res: Resp
 });
 
 /**
- * Cancel a pending notification
+ * @swagger
+ * /api/notifications/{id}/cancel:
+ *   post:
+ *     summary: Cancel a pending notification
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Notification cancelled
  */
 export const cancelNotification = asyncHandler(async (req: AuthRequest, res: Response) => {
     const notification = await notificationService.cancelNotification(req.params.id);
@@ -158,7 +232,26 @@ export const cancelNotification = asyncHandler(async (req: AuthRequest, res: Res
 // ============================================
 
 /**
- * Get all templates with store information
+ * @swagger
+ * /api/notifications/templates:
+ *   get:
+ *     summary: Get all templates
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: storeId
+ *         schema: { type: string }
+ *       - in: query
+ *         name: type
+ *         schema: { type: string }
+ *       - in: query
+ *         name: channel
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Templates retrieved successfully
  */
 export const getTemplates = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { storeId, type, channel } = req.query;
@@ -191,7 +284,21 @@ export const getTemplates = asyncHandler(async (req: AuthRequest, res: Response)
 });
 
 /**
- * Get single template
+ * @swagger
+ * /api/notifications/templates/{id}:
+ *   get:
+ *     summary: Get single template
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Template retrieved successfully
  */
 export const getTemplate = asyncHandler(async (req: AuthRequest, res: Response) => {
     const template = await NotificationTemplate.findById(req.params.id);
@@ -311,7 +418,29 @@ export const createTemplate = asyncHandler(async (req: AuthRequest, res: Respons
 });
 
 /**
- * Update existing template
+ * @swagger
+ * /api/notifications/templates/{id}:
+ *   put:
+ *     summary: Update existing template
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Template updated successfully
+ *       400:
+ *         description: Validation error or conflict
  */
 export const updateTemplate = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
@@ -391,7 +520,21 @@ export const updateTemplate = asyncHandler(async (req: AuthRequest, res: Respons
 });
 
 /**
- * Delete template
+ * @swagger
+ * /api/notifications/templates/{id}:
+ *   delete:
+ *     summary: Delete template
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Template deleted successfully
  */
 export const deleteTemplate = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
@@ -408,7 +551,21 @@ export const deleteTemplate = asyncHandler(async (req: AuthRequest, res: Respons
 });
 
 /**
- * Toggle template active status
+ * @swagger
+ * /api/notifications/templates/{id}/toggle:
+ *   patch:
+ *     summary: Toggle template active status
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Template status toggled successfully
  */
 export const toggleTemplateStatus = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
@@ -500,7 +657,20 @@ export const updateTemplateValidation = [
 // ============================================
 
 /**
- * Get admin notifications
+ * @swagger
+ * /api/notifications/admin:
+ *   get:
+ *     summary: Get admin notifications
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: unreadOnly
+ *         schema: { type: boolean }
+ *     responses:
+ *       200:
+ *         description: Admin notifications retrieved successfully
  */
 export const getAdminNotifications = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { page = 1, limit = 20, unreadOnly, recipient } = req.query;
