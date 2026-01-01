@@ -20,6 +20,7 @@ import {
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Link from 'next/link';
+import PermissionGuard from '../atoms/PermissionGuard';
 
 export interface Column {
   id: string;
@@ -104,15 +105,17 @@ const DataTable = memo(({
                     </IconButton>
                   )
                 )}
-                {onDelete && (
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() => handleDelete(row)}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                )}
+                <PermissionGuard deniedRoles={['store_admin']}>
+                  {onDelete && (
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => handleDelete(row)}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                </PermissionGuard>
               </Box>
             </CardContent>
           </Card>
@@ -216,17 +219,19 @@ const DataTable = memo(({
                         </Tooltip>
                       )
                     )}
-                    {onDelete && (
-                      <Tooltip title="Delete">
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleDelete(row)}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    )}
+                    <PermissionGuard deniedRoles={['store_admin']}>
+                      {onDelete && (
+                        <Tooltip title="Delete">
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => handleDelete(row)}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </PermissionGuard>
                   </Box>
                 </TableCell>
               )}

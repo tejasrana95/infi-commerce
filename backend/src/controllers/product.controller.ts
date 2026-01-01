@@ -133,6 +133,14 @@ export const createProduct = asyncHandler(async (req: AuthRequest, res: Response
         throw new AppError('Store not found', 404);
     }
 
+    // RBAC Check: Store Admin only for assigned stores
+    if (req.user?.role === 'store_admin') {
+        const assignedStoreIds = req.user.storeIds?.map(id => id.toString()) || [];
+        if (!assignedStoreIds.includes(productData.storeId.toString())) {
+            throw new AppError('Unauthorized: You can only create products for your assigned stores', 403);
+        }
+    }
+
     // Check if SKU already exists
     const existingSKU = await Product.findOne({ sku: productData.sku });
     if (existingSKU) {
@@ -287,7 +295,15 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         }
     }
 
-    if (req.query.storeId) {
+    const isStoreAdmin = req.user?.role === 'store_admin';
+    const assignedStoreIds = req.user?.storeIds || [];
+
+    if (isStoreAdmin) {
+        if (assignedStoreIds.length === 0) {
+            return res.json({ products: [], total: 0, pages: 0 });
+        }
+        filter.storeId = { $in: assignedStoreIds.map(id => new mongoose.Types.ObjectId(id)) };
+    } else if (req.query.storeId) {
         filter.storeId = req.query.storeId;
     }
 
@@ -797,6 +813,14 @@ export const updateProduct = asyncHandler(async (req: AuthRequest, res: Response
         throw new AppError('Product not found', 404);
     }
 
+    // RBAC Check: Store Admin only for assigned stores
+    if (req.user?.role === 'store_admin') {
+        const assignedStoreIds = req.user.storeIds?.map(id => id.toString()) || [];
+        if (!assignedStoreIds.includes(product.storeId.toString())) {
+            throw new AppError('Unauthorized: You can only update products for your assigned stores', 403);
+        }
+    }
+
     // Check SKU uniqueness if being updated
     if (updates.sku && updates.sku !== product.sku) {
         const existingSKU = await Product.findOne({ sku: updates.sku, _id: { $ne: id } });
@@ -864,6 +888,11 @@ export const updateProduct = asyncHandler(async (req: AuthRequest, res: Response
  *         description: Unauthorized
  */
 export const deleteProduct = asyncHandler(async (req: AuthRequest, res: Response) => {
+    // RBAC Check: Store Admin cannot delete anything
+    if (req.user?.role === 'store_admin') {
+        throw new AppError('Unauthorized: Store admins cannot delete products', 403);
+    }
+
     const product = await Product.findByIdAndDelete(req.params.id);
 
     if (!product) {

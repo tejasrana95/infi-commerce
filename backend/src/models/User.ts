@@ -12,7 +12,7 @@ export interface IUser extends Document {
     lastName: string;
     phone?: string;
     role: 'admin' | 'store_admin' | 'super_admin';
-    storeId?: mongoose.Types.ObjectId;
+    storeIds?: mongoose.Types.ObjectId[];
     isActive: boolean;
     emailVerified: boolean;
     permissions?: string[]; // For granular permissions
@@ -60,11 +60,11 @@ const UserSchema = new Schema<IUser>(
             default: 'admin',
             required: true,
         },
-        storeId: {
+        storeIds: [{
             type: Schema.Types.ObjectId,
             ref: 'Store',
             // Required for store_admin, optional for super_admin
-        },
+        }],
         isActive: {
             type: Boolean,
             default: true,
@@ -118,7 +118,7 @@ UserSchema.methods.comparePassword = async function (candidatePassword: string):
 // Indexes
 UserSchema.index({ email: 1 }, { unique: true });
 UserSchema.index({ role: 1 });
-UserSchema.index({ storeId: 1 });
+UserSchema.index({ storeIds: 1 });
 UserSchema.index({ isActive: 1 });
 
 const User = mongoose.model<IUser>('User', UserSchema);

@@ -8,9 +8,10 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import api from '@/lib/api';
 import { Brand } from '@/types';
 import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules';
-import { LoadingSpinner, StatusChip } from '@/components/atoms';
+import { LoadingSpinner, StatusChip, PermissionGuard } from '@/components/atoms';
 import BrandForm from '@/components/organisms/BrandForm';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { createDataGridStyles } from '@/utils/styles';
 
 export default function BrandsPage() {
@@ -18,6 +19,7 @@ export default function BrandsPage() {
     const [brands, setBrands] = useState<Brand[]>([]);
     const [loading, setLoading] = useState(true);
     const { showNotification } = useNotification();
+    const { user } = useAuth();
     const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStore, setFilterStore] = useState<string>('');
@@ -185,11 +187,13 @@ export default function BrandsPage() {
                             <EditIcon fontSize="small" />
                         </IconButton>
                     </Tooltip>
-                    <Tooltip title="Delete">
-                        <IconButton onClick={() => handleDelete(params.row)} size="small" color="error">
-                            <DeleteIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
+                    <PermissionGuard deniedRoles={['store_admin']}>
+                        <Tooltip title="Delete">
+                            <IconButton onClick={() => handleDelete(params.row)} size="small" color="error">
+                                <DeleteIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    </PermissionGuard>
                 </Box>
             ),
         },
@@ -244,7 +248,7 @@ export default function BrandsPage() {
                 searchPlaceholder="Search brands..."
                 searchValue={searchQuery}
                 onSearchChange={handleSearchChange}
-                showStoreFilter
+                showStoreFilter={user?.role !== 'store_admin'}
                 storeFilterValue={filterStore}
                 onStoreFilterChange={handleStoreFilterChange}
             />

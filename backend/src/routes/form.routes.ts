@@ -16,6 +16,8 @@ import {
     updateFormValidation,
 } from '../controllers/form.controller';
 import { validate } from '../middleware/validation';
+import { publicSubmissionLimiter } from '../middleware/rateLimit';
+import { honeypot } from '../middleware/honeypot';
 import multer from 'multer';
 import path from 'path';
 
@@ -115,12 +117,16 @@ router.get(
 
 router.post(
     '/public/submit/id/:id',
+    publicSubmissionLimiter,
+    honeypot('_form_trap'),
     upload.any(),
     submitForm
 );
 
 router.post(
     '/public/submit/:slug',
+    publicSubmissionLimiter,
+    honeypot('_form_trap'),
     upload.any(),
     submitForm
 );

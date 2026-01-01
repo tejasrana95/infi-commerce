@@ -48,6 +48,14 @@ export const updateBlogCategoryValidation = [
 export const createBlogCategory = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { storeId, name, slug, description, image, parentId, seo, isActive, sortOrder } = req.body;
 
+    // RBAC Check: Store Admin only for assigned stores
+    if (req.user?.role === 'store_admin') {
+        const assignedStoreIds = req.user.storeIds?.map(id => id.toString()) || [];
+        if (!assignedStoreIds.includes(storeId.toString())) {
+            throw new AppError('Unauthorized: You can only create blog categories for your assigned stores', 403);
+        }
+    }
+
     const existingCategory = await BlogCategory.findOne({ storeId, slug });
     if (existingCategory) {
         throw new AppError('Category with this slug already exists in this store', 400);
@@ -88,11 +96,19 @@ export const createBlogCategory = asyncHandler(async (req: AuthRequest, res: Res
 export const getBlogCategories = asyncHandler(async (req: AuthRequest, res: Response) => {
     const filter: any = {};
 
-    // Get store ID from header (for public routes) or from authenticated user
-    const storeId = req.headers['x-store-id'] || req.query.storeId || req.user?.storeId;
+    const isStoreAdmin = req.user?.role === 'store_admin';
+    const assignedStoreIds = req.user?.storeIds || [];
 
-    if (storeId) {
-        filter.storeId = new mongoose.Types.ObjectId(storeId as string);
+    if (isStoreAdmin) {
+        if (assignedStoreIds.length === 0) {
+            return res.json({ data: [], pagination: { total: 0, page: 1, pages: 0, limit: 0 } });
+        }
+        filter.storeId = { $in: assignedStoreIds.map(id => new mongoose.Types.ObjectId(id)) };
+    } else {
+        const storeId = req.headers['x-store-id'] || req.query.storeId;
+        if (storeId) {
+            filter.storeId = new mongoose.Types.ObjectId(storeId as string);
+        }
     }
 
     // Use aggregation to get dynamic post counts and "populate" storeId
@@ -196,6 +212,14 @@ export const updateBlogCategory = asyncHandler(async (req: AuthRequest, res: Res
         throw new AppError('Category not found', 404);
     }
 
+    // RBAC Check: Store Admin only for assigned stores
+    if (req.user?.role === 'store_admin') {
+        const assignedStoreIds = req.user.storeIds?.map(id => id.toString()) || [];
+        if (!assignedStoreIds.includes(category.storeId.toString())) {
+            throw new AppError('Unauthorized: You can only update blog categories for your assigned stores', 403);
+        }
+    }
+
     if (updates.slug && updates.slug !== category.slug) {
         const existing = await BlogCategory.findOne({
             storeId: category.storeId,
@@ -235,6 +259,11 @@ export const updateBlogCategory = asyncHandler(async (req: AuthRequest, res: Res
  *         description: Category deleted successfully
  */
 export const deleteBlogCategory = asyncHandler(async (req: AuthRequest, res: Response) => {
+    // RBAC Check: Store Admin cannot delete anything
+    if (req.user?.role === 'store_admin') {
+        throw new AppError('Unauthorized: Store admins cannot delete blog categories', 403);
+    }
+
     const category = await BlogCategory.findById(req.params.id);
     if (!category) {
         throw new AppError('Category not found', 404);
@@ -291,6 +320,14 @@ export const createBlogPost = asyncHandler(async (req: AuthRequest, res: Respons
         categoryIds, tags, author, relatedProducts, layoutId,
         seo, status, scheduledAt, allowComments, isFeatured, isPinned
     } = req.body;
+
+    // RBAC Check: Store Admin only for assigned stores
+    if (req.user?.role === 'store_admin') {
+        const assignedStoreIds = req.user.storeIds?.map(id => id.toString()) || [];
+        if (!assignedStoreIds.includes(storeId.toString())) {
+            throw new AppError('Unauthorized: You can only create blog posts for your assigned stores', 403);
+        }
+    }
 
     const existingPost = await BlogPost.findOne({ storeId, slug });
     if (existingPost) {
@@ -362,11 +399,22 @@ export const getBlogPosts = asyncHandler(async (req: AuthRequest, res: Response)
 
     const filter: any = {};
 
-    // Get store ID from header (for public routes) or query or authenticated user
-    const storeId = req.headers['x-store-id'] || req.query.storeId || req.user?.storeId;
+    const isStoreAdmin = req.user?.role === 'store_admin';
+    const assignedStoreIds = req.user?.storeIds || [];
+    let storeIdToUse: any = null;
 
-    if (storeId) {
-        filter.storeId = storeId;
+    if (isStoreAdmin) {
+        if (assignedStoreIds.length === 0) {
+            return res.json({ data: [], pagination: { total: 0, page: Number(page), pages: 0, limit: Number(limit) } });
+        }
+        filter.storeId = { $in: assignedStoreIds.map(id => new mongoose.Types.ObjectId(id)) };
+        storeIdToUse = filter.storeId; // storeIdToUse will be an object { $in: [...] }
+    } else {
+        const storeId = req.headers['x-store-id'] || req.query.storeId;
+        if (storeId) {
+            filter.storeId = new mongoose.Types.ObjectId(storeId as string);
+            storeIdToUse = storeId;
+        }
     }
 
     if (status) filter.status = status;
@@ -383,7 +431,7 @@ export const getBlogPosts = asyncHandler(async (req: AuthRequest, res: Response)
             // It's a slug, look up the category first
             const categoryDoc = await BlogCategory.findOne({
                 slug: category,
-                ...(storeId ? { storeId } : {})
+                ...(storeIdToUse ? { storeId: storeIdToUse } : {})
             });
 
             if (categoryDoc) {
@@ -623,6 +671,14 @@ export const updateBlogPost = asyncHandler(async (req: AuthRequest, res: Respons
         throw new AppError('Post not found', 404);
     }
 
+    // RBAC Check: Store Admin only for assigned stores
+    if (req.user?.role === 'store_admin') {
+        const assignedStoreIds = req.user.storeIds?.map(id => id.toString()) || [];
+        if (!assignedStoreIds.includes(post.storeId.toString())) {
+            throw new AppError('Unauthorized: You can only update blog posts for your assigned stores', 403);
+        }
+    }
+
     if (updates.slug && updates.slug !== post.slug) {
         const existing = await BlogPost.findOne({
             storeId: post.storeId,
@@ -662,6 +718,11 @@ export const updateBlogPost = asyncHandler(async (req: AuthRequest, res: Respons
  *         description: Post deleted successfully
  */
 export const deleteBlogPost = asyncHandler(async (req: AuthRequest, res: Response) => {
+    // RBAC Check: Store Admin cannot delete anything
+    if (req.user?.role === 'store_admin') {
+        throw new AppError('Unauthorized: Store admins cannot delete blog posts', 403);
+    }
+
     const post = await BlogPost.findByIdAndDelete(req.params.id);
     if (!post) {
         throw new AppError('Post not found', 404);

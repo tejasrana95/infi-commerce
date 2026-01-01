@@ -8,7 +8,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import api from '@/lib/api';
 import { PageHeader, SearchFilterBar } from '@/components/molecules';
-import { LoadingSpinner, StatusChip } from '@/components/atoms';
+import { LoadingSpinner, StatusChip, PermissionGuard } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
 import { createDataGridStyles } from '@/utils/styles';
 
@@ -170,11 +170,13 @@ export default function CustomersPage() {
                             <EditIcon fontSize="small" />
                         </IconButton>
                     </Tooltip>
-                    <Tooltip title="Delete">
-                        <IconButton onClick={() => handleDelete(params.row._id)} size="small" color="error">
-                            <DeleteIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
+                    <PermissionGuard deniedRoles={['store_admin']}>
+                        <Tooltip title="Delete">
+                            <IconButton onClick={() => handleDelete(params.row._id)} size="small" color="error">
+                                <DeleteIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    </PermissionGuard>
                 </Box>
             ),
         },

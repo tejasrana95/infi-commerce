@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { apiClient } from '@/services/api-client';
 import { ModuleProps } from '@/components/core/modules';
 import styles from './form.module.scss';
+import Honeypot from '@/components/core/common/Honeypot';
 
 interface FormField {
     id: string;
@@ -43,6 +44,7 @@ export default function FormModule({ config }: ModuleProps) {
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<Record<string, File[]>>({});
+    const [honeyTrap, setHoneyTrap] = useState('');
 
     const {
         formId,
@@ -284,6 +286,9 @@ export default function FormModule({ config }: ModuleProps) {
                     formData.append(key, value);
                 }
             });
+
+            // Append honeypot field
+            formData.append('_form_trap', honeyTrap);
 
             // Append files
             Object.entries(uploadedFiles).forEach(([fieldName, files]) => {
@@ -602,6 +607,11 @@ export default function FormModule({ config }: ModuleProps) {
             )}
 
             <form onSubmit={handleSubmit} className={styles.form} noValidate>
+                <Honeypot
+                    name="_form_trap"
+                    value={honeyTrap}
+                    onChange={setHoneyTrap}
+                />
                 {form.sections.map(renderSection)}
 
                 {errors.submit && (

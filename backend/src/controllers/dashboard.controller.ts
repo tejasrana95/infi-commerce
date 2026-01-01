@@ -74,18 +74,25 @@ import { AuthRequest } from '../middleware/auth';
  */
 export const getDashboardStats = async (req: AuthRequest, res: Response) => {
     try {
-        let storeId = req.query.storeId as string;
+        const storeId = req.query.storeId as string;
         const userRole = req.user?.role;
         const isStoreAdmin = userRole === 'store_admin';
+        const assignedStoreIds = req.user?.storeIds || [];
 
-        // If store_admin, always force their assigned storeId
-        if (isStoreAdmin && req.user?.storeId) {
-            storeId = req.user.storeId.toString();
+        // Determine which store(s) to filter by
+        let filterStoreIds: string[] = [];
+
+        if (isStoreAdmin) {
+            // Store admin is always restricted to their assigned stores
+            filterStoreIds = assignedStoreIds;
+        } else if (storeId && storeId !== 'all') {
+            // Super admin or admin filtering by a specific store
+            filterStoreIds = [storeId];
         }
 
         const filter: any = {};
-        if (storeId && storeId !== 'all') {
-            filter.storeId = new mongoose.Types.ObjectId(storeId);
+        if (filterStoreIds.length > 0) {
+            filter.storeId = { $in: filterStoreIds.map(id => new mongoose.Types.ObjectId(id)) };
         }
 
         // 1. Basic Stats (Counts)
@@ -93,7 +100,7 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
         // If all stores, count all unique customers in the system
         const getCustomerCount = async () => {
             if (filter.storeId) {
-                const results = await Order.distinct('customerId', { storeId: filter.storeId });
+                const results = await Order.distinct('customerId', filter);
                 return results.length;
             }
             return Customer.countDocuments({});

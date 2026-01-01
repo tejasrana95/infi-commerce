@@ -328,6 +328,60 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
     return getInitials(nameBuilder(user));
   }, [user]);
 
+  const filteredNavigationItems = useMemo(() => {
+    if (!user) return [];
+    if (user.role === 'super_admin') return navigationItems;
+
+    return navigationItems
+      .map(item => {
+        const newItem = { ...item };
+
+        if (newItem.children) {
+          newItem.children = newItem.children.filter(child => {
+            if (user.role === 'store_admin') {
+              // Store Admin restrictions
+              if (newItem.name === 'Sales & Marketing' && child.name === 'Stores') return false;
+              if (newItem.name === 'Storefront' && child.name !== 'Blog') return false;
+              if (newItem.name === 'Settings') return false;
+              return true;
+            }
+
+            if (user.role === 'admin') {
+              // Admin restrictions
+              if (newItem.name === 'Sales & Marketing' && child.name === 'Stores') return false;
+              if (newItem.name === 'Settings') {
+                const restrictedSettings = [
+                  'Files', 'Notifications Queue', 'Notification Templates',
+                  'Payment Gateways', 'Admin Users', 'Shipping', 'Geo',
+                  'Geo Groups', 'Currencies', 'Taxes', 'Settings'
+                ];
+                return !restrictedSettings.includes(child.name);
+              }
+            }
+
+            return true;
+          });
+        }
+
+        return newItem;
+      })
+      .filter(item => {
+        // Root level filtering
+        if (user.role === 'store_admin') {
+          if (item.name === 'Settings') return false;
+        }
+
+        // Filter out empty parents
+        if (item.children && item.children.length === 0) {
+          if (['Settings', 'Storefront', 'Sales & Marketing'].includes(item.name)) {
+            return false;
+          }
+        }
+
+        return true;
+      }) as NavItem[];
+  }, [user, navigationItems]);
+
   const drawer = useMemo(
     () => (
       <Box sx={{
@@ -410,7 +464,7 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
           },
         }}>
           <List component="nav" disablePadding>
-            {navigationItems.map((item) => (
+            {filteredNavigationItems.map((item) => (
               <NavItemComponent
                 key={item.name}
                 item={item}

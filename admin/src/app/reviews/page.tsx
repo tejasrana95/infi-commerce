@@ -36,7 +36,7 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import PersonIcon from '@mui/icons-material/Person';
 import api from '@/lib/api';
-import { LoadingSpinner } from '@/components/atoms';
+import { LoadingSpinner, PermissionGuard } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
 import { createDataGridStyles } from '@/utils/styles';
 
@@ -381,9 +381,11 @@ export default function ReviewsPage() {
                         <CancelIcon fontSize="small" sx={{ mr: 1 }} color="warning" /> Reject
                     </MenuItem>
                 )}
-                <MenuItem onClick={handleDeleteClick} sx={{ color: 'error.main' }}>
-                    <DeleteIcon fontSize="small" sx={{ mr: 1 }} /> Delete
-                </MenuItem>
+                <PermissionGuard deniedRoles={['store_admin']}>
+                    <MenuItem onClick={handleDeleteClick} sx={{ color: 'error.main' }}>
+                        <DeleteIcon fontSize="small" sx={{ mr: 1 }} /> Delete
+                    </MenuItem>
+                </PermissionGuard>
             </Menu>
 
             {/* Delete Dialog */}

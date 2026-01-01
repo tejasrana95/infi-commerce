@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import { body, param } from 'express-validator';
+import mongoose from 'mongoose';
 import Category from '../models/Category';
 import Store from '../models/Store';
 import { AuthRequest } from '../middleware/auth';
@@ -121,6 +122,14 @@ export const createCategory = asyncHandler(async (req: AuthRequest, res: Respons
         throw new AppError('Store not found', 404);
     }
 
+    // RBAC Check: Store Admin only for assigned stores
+    if (req.user?.role === 'store_admin') {
+        const assignedStoreIds = req.user.storeIds?.map(id => id.toString()) || [];
+        if (!assignedStoreIds.includes(storeId.toString())) {
+            throw new AppError('Unauthorized: You can only create categories for your assigned stores', 403);
+        }
+    }
+
     // Check if slug already exists for this store
     const existingCategory = await Category.findOne({ storeId, slug });
     if (existingCategory) {
@@ -210,7 +219,16 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
         }
     }
 
-    if (req.query.storeId) {
+    const isStoreAdmin = req.user?.role === 'store_admin';
+    const assignedStoreIds = req.user?.storeIds || [];
+
+    if (isStoreAdmin) {
+        if (assignedStoreIds.length === 0) {
+            // If store admin has no assigned stores, return empty result
+            return res.json({ categories: [], total: 0, pages: 0 });
+        }
+        filter.storeId = { $in: assignedStoreIds.map(id => new mongoose.Types.ObjectId(id)) };
+    } else if (req.query.storeId) {
         filter.storeId = req.query.storeId;
     }
 
@@ -421,6 +439,14 @@ export const updateCategory = asyncHandler(async (req: AuthRequest, res: Respons
         throw new AppError('Category not found', 404);
     }
 
+    // RBAC Check: Store Admin only for assigned stores
+    if (req.user?.role === 'store_admin') {
+        const assignedStoreIds = req.user.storeIds?.map(id => id.toString()) || [];
+        if (!assignedStoreIds.includes(category.storeId.toString())) {
+            throw new AppError('Unauthorized: You can only update categories for your assigned stores', 403);
+        }
+    }
+
     // If slug is being updated, check for conflicts
     if (updates.slug && updates.slug !== category.slug) {
         const existingCategory = await Category.findOne({
@@ -488,6 +514,11 @@ export const updateCategory = asyncHandler(async (req: AuthRequest, res: Respons
  *         description: Unauthorized
  */
 export const deleteCategory = asyncHandler(async (req: AuthRequest, res: Response) => {
+    // RBAC Check: Store Admin cannot delete anything
+    if (req.user?.role === 'store_admin') {
+        throw new AppError('Unauthorized: Store admins cannot delete categories', 403);
+    }
+
     const category = await Category.findById(req.params.id);
 
     if (!category) {

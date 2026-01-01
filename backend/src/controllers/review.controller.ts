@@ -57,7 +57,17 @@ export const getReviews = asyncHandler(async (req: AuthRequest, res: Response) =
 
     const filter: any = {};
 
-    if (storeId) filter.storeId = storeId;
+    const isStoreAdmin = req.user?.role === 'store_admin';
+    const assignedStoreIds = req.user?.storeIds || [];
+
+    if (isStoreAdmin) {
+        if (assignedStoreIds.length === 0) {
+            return res.json({ reviews: [], total: 0, pages: 0 });
+        }
+        filter.storeId = { $in: assignedStoreIds.map(id => new mongoose.Types.ObjectId(id)) };
+    } else if (storeId) {
+        filter.storeId = storeId;
+    }
     if (productId) filter.productId = productId;
     if (customerId) filter.customerId = customerId;
     if (isApproved !== undefined) filter.isApproved = isApproved === 'true';
@@ -196,6 +206,14 @@ export const createReview = asyncHandler(async (req: AuthRequest, res: Response)
         throw new AppError('Store not found', 404);
     }
 
+    // RBAC Check: Store Admin only for assigned stores
+    if (req.user?.role === 'store_admin') {
+        const assignedStoreIds = req.user.storeIds?.map(id => id.toString()) || [];
+        if (!assignedStoreIds.includes(storeId.toString())) {
+            throw new AppError('Unauthorized: You can only create reviews for your assigned stores', 403);
+        }
+    }
+
     // Validate product exists and belongs to store
     const product = await Product.findOne({ _id: productId, storeId });
     if (!product) {
@@ -315,6 +333,14 @@ export const updateReview = asyncHandler(async (req: AuthRequest, res: Response)
         throw new AppError('Review not found', 404);
     }
 
+    // RBAC Check: Store Admin only for assigned stores
+    if (req.user?.role === 'store_admin') {
+        const assignedStoreIds = req.user.storeIds?.map(id => id.toString()) || [];
+        if (!assignedStoreIds.includes(review.storeId.toString())) {
+            throw new AppError('Unauthorized: You can only update reviews for your assigned stores', 403);
+        }
+    }
+
     // Update fields
     if (rating !== undefined) review.rating = rating;
     if (title !== undefined) review.title = title;
@@ -359,6 +385,11 @@ export const updateReview = asyncHandler(async (req: AuthRequest, res: Response)
  *         description: Review deleted successfully
  */
 export const deleteReview = asyncHandler(async (req: AuthRequest, res: Response) => {
+    // RBAC Check: Store Admin cannot delete anything
+    if (req.user?.role === 'store_admin') {
+        throw new AppError('Unauthorized: Store admins cannot delete reviews', 403);
+    }
+
     const { id } = req.params;
 
     const review = await Review.findByIdAndDelete(id);

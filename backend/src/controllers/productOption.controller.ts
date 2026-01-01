@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import mongoose from 'mongoose';
 import { body, param } from 'express-validator';
 import ProductOption from '../models/ProductOption';
 import Store from '../models/Store';
@@ -109,7 +110,12 @@ export const createProductOption = asyncHandler(async (req: AuthRequest, res: Re
 export const getProductOptions = asyncHandler(async (req: AuthRequest, res: Response) => {
     const filter: any = {};
 
-    if (req.query.storeId) {
+    const isStoreAdmin = req.user?.role === 'store_admin';
+    const assignedStoreIds = req.user?.storeIds || [];
+
+    if (isStoreAdmin) {
+        filter.storeId = { $in: assignedStoreIds.map(id => new mongoose.Types.ObjectId(id)) };
+    } else if (req.query.storeId) {
         filter.storeId = req.query.storeId;
     }
 
@@ -227,6 +233,10 @@ export const updateProductOption = asyncHandler(async (req: AuthRequest, res: Re
  *         description: Product option not found
  */
 export const deleteProductOption = asyncHandler(async (req: AuthRequest, res: Response) => {
+    if (req.user?.role === 'store_admin') {
+        throw new AppError('Store admins are not allowed to delete product options', 403);
+    }
+
     const productOption = await ProductOption.findByIdAndDelete(req.params.id);
 
     if (!productOption) {

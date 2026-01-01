@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import { body, param } from 'express-validator';
+import mongoose from 'mongoose';
 import Customer from '../models/Customer';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
@@ -47,6 +48,14 @@ export const getAllCustomers = asyncHandler(async (req: AuthRequest, res: Respon
 
     if (status === 'active') filter.isActive = true;
     if (status === 'inactive') filter.isActive = false;
+
+    // RBAC Check: Store Admin only sees customers who ordered from their stores
+    if (req.user?.role === 'store_admin') {
+        const assignedStoreIds = req.user.storeIds?.map(id => new mongoose.Types.ObjectId(id)) || [];
+        const Order = require('../models/Order').default;
+        const customerIds = await Order.distinct('customerId', { storeId: { $in: assignedStoreIds } });
+        filter._id = { $in: customerIds };
+    }
 
     const skip = (Number(page) - 1) * Number(limit);
 
@@ -185,6 +194,11 @@ export const updateCustomer = asyncHandler(async (req: AuthRequest, res: Respons
  * @access  Private (Admin)
  */
 export const deleteCustomer = asyncHandler(async (req: AuthRequest, res: Response) => {
+    // RBAC Check: Store Admin cannot delete anything
+    if (req.user?.role === 'store_admin') {
+        throw new AppError('Unauthorized: Store admins cannot delete customers', 403);
+    }
+
     const { id } = req.params;
 
     const customer = await Customer.findByIdAndDelete(id);

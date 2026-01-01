@@ -6,7 +6,7 @@ export interface User {
   email: string;
   phone?: string;
   role: 'admin' | 'manager' | 'staff' | 'super_admin' | 'store_admin';
-  storeId?: string;
+  storeIds?: string[];
   permissions?: string[];
   twoFactorEnabled?: boolean;
 }

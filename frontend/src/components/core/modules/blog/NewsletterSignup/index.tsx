@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import styles from './index.module.scss';
 import { FiMail, FiCheck } from 'react-icons/fi';
+import Honeypot from '@/components/core/common/Honeypot';
 
 interface NewsletterSignupProps {
     config: {
@@ -31,6 +32,7 @@ export default function NewsletterSignup({ config }: NewsletterSignupProps) {
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState('');
+    const [honeyTrap, setHoneyTrap] = useState('');
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -44,7 +46,10 @@ export default function NewsletterSignup({ config }: NewsletterSignupProps) {
         setLoading(true);
         try {
             const { apiClient } = await import('@/services/api-client');
-            await apiClient.post('newsletter/subscribe', { email });
+            await apiClient.post('newsletter/subscribe', {
+                email,
+                _newsletter_trap: honeyTrap
+            });
 
             setSuccess(true);
             setEmail('');
@@ -73,6 +78,11 @@ export default function NewsletterSignup({ config }: NewsletterSignupProps) {
 
                     <form className={styles.form} onSubmit={handleSubmit}>
                         <div className={styles.inputWrapper}>
+                            <Honeypot
+                                name="_newsletter_trap"
+                                value={honeyTrap}
+                                onChange={setHoneyTrap}
+                            />
                             <input
                                 type="email"
                                 placeholder={placeholder}

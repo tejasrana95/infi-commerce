@@ -247,6 +247,15 @@ export const adminUpdateOrder = asyncHandler(async (req: AuthRequest, res: Respo
         throw new AppError('Order not found', 404);
     }
 
+    // RBAC Check: Store Admin only for assigned stores
+    if (req.user?.role === 'store_admin') {
+        const assignedStoreIds = req.user.storeIds?.map(id => id.toString()) || [];
+        const orderStoreId = order.storeId._id ? order.storeId._id.toString() : order.storeId.toString();
+        if (!assignedStoreIds.includes(orderStoreId)) {
+            throw new AppError('Unauthorized: You can only update orders for your assigned stores', 403);
+        }
+    }
+
     // Update items if provided
     if (items && Array.isArray(items)) {
         const orderItems = [];
@@ -926,7 +935,15 @@ export const getAllOrders = asyncHandler(async (req: AuthRequest, res: Response)
     const filter: any = {};
     if (status) filter.status = status;
     if (paymentStatus) filter.paymentStatus = paymentStatus;
-    if (storeId) filter.storeId = storeId;
+
+    const isStoreAdmin = req.user?.role === 'store_admin';
+    const assignedStoreIds = req.user?.storeIds || [];
+
+    if (isStoreAdmin) {
+        filter.storeId = { $in: assignedStoreIds.map(id => new mongoose.Types.ObjectId(id)) };
+    } else if (storeId) {
+        filter.storeId = storeId;
+    }
 
     // Enhanced search - search across multiple fields
     if (search) {

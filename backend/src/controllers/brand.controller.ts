@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import { body, param } from 'express-validator';
+import mongoose from 'mongoose';
 import Brand from '../models/Brand';
 import Store from '../models/Store';
 import { AuthRequest } from '../middleware/auth';
@@ -60,6 +61,14 @@ export const createBrand = asyncHandler(async (req: AuthRequest, res: Response) 
         throw new AppError('Store not found', 404);
     }
 
+    // RBAC Check: Store Admin only for assigned stores
+    if (req.user?.role === 'store_admin') {
+        const assignedStoreIds = req.user.storeIds?.map(id => id.toString()) || [];
+        if (!assignedStoreIds.includes(storeId.toString())) {
+            throw new AppError('Unauthorized: You can only create brands for your assigned stores', 403);
+        }
+    }
+
     // Check if slug already exists for this store
     const existingBrand = await Brand.findOne({ storeId, slug });
     if (existingBrand) {
@@ -105,7 +114,12 @@ export const createBrand = asyncHandler(async (req: AuthRequest, res: Response) 
 export const getBrands = asyncHandler(async (req: AuthRequest, res: Response) => {
     const filter: any = {};
 
-    if (req.query.storeId) {
+    const isStoreAdmin = req.user?.role === 'store_admin';
+    const assignedStoreIds = req.user?.storeIds || [];
+
+    if (isStoreAdmin) {
+        filter.storeId = { $in: assignedStoreIds.map(id => new mongoose.Types.ObjectId(id)) };
+    } else if (req.query.storeId) {
         filter.storeId = req.query.storeId;
     }
 
@@ -182,6 +196,14 @@ export const updateBrand = asyncHandler(async (req: AuthRequest, res: Response) 
         throw new AppError('Brand not found', 404);
     }
 
+    // RBAC Check: Store Admin only for assigned stores
+    if (req.user?.role === 'store_admin') {
+        const assignedStoreIds = req.user.storeIds?.map(id => id.toString()) || [];
+        if (!assignedStoreIds.includes(brand.storeId.toString())) {
+            throw new AppError('Unauthorized: You can only update brands for your assigned stores', 403);
+        }
+    }
+
     // Check slug uniqueness if being updated
     if (updates.slug && updates.slug !== brand.slug) {
         const existingBrand = await Brand.findOne({
@@ -223,6 +245,11 @@ export const updateBrand = asyncHandler(async (req: AuthRequest, res: Response) 
  *         description: Brand deleted successfully
  */
 export const deleteBrand = asyncHandler(async (req: AuthRequest, res: Response) => {
+    // RBAC Check: Store Admin cannot delete anything
+    if (req.user?.role === 'store_admin') {
+        throw new AppError('Unauthorized: Store admins cannot delete brands', 403);
+    }
+
     const brand = await Brand.findByIdAndDelete(req.params.id);
 
     if (!brand) {

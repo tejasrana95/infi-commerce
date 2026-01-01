@@ -14,6 +14,8 @@ export const createAdminValidation = [
     body('lastName').trim().notEmpty().withMessage('Last name is required'),
     body('role').isIn(['admin', 'store_admin']).withMessage('Valid role is required'),
     body('storeId').optional().isMongoId().withMessage('Valid store ID is required'),
+    body('storeIds').optional().isArray().withMessage('storeIds must be an array'),
+    body('storeIds.*').optional().isMongoId().withMessage('Invalid store ID in storeIds array'),
     body('phone').optional().trim(),
 ];
 
@@ -25,6 +27,8 @@ export const updateAdminValidation = [
     body('lastName').optional().trim().notEmpty().withMessage('Last name is required'),
     body('role').optional().isIn(['admin', 'store_admin']).withMessage('Valid role is required'),
     body('storeId').optional().isMongoId().withMessage('Valid store ID is required'),
+    body('storeIds').optional().isArray().withMessage('storeIds must be an array'),
+    body('storeIds.*').optional().isMongoId().withMessage('Invalid store ID in storeIds array'),
     body('phone').optional().trim(),
     body('isActive').optional().isBoolean(),
 ];
@@ -56,7 +60,7 @@ export const getAllAdmins = asyncHandler(async (req: AuthRequest, res: Response)
     const [admins, total] = await Promise.all([
         User.find(filter)
             .select('-password')
-            .populate('storeId', 'name')
+            .populate('storeIds', 'name')
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(Number(limit)),
@@ -83,7 +87,7 @@ export const getAllAdmins = asyncHandler(async (req: AuthRequest, res: Response)
 export const getAdminById = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
 
-    const admin = await User.findById(id).select('-password').populate('storeId', 'name');
+    const admin = await User.findById(id).select('-password').populate('storeIds', 'name');
 
     if (!admin) {
         throw new AppError('Admin user not found', 404);
@@ -101,7 +105,7 @@ export const getAdminById = asyncHandler(async (req: AuthRequest, res: Response)
  * @access  Private (Super Admin)
  */
 export const createAdmin = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { email, password, firstName, lastName, phone, role, storeId, isActive = true } = req.body;
+    const { email, password, firstName, lastName, phone, role, storeId, storeIds, isActive = true } = req.body;
 
     // Check if email already exists
     const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -110,8 +114,14 @@ export const createAdmin = asyncHandler(async (req: AuthRequest, res: Response) 
     }
 
     // Validate storeId is required for store_admin
-    if (role === 'store_admin' && !storeId) {
+    if (role === 'store_admin' && !storeId && (!storeIds || storeIds.length === 0)) {
         throw new AppError('Store ID is required for store admin role', 400);
+    }
+
+    // Prepare storeIds array
+    let finalStoreIds = storeIds || [];
+    if (storeId && !finalStoreIds.includes(storeId)) {
+        finalStoreIds.push(storeId);
     }
 
     const admin = await User.create({
@@ -121,7 +131,7 @@ export const createAdmin = asyncHandler(async (req: AuthRequest, res: Response) 
         lastName,
         phone,
         role,
-        storeId: storeId || undefined,
+        storeIds: finalStoreIds,
         isActive,
     });
 
@@ -143,7 +153,7 @@ export const createAdmin = asyncHandler(async (req: AuthRequest, res: Response) 
  */
 export const updateAdmin = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
-    const { email, password, firstName, lastName, phone, role, storeId, isActive, permissions } = req.body;
+    const { email, password, firstName, lastName, phone, role, storeId, storeIds, isActive, permissions } = req.body;
 
     const admin = await User.findById(id);
 
@@ -171,7 +181,13 @@ export const updateAdmin = asyncHandler(async (req: AuthRequest, res: Response) 
     if (lastName !== undefined) admin.lastName = lastName;
     if (phone !== undefined) admin.phone = phone;
     if (role !== undefined) admin.role = role;
-    if (storeId !== undefined) admin.storeId = storeId;
+
+    if (storeIds !== undefined) {
+        admin.storeIds = storeIds;
+    } else if (storeId !== undefined) {
+        admin.storeIds = [storeId];
+    }
+
     if (isActive !== undefined) admin.isActive = isActive;
     if (permissions !== undefined) admin.permissions = permissions;
 

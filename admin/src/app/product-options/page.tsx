@@ -8,8 +8,9 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import api from '@/lib/api';
 import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules';
-import { LoadingSpinner } from '@/components/atoms';
+import { LoadingSpinner, PermissionGuard } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { createDataGridStyles } from '@/utils/styles';
 
 interface ProductOption {
@@ -29,6 +30,7 @@ export default function ProductOptionsPage() {
     const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
     const [loading, setLoading] = useState(true);
     const { showNotification } = useNotification();
+    const { user } = useAuth();
     const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -147,11 +149,13 @@ export default function ProductOptionsPage() {
                             <EditIcon fontSize="small" />
                         </IconButton>
                     </Tooltip>
-                    <Tooltip title="Delete">
-                        <IconButton onClick={() => handleDelete(params.row._id)} size="small" color="error">
-                            <DeleteIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
+                    <PermissionGuard deniedRoles={['store_admin']}>
+                        <Tooltip title="Delete">
+                            <IconButton onClick={() => handleDelete(params.row._id)} size="small" color="error">
+                                <DeleteIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    </PermissionGuard>
                 </Box>
             ),
         },
@@ -200,7 +204,7 @@ export default function ProductOptionsPage() {
                 ]}
                 activeFilters={{ type: filterType }}
                 onFilterChange={(filters) => setFilterType(filters.type as string || '')}
-                showStoreFilter
+                showStoreFilter={user?.role !== 'store_admin'}
                 storeFilterValue={filterStore}
                 onStoreFilterChange={setFilterStore}
             />

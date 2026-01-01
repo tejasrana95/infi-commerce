@@ -7,7 +7,7 @@ export interface AuthRequest extends Request {
         id: string;
         email: string;
         role: string;
-        storeId?: string;
+        storeIds?: string[];
     };
 }
 
@@ -32,7 +32,7 @@ export const authenticate = async (
                 id: decoded.id,
                 email: decoded.email,
                 role: decoded.role,
-                storeId: decoded.storeId,
+                storeIds: decoded.storeIds || (decoded.storeId ? [decoded.storeId] : []),
             };
             next();
         } catch (error) {
@@ -77,7 +77,7 @@ export const optionalAuth = async (
                     id: decoded.id,
                     email: decoded.email,
                     role: decoded.role,
-                    storeId: decoded.storeId,
+                    storeIds: decoded.storeIds || (decoded.storeId ? [decoded.storeId] : []),
                 };
             } catch (error) {
                 // Token invalid, but continue as guest

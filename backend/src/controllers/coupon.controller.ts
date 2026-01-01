@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import { body, param } from 'express-validator';
+import mongoose from 'mongoose';
 import Coupon from '../models/Coupon';
 import Cart from '../models/Cart';
 import { AuthRequest } from '../middleware/auth';
@@ -79,6 +80,14 @@ export const createCoupon = asyncHandler(async (req: AuthRequest, res: Response)
         isActive,
     } = req.body;
 
+    // RBAC Check: Store Admin only for assigned stores
+    if (req.user?.role === 'store_admin') {
+        const assignedStoreIds = req.user.storeIds?.map(id => id.toString()) || [];
+        if (!assignedStoreIds.includes(storeId.toString())) {
+            throw new AppError('Unauthorized: You can only create coupons for your assigned stores', 403);
+        }
+    }
+
     // Check if coupon code already exists
     const existingCoupon = await Coupon.findOne({ code: code.toUpperCase() });
     if (existingCoupon) {
@@ -143,7 +152,17 @@ export const getCoupons = asyncHandler(async (req: AuthRequest, res: Response) =
     const { storeId, isActive, page = 1, limit = 20 } = req.query;
 
     const filter: any = {};
-    if (storeId) filter.storeId = storeId;
+    const isStoreAdmin = req.user?.role === 'store_admin';
+    const assignedStoreIds = req.user?.storeIds || [];
+
+    if (isStoreAdmin) {
+        if (assignedStoreIds.length === 0) {
+            return res.json({ success: true, count: 0, pagination: { page: Number(page), limit: Number(limit), total: 0, pages: 0 }, data: [] });
+        }
+        filter.storeId = { $in: assignedStoreIds.map(id => new mongoose.Types.ObjectId(id)) };
+    } else if (storeId) {
+        filter.storeId = storeId;
+    }
     if (isActive !== undefined) filter.isActive = isActive === 'true';
 
     const skip = (Number(page) - 1) * Number(limit);
@@ -235,14 +254,23 @@ export const updateCoupon = asyncHandler(async (req: AuthRequest, res: Response)
         }
     }
 
-    const coupon = await Coupon.findByIdAndUpdate(id, updateData, {
-        new: true,
-        runValidators: true,
-    }).populate('categoryIds', 'title slug');
-
+    const coupon = await Coupon.findById(id);
     if (!coupon) {
         throw new AppError('Coupon not found', 404);
     }
+
+    // RBAC Check: Store Admin only for assigned stores
+    if (req.user?.role === 'store_admin') {
+        const assignedStoreIds = req.user.storeIds?.map(id => id.toString()) || [];
+        if (!assignedStoreIds.includes(coupon.storeId.toString())) {
+            throw new AppError('Unauthorized: You can only update coupons for your assigned stores', 403);
+        }
+    }
+
+    await Coupon.findByIdAndUpdate(id, updateData, {
+        new: true,
+        runValidators: true,
+    }).populate('categoryIds', 'title slug');
 
     res.json({
         success: true,
@@ -269,6 +297,11 @@ export const updateCoupon = asyncHandler(async (req: AuthRequest, res: Response)
  *         description: Coupon deleted successfully
  */
 export const deleteCoupon = asyncHandler(async (req: AuthRequest, res: Response) => {
+    // RBAC Check: Store Admin cannot delete anything
+    if (req.user?.role === 'store_admin') {
+        throw new AppError('Unauthorized: Store admins cannot delete coupons', 403);
+    }
+
     const { id } = req.params;
 
     const coupon = await Coupon.findByIdAndDelete(id);

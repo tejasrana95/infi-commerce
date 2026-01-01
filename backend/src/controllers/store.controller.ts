@@ -162,6 +162,11 @@ export const getStoreByDomain = asyncHandler(async (req: Request, res: Response)
  *         description: Unauthorized
  */
 export const createStore = asyncHandler(async (req: AuthRequest, res: Response) => {
+    // RBAC Check: Store Admin cannot create stores
+    if (req.user?.role === 'store_admin') {
+        throw new AppError('Unauthorized: Store admins cannot create stores', 403);
+    }
+
     const { name, slug, domain, description, logo, currency, timezone, settings } = req.body;
 
     // Check if store with slug or domain already exists
@@ -257,6 +262,13 @@ export const getStores = asyncHandler(async (req: AuthRequest, res: Response) =>
 
     // Build filter
     const filter: any = {};
+
+    const isStoreAdmin = req.user?.role === 'store_admin';
+    const assignedStoreIds = req.user?.storeIds || [];
+
+    if (isStoreAdmin) {
+        filter._id = { $in: assignedStoreIds };
+    }
 
     if (req.query.isActive !== undefined) {
         filter.isActive = req.query.isActive === 'true';
@@ -422,6 +434,15 @@ export const getStoreBySlug = asyncHandler(async (req: AuthRequest, res: Respons
  */
 export const updateStore = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
+
+    // RBAC Check: Store Admin only for assigned stores
+    if (req.user?.role === 'store_admin') {
+        const assignedStoreIds = req.user.storeIds?.map(id => id.toString()) || [];
+        if (!assignedStoreIds.includes(id)) {
+            throw new AppError('Unauthorized: You can only update your assigned stores', 403);
+        }
+    }
+
     const updates = req.body;
     const { settings, ...otherUpdates } = updates;
 

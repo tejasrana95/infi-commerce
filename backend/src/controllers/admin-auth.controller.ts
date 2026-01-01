@@ -24,9 +24,9 @@ export const adminLoginValidation = [
 ];
 
 // Generate JWT tokens for admin users
-const generateAdminTokens = (userId: string, email: string, role: string, storeId?: string) => {
+const generateAdminTokens = (userId: string, email: string, role: string, storeIds?: string[]) => {
     const accessToken = jwt.sign(
-        { id: userId, email, role, storeId, type: 'admin' },
+        { id: userId, email, role, storeIds, type: 'admin' },
         config.jwt.secret as string,
         { expiresIn: config.jwt.expiresIn as SignOptions['expiresIn'] }
     );
@@ -105,7 +105,7 @@ const generateMfaToken = (userId: string, email: string) => {
  *         description: Insufficient permissions
  */
 export const registerAdmin = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { email, password, firstName, lastName, phone, role, storeId } = req.body;
+    const { email, password, firstName, lastName, phone, role, storeId, storeIds } = req.body;
 
     // Only super_admin can create new admin users
     // For initial setup, you might want to allow first admin creation without auth
@@ -120,8 +120,14 @@ export const registerAdmin = asyncHandler(async (req: AuthRequest, res: Response
     }
 
     // Validate storeId for store_admin
-    if (role === 'store_admin' && !storeId) {
+    if (role === 'store_admin' && !storeId && (!storeIds || storeIds.length === 0)) {
         throw new AppError('Store ID is required for store admin role', 400);
+    }
+
+    // Prepare storeIds array
+    let finalStoreIds = storeIds || [];
+    if (storeId && !finalStoreIds.includes(storeId)) {
+        finalStoreIds.push(storeId);
     }
 
     // Create new admin user
@@ -132,7 +138,7 @@ export const registerAdmin = asyncHandler(async (req: AuthRequest, res: Response
         lastName,
         phone,
         role,
-        storeId: storeId || undefined,
+        storeIds: finalStoreIds,
     });
 
     // Send Welcome notification to the new admin
@@ -160,7 +166,7 @@ export const registerAdmin = asyncHandler(async (req: AuthRequest, res: Response
             firstName: user.firstName,
             lastName: user.lastName,
             role: user.role,
-            storeId: user.storeId,
+            storeIds: user.storeIds,
         },
     });
 });
@@ -238,7 +244,7 @@ export const loginAdmin = asyncHandler(async (req: AuthRequest, res: Response) =
         user._id.toString(),
         user.email,
         user.role,
-        user.storeId?.toString()
+        user.storeIds?.map(id => id.toString())
     );
 
     res.json({
@@ -249,7 +255,7 @@ export const loginAdmin = asyncHandler(async (req: AuthRequest, res: Response) =
             firstName: user.firstName,
             lastName: user.lastName,
             role: user.role,
-            storeId: user.storeId,
+            storeIds: user.storeIds,
             permissions: user.permissions,
             twoFactorEnabled: user.twoFactorEnabled,
         },
@@ -432,7 +438,7 @@ export const verify2FALogin = asyncHandler(async (req: AuthRequest, res: Respons
             user._id.toString(),
             user.email,
             user.role,
-            user.storeId?.toString()
+            user.storeIds?.map(id => id.toString())
         );
 
         res.json({
@@ -443,7 +449,7 @@ export const verify2FALogin = asyncHandler(async (req: AuthRequest, res: Respons
                 firstName: user.firstName,
                 lastName: user.lastName,
                 role: user.role,
-                storeId: user.storeId,
+                storeIds: user.storeIds,
                 permissions: user.permissions,
                 twoFactorEnabled: user.twoFactorEnabled,
             },
@@ -506,7 +512,7 @@ export const refreshAdminToken = asyncHandler(async (req: AuthRequest, res: Resp
             user._id.toString(),
             user.email,
             user.role,
-            user.storeId?.toString()
+            user.storeIds?.map(id => id.toString())
         );
 
         res.json(tokens);

@@ -9,11 +9,13 @@ import {
     subscribeValidation,
 } from '../controllers/newsletter.controller';
 import { validate } from '../middleware/validation';
+import { publicSubmissionLimiter } from '../middleware/rateLimit';
+import { honeypot } from '../middleware/honeypot';
 
 const router = Router();
 
 // Public route
-router.post('/subscribe', validate(subscribeValidation), subscribe);
+router.post('/subscribe', publicSubmissionLimiter, honeypot('_newsletter_trap'), validate(subscribeValidation), subscribe);
 
 // Admin routes
 router.get('/', auth, checkRole('admin', 'super_admin'), getSubscribers);

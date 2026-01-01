@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import mongoose from 'mongoose';
 import { body, param } from 'express-validator';
 import Attribute from '../models/Attribute';
 import Store from '../models/Store';
@@ -37,6 +38,14 @@ export const createAttribute = asyncHandler(async (req: AuthRequest, res: Respon
     const store = await Store.findById(storeId);
     if (!store) {
         throw new AppError('Store not found', 404);
+    }
+
+    // RBAC Check: Store Admin only for assigned stores
+    if (req.user?.role === 'store_admin') {
+        const assignedStoreIds = req.user.storeIds?.map(id => id.toString()) || [];
+        if (!assignedStoreIds.includes(storeId.toString())) {
+            throw new AppError('Unauthorized: You can only create attributes for your assigned stores', 403);
+        }
     }
 
     // Check if slug already exists for this store
@@ -79,7 +88,12 @@ export const createAttribute = asyncHandler(async (req: AuthRequest, res: Respon
 export const getAttributes = asyncHandler(async (req: AuthRequest, res: Response) => {
     const filter: any = {};
 
-    if (req.query.storeId) {
+    const isStoreAdmin = req.user?.role === 'store_admin';
+    const assignedStoreIds = req.user?.storeIds || [];
+
+    if (isStoreAdmin) {
+        filter.storeId = { $in: assignedStoreIds.map(id => new mongoose.Types.ObjectId(id)) };
+    } else if (req.query.storeId) {
         filter.storeId = req.query.storeId;
     }
 
@@ -152,6 +166,14 @@ export const updateAttribute = asyncHandler(async (req: AuthRequest, res: Respon
         throw new AppError('Attribute not found', 404);
     }
 
+    // RBAC Check: Store Admin only for assigned stores
+    if (req.user?.role === 'store_admin') {
+        const assignedStoreIds = req.user.storeIds?.map(id => id.toString()) || [];
+        if (!assignedStoreIds.includes(attribute.storeId.toString())) {
+            throw new AppError('Unauthorized: You can only update attributes for your assigned stores', 403);
+        }
+    }
+
     // Check slug uniqueness if being updated
     if (updates.slug && updates.slug !== attribute.slug) {
         const existingAttribute = await Attribute.findOne({
@@ -185,6 +207,15 @@ export const updateAttribute = asyncHandler(async (req: AuthRequest, res: Respon
  *     description: This endpoint is legacy. Use ProductOptions for variant-related features.
  */
 export const deleteAttribute = asyncHandler(async (req: AuthRequest, res: Response) => {
+    // RBAC Check: Store Admin cannot delete anything
+    if (req.user?.role === 'store_admin') {
+        throw new AppError('Unauthorized: Store admins cannot delete attributes', 403);
+    }
+
+    if (req.user?.role === 'store_admin') {
+        throw new AppError('Store admins are not allowed to delete attributes', 403);
+    }
+
     const attribute = await Attribute.findByIdAndDelete(req.params.id);
 
     if (!attribute) {
