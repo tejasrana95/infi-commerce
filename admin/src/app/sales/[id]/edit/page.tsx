@@ -51,8 +51,6 @@ export default function EditSalePage() {
         router.push('/sales');
     };
 
-    if (loading) return <LoadingSpinner message="Loading sale..." />;
-
     return (
         <Box>
             <Button
@@ -68,11 +66,30 @@ export default function EditSalePage() {
                 subtitle="Update sale configuration"
             />
 
-            <SaleForm
-                initialData={sale}
-                onSubmit={handleSubmit}
-                isSubmitting={isSubmitting}
-            />
+            <Box sx={{ position: 'relative' }}>
+                {loading && (
+                    <Box sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1,
+                        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                        borderRadius: 1,
+                    }}>
+                        <LoadingSpinner />
+                    </Box>
+                )}
+                <SaleForm
+                    initialData={sale}
+                    onSubmit={handleSubmit}
+                    isSubmitting={isSubmitting}
+                />
+            </Box>
 
             <Paper sx={{ p: 2, mt: 3, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
                 <Button

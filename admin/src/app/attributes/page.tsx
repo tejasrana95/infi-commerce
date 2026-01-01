@@ -225,7 +225,7 @@ export default function AttributesPage() {
   ];
 
 
-  if (attributes.length === 0 && !searchQuery && !filterStore && !filterType) {
+  if (!loading && attributes.length === 0 && !searchQuery && !filterStore && !filterType) {
     return (
       <Box>
         <PageHeader title="Product Specifications" subtitle="Manage product specifications for display and comparison" />
@@ -272,9 +272,24 @@ export default function AttributesPage() {
         onStoreFilterChange={setFilterStore}
       />
 
-      <Box sx={{ width: '100%' }}>
-        {loading && <LoadingSpinner message="Loading specifications..." />}
-        {!loading && <DataGrid
+      <Box sx={{ width: '100%', position: 'relative' }}>
+        {loading && (
+          <Box sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1,
+            backgroundColor: 'rgba(255, 255, 255, 0.5)',
+          }}>
+            <LoadingSpinner message="Loading specifications..." />
+          </Box>
+        )}
+        <DataGrid
           rows={attributes}
           columns={columns}
           getRowId={(row) => row._id}
@@ -285,8 +300,7 @@ export default function AttributesPage() {
           onPaginationModelChange={setPaginationModel}
           disableRowSelectionOnClick
           sx={dataGridStyles}
-          loading={loading}
-        />}
+        />
       </Box>
     </Box>
   );

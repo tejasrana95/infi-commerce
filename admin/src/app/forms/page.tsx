@@ -223,9 +223,7 @@ export default function FormsPage() {
         }
     ];
 
-    if (loading && forms.length === 0) return <LoadingSpinner message="Loading forms..." />;
-
-    if (forms.length === 0 && !search && !statusFilter) {
+    if (!loading && forms.length === 0 && !search && !statusFilter) {
         return (
             <Box>
                 <PageHeader
@@ -271,7 +269,23 @@ export default function FormsPage() {
                 onFilterChange={(filters) => setStatusFilter(filters.status as string)}
             />
 
-            <Box sx={{ width: '100%' }}>
+            <Box sx={{ width: '100%', position: 'relative' }}>
+                {loading && (
+                    <Box sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1,
+                        backgroundColor: 'rgba(255, 255, 255, 0.5)'
+                    }}>
+                        <LoadingSpinner />
+                    </Box>
+                )}
                 <DataGrid
                     rows={forms}
                     columns={columns}

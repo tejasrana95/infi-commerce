@@ -59,8 +59,6 @@ export default function EditCategoryPage() {
         }
     };
 
-    if (loading) return <LoadingSpinner message="Loading category..." />;
-
     return (
         <Box>
             <Box display="flex" alignItems="center" gap={2} mb={3}>
@@ -81,7 +79,24 @@ export default function EditCategoryPage() {
                 </Box>
             </Box>
 
-            <Paper sx={{ p: 3 }}>
+            <Paper sx={{ p: 3, position: 'relative' }}>
+                {loading && (
+                    <Box sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1,
+                        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                        borderRadius: 1,
+                    }}>
+                        <LoadingSpinner />
+                    </Box>
+                )}
                 <CategoryForm
                     initialData={category || undefined}
                     onSubmit={handleSubmit}

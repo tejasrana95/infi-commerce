@@ -152,9 +152,7 @@ function OrderEditContent() {
         }
     };
 
-    if (loading) return <LoadingSpinner message="Loading order..." />;
-
-    if (error) {
+    if (error && !loading) {
         return (
             <Box>
                 <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
@@ -174,39 +172,58 @@ function OrderEditContent() {
                 <Typography variant="h4" fontWeight="bold">Edit Order</Typography>
             </Box>
 
-            <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-                {steps.map((label) => (
-                    <Step key={label}>
-                        <StepLabel>{label}</StepLabel>
-                    </Step>
-                ))}
-            </Stepper>
+            <Box sx={{ position: 'relative' }}>
+                {loading && (
+                    <Box sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1,
+                        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                        borderRadius: 1,
+                    }}>
+                        <LoadingSpinner />
+                    </Box>
+                )}
+                <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+                    {steps.map((label) => (
+                        <Step key={label}>
+                            <StepLabel>{label}</StepLabel>
+                        </Step>
+                    ))}
+                </Stepper>
 
-            <Paper sx={{ p: 3, mb: 3 }}>
-                {renderStepContent()}
-            </Paper>
+                <Paper sx={{ p: 3, mb: 3 }}>
+                    {renderStepContent()}
+                </Paper>
 
-            <Box display="flex" justifyContent="space-between">
-                <Button disabled={activeStep === 0} onClick={handleBack}>
-                    Back
-                </Button>
-                <Box display="flex" gap={2}>
-                    <Button variant="outlined" onClick={() => router.back()}>
-                        Cancel
+                <Box display="flex" justifyContent="space-between">
+                    <Button disabled={activeStep === 0} onClick={handleBack}>
+                        Back
                     </Button>
-                    {activeStep === steps.length - 1 ? (
-                        <Button
-                            variant="contained"
-                            onClick={handleSubmit}
-                            disabled={saving || orderForm.items.length === 0}
-                        >
-                            {saving ? <CircularProgress size={24} /> : 'Update Order'}
+                    <Box display="flex" gap={2}>
+                        <Button variant="outlined" onClick={() => router.back()}>
+                            Cancel
                         </Button>
-                    ) : (
-                        <Button variant="contained" onClick={handleNext}>
-                            Next
-                        </Button>
-                    )}
+                        {activeStep === steps.length - 1 ? (
+                            <Button
+                                variant="contained"
+                                onClick={handleSubmit}
+                                disabled={saving || orderForm.items.length === 0}
+                            >
+                                {saving ? <CircularProgress size={24} /> : 'Update Order'}
+                            </Button>
+                        ) : (
+                            <Button variant="contained" onClick={handleNext}>
+                                Next
+                            </Button>
+                        )}
+                    </Box>
                 </Box>
             </Box>
         </Box>

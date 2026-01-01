@@ -189,9 +189,7 @@ export default function BlogCategoriesPage() {
         },
     ];
 
-    if (loading && categories.length === 0) return <LoadingSpinner message="Loading categories..." />;
-
-    if (categories.length === 0 && !searchQuery && !filterStore && !filterStatus) {
+    if (!loading && categories.length === 0 && !searchQuery && !filterStore && !filterStatus) {
         return (
             <Box>
                 <PageHeader title="Blog Categories" subtitle="Organize your blog content" actionLabel="Create Category" onAction={handleCreate} />

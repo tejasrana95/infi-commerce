@@ -204,7 +204,7 @@ export default function CategoriesPage() {
   ];
 
 
-  if (categories.length === 0 && !searchQuery && !filterStore && !filterParent && !filterStatus) {
+  if (!loading && categories.length === 0 && !searchQuery && !filterStore && !filterParent && !filterStatus) {
     return (
       <Box>
         <PageHeader title="Categories" subtitle="Manage product categories" />
@@ -253,9 +253,26 @@ export default function CategoriesPage() {
         onCategoryFilterChange={setFilterParent}
       />
 
-      <Box sx={{ width: '100%' }}>
-        {loading && <LoadingSpinner message="Loading categories..." />}
-        {!loading && <DataGrid
+      <Box sx={{ width: '100%', position: 'relative' }}>
+        {loading && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1,
+              backgroundColor: 'rgba(255, 255, 255, 0.5)',
+            }}
+          >
+            <LoadingSpinner message="Loading categories..." />
+          </Box>
+        )}
+        <DataGrid
           rows={categories}
           columns={columns}
           getRowId={(row) => row._id}
@@ -266,8 +283,7 @@ export default function CategoriesPage() {
           onPaginationModelChange={setPaginationModel}
           disableRowSelectionOnClick
           sx={dataGridStyles}
-          loading={loading}
-        />}
+        />
       </Box>
     </Box>
   );

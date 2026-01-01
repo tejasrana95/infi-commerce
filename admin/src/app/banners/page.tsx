@@ -200,10 +200,6 @@ export default function BannersPage() {
         },
     ];
 
-    if (loading && banners.length === 0) {
-        return <LoadingSpinner />;
-    }
-
     return (
         <Box>
             <PageHeader
@@ -236,14 +232,30 @@ export default function BannersPage() {
                 onFilterChange={(filters) => setFilterStatus(filters.status as string || '')}
             />
 
-            {banners.length === 0 && !searchQuery && !filterStore && !filterStatus ? (
+            {!loading && banners.length === 0 && !searchQuery && !filterStore && !filterStatus ? (
                 <EmptyState
                     message="No banners found. Get started by creating your first banner."
                     actionLabel="Add Banner"
                     onAction={() => router.push('/banners/new')}
                 />
             ) : (
-                <Box sx={{ width: '100%' }}>
+                <Box sx={{ width: '100%', position: 'relative' }}>
+                    {loading && (
+                        <Box sx={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 1,
+                            backgroundColor: 'rgba(255, 255, 255, 0.5)'
+                        }}>
+                            <LoadingSpinner />
+                        </Box>
+                    )}
                     <DataGrid
                         rows={banners}
                         columns={columns}
@@ -269,6 +281,6 @@ export default function BannersPage() {
                     <Button onClick={handleDelete} color="error" variant="contained">Delete</Button>
                 </DialogActions>
             </Dialog>
-        </Box>
+        </Box >
     );
 }

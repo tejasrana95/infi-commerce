@@ -190,7 +190,7 @@ export default function ProductOptionsPage() {
         },
     ];
 
-    if (productOptions.length === 0 && !searchQuery && !filterStore && !filterType) {
+    if (!loading && productOptions.length === 0 && !searchQuery && !filterStore && !filterType) {
         return (
             <Box>
                 <PageHeader title="Product Options" subtitle="Manage variant options (Color, Size, RAM, etc.)" />
@@ -236,9 +236,24 @@ export default function ProductOptionsPage() {
                 onStoreFilterChange={setFilterStore}
             />
 
-            <Box sx={{ width: '100%' }}>
-                {loading && <LoadingSpinner message="Loading product options..." />}
-                {!loading && <DataGrid
+            <Box sx={{ width: '100%', position: 'relative' }}>
+                {loading && (
+                    <Box sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1,
+                        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                    }}>
+                        <LoadingSpinner message="Loading product options..." />
+                    </Box>
+                )}
+                <DataGrid
                     rows={productOptions}
                     columns={columns}
                     getRowId={(row) => row._id}
@@ -249,8 +264,7 @@ export default function ProductOptionsPage() {
                     onPaginationModelChange={setPaginationModel}
                     disableRowSelectionOnClick
                     sx={dataGridStyles}
-                    loading={loading}
-                />}
+                />
             </Box>
         </Box>
     );

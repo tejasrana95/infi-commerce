@@ -296,7 +296,7 @@ export default function CouponsPage() {
     ];
 
 
-    if (coupons.length === 0 && !searchQuery && !filterStore && !filterStatus) {
+    if (!loading && coupons.length === 0 && !searchQuery && !filterStore && !filterStatus) {
         return (
             <Box>
                 <PageHeader title="Coupons" subtitle="Create and manage discount codes" />
@@ -343,22 +343,35 @@ export default function CouponsPage() {
                 onStoreFilterChange={setFilterStore}
             />
 
-            <Box sx={{ width: '100%' }}>
-                {loading ? <LoadingSpinner message="Loading coupons..." /> :
-                    <DataGrid
-                        rows={coupons}
-                        columns={columns}
-                        getRowId={(row) => row._id}
-                        pageSizeOptions={[10, 25, 50]}
-                        paginationMode="server"
-                        rowCount={totalRows}
-                        paginationModel={paginationModel}
-                        onPaginationModelChange={setPaginationModel}
-                        disableRowSelectionOnClick
-                        sx={dataGridStyles}
-                        loading={loading}
-                    />
-                }
+            <Box sx={{ width: '100%', position: 'relative' }}>
+                {loading && (
+                    <Box sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1,
+                        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                    }}>
+                        <LoadingSpinner message="Loading coupons..." />
+                    </Box>
+                )}
+                <DataGrid
+                    rows={coupons}
+                    columns={columns}
+                    getRowId={(row) => row._id}
+                    pageSizeOptions={[10, 25, 50]}
+                    paginationMode="server"
+                    rowCount={totalRows}
+                    paginationModel={paginationModel}
+                    onPaginationModelChange={setPaginationModel}
+                    disableRowSelectionOnClick
+                    sx={dataGridStyles}
+                />
             </Box>
         </Box>
     );

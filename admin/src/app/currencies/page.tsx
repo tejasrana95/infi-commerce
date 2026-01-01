@@ -215,10 +215,8 @@ export default function CurrenciesPage() {
 
   // Removed filteredCurrencies as client-side filtering is no longer needed
 
-  if (loading && currencies.length === 0) return <LoadingSpinner message="Loading currencies..." />;
-
   // Empty state can just use the handleCreate logic too
-  if (currencies.length === 0 && !searchQuery && !open) {
+  if (!loading && currencies.length === 0 && !searchQuery && !open) {
     return (
       <Box>
         <PageHeader
@@ -268,9 +266,23 @@ export default function CurrenciesPage() {
         onSearchChange={handleSearchChange}
       />
 
-      {loading && <LoadingSpinner message="Loading currencies..." />}
-
-      <Box sx={{ width: '100%' }}>
+      <Box sx={{ width: '100%', position: 'relative' }}>
+        {loading && (
+          <Box sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1,
+            backgroundColor: 'rgba(255, 255, 255, 0.5)'
+          }}>
+            <LoadingSpinner />
+          </Box>
+        )}
         <DataGrid
           rows={currencies}
           columns={columns}

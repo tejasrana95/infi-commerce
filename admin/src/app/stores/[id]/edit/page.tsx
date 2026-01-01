@@ -351,10 +351,25 @@ export default function EditStorePage() {
         }
     };
 
-    if (loading) return <LoadingSpinner message="Loading store..." />;
-
     return (
-        <Box>
+        <Box sx={{ position: 'relative' }}>
+            {loading && (
+                <Box sx={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 10,
+                    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                    borderRadius: 1,
+                }}>
+                    <LoadingSpinner />
+                </Box>
+            )}
             <Box display="flex" alignItems="center" gap={2} mb={3}>
                 <Button
                     startIcon={<ArrowBackIcon />}

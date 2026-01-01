@@ -215,10 +215,6 @@ export default function BrandShowcasesPage() {
         },
     ];
 
-    if (loading && showcases.length === 0) {
-        return <LoadingSpinner />;
-    }
-
     return (
         <Box>
             <PageHeader
@@ -251,14 +247,30 @@ export default function BrandShowcasesPage() {
                 onFilterChange={(filters) => setFilterStatus(filters.status as string || '')}
             />
 
-            {showcases.length === 0 && !searchQuery && !filterStore && !filterStatus ? (
+            {!loading && showcases.length === 0 && !searchQuery && !filterStore && !filterStatus ? (
                 <EmptyState
                     message="No brand showcases found. Create a collection of brand logos to display on your store."
                     actionLabel="Add Showcase"
                     onAction={() => router.push('/brand-showcases/new')}
                 />
             ) : (
-                <Box sx={{ width: '100%' }}>
+                <Box sx={{ width: '100%', position: 'relative' }}>
+                    {loading && (
+                        <Box sx={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 1,
+                            backgroundColor: 'rgba(255, 255, 255, 0.5)'
+                        }}>
+                            <LoadingSpinner />
+                        </Box>
+                    )}
                     <DataGrid
                         rows={showcases}
                         columns={columns}
@@ -283,6 +295,6 @@ export default function BrandShowcasesPage() {
                     <Button onClick={handleDelete} color="error" variant="contained">Delete</Button>
                 </DialogActions>
             </Dialog>
-        </Box>
+        </Box >
     );
 }

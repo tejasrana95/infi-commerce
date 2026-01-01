@@ -104,8 +104,6 @@ export default function EditAdminPage() {
         }
     };
 
-    if (loading) return <LoadingSpinner message="Loading admin user..." />;
-
     const isSuperAdmin = formData.role === 'super_admin';
 
     return (
@@ -117,7 +115,24 @@ export default function EditAdminPage() {
                 <Typography variant="h4" fontWeight="bold">Edit Admin User</Typography>
             </Box>
 
-            <Paper sx={{ p: 3 }}>
+            <Paper sx={{ p: 3, position: 'relative' }}>
+                {loading && (
+                    <Box sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1,
+                        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                        borderRadius: 1,
+                    }}>
+                        <LoadingSpinner />
+                    </Box>
+                )}
                 <form onSubmit={handleSubmit}>
                     <Grid container spacing={3}>
                         <Grid size={{ xs: 12, md: 6 }}>

@@ -211,9 +211,7 @@ export default function TaxSettingsPage() {
         },
     ];
 
-    if (loading) return <LoadingSpinner message="Loading tax rates..." />;
-
-    if (taxRates.length === 0 && !searchQuery && !open) {
+    if (!loading && taxRates.length === 0 && !searchQuery && !open) {
         return (
             <Box>
                 <PageHeader

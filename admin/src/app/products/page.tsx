@@ -298,7 +298,7 @@ export default function ProductsPage() {
     },
   ];
 
-  if (products.length === 0 && !searchQuery && !filterStore && !filterCategory && !filterType && !filterStockStatus && !filterStatus) {
+  if (!loading && products.length === 0 && !searchQuery && !filterStore && !filterCategory && !filterType && !filterStockStatus && !filterStatus) {
     return (
       <Box>
         <PageHeader title="Products" subtitle="Manage your products" />
@@ -376,9 +376,24 @@ export default function ProductsPage() {
       />
 
 
-      <Box sx={{ width: '100%' }}>
-        {loading && <LoadingSpinner message="Loading products..." />}
-        {!loading && <DataGrid
+      <Box sx={{ width: '100%', position: 'relative' }}>
+        {loading && (
+          <Box sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1,
+            backgroundColor: 'rgba(255, 255, 255, 0.5)',
+          }}>
+            <LoadingSpinner message="Loading products..." />
+          </Box>
+        )}
+        <DataGrid
           rows={filteredRows}
           columns={columns}
           getRowId={(row) => row._id}
@@ -389,7 +404,7 @@ export default function ProductsPage() {
           disableRowSelectionOnClick
           sx={dataGridStyles}
           rowHeight={80}
-        />}
+        />
       </Box>
     </Box>
   );

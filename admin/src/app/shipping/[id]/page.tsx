@@ -148,8 +148,6 @@ export default function EditShippingRulePage() {
     }
   };
 
-  if (loading) return <LoadingSpinner message="Loading shipping rule..." />;
-
   return (
     <Box>
       <Box display="flex" alignItems="center" gap={2} mb={3}>
@@ -159,209 +157,228 @@ export default function EditShippingRulePage() {
         <Typography variant="h4" fontWeight="bold">Edit Shipping Rule</Typography>
       </Box>
 
-      <form onSubmit={handleSubmit}>
-        {/* Basic Info */}
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Typography variant="h6" gutterBottom>Basic Information</Typography>
-          <Grid container spacing={3}>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <TextField
-                fullWidth
-                required
-                label="Rule Name"
-                value={formData.name}
-                onChange={handleChange('name')}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <FormControl fullWidth required>
-                <InputLabel>Store</InputLabel>
-                <Select
-                  value={formData.storeId}
-                  label="Store"
-                  disabled // Cannot change store on edit
-                >
-                  {stores.map(store => (
-                    <MenuItem key={store._id} value={store._id}>{store.name}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                fullWidth
-                multiline
-                rows={2}
-                label="Description"
-                value={formData.description}
-                onChange={handleChange('description')}
-              />
-            </Grid>
-          </Grid>
-        </Paper>
-
-        {/* Geographic & Category Restrictions */}
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Typography variant="h6" gutterBottom>Restrictions</Typography>
-          <Alert severity="info" sx={{ mb: 2 }}>
-            Leave empty to apply to all countries/categories
-          </Alert>
-          <Grid container spacing={3}>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <GeoGroupAutocomplete
-                storeId={formData.storeId}
-                value={formData.geoGroupId || null}
-                onChange={(value) => setFormData({ ...formData, geoGroupId: value || '' })}
-                label="Geo Group (Countries)"
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <CategoryAutocomplete
-                storeId={formData.storeId}
-                value={null}
-                onChange={handleCategoryChange}
-                label="Add Category"
-              />
-            </Grid>
-            {selectedCategories.length > 0 && (
-              <Grid size={{ xs: 12 }}>
-                <Typography variant="body2" color="text.secondary" mb={1}>
-                  Selected Categories:
-                </Typography>
-                <Box display="flex" gap={1} flexWrap="wrap">
-                  {selectedCategories.map(cat => (
-                    <Chip
-                      key={cat._id}
-                      label={cat.title}
-                      onDelete={() => removeCategory(cat._id)}
-                      color="primary"
-                      variant="outlined"
-                    />
-                  ))}
-                </Box>
+      <Box sx={{ position: 'relative' }}>
+        {loading && (
+          <Box sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1,
+            backgroundColor: 'rgba(255, 255, 255, 0.5)',
+            borderRadius: 1,
+          }}>
+            <LoadingSpinner />
+          </Box>
+        )}
+        <form onSubmit={handleSubmit}>
+          {/* Basic Info */}
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Typography variant="h6" gutterBottom>Basic Information</Typography>
+            <Grid container spacing={3}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  fullWidth
+                  required
+                  label="Rule Name"
+                  value={formData.name}
+                  onChange={handleChange('name')}
+                />
               </Grid>
-            )}
-          </Grid>
-        </Paper>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <FormControl fullWidth required>
+                  <InputLabel>Store</InputLabel>
+                  <Select
+                    value={formData.storeId}
+                    label="Store"
+                    disabled // Cannot change store on edit
+                  >
+                    {stores.map(store => (
+                      <MenuItem key={store._id} value={store._id}>{store.name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={2}
+                  label="Description"
+                  value={formData.description}
+                  onChange={handleChange('description')}
+                />
+              </Grid>
+            </Grid>
+          </Paper>
 
-        {/* Rate Configuration */}
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Typography variant="h6" gutterBottom>Rate Configuration</Typography>
-          <Grid container spacing={3}>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <FormControl fullWidth required>
-                <InputLabel>Rate Type</InputLabel>
-                <Select
-                  value={formData.rateType}
-                  label="Rate Type"
-                  onChange={(e) => setFormData({ ...formData, rateType: e.target.value as any })}
-                >
-                  <MenuItem value="flat">Flat Rate</MenuItem>
-                  <MenuItem value="per_kg">Per KG</MenuItem>
-                  <MenuItem value="percentage">Percentage of Order</MenuItem>
-                  <MenuItem value="free">Free Shipping</MenuItem>
-                </Select>
-              </FormControl>
+          {/* Geographic & Category Restrictions */}
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Typography variant="h6" gutterBottom>Restrictions</Typography>
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Leave empty to apply to all countries/categories
+            </Alert>
+            <Grid container spacing={3}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <GeoGroupAutocomplete
+                  storeId={formData.storeId}
+                  value={formData.geoGroupId || null}
+                  onChange={(value) => setFormData({ ...formData, geoGroupId: value || '' })}
+                  label="Geo Group (Countries)"
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <CategoryAutocomplete
+                  storeId={formData.storeId}
+                  value={null}
+                  onChange={handleCategoryChange}
+                  label="Add Category"
+                />
+              </Grid>
+              {selectedCategories.length > 0 && (
+                <Grid size={{ xs: 12 }}>
+                  <Typography variant="body2" color="text.secondary" mb={1}>
+                    Selected Categories:
+                  </Typography>
+                  <Box display="flex" gap={1} flexWrap="wrap">
+                    {selectedCategories.map(cat => (
+                      <Chip
+                        key={cat._id}
+                        label={cat.title}
+                        onDelete={() => removeCategory(cat._id)}
+                        color="primary"
+                        variant="outlined"
+                      />
+                    ))}
+                  </Box>
+                </Grid>
+              )}
             </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <TextField
-                fullWidth
-                required={formData.rateType !== 'free'}
-                type="number"
-                label={formData.rateType === 'percentage' ? 'Rate (%)' : 'Rate'}
-                value={formData.rate}
-                onChange={handleChange('rate')}
-                disabled={formData.rateType === 'free'}
-                inputProps={{ min: 0, step: 0.01 }}
-              />
-            </Grid>
-          </Grid>
-        </Paper>
+          </Paper>
 
-        {/* Conditions */}
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Typography variant="h6" gutterBottom>Conditions (Optional)</Typography>
-          <Grid container spacing={3}>
-            <Grid size={{ xs: 12, md: 3 }}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Min Weight (kg)"
-                value={formData.minWeight}
-                onChange={handleChange('minWeight')}
-                inputProps={{ min: 0, step: 0.1 }}
-              />
+          {/* Rate Configuration */}
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Typography variant="h6" gutterBottom>Rate Configuration</Typography>
+            <Grid container spacing={3}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <FormControl fullWidth required>
+                  <InputLabel>Rate Type</InputLabel>
+                  <Select
+                    value={formData.rateType}
+                    label="Rate Type"
+                    onChange={(e) => setFormData({ ...formData, rateType: e.target.value as any })}
+                  >
+                    <MenuItem value="flat">Flat Rate</MenuItem>
+                    <MenuItem value="per_kg">Per KG</MenuItem>
+                    <MenuItem value="percentage">Percentage of Order</MenuItem>
+                    <MenuItem value="free">Free Shipping</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  fullWidth
+                  required={formData.rateType !== 'free'}
+                  type="number"
+                  label={formData.rateType === 'percentage' ? 'Rate (%)' : 'Rate'}
+                  value={formData.rate}
+                  onChange={handleChange('rate')}
+                  disabled={formData.rateType === 'free'}
+                  inputProps={{ min: 0, step: 0.01 }}
+                />
+              </Grid>
             </Grid>
-            <Grid size={{ xs: 12, md: 3 }}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Max Weight (kg)"
-                value={formData.maxWeight}
-                onChange={handleChange('maxWeight')}
-                inputProps={{ min: 0, step: 0.1 }}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 3 }}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Min Order Value"
-                value={formData.minOrderValue}
-                onChange={handleChange('minOrderValue')}
-                inputProps={{ min: 0, step: 0.01 }}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 3 }}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Max Order Value"
-                value={formData.maxOrderValue}
-                onChange={handleChange('maxOrderValue')}
-                inputProps={{ min: 0, step: 0.01 }}
-              />
-            </Grid>
-          </Grid>
-        </Paper>
+          </Paper>
 
-        {/* Priority & Status */}
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Grid container spacing={3} alignItems="center">
-            <Grid size={{ xs: 12, md: 4 }}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Priority"
-                value={formData.priority}
-                onChange={handleChange('priority')}
-                helperText="Higher priority rules are evaluated first"
-              />
+          {/* Conditions */}
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Typography variant="h6" gutterBottom>Conditions (Optional)</Typography>
+            <Grid container spacing={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Min Weight (kg)"
+                  value={formData.minWeight}
+                  onChange={handleChange('minWeight')}
+                  inputProps={{ min: 0, step: 0.1 }}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 3 }}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Max Weight (kg)"
+                  value={formData.maxWeight}
+                  onChange={handleChange('maxWeight')}
+                  inputProps={{ min: 0, step: 0.1 }}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 3 }}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Min Order Value"
+                  value={formData.minOrderValue}
+                  onChange={handleChange('minOrderValue')}
+                  inputProps={{ min: 0, step: 0.01 }}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 3 }}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Max Order Value"
+                  value={formData.maxOrderValue}
+                  onChange={handleChange('maxOrderValue')}
+                  inputProps={{ min: 0, step: 0.01 }}
+                />
+              </Grid>
             </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={formData.isActive}
-                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                  />
-                }
-                label="Active"
-              />
-            </Grid>
-          </Grid>
-        </Paper>
+          </Paper>
 
-        {/* Actions */}
-        <Box display="flex" gap={2}>
-          <Button variant="outlined" onClick={() => router.back()}>
-            Cancel
-          </Button>
-          <Button type="submit" variant="contained" disabled={saving}>
-            {saving ? 'Saving...' : 'Save Changes'}
-          </Button>
-        </Box>
-      </form>
+          {/* Priority & Status */}
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Grid container spacing={3} alignItems="center">
+              <Grid size={{ xs: 12, md: 4 }}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Priority"
+                  value={formData.priority}
+                  onChange={handleChange('priority')}
+                  helperText="Higher priority rules are evaluated first"
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.isActive}
+                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                    />
+                  }
+                  label="Active"
+                />
+              </Grid>
+            </Grid>
+          </Paper>
+
+          {/* Actions */}
+          <Box display="flex" gap={2}>
+            <Button variant="outlined" onClick={() => router.back()}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="contained" disabled={saving}>
+              {saving ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </Box>
+        </form>
+      </Box>
     </Box>
   );
 }

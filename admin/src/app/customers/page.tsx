@@ -32,22 +32,46 @@ export default function CustomersPage() {
     const { showNotification } = useNotification();
     const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
 
-    // Filter states
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState<string>('');
+
+    // Pagination state
+    const [paginationModel, setPaginationModel] = useState({
+        page: 0,
+        pageSize: 25,
+    });
+    const [totalRows, setTotalRows] = useState(0);
+
+    // Debounce search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
     useEffect(() => {
         fetchCustomers();
-    }, []);
+    }, [paginationModel, debouncedSearch, filterStatus]);
 
     const fetchCustomers = async () => {
+        setLoading(true);
         try {
-            const response = await api.get('/customers');
+            const params = new URLSearchParams();
+            params.append('page', String(paginationModel.page + 1));
+            params.append('limit', String(paginationModel.pageSize));
+            if (debouncedSearch) params.append('search', debouncedSearch);
+            if (filterStatus) params.append('status', filterStatus);
+
+            const response = await api.get(`/customers?${params.toString()}`);
             setCustomers(response.data.data || []);
+            setTotalRows(response.data.pagination?.total || 0);
         } catch (err) {
             console.error('Failed to fetch customers');
             showNotification('Failed to load customers', 'error');
             setCustomers([]);
+            setTotalRows(0);
         } finally {
             setLoading(false);
         }
@@ -72,19 +96,7 @@ export default function CustomersPage() {
         router.push('/customers/new');
     };
 
-    const filteredRows = customers.filter((customer) => {
-        const query = searchQuery.toLowerCase();
-        const matchesSearch = !searchQuery || (
-            customer.email?.toLowerCase().includes(query) ||
-            customer.firstName?.toLowerCase().includes(query) ||
-            customer.lastName?.toLowerCase().includes(query) ||
-            customer.phone?.toLowerCase().includes(query)
-        );
-        const matchesStatus = !filterStatus || (
-            filterStatus === 'active' ? customer.isActive : !customer.isActive
-        );
-        return matchesSearch && matchesStatus;
-    });
+
 
     const formatLastLogin = (date?: string) => {
         if (!date) return 'Never';
@@ -184,8 +196,6 @@ export default function CustomersPage() {
         },
     ];
 
-    if (loading) return <LoadingSpinner message="Loading customers..." />;
-
     return (
         <Box>
             <PageHeader
@@ -214,21 +224,37 @@ export default function CustomersPage() {
                 onFilterChange={(filters) => setFilterStatus(filters.status as string || '')}
             />
 
-            <Box sx={{ width: '100%' }}>
+            <Box sx={{ width: '100%', position: 'relative' }}>
+                {loading && (
+                    <Box sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1,
+                        backgroundColor: 'rgba(255, 255, 255, 0.5)'
+                    }}>
+                        <LoadingSpinner />
+                    </Box>
+                )}
                 <DataGrid
-                    rows={filteredRows}
+                    rows={customers}
                     columns={columns}
                     getRowId={(row) => row._id}
                     pageSizeOptions={[10, 25, 50, 100]}
-                    initialState={{
-                        pagination: { paginationModel: { pageSize: 25 } },
-                        sorting: { sortModel: [{ field: 'createdAt', sort: 'desc' }] },
-                    }}
+                    paginationMode="server"
+                    rowCount={totalRows}
+                    paginationModel={paginationModel}
+                    onPaginationModelChange={setPaginationModel}
                     disableRowSelectionOnClick
                     sx={dataGridStyles}
                     rowHeight={60}
                 />
             </Box>
-        </Box>
+        </Box >
     );
 }

@@ -173,7 +173,7 @@ export default function StoresPage() {
     },
   ];
 
-  if (stores.length === 0 && !searchQuery) {
+  if (!loading && stores.length === 0 && !searchQuery) {
     return (
       <Box>
         <PageHeader title="Stores" subtitle="Manage your stores" />
@@ -201,22 +201,35 @@ export default function StoresPage() {
         searchPlaceholder="Search stores..."
       />
 
-      <Box sx={{ width: '100%', mt: 2 }}>
-        {loading ? <LoadingSpinner message="Loading stores..." /> :
-          <DataGrid
-            rows={stores}
-            columns={columns}
-            getRowId={(row) => row._id}
-            pageSizeOptions={[10, 25, 50]}
-            paginationMode="server"
-            rowCount={totalRows}
-            paginationModel={paginationModel}
-            onPaginationModelChange={setPaginationModel}
-            disableRowSelectionOnClick
-            sx={dataGridStyles}
-            loading={loading}
-          />
-        }
+      <Box sx={{ width: '100%', mt: 2, position: 'relative' }}>
+        {loading && (
+          <Box sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1,
+            backgroundColor: 'rgba(255, 255, 255, 0.5)',
+          }}>
+            <LoadingSpinner message="Loading stores..." />
+          </Box>
+        )}
+        <DataGrid
+          rows={stores}
+          columns={columns}
+          getRowId={(row) => row._id}
+          pageSizeOptions={[10, 25, 50]}
+          paginationMode="server"
+          rowCount={totalRows}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          disableRowSelectionOnClick
+          sx={dataGridStyles}
+        />
       </Box>
     </Box>
   );

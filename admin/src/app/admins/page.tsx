@@ -224,8 +224,6 @@ export default function AdminsPage() {
         },
     ];
 
-    if (loading) return <LoadingSpinner message="Loading admin users..." />;
-
     return (
         <Box>
             <PageHeader
@@ -267,7 +265,23 @@ export default function AdminsPage() {
                 }}
             />
 
-            <Box sx={{ width: '100%' }}>
+            <Box sx={{ width: '100%', position: 'relative' }}>
+                {loading && (
+                    <Box sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1,
+                        backgroundColor: 'rgba(255, 255, 255, 0.5)'
+                    }}>
+                        <LoadingSpinner />
+                    </Box>
+                )}
                 <DataGrid
                     rows={admins}
                     columns={columns}

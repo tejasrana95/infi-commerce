@@ -330,15 +330,13 @@ export default function GeoPage() {
     }
   ];
 
-  if (loading && flatGeos.length === 0) return <LoadingSpinner message="Loading geographic locations..." />;
-
   // Initial Form Data Construction for Edit
   const getInitialData = () => {
     if (!selectedGeo) return undefined;
     return selectedGeo.original;
   };
 
-  if (flatGeos.length === 0 && !searchQuery && !open) {
+  if (!loading && flatGeos.length === 0 && !searchQuery && !open) {
     return (
       <Box>
         <PageHeader
@@ -387,7 +385,23 @@ export default function GeoPage() {
         onSearchChange={handleSearchChange}
       />
 
-      <Box sx={{ width: '100%' }}>
+      <Box sx={{ width: '100%', position: 'relative' }}>
+        {loading && (
+          <Box sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1,
+            backgroundColor: 'rgba(255, 255, 255, 0.5)'
+          }}>
+            <LoadingSpinner />
+          </Box>
+        )}
         <DataGrid
           rows={flatGeos}
           columns={columns}

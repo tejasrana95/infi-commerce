@@ -273,7 +273,7 @@ export default function SalesPage() {
     },
   ];
 
-  if (sales.length === 0 && !searchQuery && !filterStore && !filterStatus) {
+  if (!loading && sales.length === 0 && !searchQuery && !filterStore && !filterStatus) {
     return (
       <Box>
         <PageHeader title="Sales & Promotions" subtitle="Create and manage discount campaigns" />
@@ -319,22 +319,35 @@ export default function SalesPage() {
         onStoreFilterChange={setFilterStore}
       />
 
-      <Box sx={{ width: '100%' }}>
-        {loading ? <LoadingSpinner message="Loading sales..." /> : (
-          <DataGrid
-            rows={sales}
-            columns={columns}
-            getRowId={(row) => row._id}
-            pageSizeOptions={[10, 25, 50]}
-            paginationMode="server"
-            rowCount={totalRows}
-            paginationModel={paginationModel}
-            onPaginationModelChange={setPaginationModel}
-            disableRowSelectionOnClick
-            sx={dataGridStyles}
-            loading={loading}
-          />
+      <Box sx={{ width: '100%', position: 'relative' }}>
+        {loading && (
+          <Box sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1,
+            backgroundColor: 'rgba(255, 255, 255, 0.5)',
+          }}>
+            <LoadingSpinner message="Loading sales..." />
+          </Box>
         )}
+        <DataGrid
+          rows={sales}
+          columns={columns}
+          getRowId={(row) => row._id}
+          pageSizeOptions={[10, 25, 50]}
+          paginationMode="server"
+          rowCount={totalRows}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          disableRowSelectionOnClick
+          sx={dataGridStyles}
+        />
       </Box>
     </Box>
   );

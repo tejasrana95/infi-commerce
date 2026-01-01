@@ -58,8 +58,6 @@ export default function EditCustomerPage() {
         }
     };
 
-    if (loading) return <LoadingSpinner message="Loading customer..." />;
-
     return (
         <Box>
             <Box display="flex" alignItems="center" gap={2} mb={3}>
@@ -69,11 +67,30 @@ export default function EditCustomerPage() {
                 <Typography variant="h4" fontWeight="bold">Edit Customer</Typography>
             </Box>
 
-            <CustomerForm
-                initialData={initialData || undefined}
-                onSubmit={handleSubmit}
-                isSubmitting={isSubmitting}
-            />
+            <Box sx={{ position: 'relative' }}>
+                {loading && (
+                    <Box sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1,
+                        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                        borderRadius: 1,
+                    }}>
+                        <LoadingSpinner />
+                    </Box>
+                )}
+                <CustomerForm
+                    initialData={initialData || undefined}
+                    onSubmit={handleSubmit}
+                    isSubmitting={isSubmitting}
+                />
+            </Box>
 
             <Paper sx={{ p: 2, mt: 3, display: 'flex', gap: 2 }}>
                 <Button variant="outlined" onClick={() => router.back()}>
