@@ -11,6 +11,7 @@ import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules'
 import { LoadingSpinner, PermissionGuard } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
 import { createDataGridStyles } from '@/utils/styles';
 
 interface Attribute {
@@ -35,6 +36,7 @@ export default function AttributesPage() {
   const [loading, setLoading] = useState(true);
   const { showNotification } = useNotification();
   const { user } = useAuth();
+  const { confirm } = useConfirm();
   const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -59,7 +61,7 @@ export default function AttributesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this specification?')) return;
+    if (!await confirm({ title: 'Delete Specification', message: 'Are you sure you want to delete this specification?', severity: 'error' })) return;
     try {
       await api.delete(`/attributes/${id}`);
       setAttributes(attributes.filter(a => a._id !== id));

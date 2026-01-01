@@ -25,7 +25,7 @@ import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { useNotification } from '@/contexts/NotificationContext';
-import ConfirmDialog from '@/components/molecules/ConfirmDialog';
+
 import {
     DndContext,
     DragEndEvent,
@@ -50,6 +50,7 @@ import SectionList from './SectionList';
 import SectionEditor from './SectionEditor';
 import ModuleEditor from './ModuleEditor';
 import { createSection, createModule, getModuleDefinition } from './types';
+import { ConfirmDialog } from '@/components/molecules/ConfirmDialog';
 
 interface LayoutDesignerProps {
     layout: Layout;

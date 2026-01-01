@@ -63,6 +63,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { ProductAutoComplete } from '../molecules';
 import { ProductOption } from '../molecules/ProductAutoComplete';
 import { MegaMenuBuilder, MegaMenuData } from './MegaMenuBuilder';
+import { useConfirm } from '@/contexts/ConfirmContext';
 
 interface MenuItemBuilderProps {
     items: MenuItemType[];
@@ -530,6 +531,7 @@ export default function MenuItemBuilder({ items, onChange, storeId, maxDepth = 3
         item: null,
         isNew: false,
     });
+    const { confirm } = useConfirm();
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -608,8 +610,8 @@ export default function MenuItemBuilder({ items, onChange, storeId, maxDepth = 3
         }
     };
 
-    const handleDeleteItem = (itemId: string) => {
-        if (!confirm('Delete this menu item?')) return;
+    const handleDeleteItem = async (itemId: string) => {
+        if (!await confirm({ title: 'Delete Menu Item', message: 'Delete this menu item?', severity: 'error' })) return;
 
         const removeItem = (items: MenuItemType[]): MenuItemType[] => {
             return items

@@ -11,6 +11,7 @@ import { Store } from '@/types';
 import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules';
 import { LoadingSpinner, StatusChip } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
 import { createDataGridStyles } from '@/utils/styles';
 import FormatPaintIcon from '@mui/icons-material/FormatPaint';
 
@@ -20,6 +21,7 @@ export default function StoresPage() {
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
   const { showNotification } = useNotification();
+  const { confirm } = useConfirm();
   const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -41,7 +43,7 @@ export default function StoresPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this store?')) return;
+    if (!await confirm({ title: 'Delete Store', message: 'Are you sure you want to delete this store?', severity: 'error' })) return;
     try {
       await api.delete(`/stores/${id}`);
       setStores(stores.filter(s => s._id !== id));

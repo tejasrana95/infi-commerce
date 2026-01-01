@@ -62,6 +62,7 @@ import PageAutocomplete from '@/components/molecules/PageAutocomplete';
 import ProductAutoComplete, { ProductOption } from '@/components/molecules/ProductAutoComplete';
 import FileManagerButton from '@/components/molecules/FileManagerButton';
 import { FileItem } from '@/types/file';
+import { useConfirm } from '@/contexts/ConfirmContext';
 
 // ============ TYPES ============
 
@@ -858,6 +859,7 @@ export default function MegaMenuBuilder({ data, onChange, storeId }: MegaMenuBui
     const [activeDragData, setActiveDragData] = useState<any>(null);
     const [editingItem, setEditingItem] = useState<{ sectionId: string; columnId: string; item: MegaMenuItem } | null>(null);
     const [sectionTypeDialog, setSectionTypeDialog] = useState(false);
+    const { confirm } = useConfirm();
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -892,8 +894,8 @@ export default function MegaMenuBuilder({ data, onChange, storeId }: MegaMenuBui
     }, [data, onChange]);
 
     // Delete section
-    const handleDeleteSection = (sectionId: string) => {
-        if (!window.confirm('Delete this section and all its contents?')) return;
+    const handleDeleteSection = async (sectionId: string) => {
+        if (!await confirm({ title: 'Delete Section', message: 'Delete this section and all its contents?', severity: 'error' })) return;
         onChange({
             ...data,
             sections: data.sections.filter(s => s.id !== sectionId),
@@ -913,8 +915,8 @@ export default function MegaMenuBuilder({ data, onChange, storeId }: MegaMenuBui
     }, [data, onChange]);
 
     // Delete column
-    const handleDeleteColumn = (sectionId: string, columnId: string) => {
-        if (!window.confirm('Delete this column and all its contents?')) return;
+    const handleDeleteColumn = async (sectionId: string, columnId: string) => {
+        if (!await confirm({ title: 'Delete Column', message: 'Delete this column and all its contents?', severity: 'error' })) return;
         onChange({
             ...data,
             sections: data.sections.map(s =>

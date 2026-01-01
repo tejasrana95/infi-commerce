@@ -13,6 +13,7 @@ import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules'
 import { LoadingSpinner, PermissionGuard } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
 import { createDataGridStyles } from '@/utils/styles';
 
 export default function BlogPostsPage() {
@@ -22,6 +23,7 @@ export default function BlogPostsPage() {
     const [loading, setLoading] = useState(true);
     const { showNotification } = useNotification();
     const { user } = useAuth();
+    const { confirm } = useConfirm();
     const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
 
     // Filter states
@@ -49,7 +51,7 @@ export default function BlogPostsPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this post?')) return;
+        if (!await confirm({ title: 'Delete Post', message: 'Are you sure you want to delete this post?', severity: 'error' })) return;
         try {
             await api.delete(`/blog/posts/${id}`);
             setPosts(posts.filter(p => p._id !== id));

@@ -9,7 +9,7 @@ import {
     useTheme
 } from '@mui/material';
 
-interface ConfirmDialogProps {
+export interface ConfirmDialogProps {
     open: boolean;
     title: string;
     message: string;
@@ -17,7 +17,7 @@ interface ConfirmDialogProps {
     onCancel: () => void;
     confirmLabel?: string;
     cancelLabel?: string;
-    severity?: 'info' | 'warning' | 'error';
+    severity?: 'error' | 'warning' | 'info';
 }
 
 export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
@@ -31,6 +31,15 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     severity = 'warning'
 }) => {
     const theme = useTheme();
+
+    const getConfirmColor = () => {
+        switch (severity) {
+            case 'error': return 'error';
+            case 'info': return 'primary';
+            case 'warning': return 'warning';
+            default: return 'primary';
+        }
+    };
 
     return (
         <Dialog
@@ -51,17 +60,10 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 <Button onClick={onCancel} color="inherit">
                     {cancelLabel}
                 </Button>
-                <Button
-                    onClick={onConfirm}
-                    variant="contained"
-                    color={severity}
-                    autoFocus
-                >
+                <Button onClick={onConfirm} color={getConfirmColor()} autoFocus variant="contained">
                     {confirmLabel}
                 </Button>
             </DialogActions>
         </Dialog>
     );
 };
-
-export default ConfirmDialog;

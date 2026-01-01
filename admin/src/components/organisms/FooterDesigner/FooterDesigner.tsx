@@ -44,6 +44,7 @@ import FooterElementConfig from './FooterElementConfig';
 import PreviewContainer from '@/components/molecules/PreviewContainer';
 import { SortableFooterElement, SortableFooterColumn } from './SortableComponents';
 import api from '@/lib/api';
+import { useConfirm } from '@/contexts/ConfirmContext';
 
 interface FooterDesignerProps {
     config: ThemeConfig;
@@ -291,6 +292,7 @@ export default function FooterDesigner({ config, onChange, storeId }: FooterDesi
     const [editingElement, setEditingElement] = useState<{ rowId: string; columnId: string; element: FooterElement } | null>(null);
     const [settingsExpanded, setSettingsExpanded] = useState(true);
     const [addMenuAnchor, setAddMenuAnchor] = useState<{ anchor: HTMLElement; rowId: string; columnId: string } | null>(null);
+    const { confirm } = useConfirm();
     const sensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: {
@@ -524,8 +526,8 @@ export default function FooterDesigner({ config, onChange, storeId }: FooterDesi
     };
 
     // Delete row
-    const handleDeleteRow = (rowId: string) => {
-        if (!confirm('Delete this row?')) return;
+    const handleDeleteRow = async (rowId: string) => {
+        if (!await confirm({ title: 'Delete Row', message: 'Delete this row?', severity: 'error' })) return;
         updateFooter({ rows: rows.filter(r => r.id !== rowId) });
     };
 

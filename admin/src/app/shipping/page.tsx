@@ -9,6 +9,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import api from '@/lib/api';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
 import { PageHeader, SearchFilterBar, FilterConfig } from '@/components/molecules';
 import { LoadingSpinner, StatusChip } from '@/components/atoms';
 
@@ -58,6 +59,7 @@ const filterConfigs: FilterConfig[] = [
 export default function ShippingPage() {
   const router = useRouter();
   const { showNotification } = useNotification();
+  const { confirm } = useConfirm();
   const [shippingRules, setShippingRules] = useState<ShippingRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -80,7 +82,7 @@ export default function ShippingPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this shipping rule?')) return;
+    if (!await confirm({ title: 'Delete Shipping Rule', message: 'Are you sure you want to delete this shipping rule?', severity: 'error' })) return;
 
     try {
       await api.delete(`/shipping/rules/${id}`);

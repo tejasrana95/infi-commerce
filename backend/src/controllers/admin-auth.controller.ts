@@ -210,7 +210,7 @@ export const loginAdmin = asyncHandler(async (req: AuthRequest, res: Response) =
     // Find admin user
     const user = await User.findOne({ email });
     if (!user) {
-        throw new AppError('Invalid email or password', 401);
+        throw new AppError('Invalid email or password', 400);
     }
 
     // Check if user is active
@@ -221,7 +221,7 @@ export const loginAdmin = asyncHandler(async (req: AuthRequest, res: Response) =
     // Verify password
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
-        throw new AppError('Invalid email or password', 401);
+        throw new AppError('Invalid email or password', 400);
     }
 
     // Update last login

@@ -10,6 +10,7 @@ import api from '@/lib/api';
 import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules';
 import { LoadingSpinner } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
 import { createDataGridStyles } from '@/utils/styles';
 
 interface PaymentGateway {
@@ -36,6 +37,7 @@ export default function PaymentGatewaysPage() {
     const [gateways, setGateways] = useState<PaymentGateway[]>([]);
     const [loading, setLoading] = useState(true);
     const { showNotification } = useNotification();
+    const { confirm } = useConfirm();
     const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -60,7 +62,7 @@ export default function PaymentGatewaysPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this payment gateway?')) return;
+        if (!await confirm({ title: 'Delete Gateway', message: 'Are you sure you want to delete this payment gateway?', severity: 'error' })) return;
         try {
             await api.delete(`/payment-gateways/${id}`);
             setGateways(gateways.filter(g => g._id !== id));

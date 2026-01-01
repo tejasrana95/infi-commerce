@@ -17,6 +17,7 @@ import {
 import StarIcon from '@mui/icons-material/Star';
 import api from '@/lib/api';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
 import { Currency } from '@/types';
 import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules';
 import { LoadingSpinner, StatusChip } from '@/components/atoms';
@@ -38,6 +39,7 @@ export default function CurrenciesPage() {
   const [selectedCurrency, setSelectedCurrency] = useState<Currency | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showNotification } = useNotification();
+  const { confirm } = useConfirm();
   useEffect(() => {
     fetchCurrencies();
   }, []);
@@ -55,7 +57,7 @@ export default function CurrenciesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this currency?')) return;
+    if (!await confirm({ title: 'Delete Currency', message: 'Are you sure you want to delete this currency?', severity: 'error' })) return;
     try {
       await api.delete(`/currencies/${id}`);
       setCurrencies(currencies.filter(c => c._id !== id));

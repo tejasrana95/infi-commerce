@@ -14,6 +14,7 @@ import { LoadingSpinner, StatusChip, PermissionGuard } from '@/components/atoms'
 import { useNotification } from '@/contexts/NotificationContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
 import { createDataGridStyles } from '@/utils/styles';
 
 export default function ProductsPage() {
@@ -24,6 +25,7 @@ export default function ProductsPage() {
   const { showNotification } = useNotification();
   const { formatPrice } = useCurrency();
   const { user } = useAuth();
+  const { confirm } = useConfirm();
   const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
 
   // Filter states
@@ -82,7 +84,7 @@ export default function ProductsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
+    if (!await confirm({ title: 'Delete Product', message: 'Are you sure you want to delete this product?', severity: 'error' })) return;
     try {
       await api.delete(`/products/${id}`);
       setProducts(products.filter(p => p._id !== id));
@@ -93,7 +95,7 @@ export default function ProductsPage() {
   };
 
   const handleClone = async (id: string) => {
-    if (!confirm('Are you sure you want to clone this product?')) return;
+    if (!await confirm({ title: 'Clone Product', message: 'Are you sure you want to clone this product?', confirmLabel: 'Clone', severity: 'info' })) return;
     try {
       await api.post(`/products/${id}/clone`);
       showNotification('Product cloned successfully', 'success');

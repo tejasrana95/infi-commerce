@@ -19,11 +19,8 @@ import {
     TextField,
     InputAdornment,
     Tooltip,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
 } from '@mui/material';
+import { useConfirm } from '@/contexts/ConfirmContext';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { useTheme } from '@mui/material/styles';
 import AddIcon from '@mui/icons-material/Add';
@@ -75,10 +72,7 @@ export default function ReviewsPage() {
     // Menu state
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [selectedReview, setSelectedReview] = useState<Review | null>(null);
-
-    // Delete dialog
-    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [reviewToDelete, setReviewToDelete] = useState<Review | null>(null);
+    const { confirm } = useConfirm();
 
     const fetchReviews = useCallback(async () => {
         try {
@@ -130,23 +124,19 @@ export default function ReviewsPage() {
         handleMenuClose();
     };
 
-    const handleDeleteClick = () => {
-        setReviewToDelete(selectedReview);
-        setDeleteDialogOpen(true);
+    const handleDeleteClick = async () => {
+        if (!selectedReview) return;
         handleMenuClose();
-    };
 
-    const handleDeleteConfirm = async () => {
-        if (!reviewToDelete) return;
+        if (!await confirm({ title: 'Delete Review', message: 'Are you sure you want to delete this review? This action cannot be undone.', severity: 'error' })) return;
+
         try {
-            await api.delete(`/reviews/${reviewToDelete._id}`);
+            await api.delete(`/reviews/${selectedReview._id}`);
             showNotification('Review deleted successfully', 'success');
             fetchReviews();
         } catch (error) {
             showNotification('Failed to delete review', 'error');
         }
-        setDeleteDialogOpen(false);
-        setReviewToDelete(null);
     };
 
     const getReviewerName = (review: Review) => {
@@ -388,21 +378,7 @@ export default function ReviewsPage() {
                 </PermissionGuard>
             </Menu>
 
-            {/* Delete Dialog */}
-            <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-                <DialogTitle>Delete Review</DialogTitle>
-                <DialogContent>
-                    <Typography>
-                        Are you sure you want to delete this review? This action cannot be undone.
-                    </Typography>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={handleDeleteConfirm} color="error" variant="contained">
-                        Delete
-                    </Button>
-                </DialogActions>
-            </Dialog>
+
         </Box>
     );
 }

@@ -14,6 +14,7 @@ import { Layout } from '@/types';
 import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules';
 import { LoadingSpinner, StatusChip } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
 import { createDataGridStyles } from '@/utils/styles';
 
 export default function LayoutsPage() {
@@ -23,6 +24,7 @@ export default function LayoutsPage() {
     const [loading, setLoading] = useState(true);
     const [stores, setStores] = useState<any[]>([]);
     const { showNotification } = useNotification();
+    const { confirm } = useConfirm();
     const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
 
     // Filter states
@@ -51,7 +53,7 @@ export default function LayoutsPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this layout?')) return;
+        if (!await confirm({ title: 'Delete Layout', message: 'Are you sure you want to delete this layout?', severity: 'error' })) return;
         try {
             await api.delete(`/layouts/${id}`);
             setLayouts(layouts.filter(l => l._id !== id));

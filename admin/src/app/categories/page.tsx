@@ -12,6 +12,7 @@ import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules'
 import { LoadingSpinner, PermissionGuard } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
 import { createDataGridStyles } from '@/utils/styles';
 
 export default function CategoriesPage() {
@@ -21,6 +22,7 @@ export default function CategoriesPage() {
   const [loading, setLoading] = useState(true);
   const { showNotification } = useNotification();
   const { user } = useAuth();
+  const { confirm } = useConfirm();
   const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
 
   // Filter states
@@ -47,7 +49,7 @@ export default function CategoriesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this category?')) return;
+    if (!await confirm({ title: 'Delete Category', message: 'Are you sure you want to delete this category?', severity: 'error' })) return;
     try {
       await api.delete(`/categories/${id}`);
       setCategories(categories.filter(c => c._id !== id));

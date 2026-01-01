@@ -22,7 +22,7 @@ import { useRouter } from 'next/navigation';
 import { FormBuilder } from '@/components/organisms/FormBuilder';
 import api from '@/lib/api';
 import { useEffect } from 'react';
-import ConfirmDialog from '@/components/molecules/ConfirmDialog';
+import { ConfirmDialog } from '@/components/molecules/ConfirmDialog';
 import RichTextEditor from '@/components/molecules/RichTextEditor';
 import { MenuItem } from '@mui/material';
 

@@ -11,6 +11,7 @@ import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules'
 import { LoadingSpinner, PermissionGuard } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
 import { createDataGridStyles } from '@/utils/styles';
 
 interface ProductOption {
@@ -31,6 +32,7 @@ export default function ProductOptionsPage() {
     const [loading, setLoading] = useState(true);
     const { showNotification } = useNotification();
     const { user } = useAuth();
+    const { confirm } = useConfirm();
     const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -55,7 +57,7 @@ export default function ProductOptionsPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this product option?')) return;
+        if (!await confirm({ title: 'Delete Option', message: 'Are you sure you want to delete this product option?', severity: 'error' })) return;
         try {
             await api.delete(`/product-options/${id}`);
             setProductOptions(productOptions.filter(a => a._id !== id));

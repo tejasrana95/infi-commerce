@@ -39,6 +39,7 @@ import api from '@/lib/api';
 import { Order, OrderStatus } from '@/types/order';
 import LoadingSpinner from '@/components/atoms/LoadingSpinner';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
 
 export default function OrderDetailPage() {
     const { id } = useParams();
@@ -48,6 +49,7 @@ export default function OrderDetailPage() {
     const [error, setError] = useState<string | null>(null);
     const [actionLoading, setActionLoading] = useState(false);
     const { convertAndFormat } = useCurrency();
+    const { confirm } = useConfirm();
     // Status update state
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -106,7 +108,7 @@ export default function OrderDetailPage() {
     };
 
     const handleProcessRefund = async () => {
-        if (!confirm('Are you sure you want to mark this order as refunded?')) return;
+        if (!await confirm({ title: 'Process Refund', message: 'Are you sure you want to mark this order as refunded?', severity: 'warning' })) return;
         setActionLoading(true);
         try {
             await api.patch(`/orders/${id}/refund`);

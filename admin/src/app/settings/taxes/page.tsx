@@ -23,6 +23,7 @@ import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules'
 import { LoadingSpinner, StatusChip } from '@/components/atoms';
 import TaxForm from '@/components/organisms/TaxForm';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
 import { createDataGridStyles } from '@/utils/styles';
 
 interface TaxRow extends TaxRate {
@@ -32,6 +33,7 @@ interface TaxRow extends TaxRate {
 export default function TaxSettingsPage() {
     const theme = useTheme();
     const { showNotification } = useNotification();
+    const { confirm } = useConfirm();
     const [taxRates, setTaxRates] = useState<TaxRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -76,7 +78,7 @@ export default function TaxSettingsPage() {
     };
 
     const handleDelete = async (row: TaxRow) => {
-        if (!confirm(`Are you sure you want to delete "${row.name}"?`)) return;
+        if (!await confirm({ title: 'Delete Tax Rate', message: `Are you sure you want to delete "${row.name}"?`, severity: 'error' })) return;
         try {
             await api.delete(`/tax-rates/${row._id}`);
             showNotification('Tax rate deleted successfully', 'success');

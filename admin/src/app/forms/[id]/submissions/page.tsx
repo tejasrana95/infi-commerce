@@ -38,6 +38,7 @@ import {
     ListItemText,
     ListItemSecondaryAction,
 } from '@mui/material';
+import { useConfirm } from '@/contexts/ConfirmContext';
 
 const SubmissionDetailDialog = ({ open, onClose, submission, form }: { open: boolean, onClose: () => void, submission: FormSubmission | null, form: any }) => {
     if (!submission || !form) return null;
@@ -190,6 +191,7 @@ export default function FormSubmissionsPage({ params }: { params: Promise<{ id: 
     const [form, setForm] = useState<any>(null);
     const [selectedSubmission, setSelectedSubmission] = useState<FormSubmission | null>(null);
     const [detailsOpen, setDetailsOpen] = useState(false);
+    const { confirm } = useConfirm();
 
     const fetchSubmissions = async () => {
         try {
@@ -230,7 +232,7 @@ export default function FormSubmissionsPage({ params }: { params: Promise<{ id: 
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this submission?')) return;
+        if (!await confirm({ title: 'Delete Submission', message: 'Are you sure you want to delete this submission?', severity: 'error' })) return;
 
         try {
             await api.delete(`/forms/${resolvedParams.id}/submissions/${id}`);

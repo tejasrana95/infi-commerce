@@ -12,6 +12,7 @@ import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules'
 import { LoadingSpinner, PermissionGuard } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
 import { createDataGridStyles } from '@/utils/styles';
 
 interface Coupon {
@@ -40,6 +41,7 @@ export default function CouponsPage() {
     const [loading, setLoading] = useState(true);
     const { showNotification } = useNotification();
     const { user } = useAuth();
+    const { confirm } = useConfirm();
     const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -64,7 +66,7 @@ export default function CouponsPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this coupon?')) return;
+        if (!await confirm({ title: 'Delete Coupon', message: 'Are you sure you want to delete this coupon?', severity: 'error' })) return;
         try {
             await api.delete(`/coupons/${id}`);
             setCoupons(coupons.filter(c => c._id !== id));

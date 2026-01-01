@@ -42,11 +42,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await api.post('/auth/admin/login', { email, password });
 
-      if (response.data.mfaRequired) {
-        return { mfaRequired: true, mfaToken: response.data.mfaToken };
+      if (response?.data?.mfaRequired) {
+        return { mfaRequired: true, mfaToken: response?.data?.mfaToken };
       }
-
-      const { accessToken, user, refreshToken } = response.data;
+      const { accessToken, user, refreshToken } = response?.data;
       localStorage.setItem('accesstoken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
       localStorage.setItem('adminUser', JSON.stringify(user));

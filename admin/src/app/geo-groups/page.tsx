@@ -11,6 +11,7 @@ import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules'
 import { LoadingSpinner, StatusChip } from '@/components/atoms';
 import GeoGroupForm from '@/components/organisms/GeoGroupForm';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
 import { createDataGridStyles } from '@/utils/styles';
 
 export default function GeoGroupsPage() {
@@ -19,6 +20,7 @@ export default function GeoGroupsPage() {
   const [availableGeos, setAvailableGeos] = useState<Geo[]>([]);
   const [loading, setLoading] = useState(true);
   const { showNotification } = useNotification();
+  const { confirm } = useConfirm();
   const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -49,7 +51,7 @@ export default function GeoGroupsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this group?')) return;
+    if (!await confirm({ title: 'Delete Geo Group', message: 'Are you sure you want to delete this group?', severity: 'error' })) return;
     try {
       await api.delete(`/geo-groups/${id}`);
       setGeoGroups(geoGroups.filter(g => g._id !== id));

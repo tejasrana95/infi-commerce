@@ -5,6 +5,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { AdminNotificationProvider } from "@/contexts/AdminNotificationContext";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
+import { ConfirmProvider } from "@/contexts/ConfirmContext";
 import MUIThemeProvider from "@/theme/MUIThemeProvider";
 
 const geistSans = Geist({
@@ -35,7 +36,9 @@ export default function RootLayout({
             <AuthProvider>
               <AdminNotificationProvider>
                 <CurrencyProvider>
-                  {children}
+                  <ConfirmProvider>
+                    {children}
+                  </ConfirmProvider>
                 </CurrencyProvider>
               </AdminNotificationProvider>
             </AuthProvider>

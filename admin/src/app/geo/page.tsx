@@ -11,6 +11,7 @@ import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules'
 import { LoadingSpinner, StatusChip } from '@/components/atoms';
 import GeoForm from '@/components/organisms/GeoForm';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
 import { createDataGridStyles } from '@/utils/styles';
 
 interface FlatGeo {
@@ -32,6 +33,7 @@ export default function GeoPage() {
   const [flatGeos, setFlatGeos] = useState<FlatGeo[]>([]);
   const [loading, setLoading] = useState(true);
   const { showNotification } = useNotification();
+  const { confirm } = useConfirm();
   const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -77,7 +79,7 @@ export default function GeoPage() {
   };
 
   const handleDelete = async (row: FlatGeo) => {
-    if (!confirm(`Are you sure you want to delete this ${row.type}?`)) return;
+    if (!await confirm({ title: `Delete ${row.type}`, message: `Are you sure you want to delete this ${row.type}?`, severity: 'error' })) return;
     try {
       await api.delete(`/geo/${row._id}`);
       setFlatGeos(prev => prev.filter(g => g.id !== row.id));

@@ -12,6 +12,7 @@ import { Menu } from '@/types';
 import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules';
 import { LoadingSpinner, StatusChip } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
 import { createDataGridStyles } from '@/utils/styles';
 
 export default function MenusPage() {
@@ -20,6 +21,7 @@ export default function MenusPage() {
     const [menus, setMenus] = useState<Menu[]>([]);
     const [loading, setLoading] = useState(true);
     const { showNotification } = useNotification();
+    const { confirm } = useConfirm();
     const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
 
     // Filter states
@@ -47,7 +49,7 @@ export default function MenusPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this menu?')) return;
+        if (!await confirm({ title: 'Delete Menu', message: 'Are you sure you want to delete this menu?', severity: 'error' })) return;
         try {
             await api.delete(`/menus/${id}`);
             setMenus(menus.filter(m => m._id !== id));

@@ -32,6 +32,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import PersonIcon from '@mui/icons-material/Person';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import CountryAutocomplete from '../molecules/CountryAutocomplete';
+import { useConfirm } from '@/contexts/ConfirmContext';
 
 interface Address {
     _id?: string;
@@ -100,6 +101,7 @@ export default function CustomerForm({
     const [addressDialogOpen, setAddressDialogOpen] = useState(false);
     const [editingAddressIndex, setEditingAddressIndex] = useState<number | null>(null);
     const [addressForm, setAddressForm] = useState<Address>(emptyAddress);
+    const { confirm } = useConfirm();
 
     // Initialize form with existing data
     useEffect(() => {
@@ -180,8 +182,8 @@ export default function CustomerForm({
         setAddressDialogOpen(false);
     };
 
-    const deleteAddress = (index: number) => {
-        if (confirm('Are you sure you want to delete this address?')) {
+    const deleteAddress = async (index: number) => {
+        if (await confirm({ title: 'Delete Address', message: 'Are you sure you want to delete this address?', severity: 'error' })) {
             setAddresses(addresses.filter((_, i) => i !== index));
         }
     };

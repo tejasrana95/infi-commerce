@@ -21,6 +21,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Link from 'next/link';
 import PermissionGuard from '../atoms/PermissionGuard';
+import { useConfirm } from '@/contexts/ConfirmContext';
 
 export interface Column {
   id: string;
@@ -51,6 +52,7 @@ const DataTable = memo(({
 }: DataTableProps) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { confirm } = useConfirm();
 
   // Ensure data is always an array
   const safeData = useMemo(() => Array.isArray(data) ? data : [], [data]);
@@ -61,8 +63,8 @@ const DataTable = memo(({
     }
   };
 
-  const handleDelete = (row: any) => {
-    if (onDelete && confirm('Are you sure you want to delete this item?')) {
+  const handleDelete = async (row: any) => {
+    if (onDelete && await confirm({ title: 'Delete Item', message: 'Are you sure you want to delete this item?', severity: 'error' })) {
       onDelete(row[idField]);
     }
   };

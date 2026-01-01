@@ -11,6 +11,7 @@ import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules'
 import { LoadingSpinner, PermissionGuard } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { createDataGridStyles } from '@/utils/styles';
 
@@ -40,6 +41,7 @@ export default function SalesPage() {
   const { showNotification } = useNotification();
   const { formatPrice, baseCurrency } = useCurrency();
   const { user } = useAuth();
+  const { confirm } = useConfirm();
   const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -64,7 +66,7 @@ export default function SalesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this sale?')) return;
+    if (!await confirm({ title: 'Delete Sale', message: 'Are you sure you want to delete this sale?', severity: 'error' })) return;
     try {
       await api.delete(`/sales/${id}`);
       setSales(sales.filter(s => s._id !== id));

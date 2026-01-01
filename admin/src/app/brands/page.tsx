@@ -12,6 +12,7 @@ import { LoadingSpinner, StatusChip, PermissionGuard } from '@/components/atoms'
 import BrandForm from '@/components/organisms/BrandForm';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
 import { createDataGridStyles } from '@/utils/styles';
 
 export default function BrandsPage() {
@@ -20,6 +21,7 @@ export default function BrandsPage() {
     const [loading, setLoading] = useState(true);
     const { showNotification } = useNotification();
     const { user } = useAuth();
+    const { confirm } = useConfirm();
     const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStore, setFilterStore] = useState<string>('');
@@ -47,7 +49,7 @@ export default function BrandsPage() {
     };
 
     const handleDelete = async (brand: Brand) => {
-        if (!confirm(`Are you sure you want to delete ${brand.name}?`)) return;
+        if (!await confirm({ title: 'Delete Brand', message: `Are you sure you want to delete ${brand.name}?`, severity: 'error' })) return;
         try {
             await api.delete(`/brands/${brand._id}`);
             setBrands(prev => prev.filter(b => b._id !== brand._id));
