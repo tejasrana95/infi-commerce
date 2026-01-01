@@ -41,6 +41,7 @@ import bannerRoutes from './banner.routes';
 import bannerSliderRoutes from './bannerSlider.routes';
 import testimonialRoutes from './testimonial.routes';
 import brandShowcaseRoutes from './brandShowcase.routes';
+import newsletterRoutes from './newsletter.routes';
 
 const router = Router();
 
@@ -145,6 +146,7 @@ router.use('/banners', bannerRoutes);
 router.use('/banner-sliders', bannerSliderRoutes);
 router.use('/testimonials', testimonialRoutes);
 router.use('/brand-showcases', brandShowcaseRoutes);
+router.use('/newsletter', newsletterRoutes);
 
 // Mount compare routes
 router.use('/compare', compareRoutes);

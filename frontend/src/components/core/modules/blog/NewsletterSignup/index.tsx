@@ -43,21 +43,14 @@ export default function NewsletterSignup({ config }: NewsletterSignupProps) {
 
         setLoading(true);
         try {
-            const res = await fetch('/api/newsletter/subscribe', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email }),
-            });
+            const { apiClient } = await import('@/services/api-client');
+            await apiClient.post('newsletter/subscribe', { email });
 
-            if (res.ok) {
-                setSuccess(true);
-                setEmail('');
-                setTimeout(() => setSuccess(false), 5000);
-            } else {
-                setError('Something went wrong. Please try again.');
-            }
-        } catch (err) {
-            setError('Something went wrong. Please try again.');
+            setSuccess(true);
+            setEmail('');
+            setTimeout(() => setSuccess(false), 5000);
+        } catch (err: any) {
+            setError(err.message || 'Something went wrong. Please try again.');
         } finally {
             setLoading(false);
         }

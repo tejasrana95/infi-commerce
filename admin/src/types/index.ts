@@ -1288,3 +1288,12 @@ export interface FormSubmission {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface NewsletterSubscriber {
+  _id: string;
+  email: string;
+  storeId: string | Store;
+  status: 'subscribed' | 'unsubscribed';
+  createdAt: string;
+  updatedAt: string;
+}

@@ -115,6 +115,8 @@ const navigationItems: NavItem[] = [
       { name: 'Category Showcases', href: '/category-showcases', icon: <CollectionsIcon /> },
       { name: 'Testimonials', href: '/testimonials', icon: <FormatQuoteIcon /> },
       { name: 'Brand Showcases', href: '/brand-showcases', icon: <WorkspacesIcon /> },
+      { name: 'Form Builder', href: '/forms', icon: <FormatListBulletedIcon /> },
+      { name: 'Newsletter Subscribers', href: '/newsletter', icon: <RssFeedIcon /> },
       {
         name: 'Blog',
         icon: <RssFeedIcon />,
@@ -130,7 +132,6 @@ const navigationItems: NavItem[] = [
     icon: <SettingsOutlinedIcon />,
     children: [
       { name: 'Admin Users', href: '/admins', icon: <AdminPanelSettingsIcon /> },
-      { name: 'Form Builder', href: '/forms', icon: <FormatListBulletedIcon /> },
       { name: 'Taxes', href: '/settings/taxes', icon: <ReceiptLongIcon /> },
       { name: 'Currencies', href: '/currencies', icon: <CurrencyExchangeIcon /> },
       { name: 'Geo', href: '/geo', icon: <PublicIcon /> },
