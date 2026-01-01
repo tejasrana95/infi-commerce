@@ -45,21 +45,47 @@ export default function CouponsPage() {
     const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
 
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [filterStore, setFilterStore] = useState<string>('');
     const [filterStatus, setFilterStatus] = useState<string>('');
 
+    // Pagination state
+    const [paginationModel, setPaginationModel] = useState({
+        page: 0,
+        pageSize: 10,
+    });
+    const [totalRows, setTotalRows] = useState(0);
+
+    // Debounce search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
     useEffect(() => {
         fetchCoupons();
-    }, []);
+    }, [paginationModel, debouncedSearch, filterStore, filterStatus]);
 
     const fetchCoupons = async () => {
+        setLoading(true);
         try {
-            const response = await api.get('/coupons');
+            const params = new URLSearchParams();
+            params.append('page', String(paginationModel.page + 1));
+            params.append('limit', String(paginationModel.pageSize));
+            if (debouncedSearch) params.append('search', debouncedSearch);
+            if (filterStore) params.append('storeId', filterStore);
+            if (filterStatus) params.append('isActive', filterStatus === 'active' ? 'true' : filterStatus === 'inactive' ? 'false' : '');
+
+            const response = await api.get(`/coupons?${params.toString()}`);
             setCoupons(response.data.data || []);
+            setTotalRows(response.data.pagination?.total || 0);
         } catch (err) {
             console.error('Failed to fetch coupons');
             showNotification('Failed to load coupons', 'error');
             setCoupons([]);
+            setTotalRows(0);
         } finally {
             setLoading(false);
         }
@@ -111,22 +137,7 @@ export default function CouponsPage() {
         return { label: 'Active', color: 'success' };
     };
 
-    const filteredRows = coupons.filter((coupon) => {
-        const query = searchQuery.toLowerCase();
-        const matchesSearch = !searchQuery ||
-            coupon.code.toLowerCase().includes(query) ||
-            coupon.description?.toLowerCase().includes(query);
-        const couponStoreId = typeof coupon.storeId === 'object' ? coupon.storeId._id : coupon.storeId;
-        const matchesStore = !filterStore || couponStoreId === filterStore;
 
-        let matchesStatus = true;
-        if (filterStatus) {
-            const status = getCouponStatus(coupon);
-            matchesStatus = status.label.toLowerCase() === filterStatus.toLowerCase();
-        }
-
-        return matchesSearch && matchesStore && matchesStatus;
-    });
 
     const getStoreName = (storeId: any) => {
         if (typeof storeId === 'object' && storeId !== null) return storeId.name;
@@ -161,7 +172,7 @@ export default function CouponsPage() {
             headerName: 'Coupon Code',
             width: 180,
             renderCell: (params: GridRenderCellParams) => (
-                <Box display="flex" alignItems="center" gap={1}>
+                <Box display="flex" flexDirection="row" gap={1} alignItems="center" justifyContent="start" height="100%">
                     <Chip
                         label={params.value}
                         size="small"
@@ -181,7 +192,9 @@ export default function CouponsPage() {
             flex: 1,
             minWidth: 150,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2" noWrap>{params.value || '-'}</Typography>
+                <Box display="flex" flexDirection="column" gap={1} alignItems="start" justifyContent="center" height="100%">
+                    <Typography variant="body2" noWrap>{params.value || '-'}</Typography>
+                </Box>
             ),
         },
         {
@@ -189,12 +202,14 @@ export default function CouponsPage() {
             headerName: 'Discount',
             width: 100,
             renderCell: (params: GridRenderCellParams) => (
-                <Chip
-                    label={formatDiscount(params.row)}
-                    size="small"
-                    color={params.row.discountType === 'percentage' ? 'secondary' : 'info'}
-                    variant="outlined"
-                />
+                <Box display="flex" flexDirection="column" gap={1} alignItems="start" justifyContent="center" height="100%">
+                    <Chip
+                        label={formatDiscount(params.row)}
+                        size="small"
+                        color={params.row.discountType === 'percentage' ? 'secondary' : 'info'}
+                        variant="outlined"
+                    />
+                </Box>
             ),
         },
         {
@@ -202,9 +217,11 @@ export default function CouponsPage() {
             headerName: 'Applies To',
             width: 120,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2">
-                    {params.value === 'store' ? 'Entire Store' : `${params.row.categoryIds?.length || 0} Categories`}
-                </Typography>
+                <Box display="flex" flexDirection="column" gap={1} alignItems="start" justifyContent="center" height="100%">
+                    <Typography variant="body2">
+                        {params.value === 'store' ? 'Entire Store' : `${params.row.categoryIds?.length || 0} Categories`}
+                    </Typography>
+                </Box>
             ),
         },
         {
@@ -212,7 +229,9 @@ export default function CouponsPage() {
             headerName: 'Usage',
             width: 100,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2">{formatUsage(params.row)}</Typography>
+                <Box display="flex" flexDirection="column" gap={1} alignItems="start" justifyContent="center" height="100%">
+                    <Typography variant="body2">{formatUsage(params.row)}</Typography>
+                </Box>
             ),
         },
         {
@@ -220,7 +239,9 @@ export default function CouponsPage() {
             headerName: 'Valid Until',
             width: 100,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2">{formatDate(params.row.endDate)}</Typography>
+                <Box display="flex" flexDirection="column" gap={1} alignItems="start" justifyContent="center" height="100%">
+                    <Typography variant="body2">{formatDate(params.row.endDate)}</Typography>
+                </Box>
             ),
         },
         {
@@ -229,7 +250,11 @@ export default function CouponsPage() {
             width: 100,
             renderCell: (params: GridRenderCellParams) => {
                 const status = getCouponStatus(params.row);
-                return <Chip label={status.label} size="small" color={status.color} variant="outlined" />;
+                return (
+                    <Box display="flex" flexDirection="column" gap={1} alignItems="start" justifyContent="center" height="100%">
+                        <Chip label={status.label} size="small" color={status.color} variant="outlined" />
+                    </Box>
+                );
             },
         },
         {
@@ -237,11 +262,13 @@ export default function CouponsPage() {
             headerName: 'Enabled',
             width: 80,
             renderCell: (params: GridRenderCellParams) => (
-                <Switch
-                    checked={params.value}
-                    size="small"
-                    onChange={() => handleToggleActive(params.row._id, params.value)}
-                />
+                <Box display="flex" flexDirection="column" gap={1} alignItems="start" justifyContent="center" height="100%">
+                    <Switch
+                        checked={params.value}
+                        size="small"
+                        onChange={() => handleToggleActive(params.row._id, params.value)}
+                    />
+                </Box>
             ),
         },
         {
@@ -250,7 +277,7 @@ export default function CouponsPage() {
             width: 100,
             sortable: false,
             renderCell: (params: GridRenderCellParams) => (
-                <Box>
+                <Box display="flex" flexDirection="row" gap={1} alignItems="center" justifyContent="center" height="100%">
                     <Tooltip title="Edit">
                         <IconButton onClick={() => handleEdit(params.row._id)} size="small" color="primary">
                             <EditIcon fontSize="small" />
@@ -268,7 +295,6 @@ export default function CouponsPage() {
         },
     ];
 
-    if (loading) return <LoadingSpinner message="Loading coupons..." />;
 
     if (coupons.length === 0 && !searchQuery && !filterStore && !filterStatus) {
         return (
@@ -317,18 +343,22 @@ export default function CouponsPage() {
                 onStoreFilterChange={setFilterStore}
             />
 
-            <Box sx={{ height: 600, width: '100%' }}>
-                <DataGrid
-                    rows={filteredRows}
-                    columns={columns}
-                    getRowId={(row) => row._id}
-                    pageSizeOptions={[10, 25, 50]}
-                    initialState={{
-                        pagination: { paginationModel: { pageSize: 10 } },
-                    }}
-                    disableRowSelectionOnClick
-                    sx={dataGridStyles}
-                />
+            <Box sx={{ width: '100%' }}>
+                {loading ? <LoadingSpinner message="Loading coupons..." /> :
+                    <DataGrid
+                        rows={coupons}
+                        columns={columns}
+                        getRowId={(row) => row._id}
+                        pageSizeOptions={[10, 25, 50]}
+                        paginationMode="server"
+                        rowCount={totalRows}
+                        paginationModel={paginationModel}
+                        onPaginationModelChange={setPaginationModel}
+                        disableRowSelectionOnClick
+                        sx={dataGridStyles}
+                        loading={loading}
+                    />
+                }
             </Box>
         </Box>
     );

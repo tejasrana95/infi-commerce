@@ -110,9 +110,6 @@ const navigationItems: NavItem[] = [
       { name: 'Pages', href: '/pages', icon: <ArticleIcon /> },
       { name: 'Banners', href: '/banners', icon: <ViewCarouselIcon /> },
       { name: 'Banner Sliders', href: '/banner-sliders', icon: <ViewCarouselIcon /> },
-      { name: 'Product Carousels', href: '/product-carousels', icon: <ViewCarouselIcon /> },
-      { name: 'Product Grids', href: '/product-grids', icon: <GridViewIcon /> },
-      { name: 'Category Showcases', href: '/category-showcases', icon: <CollectionsIcon /> },
       { name: 'Testimonials', href: '/testimonials', icon: <FormatQuoteIcon /> },
       { name: 'Brand Showcases', href: '/brand-showcases', icon: <WorkspacesIcon /> },
       { name: 'Form Builder', href: '/forms', icon: <FormatListBulletedIcon /> },
@@ -132,7 +129,7 @@ const navigationItems: NavItem[] = [
     icon: <SettingsOutlinedIcon />,
     children: [
       { name: 'Admin Users', href: '/admins', icon: <AdminPanelSettingsIcon /> },
-      { name: 'Taxes', href: '/settings/taxes', icon: <ReceiptLongIcon /> },
+      { name: 'Taxes', href: '/taxes', icon: <ReceiptLongIcon /> },
       { name: 'Currencies', href: '/currencies', icon: <CurrencyExchangeIcon /> },
       { name: 'Geo', href: '/geo', icon: <PublicIcon /> },
       { name: 'Geo Groups', href: '/geo-groups', icon: <GroupWorkIcon /> },

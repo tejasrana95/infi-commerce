@@ -106,6 +106,10 @@ export const createGeoGroup = asyncHandler(async (req: AuthRequest, res: Respons
  *         description: Geo groups retrieved successfully
  */
 export const getGeoGroups = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
     const filter: any = {};
 
     if (req.query.storeId) {
@@ -116,11 +120,34 @@ export const getGeoGroups = asyncHandler(async (req: AuthRequest, res: Response)
         filter.isActive = req.query.isActive === 'true';
     }
 
-    const geoGroups = await GeoGroup.find(filter)
-        .populate('storeId', 'name slug')
-        .sort({ name: 1 });
+    if (req.query.search) {
+        const searchRegex = { $regex: req.query.search, $options: 'i' };
+        filter.$or = [
+            { name: searchRegex },
+            { description: searchRegex },
+            { countries: { $elemMatch: { $regex: req.query.search, $options: 'i' } } }
+        ];
+    }
 
-    res.json({ geoGroups });
+    const [geoGroups, total] = await Promise.all([
+        GeoGroup.find(filter)
+            .populate('storeId', 'name slug')
+            .sort({ name: 1 })
+            .skip(skip)
+            .limit(limit),
+        GeoGroup.countDocuments(filter)
+    ]);
+
+    res.json({
+        success: true,
+        geoGroups,
+        pagination: {
+            total,
+            page,
+            limit,
+            pages: Math.ceil(total / limit)
+        }
+    });
 });
 
 /**

@@ -39,22 +39,48 @@ export default function AttributesPage() {
   const { confirm } = useConfirm();
   const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
 
+  // Pagination state
+  const [paginationModel, setPaginationModel] = useState({
+    page: 0,
+    pageSize: 10,
+  });
+  const [totalRows, setTotalRows] = useState(0);
+
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterStore, setFilterStore] = useState<string>('');
   const [filterType, setFilterType] = useState<string>('');
 
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   useEffect(() => {
     fetchAttributes();
-  }, []);
+  }, [paginationModel, debouncedSearch, filterStore, filterType]);
 
   const fetchAttributes = async () => {
+    setLoading(true);
     try {
-      const response = await api.get('/attributes');
-      setAttributes(response.data.data || response.data.attributes || []);
+      const params = new URLSearchParams();
+      params.append('page', String(paginationModel.page + 1));
+      params.append('limit', String(paginationModel.pageSize));
+      if (debouncedSearch) params.append('search', debouncedSearch);
+      if (filterStore) params.append('storeId', filterStore);
+      if (filterType) params.append('type', filterType);
+
+      const response = await api.get(`/attributes?${params.toString()}`);
+      setAttributes(response.data.data || []);
+      setTotalRows(response.data.pagination?.total || 0);
     } catch (err) {
       console.error('Failed to fetch attributes');
       showNotification('Failed to load specifications', 'error');
       setAttributes([]);
+      setTotalRows(0);
     } finally {
       setLoading(false);
     }
@@ -79,14 +105,7 @@ export default function AttributesPage() {
     router.push('/attributes/new');
   };
 
-  const filteredRows = attributes.filter((attribute) => {
-    const query = searchQuery.toLowerCase();
-    const matchesSearch = !searchQuery || attribute.name.toLowerCase().includes(query) || attribute.slug.toLowerCase().includes(query);
-    const attributeStoreId = typeof attribute.storeId === 'object' ? attribute.storeId._id : attribute.storeId;
-    const matchesStore = !filterStore || attributeStoreId === filterStore;
-    const matchesType = !filterType || attribute.type === filterType;
-    return matchesSearch && matchesStore && matchesType;
-  });
+
 
   const getStoreName = (storeId: any) => {
     if (typeof storeId === 'object' && storeId !== null) return storeId.name;
@@ -133,12 +152,14 @@ export default function AttributesPage() {
       headerName: 'Type',
       width: 130,
       renderCell: (params: GridRenderCellParams) => (
-        <Chip
-          label={getTypeLabel(params.value as string)}
-          size="small"
-          color={getTypeColor(params.value as string)}
-          variant="outlined"
-        />
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+          <Chip
+            label={getTypeLabel(params.value as string)}
+            size="small"
+            color={getTypeColor(params.value as string)}
+            variant="outlined"
+          />
+        </Box>
       ),
     },
     {
@@ -148,11 +169,11 @@ export default function AttributesPage() {
       renderCell: (params: GridRenderCellParams) => {
         const attr = params.row as Attribute;
         if (attr.type === 'select' || attr.type === 'multiselect') {
-          return <Typography variant="body2" color="text.secondary">{attr.options?.length || 0} options</Typography>;
+          return <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Typography variant="body2" color="text.secondary">{attr.options?.length || 0} options</Typography></Box>;
         } else if (attr.type === 'number' && attr.unit) {
-          return <Typography variant="body2" color="text.secondary">Unit: {attr.unit}</Typography>;
+          return <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Typography variant="body2" color="text.secondary">Unit: {attr.unit}</Typography></Box>;
         }
-        return <Typography variant="body2" color="text.secondary">-</Typography>;
+        return <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Typography variant="body2" color="text.secondary">-</Typography></Box>;
       },
     },
     {
@@ -160,7 +181,7 @@ export default function AttributesPage() {
       headerName: 'Store',
       width: 150,
       renderCell: (params: GridRenderCellParams) => (
-        <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Typography variant="body2">{getStoreName(params.row.storeId)}</Typography></Box>
       ),
     },
     {
@@ -168,7 +189,7 @@ export default function AttributesPage() {
       headerName: 'Filterable',
       width: 90,
       renderCell: (params: GridRenderCellParams) => (
-        <Chip label={params.value ? 'Yes' : 'No'} size="small" color={params.value ? 'success' : 'default'} variant={params.value ? 'filled' : 'outlined'} />
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Chip label={params.value ? 'Yes' : 'No'} size="small" color={params.value ? 'success' : 'default'} variant={params.value ? 'filled' : 'outlined'} /></Box>
       ),
     },
     {
@@ -176,7 +197,7 @@ export default function AttributesPage() {
       headerName: 'Compare',
       width: 90,
       renderCell: (params: GridRenderCellParams) => (
-        <Chip label={params.value ? 'Yes' : 'No'} size="small" color={params.value ? 'info' : 'default'} variant={params.value ? 'filled' : 'outlined'} />
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Chip label={params.value ? 'Yes' : 'No'} size="small" color={params.value ? 'info' : 'default'} variant={params.value ? 'filled' : 'outlined'} /></Box>
       ),
     },
     {
@@ -185,7 +206,7 @@ export default function AttributesPage() {
       width: 120,
       sortable: false,
       renderCell: (params: GridRenderCellParams) => (
-        <Box>
+        <Box display="flex" flexDirection="row" justifyContent="center" height="100%">
           <Tooltip title="Edit">
             <IconButton onClick={() => handleEdit(params.row._id)} size="small" color="primary">
               <EditIcon fontSize="small" />
@@ -203,7 +224,6 @@ export default function AttributesPage() {
     },
   ];
 
-  if (loading) return <LoadingSpinner message="Loading specifications..." />;
 
   if (attributes.length === 0 && !searchQuery && !filterStore && !filterType) {
     return (
@@ -252,18 +272,21 @@ export default function AttributesPage() {
         onStoreFilterChange={setFilterStore}
       />
 
-      <Box sx={{ height: 600, width: '100%' }}>
-        <DataGrid
-          rows={filteredRows}
+      <Box sx={{ width: '100%' }}>
+        {loading && <LoadingSpinner message="Loading specifications..." />}
+        {!loading && <DataGrid
+          rows={attributes}
           columns={columns}
           getRowId={(row) => row._id}
           pageSizeOptions={[10, 25, 50]}
-          initialState={{
-            pagination: { paginationModel: { pageSize: 10 } },
-          }}
+          paginationMode="server"
+          rowCount={totalRows}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
           disableRowSelectionOnClick
           sx={dataGridStyles}
-        />
+          loading={loading}
+        />}
       </Box>
     </Box>
   );

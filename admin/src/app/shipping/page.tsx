@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Box, Button, IconButton, Chip } from '@mui/material';
+import { Box, Button, IconButton, Chip, Typography } from '@mui/material';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -12,6 +12,7 @@ import { useNotification } from '@/contexts/NotificationContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { PageHeader, SearchFilterBar, FilterConfig } from '@/components/molecules';
 import { LoadingSpinner, StatusChip } from '@/components/atoms';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface ShippingRule {
   _id: string;
@@ -62,20 +63,42 @@ export default function ShippingPage() {
   const { confirm } = useConfirm();
   const [shippingRules, setShippingRules] = useState<ShippingRule[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+
+  // Pagination & Filter states
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 20 });
+  const [totalRows, setTotalRows] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
   const [activeFilters, setActiveFilters] = useState<Record<string, string | string[]>>({});
+
+  const debouncedSearch = useDebounce(searchQuery, 500);
 
   useEffect(() => {
     fetchShippingRules();
-  }, []);
+  }, [paginationModel, debouncedSearch, activeFilters]);
 
   const fetchShippingRules = async () => {
     try {
-      const response = await api.get('/shipping/rules');
-      setShippingRules(response.data.data || response.data.shippingRules || []);
+      setLoading(true);
+      const params: any = {
+        page: paginationModel.page + 1,
+        limit: paginationModel.pageSize,
+        search: debouncedSearch,
+      };
+
+      if (activeFilters.status) {
+        params.isActive = activeFilters.status === 'active';
+      }
+      if (activeFilters.rateType) {
+        params.rateType = activeFilters.rateType;
+      }
+
+      const response = await api.get('/shipping/rules', { params });
+      setShippingRules(response.data.data || []);
+      setTotalRows(response.data.pagination?.total || 0);
     } catch (err) {
       console.error('Failed to fetch shipping rules');
       setShippingRules([]);
+      setTotalRows(0);
     } finally {
       setLoading(false);
     }
@@ -94,7 +117,7 @@ export default function ShippingPage() {
   };
 
   const handleSearchChange = useCallback((value: string) => {
-    setSearch(value);
+    setSearchQuery(value);
   }, []);
 
   const handleFilterChange = useCallback((filters: Record<string, string | string[]>) => {
@@ -132,13 +155,14 @@ export default function ShippingPage() {
       headerName: 'Name',
       flex: 1.5,
       minWidth: 180,
+      renderCell: (params: GridRenderCellParams) => <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Typography variant="body2" fontWeight={600}>{params.row.name}</Typography></Box>,
     },
     {
       field: 'storeId',
       headerName: 'Store',
       flex: 1,
       minWidth: 120,
-      renderCell: (params: GridRenderCellParams) => params.row.storeId?.name || '-',
+      renderCell: (params: GridRenderCellParams) => <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Typography variant="body2" fontWeight={600}>{params.row.storeId?.name || '-'}</Typography></Box>,
     },
     {
       field: 'geoGroupId',
@@ -149,12 +173,14 @@ export default function ShippingPage() {
         const geoGroup = params.row.geoGroupId;
         if (!geoGroup) return <Chip label="All Countries" size="small" variant="outlined" />;
         return (
-          <Chip
-            label={`${geoGroup.name} (${geoGroup.countries?.length || 0})`}
-            size="small"
-            variant="outlined"
-            color="info"
-          />
+          <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+            <Chip
+              label={`${geoGroup.name} (${geoGroup.countries?.length || 0})`}
+              size="small"
+              variant="outlined"
+              color="info"
+            />
+          </Box>
         );
       },
     },
@@ -163,12 +189,14 @@ export default function ShippingPage() {
       headerName: 'Rate Type',
       width: 110,
       renderCell: (params: GridRenderCellParams) => (
-        <Chip
-          label={params.row.rateType}
-          size="small"
-          color={getRateTypeColor(params.row.rateType) as any}
-          sx={{ textTransform: 'capitalize' }}
-        />
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+          <Chip
+            label={params.row.rateType}
+            size="small"
+            color={getRateTypeColor(params.row.rateType) as any}
+            sx={{ textTransform: 'capitalize' }}
+          />
+        </Box>
       ),
     },
     {
@@ -176,7 +204,7 @@ export default function ShippingPage() {
       headerName: 'Rate',
       width: 120,
       renderCell: (params: GridRenderCellParams) => (
-        <strong>{formatRate(params.row)}</strong>
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><strong>{formatRate(params.row)}</strong></Box>
       ),
     },
     {
@@ -186,7 +214,7 @@ export default function ShippingPage() {
       minWidth: 150,
       renderCell: (params: GridRenderCellParams) => {
         const categories = params.row.categoryIds || [];
-        if (categories.length === 0) return <span style={{ color: '#999' }}>All</span>;
+        if (categories.length === 0) return <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><span style={{ color: '#999' }}>All</span></Box>;
         return (
           <Box display="flex" gap={0.5} flexWrap="wrap">
             {categories.slice(0, 2).map((cat: any) => (
@@ -204,7 +232,7 @@ export default function ShippingPage() {
       headerName: 'Status',
       width: 100,
       renderCell: (params: GridRenderCellParams) => (
-        <StatusChip active={params.row.isActive} />
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><StatusChip active={params.row.isActive} /></Box>
       ),
     },
     {
@@ -213,7 +241,7 @@ export default function ShippingPage() {
       width: 100,
       sortable: false,
       renderCell: (params: GridRenderCellParams) => (
-        <Box>
+        <Box display="flex" flexDirection="row" justifyContent="center" height="100%">
           <IconButton size="small" onClick={() => router.push(`/shipping/${params.row._id}`)}>
             <EditIcon fontSize="small" />
           </IconButton>
@@ -225,23 +253,9 @@ export default function ShippingPage() {
     },
   ];
 
-  // Filter data based on search and filters
-  const filteredRules = shippingRules.filter(rule => {
-    const matchesSearch = search === '' ||
-      rule.name.toLowerCase().includes(search.toLowerCase());
 
-    const statusFilter = activeFilters.status as string;
-    const matchesStatus = !statusFilter ||
-      (statusFilter === 'active' && rule.isActive) ||
-      (statusFilter === 'inactive' && !rule.isActive);
 
-    const rateTypeFilter = activeFilters.rateType as string;
-    const matchesRateType = !rateTypeFilter || rule.rateType === rateTypeFilter;
 
-    return matchesSearch && matchesStatus && matchesRateType;
-  });
-
-  if (loading) return <LoadingSpinner message="Loading shipping rules..." />;
 
   return (
     <Box>
@@ -260,7 +274,7 @@ export default function ShippingPage() {
       </Box>
 
       <SearchFilterBar
-        searchValue={search}
+        searchValue={searchQuery}
         onSearchChange={handleSearchChange}
         searchPlaceholder="Search shipping rules..."
         filters={filterConfigs}
@@ -268,23 +282,42 @@ export default function ShippingPage() {
         onFilterChange={handleFilterChange}
       />
 
-      <DataGrid
-        rows={filteredRules}
-        columns={columns}
-        getRowId={(row) => row._id}
-        pageSizeOptions={[10, 25, 50]}
-        initialState={{
-          pagination: { paginationModel: { pageSize: 10 } },
-          sorting: { sortModel: [{ field: 'priority', sort: 'desc' }] },
-        }}
-        disableRowSelectionOnClick
-        autoHeight
-        sx={{
-          bgcolor: 'background.paper',
-          borderRadius: 2,
-          '& .MuiDataGrid-cell': { py: 1 },
-        }}
-      />
+      <Box sx={{ width: '100%', position: 'relative' }}>
+        {loading && (
+          <Box sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1,
+            backgroundColor: 'rgba(255, 255, 255, 0.5)'
+          }}>
+            <LoadingSpinner />
+          </Box>
+        )}
+        <DataGrid
+          rows={shippingRules}
+          columns={columns}
+          getRowId={(row) => row._id}
+          paginationMode="server"
+          rowCount={totalRows}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          pageSizeOptions={[10, 25, 50]}
+          disableRowSelectionOnClick
+          autoHeight
+          loading={loading}
+          sx={{
+            bgcolor: 'background.paper',
+            borderRadius: 2,
+            '& .MuiDataGrid-cell': { py: 1 },
+          }}
+        />
+      </Box>
     </Box>
   );
 }

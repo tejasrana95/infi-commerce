@@ -31,25 +31,48 @@ export default function BrandShowcasesPage() {
     const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
 
     const fetchShowcases = async () => {
+        setLoading(true);
         try {
-            setLoading(true);
-            const params: any = {};
-            if (filterStore) params.storeId = filterStore;
-            if (filterStatus) params.isActive = filterStatus === 'active';
+            const params = new URLSearchParams();
+            params.append('page', String(paginationModel.page + 1));
+            params.append('limit', String(paginationModel.pageSize));
+            if (debouncedSearch) params.append('search', debouncedSearch);
+            if (filterStore) params.append('storeId', filterStore);
+            if (filterStatus) params.append('isActive', filterStatus === 'active' ? 'true' : filterStatus === 'inactive' ? 'false' : '');
 
-            const response = await api.get('/brand-showcases', { params });
+            const response = await api.get(`/brand-showcases?${params.toString()}`);
             setShowcases(response.data.showcases || []);
+            setTotalRows(response.data.pagination?.total || 0);
         } catch (error) {
             console.error('Error fetching brand showcases:', error);
             showNotification('Failed to load brand showcases', 'error');
+            setShowcases([]);
+            setTotalRows(0);
         } finally {
             setLoading(false);
         }
     };
 
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+
+    // Pagination state
+    const [paginationModel, setPaginationModel] = useState({
+        page: 0,
+        pageSize: 10,
+    });
+    const [totalRows, setTotalRows] = useState(0);
+
+    // Debounce search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
     useEffect(() => {
         fetchShowcases();
-    }, [filterStore, filterStatus]);
+    }, [paginationModel, debouncedSearch, filterStore, filterStatus]);
 
     const handleEdit = (id: string) => {
         router.push(`/brand-showcases/${id}`);
@@ -76,11 +99,7 @@ export default function BrandShowcasesPage() {
         return storeId as string || '-';
     };
 
-    const filteredShowcases = useMemo(() => {
-        if (!searchQuery) return showcases;
-        const q = searchQuery.toLowerCase();
-        return showcases.filter(s => s.name.toLowerCase().includes(q));
-    }, [showcases, searchQuery]);
+
 
     const columns: GridColDef[] = [
         {
@@ -89,18 +108,20 @@ export default function BrandShowcasesPage() {
             width: 150,
             sortable: false,
             renderCell: (params: GridRenderCellParams) => (
-                <AvatarGroup max={4} sx={{ justifyContent: 'flex-start' }}>
-                    {params.row.logos?.slice(0, 4).map((logo: any, idx: number) => (
-                        <Avatar
-                            key={idx}
-                            src={logo.image}
-                            variant="rounded"
-                            sx={{ width: 32, height: 32, bgcolor: 'background.paper' }}
-                        >
-                            <ImageIcon fontSize="small" />
-                        </Avatar>
-                    ))}
-                </AvatarGroup>
+                <Box display="flex" flexDirection="column" justifyContent="center" gap={1} alignItems="start" height="100%">
+                    <AvatarGroup max={4} sx={{ justifyContent: 'flex-start' }}>
+                        {params.row.logos?.slice(0, 4).map((logo: any, idx: number) => (
+                            <Avatar
+                                key={idx}
+                                src={logo.image}
+                                variant="rounded"
+                                sx={{ width: 32, height: 32, bgcolor: 'background.paper' }}
+                            >
+                                <ImageIcon fontSize="small" />
+                            </Avatar>
+                        ))}
+                    </AvatarGroup>
+                </Box>
             ),
         },
         {
@@ -109,7 +130,7 @@ export default function BrandShowcasesPage() {
             flex: 1,
             minWidth: 200,
             renderCell: (params: GridRenderCellParams) => (
-                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
                     <Typography
                         variant="body2"
                         fontWeight={600}
@@ -129,11 +150,13 @@ export default function BrandShowcasesPage() {
             headerName: 'Layout',
             width: 100,
             renderCell: (params: GridRenderCellParams) => (
-                <Chip
-                    label={params.row.settings?.layout || 'grid'}
-                    size="small"
-                    variant="outlined"
-                />
+                <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
+                    <Chip
+                        label={params.row.settings?.layout || 'grid'}
+                        size="small"
+                        variant="outlined"
+                    />
+                </Box>
             ),
         },
         {
@@ -141,7 +164,9 @@ export default function BrandShowcasesPage() {
             headerName: 'Columns',
             width: 80,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2">{params.row.settings?.columns || 6}</Typography>
+                <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
+                    <Typography variant="body2">{params.row.settings?.columns || 6}</Typography>
+                </Box>
             ),
         },
         {
@@ -149,7 +174,9 @@ export default function BrandShowcasesPage() {
             headerName: 'Store',
             width: 130,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+                <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
+                    <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+                </Box>
             ),
         },
         {
@@ -157,7 +184,9 @@ export default function BrandShowcasesPage() {
             headerName: 'Status',
             width: 100,
             renderCell: (params: GridRenderCellParams) => (
-                <StatusChip active={params.row.isActive} />
+                <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
+                    <StatusChip active={params.row.isActive} />
+                </Box>
             ),
         },
         {
@@ -166,7 +195,7 @@ export default function BrandShowcasesPage() {
             width: 100,
             sortable: false,
             renderCell: (params: GridRenderCellParams) => (
-                <Box>
+                <Box display="flex" flexDirection="row" justifyContent="start" alignItems="center" height="100%">
                     <Tooltip title="Edit">
                         <IconButton size="small" onClick={() => handleEdit(params.row._id)}>
                             <EditIcon fontSize="small" />
@@ -222,24 +251,26 @@ export default function BrandShowcasesPage() {
                 onFilterChange={(filters) => setFilterStatus(filters.status as string || '')}
             />
 
-            {filteredShowcases.length === 0 ? (
+            {showcases.length === 0 && !searchQuery && !filterStore && !filterStatus ? (
                 <EmptyState
                     message="No brand showcases found. Create a collection of brand logos to display on your store."
                     actionLabel="Add Showcase"
                     onAction={() => router.push('/brand-showcases/new')}
                 />
             ) : (
-                <Box sx={{ height: 600, width: '100%' }}>
+                <Box sx={{ width: '100%' }}>
                     <DataGrid
-                        rows={filteredShowcases}
+                        rows={showcases}
                         columns={columns}
                         getRowId={(row) => row._id}
                         pageSizeOptions={[10, 25, 50]}
-                        initialState={{
-                            pagination: { paginationModel: { pageSize: 25 } },
-                        }}
+                        paginationMode="server"
+                        rowCount={totalRows}
+                        paginationModel={paginationModel}
+                        onPaginationModelChange={setPaginationModel}
                         disableRowSelectionOnClick
                         sx={dataGridStyles}
+                        loading={loading}
                     />
                 </Box>
             )}

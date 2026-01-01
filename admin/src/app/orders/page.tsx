@@ -164,9 +164,11 @@ export default function OrdersPage() {
             headerName: 'Order #',
             width: 180,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2" fontWeight={600}>
-                    {params.value}
-                </Typography>
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Typography variant="body2" fontWeight={600}>
+                        {params.value}
+                    </Typography>
+                </Box>
             ),
         },
         {
@@ -206,9 +208,11 @@ export default function OrdersPage() {
             headerName: 'Total',
             width: 120,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2" fontWeight={600}>
-                    {convertAndFormat(params.row.total, params.row.currency)}
-                </Typography>
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Typography variant="body2" fontWeight={600}>
+                        {convertAndFormat(params.row.total, params.row.currency)}
+                    </Typography>
+                </Box>
             ),
         },
         {
@@ -265,9 +269,11 @@ export default function OrdersPage() {
             width: 80,
             sortable: false,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2">
-                    {params.value?.length || 0}
-                </Typography>
+                <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" height="100%">
+                    <Typography variant="body2">
+                        {params.value?.length || 0}
+                    </Typography>
+                </Box>
             ),
         },
         {
@@ -276,7 +282,7 @@ export default function OrdersPage() {
             width: 100,
             sortable: false,
             renderCell: (params: GridRenderCellParams) => (
-                <Box>
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
                     <Tooltip title="View Order">
                         <IconButton onClick={() => handleView(params.row._id)} size="small" color="primary">
                             <VisibilityIcon fontSize="small" />
@@ -396,7 +402,7 @@ export default function OrdersPage() {
                 </Stack>
             </Box>
 
-            <Box sx={{ height: 600, width: '100%' }}>
+            <Box sx={{ width: '100%' }}>
                 <DataGrid
                     rows={orders}
                     columns={columns}
@@ -410,7 +416,7 @@ export default function OrdersPage() {
                     sortModel={sortModel}
                     onSortModelChange={setSortModel}
                     pageSizeOptions={[10, 25, 50, 100]}
-                    disableRowSelectionOnClick
+                    onRowClick={(params) => handleView(params.row._id)}
                     sx={dataGridStyles}
                     rowHeight={70}
                 />

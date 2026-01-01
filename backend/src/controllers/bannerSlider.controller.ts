@@ -7,26 +7,48 @@ import { asyncHandler } from '../middleware/validation';
 // @route   GET /api/banner-sliders
 // @access  Private/Admin
 export const getBannerSliders = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
     const filter: any = {};
 
     if (req.query.storeId) {
         filter.storeId = req.query.storeId;
     } else if (req.user?.role === 'super_admin') {
         // Super admin can see all
-    } else if (req.user?.storeId) {
-        filter.storeId = req.user.storeId;
+    } else if (req.user?.storeIds?.length) {
+        filter.storeId = req.user.storeIds[0];
     }
 
     if (req.query.isActive !== undefined) {
         filter.isActive = req.query.isActive === 'true';
     }
 
-    const sliders = await BannerSlider.find(filter)
-        .populate('storeId', 'name')
-        .populate('slides.bannerId')
-        .sort({ createdAt: -1 });
+    if (req.query.search) {
+        filter.name = { $regex: req.query.search, $options: 'i' };
+    }
 
-    res.json({ success: true, count: sliders.length, sliders });
+    const [sliders, total] = await Promise.all([
+        BannerSlider.find(filter)
+            .populate('storeId', 'name slug')
+            .populate('slides.bannerId')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit),
+        BannerSlider.countDocuments(filter)
+    ]);
+
+    res.json({
+        success: true,
+        sliders,
+        pagination: {
+            total,
+            page,
+            limit,
+            pages: Math.ceil(total / limit)
+        }
+    });
 });
 
 // @desc    Get single banner slider
@@ -51,8 +73,8 @@ export const getBannerSliderById = asyncHandler(async (req: Request, res: Respon
 export const createBannerSlider = asyncHandler(async (req: AuthRequest, res: Response) => {
     const sliderData = req.body;
 
-    if (!sliderData.storeId && req.user?.storeId) {
-        sliderData.storeId = req.user.storeId;
+    if (!sliderData.storeId && req.user?.storeIds?.length) {
+        sliderData.storeId = req.user.storeIds[0];
     }
 
     const slider = await BannerSlider.create(sliderData);

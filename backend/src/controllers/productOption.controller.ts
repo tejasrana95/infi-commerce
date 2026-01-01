@@ -108,6 +108,10 @@ export const createProductOption = asyncHandler(async (req: AuthRequest, res: Re
  *         description: Product options retrieved successfully
  */
 export const getProductOptions = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
     const filter: any = {};
 
     const isStoreAdmin = req.user?.role === 'store_admin';
@@ -119,15 +123,40 @@ export const getProductOptions = asyncHandler(async (req: AuthRequest, res: Resp
         filter.storeId = req.query.storeId;
     }
 
+    if (req.query.type) {
+        filter.type = req.query.type;
+    }
+
     if (req.query.isFilterable !== undefined) {
         filter.isFilterable = req.query.isFilterable === 'true';
     }
 
-    const productOptions = await ProductOption.find(filter)
-        .populate('storeId', 'name slug')
-        .sort({ sortOrder: 1, name: 1 });
+    if (req.query.search) {
+        const searchRegex = { $regex: req.query.search as string, $options: 'i' };
+        filter.$or = [
+            { name: searchRegex },
+            { slug: searchRegex }
+        ];
+    }
 
-    res.json({ productOptions });
+    const [productOptions, total] = await Promise.all([
+        ProductOption.find(filter)
+            .populate('storeId', 'name slug')
+            .sort({ sortOrder: 1, name: 1 })
+            .skip(skip)
+            .limit(limit),
+        ProductOption.countDocuments(filter)
+    ]);
+
+    res.json({
+        productOptions,
+        pagination: {
+            page,
+            limit,
+            total,
+            pages: Math.ceil(total / limit)
+        }
+    });
 });
 
 /**

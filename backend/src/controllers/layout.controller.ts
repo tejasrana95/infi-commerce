@@ -101,6 +101,10 @@ export const createLayout = asyncHandler(async (req: AuthRequest, res: Response)
  *         description: Layouts retrieved successfully
  */
 export const getLayouts = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
     const filter: any = {};
 
     // For admin requests, storeId is optional
@@ -129,11 +133,30 @@ export const getLayouts = asyncHandler(async (req: AuthRequest, res: Response) =
         filter.isTemplate = false; // Default to showing actual layouts, not templates
     }
 
-    const layouts = await Layout.find(filter)
-        .populate('storeId', 'name domain')
-        .sort({ isDefault: -1, updatedAt: -1 });
+    if (req.query.search) {
+        const searchRegex = { $regex: req.query.search, $options: 'i' };
+        filter.name = searchRegex;
+    }
 
-    res.json({ data: layouts });
+    const [layouts, total] = await Promise.all([
+        Layout.find(filter)
+            .populate('storeId', 'name domain')
+            .sort({ isDefault: -1, updatedAt: -1 })
+            .skip(skip)
+            .limit(limit),
+        Layout.countDocuments(filter)
+    ]);
+
+    res.json({
+        success: true,
+        data: layouts,
+        pagination: {
+            total,
+            page,
+            limit,
+            pages: Math.ceil(total / limit)
+        }
+    });
 });
 
 /**

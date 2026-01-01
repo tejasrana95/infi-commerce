@@ -105,6 +105,10 @@ export const createGeo = asyncHandler(async (req: AuthRequest, res: Response) =>
  *         description: Geo locations retrieved successfully
  */
 export const getGeos = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
     const filter: any = {};
 
     if (req.query.type) {
@@ -121,11 +125,33 @@ export const getGeos = asyncHandler(async (req: AuthRequest, res: Response) => {
         filter.isActive = req.query.isActive === 'true';
     }
 
-    const geos = await Geo.find(filter)
-        .populate('parentId', 'name type code')
-        .sort({ type: 1, name: 1 });
+    if (req.query.search) {
+        const searchRegex = { $regex: req.query.search, $options: 'i' };
+        filter.$or = [
+            { name: searchRegex },
+            { code: searchRegex }
+        ];
+    }
 
-    res.json({ data: geos });
+    const [geos, total] = await Promise.all([
+        Geo.find(filter)
+            .populate('parentId', 'name type code')
+            .sort({ type: 1, name: 1 })
+            .skip(skip)
+            .limit(limit),
+        Geo.countDocuments(filter)
+    ]);
+
+    res.json({
+        success: true,
+        data: geos,
+        pagination: {
+            total,
+            page,
+            limit,
+            pages: Math.ceil(total / limit)
+        }
+    });
 });
 
 /**

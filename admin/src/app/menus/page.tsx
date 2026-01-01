@@ -14,6 +14,7 @@ import { LoadingSpinner, StatusChip } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { createDataGridStyles } from '@/utils/styles';
+import { useDebounce } from '@/hooks/useDebounce';
 
 export default function MenusPage() {
     const router = useRouter();
@@ -24,25 +25,43 @@ export default function MenusPage() {
     const { confirm } = useConfirm();
     const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
 
-    // Filter states
+    // Pagination & Filter states
+    const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 20 });
+    const [totalRows, setTotalRows] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStore, setFilterStore] = useState<string>('');
     const [filterStatus, setFilterStatus] = useState<string>('');
     const [filterLocation, setFilterLocation] = useState<string>('');
 
+    const debouncedSearch = useDebounce(searchQuery, 500);
+
     useEffect(() => {
         fetchMenus();
-    }, []);
+    }, [paginationModel, debouncedSearch, filterStore, filterLocation, filterStatus]);
 
     const fetchMenus = async () => {
         try {
             setLoading(true);
-            const response = await api.get('/menus');
+            const params: any = {
+                page: paginationModel.page + 1,
+                limit: paginationModel.pageSize,
+                search: debouncedSearch,
+                storeId: filterStore,
+                location: filterLocation,
+            };
+
+            if (filterStatus) {
+                params.isActive = filterStatus === 'active';
+            }
+
+            const response = await api.get('/menus', { params });
             setMenus(response.data.menus || []);
+            setTotalRows(response.data.pagination?.total || 0);
         } catch (err: any) {
             console.error('Failed to fetch menus', err);
             showNotification(err.response?.data?.message || 'Failed to load menus', 'error');
             setMenus([]);
+            setTotalRows(0);
         } finally {
             setLoading(false);
         }
@@ -52,7 +71,7 @@ export default function MenusPage() {
         if (!await confirm({ title: 'Delete Menu', message: 'Are you sure you want to delete this menu?', severity: 'error' })) return;
         try {
             await api.delete(`/menus/${id}`);
-            setMenus(menus.filter(m => m._id !== id));
+            fetchMenus(); // Re-fetch to update list
             showNotification('Menu deleted successfully', 'success');
         } catch (err: any) {
             showNotification(err.response?.data?.message || 'Failed to delete menu', 'error');
@@ -96,43 +115,19 @@ export default function MenusPage() {
         return colors[location] || 'default';
     };
 
-    const filteredRows = menus.filter((menu) => {
-        const query = searchQuery.toLowerCase();
-
-        // Search filter
-        const matchesSearch = !searchQuery || (
-            (menu.name && menu.name.toLowerCase().includes(query)) ||
-            (menu.slug && menu.slug.toLowerCase().includes(query)) ||
-            (menu.description && menu.description.toLowerCase().includes(query))
-        );
-
-        // Store filter
-        const menuStoreId = typeof menu.storeId === 'object' && menu.storeId !== null
-            ? menu.storeId._id
-            : menu.storeId;
-        const matchesStore = !filterStore || menuStoreId === filterStore;
-
-        // Status filter
-        const matchesStatus = !filterStatus || (
-            filterStatus === 'active' ? menu.isActive : !menu.isActive
-        );
-
-        // Location filter
-        const matchesLocation = !filterLocation || menu.location === filterLocation;
-
-        return matchesSearch && matchesStore && matchesStatus && matchesLocation;
-    });
-
     const columns: GridColDef[] = [
         {
             field: 'icon',
             headerName: '',
             width: 60,
             sortable: false,
+            display: 'flex',
             renderCell: () => (
-                <Avatar variant="rounded" sx={{ width: 40, height: 40, bgcolor: 'info.light' }}>
-                    <MenuIcon fontSize="small" color="info" />
-                </Avatar>
+                <Box display="flex" alignItems="center" justifyContent="center" height="100%" width="100%">
+                    <Avatar variant="rounded" sx={{ width: 40, height: 40, bgcolor: 'info.light' }}>
+                        <MenuIcon fontSize="small" color="info" />
+                    </Avatar>
+                </Box>
             ),
         },
         {
@@ -140,6 +135,7 @@ export default function MenusPage() {
             headerName: 'Name',
             flex: 1,
             minWidth: 180,
+            display: 'flex',
             renderCell: (params: GridRenderCellParams) => (
                 <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
                     <Typography
@@ -158,34 +154,43 @@ export default function MenusPage() {
             field: 'storeId',
             headerName: 'Store',
             width: 140,
+            display: 'flex',
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+                <Box display="flex" alignItems="center" height="100%">
+                    <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+                </Box>
             ),
         },
         {
             field: 'location',
             headerName: 'Location',
             width: 140,
+            display: 'flex',
             renderCell: (params: GridRenderCellParams) => (
-                <Chip
-                    label={getLocationLabel(params.value)}
-                    size="small"
-                    color={getLocationColor(params.value)}
-                    variant="outlined"
-                />
+                <Box display="flex" alignItems="center" height="100%">
+                    <Chip
+                        label={getLocationLabel(params.value)}
+                        size="small"
+                        color={getLocationColor(params.value)}
+                        variant="outlined"
+                    />
+                </Box>
             ),
         },
         {
             field: 'settings',
             headerName: 'Style',
             width: 100,
+            display: 'flex',
             renderCell: (params: GridRenderCellParams) => (
-                <Chip
-                    label={params.value?.style || 'horizontal'}
-                    size="small"
-                    variant="filled"
-                    sx={{ textTransform: 'capitalize', fontSize: '0.7rem' }}
-                />
+                <Box display="flex" alignItems="center" height="100%">
+                    <Chip
+                        label={params.value?.style || 'horizontal'}
+                        size="small"
+                        variant="filled"
+                        sx={{ textTransform: 'capitalize', fontSize: '0.7rem' }}
+                    />
+                </Box>
             ),
         },
         {
@@ -193,23 +198,33 @@ export default function MenusPage() {
             headerName: 'Items',
             width: 80,
             align: 'center',
+            headerAlign: 'center',
+            display: 'flex',
             renderCell: (params: GridRenderCellParams) => (
-                <Chip label={params.value?.length || 0} size="small" variant="outlined" />
+                <Box display="flex" alignItems="center" justifyContent="center" height="100%" width="100%">
+                    <Chip label={params.value?.length || 0} size="small" variant="outlined" />
+                </Box>
             ),
         },
         {
             field: 'isActive',
             headerName: 'Status',
             width: 100,
-            renderCell: (params: GridRenderCellParams) => <StatusChip active={params.value as boolean} />,
+            display: 'flex',
+            renderCell: (params: GridRenderCellParams) => (
+                <Box display="flex" alignItems="center" height="100%">
+                    <StatusChip active={params.value as boolean} />
+                </Box>
+            ),
         },
         {
             field: 'actions',
             headerName: 'Actions',
             width: 120,
             sortable: false,
+            display: 'flex',
             renderCell: (params: GridRenderCellParams) => (
-                <Box>
+                <Box display="flex" alignItems="center" height="100%">
                     <Tooltip title="Edit">
                         <IconButton onClick={() => handleEdit(params.row._id)} size="small" color="primary">
                             <EditIcon fontSize="small" />
@@ -225,9 +240,7 @@ export default function MenusPage() {
         },
     ];
 
-    if (loading) return <LoadingSpinner message="Loading menus..." />;
-
-    if (menus.length === 0 && !searchQuery && !filterStore && !filterStatus && !filterLocation) {
+    if (!loading && menus.length === 0 && !searchQuery && !filterStore && !filterStatus && !filterLocation) {
         return (
             <Box>
                 <PageHeader title="Menus" subtitle="Manage navigation menus for header, footer, sidebar" actionLabel="Create Menu" onAction={handleCreate} />
@@ -286,18 +299,36 @@ export default function MenusPage() {
                 onStoreFilterChange={setFilterStore}
             />
 
-            <Box sx={{ height: 600, width: '100%' }}>
+            <Box sx={{ width: '100%', position: 'relative' }}>
+                {loading && (
+                    <Box sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1,
+                        backgroundColor: 'rgba(255, 255, 255, 0.5)'
+                    }}>
+                        <LoadingSpinner />
+                    </Box>
+                )}
                 <DataGrid
-                    rows={filteredRows}
+                    rows={menus}
                     columns={columns}
                     getRowId={(row) => row._id}
-                    pageSizeOptions={[10, 25, 50]}
-                    initialState={{
-                        pagination: { paginationModel: { pageSize: 25 } },
-                    }}
+                    paginationMode="server"
+                    rowCount={totalRows}
+                    paginationModel={paginationModel}
+                    onPaginationModelChange={setPaginationModel}
+                    pageSizeOptions={[10, 20, 50]}
                     disableRowSelectionOnClick
                     sx={dataGridStyles}
                     rowHeight={60}
+                    loading={loading}
                 />
             </Box>
         </Box>

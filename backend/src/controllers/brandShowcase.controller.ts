@@ -7,25 +7,47 @@ import { asyncHandler } from '../middleware/validation';
 // @route   GET /api/brand-showcases
 // @access  Private/Admin
 export const getBrandShowcases = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
     const filter: any = {};
 
     if (req.query.storeId) {
         filter.storeId = req.query.storeId;
     } else if (req.user?.role === 'super_admin') {
         // Super admin can see all
-    } else if (req.user?.storeId) {
-        filter.storeId = req.user.storeId;
+    } else if (req.user?.storeIds?.length) {
+        filter.storeId = req.user.storeIds[0];
     }
 
     if (req.query.isActive !== undefined) {
         filter.isActive = req.query.isActive === 'true';
     }
 
-    const showcases = await BrandShowcase.find(filter)
-        .populate('storeId', 'name')
-        .sort({ createdAt: -1 });
+    if (req.query.search) {
+        filter.name = { $regex: req.query.search, $options: 'i' };
+    }
 
-    res.json({ success: true, count: showcases.length, showcases });
+    const [showcases, total] = await Promise.all([
+        BrandShowcase.find(filter)
+            .populate('storeId', 'name slug')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit),
+        BrandShowcase.countDocuments(filter)
+    ]);
+
+    res.json({
+        success: true,
+        showcases,
+        pagination: {
+            total,
+            page,
+            limit,
+            pages: Math.ceil(total / limit)
+        }
+    });
 });
 
 // @desc    Get single brand showcase
@@ -48,8 +70,8 @@ export const getBrandShowcaseById = asyncHandler(async (req: Request, res: Respo
 export const createBrandShowcase = asyncHandler(async (req: AuthRequest, res: Response) => {
     const showcaseData = req.body;
 
-    if (!showcaseData.storeId && req.user?.storeId) {
-        showcaseData.storeId = req.user.storeId;
+    if (!showcaseData.storeId && req.user?.storeIds?.length) {
+        showcaseData.storeId = req.user.storeIds[0];
     }
 
     const showcase = await BrandShowcase.create(showcaseData);

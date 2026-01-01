@@ -29,18 +29,49 @@ export default function GeoGroupsPage() {
   const [selectedGeoGroup, setSelectedGeoGroup] = useState<GeoGroup | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  /* Pagination & Search State */
+  const [paginationModel, setPaginationModel] = useState({
+    page: 0,
+    pageSize: 10,
+  });
+  const [totalRows, setTotalRows] = useState(0);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  /* Debounce Search */
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [paginationModel, debouncedSearch]);
 
   const fetchData = async () => {
     try {
+      setLoading(true);
+      const params = new URLSearchParams({
+        page: (paginationModel.page + 1).toString(),
+        limit: paginationModel.pageSize.toString(),
+        search: debouncedSearch,
+      });
+
       const [groupsRes, geosRes] = await Promise.all([
-        api.get('/geo-groups'),
+        api.get(`/geo-groups?${params.toString()}`),
         api.get('/geo')
       ]);
-      setGeoGroups(groupsRes.data.data || groupsRes.data.geoGroups || []);
-      // Filter to only countries
+
+      if (groupsRes.data.success) {
+        setGeoGroups(groupsRes.data.geoGroups);
+        setTotalRows(groupsRes.data.pagination.total);
+      } else {
+        setGeoGroups(groupsRes.data.data || groupsRes.data.geoGroups || []);
+        setTotalRows(groupsRes.data.data?.length || 0);
+      }
+
+      // Filter to only countries for the form dropdown
       const allGeos = geosRes.data.data || geosRes.data || [];
       setAvailableGeos(allGeos.filter((g: Geo) => g.type === 'country'));
     } catch (err) {
@@ -54,8 +85,8 @@ export default function GeoGroupsPage() {
     if (!await confirm({ title: 'Delete Geo Group', message: 'Are you sure you want to delete this group?', severity: 'error' })) return;
     try {
       await api.delete(`/geo-groups/${id}`);
-      setGeoGroups(geoGroups.filter(g => g._id !== id));
       showNotification('Geo group deleted successfully', 'success');
+      fetchData(); // Reload data
     } catch (err: any) {
       showNotification(err.response?.data?.message || 'Failed to delete', 'error');
     }
@@ -84,32 +115,14 @@ export default function GeoGroupsPage() {
     try {
       if (selectedGeoGroup) {
         // Update
-        const response = await api.put(`/geo-groups/${selectedGeoGroup._id}`, data);
-        // Refetch to ensure fresh data
-        fetchData();
+        await api.put(`/geo-groups/${selectedGeoGroup._id}`, data);
         showNotification('Geo group updated successfully', 'success');
       } else {
         // Create
-        // Store ID is usually required by backend but missing in form default?
-        // Checking controller: body('storeId').isMongoId().withMessage('Valid store ID is required')
-        // Wait, GeoGroupForm doesn't have storeId field.
-        // If the user context implies a single store or it's handled via header/auth, good.
-        // But controller explicitly validates storeId in body.
-        // Let's check how NewGeoGroupPage handled it.
-        // ... It didn't!
-        // Wait, let's re-read NewGeoGroupPage code I saw earlier.
-        // It just calls api.post('/geo-groups', formData);
-        // And formData was { name: '', description: '', geos: [], isActive: true }.
-        // So if controller REQUIRES storeId, the previous page was likely failing or I missed something.
-        // Controller: `body('storeId').isMongoId().withMessage('Valid store ID is required')`
-        // This suggests validation failure unless middleware injects it or strict mode is off?
-        // Or maybe the user is expected to be part of a store context.
-        // I'll leave it as is for now, matching the previous page implementation.
-        // If it fails, the error notification will show.
-        const response = await api.post('/geo-groups', data);
-        fetchData();
+        await api.post('/geo-groups', data);
         showNotification('Geo group created successfully', 'success');
       }
+      fetchData();
       handleClose();
     } catch (err: any) {
       showNotification(err.response?.data?.message || 'Operation failed', 'error');
@@ -123,13 +136,7 @@ export default function GeoGroupsPage() {
     setSearchQuery(value);
   };
 
-  const filteredGeoGroups = geoGroups.filter((group) => {
-    const query = searchQuery.toLowerCase();
-    return (
-      group?.name?.toLowerCase().includes(query) ||
-      group?.description?.toLowerCase().includes(query)
-    );
-  });
+  // Removed filteredGeoGroups
 
   const columns: GridColDef[] = [
     {
@@ -138,7 +145,7 @@ export default function GeoGroupsPage() {
       flex: 1,
       minWidth: 150,
       renderCell: (params: GridRenderCellParams) => (
-        <Typography variant="body2" fontWeight={600}>{params.row.name}</Typography>
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Typography variant="body2" fontWeight={600}>{params.row.name}</Typography></Box>
       )
     },
     {
@@ -147,9 +154,9 @@ export default function GeoGroupsPage() {
       flex: 1,
       minWidth: 200,
       renderCell: (params: GridRenderCellParams) => (
-        <Typography variant="body2" color="text.secondary" noWrap>
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Typography variant="body2" color="text.secondary" noWrap>
           {params.row.description || '-'}
-        </Typography>
+        </Typography></Box>
       )
     },
     {
@@ -159,18 +166,18 @@ export default function GeoGroupsPage() {
       align: 'center',
       headerAlign: 'center',
       renderCell: (params: GridRenderCellParams) => (
-        <Chip
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Chip
           label={params.row.countries?.length || params.row.geos?.length || 0}
           size="small"
           variant="outlined"
-        />
+        /></Box>
       )
     },
     {
       field: 'isActive',
       headerName: 'Status',
       width: 120,
-      renderCell: (params: GridRenderCellParams) => <StatusChip active={params.value as boolean} />,
+      renderCell: (params: GridRenderCellParams) => <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><StatusChip active={params.value as boolean} /></Box>,
     },
     {
       field: 'actions',
@@ -180,7 +187,7 @@ export default function GeoGroupsPage() {
       headerAlign: 'right',
       sortable: false,
       renderCell: (params: GridRenderCellParams) => (
-        <Box>
+        <Box display="flex" flexDirection="row" justifyContent="end" alignItems="center" height="100%">
           <Tooltip title="Edit">
             <IconButton onClick={() => handleEdit(params.row._id)} size="small" color="primary">
               <EditIcon fontSize="small" />
@@ -196,7 +203,7 @@ export default function GeoGroupsPage() {
     }
   ];
 
-  if (loading) return <LoadingSpinner message="Loading geo groups..." />;
+  if (loading && geoGroups.length === 0) return <LoadingSpinner message="Loading geo groups..." />;
 
   if (geoGroups.length === 0 && !searchQuery && !open) {
     return (
@@ -247,13 +254,22 @@ export default function GeoGroupsPage() {
         onSearchChange={handleSearchChange}
       />
 
-      <Box sx={{ height: 600, width: '100%' }}>
+      {loading && <LoadingSpinner message="Loading geo groups..." />}
+
+      <Box sx={{ width: '100%' }}>
         <DataGrid
-          rows={filteredGeoGroups}
+          rows={geoGroups}
           columns={columns}
           getRowId={(row) => row._id}
           sx={dataGridStyles}
           disableRowSelectionOnClick
+
+          paginationMode="server"
+          rowCount={totalRows}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          pageSizeOptions={[10, 25, 50]}
+          loading={loading}
         />
       </Box>
 

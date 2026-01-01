@@ -145,6 +145,10 @@ export const createSale = asyncHandler(async (req: AuthRequest, res: Response) =
  *         description: Sales retrieved successfully
  */
 export const getSales = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
     const filter: any = {};
 
     if (req.query.storeId) {
@@ -155,13 +159,34 @@ export const getSales = asyncHandler(async (req: AuthRequest, res: Response) => 
         filter.isActive = req.query.isActive === 'true';
     }
 
-    const sales = await Sale.find(filter)
-        .populate('storeId', 'name slug')
-        .populate('categoryIds', 'title slug')
-        .populate('productIds', 'name slug')
-        .sort({ priority: -1, createdAt: -1 });
+    if (req.query.search) {
+        const searchRegex = { $regex: req.query.search, $options: 'i' };
+        filter.$or = [
+            { name: searchRegex },
+            { description: searchRegex }
+        ];
+    }
 
-    res.json({ sales });
+    const [sales, total] = await Promise.all([
+        Sale.find(filter)
+            .populate('storeId', 'name slug')
+            .populate('categoryIds', 'title slug')
+            .populate('productIds', 'name slug')
+            .sort({ priority: -1, createdAt: -1 })
+            .skip(skip)
+            .limit(limit),
+        Sale.countDocuments(filter)
+    ]);
+
+    res.json({
+        sales,
+        pagination: {
+            total,
+            page,
+            limit,
+            pages: Math.ceil(total / limit),
+        },
+    });
 });
 
 /**

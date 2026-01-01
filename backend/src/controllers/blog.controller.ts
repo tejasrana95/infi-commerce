@@ -94,6 +94,10 @@ export const createBlogCategory = asyncHandler(async (req: AuthRequest, res: Res
  *         description: Categories retrieved successfully
  */
 export const getBlogCategories = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
     const filter: any = {};
 
     const isStoreAdmin = req.user?.role === 'store_admin';
@@ -101,7 +105,7 @@ export const getBlogCategories = asyncHandler(async (req: AuthRequest, res: Resp
 
     if (isStoreAdmin) {
         if (assignedStoreIds.length === 0) {
-            return res.json({ data: [], pagination: { total: 0, page: 1, pages: 0, limit: 0 } });
+            return res.json({ data: [], pagination: { total: 0, page, pages: 0, limit } });
         }
         filter.storeId = { $in: assignedStoreIds.map(id => new mongoose.Types.ObjectId(id)) };
     } else {
@@ -111,8 +115,19 @@ export const getBlogCategories = asyncHandler(async (req: AuthRequest, res: Resp
         }
     }
 
-    // Use aggregation to get dynamic post counts and "populate" storeId
-    const categories = await BlogCategory.aggregate([
+    if (req.query.isActive !== undefined) {
+        filter.isActive = req.query.isActive === 'true';
+    }
+
+    if (req.query.search) {
+        const searchRegex = { $regex: req.query.search, $options: 'i' };
+        filter.$or = [
+            { name: searchRegex },
+            { slug: searchRegex }
+        ];
+    }
+
+    const aggregationPipeline: any[] = [
         { $match: filter },
         {
             $lookup: {
@@ -156,9 +171,36 @@ export const getBlogCategories = asyncHandler(async (req: AuthRequest, res: Resp
         },
         { $project: { posts: 0, storeData: 0 } },
         { $sort: { sortOrder: 1, name: 1 } }
+    ];
+
+    const [result] = await BlogCategory.aggregate([
+        { $match: filter },
+        {
+            $facet: {
+                data: [
+                    ...aggregationPipeline.slice(1), // Apply lookup/sort etc
+                    { $skip: skip },
+                    { $limit: limit }
+                ],
+                total: [{ $count: 'count' }]
+            }
+        }
     ]);
 
-    res.json({ data: categories });
+    const categories = result.data;
+    const total = result.total[0]?.count || 0;
+
+    res.json({
+        success: true,
+        categories: categories, // Returning as 'categories' to match other endpoints, or 'data' for compat
+        data: categories, // Keep 'data' for backward compatibility
+        pagination: {
+            total,
+            page,
+            limit,
+            pages: Math.ceil(total / limit)
+        }
+    });
 });
 
 /**

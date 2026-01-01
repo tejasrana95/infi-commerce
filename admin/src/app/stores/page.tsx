@@ -25,18 +25,43 @@ export default function StoresPage() {
   const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Pagination state
+  const [paginationModel, setPaginationModel] = useState({
+    page: 0,
+    pageSize: 10,
+  });
+  const [totalRows, setTotalRows] = useState(0);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   useEffect(() => {
     fetchStores();
-  }, []);
+  }, [paginationModel, debouncedSearch]);
 
   const fetchStores = async () => {
+    setLoading(true);
     try {
-      const response = await api.get('/stores');
-      setStores(response.data.stores || response.data.data || []);
+      const params = new URLSearchParams();
+      params.append('page', String(paginationModel.page + 1));
+      params.append('limit', String(paginationModel.pageSize));
+      if (debouncedSearch) params.append('search', debouncedSearch);
+
+      const response = await api.get(`/stores?${params.toString()}`);
+      setStores(response.data.stores || []);
+      setTotalRows(response.data.pagination?.total || 0);
     } catch (err) {
       console.error('Failed to fetch stores');
       showNotification('Failed to load stores', 'error');
       setStores([]);
+      setTotalRows(0);
     } finally {
       setLoading(false);
     }
@@ -69,14 +94,7 @@ export default function StoresPage() {
     setSearchQuery(value);
   };
 
-  const filteredRows = stores.filter((store) => {
-    const query = searchQuery.toLowerCase();
-    return (
-      (store.name && store.name.toLowerCase().includes(query)) ||
-      (store.domain && store.domain.toLowerCase().includes(query)) ||
-      (store.slug && store.slug.toLowerCase().includes(query))
-    );
-  });
+
 
   const columns: GridColDef[] = [
     {
@@ -96,22 +114,37 @@ export default function StoresPage() {
       headerName: 'Domain',
       flex: 1,
       minWidth: 180,
+      renderCell: (params: GridRenderCellParams) => (
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+          <Typography variant="body2" fontWeight={600}>{params.row.domain}</Typography>
+        </Box>
+      ),
     },
     {
       field: 'currency',
       headerName: 'Currency',
       width: 100,
+      renderCell: (params: GridRenderCellParams) => (
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+          <Typography variant="body2" fontWeight={600}>{params.row.currency}</Typography>
+        </Box>
+      ),
     },
     {
       field: 'timezone',
       headerName: 'Timezone',
       width: 150,
+      renderCell: (params: GridRenderCellParams) => (
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+          <Typography variant="body2" fontWeight={600}>{params.row.timezone}</Typography>
+        </Box>
+      ),
     },
     {
       field: 'isActive',
       headerName: 'Status',
       width: 100,
-      renderCell: (params: GridRenderCellParams) => <StatusChip active={params.value as boolean} />,
+      renderCell: (params: GridRenderCellParams) => <Box display="flex" flexDirection="column" gap={1} alignItems="start" justifyContent="center" height="100%"><StatusChip active={params.value as boolean} /></Box>,
     },
     {
       field: 'actions',
@@ -119,8 +152,7 @@ export default function StoresPage() {
       width: 120,
       sortable: false,
       renderCell: (params: GridRenderCellParams) => (
-        <Box>
-
+        <Box display="flex" flexDirection="row" gap={1} alignItems="start" justifyContent="center" height="100%">
           <Tooltip title="Edit Theme">
             <IconButton onClick={() => handleThemeEdit(params.row._id)} size="small" color="primary">
               <FormatPaintIcon fontSize="small" />
@@ -140,8 +172,6 @@ export default function StoresPage() {
       ),
     },
   ];
-
-  if (loading) return <LoadingSpinner message="Loading stores..." />;
 
   if (stores.length === 0 && !searchQuery) {
     return (
@@ -171,18 +201,22 @@ export default function StoresPage() {
         searchPlaceholder="Search stores..."
       />
 
-      <Box sx={{ height: 600, width: '100%', mt: 2 }}>
-        <DataGrid
-          rows={filteredRows}
-          columns={columns}
-          getRowId={(row) => row._id}
-          pageSizeOptions={[10, 25, 50]}
-          initialState={{
-            pagination: { paginationModel: { pageSize: 10 } },
-          }}
-          disableRowSelectionOnClick
-          sx={dataGridStyles}
-        />
+      <Box sx={{ width: '100%', mt: 2 }}>
+        {loading ? <LoadingSpinner message="Loading stores..." /> :
+          <DataGrid
+            rows={stores}
+            columns={columns}
+            getRowId={(row) => row._id}
+            pageSizeOptions={[10, 25, 50]}
+            paginationMode="server"
+            rowCount={totalRows}
+            paginationModel={paginationModel}
+            onPaginationModelChange={setPaginationModel}
+            disableRowSelectionOnClick
+            sx={dataGridStyles}
+            loading={loading}
+          />
+        }
       </Box>
     </Box>
   );

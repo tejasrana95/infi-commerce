@@ -27,22 +27,49 @@ export default function CategoriesPage() {
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterStore, setFilterStore] = useState<string>('');
   const [filterParent, setFilterParent] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('');
 
+  // Pagination state
+  const [paginationModel, setPaginationModel] = useState({
+    page: 0,
+    pageSize: 10,
+  });
+  const [totalRows, setTotalRows] = useState(0);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [paginationModel, debouncedSearch, filterStore, filterParent, filterStatus]);
 
   const fetchCategories = async () => {
+    setLoading(true);
     try {
-      const response = await api.get('/categories');
-      setCategories(response.data.categories || response.data.data || []);
+      const params = new URLSearchParams();
+      params.append('page', String(paginationModel.page + 1));
+      params.append('limit', String(paginationModel.pageSize));
+      if (debouncedSearch) params.append('search', debouncedSearch);
+      if (filterStore) params.append('storeId', filterStore);
+      if (filterParent) params.append('parentCategory', filterParent);
+      if (filterStatus) params.append('status', filterStatus);
+
+      const response = await api.get(`/categories?${params.toString()}`);
+      setCategories(response.data.categories || []);
+      setTotalRows(response.data.pagination?.total || 0);
     } catch (err) {
       console.error('Failed to fetch categories');
       showNotification('Failed to load categories', 'error');
       setCategories([]);
+      setTotalRows(0);
     } finally {
       setLoading(false);
     }
@@ -73,35 +100,7 @@ export default function CategoriesPage() {
     if (!value) setFilterParent('');
   };
 
-  const filteredRows = categories.filter((category) => {
-    const query = searchQuery.toLowerCase();
 
-    // Search filter
-    const matchesSearch = !searchQuery || (
-      (category.title && category.title.toLowerCase().includes(query)) ||
-      (category.slug && category.slug.toLowerCase().includes(query)) ||
-      (category.description && category.description.toLowerCase().includes(query)) ||
-      (category.path && category.path.toLowerCase().includes(query))
-    );
-
-    // Store filter
-    const categoryStoreId = typeof category.storeId === 'object' && category.storeId !== null
-      ? category.storeId._id
-      : category.storeId;
-    const matchesStore = !filterStore || categoryStoreId === filterStore;
-
-    // Parent category filter
-    const categoryParentId = typeof category.parentCategory === 'object' && category.parentCategory !== null
-      ? category.parentCategory._id
-      : category.parentCategory;
-    const matchesParent = !filterParent ||
-      (filterParent === 'root' ? !categoryParentId : categoryParentId === filterParent);
-
-    // Status filter
-    const matchesStatus = !filterStatus || category.status === filterStatus;
-
-    return matchesSearch && matchesStore && matchesParent && matchesStatus;
-  });
 
   const getStoreName = (storeId: any) => {
     if (typeof storeId === 'object' && storeId !== null) {
@@ -135,7 +134,9 @@ export default function CategoriesPage() {
       headerName: 'Store',
       width: 150,
       renderCell: (params: GridRenderCellParams) => (
-        <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+          <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+        </Box>
       ),
     },
     {
@@ -143,9 +144,10 @@ export default function CategoriesPage() {
       headerName: 'Parent',
       width: 150,
       renderCell: (params: GridRenderCellParams) => (
-        <Typography variant="body2" color="text.secondary">
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Typography variant="body2" color="text.secondary">
           {getParentName(params.row.parentCategory)}
         </Typography>
+        </Box>
       ),
     },
     {
@@ -154,9 +156,10 @@ export default function CategoriesPage() {
       flex: 1,
       minWidth: 200,
       renderCell: (params: GridRenderCellParams) => (
-        <Typography variant="caption" color="text.secondary" noWrap>
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Typography variant="caption" color="text.secondary" noWrap>
           {params.row.path || '-'}
         </Typography>
+        </Box>
       ),
     },
     {
@@ -167,12 +170,12 @@ export default function CategoriesPage() {
         const status = params.value as string;
         const active = status === 'active';
         return (
-          <Chip
+          <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Chip
             label={status.charAt(0).toUpperCase() + status.slice(1)}
             size="small"
             color={active ? 'success' : status === 'draft' ? 'warning' : 'default'}
             variant={active ? 'filled' : 'outlined'}
-          />
+          /></Box>
         );
       },
     },
@@ -182,7 +185,7 @@ export default function CategoriesPage() {
       width: 120,
       sortable: false,
       renderCell: (params: GridRenderCellParams) => (
-        <Box>
+        <Box display="flex" flexDirection="row" justifyContent="center" height="100%">
           <Tooltip title="Edit">
             <IconButton onClick={() => handleEdit(params.row._id)} size="small" color="primary">
               <EditIcon fontSize="small" />
@@ -200,7 +203,6 @@ export default function CategoriesPage() {
     },
   ];
 
-  if (loading) return <LoadingSpinner message="Loading categories..." />;
 
   if (categories.length === 0 && !searchQuery && !filterStore && !filterParent && !filterStatus) {
     return (
@@ -251,18 +253,21 @@ export default function CategoriesPage() {
         onCategoryFilterChange={setFilterParent}
       />
 
-      <Box sx={{ height: 600, width: '100%' }}>
-        <DataGrid
-          rows={filteredRows}
+      <Box sx={{ width: '100%' }}>
+        {loading && <LoadingSpinner message="Loading categories..." />}
+        {!loading && <DataGrid
+          rows={categories}
           columns={columns}
           getRowId={(row) => row._id}
           pageSizeOptions={[10, 25, 50]}
-          initialState={{
-            pagination: { paginationModel: { pageSize: 10 } },
-          }}
+          paginationMode="server"
+          rowCount={totalRows}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
           disableRowSelectionOnClick
           sx={dataGridStyles}
-        />
+          loading={loading}
+        />}
       </Box>
     </Box>
   );

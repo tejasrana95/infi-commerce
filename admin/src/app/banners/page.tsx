@@ -30,18 +30,41 @@ export default function BannersPage() {
     // Delete dialog state
     const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
 
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+
+    // Pagination state
+    const [paginationModel, setPaginationModel] = useState({
+        page: 0,
+        pageSize: 10,
+    });
+    const [totalRows, setTotalRows] = useState(0);
+
+    // Debounce search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
     const fetchBanners = async () => {
         try {
             setLoading(true);
-            const params: any = {};
-            if (filterStore) params.storeId = filterStore;
-            if (filterStatus) params.isActive = filterStatus === 'active';
+            const params = new URLSearchParams();
+            params.append('page', String(paginationModel.page + 1));
+            params.append('limit', String(paginationModel.pageSize));
+            if (debouncedSearch) params.append('search', debouncedSearch);
+            if (filterStore) params.append('storeId', filterStore);
+            if (filterStatus) params.append('isActive', filterStatus === 'active' ? 'true' : filterStatus === 'inactive' ? 'false' : '');
 
-            const response = await api.get('/banners', { params });
+            const response = await api.get(`/banners?${params.toString()}`);
             setBanners(response.data.banners || []);
+            setTotalRows(response.data.pagination?.total || 0);
         } catch (error) {
             console.error('Error fetching banners:', error);
             showNotification('Failed to load banners', 'error');
+            setBanners([]);
+            setTotalRows(0);
         } finally {
             setLoading(false);
         }
@@ -49,7 +72,7 @@ export default function BannersPage() {
 
     useEffect(() => {
         fetchBanners();
-    }, [filterStore, filterStatus]);
+    }, [paginationModel, debouncedSearch, filterStore, filterStatus]);
 
     const handleEdit = (id: string) => {
         router.push(`/banners/${id}`);
@@ -76,14 +99,7 @@ export default function BannersPage() {
         return storeId as string || '-';
     };
 
-    const filteredBanners = useMemo(() => {
-        if (!searchQuery) return banners;
-        const q = searchQuery.toLowerCase();
-        return banners.filter(b =>
-            b.name.toLowerCase().includes(q) ||
-            b.title?.toLowerCase().includes(q)
-        );
-    }, [banners, searchQuery]);
+
 
     const columns: GridColDef[] = [
         {
@@ -92,13 +108,15 @@ export default function BannersPage() {
             width: 120,
             sortable: false,
             renderCell: (params: GridRenderCellParams) => (
-                <Avatar
-                    variant="rounded"
-                    src={params.row.image}
-                    sx={{ width: 80, height: 45 }}
-                >
-                    <ImageIcon />
-                </Avatar>
+                <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
+                    <Avatar
+                        variant="rounded"
+                        src={params.row.image}
+                        sx={{ width: 80, height: 45 }}
+                    >
+                        <ImageIcon />
+                    </Avatar>
+                </Box>
             ),
         },
         {
@@ -107,7 +125,7 @@ export default function BannersPage() {
             flex: 1,
             minWidth: 200,
             renderCell: (params: GridRenderCellParams) => (
-                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
                     <Typography
                         variant="body2"
                         fontWeight={600}
@@ -129,7 +147,9 @@ export default function BannersPage() {
             headerName: 'Store',
             width: 150,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+                <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
+                    <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+                </Box>
             ),
         },
         {
@@ -137,9 +157,11 @@ export default function BannersPage() {
             headerName: 'Alignment',
             width: 100,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2" textTransform="capitalize">
-                    {params.row.alignment}
-                </Typography>
+                <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
+                    <Typography variant="body2" textTransform="capitalize">
+                        {params.row.alignment}
+                    </Typography>
+                </Box>
             ),
         },
         {
@@ -147,7 +169,9 @@ export default function BannersPage() {
             headerName: 'Status',
             width: 100,
             renderCell: (params: GridRenderCellParams) => (
-                <StatusChip active={params.row.isActive} />
+                <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
+                    <StatusChip active={params.row.isActive} />
+                </Box>
             ),
         },
         {
@@ -156,7 +180,7 @@ export default function BannersPage() {
             width: 120,
             sortable: false,
             renderCell: (params: GridRenderCellParams) => (
-                <Box>
+                <Box display="flex" flexDirection="row" justifyContent="start" alignItems="center" height="100%">
                     <Tooltip title="Edit">
                         <IconButton size="small" onClick={() => handleEdit(params.row._id)}>
                             <EditIcon fontSize="small" />
@@ -212,25 +236,27 @@ export default function BannersPage() {
                 onFilterChange={(filters) => setFilterStatus(filters.status as string || '')}
             />
 
-            {filteredBanners.length === 0 ? (
+            {banners.length === 0 && !searchQuery && !filterStore && !filterStatus ? (
                 <EmptyState
                     message="No banners found. Get started by creating your first banner."
                     actionLabel="Add Banner"
                     onAction={() => router.push('/banners/new')}
                 />
             ) : (
-                <Box sx={{ height: 600, width: '100%' }}>
+                <Box sx={{ width: '100%' }}>
                     <DataGrid
-                        rows={filteredBanners}
+                        rows={banners}
                         columns={columns}
                         getRowId={(row) => row._id}
                         pageSizeOptions={[10, 25, 50]}
-                        initialState={{
-                            pagination: { paginationModel: { pageSize: 25 } },
-                        }}
+                        paginationMode="server"
+                        rowCount={totalRows}
+                        paginationModel={paginationModel}
+                        onPaginationModelChange={setPaginationModel}
                         disableRowSelectionOnClick
                         rowHeight={70}
                         sx={dataGridStyles}
+                        loading={loading}
                     />
                 </Box>
             )}

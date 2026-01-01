@@ -86,6 +86,10 @@ export const createAttribute = asyncHandler(async (req: AuthRequest, res: Respon
  *     description: This endpoint is legacy. Use ProductOptions for variant-related features.
  */
 export const getAttributes = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
     const filter: any = {};
 
     const isStoreAdmin = req.user?.role === 'store_admin';
@@ -113,14 +117,34 @@ export const getAttributes = asyncHandler(async (req: AuthRequest, res: Response
         filter.type = req.query.type;
     }
 
-    const attributes = await Attribute.find(filter)
-        .populate('storeId', 'name slug')
-        .populate('categoryIds', 'name slug')
-        .sort({ sortOrder: 1, name: 1 });
+    if (req.query.search) {
+        const searchRegex = { $regex: req.query.search as string, $options: 'i' };
+        filter.$or = [
+            { name: searchRegex },
+            { slug: searchRegex },
+            { type: searchRegex }
+        ];
+    }
+
+    const [attributes, total] = await Promise.all([
+        Attribute.find(filter)
+            .populate('storeId', 'name slug')
+            .populate('categoryIds', 'name slug')
+            .sort({ sortOrder: 1, name: 1 })
+            .skip(skip)
+            .limit(limit),
+        Attribute.countDocuments(filter)
+    ]);
 
     res.json({
         success: true,
         data: attributes,
+        pagination: {
+            page,
+            limit,
+            total,
+            pages: Math.ceil(total / limit)
+        }
     });
 });
 

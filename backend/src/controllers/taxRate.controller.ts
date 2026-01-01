@@ -42,19 +42,37 @@ export const updateTaxRateValidation = [
  *         description: Tax rates retrieved successfully
  */
 export const getTaxRates = asyncHandler(async (req: Request, res: Response) => {
-    const { isActive } = req.query;
+    const { isActive, page = 1, limit = 20, search } = req.query;
 
     const query: any = {};
     if (isActive !== undefined) {
         query.isActive = isActive === 'true';
     }
 
-    const taxRates = await TaxRate.find(query).sort({ name: 1 });
+    if (search) {
+        query.$or = [
+            { name: { $regex: search, $options: 'i' } },
+            { description: { $regex: search, $options: 'i' } },
+        ];
+    }
+
+    const [taxRates, total] = await Promise.all([
+        TaxRate.find(query)
+            .sort({ name: 1 })
+            .skip((Number(page) - 1) * Number(limit))
+            .limit(Number(limit)),
+        TaxRate.countDocuments(query),
+    ]);
 
     return res.json({
         success: true,
         data: taxRates,
-        total: taxRates.length,
+        pagination: {
+            total,
+            page: Number(page),
+            limit: Number(limit),
+            pages: Math.ceil(total / Number(limit)),
+        },
     });
 });
 

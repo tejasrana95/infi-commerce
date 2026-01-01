@@ -165,6 +165,15 @@ export const getCoupons = asyncHandler(async (req: AuthRequest, res: Response) =
     }
     if (isActive !== undefined) filter.isActive = isActive === 'true';
 
+    if (req.query.search) {
+        const searchRegex = { $regex: req.query.search, $options: 'i' };
+        // If we want to allow searching within storeId filter effectively, we keep the existing storeId filter
+        filter.$or = [
+            { code: searchRegex },
+            { description: searchRegex }
+        ];
+    }
+
     const skip = (Number(page) - 1) * Number(limit);
 
     const [coupons, total] = await Promise.all([

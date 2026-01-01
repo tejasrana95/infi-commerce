@@ -23,25 +23,51 @@ import { asyncHandler } from '../middleware/validation';
  *         description: Banners retrieved successfully
  */
 export const getBanners = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
     const filter: any = {};
 
     if (req.query.storeId) {
         filter.storeId = req.query.storeId;
     } else if (req.user?.role === 'super_admin') {
         // Super admin can see all
-    } else if (req.user?.storeId) {
-        filter.storeId = req.user.storeId;
+    } else if (req.user?.storeIds?.length) {
+        filter.storeId = req.user.storeIds[0];
     }
 
     if (req.query.isActive !== undefined) {
         filter.isActive = req.query.isActive === 'true';
     }
 
-    const banners = await Banner.find(filter)
-        .populate('storeId', 'name')
-        .sort({ createdAt: -1 });
+    if (req.query.search) {
+        const searchRegex = { $regex: req.query.search, $options: 'i' };
+        filter.$or = [
+            { name: searchRegex },
+            { title: searchRegex }
+        ];
+    }
 
-    res.json({ success: true, count: banners.length, banners });
+    const [banners, total] = await Promise.all([
+        Banner.find(filter)
+            .populate('storeId', 'name slug')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit),
+        Banner.countDocuments(filter)
+    ]);
+
+    res.json({
+        success: true,
+        banners,
+        pagination: {
+            total,
+            page,
+            limit,
+            pages: Math.ceil(total / limit)
+        }
+    });
 });
 
 /**
@@ -102,8 +128,8 @@ export const getBannerById = asyncHandler(async (req: Request, res: Response) =>
 export const createBanner = asyncHandler(async (req: AuthRequest, res: Response) => {
     const bannerData = req.body;
 
-    if (!bannerData.storeId && req.user?.storeId) {
-        bannerData.storeId = req.user.storeId;
+    if (!bannerData.storeId && req.user?.storeIds?.length) {
+        bannerData.storeId = req.user.storeIds[0];
     }
 
     const banner = await Banner.create(bannerData);

@@ -22,6 +22,7 @@ import {
 import api from '@/lib/api';
 import { useNotification } from '@/contexts/NotificationContext';
 import RichTextEditor from '@/components/molecules/RichTextEditor';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface Store {
     _id: string;
@@ -125,7 +126,12 @@ export default function NotificationTemplatesPage() {
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewTemplate, setPreviewTemplate] = useState<NotificationTemplate | null>(null);
 
-    // Delete Confirmation
+    // Pagination & Filter states
+    const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 20 });
+    const [totalRows, setTotalRows] = useState(0);
+    const [searchQuery, setSearchQuery] = useState('');
+    const debouncedSearch = useDebounce(searchQuery, 500);
+
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [templateToDelete, setTemplateToDelete] = useState<NotificationTemplate | null>(null);
 
@@ -136,7 +142,7 @@ export default function NotificationTemplatesPage() {
     useEffect(() => {
         loadTemplates();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [channelFilter, typeFilter, storeFilter]);
+    }, [paginationModel, debouncedSearch, channelFilter, typeFilter, storeFilter]);
 
     const loadInitialData = async () => {
         try {
@@ -155,13 +161,18 @@ export default function NotificationTemplatesPage() {
     const loadTemplates = async () => {
         setLoading(true);
         try {
-            const params: Record<string, unknown> = {};
+            const params: any = {
+                page: paginationModel.page + 1,
+                limit: paginationModel.pageSize,
+                search: debouncedSearch
+            };
             if (channelFilter) params.channel = channelFilter;
             if (typeFilter) params.type = typeFilter;
             if (storeFilter) params.storeId = storeFilter;
 
             const res = await api.get('notifications/templates/list', { params });
             setTemplates(res.data.templates || []);
+            setTotalRows(res.data.pagination?.total || 0);
         } catch (error) {
             console.error('Failed to load templates:', error);
             showNotification('Failed to load templates', 'error');
@@ -366,40 +377,53 @@ export default function NotificationTemplatesPage() {
             headerName: 'Template Name',
             width: 200,
             flex: 1,
+            renderCell: (params: GridRenderCellParams) => (
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    {params.value}
+                </Box>
+            ),
         },
         {
             field: 'storeNames',
             headerName: 'Stores',
             width: 200,
             renderCell: (params: GridRenderCellParams) => (
-                <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-                    {(params.value || []).slice(0, 2).map((name: string, idx: number) => (
-                        <Chip key={idx} label={name} size="small" variant="outlined" />
-                    ))}
-                    {(params.value || []).length > 2 && (
-                        <Chip label={`+${params.value.length - 2}`} size="small" color="default" />
-                    )}
-                </Stack>
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                        {(params.value || []).slice(0, 2).map((name: string, idx: number) => (
+                            <Chip key={idx} label={name} size="small" variant="outlined" />
+                        ))}
+                        {(params.value || []).length > 2 && (
+                            <Chip label={`+${params.value.length - 2}`} size="small" color="default" />
+                        )}
+                    </Stack>
+                </Box>
             ),
         },
         {
             field: 'type',
             headerName: 'Type',
             width: 140,
-            renderCell: (params: GridRenderCellParams) => formatType(params.value),
+            renderCell: (params: GridRenderCellParams) => (
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    {formatType(params.value)}
+                </Box>
+            ),
         },
         {
             field: 'channel',
             headerName: 'Channel',
             width: 120,
             renderCell: (params: GridRenderCellParams) => (
-                <Chip
-                    icon={getChannelIcon(params.value) || undefined}
-                    label={params.value.toUpperCase()}
-                    size="small"
-                    color={getChannelColor(params.value)}
-                    variant="outlined"
-                />
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Chip
+                        icon={getChannelIcon(params.value) || undefined}
+                        label={params.value.toUpperCase()}
+                        size="small"
+                        color={getChannelColor(params.value)}
+                        variant="outlined"
+                    />
+                </Box>
             ),
         },
         {
@@ -407,11 +431,13 @@ export default function NotificationTemplatesPage() {
             headerName: 'Status',
             width: 100,
             renderCell: (params: GridRenderCellParams) => (
-                <Chip
-                    label={params.value ? 'Active' : 'Inactive'}
-                    size="small"
-                    color={params.value ? 'success' : 'default'}
-                />
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Chip
+                        label={params.value ? 'Active' : 'Inactive'}
+                        size="small"
+                        color={params.value ? 'success' : 'default'}
+                    />
+                </Box>
             ),
         },
         {
@@ -420,7 +446,7 @@ export default function NotificationTemplatesPage() {
             width: 180,
             sortable: false,
             renderCell: (params: GridRenderCellParams) => (
-                <Box>
+                <Box display="flex" flexDirection="row" justifyContent="center" height="100%">
                     <Tooltip title="Preview">
                         <IconButton size="small" onClick={() => handlePreview(params.row)}>
                             <Visibility fontSize="small" />
@@ -474,7 +500,17 @@ export default function NotificationTemplatesPage() {
             <Card sx={{ mb: 3 }}>
                 <CardContent>
                     <Grid container spacing={2}>
-                        <Grid size={{ xs: 12, md: 4 }}>
+                        <Grid size={{ xs: 12, md: 3 }}>
+                            <TextField
+                                fullWidth
+                                size="small"
+                                label="Search"
+                                placeholder="Search by name, subject..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 3 }}>
                             <FormControl fullWidth size="small">
                                 <InputLabel>Store</InputLabel>
                                 <Select
@@ -489,7 +525,7 @@ export default function NotificationTemplatesPage() {
                                 </Select>
                             </FormControl>
                         </Grid>
-                        <Grid size={{ xs: 12, md: 4 }}>
+                        <Grid size={{ xs: 12, md: 3 }}>
                             <FormControl fullWidth size="small">
                                 <InputLabel>Channel</InputLabel>
                                 <Select
@@ -505,7 +541,7 @@ export default function NotificationTemplatesPage() {
                                 </Select>
                             </FormControl>
                         </Grid>
-                        <Grid size={{ xs: 12, md: 4 }}>
+                        <Grid size={{ xs: 12, md: 3 }}>
                             <FormControl fullWidth size="small">
                                 <InputLabel>Type</InputLabel>
                                 <Select
@@ -514,8 +550,8 @@ export default function NotificationTemplatesPage() {
                                     onChange={(e) => setTypeFilter(e.target.value)}
                                 >
                                     <MenuItem value="">All Types</MenuItem>
-                                    {uniqueTypes.map(type => (
-                                        <MenuItem key={type} value={type}>{formatType(type)}</MenuItem>
+                                    {templateTypes.map(t => (
+                                        <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>
                                     ))}
                                 </Select>
                             </FormControl>
@@ -532,9 +568,10 @@ export default function NotificationTemplatesPage() {
                     getRowId={(row) => row._id}
                     loading={loading}
                     pageSizeOptions={[10, 25, 50]}
-                    initialState={{
-                        pagination: { paginationModel: { pageSize: 25 } },
-                    }}
+                    paginationModel={paginationModel}
+                    onPaginationModelChange={setPaginationModel}
+                    paginationMode="server"
+                    rowCount={totalRows}
                     autoHeight
                     disableRowSelectionOnClick
                     sx={{ border: 0 }}

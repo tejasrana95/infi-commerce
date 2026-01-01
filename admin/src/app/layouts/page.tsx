@@ -32,17 +32,47 @@ export default function LayoutsPage() {
     const [filterType, setFilterType] = useState<string>('');
     const [filterStatus, setFilterStatus] = useState<string>('');
 
+    /* Pagination & Search State */
+    const [paginationModel, setPaginationModel] = useState({
+        page: 0,
+        pageSize: 10,
+    });
+    const [totalRows, setTotalRows] = useState(0);
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+
+    /* Debounce Search */
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+        }, 500);
+        return () => clearTimeout(handler);
+    }, [searchQuery]);
+
     useEffect(() => {
         fetchLayouts();
-    }, []);
+    }, [paginationModel, debouncedSearch, filterType, filterStatus]);
 
     const fetchLayouts = async () => {
         try {
             setLoading(true);
-            let url = '/layouts';
+            const params = new URLSearchParams({
+                page: (paginationModel.page + 1).toString(),
+                limit: paginationModel.pageSize.toString(),
+                search: debouncedSearch,
+            });
 
-            const response = await api.get(url);
-            setLayouts(response.data.data || []);
+            if (filterType) params.append('type', filterType);
+            if (filterStatus) params.append('status', filterStatus);
+
+            const response = await api.get(`/layouts?${params.toString()}`);
+
+            if (response.data.success) {
+                setLayouts(response.data.data);
+                setTotalRows(response.data.pagination.total);
+            } else {
+                setLayouts(response.data.data || []);
+                setTotalRows(response.data.data?.length || 0);
+            }
         } catch (err: any) {
             console.error('Failed to fetch layouts', err);
             showNotification(err.response?.data?.message || 'Failed to load layouts', 'error');
@@ -56,8 +86,8 @@ export default function LayoutsPage() {
         if (!await confirm({ title: 'Delete Layout', message: 'Are you sure you want to delete this layout?', severity: 'error' })) return;
         try {
             await api.delete(`/layouts/${id}`);
-            setLayouts(layouts.filter(l => l._id !== id));
             showNotification('Layout deleted successfully', 'success');
+            fetchLayouts(); // Reload
         } catch (err: any) {
             showNotification(err.response?.data?.message || 'Failed to delete layout', 'error');
         }
@@ -65,16 +95,16 @@ export default function LayoutsPage() {
 
     const handleDuplicate = async (id: string) => {
         try {
-            const response = await api.post(`/layouts/${id}/duplicate`, { name: '' }); // Backend handles name generation
-            setLayouts([...layouts, response.data.layout]);
+            const response = await api.post(`/layouts/${id}/duplicate`, { name: '' });
             showNotification('Layout duplicated successfully', 'success');
+            fetchLayouts();
         } catch (err: any) {
             showNotification(err.response?.data?.message || 'Failed to duplicate layout', 'error');
         }
     };
 
     const handleEdit = (id: string) => {
-        router.push(`/layouts/${id}`); // Assuming detailed view/edit is at /layouts/[id]
+        router.push(`/layouts/${id}`);
     };
 
     const handleCreate = () => {
@@ -91,23 +121,7 @@ export default function LayoutsPage() {
         }
     };
 
-    const filteredRows = layouts.filter((layout) => {
-        const query = searchQuery.toLowerCase();
-
-        // Search filter (name, description)
-        const matchesSearch = !searchQuery || (
-            (layout.name && layout.name.toLowerCase().includes(query)) ||
-            (layout.description && layout.description.toLowerCase().includes(query))
-        );
-
-        // Type filter
-        const matchesType = !filterType || layout.type === filterType;
-
-        // Status filter (now uses status field: draft/published)
-        const matchesStatus = !filterStatus || layout.status === filterStatus;
-
-        return matchesSearch && matchesType && matchesStatus;
-    });
+    // Removed filteredRows
 
     const columns: GridColDef[] = [
         {
@@ -133,9 +147,9 @@ export default function LayoutsPage() {
             renderCell: (params: GridRenderCellParams) => {
                 const store = params.value;
                 return store?.name ? (
-                    <Typography variant="body2">{store.name}</Typography>
+                    <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%"><Typography variant="body2">{store.name}</Typography></Box>
                 ) : (
-                    <Typography variant="body2" color="text.secondary">-</Typography>
+                    <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%"><Typography variant="body2" color="text.secondary">-</Typography></Box>
                 );
             },
         },
@@ -157,12 +171,12 @@ export default function LayoutsPage() {
                     account: 'Account',
                 };
                 return (
-                    <Chip
+                    <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%"><Chip
                         label={typeLabels[params.value] || params.value}
                         size="small"
                         color="primary"
                         variant="outlined"
-                    />
+                    /></Box>
                 );
             },
         },
@@ -172,16 +186,16 @@ export default function LayoutsPage() {
             width: 150,
             renderCell: (params: GridRenderCellParams) => {
                 if (!params.value) {
-                    return <Typography variant="caption" color="text.secondary">—</Typography>;
+                    return <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%"><Typography variant="caption" color="text.secondary">—</Typography></Box>;
                 }
                 return (
-                    <Chip
+                    <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%"><Chip
                         label={params.value}
                         size="small"
                         color="secondary"
                         variant="outlined"
                         sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
-                    />
+                    /></Box>
                 );
             },
         },
@@ -192,12 +206,14 @@ export default function LayoutsPage() {
             align: 'center',
             renderCell: (params: GridRenderCellParams) => (
                 <Tooltip title={params.value ? "Unset as Default" : "Set as Default"}>
-                    <IconButton onClick={(e) => {
-                        e.stopPropagation();
-                        handleToggleDefault(params.row);
-                    }}>
-                        {params.value ? <StarIcon color="warning" fontSize="small" /> : <StarBorderIcon color="action" fontSize="small" />}
-                    </IconButton>
+                    <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
+                        <IconButton onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleDefault(params.row);
+                        }}>
+                            {params.value ? <StarIcon color="warning" fontSize="small" /> : <StarBorderIcon color="action" fontSize="small" />}
+                        </IconButton>
+                    </Box>
                 </Tooltip>
             ),
         },
@@ -206,12 +222,14 @@ export default function LayoutsPage() {
             headerName: 'Status',
             width: 100,
             renderCell: (params: GridRenderCellParams) => (
-                <Chip
-                    label={params.value === 'published' ? 'Published' : 'Draft'}
-                    size="small"
-                    color={params.value === 'published' ? 'success' : 'default'}
-                    variant="filled"
-                />
+                <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
+                    <Chip
+                        label={params.value === 'published' ? 'Published' : 'Draft'}
+                        size="small"
+                        color={params.value === 'published' ? 'success' : 'default'}
+                        variant="filled"
+                    />
+                </Box>
             ),
         },
         {
@@ -219,9 +237,11 @@ export default function LayoutsPage() {
             headerName: 'Created',
             width: 150,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="caption" color="text.secondary">
-                    {new Date(params.value).toLocaleDateString()}
-                </Typography>
+                <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
+                    <Typography variant="caption" color="text.secondary">
+                        {new Date(params.value).toLocaleDateString()}
+                    </Typography>
+                </Box>
             )
         },
         {
@@ -230,7 +250,7 @@ export default function LayoutsPage() {
             width: 150,
             sortable: false,
             renderCell: (params: GridRenderCellParams) => (
-                <Box>
+                <Box display="flex" flexDirection="row" justifyContent="start" alignItems="center" height="100%">
                     <Tooltip title="Edit">
                         <IconButton onClick={() => handleEdit(params.row._id)} size="small" color="primary">
                             <EditIcon fontSize="small" />
@@ -251,7 +271,7 @@ export default function LayoutsPage() {
         },
     ];
 
-    if (loading) return <LoadingSpinner message="Loading layouts..." />;
+    if (loading && layouts.length === 0) return <LoadingSpinner message="Loading layouts..." />;
 
     if (layouts.length === 0 && !searchQuery && !filterType && !filterStatus) {
         return (
@@ -317,7 +337,6 @@ export default function LayoutsPage() {
                     },
                 ]}
                 activeFilters={{
-
                     type: filterType,
                     status: filterStatus
                 }}
@@ -327,15 +346,19 @@ export default function LayoutsPage() {
                 }}
             />
 
-            <Box sx={{ height: 600, width: '100%' }}>
+            {loading && <LoadingSpinner message="Loading layouts..." />}
+
+            <Box sx={{ width: '100%' }}>
                 <DataGrid
-                    rows={filteredRows}
+                    rows={layouts}
                     columns={columns}
                     getRowId={(row) => row._id}
                     pageSizeOptions={[10, 25, 50]}
-                    initialState={{
-                        pagination: { paginationModel: { pageSize: 10 } },
-                    }}
+                    paginationMode="server"
+                    rowCount={totalRows}
+                    paginationModel={paginationModel}
+                    onPaginationModelChange={setPaginationModel}
+                    loading={loading}
                     disableRowSelectionOnClick
                     sx={dataGridStyles}
                     rowHeight={70}

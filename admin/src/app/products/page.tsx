@@ -151,12 +151,14 @@ export default function ProductsPage() {
       width: 80,
       sortable: false,
       renderCell: (params: GridRenderCellParams) => (
-        <Avatar
-          src={params.row.featuredImage || params.row.images?.[0]}
-          alt={params.row.name}
-          variant="rounded"
-          sx={{ width: 50, height: 50 }}
-        />
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+          <Avatar
+            src={params.row.featuredImage || params.row.images?.[0]}
+            alt={params.row.name}
+            variant="rounded"
+            sx={{ width: 50, height: 50 }}
+          />
+        </Box >
       ),
     },
     {
@@ -176,12 +178,14 @@ export default function ProductsPage() {
       headerName: 'Type',
       width: 120,
       renderCell: (params: GridRenderCellParams) => (
-        <Chip
-          label={params.value}
-          size="small"
-          color={params.value === 'variable' ? 'primary' : params.value === 'digital' ? 'secondary' : 'default'}
-          variant="outlined"
-        />
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+          <Chip
+            label={params.value}
+            size="small"
+            color={params.value === 'variable' ? 'primary' : params.value === 'digital' ? 'secondary' : 'default'}
+            variant="outlined"
+          />
+        </Box>
       ),
     },
     {
@@ -189,7 +193,9 @@ export default function ProductsPage() {
       headerName: 'Store',
       width: 150,
       renderCell: (params: GridRenderCellParams) => (
-        <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+          <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+        </Box>
       ),
     },
     {
@@ -197,7 +203,9 @@ export default function ProductsPage() {
       headerName: 'Categories',
       width: 180,
       renderCell: (params: GridRenderCellParams) => (
-        <Typography variant="caption" noWrap>{getCategoryNames(params.row.categoryIds)}</Typography>
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+          <Typography variant="caption" noWrap>{getCategoryNames(params.row.categoryIds)}</Typography>
+        </Box>
       ),
     },
     {
@@ -205,7 +213,7 @@ export default function ProductsPage() {
       headerName: 'Price',
       width: 120,
       renderCell: (params: GridRenderCellParams) => (
-        <Box>
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
           <Typography variant="body2" fontWeight={600}>
             {formatPrice(params.row.price)}
           </Typography>
@@ -222,11 +230,13 @@ export default function ProductsPage() {
       headerName: 'Stock',
       width: 100,
       renderCell: (params: GridRenderCellParams) => (
-        <Chip
-          label={params.row.stock}
-          size="small"
-          color={getStockColor(params.row.stock, params.row.lowStockThreshold)}
-        />
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+          <Chip
+            label={params.row.stock}
+            size="small"
+            color={getStockColor(params.row.stock, params.row.lowStockThreshold)}
+          />
+        </Box>
       ),
     },
     {
@@ -241,9 +251,11 @@ export default function ProductsPage() {
           made_to_order: 'Made to Order',
         };
         return (
-          <Typography variant="caption">
-            {statusLabels[params.value as string] || params.value}
-          </Typography>
+          <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+            <Typography variant="caption">
+              {statusLabels[params.value as string] || params.value}
+            </Typography>
+          </Box>
         );
       },
     },
@@ -251,7 +263,11 @@ export default function ProductsPage() {
       field: 'isActive',
       headerName: 'Active',
       width: 100,
-      renderCell: (params: GridRenderCellParams) => <StatusChip active={params.value as boolean} />,
+      renderCell: (params: GridRenderCellParams) => (
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+          <StatusChip active={params.value as boolean} />
+        </Box>
+      ),
     },
     {
       field: 'actions',
@@ -259,7 +275,7 @@ export default function ProductsPage() {
       width: 120,
       sortable: false,
       renderCell: (params: GridRenderCellParams) => (
-        <Box>
+        <Box display="flex" flexDirection="row" justifyContent="center" height="100%">
           <Tooltip title="Clone">
             <IconButton onClick={() => handleClone(params.row._id)} size="small" color="info">
               <ContentCopyIcon fontSize="small" />
@@ -281,8 +297,6 @@ export default function ProductsPage() {
       ),
     },
   ];
-
-  if (loading) return <LoadingSpinner message="Loading products..." />;
 
   if (products.length === 0 && !searchQuery && !filterStore && !filterCategory && !filterType && !filterStockStatus && !filterStatus) {
     return (
@@ -361,8 +375,10 @@ export default function ProductsPage() {
         onCategoryFilterChange={setFilterCategory}
       />
 
-      <Box sx={{ height: 600, width: '100%' }}>
-        <DataGrid
+
+      <Box sx={{ width: '100%' }}>
+        {loading && <LoadingSpinner message="Loading products..." />}
+        {!loading && <DataGrid
           rows={filteredRows}
           columns={columns}
           getRowId={(row) => row._id}
@@ -373,7 +389,7 @@ export default function ProductsPage() {
           disableRowSelectionOnClick
           sx={dataGridStyles}
           rowHeight={80}
-        />
+        />}
       </Box>
     </Box>
   );

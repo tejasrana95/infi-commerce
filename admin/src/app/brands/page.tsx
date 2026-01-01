@@ -24,7 +24,23 @@ export default function BrandsPage() {
     const { confirm } = useConfirm();
     const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [filterStore, setFilterStore] = useState<string>('');
+
+    // Pagination state
+    const [paginationModel, setPaginationModel] = useState({
+        page: 0,
+        pageSize: 10,
+    });
+    const [totalRows, setTotalRows] = useState(0);
+
+    // Debounce search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
     // Dialog State
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -33,16 +49,25 @@ export default function BrandsPage() {
 
     useEffect(() => {
         fetchBrands();
-    }, []);
+    }, [paginationModel, debouncedSearch, filterStore]);
 
     const fetchBrands = async () => {
+        setLoading(true);
         try {
-            const response = await api.get('/brands');
+            const params = new URLSearchParams();
+            params.append('page', String(paginationModel.page + 1));
+            params.append('limit', String(paginationModel.pageSize));
+            if (debouncedSearch) params.append('search', debouncedSearch);
+            if (filterStore) params.append('storeId', filterStore);
+
+            const response = await api.get(`/brands?${params.toString()}`);
             setBrands(response.data.brands || []);
+            setTotalRows(response.data.pagination?.total || 0);
         } catch (err) {
             console.error('Failed to fetch brands', err);
             showNotification('Failed to load brands', 'error');
             setBrands([]);
+            setTotalRows(0);
         } finally {
             setLoading(false);
         }
@@ -102,23 +127,7 @@ export default function BrandsPage() {
         setFilterStore(value);
     };
 
-    const filteredRows = brands.filter((brand) => {
-        const query = searchQuery.toLowerCase();
 
-        // Search filter
-        const matchesSearch = !searchQuery || (
-            (brand.name && brand.name.toLowerCase().includes(query)) ||
-            (brand.slug && brand.slug.toLowerCase().includes(query))
-        );
-
-        // Store filter
-        const brandStoreId = typeof brand.storeId === 'object' && brand.storeId !== null
-            ? brand.storeId._id
-            : brand.storeId;
-        const matchesStore = !filterStore || brandStoreId === filterStore;
-
-        return matchesSearch && matchesStore;
-    });
 
     const getStoreName = (storeId: any) => {
         if (typeof storeId === 'object' && storeId !== null) {
@@ -134,7 +143,7 @@ export default function BrandsPage() {
             flex: 1,
             minWidth: 200,
             renderCell: (params: GridRenderCellParams) => (
-                <Box display="flex" alignItems="center" gap={1.5} height="100%">
+                <Box display="flex" flexDirection="row" gap={1} justifyContent="start" alignItems="center" height="100%">
                     {params.row.logo && (
                         <Avatar src={params.row.logo} alt={params.row.name} sx={{ width: 32, height: 32 }} />
                     )}
@@ -150,7 +159,9 @@ export default function BrandsPage() {
             headerName: 'Store',
             width: 150,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+                <Box display="flex" flexDirection="row" justifyContent="center" alignItems="center" height="100%">
+                    <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+                </Box>
             ),
         },
         {
@@ -159,13 +170,15 @@ export default function BrandsPage() {
             width: 200,
             renderCell: (params: GridRenderCellParams) => (
                 params.row.website ? (
-                    <Typography variant="caption" color="primary" noWrap>
-                        <a href={params.row.website} target="_blank" rel="noopener noreferrer">
-                            {params.row.website}
-                        </a>
-                    </Typography>
+                    <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                        <Typography variant="caption" color="primary" noWrap>
+                            <a href={params.row.website} target="_blank" rel="noopener noreferrer">
+                                {params.row.website}
+                            </a>
+                        </Typography>
+                    </Box>
                 ) : (
-                    <Typography variant="caption" color="text.secondary">-</Typography>
+                    <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Typography variant="caption" color="text.secondary">-</Typography></Box>
                 )
             ),
         },
@@ -173,7 +186,7 @@ export default function BrandsPage() {
             field: 'isActive',
             headerName: 'Status',
             width: 120,
-            renderCell: (params: GridRenderCellParams) => <StatusChip active={params.value as boolean} />,
+            renderCell: (params: GridRenderCellParams) => <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><StatusChip active={params.value as boolean} /></Box>,
         },
         {
             field: 'actions',
@@ -183,7 +196,7 @@ export default function BrandsPage() {
             headerAlign: 'right',
             sortable: false,
             renderCell: (params: GridRenderCellParams) => (
-                <Box>
+                <Box display="flex" flexDirection="row" justifyContent="center" height="100%">
                     <Tooltip title="Edit">
                         <IconButton onClick={() => handleEdit(params.row)} size="small" color="primary">
                             <EditIcon fontSize="small" />
@@ -200,8 +213,6 @@ export default function BrandsPage() {
             ),
         },
     ];
-
-    if (loading) return <LoadingSpinner message="Loading brands..." />;
 
     if (brands.length === 0 && !searchQuery && !filterStore && !dialogOpen) {
         return (
@@ -255,18 +266,20 @@ export default function BrandsPage() {
                 onStoreFilterChange={handleStoreFilterChange}
             />
 
-            <Box sx={{ height: 600, width: '100%' }}>
-                <DataGrid
-                    rows={filteredRows}
+            <Box sx={{ width: '100%' }}>
+                {loading ? <LoadingSpinner message="Loading brands..." /> : <DataGrid
+                    rows={brands}
                     columns={columns}
                     getRowId={(row) => row._id}
                     sx={dataGridStyles}
                     disableRowSelectionOnClick
                     pageSizeOptions={[10, 25, 50]}
-                    initialState={{
-                        pagination: { paginationModel: { pageSize: 10 } },
-                    }}
-                />
+                    paginationMode="server"
+                    rowCount={totalRows}
+                    paginationModel={paginationModel}
+                    onPaginationModelChange={setPaginationModel}
+                    loading={loading}
+                />}
             </Box>
 
             <Dialog open={dialogOpen} onClose={handleClose} maxWidth="md" fullWidth>

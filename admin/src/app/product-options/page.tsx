@@ -36,21 +36,47 @@ export default function ProductOptionsPage() {
     const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
 
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [filterStore, setFilterStore] = useState<string>('');
     const [filterType, setFilterType] = useState<string>('');
 
+    // Pagination state
+    const [paginationModel, setPaginationModel] = useState({
+        page: 0,
+        pageSize: 10,
+    });
+    const [totalRows, setTotalRows] = useState(0);
+
+    // Debounce search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
     useEffect(() => {
         fetchProductOptions();
-    }, []);
+    }, [paginationModel, debouncedSearch, filterStore, filterType]);
 
     const fetchProductOptions = async () => {
+        setLoading(true);
         try {
-            const response = await api.get('/product-options');
-            setProductOptions(response.data.productOptions || response.data.data || []);
+            const params = new URLSearchParams();
+            params.append('page', String(paginationModel.page + 1));
+            params.append('limit', String(paginationModel.pageSize));
+            if (debouncedSearch) params.append('search', debouncedSearch);
+            if (filterStore) params.append('storeId', filterStore);
+            if (filterType) params.append('type', filterType);
+
+            const response = await api.get(`/product-options?${params.toString()}`);
+            setProductOptions(response.data.productOptions || []);
+            setTotalRows(response.data.pagination?.total || 0);
         } catch (err) {
             console.error('Failed to fetch product options');
             showNotification('Failed to load product options', 'error');
             setProductOptions([]);
+            setTotalRows(0);
         } finally {
             setLoading(false);
         }
@@ -75,14 +101,7 @@ export default function ProductOptionsPage() {
         router.push('/product-options/new');
     };
 
-    const filteredRows = productOptions.filter((option) => {
-        const query = searchQuery.toLowerCase();
-        const matchesSearch = !searchQuery || option.name.toLowerCase().includes(query) || option.slug.toLowerCase().includes(query);
-        const optionStoreId = typeof option.storeId === 'object' ? option.storeId._id : option.storeId;
-        const matchesStore = !filterStore || optionStoreId === filterStore;
-        const matchesType = !filterType || option.type === filterType;
-        return matchesSearch && matchesStore && matchesType;
-    });
+
 
     const getStoreName = (storeId: any) => {
         if (typeof storeId === 'object' && storeId !== null) return storeId.name;
@@ -112,7 +131,9 @@ export default function ProductOptionsPage() {
             headerName: 'Type',
             width: 130,
             renderCell: (params: GridRenderCellParams) => (
-                <Chip label={getTypeLabel(params.value as string)} size="small" color="primary" variant="outlined" />
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Chip label={getTypeLabel(params.value as string)} size="small" color="primary" variant="outlined" />
+                </Box>
             ),
         },
         {
@@ -120,7 +141,9 @@ export default function ProductOptionsPage() {
             headerName: 'Store',
             width: 150,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+                </Box>
             ),
         },
         {
@@ -128,7 +151,9 @@ export default function ProductOptionsPage() {
             headerName: 'Values',
             width: 100,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2" color="text.secondary">{params.row.values?.length || 0} values</Typography>
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Typography variant="body2" color="text.secondary">{params.row.values?.length || 0} values</Typography>
+                </Box>
             ),
         },
         {
@@ -136,7 +161,9 @@ export default function ProductOptionsPage() {
             headerName: 'Filterable',
             width: 100,
             renderCell: (params: GridRenderCellParams) => (
-                <Chip label={params.value ? 'Yes' : 'No'} size="small" color={params.value ? 'success' : 'default'} variant={params.value ? 'filled' : 'outlined'} />
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Chip label={params.value ? 'Yes' : 'No'} size="small" color={params.value ? 'success' : 'default'} variant={params.value ? 'filled' : 'outlined'} />
+                </Box>
             ),
         },
         {
@@ -145,7 +172,7 @@ export default function ProductOptionsPage() {
             width: 120,
             sortable: false,
             renderCell: (params: GridRenderCellParams) => (
-                <Box>
+                <Box display="flex" flexDirection="row" justifyContent="center" height="100%">
                     <Tooltip title="Edit">
                         <IconButton onClick={() => handleEdit(params.row._id)} size="small" color="primary">
                             <EditIcon fontSize="small" />
@@ -162,8 +189,6 @@ export default function ProductOptionsPage() {
             ),
         },
     ];
-
-    if (loading) return <LoadingSpinner message="Loading product options..." />;
 
     if (productOptions.length === 0 && !searchQuery && !filterStore && !filterType) {
         return (
@@ -211,18 +236,21 @@ export default function ProductOptionsPage() {
                 onStoreFilterChange={setFilterStore}
             />
 
-            <Box sx={{ height: 600, width: '100%' }}>
-                <DataGrid
-                    rows={filteredRows}
+            <Box sx={{ width: '100%' }}>
+                {loading && <LoadingSpinner message="Loading product options..." />}
+                {!loading && <DataGrid
+                    rows={productOptions}
                     columns={columns}
                     getRowId={(row) => row._id}
                     pageSizeOptions={[10, 25, 50]}
-                    initialState={{
-                        pagination: { paginationModel: { pageSize: 10 } },
-                    }}
+                    paginationMode="server"
+                    rowCount={totalRows}
+                    paginationModel={paginationModel}
+                    onPaginationModelChange={setPaginationModel}
                     disableRowSelectionOnClick
                     sx={dataGridStyles}
-                />
+                    loading={loading}
+                />}
             </Box>
         </Box>
     );

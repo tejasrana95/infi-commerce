@@ -45,21 +45,47 @@ export default function SalesPage() {
   const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterStore, setFilterStore] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('');
 
+  // Pagination state
+  const [paginationModel, setPaginationModel] = useState({
+    page: 0,
+    pageSize: 10,
+  });
+  const [totalRows, setTotalRows] = useState(0);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   useEffect(() => {
     fetchSales();
-  }, []);
+  }, [paginationModel, debouncedSearch, filterStore, filterStatus]);
 
   const fetchSales = async () => {
+    setLoading(true);
     try {
-      const response = await api.get('/sales');
-      setSales(response.data.sales || response.data.data || []);
+      const params = new URLSearchParams();
+      params.append('page', String(paginationModel.page + 1));
+      params.append('limit', String(paginationModel.pageSize));
+      if (debouncedSearch) params.append('search', debouncedSearch);
+      if (filterStore) params.append('storeId', filterStore);
+      if (filterStatus) params.append('isActive', filterStatus === 'active' ? 'true' : filterStatus === 'inactive' ? 'false' : '');
+
+      const response = await api.get(`/sales?${params.toString()}`);
+      setSales(response.data.sales || []);
+      setTotalRows(response.data.pagination?.total || 0);
     } catch (err) {
       console.error('Failed to fetch sales');
       showNotification('Failed to load sales', 'error');
       setSales([]);
+      setTotalRows(0);
     } finally {
       setLoading(false);
     }
@@ -105,23 +131,7 @@ export default function SalesPage() {
     return { label: 'Active', color: 'success' };
   };
 
-  const filteredRows = sales.filter((sale) => {
-    const query = searchQuery.toLowerCase();
-    const matchesSearch = !searchQuery ||
-      sale.name.toLowerCase().includes(query) ||
-      sale.description?.toLowerCase().includes(query);
-    const saleStoreId = typeof sale.storeId === 'object' ? sale.storeId._id : sale.storeId;
-    const matchesStore = !filterStore || saleStoreId === filterStore;
 
-    // Status filter
-    let matchesStatus = true;
-    if (filterStatus) {
-      const status = getSaleStatus(sale);
-      matchesStatus = status.label.toLowerCase() === filterStatus.toLowerCase();
-    }
-
-    return matchesSearch && matchesStore && matchesStatus;
-  });
 
   const getStoreName = (storeId: any) => {
     if (typeof storeId === 'object' && storeId !== null) return storeId.name;
@@ -176,12 +186,14 @@ export default function SalesPage() {
       headerName: 'Discount',
       width: 120,
       renderCell: (params: GridRenderCellParams) => (
-        <Chip
-          label={formatDiscount(params.row)}
-          size="small"
-          color={params.row.type === 'percentage' ? 'primary' : 'secondary'}
-          variant="filled"
-        />
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+          <Chip
+            label={formatDiscount(params.row)}
+            size="small"
+            color={params.row.type === 'percentage' ? 'primary' : 'secondary'}
+            variant="filled"
+          />
+        </Box>
       ),
     },
     {
@@ -189,7 +201,9 @@ export default function SalesPage() {
       headerName: 'Applies To',
       width: 130,
       renderCell: (params: GridRenderCellParams) => (
-        <Typography variant="body2">{formatApplyTo(params.row)}</Typography>
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+          <Typography variant="body2">{formatApplyTo(params.row)}</Typography>
+        </Box>
       ),
     },
     {
@@ -197,9 +211,11 @@ export default function SalesPage() {
       headerName: 'Date Range',
       width: 180,
       renderCell: (params: GridRenderCellParams) => (
-        <Typography variant="body2">
-          {formatDate(params.row.startDate)} - {formatDate(params.row.endDate)}
-        </Typography>
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+          <Typography variant="body2">
+            {formatDate(params.row.startDate)} - {formatDate(params.row.endDate)}
+          </Typography>
+        </Box>
       ),
     },
     {
@@ -207,7 +223,7 @@ export default function SalesPage() {
       headerName: 'Store',
       width: 130,
       renderCell: (params: GridRenderCellParams) => (
-        <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Typography variant="body2">{getStoreName(params.row.storeId)}</Typography></Box>
       ),
     },
     {
@@ -216,7 +232,7 @@ export default function SalesPage() {
       width: 100,
       renderCell: (params: GridRenderCellParams) => {
         const status = getSaleStatus(params.row);
-        return <Chip label={status.label} size="small" color={status.color} variant="outlined" />;
+        return <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Chip label={status.label} size="small" color={status.color} variant="outlined" /></Box>;
       },
     },
     {
@@ -224,11 +240,13 @@ export default function SalesPage() {
       headerName: 'Enabled',
       width: 80,
       renderCell: (params: GridRenderCellParams) => (
-        <Switch
-          checked={params.value}
-          size="small"
-          onChange={() => handleToggleActive(params.row._id, params.value)}
-        />
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+          <Switch
+            checked={params.value}
+            size="small"
+            onChange={() => handleToggleActive(params.row._id, params.value)}
+          />
+        </Box>
       ),
     },
     {
@@ -237,7 +255,7 @@ export default function SalesPage() {
       width: 100,
       sortable: false,
       renderCell: (params: GridRenderCellParams) => (
-        <Box>
+        <Box display="flex" flexDirection="row" justifyContent="center" height="100%">
           <Tooltip title="Edit">
             <IconButton onClick={() => handleEdit(params.row._id)} size="small" color="primary">
               <EditIcon fontSize="small" />
@@ -254,8 +272,6 @@ export default function SalesPage() {
       ),
     },
   ];
-
-  if (loading) return <LoadingSpinner message="Loading sales..." />;
 
   if (sales.length === 0 && !searchQuery && !filterStore && !filterStatus) {
     return (
@@ -303,18 +319,22 @@ export default function SalesPage() {
         onStoreFilterChange={setFilterStore}
       />
 
-      <Box sx={{ height: 600, width: '100%' }}>
-        <DataGrid
-          rows={filteredRows}
-          columns={columns}
-          getRowId={(row) => row._id}
-          pageSizeOptions={[10, 25, 50]}
-          initialState={{
-            pagination: { paginationModel: { pageSize: 10 } },
-          }}
-          disableRowSelectionOnClick
-          sx={dataGridStyles}
-        />
+      <Box sx={{ width: '100%' }}>
+        {loading ? <LoadingSpinner message="Loading sales..." /> : (
+          <DataGrid
+            rows={sales}
+            columns={columns}
+            getRowId={(row) => row._id}
+            pageSizeOptions={[10, 25, 50]}
+            paginationMode="server"
+            rowCount={totalRows}
+            paginationModel={paginationModel}
+            onPaginationModelChange={setPaginationModel}
+            disableRowSelectionOnClick
+            sx={dataGridStyles}
+            loading={loading}
+          />
+        )}
       </Box>
     </Box>
   );

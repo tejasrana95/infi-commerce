@@ -93,21 +93,40 @@ export const createGatewayConfig = asyncHandler(async (req: AuthRequest, res: Re
  * @access  Private (Admin/Store Admin)
  */
 export const getGatewayConfigs = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { storeId, isActive, gatewayType } = req.query;
+    const { storeId, isActive, gatewayType, page = 1, limit = 20, search } = req.query;
 
     const filter: any = {};
     if (storeId) filter.storeId = storeId;
     if (isActive !== undefined) filter.isActive = isActive === 'true';
     if (gatewayType) filter.gatewayType = gatewayType;
 
-    const configs = await PaymentGatewayConfig.find(filter)
-        .populate('geoGroupId', 'name countries')
-        .select('-credentials') // Don't return credentials
-        .sort({ priority: -1 });
+    if (search) {
+        filter.$or = [
+            { gatewayName: { $regex: search, $options: 'i' } },
+            { gatewayType: { $regex: search, $options: 'i' } },
+        ];
+    }
+
+    const [configs, total] = await Promise.all([
+        PaymentGatewayConfig.find(filter)
+            .populate('storeId', 'name') // Add store name
+            .populate('geoGroupId', 'name countries')
+            .select('-credentials') // Don't return credentials
+            .sort({ priority: -1 })
+            .skip((Number(page) - 1) * Number(limit))
+            .limit(Number(limit)),
+        PaymentGatewayConfig.countDocuments(filter),
+    ]);
 
     res.json({
         success: true,
         data: configs,
+        pagination: {
+            total,
+            page: Number(page),
+            limit: Number(limit),
+            pages: Math.ceil(total / Number(limit)),
+        },
     });
 });
 

@@ -154,7 +154,7 @@ export default function ReviewsPage() {
             headerName: 'Product',
             width: 250,
             renderCell: (params: GridRenderCellParams) => (
-                <Box display="flex" alignItems="center" gap={1.5}>
+                <Box display="flex" flexDirection="row" alignItems="center" gap={1} justifyContent="start" height="100%">
                     <Avatar
                         src={params.row.productId?.images?.[0]}
                         variant="rounded"
@@ -162,7 +162,7 @@ export default function ReviewsPage() {
                     >
                         {params.row.productId?.name?.charAt(0)}
                     </Avatar>
-                    <Box>
+                    <Box display="flex" flexDirection="column" alignItems="start" justifyContent="center" height="100%">
                         <Typography variant="body2" fontWeight={500} noWrap>
                             {params.row.productId?.name}
                         </Typography>
@@ -178,7 +178,7 @@ export default function ReviewsPage() {
             headerName: 'Rating',
             width: 130,
             renderCell: (params: GridRenderCellParams) => (
-                <Rating value={params.row.rating} readOnly size="small" />
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Rating value={params.row.rating} readOnly size="small" /></Box>
             ),
         },
         {
@@ -186,9 +186,9 @@ export default function ReviewsPage() {
             headerName: 'Reviewer',
             width: 180,
             renderCell: (params: GridRenderCellParams) => (
-                <Box display="flex" alignItems="center" gap={1}>
+                <Box display="flex" flexDirection="row" alignItems="center" gap={1} justifyContent="start" height="100%">
                     <PersonIcon fontSize="small" color="action" />
-                    <Box>
+                    <Box display="flex" flexDirection="column" alignItems="start" justifyContent="center" height="100%">
                         <Typography variant="body2">
                             {getReviewerName(params.row)}
                         </Typography>
@@ -205,9 +205,11 @@ export default function ReviewsPage() {
             flex: 1,
             minWidth: 200,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2" noWrap>
-                    {params.row.title}
-                </Typography>
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Typography variant="body2" noWrap>
+                        {params.row.title}
+                    </Typography>
+                </Box>
             ),
         },
         {
@@ -215,7 +217,7 @@ export default function ReviewsPage() {
             headerName: 'Status',
             width: 140,
             renderCell: (params: GridRenderCellParams) => (
-                <Box display="flex" gap={0.5} alignItems="center">
+                <Box display="flex" flexDirection="row" gap={1} alignItems="center" justifyContent="start" height="100%">
                     <Chip
                         label={params.row.isApproved ? 'Approved' : 'Pending'}
                         size="small"
@@ -235,9 +237,11 @@ export default function ReviewsPage() {
             headerName: 'Store',
             width: 120,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2">
-                    {params.row.storeId?.name}
-                </Typography>
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Typography variant="body2">
+                        {params.row.storeId?.name}
+                    </Typography>
+                </Box>
             ),
         },
         {
@@ -245,9 +249,11 @@ export default function ReviewsPage() {
             headerName: 'Date',
             width: 100,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2">
-                    {new Date(params.row.createdAt).toLocaleDateString()}
-                </Typography>
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Typography variant="body2">
+                        {new Date(params.row.createdAt).toLocaleDateString()}
+                    </Typography>
+                </Box>
             ),
         },
         {
@@ -256,19 +262,17 @@ export default function ReviewsPage() {
             width: 60,
             sortable: false,
             renderCell: (params: GridRenderCellParams) => (
-                <IconButton
-                    size="small"
-                    onClick={(e) => handleMenuOpen(e, params.row)}
-                >
-                    <MoreVertIcon />
-                </IconButton>
+                <Box display="flex" flexDirection="row" justifyContent="center" height="100%">
+                    <IconButton
+                        size="small"
+                        onClick={(e) => handleMenuOpen(e, params.row)}
+                    >
+                        <MoreVertIcon />
+                    </IconButton>
+                </Box>
             ),
         },
     ];
-
-    if (loading && reviews.length === 0) {
-        return <LoadingSpinner />;
-    }
 
     return (
         <Box>
@@ -333,23 +337,27 @@ export default function ReviewsPage() {
             </Paper>
 
             {/* Data Grid */}
-            <Paper sx={{ height: 600 }}>
-                <DataGrid
-                    rows={reviews}
-                    columns={columns}
-                    getRowId={(row) => row._id}
-                    rowCount={total}
-                    paginationMode="server"
-                    paginationModel={{ page, pageSize }}
-                    onPaginationModelChange={(model) => {
-                        setPage(model.page);
-                        setPageSize(model.pageSize);
-                    }}
-                    pageSizeOptions={[10, 20, 50]}
-                    loading={loading}
-                    disableRowSelectionOnClick
-                    sx={createDataGridStyles(theme)}
-                />
+            <Paper sx={{ width: '100%' }}>
+                {loading && reviews.length === 0 ? (
+                    <LoadingSpinner />
+                ) : (
+                    <DataGrid
+                        rows={reviews}
+                        columns={columns}
+                        getRowId={(row) => row._id}
+                        rowCount={total}
+                        paginationMode="server"
+                        paginationModel={{ page, pageSize }}
+                        onPaginationModelChange={(model) => {
+                            setPage(model.page);
+                            setPageSize(model.pageSize);
+                        }}
+                        pageSizeOptions={[10, 20, 50]}
+                        loading={loading}
+                        disableRowSelectionOnClick
+                        sx={createDataGridStyles(theme)}
+                    />
+                )}
             </Paper>
 
             {/* Actions Menu */}

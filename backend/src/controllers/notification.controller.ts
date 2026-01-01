@@ -136,7 +136,7 @@ export const getNotification = asyncHandler(async (req: AuthRequest, res: Respon
  *         description: Queue statistics retrieved successfully
  */
 export const getQueueStats = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const storeId = (req.query.storeId || req.user?.storeId) as string | undefined;
+    const storeId = (req.query.storeId || req.user?.storeIds?.[0]) as string | undefined;
     const stats = await notificationService.getQueueStats(storeId);
 
     res.json({ success: true, stats });
@@ -254,7 +254,7 @@ export const cancelNotification = asyncHandler(async (req: AuthRequest, res: Res
  *         description: Templates retrieved successfully
  */
 export const getTemplates = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { storeId, type, channel } = req.query;
+    const { storeId, type, channel, page = 1, limit = 20, search } = req.query;
 
     const filter: any = {};
 
@@ -266,9 +266,21 @@ export const getTemplates = asyncHandler(async (req: AuthRequest, res: Response)
     if (type) filter.type = type;
     if (channel) filter.channel = channel;
 
-    const templates = await NotificationTemplate.find(filter)
-        .sort({ type: 1, channel: 1 })
-        .lean();
+    if (search) {
+        filter.$or = [
+            { name: { $regex: search, $options: 'i' } },
+            { subject: { $regex: search, $options: 'i' } },
+        ];
+    }
+
+    const [templates, total] = await Promise.all([
+        NotificationTemplate.find(filter)
+            .sort({ type: 1, channel: 1 })
+            .skip((Number(page) - 1) * Number(limit))
+            .limit(Number(limit))
+            .lean(),
+        NotificationTemplate.countDocuments(filter),
+    ]);
 
     // Populate store names for display
     const storeIds = [...new Set(templates.flatMap(t => t.storeIds.map(id => id.toString())))];
@@ -280,7 +292,16 @@ export const getTemplates = asyncHandler(async (req: AuthRequest, res: Response)
         storeNames: t.storeIds.map(id => storeMap.get(id.toString()) || 'Unknown'),
     }));
 
-    res.json({ success: true, templates: templatesWithStoreNames });
+    res.json({
+        success: true,
+        templates: templatesWithStoreNames,
+        pagination: {
+            total,
+            page: Number(page),
+            limit: Number(limit),
+            pages: Math.ceil(total / Number(limit)),
+        },
+    });
 });
 
 /**

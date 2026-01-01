@@ -240,6 +240,15 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
         filter.parentCategory = req.query.parentCategory === 'null' ? null : req.query.parentCategory;
     }
 
+    if (req.query.search) {
+        const searchRegex = { $regex: req.query.search as string, $options: 'i' };
+        filter.$or = [
+            { title: searchRegex },
+            { slug: searchRegex },
+            { description: searchRegex }
+        ];
+    }
+
     // Get categories with pagination
     const [categories, total] = await Promise.all([
         Category.find(filter)
@@ -251,7 +260,7 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
         Category.countDocuments(filter),
     ]);
 
-    res.json({
+    return res.json({
         categories,
         pagination: {
             total,

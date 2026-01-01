@@ -25,6 +25,7 @@ import TaxForm from '@/components/organisms/TaxForm';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { createDataGridStyles } from '@/utils/styles';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface TaxRow extends TaxRate {
     id: string;
@@ -36,8 +37,13 @@ export default function TaxSettingsPage() {
     const { confirm } = useConfirm();
     const [taxRates, setTaxRates] = useState<TaxRow[]>([]);
     const [loading, setLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState('');
     const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
+
+    // Pagination & Search states
+    const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 20 });
+    const [totalRows, setTotalRows] = useState(0);
+    const [searchQuery, setSearchQuery] = useState('');
+    const debouncedSearch = useDebounce(searchQuery, 500);
 
     // Dialog state
     const [open, setOpen] = useState(false);
@@ -46,17 +52,30 @@ export default function TaxSettingsPage() {
 
     useEffect(() => {
         fetchTaxRates();
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [paginationModel, debouncedSearch]);
 
     const fetchTaxRates = async () => {
         try {
             setLoading(true);
-            const response = await api.get('/tax-rates');
-            const data = response.data.data || [];
-            setTaxRates(data.map((tax: TaxRate) => ({ ...tax, id: tax._id })));
+            const params = {
+                page: paginationModel.page + 1,
+                limit: paginationModel.pageSize,
+                search: debouncedSearch
+            };
+            const response = await api.get('/tax-rates', { params });
+            const data = response.data || [];
+
+            // Handle both potential response structures
+            const items = Array.isArray(data) ? data : response.data.data || [];
+
+            setTaxRates(items.map((tax: TaxRate) => ({ ...tax, id: tax._id })));
+            setTotalRows(response.data.pagination?.total || 0);
         } catch (err: any) {
             console.error('Failed to fetch tax rates', err);
             showNotification('Failed to load tax rates', 'error');
+            setTaxRates([]);
+            setTotalRows(0);
         } finally {
             setLoading(false);
         }
@@ -111,13 +130,7 @@ export default function TaxSettingsPage() {
         setSearchQuery(value);
     };
 
-    const filteredRows = taxRates.filter((tax) => {
-        const query = searchQuery.toLowerCase();
-        return (
-            tax.name.toLowerCase().includes(query) ||
-            (tax.description && tax.description.toLowerCase().includes(query))
-        );
-    });
+
 
     const columns: GridColDef[] = [
         {
@@ -141,7 +154,7 @@ export default function TaxSettingsPage() {
             headerName: 'Rate',
             width: 120,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography fontWeight={600}>{params.row.rate}%</Typography>
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Typography fontWeight={600}>{params.row.rate}%</Typography></Box>
             ),
         },
         {
@@ -149,7 +162,7 @@ export default function TaxSettingsPage() {
             headerName: 'Type',
             width: 150,
             renderCell: (params: GridRenderCellParams) => (
-                <Box>
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
                     <Chip
                         label={params.row.isSplit ? 'Split Tax' : 'Simple'}
                         size="small"
@@ -172,7 +185,7 @@ export default function TaxSettingsPage() {
             field: 'isActive',
             headerName: 'Status',
             width: 100,
-            renderCell: (params: GridRenderCellParams) => <StatusChip active={params.value as boolean} />,
+            renderCell: (params: GridRenderCellParams) => <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><StatusChip active={params.value as boolean} /></Box>,
         },
         {
             field: 'actions',
@@ -182,7 +195,7 @@ export default function TaxSettingsPage() {
             headerAlign: 'right',
             sortable: false,
             renderCell: (params: GridRenderCellParams) => (
-                <Box>
+                <Box display="flex" flexDirection="row" justifyContent="end" alignItems="center" height="100%">
                     <Tooltip title="Edit">
                         <IconButton onClick={() => handleEdit(params.row)} size="small" color="primary">
                             <EditIcon fontSize="small" />
@@ -245,14 +258,36 @@ export default function TaxSettingsPage() {
                 onSearchChange={handleSearchChange}
             />
 
-            <Box sx={{ height: 600, width: '100%' }}>
+            <Box sx={{ width: '100%', position: 'relative' }}>
+                {loading && (
+                    <Box sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1,
+                        backgroundColor: 'rgba(255, 255, 255, 0.5)'
+                    }}>
+                        <LoadingSpinner />
+                    </Box>
+                )}
                 <DataGrid
-                    rows={filteredRows}
+                    rows={taxRates}
                     columns={columns}
                     getRowId={(row) => row.id}
                     sx={dataGridStyles}
                     disableRowSelectionOnClick
                     getRowHeight={() => 'auto'}
+                    paginationMode="server"
+                    rowCount={totalRows}
+                    paginationModel={paginationModel}
+                    onPaginationModelChange={setPaginationModel}
+                    pageSizeOptions={[10, 25, 50]}
+                    loading={loading}
                 />
             </Box>
 

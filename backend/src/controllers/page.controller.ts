@@ -86,6 +86,7 @@ export const createPage = asyncHandler(async (req: AuthRequest, res: Response) =
  *         description: Pages retrieved successfully
  */
 export const getPages = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { page = 1, limit = 20, search, status } = req.query;
     const filter: any = {};
 
     // Store filter - optional for super_admin
@@ -93,20 +94,41 @@ export const getPages = asyncHandler(async (req: AuthRequest, res: Response) => 
         filter.storeId = req.query.storeId;
     } else if (req.user?.role === 'super_admin') {
         // Super admin can see all pages
-    } else if (req.user?.storeId) {
+    } else if (req.user?.storeIds?.length) {
         // Store admin sees only their store's pages
-        filter.storeId = req.user.storeId;
+        filter.storeId = req.user.storeIds[0];
     }
 
-    if (req.query.status) {
-        filter.status = req.query.status;
+    if (status) {
+        filter.status = status;
     }
 
-    const pages = await Page.find(filter)
-        .populate('storeId', 'name')
-        .sort({ sortOrder: 1, title: 1 });
+    if (search) {
+        filter.$or = [
+            { title: { $regex: search, $options: 'i' } },
+            { slug: { $regex: search, $options: 'i' } },
+        ];
+    }
 
-    res.json({ pages });
+    const [pages, total] = await Promise.all([
+        Page.find(filter)
+            .populate('storeId', 'name')
+            .sort({ sortOrder: 1, title: 1 })
+            .skip((Number(page) - 1) * Number(limit))
+            .limit(Number(limit)),
+        Page.countDocuments(filter),
+    ]);
+
+    res.json({
+        success: true,
+        pages,
+        pagination: {
+            total,
+            page: Number(page),
+            limit: Number(limit),
+            pages: Math.ceil(total / Number(limit)),
+        },
+    });
 });
 
 /**

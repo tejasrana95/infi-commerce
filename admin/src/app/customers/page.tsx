@@ -118,7 +118,7 @@ export default function CustomersPage() {
             headerName: 'Phone',
             width: 150,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2">{params.value || '-'}</Typography>
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Typography variant="body2">{params.value || '-'}</Typography></Box>
             ),
         },
         {
@@ -126,28 +126,30 @@ export default function CustomersPage() {
             headerName: 'Verified',
             width: 100,
             renderCell: (params: GridRenderCellParams) => (
-                <Chip
-                    label={params.value ? 'Yes' : 'No'}
-                    size="small"
-                    color={params.value ? 'success' : 'default'}
-                    variant="outlined"
-                />
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Chip
+                        label={params.value ? 'Yes' : 'No'}
+                        size="small"
+                        color={params.value ? 'success' : 'default'}
+                        variant="outlined"
+                    />
+                </Box>
             ),
         },
         {
             field: 'isActive',
             headerName: 'Status',
             width: 100,
-            renderCell: (params: GridRenderCellParams) => <StatusChip active={params.value as boolean} />,
+            renderCell: (params: GridRenderCellParams) => <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><StatusChip active={params.value as boolean} /></Box>,
         },
         {
             field: 'lastLogin',
             headerName: 'Last Login',
             width: 130,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2" color={params.value ? 'text.primary' : 'text.secondary'}>
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Typography variant="body2" color={params.value ? 'text.primary' : 'text.secondary'}>
                     {formatLastLogin(params.value)}
-                </Typography>
+                </Typography></Box>
             ),
         },
         {
@@ -155,7 +157,7 @@ export default function CustomersPage() {
             headerName: 'Registered',
             width: 120,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="caption">{new Date(params.value).toLocaleDateString()}</Typography>
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Typography variant="caption">{new Date(params.value).toLocaleDateString()}</Typography></Box>
             ),
         },
         {
@@ -164,7 +166,7 @@ export default function CustomersPage() {
             width: 120,
             sortable: false,
             renderCell: (params: GridRenderCellParams) => (
-                <Box>
+                <Box display="flex" flexDirection="row" justifyContent="center" height="100%">
                     <Tooltip title="Edit">
                         <IconButton onClick={() => handleEdit(params.row._id)} size="small" color="primary">
                             <EditIcon fontSize="small" />
@@ -212,7 +214,7 @@ export default function CustomersPage() {
                 onFilterChange={(filters) => setFilterStatus(filters.status as string || '')}
             />
 
-            <Box sx={{ height: 600, width: '100%' }}>
+            <Box sx={{ width: '100%' }}>
                 <DataGrid
                     rows={filteredRows}
                     columns={columns}

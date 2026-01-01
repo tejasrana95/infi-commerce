@@ -30,18 +30,41 @@ export default function BannerSlidersPage() {
     // Delete dialog state
     const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
 
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+
+    // Pagination state
+    const [paginationModel, setPaginationModel] = useState({
+        page: 0,
+        pageSize: 10,
+    });
+    const [totalRows, setTotalRows] = useState(0);
+
+    // Debounce search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
     const fetchSliders = async () => {
         try {
             setLoading(true);
-            const params: any = {};
-            if (filterStore) params.storeId = filterStore;
-            if (filterStatus) params.isActive = filterStatus === 'active';
+            const params = new URLSearchParams();
+            params.append('page', String(paginationModel.page + 1));
+            params.append('limit', String(paginationModel.pageSize));
+            if (debouncedSearch) params.append('search', debouncedSearch);
+            if (filterStore) params.append('storeId', filterStore);
+            if (filterStatus) params.append('isActive', filterStatus === 'active' ? 'true' : filterStatus === 'inactive' ? 'false' : '');
 
-            const response = await api.get('/banner-sliders', { params });
+            const response = await api.get(`/banner-sliders?${params.toString()}`);
             setSliders(response.data.sliders || []);
+            setTotalRows(response.data.pagination?.total || 0);
         } catch (error) {
             console.error('Error fetching banner sliders:', error);
             showNotification('Failed to load banner sliders', 'error');
+            setSliders([]);
+            setTotalRows(0);
         } finally {
             setLoading(false);
         }
@@ -49,7 +72,7 @@ export default function BannerSlidersPage() {
 
     useEffect(() => {
         fetchSliders();
-    }, [filterStore, filterStatus]);
+    }, [paginationModel, debouncedSearch, filterStore, filterStatus]);
 
     const handleEdit = (id: string) => {
         router.push(`/banner-sliders/${id}`);
@@ -76,11 +99,7 @@ export default function BannerSlidersPage() {
         return storeId as string || '-';
     };
 
-    const filteredSliders = useMemo(() => {
-        if (!searchQuery) return sliders;
-        const q = searchQuery.toLowerCase();
-        return sliders.filter(s => s.name.toLowerCase().includes(q));
-    }, [sliders, searchQuery]);
+
 
     const columns: GridColDef[] = [
         {
@@ -89,7 +108,7 @@ export default function BannerSlidersPage() {
             width: 50,
             sortable: false,
             renderCell: () => (
-                <ViewCarouselIcon color="action" />
+                <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%"><ViewCarouselIcon color="action" /></Box>
             ),
         },
         {
@@ -98,7 +117,7 @@ export default function BannerSlidersPage() {
             flex: 1,
             minWidth: 200,
             renderCell: (params: GridRenderCellParams) => (
-                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
                     <Typography
                         variant="body2"
                         fontWeight={600}
@@ -118,7 +137,7 @@ export default function BannerSlidersPage() {
             headerName: 'Settings',
             width: 200,
             renderCell: (params: GridRenderCellParams) => (
-                <Box display="flex" gap={0.5} flexWrap="wrap" alignItems="center" height="100%">
+                <Box display="flex" flexDirection="row" justifyContent="start" alignItems="center" gap={0.5} height="100%">
                     <Chip
                         label={params.row.settings?.effect || 'slide'}
                         size="small"
@@ -140,7 +159,9 @@ export default function BannerSlidersPage() {
             headerName: 'Store',
             width: 130,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+                <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
+                    <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+                </Box>
             ),
         },
         {
@@ -148,7 +169,9 @@ export default function BannerSlidersPage() {
             headerName: 'Status',
             width: 100,
             renderCell: (params: GridRenderCellParams) => (
-                <StatusChip active={params.row.isActive} />
+                <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
+                    <StatusChip active={params.row.isActive} />
+                </Box>
             ),
         },
         {
@@ -157,7 +180,7 @@ export default function BannerSlidersPage() {
             width: 100,
             sortable: false,
             renderCell: (params: GridRenderCellParams) => (
-                <Box>
+                <Box display="flex" flexDirection="row" justifyContent="center" alignItems="center" height="100%">
                     <Tooltip title="Edit">
                         <IconButton size="small" onClick={() => handleEdit(params.row._id)}>
                             <EditIcon fontSize="small" />
@@ -176,10 +199,6 @@ export default function BannerSlidersPage() {
             ),
         },
     ];
-
-    if (loading && sliders.length === 0) {
-        return <LoadingSpinner />;
-    }
 
     return (
         <Box>
@@ -213,24 +232,42 @@ export default function BannerSlidersPage() {
                 onFilterChange={(filters) => setFilterStatus(filters.status as string || '')}
             />
 
-            {filteredSliders.length === 0 ? (
+            {sliders.length === 0 && !searchQuery && !filterStore && !filterStatus ? (
                 <EmptyState
                     message="No banner sliders found. Create a carousel to showcase multiple banners."
                     actionLabel="Add Slider"
                     onAction={() => router.push('/banner-sliders/new')}
                 />
             ) : (
-                <Box sx={{ height: 600, width: '100%' }}>
+                <Box sx={{ width: '100%', position: 'relative' }}>
+                    {loading && (
+                        <Box sx={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 1,
+                            backgroundColor: 'rgba(255, 255, 255, 0.5)'
+                        }}>
+                            <LoadingSpinner />
+                        </Box>
+                    )}
                     <DataGrid
-                        rows={filteredSliders}
+                        rows={sliders}
                         columns={columns}
                         getRowId={(row) => row._id}
                         pageSizeOptions={[10, 25, 50]}
-                        initialState={{
-                            pagination: { paginationModel: { pageSize: 25 } },
-                        }}
+                        paginationMode="server"
+                        rowCount={totalRows}
+                        paginationModel={paginationModel}
+                        onPaginationModelChange={setPaginationModel}
                         disableRowSelectionOnClick
                         sx={dataGridStyles}
+                        loading={loading}
                     />
                 </Box>
             )}
@@ -243,6 +280,6 @@ export default function BannerSlidersPage() {
                     <Button onClick={handleDelete} color="error" variant="contained">Delete</Button>
                 </DialogActions>
             </Dialog>
-        </Box>
+        </Box >
     );
 }

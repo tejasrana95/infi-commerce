@@ -40,18 +40,45 @@ export default function AdminsPage() {
     const [filterRole, setFilterRole] = useState<string>('');
     const [filterStatus, setFilterStatus] = useState<string>('');
 
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+
+    // Pagination state
+    const [paginationModel, setPaginationModel] = useState({
+        page: 0,
+        pageSize: 10,
+    });
+    const [totalRows, setTotalRows] = useState(0);
+
+    // Debounce search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
     useEffect(() => {
         fetchAdmins();
-    }, []);
+    }, [paginationModel, debouncedSearch, filterRole, filterStatus]);
 
     const fetchAdmins = async () => {
+        setLoading(true);
         try {
-            const response = await api.get('/admins');
+            const params = new URLSearchParams();
+            params.append('page', String(paginationModel.page + 1));
+            params.append('limit', String(paginationModel.pageSize));
+            if (debouncedSearch) params.append('search', debouncedSearch);
+            if (filterRole) params.append('role', filterRole);
+            if (filterStatus) params.append('status', filterStatus);
+
+            const response = await api.get(`/admins?${params.toString()}`);
             setAdmins(response.data.data || []);
+            setTotalRows(response.data.pagination?.total || 0);
         } catch (err) {
             console.error('Failed to fetch admins');
             showNotification('Failed to load admin users', 'error');
             setAdmins([]);
+            setTotalRows(0);
         } finally {
             setLoading(false);
         }
@@ -76,19 +103,7 @@ export default function AdminsPage() {
         router.push('/admins/new');
     };
 
-    const filteredRows = admins.filter((admin) => {
-        const query = searchQuery.toLowerCase();
-        const matchesSearch = !searchQuery || (
-            admin.email?.toLowerCase().includes(query) ||
-            admin.firstName?.toLowerCase().includes(query) ||
-            admin.lastName?.toLowerCase().includes(query)
-        );
-        const matchesRole = !filterRole || admin.role === filterRole;
-        const matchesStatus = !filterStatus || (
-            filterStatus === 'active' ? admin.isActive : !admin.isActive
-        );
-        return matchesSearch && matchesRole && matchesStatus;
-    });
+
 
     const formatLastLogin = (date?: string) => {
         if (!date) return 'Never';
@@ -131,12 +146,14 @@ export default function AdminsPage() {
             headerName: 'Role',
             width: 130,
             renderCell: (params: GridRenderCellParams) => (
-                <Chip
-                    label={params.value?.replace('_', ' ')}
-                    size="small"
-                    color={getRoleColor(params.value)}
-                    sx={{ textTransform: 'capitalize' }}
-                />
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Chip
+                        label={params.value?.replace('_', ' ')}
+                        size="small"
+                        color={getRoleColor(params.value)}
+                        sx={{ textTransform: 'capitalize' }}
+                    />
+                </Box>
             ),
         },
         {
@@ -144,25 +161,33 @@ export default function AdminsPage() {
             headerName: 'Store',
             width: 150,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2">
-                    {params.value?.name || '-'}
-                </Typography>
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Typography variant="body2">
+                        {params.row.storeIds?.length > 0 ? params.row.storeIds[0].name : '-'}
+                    </Typography>
+                </Box>
             ),
         },
         {
             field: 'isActive',
             headerName: 'Status',
             width: 100,
-            renderCell: (params: GridRenderCellParams) => <StatusChip active={params.value as boolean} />,
+            renderCell: (params: GridRenderCellParams) => (
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <StatusChip active={params.value as boolean} />
+                </Box>
+            ),
         },
         {
             field: 'lastLogin',
             headerName: 'Last Login',
             width: 130,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2" color={params.value ? 'text.primary' : 'text.secondary'}>
-                    {formatLastLogin(params.value)}
-                </Typography>
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Typography variant="body2" color={params.value ? 'text.primary' : 'text.secondary'}>
+                        {formatLastLogin(params.value)}
+                    </Typography>
+                </Box>
             ),
         },
         {
@@ -170,7 +195,9 @@ export default function AdminsPage() {
             headerName: 'Created',
             width: 120,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="caption">{new Date(params.value).toLocaleDateString()}</Typography>
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Typography variant="caption">{new Date(params.value).toLocaleDateString()}</Typography>
+                </Box>
             ),
         },
         {
@@ -179,7 +206,7 @@ export default function AdminsPage() {
             width: 120,
             sortable: false,
             renderCell: (params: GridRenderCellParams) => (
-                <Box>
+                <Box display="flex" flexDirection="row" justifyContent="start" alignItems="center" height="100%">
                     <Tooltip title="Edit">
                         <IconButton onClick={() => handleEdit(params.row._id)} size="small" color="primary">
                             <EditIcon fontSize="small" />
@@ -240,19 +267,20 @@ export default function AdminsPage() {
                 }}
             />
 
-            <Box sx={{ height: 600, width: '100%' }}>
+            <Box sx={{ width: '100%' }}>
                 <DataGrid
-                    rows={filteredRows}
+                    rows={admins}
                     columns={columns}
                     getRowId={(row) => row._id}
                     pageSizeOptions={[10, 25, 50, 100]}
-                    initialState={{
-                        pagination: { paginationModel: { pageSize: 25 } },
-                        sorting: { sortModel: [{ field: 'createdAt', sort: 'desc' }] },
-                    }}
+                    paginationMode="server"
+                    rowCount={totalRows}
+                    paginationModel={paginationModel}
+                    onPaginationModelChange={setPaginationModel}
                     disableRowSelectionOnClick
                     sx={dataGridStyles}
                     rowHeight={60}
+                    loading={loading}
                 />
             </Box>
         </Box>

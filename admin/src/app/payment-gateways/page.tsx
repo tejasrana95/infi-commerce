@@ -12,6 +12,7 @@ import { LoadingSpinner } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { createDataGridStyles } from '@/utils/styles';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface PaymentGateway {
     _id: string;
@@ -40,22 +41,37 @@ export default function PaymentGatewaysPage() {
     const { confirm } = useConfirm();
     const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
 
+    // Pagination & Filter states
+    const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 20 });
+    const [totalRows, setTotalRows] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStore, setFilterStore] = useState<string>('');
     const [filterType, setFilterType] = useState<string>('');
 
+    const debouncedSearch = useDebounce(searchQuery, 500);
+
     useEffect(() => {
         fetchGateways();
-    }, []);
+    }, [paginationModel, debouncedSearch, filterStore, filterType]);
 
     const fetchGateways = async () => {
         try {
-            const response = await api.get('/payment-gateways');
+            setLoading(true);
+            const params: any = {
+                page: paginationModel.page + 1,
+                limit: paginationModel.pageSize,
+                search: debouncedSearch,
+                storeId: filterStore,
+                type: filterType
+            };
+            const response = await api.get('/payment-gateways', { params });
             setGateways(response.data.data || []);
-        } catch (err) {
-            console.error('Failed to fetch payment gateways');
-            showNotification('Failed to load payment gateways', 'error');
+            setTotalRows(response.data.pagination?.total || 0);
+        } catch (err: any) {
+            console.error('Failed to fetch payment gateways', err);
+            showNotification(err.response?.data?.message || 'Failed to load payment gateways', 'error');
             setGateways([]);
+            setTotalRows(0);
         } finally {
             setLoading(false);
         }
@@ -89,17 +105,6 @@ export default function PaymentGatewaysPage() {
     const handleCreate = () => {
         router.push('/payment-gateways/new');
     };
-
-    const filteredRows = gateways.filter((gateway) => {
-        const query = searchQuery.toLowerCase();
-        const matchesSearch = !searchQuery ||
-            gateway.gatewayName.toLowerCase().includes(query) ||
-            gateway.gatewayType.toLowerCase().includes(query);
-        const gatewayStoreId = typeof gateway.storeId === 'object' ? gateway.storeId._id : gateway.storeId;
-        const matchesStore = !filterStore || gatewayStoreId === filterStore;
-        const matchesType = !filterType || gateway.gatewayType === filterType;
-        return matchesSearch && matchesStore && matchesType;
-    });
 
     const getStoreName = (storeId: any) => {
         if (typeof storeId === 'object' && storeId !== null) return storeId.name;
@@ -139,12 +144,15 @@ export default function PaymentGatewaysPage() {
             headerName: 'Type',
             width: 120,
             renderCell: (params: GridRenderCellParams) => (
-                <Chip
-                    label={params.value.toUpperCase()}
-                    size="small"
-                    color={getGatewayTypeColor(params.value)}
-                    variant="outlined"
-                />
+
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Chip
+                        label={params.value.toUpperCase()}
+                        size="small"
+                        color={getGatewayTypeColor(params.value)}
+                        variant="outlined"
+                    />
+                </Box>
             ),
         },
         {
@@ -152,7 +160,9 @@ export default function PaymentGatewaysPage() {
             headerName: 'Geo Group',
             width: 150,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2">{getGeoGroupName(params.row.geoGroupId)}</Typography>
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Typography variant="body2">{getGeoGroupName(params.row.geoGroupId)}</Typography>
+                </Box>
             ),
         },
         {
@@ -160,7 +170,9 @@ export default function PaymentGatewaysPage() {
             headerName: 'Store',
             width: 150,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+                </Box>
             ),
         },
         {
@@ -168,12 +180,14 @@ export default function PaymentGatewaysPage() {
             headerName: 'Mode',
             width: 90,
             renderCell: (params: GridRenderCellParams) => (
-                <Chip
-                    label={params.value ? 'Test' : 'Live'}
-                    size="small"
-                    color={params.value ? 'warning' : 'success'}
-                    variant="filled"
-                />
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Chip
+                        label={params.value ? 'Test' : 'Live'}
+                        size="small"
+                        color={params.value ? 'warning' : 'success'}
+                        variant="filled"
+                    />
+                </Box>
             ),
         },
         {
@@ -181,17 +195,24 @@ export default function PaymentGatewaysPage() {
             headerName: 'Priority',
             width: 80,
             align: 'center',
+            renderCell: (params: GridRenderCellParams) => (
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Typography variant="body2">{params.value}</Typography>
+                </Box>
+            ),
         },
         {
             field: 'isActive',
             headerName: 'Active',
             width: 80,
             renderCell: (params: GridRenderCellParams) => (
-                <Switch
-                    checked={params.value}
-                    size="small"
-                    onChange={() => handleToggleActive(params.row._id, params.value)}
-                />
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Switch
+                        checked={params.value}
+                        size="small"
+                        onChange={() => handleToggleActive(params.row._id, params.value)}
+                    />
+                </Box>
             ),
         },
         {
@@ -200,7 +221,7 @@ export default function PaymentGatewaysPage() {
             width: 100,
             sortable: false,
             renderCell: (params: GridRenderCellParams) => (
-                <Box>
+                <Box display="flex" flexDirection="row" justifyContent="center" height="100%">
                     <Tooltip title="Edit">
                         <IconButton onClick={() => handleEdit(params.row._id)} size="small" color="primary">
                             <EditIcon fontSize="small" />
@@ -216,7 +237,7 @@ export default function PaymentGatewaysPage() {
         },
     ];
 
-    if (loading) return <LoadingSpinner message="Loading payment gateways..." />;
+
 
     if (gateways.length === 0 && !searchQuery && !filterStore && !filterType) {
         return (
@@ -263,17 +284,35 @@ export default function PaymentGatewaysPage() {
                 onStoreFilterChange={setFilterStore}
             />
 
-            <Box sx={{ height: 600, width: '100%' }}>
+            <Box sx={{ width: '100%', position: 'relative' }}>
+                {loading && (
+                    <Box sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1,
+                        backgroundColor: 'rgba(255, 255, 255, 0.5)'
+                    }}>
+                        <LoadingSpinner />
+                    </Box>
+                )}
                 <DataGrid
-                    rows={filteredRows}
+                    rows={gateways}
                     columns={columns}
                     getRowId={(row) => row._id}
+                    paginationMode="server"
+                    rowCount={totalRows}
+                    paginationModel={paginationModel}
+                    onPaginationModelChange={setPaginationModel}
                     pageSizeOptions={[10, 25, 50]}
-                    initialState={{
-                        pagination: { paginationModel: { pageSize: 10 } },
-                    }}
                     disableRowSelectionOnClick
                     sx={dataGridStyles}
+                    loading={loading}
                 />
             </Box>
         </Box>

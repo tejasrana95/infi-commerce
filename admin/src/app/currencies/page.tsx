@@ -40,14 +40,47 @@ export default function CurrenciesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showNotification } = useNotification();
   const { confirm } = useConfirm();
+  /* Pagination & Search State */
+  const [paginationModel, setPaginationModel] = useState({
+    page: 0,
+    pageSize: 10,
+  });
+  const [totalRows, setTotalRows] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  /* Debounce Search */
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  /* Fetch Data */
   useEffect(() => {
     fetchCurrencies();
-  }, []);
+  }, [paginationModel, debouncedSearch]);
 
   const fetchCurrencies = async () => {
     try {
-      const response = await api.get('/currencies');
-      setCurrencies(response.data.currencies || response.data);
+      setLoading(true);
+      const params = new URLSearchParams({
+        page: (paginationModel.page + 1).toString(),
+        limit: paginationModel.pageSize.toString(),
+        search: debouncedSearch,
+      });
+
+      const response = await api.get(`/currencies?${params.toString()}`);
+
+      if (response.data.success) {
+        setCurrencies(response.data.currencies);
+        setTotalRows(response.data.pagination.total);
+      } else {
+        // Fallback for older API structure if needed, though backend is updated
+        setCurrencies(response.data.currencies || []);
+        setTotalRows(response.data.currencies?.length || 0);
+      }
     } catch (err) {
       console.error('Failed to fetch currencies');
       setCurrencies([]);
@@ -60,8 +93,8 @@ export default function CurrenciesPage() {
     if (!await confirm({ title: 'Delete Currency', message: 'Are you sure you want to delete this currency?', severity: 'error' })) return;
     try {
       await api.delete(`/currencies/${id}`);
-      setCurrencies(currencies.filter(c => c._id !== id));
       showNotification('Currency deleted successfully', 'success');
+      fetchCurrencies(); // Reload data
     } catch (err: any) {
       showNotification(err.response?.data?.message || 'Failed to delete', 'error');
     }
@@ -91,13 +124,10 @@ export default function CurrenciesPage() {
       if (selectedCurrency) {
         // Update
         const response = await api.put(`/currencies/${selectedCurrency._id}`, data);
-        const updated = response.data.data || response.data;
-        setCurrencies(currencies.map(c => c._id === updated._id ? updated : c));
+        // Removed local state update, refetching instead
       } else {
         // Create
         const response = await api.post('/currencies', data);
-        const created = response.data.data || response.data;
-        setCurrencies([...currencies, created]);
       }
       handleClose();
       // Refetch if base currency changed to ensure others are updated correctly (if backend logic exists)
@@ -136,7 +166,7 @@ export default function CurrenciesPage() {
           parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, row.thousandsSeparator || ',');
           formatted = parts.join(row.decimalSeparator || '.');
           const val = row.symbolPosition === 'after' ? `${formatted}${row.symbol}` : `${row.symbol}${formatted}`;
-          return <Typography variant="body2" fontFamily="'Roboto Mono', monospace">{val}</Typography>
+          return <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Typography variant="body2" fontFamily="'Roboto Mono', monospace">{val}</Typography></Box>
         } catch (e) { return row.symbol }
       }
     },
@@ -145,14 +175,14 @@ export default function CurrenciesPage() {
       headerName: 'Exchange Rate',
       width: 150,
       display: 'flex',
-      renderCell: (params: GridRenderCellParams) => params.row.isBaseCurrency ? <Chip label="Base" size="small" color="info" icon={<StarIcon />} /> : params.value
+      renderCell: (params: GridRenderCellParams) => params.row.isBaseCurrency ? <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Chip label="Base" size="small" color="info" icon={<StarIcon />} /></Box> : <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Typography variant="body2" fontWeight={600} lineHeight={1.2}>{params.value}</Typography></Box>
     },
     {
       field: 'isActive',
       headerName: 'Status',
       display: 'flex',
       width: 120,
-      renderCell: (params: GridRenderCellParams) => <StatusChip active={params.value as boolean} />,
+      renderCell: (params: GridRenderCellParams) => <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><StatusChip active={params.value as boolean} /></Box>,
     },
     {
       field: 'actions',
@@ -163,7 +193,7 @@ export default function CurrenciesPage() {
       sortable: false,
       display: 'flex',
       renderCell: (params: GridRenderCellParams) => (
-        <Box>
+        <Box display="flex" flexDirection="row" alignItems="center" justifyContent="end" height="100%">
           <Tooltip title="Edit">
             <IconButton onClick={() => handleEdit(params.row._id)} size="small" color="primary">
               <EditIcon fontSize="small" />
@@ -179,25 +209,16 @@ export default function CurrenciesPage() {
     }
   ];
 
-  const [searchQuery, setSearchQuery] = useState('');
-
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
   };
 
-  const filteredCurrencies = currencies.filter((currency) => {
-    const query = searchQuery.toLowerCase();
-    return (
-      currency?.name?.toLowerCase().includes(query) ||
-      currency?.code?.toLowerCase().includes(query) ||
-      currency?.symbol?.toLowerCase().includes(query)
-    );
-  });
+  // Removed filteredCurrencies as client-side filtering is no longer needed
 
-  if (loading) return <LoadingSpinner message="Loading currencies..." />;
+  if (loading && currencies.length === 0) return <LoadingSpinner message="Loading currencies..." />;
 
   // Empty state can just use the handleCreate logic too
-  if (currencies.length === 0 && !open) {
+  if (currencies.length === 0 && !searchQuery && !open) {
     return (
       <Box>
         <PageHeader
@@ -246,15 +267,23 @@ export default function CurrenciesPage() {
         searchValue={searchQuery}
         onSearchChange={handleSearchChange}
       />
-      <Box sx={{ height: 600, width: '100%' }}>
+
+      {loading && <LoadingSpinner message="Loading currencies..." />}
+
+      <Box sx={{ width: '100%' }}>
         <DataGrid
-          rows={filteredCurrencies}
+          rows={currencies}
           columns={columns}
           getRowId={(row) => row._id}
           sx={dataGridStyles}
           disableRowSelectionOnClick
 
-
+          paginationMode="server"
+          rowCount={totalRows}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          pageSizeOptions={[10, 25, 50]}
+          loading={loading}
         />
       </Box>
 

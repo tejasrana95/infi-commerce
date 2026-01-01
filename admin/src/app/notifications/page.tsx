@@ -17,6 +17,7 @@ import {
     Telegram,
 } from '@mui/icons-material';
 import api from '@/lib/api';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface Store {
     _id: string;
@@ -71,6 +72,8 @@ export default function NotificationsPage() {
     const [channelFilter, setChannelFilter] = useState<string>('');
     const [typeFilter, setTypeFilter] = useState<string>('');
     const [storeFilter, setStoreFilter] = useState<string>('');
+    const [searchQuery, setSearchQuery] = useState<string>('');
+    const debouncedSearch = useDebounce(searchQuery, 500);
 
     useEffect(() => {
         loadStores();
@@ -80,7 +83,7 @@ export default function NotificationsPage() {
         loadNotifications();
         loadStats();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [paginationModel, statusFilter, channelFilter, typeFilter, storeFilter]);
+    }, [paginationModel, statusFilter, channelFilter, typeFilter, storeFilter, debouncedSearch]);
 
     const loadStores = async () => {
         try {
@@ -97,6 +100,7 @@ export default function NotificationsPage() {
             const params: Record<string, unknown> = {
                 page: paginationModel.page + 1,
                 limit: paginationModel.pageSize,
+                search: debouncedSearch,
             };
             if (statusFilter) params.status = statusFilter;
             if (channelFilter) params.channel = channelFilter;
@@ -104,10 +108,13 @@ export default function NotificationsPage() {
             if (storeFilter) params.storeId = storeFilter;
 
             const res = await api.get('notifications', { params });
-            setNotifications(res.data.notifications);
-            setRowCount(res.data.pagination.total);
+            // Handle both structure types if needed, standardization to notifications key
+            setNotifications(res.data.notifications || res.data.data || []);
+            setRowCount(res.data.pagination?.total || 0);
         } catch (error) {
             console.error('Failed to load notifications:', error);
+            setNotifications([]);
+            setRowCount(0);
         } finally {
             setLoading(false);
         }
@@ -198,12 +205,14 @@ export default function NotificationsPage() {
             renderCell: (params: GridRenderCellParams) => {
                 const storeName = params.value?.name || (typeof params.value === 'string' ? params.value : 'N/A');
                 return (
-                    <Chip
-                        icon={<StoreIcon fontSize="small" />}
-                        label={storeName}
-                        size="small"
-                        variant="outlined"
-                    />
+                    <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                        <Chip
+                            icon={<StoreIcon fontSize="small" />}
+                            label={storeName}
+                            size="small"
+                            variant="outlined"
+                        />
+                    </Box>
                 );
             },
         },
@@ -213,25 +222,48 @@ export default function NotificationsPage() {
             width: 90,
             renderCell: (params: GridRenderCellParams) => (
                 <Tooltip title={params.value}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
                         {getChannelIcon(params.value)}
                     </Box>
                 </Tooltip>
             ),
         },
-        { field: 'type', headerName: 'Type', width: 140 },
-        { field: 'recipient', headerName: 'Recipient', width: 200 },
-        { field: 'subject', headerName: 'Subject', width: 200, flex: 1 },
+        {
+            field: 'type', headerName: 'Type', width: 140,
+            renderCell: (params: GridRenderCellParams) => (
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Typography variant="body2">{params.value}</Typography>
+                </Box>
+            ),
+        },
+        {
+            field: 'recipient', headerName: 'Recipient', width: 200,
+            renderCell: (params: GridRenderCellParams) => (
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Typography variant="body2">{params.value}</Typography>
+                </Box>
+            ),
+        },
+        {
+            field: 'subject', headerName: 'Subject', width: 200, flex: 1,
+            renderCell: (params: GridRenderCellParams) => (
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Typography variant="body2">{params.value}</Typography>
+                </Box>
+            ),
+        },
         {
             field: 'priority',
             headerName: 'Priority',
             width: 100,
             renderCell: (params: GridRenderCellParams) => (
-                <Chip
-                    label={params.value}
-                    size="small"
-                    color={params.value === 'high' ? 'error' : params.value === 'normal' ? 'primary' : 'default'}
-                />
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Chip
+                        label={params.value}
+                        size="small"
+                        color={params.value === 'high' ? 'error' : params.value === 'normal' ? 'primary' : 'default'}
+                    />
+                </Box>
             ),
         },
         {
@@ -240,13 +272,15 @@ export default function NotificationsPage() {
             width: 140,
             renderCell: (params: GridRenderCellParams) => (
                 <Tooltip title={params.value}>
-                    <Chip
-                        label={params.value ? "Error" : "OK"}
-                        size="small"
-                        color={
-                            params.value ? 'error' : 'success'
-                        }
-                    />
+                    <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                        <Chip
+                            label={params.value ? "Error" : "OK"}
+                            size="small"
+                            color={
+                                params.value ? 'error' : 'success'
+                            }
+                        />
+                    </Box>
                 </Tooltip>
             ),
         },
@@ -255,23 +289,29 @@ export default function NotificationsPage() {
             headerName: 'Status',
             width: 120,
             renderCell: (params: GridRenderCellParams) => (
-                <Chip
-                    icon={getStatusIcon(params.value)}
-                    label={params.value}
-                    size="small"
-                    color={
-                        params.value === 'sent' ? 'success' :
-                            params.value === 'failed' ? 'error' :
-                                params.value === 'pending' ? 'warning' : 'default'
-                    }
-                />
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Chip
+                        icon={getStatusIcon(params.value)}
+                        label={params.value}
+                        size="small"
+                        color={
+                            params.value === 'sent' ? 'success' :
+                                params.value === 'failed' ? 'error' :
+                                    params.value === 'pending' ? 'warning' : 'default'
+                        }
+                    />
+                </Box>
             ),
         },
         {
             field: 'createdAt',
             headerName: 'Created',
             width: 160,
-            renderCell: (params: GridRenderCellParams) => new Date(params.value).toLocaleString(),
+            renderCell: (params: GridRenderCellParams) => (
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    {new Date(params.value).toLocaleString()}
+                </Box>
+            ),
         },
         {
             field: 'actions',
@@ -279,7 +319,7 @@ export default function NotificationsPage() {
             width: 120,
             sortable: false,
             renderCell: (params: GridRenderCellParams) => (
-                <Box>
+                <Box display="flex" flexDirection="row" justifyContent="center" height="100%">
                     <Tooltip title="View">
                         <IconButton size="small" onClick={() => { setSelectedNotification(params.row); setPreviewOpen(true); }}>
                             <Visibility fontSize="small" />
@@ -357,7 +397,17 @@ export default function NotificationsPage() {
             <Card sx={{ mb: 3 }}>
                 <CardContent>
                     <Grid container spacing={2}>
-                        <Grid size={{ xs: 12, md: 3 }}>
+                        <Grid size={{ xs: 12, md: 4 }}>
+                            <TextField
+                                fullWidth
+                                size="small"
+                                label="Search"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search recipient..."
+                            />
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 2 }}>
                             <FormControl fullWidth size="small">
                                 <InputLabel>Store</InputLabel>
                                 <Select value={storeFilter} label="Store" onChange={(e) => setStoreFilter(e.target.value)}>
@@ -368,7 +418,7 @@ export default function NotificationsPage() {
                                 </Select>
                             </FormControl>
                         </Grid>
-                        <Grid size={{ xs: 12, md: 3 }}>
+                        <Grid size={{ xs: 12, md: 2 }}>
                             <FormControl fullWidth size="small">
                                 <InputLabel>Status</InputLabel>
                                 <Select value={statusFilter} label="Status" onChange={(e) => setStatusFilter(e.target.value)}>
@@ -381,7 +431,7 @@ export default function NotificationsPage() {
                                 </Select>
                             </FormControl>
                         </Grid>
-                        <Grid size={{ xs: 12, md: 3 }}>
+                        <Grid size={{ xs: 12, md: 2 }}>
                             <FormControl fullWidth size="small">
                                 <InputLabel>Channel</InputLabel>
                                 <Select value={channelFilter} label="Channel" onChange={(e) => setChannelFilter(e.target.value)}>
@@ -392,7 +442,7 @@ export default function NotificationsPage() {
                                 </Select>
                             </FormControl>
                         </Grid>
-                        <Grid size={{ xs: 12, md: 3 }}>
+                        <Grid size={{ xs: 12, md: 2 }}>
                             <TextField
                                 fullWidth
                                 size="small"

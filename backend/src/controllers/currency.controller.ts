@@ -102,15 +102,43 @@ export const createCurrency = asyncHandler(async (req: AuthRequest, res: Respons
  *         description: Currencies retrieved successfully
  */
 export const getCurrencies = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
     const filter: any = {};
 
     if (req.query.isActive !== undefined) {
         filter.isActive = req.query.isActive === 'true';
     }
 
-    const currencies = await Currency.find(filter).sort({ code: 1 });
+    if (req.query.search) {
+        const searchRegex = { $regex: req.query.search, $options: 'i' };
+        filter.$or = [
+            { name: searchRegex },
+            { code: searchRegex },
+            { symbol: searchRegex }
+        ];
+    }
 
-    res.json({ currencies });
+    const [currencies, total] = await Promise.all([
+        Currency.find(filter)
+            .sort({ code: 1 })
+            .skip(skip)
+            .limit(limit),
+        Currency.countDocuments(filter)
+    ]);
+
+    res.json({
+        success: true,
+        currencies,
+        pagination: {
+            total,
+            page,
+            limit,
+            pages: Math.ceil(total / limit)
+        }
+    });
 });
 
 /**

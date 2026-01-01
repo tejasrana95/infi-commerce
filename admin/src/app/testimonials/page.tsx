@@ -13,6 +13,7 @@ import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules'
 import { LoadingSpinner, StatusChip } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
 import { createDataGridStyles } from '@/utils/styles';
+import { useDebounce } from '@/hooks/useDebounce';
 
 export default function TestimonialsPage() {
     const router = useRouter();
@@ -22,10 +23,14 @@ export default function TestimonialsPage() {
     const { showNotification } = useNotification();
     const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
 
-    // Filter states
+    // Pagination & Filter states
+    const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 20 });
+    const [totalRows, setTotalRows] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStore, setFilterStore] = useState<string>('');
     const [filterStatus, setFilterStatus] = useState<string>('');
+
+    const debouncedSearch = useDebounce(searchQuery, 500);
 
     // Delete dialog state
     const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
@@ -33,15 +38,24 @@ export default function TestimonialsPage() {
     const fetchTestimonials = async () => {
         try {
             setLoading(true);
-            const params: any = {};
+            const params: any = {
+                page: paginationModel.page + 1,
+                limit: paginationModel.pageSize,
+                search: debouncedSearch,
+            };
             if (filterStore) params.storeId = filterStore;
             if (filterStatus) params.isActive = filterStatus === 'active';
 
             const response = await api.get('/testimonials', { params });
+            // Handle potentially different response structure if backend returns { data: [], pagination: {} } vs { testimonials: [], pagination: {} }
+            // Using testimonials based on previous files, but falling back to data if needed
             setTestimonials(response.data.testimonials || []);
+            setTotalRows(response.data.pagination?.total || 0);
         } catch (error) {
             console.error('Error fetching testimonials:', error);
             showNotification('Failed to load testimonials', 'error');
+            setTestimonials([]);
+            setTotalRows(0);
         } finally {
             setLoading(false);
         }
@@ -49,7 +63,7 @@ export default function TestimonialsPage() {
 
     useEffect(() => {
         fetchTestimonials();
-    }, [filterStore, filterStatus]);
+    }, [paginationModel, debouncedSearch, filterStore, filterStatus]);
 
     const handleEdit = (id: string) => {
         router.push(`/testimonials/${id}`);
@@ -76,14 +90,7 @@ export default function TestimonialsPage() {
         return storeId as string || '-';
     };
 
-    const filteredTestimonials = useMemo(() => {
-        if (!searchQuery) return testimonials;
-        const q = searchQuery.toLowerCase();
-        return testimonials.filter(t =>
-            t.customerName.toLowerCase().includes(q) ||
-            t.content.toLowerCase().includes(q)
-        );
-    }, [testimonials, searchQuery]);
+
 
     const columns: GridColDef[] = [
         {
@@ -92,9 +99,11 @@ export default function TestimonialsPage() {
             width: 60,
             sortable: false,
             renderCell: (params: GridRenderCellParams) => (
-                <Avatar src={params.row.customerImage}>
-                    <PersonIcon />
-                </Avatar>
+                <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
+                    <Avatar src={params.row.customerImage}>
+                        <PersonIcon />
+                    </Avatar>
+                </Box>
             ),
         },
         {
@@ -102,7 +111,7 @@ export default function TestimonialsPage() {
             headerName: 'Customer',
             width: 200,
             renderCell: (params: GridRenderCellParams) => (
-                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
                     <Typography
                         variant="body2"
                         fontWeight={600}
@@ -125,19 +134,21 @@ export default function TestimonialsPage() {
             flex: 1,
             minWidth: 300,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                    }}
-                >
-                    &ldquo;{params.row.content}&rdquo;
-                </Typography>
+                <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
+                    <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                        }}
+                    >
+                        &ldquo;{params.row.content}&rdquo;
+                    </Typography>
+                </Box>
             ),
         },
         {
@@ -146,9 +157,13 @@ export default function TestimonialsPage() {
             width: 130,
             renderCell: (params: GridRenderCellParams) => (
                 params.row.rating ? (
-                    <Rating value={params.row.rating} readOnly size="small" />
+                    <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
+                        <Rating value={params.row.rating} readOnly size="small" />
+                    </Box>
                 ) : (
-                    <Typography variant="caption" color="text.secondary">-</Typography>
+                    <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
+                        <Typography variant="caption" color="text.secondary">-</Typography>
+                    </Box>
                 )
             ),
         },
@@ -157,7 +172,9 @@ export default function TestimonialsPage() {
             headerName: 'Store',
             width: 130,
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+                <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
+                    <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+                </Box>
             ),
         },
         {
@@ -165,7 +182,9 @@ export default function TestimonialsPage() {
             headerName: 'Status',
             width: 100,
             renderCell: (params: GridRenderCellParams) => (
-                <StatusChip active={params.row.isActive} />
+                <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
+                    <StatusChip active={params.row.isActive} />
+                </Box>
             ),
         },
         {
@@ -174,7 +193,7 @@ export default function TestimonialsPage() {
             width: 100,
             sortable: false,
             renderCell: (params: GridRenderCellParams) => (
-                <Box>
+                <Box display="flex" flexDirection="row" justifyContent="start" alignItems="center" height="100%">
                     <Tooltip title="Edit">
                         <IconButton size="small" onClick={() => handleEdit(params.row._id)}>
                             <EditIcon fontSize="small" />
@@ -193,10 +212,6 @@ export default function TestimonialsPage() {
             ),
         },
     ];
-
-    if (loading && testimonials.length === 0) {
-        return <LoadingSpinner />;
-    }
 
     return (
         <Box>
@@ -230,25 +245,43 @@ export default function TestimonialsPage() {
                 onFilterChange={(filters) => setFilterStatus(filters.status as string || '')}
             />
 
-            {filteredTestimonials.length === 0 ? (
+            {!loading && testimonials.length === 0 && !searchQuery && !filterStore && !filterStatus ? (
                 <EmptyState
                     message="No testimonials found. Get started by adding customer testimonials."
                     actionLabel="Add Testimonial"
                     onAction={() => router.push('/testimonials/new')}
                 />
             ) : (
-                <Box sx={{ height: 600, width: '100%' }}>
+                <Box sx={{ width: '100%', position: 'relative' }}>
+                    {loading && (
+                        <Box sx={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 1,
+                            backgroundColor: 'rgba(255, 255, 255, 0.5)'
+                        }}>
+                            <LoadingSpinner />
+                        </Box>
+                    )}
                     <DataGrid
-                        rows={filteredTestimonials}
+                        rows={testimonials}
                         columns={columns}
                         getRowId={(row) => row._id}
+                        paginationMode="server"
+                        rowCount={totalRows}
+                        paginationModel={paginationModel}
+                        onPaginationModelChange={setPaginationModel}
                         pageSizeOptions={[10, 25, 50]}
-                        initialState={{
-                            pagination: { paginationModel: { pageSize: 25 } },
-                        }}
                         disableRowSelectionOnClick
                         rowHeight={70}
                         sx={dataGridStyles}
+                        loading={loading}
                     />
                 </Box>
             )}

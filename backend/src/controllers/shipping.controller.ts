@@ -69,6 +69,7 @@ export const createShippingRule = asyncHandler(async (req: AuthRequest, res: Res
  *     tags: [Shipping]
  */
 export const getShippingRules = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { page = 1, limit = 20 } = req.query;
     const filter: any = {};
 
     if (req.query.storeId) {
@@ -83,15 +84,26 @@ export const getShippingRules = asyncHandler(async (req: AuthRequest, res: Respo
         filter.name = { $regex: req.query.search, $options: 'i' };
     }
 
-    const shippingRules = await ShippingRule.find(filter)
-        .populate('storeId', 'name slug')
-        .populate('geoGroupId', 'name countries')
-        .populate('categoryIds', 'title')
-        .sort({ priority: -1, createdAt: -1 });
+    const [shippingRules, total] = await Promise.all([
+        ShippingRule.find(filter)
+            .populate('storeId', 'name slug')
+            .populate('geoGroupId', 'name countries')
+            .populate('categoryIds', 'title')
+            .sort({ priority: -1, createdAt: -1 })
+            .skip((Number(page) - 1) * Number(limit))
+            .limit(Number(limit)),
+        ShippingRule.countDocuments(filter),
+    ]);
 
     res.json({
         success: true,
-        data: shippingRules
+        data: shippingRules,
+        pagination: {
+            total,
+            page: Number(page),
+            limit: Number(limit),
+            pages: Math.ceil(total / Number(limit)),
+        },
     });
 });
 

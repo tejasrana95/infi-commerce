@@ -14,6 +14,7 @@ import { LoadingSpinner, StatusChip } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { createDataGridStyles } from '@/utils/styles';
+import { useDebounce } from '@/hooks/useDebounce';
 
 export default function PagesPage() {
     const router = useRouter();
@@ -24,24 +25,38 @@ export default function PagesPage() {
     const { confirm } = useConfirm();
     const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
 
-    // Filter states
+    // Pagination & Filter states
+    const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 20 });
+    const [totalRows, setTotalRows] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStore, setFilterStore] = useState<string>('');
     const [filterStatus, setFilterStatus] = useState<string>('');
 
+    const debouncedSearch = useDebounce(searchQuery, 500);
+
     useEffect(() => {
         fetchPages();
-    }, []);
+    }, [paginationModel, debouncedSearch, filterStore, filterStatus]);
 
     const fetchPages = async () => {
         try {
             setLoading(true);
-            const response = await api.get('/pages');
+            const params: any = {
+                page: paginationModel.page + 1,
+                limit: paginationModel.pageSize,
+                search: debouncedSearch,
+                storeId: filterStore,
+                status: filterStatus,
+            };
+
+            const response = await api.get('/pages', { params });
             setPages(response.data.pages || []);
+            setTotalRows(response.data.pagination?.total || 0);
         } catch (err: any) {
             console.error('Failed to fetch pages', err);
             showNotification(err.response?.data?.message || 'Failed to load pages', 'error');
             setPages([]);
+            setTotalRows(0);
         } finally {
             setLoading(false);
         }
@@ -51,7 +66,7 @@ export default function PagesPage() {
         if (!await confirm({ title: 'Delete Page', message: 'Are you sure you want to delete this page?', severity: 'error' })) return;
         try {
             await api.delete(`/pages/${id}`);
-            setPages(pages.filter(p => p._id !== id));
+            fetchPages();
             showNotification('Page deleted successfully', 'success');
         } catch (err: any) {
             showNotification(err.response?.data?.message || 'Failed to delete page', 'error');
@@ -73,27 +88,6 @@ export default function PagesPage() {
         return '-';
     };
 
-    const filteredRows = pages.filter((page) => {
-        const query = searchQuery.toLowerCase();
-
-        // Search filter
-        const matchesSearch = !searchQuery || (
-            (page.title && page.title.toLowerCase().includes(query)) ||
-            (page.slug && page.slug.toLowerCase().includes(query))
-        );
-
-        // Store filter
-        const pageStoreId = typeof page.storeId === 'object' && page.storeId !== null
-            ? page.storeId._id
-            : page.storeId;
-        const matchesStore = !filterStore || pageStoreId === filterStore;
-
-        // Status filter
-        const matchesStatus = !filterStatus || page.status === filterStatus;
-
-        return matchesSearch && matchesStore && matchesStatus;
-    });
-
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'published': return 'success';
@@ -108,10 +102,13 @@ export default function PagesPage() {
             headerName: '',
             width: 60,
             sortable: false,
+            display: 'flex',
             renderCell: () => (
-                <Avatar variant="rounded" sx={{ width: 40, height: 40, bgcolor: 'primary.light' }}>
-                    <DescriptionIcon fontSize="small" color="primary" />
-                </Avatar>
+                <Box display="flex" alignItems="center" justifyContent="center" height="100%" width="100%">
+                    <Avatar variant="rounded" sx={{ width: 40, height: 40, bgcolor: 'primary.light' }}>
+                        <DescriptionIcon fontSize="small" color="primary" />
+                    </Avatar>
+                </Box>
             ),
         },
         {
@@ -119,6 +116,7 @@ export default function PagesPage() {
             headerName: 'Title',
             flex: 1,
             minWidth: 200,
+            display: 'flex',
             renderCell: (params: GridRenderCellParams) => (
                 <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
                     <Typography
@@ -137,34 +135,43 @@ export default function PagesPage() {
             field: 'storeId',
             headerName: 'Store',
             width: 140,
+            display: 'flex',
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+                <Box display="flex" alignItems="center" height="100%">
+                    <Typography variant="body2">{getStoreName(params.row.storeId)}</Typography>
+                </Box>
             ),
         },
         {
             field: 'template',
             headerName: 'Template',
             width: 120,
+            display: 'flex',
             renderCell: (params: GridRenderCellParams) => (
-                <Chip
-                    label={params.value || 'default'}
-                    size="small"
-                    variant="outlined"
-                    sx={{ textTransform: 'capitalize' }}
-                />
+                <Box display="flex" alignItems="center" height="100%">
+                    <Chip
+                        label={params.value || 'default'}
+                        size="small"
+                        variant="outlined"
+                        sx={{ textTransform: 'capitalize' }}
+                    />
+                </Box>
             ),
         },
         {
             field: 'status',
             headerName: 'Status',
             width: 110,
+            display: 'flex',
             renderCell: (params: GridRenderCellParams) => (
-                <Chip
-                    label={params.value}
-                    size="small"
-                    color={getStatusColor(params.value as string) as any}
-                    sx={{ textTransform: 'capitalize' }}
-                />
+                <Box display="flex" alignItems="center" height="100%">
+                    <Chip
+                        label={params.value}
+                        size="small"
+                        color={getStatusColor(params.value as string) as any}
+                        sx={{ textTransform: 'capitalize' }}
+                    />
+                </Box>
             ),
         },
         {
@@ -172,13 +179,17 @@ export default function PagesPage() {
             headerName: 'Header',
             width: 80,
             align: 'center',
+            headerAlign: 'center',
+            display: 'flex',
             renderCell: (params: GridRenderCellParams) => (
-                <Chip
-                    label={params.value ? 'Yes' : 'No'}
-                    size="small"
-                    color={params.value ? 'success' : 'default'}
-                    variant="outlined"
-                />
+                <Box display="flex" alignItems="center" justifyContent="center" height="100%" width="100%">
+                    <Chip
+                        label={params.value ? 'Yes' : 'No'}
+                        size="small"
+                        color={params.value ? 'success' : 'default'}
+                        variant="outlined"
+                    />
+                </Box>
             ),
         },
         {
@@ -186,23 +197,30 @@ export default function PagesPage() {
             headerName: 'Footer',
             width: 80,
             align: 'center',
+            headerAlign: 'center',
+            display: 'flex',
             renderCell: (params: GridRenderCellParams) => (
-                <Chip
-                    label={params.value ? 'Yes' : 'No'}
-                    size="small"
-                    color={params.value ? 'success' : 'default'}
-                    variant="outlined"
-                />
+                <Box display="flex" alignItems="center" justifyContent="center" height="100%" width="100%">
+                    <Chip
+                        label={params.value ? 'Yes' : 'No'}
+                        size="small"
+                        color={params.value ? 'success' : 'default'}
+                        variant="outlined"
+                    />
+                </Box>
             ),
         },
         {
             field: 'updatedAt',
             headerName: 'Updated',
             width: 110,
+            display: 'flex',
             renderCell: (params: GridRenderCellParams) => (
-                <Typography variant="caption" color="text.secondary">
-                    {new Date(params.value).toLocaleDateString()}
-                </Typography>
+                <Box display="flex" alignItems="center" height="100%">
+                    <Typography variant="caption" color="text.secondary">
+                        {new Date(params.value).toLocaleDateString()}
+                    </Typography>
+                </Box>
             ),
         },
         {
@@ -210,8 +228,9 @@ export default function PagesPage() {
             headerName: 'Actions',
             width: 120,
             sortable: false,
+            display: 'flex',
             renderCell: (params: GridRenderCellParams) => (
-                <Box>
+                <Box display="flex" alignItems="center" height="100%">
                     <Tooltip title="Edit">
                         <IconButton onClick={() => handleEdit(params.row._id)} size="small" color="primary">
                             <EditIcon fontSize="small" />
@@ -227,9 +246,7 @@ export default function PagesPage() {
         },
     ];
 
-    if (loading) return <LoadingSpinner message="Loading pages..." />;
-
-    if (pages.length === 0 && !searchQuery && !filterStore && !filterStatus) {
+    if (!loading && pages.length === 0 && !searchQuery && !filterStore && !filterStatus) {
         return (
             <Box>
                 <PageHeader title="Pages" subtitle="Manage static pages like About, Contact, Privacy" actionLabel="Create Page" onAction={handleCreate} />
@@ -273,18 +290,36 @@ export default function PagesPage() {
                 onStoreFilterChange={setFilterStore}
             />
 
-            <Box sx={{ height: 600, width: '100%' }}>
+            <Box sx={{ width: '100%', position: 'relative' }}>
+                {loading && (
+                    <Box sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1,
+                        backgroundColor: 'rgba(255, 255, 255, 0.5)'
+                    }}>
+                        <LoadingSpinner />
+                    </Box>
+                )}
                 <DataGrid
-                    rows={filteredRows}
+                    rows={pages}
                     columns={columns}
                     getRowId={(row) => row._id}
+                    paginationMode="server"
+                    rowCount={totalRows}
+                    paginationModel={paginationModel}
+                    onPaginationModelChange={setPaginationModel}
                     pageSizeOptions={[10, 25, 50]}
-                    initialState={{
-                        pagination: { paginationModel: { pageSize: 25 } },
-                    }}
                     disableRowSelectionOnClick
                     sx={dataGridStyles}
                     rowHeight={60}
+                    loading={loading}
                 />
             </Box>
         </Box>

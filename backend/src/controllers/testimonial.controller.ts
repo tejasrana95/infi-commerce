@@ -7,25 +7,48 @@ import { asyncHandler } from '../middleware/validation';
 // @route   GET /api/testimonials
 // @access  Private/Admin
 export const getTestimonials = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { page = 1, limit = 20, search } = req.query;
     const filter: any = {};
 
     if (req.query.storeId) {
         filter.storeId = req.query.storeId;
     } else if (req.user?.role === 'super_admin') {
         // Super admin can see all
-    } else if (req.user?.storeId) {
-        filter.storeId = req.user.storeId;
+    } else if (req.user?.storeIds?.length) {
+        filter.storeId = req.user.storeIds[0];
     }
 
     if (req.query.isActive !== undefined) {
         filter.isActive = req.query.isActive === 'true';
     }
 
-    const testimonials = await Testimonial.find(filter)
-        .populate('storeId', 'name')
-        .sort({ order: 1, createdAt: -1 });
+    if (search) {
+        filter.$or = [
+            { customerName: { $regex: search, $options: 'i' } },
+            { content: { $regex: search, $options: 'i' } },
+        ];
+    }
 
-    res.json({ success: true, count: testimonials.length, testimonials });
+    const [testimonials, total] = await Promise.all([
+        Testimonial.find(filter)
+            .populate('storeId', 'name')
+            .sort({ order: 1, createdAt: -1 })
+            .skip((Number(page) - 1) * Number(limit))
+            .limit(Number(limit)),
+        Testimonial.countDocuments(filter),
+    ]);
+
+    res.json({
+        success: true,
+        count: testimonials.length,
+        testimonials,
+        pagination: {
+            total,
+            page: Number(page),
+            limit: Number(limit),
+            pages: Math.ceil(total / Number(limit)),
+        },
+    });
 });
 
 // @desc    Get single testimonial
@@ -48,8 +71,8 @@ export const getTestimonialById = asyncHandler(async (req: Request, res: Respons
 export const createTestimonial = asyncHandler(async (req: AuthRequest, res: Response) => {
     const testimonialData = req.body;
 
-    if (!testimonialData.storeId && req.user?.storeId) {
-        testimonialData.storeId = req.user.storeId;
+    if (!testimonialData.storeId && req.user?.storeIds?.length) {
+        testimonialData.storeId = req.user.storeIds[0];
     }
 
     // Auto-assign order if not provided

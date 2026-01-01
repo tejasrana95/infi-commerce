@@ -1,53 +1,55 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
     Box,
-    Button,
     Paper,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    TablePagination,
     IconButton,
-    Chip,
-    TextField,
-    InputAdornment,
-    FormControl,
-    InputLabel,
-    Select,
-    MenuItem,
     Typography,
+    Container,
+    Tooltip,
+    useTheme,
+    Button,
     Dialog,
     DialogTitle,
     DialogContent,
     DialogActions,
     DialogContentText,
-    Container,
 } from '@mui/material';
+import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import DeleteIcon from '@mui/icons-material/Delete';
-import SearchIcon from '@mui/icons-material/Search';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import { NewsletterSubscriber, Store } from '@/types';
 import api from '@/lib/api';
 import { format } from 'date-fns';
+import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules';
+import { LoadingSpinner } from '@/components/atoms';
+import { useNotification } from '@/contexts/NotificationContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
+import { createDataGridStyles } from '@/utils/styles';
+import { useDebounce } from '@/hooks/useDebounce';
 
 export default function NewsletterSubscribersPage() {
+    const theme = useTheme();
+    const { showNotification } = useNotification();
+    const { confirm } = useConfirm();
+    const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
+
     const [subscribers, setSubscribers] = useState<NewsletterSubscriber[]>([]);
     const [stores, setStores] = useState<Store[]>([]);
     const [loading, setLoading] = useState(true);
-    const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(20);
-    const [total, setTotal] = useState(0);
-    const [search, setSearch] = useState('');
-    const [storeFilter, setStoreFilter] = useState<string>('all');
-    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+    // Pagination & Filter states
+    const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 20 });
+    const [totalRows, setTotalRows] = useState(0);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterStore, setFilterStore] = useState<string>('all');
+
+    // Dialog states
     const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
-    const [subscriberToDelete, setSubscriberToDelete] = useState<NewsletterSubscriber | null>(null);
+
+    const debouncedSearch = useDebounce(searchQuery, 500);
 
     const fetchStores = async () => {
         try {
@@ -62,19 +64,24 @@ export default function NewsletterSubscribersPage() {
         try {
             setLoading(true);
             const params: any = {
-                page: page + 1,
-                limit: rowsPerPage,
+                page: paginationModel.page + 1,
+                limit: paginationModel.pageSize,
+                search: debouncedSearch,
             };
 
-            if (search) params.search = search;
-            if (storeFilter !== 'all') params.storeId = storeFilter;
+            if (filterStore && filterStore !== 'all') {
+                params.storeId = filterStore;
+            }
 
             const response = await api.get(`/newsletter`, { params });
 
             setSubscribers(response.data.subscribers);
-            setTotal(response.data.pagination.total);
-        } catch (error) {
+            setTotalRows(response.data.pagination.total);
+        } catch (error: any) {
             console.error('Error fetching subscribers:', error);
+            showNotification(error.response?.data?.message || 'Failed to fetch subscribers', 'error');
+            setSubscribers([]);
+            setTotalRows(0);
         } finally {
             setLoading(false);
         }
@@ -86,49 +93,41 @@ export default function NewsletterSubscribersPage() {
 
     useEffect(() => {
         fetchSubscribers();
-    }, [page, rowsPerPage, search, storeFilter]);
+    }, [paginationModel, debouncedSearch, filterStore]);
 
-    const handleChangePage = (_event: unknown, newPage: number) => {
-        setPage(newPage);
-    };
-
-    const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setRowsPerPage(parseInt(event.target.value, 10));
-        setPage(0);
-    };
-
-    const handleDelete = async () => {
-        if (!subscriberToDelete) return;
+    const handleDelete = async (id: string) => {
+        if (!await confirm({ title: 'Delete Subscriber', message: 'Are you sure you want to remove this subscriber?', severity: 'error' })) return;
 
         try {
-            await api.delete(`/newsletter/${subscriberToDelete._id}`);
-            setDeleteDialogOpen(false);
-            setSubscriberToDelete(null);
+            await api.delete(`/newsletter/${id}`);
             fetchSubscribers();
-        } catch (error) {
-            console.error('Error deleting subscriber:', error);
+            showNotification('Subscriber removed successfully', 'success');
+        } catch (error: any) {
+            showNotification(error.response?.data?.message || 'Failed to remove subscriber', 'error');
         }
     };
 
     const handleDeleteAll = async () => {
-        if (storeFilter === 'all') return;
+        if (filterStore === 'all') return;
 
         try {
             await api.delete(`/newsletter/bulk/delete-all`, {
-                data: { storeId: storeFilter }
+                data: { storeId: filterStore }
             });
             setDeleteAllDialogOpen(false);
             fetchSubscribers();
-        } catch (error) {
+            showNotification('All subscribers for this store deleted successfully', 'success');
+        } catch (error: any) {
             console.error('Error deleting all subscribers:', error);
+            showNotification(error.response?.data?.message || 'Failed to delete all subscribers', 'error');
         }
     };
 
     const handleExport = async () => {
         try {
             const params: any = {};
-            if (search) params.search = search;
-            if (storeFilter !== 'all') params.storeId = storeFilter;
+            if (debouncedSearch) params.search = debouncedSearch;
+            if (filterStore !== 'all') params.storeId = filterStore;
 
             const response = await api.get('/newsletter/export', {
                 params,
@@ -144,16 +143,96 @@ export default function NewsletterSubscribersPage() {
             link.remove();
         } catch (error) {
             console.error('Error exporting subscribers:', error);
+            showNotification('Failed to export subscribers', 'error');
         }
     };
 
+    const getStoreName = (storeId: any) => {
+        if (typeof storeId === 'object' && storeId !== null) {
+            return storeId.name;
+        }
+        // Fallback to finding in stores list if only ID string is provided
+        if (typeof storeId === 'string') {
+            const store = stores.find(s => s._id === storeId);
+            return store ? store.name : storeId;
+        }
+        return '-';
+    };
+
+    const columns: GridColDef[] = [
+        {
+            field: 'email',
+            headerName: 'Email',
+            flex: 1,
+            minWidth: 200,
+            renderCell: (params: GridRenderCellParams) => (
+                <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
+                    <Typography variant="body2">{params.value}</Typography>
+                </Box>
+            )
+        },
+        {
+            field: 'storeId',
+            headerName: 'Store',
+            width: 200,
+            renderCell: (params: GridRenderCellParams) => (
+                <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%"><Typography variant="body2">{getStoreName(params.row.storeId)}</Typography></Box>
+            ),
+        },
+        {
+            field: 'createdAt',
+            headerName: 'Subscribed Date',
+            width: 200,
+            valueFormatter: (value: any) => {
+                if (!value) return '-';
+                try {
+                    return format(new Date(value), 'MMM dd, yyyy HH:mm');
+                } catch (e) {
+                    return value;
+                }
+            },
+            renderCell: (params: GridRenderCellParams) => (
+                <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
+                    <Typography variant="body2">{format(new Date(params.value), 'MMM dd, yyyy HH:mm')}</Typography>
+                </Box>
+            ),
+        },
+        {
+            field: 'actions',
+            headerName: 'Actions',
+            width: 100,
+            sortable: false,
+            renderCell: (params: GridRenderCellParams) => (
+                <Tooltip title="Delete">
+                    <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
+                        <IconButton
+                            onClick={() => handleDelete(params.row._id)}
+                            size="small"
+                            color="error"
+                        >
+                            <DeleteIcon fontSize="small" />
+                        </IconButton>
+                    </Box>
+                </Tooltip>
+            ),
+        },
+    ];
+
+    if (!loading && subscribers.length === 0 && !searchQuery && (!filterStore || filterStore === 'all')) {
+        return (
+            <Container maxWidth="xl" sx={{ py: 4 }}>
+                <PageHeader title="Newsletter Subscribers" subtitle="Manage email subscribers" />
+                <EmptyState
+                    message="No subscribers found yet."
+                />
+            </Container>
+        );
+    }
+
     return (
-        <Box>
-            {/* Header */}
+        <Box >
             <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
-                    Newsletter Subscribers
-                </Typography>
+                <PageHeader title="Newsletter Subscribers" subtitle="Manage email subscribers" />
                 <Box sx={{ display: 'flex', gap: 2 }}>
                     <Button
                         variant="outlined"
@@ -162,7 +241,7 @@ export default function NewsletterSubscribersPage() {
                     >
                         Export CSV
                     </Button>
-                    {storeFilter !== 'all' && (
+                    {filterStore !== 'all' && (
                         <Button
                             variant="outlined"
                             color="error"
@@ -175,131 +254,46 @@ export default function NewsletterSubscribersPage() {
                 </Box>
             </Box>
 
-            {/* Filters */}
-            <Paper sx={{ p: 2, mb: 3 }}>
-                <Box sx={{ display: 'flex', gap: 2 }}>
-                    <TextField
-                        placeholder="Search by email..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        sx={{ flex: 1 }}
-                        InputProps={{
-                            startAdornment: (
-                                <InputAdornment position="start">
-                                    <SearchIcon />
-                                </InputAdornment>
-                            ),
-                        }}
-                    />
-                    <FormControl sx={{ minWidth: 200 }}>
-                        <InputLabel>Filter by Store</InputLabel>
-                        <Select
-                            value={storeFilter}
-                            label="Filter by Store"
-                            onChange={(e) => {
-                                setStoreFilter(e.target.value);
-                                setPage(0);
-                            }}
-                        >
-                            <MenuItem value="all">All Stores</MenuItem>
-                            {stores.map((store) => (
-                                <MenuItem key={store._id} value={store._id}>
-                                    {store.name}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
-                </Box>
-            </Paper>
+            <SearchFilterBar
+                searchPlaceholder="Search by email..."
+                searchValue={searchQuery}
+                onSearchChange={setSearchQuery}
+                showStoreFilter
+                storeFilterValue={filterStore}
+                onStoreFilterChange={setFilterStore}
+            />
 
-            {/* Table */}
-            <Paper>
-                <TableContainer>
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>Email</TableCell>
-                                <TableCell>Store</TableCell>
-                                <TableCell>Status</TableCell>
-                                <TableCell>Subscribed At</TableCell>
-                                <TableCell align="right">Actions</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {loading ? (
-                                <TableRow>
-                                    <TableCell colSpan={5} align="center">
-                                        Loading...
-                                    </TableCell>
-                                </TableRow>
-                            ) : subscribers.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={5} align="center">
-                                        No subscribers found
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                subscribers.map((sub) => (
-                                    <TableRow key={sub._id} hover>
-                                        <TableCell>{sub.email}</TableCell>
-                                        <TableCell>
-                                            {(sub.storeId as any)?.name || 'N/A'}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Chip
-                                                label={sub.status}
-                                                size="small"
-                                                color={sub.status === 'subscribed' ? 'success' : 'default'}
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            {sub.createdAt ? format(new Date(sub.createdAt), 'MMM d, yyyy HH:mm') : 'N/A'}
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            <IconButton
-                                                size="small"
-                                                onClick={() => {
-                                                    setSubscriberToDelete(sub);
-                                                    setDeleteDialogOpen(true);
-                                                }}
-                                                title="Delete"
-                                                color="error"
-                                            >
-                                                <DeleteIcon />
-                                            </IconButton>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-                <TablePagination
-                    rowsPerPageOptions={[10, 20, 50, 100]}
-                    component="div"
-                    count={total}
-                    rowsPerPage={rowsPerPage}
-                    page={page}
-                    onPageChange={handleChangePage}
-                    onRowsPerPageChange={handleChangeRowsPerPage}
+            <Paper sx={{ width: '100%', position: 'relative', mt: 3 }}>
+                {loading && (
+                    <Box sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1,
+                        backgroundColor: 'rgba(255, 255, 255, 0.5)'
+                    }}>
+                        <LoadingSpinner />
+                    </Box>
+                )}
+                <DataGrid
+                    rows={subscribers}
+                    columns={columns}
+                    getRowId={(row) => row._id}
+                    paginationMode="server"
+                    rowCount={totalRows}
+                    paginationModel={paginationModel}
+                    onPaginationModelChange={setPaginationModel}
+                    pageSizeOptions={[10, 20, 50]}
+                    disableRowSelectionOnClick
+                    sx={dataGridStyles}
+                    loading={loading}
                 />
             </Paper>
-
-            {/* Delete Confirmation Dialog */}
-            <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-                <DialogTitle>Delete Subscriber</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>
-                        Are you sure you want to delete "{subscriberToDelete?.email}"? This action cannot be undone.
-                    </DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={handleDelete} color="error" variant="contained">
-                        Delete
-                    </Button>
-                </DialogActions>
-            </Dialog>
 
             {/* Delete All Confirmation Dialog */}
             <Dialog open={deleteAllDialogOpen} onClose={() => setDeleteAllDialogOpen(false)}>

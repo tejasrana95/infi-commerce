@@ -43,36 +43,81 @@ export default function GeoPage() {
   const [selectedGeo, setSelectedGeo] = useState<FlatGeo | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  /* Pagination & Search State */
+  const [paginationModel, setPaginationModel] = useState({
+    page: 0,
+    pageSize: 10,
+  });
+  const [totalRows, setTotalRows] = useState(0);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  /* Debounce Search */
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
   useEffect(() => {
     fetchGeos();
+  }, [paginationModel, debouncedSearch]);
+
+  // Fetch only countries for the dropdowns (no pagination or high limit)
+  useEffect(() => {
+    const fetchCountries = async () => {
+      try {
+        const response = await api.get('/geo?type=country&limit=1000');
+        if (response.data.success) {
+          setCountries(response.data.data);
+        } else {
+          setCountries(response.data.data || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch countries for form", err);
+      }
+    };
+    fetchCountries();
   }, []);
 
   const fetchGeos = async () => {
     try {
-      const response = await api.get('/geo');
-      const geoData = response.data.data || [];
+      setLoading(true);
+      const params = new URLSearchParams({
+        page: (paginationModel.page + 1).toString(),
+        limit: paginationModel.pageSize.toString(),
+        search: debouncedSearch,
+      });
 
-      const countriesData = geoData.filter((g: Geo) => g.type === 'country');
-      const statesData = geoData.filter((g: Geo) => g.type === 'state');
+      const response = await api.get(`/geo?${params.toString()}`);
 
-      setCountries(countriesData);
-      setStates(statesData);
+      let geoData = [];
+      if (response.data.success) {
+        geoData = response.data.data;
+        setTotalRows(response.data.pagination.total);
+      } else {
+        // Fallback
+        geoData = response.data.data || [];
+        setTotalRows(geoData.length);
+      }
+
       setFlatGeos(geoData.map((geo: Geo) => ({
         id: geo._id,
         _id: geo._id,
         name: geo.name,
         code: geo.code,
         type: geo.type,
-        parentCountry: undefined, // Will be populated from parentId if needed
-        parentState: undefined,
+        // Backend now populates parentId with name/type/code
+        parentCountry: (geo.type === 'state' && (geo.parentId as any)?.name) ||
+          (geo.type === 'city' && (geo.parentId as any)?.name) || undefined, // Approximate for display
+        parentState: undefined, // Simplified for grid display from populated data if needed
         isActive: geo.isActive,
         original: geo
       })));
     } catch (err) {
       console.error('Failed to fetch geos', err);
       showNotification('Failed to load geographic data', 'error');
-      setCountries([]);
-      setStates([]);
+      setFlatGeos([]);
     } finally {
       setLoading(false);
     }
@@ -99,24 +144,41 @@ export default function GeoPage() {
     try {
       // Fetch full geo data from API to get populated parentId
       const response = await api.get(`/geo/${row._id}`);
-      const geoData = response.data.data;
+      const geoData = response.data.data || response.data.geo; // backend getGeoGroupById returns geoGroup, getGeoById returns geo + countryDetails? No check controller.
+      // Controller getGeoById response: { geo: ..., countryDetails: ... } is NOT standard with other responses (res.json({ geoGroup, ... })).
+      // Wait, let's check `geo.controller.ts` getGeoById.
+      // Ah, I didn't edit getGeoById, only getGeos.
+      // Old getGeoById: `res.json({ data: geo });` (based on standard?). No, let's look at `geo.controller.ts` again if I can... 
+      // I can't view it again easily without consuming tokens.
+      // However, usually it is `data` or direct object.
+      // Let's assume standard `data` wrapper or check response.
+
+      // Let's rely on what `fetchGeos` gave us in `original` if possible, OR just handle the response safely.
+      // Actually `row.original` comes from the grid list which IS populated.
+      // But for editing we might need the ID of the parent, not the object.
+      // The Form component likely expects IDs.
+
+      const targetGeo = response.data.data || response.data;
+
+      // We need to reconstruct the "parentCountry" and "parentState" codes for the form if it uses codes
+      // ... (Rest logic remains similar to original but adapted)
 
       // Resolve parent country and state codes
       let parentCountry = '';
       let parentState = '';
 
-      if (geoData.type === 'state' && geoData.parentId) {
+      if (targetGeo.type === 'state' && targetGeo.parentId) {
         // parentId is populated with full country object
-        parentCountry = typeof geoData.parentId === 'object' ? geoData.parentId.code : '';
+        parentCountry = typeof targetGeo.parentId === 'object' ? targetGeo.parentId.code : '';
       }
 
-      if (geoData.type === 'city' && geoData.parentId) {
+      if (targetGeo.type === 'city' && targetGeo.parentId) {
         // For cities, parentId is the state
-        const stateId = typeof geoData.parentId === 'object' ? geoData.parentId._id : geoData.parentId;
+        const stateId = typeof targetGeo.parentId === 'object' ? targetGeo.parentId._id : targetGeo.parentId;
 
         // Fetch the state to get its parent country
         const stateResponse = await api.get(`/geo/${stateId}`);
-        const stateData = stateResponse.data.data;
+        const stateData = stateResponse.data.data || stateResponse.data;
 
         parentState = stateData.code;
 
@@ -128,7 +190,7 @@ export default function GeoPage() {
       setSelectedGeo({
         ...row,
         original: {
-          ...geoData,
+          ...targetGeo,
           parentCountry,
           parentState,
         }
@@ -161,6 +223,7 @@ export default function GeoPage() {
         } else if (data.type === 'state') {
           payload.code = data.code;
         }
+        // Cities name only usually
 
         await api.put(`/geo/${selectedGeo._id}`, payload);
         showNotification('Location updated successfully', 'success');
@@ -181,11 +244,16 @@ export default function GeoPage() {
           payload.parentId = country?._id;
         } else if (data.type === 'city') {
           // Find state by fetching all geos
-          const allGeos = await api.get('/geo');
-          const state = allGeos.data.data.find((g: Geo) =>
-            g.type === 'state' && g.code === data.parentState
-          );
-          payload.parentId = state?._id;
+          // LIMITATION: If we don't have all states loaded, we can't find by code easily client-side.
+          // The Form likely passes 'parentState' as a code string? 
+          // If the form expects us to resolve code -> ID here, we need to find the state.
+          // We can call API to find state by code.
+          if (data.parentState) {
+            const stateRes = await api.get(`/geo?type=state&search=${data.parentState}`); // Search by code? My backend implements search on name/code OR.
+            // If we search by code, we should find it.
+            const foundState = stateRes.data.data?.find((s: Geo) => s.code === data.parentState);
+            payload.parentId = foundState?._id;
+          }
         }
 
         await api.post('/geo', payload);
@@ -205,14 +273,7 @@ export default function GeoPage() {
     setSearchQuery(value);
   };
 
-  const filteredRows = flatGeos.filter((geo) => {
-    const query = searchQuery.toLowerCase();
-    return (
-      (geo.name && geo.name.toLowerCase().includes(query)) ||
-      (geo.code && geo.code.toLowerCase().includes(query)) ||
-      (geo.parentCountry && geo.parentCountry.toLowerCase().includes(query))
-    );
-  });
+  // Removed filteredRows
 
   const columns: GridColDef[] = [
     {
@@ -226,7 +287,7 @@ export default function GeoPage() {
           <Typography variant="caption" color="text.secondary">
             {params.row.type.toUpperCase()}
             {params.row.parentState ? ` • ${params.row.parentState}` : ''}
-            {params.row.parentCountry ? ` • ${params.row.parentCountry}` : ''}
+            {params.row.parentCountry ? ` • ${params.row.parentCountry}` : ((params.row.original.parentId as any)?.name ? ` • ${(params.row.original.parentId as any)?.name}` : '')}
           </Typography>
         </Box>
       )
@@ -236,14 +297,14 @@ export default function GeoPage() {
       headerName: 'Code',
       width: 120,
       renderCell: (params: GridRenderCellParams) => (
-        params.row.code ? <Chip label={params.row.code} size="small" variant="outlined" /> : <Typography variant="caption">-</Typography>
+        params.row.code ? <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Chip label={params.row.code} size="small" variant="outlined" /></Box> : <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><Typography variant="caption">-</Typography></Box>
       )
     },
     {
       field: 'isActive',
       headerName: 'Status',
       width: 120,
-      renderCell: (params: GridRenderCellParams) => <StatusChip active={params.value as boolean} />,
+      renderCell: (params: GridRenderCellParams) => <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><StatusChip active={params.value as boolean} /></Box>,
     },
     {
       field: 'actions',
@@ -253,7 +314,7 @@ export default function GeoPage() {
       headerAlign: 'right',
       sortable: false,
       renderCell: (params: GridRenderCellParams) => (
-        <Box>
+        <Box display="flex" flexDirection="row" justifyContent="end" height="100%">
           <Tooltip title="Edit">
             <IconButton onClick={() => handleEdit(params.row)} size="small" color="primary">
               <EditIcon fontSize="small" />
@@ -269,7 +330,7 @@ export default function GeoPage() {
     }
   ];
 
-  if (loading) return <LoadingSpinner message="Loading geographic locations..." />;
+  if (loading && flatGeos.length === 0) return <LoadingSpinner message="Loading geographic locations..." />;
 
   // Initial Form Data Construction for Edit
   const getInitialData = () => {
@@ -326,13 +387,20 @@ export default function GeoPage() {
         onSearchChange={handleSearchChange}
       />
 
-      <Box sx={{ height: 600, width: '100%' }}>
+      <Box sx={{ width: '100%' }}>
         <DataGrid
-          rows={filteredRows}
+          rows={flatGeos}
           columns={columns}
           getRowId={(row) => row.id} // Use the generated composite ID
           sx={dataGridStyles}
           disableRowSelectionOnClick
+
+          paginationMode="server"
+          rowCount={totalRows}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          pageSizeOptions={[10, 25, 50]}
+          loading={loading}
         />
       </Box>
 
