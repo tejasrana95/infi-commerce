@@ -628,6 +628,22 @@ export const AVAILABLE_MODULES: ModuleDefinition[] = [
         defaultConfig: {},
         allowedLayoutTypes: ['account'],
     },
+    // Form module
+    {
+        type: 'form',
+        label: 'Form',
+        icon: 'Assignment',
+        category: 'standard',
+        description: 'Custom form with dynamic fields',
+        defaultConfig: {
+            formId: '',
+            showTitle: true,
+            showDescription: true,
+            submitButtonText: 'Submit',
+            successMessage: 'Thank you! Your submission has been received.',
+            redirectUrl: '',
+        },
+    },
 ];
 
 // Get modules by category

@@ -89,3 +89,7 @@ export const optionalAuth = async (
         next(error);
     }
 };
+
+// Aliases for consistency with different naming conventions
+export const auth = authenticate;
+export const checkRole = authorize;

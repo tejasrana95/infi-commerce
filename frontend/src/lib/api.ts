@@ -352,7 +352,7 @@ class ApiClient {
         formData: FormData,
         config?: ApiConfig
     ): Promise<T> {
-        const url = `${this.baseUrl}${endpoint}`;
+        const url = `${this.baseUrl}/${endpoint}`;
 
         // Don't set Content-Type for FormData - let browser set it with boundary
         const headers: Record<string, string> = {};

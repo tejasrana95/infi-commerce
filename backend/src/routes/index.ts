@@ -156,6 +156,9 @@ router.use('/dashboard', dashboardRoutes);
 import downloadRoutes from './download.routes';
 router.use('/downloads', downloadRoutes);
 
+// Mount form routes
+import formRoutes from './form.routes';
+router.use('/forms', formRoutes);
 
 export default router;
 

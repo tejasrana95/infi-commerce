@@ -39,6 +39,7 @@ import {
     // Checkout Config Panel
     CheckoutContentConfigPanel,
 } from '@/components/organisms/ModuleConfigPanels';
+import FormModuleEditor from './ModuleEditors/FormModuleEditor';
 
 interface ModuleEditorProps {
     module: LayoutModule;
@@ -303,6 +304,15 @@ export default function ModuleEditor({ module, onChange, onDelete, storeId }: Mo
                     <CheckoutContentConfigPanel
                         config={module.config as any}
                         onChange={updateConfig}
+                    />
+                );
+
+            // Form module
+            case 'form':
+                return (
+                    <FormModuleEditor
+                        module={module}
+                        onChange={onChange}
                     />
                 );
 

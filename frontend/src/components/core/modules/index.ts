@@ -27,6 +27,7 @@ import PageContentModule from './standard/PageContent';
 import PageHeroModule from './standard/PageHero';
 import CheckoutContentModule from './checkout/CheckoutContent';
 import CartModule from './cart/CartModule';
+import FormModule from './form/FormModule';
 // Account Modules
 import AccountSidebarModule from './account/AccountSidebar';
 import AccountDashboardModule from './account/AccountDashboard';
@@ -92,6 +93,8 @@ export const moduleRegistry: Record<string, ModuleComponent> = {
     'checkout-content': CheckoutContentModule,
     // Cart module
     'cart-details': CartModule,
+    // Form module
+    'form': FormModule,
     // Account modules
     'account-sidebar': AccountSidebarModule,
     'account-dashboard': AccountDashboardModule,

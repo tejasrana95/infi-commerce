@@ -10,7 +10,7 @@ export interface IFile extends Document {
     size: number;
     type: 'file' | 'folder';
     category?: 'image' | 'document' | 'product' | 'other';
-    uploadedBy: mongoose.Types.ObjectId;
+    uploadedBy?: mongoose.Types.ObjectId;
     store?: mongoose.Types.ObjectId;
     metadata?: {
         width?: number;
@@ -75,7 +75,7 @@ const FileSchema = new Schema<IFile>(
         uploadedBy: {
             type: Schema.Types.ObjectId,
             ref: 'User',
-            required: true,
+            required: false,
         },
         store: {
             type: Schema.Types.ObjectId,
