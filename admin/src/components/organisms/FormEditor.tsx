@@ -338,7 +338,14 @@ export default function FormEditor({ form, onSave, onBack, saving = false }: For
 
                 {/* Form Builder Tab */}
                 {activeTab === 1 && (
-                    <Box sx={{ height: 'calc(100vh - 400px)' }}>
+                    <Box sx={{
+                        height: {
+                            xs: 'calc(100vh - 250px)',
+                            sm: 'calc(100vh - 300px)',
+                            md: 'calc(100vh - 400px)'
+                        },
+                        minHeight: 400
+                    }}>
                         <FormBuilder
                             sections={formData.sections || []}
                             onChange={(sections) => handleChange('sections', sections)}

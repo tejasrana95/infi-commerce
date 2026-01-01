@@ -7,9 +7,15 @@ import {
     Typography,
     Button,
     IconButton,
+    Drawer,
+    useTheme,
+    useMediaQuery,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import MenuIcon from '@mui/icons-material/Menu';
+import TuneIcon from '@mui/icons-material/Tune';
+import CloseIcon from '@mui/icons-material/Close';
 import {
     DndContext,
     DragEndEvent,
@@ -40,6 +46,13 @@ export default function FormBuilder({ sections, onChange, errors = {} }: FormBui
     const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
     const [activeId, setActiveId] = useState<string | null>(null);
     const [activeDragData, setActiveDragData] = useState<any>(null);
+
+    // Responsive state
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md')); // <900px
+    const isTablet = useMediaQuery(theme.breakpoints.down('lg')); // <1200px
+    const [leftPanelOpen, setLeftPanelOpen] = useState(!isMobile);
+    const [rightPanelOpen, setRightPanelOpen] = useState(!isMobile);
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -378,22 +391,51 @@ export default function FormBuilder({ sections, onChange, errors = {} }: FormBui
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
         >
-            <Box sx={{ display: 'flex', height: 'calc(100vh - 300px)', overflow: 'hidden' }}>
-                {/* Left Panel - Field Palette */}
-                <Paper
+            <Box sx={{ display: 'flex', height: { xs: 'calc(100vh - 220px)', sm: 'calc(100vh - 250px)', md: 'calc(100vh - 300px)' }, overflow: 'hidden' }}>
+                {/* Left Panel - Field Palette (Desktop) */}
+                {!isMobile && (
+                    <Paper
+                        sx={{
+                            width: leftPanelOpen ? 280 : 0,
+                            borderRadius: 0,
+                            borderRight: leftPanelOpen ? '1px solid' : 'none',
+                            borderColor: 'divider',
+                            overflow: leftPanelOpen ? 'auto' : 'hidden',
+                            flexShrink: 0,
+                            transition: 'width 0.3s ease',
+                        }}
+                    >
+                        {leftPanelOpen && (
+                            <Box sx={{ p: 2, width: 280 }}>
+                                <FieldPalette />
+                            </Box>
+                        )}
+                    </Paper>
+                )}
+
+                {/* Left Drawer - Field Palette (Mobile/Tablet) */}
+                <Drawer
+                    anchor="left"
+                    open={isMobile && leftPanelOpen}
+                    onClose={() => setLeftPanelOpen(false)}
                     sx={{
-                        width: 280,
-                        borderRadius: 0,
-                        borderRight: '1px solid',
-                        borderColor: 'divider',
-                        overflow: 'auto',
-                        flexShrink: 0,
+                        display: { xs: 'block', md: 'none' },
+                        '& .MuiDrawer-paper': {
+                            width: { xs: '85%', sm: 320 },
+                            maxWidth: 400,
+                        },
                     }}
                 >
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+                        <Typography variant="h6" fontWeight={600}>Field Palette</Typography>
+                        <IconButton size="small" onClick={() => setLeftPanelOpen(false)}>
+                            <CloseIcon />
+                        </IconButton>
+                    </Box>
                     <Box sx={{ p: 2 }}>
                         <FieldPalette />
                     </Box>
-                </Paper>
+                </Drawer>
 
                 {/* Middle Panel - Form Canvas */}
                 <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -408,9 +450,30 @@ export default function FormBuilder({ sections, onChange, errors = {} }: FormBui
                             justifyContent: 'space-between',
                         }}
                     >
-                        <Typography variant="h6" fontWeight={600}>
-                            Form Builder
-                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, md: 2 } }}>
+                            {/* Panel Toggles */}
+                            <IconButton
+                                onClick={() => setLeftPanelOpen(!leftPanelOpen)}
+                                size="small"
+                                color={leftPanelOpen ? 'primary' : 'default'}
+                                title="Toggle Field Palette"
+                            >
+                                <MenuIcon />
+                            </IconButton>
+                            <IconButton
+                                onClick={() => setRightPanelOpen(!rightPanelOpen)}
+                                size="small"
+                                color={rightPanelOpen ? 'primary' : 'default'}
+                                title="Toggle Editor Panel"
+                            >
+                                <TuneIcon />
+                            </IconButton>
+
+                            <Typography variant="h6" fontWeight={600} sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }}>
+                                Form Builder
+                            </Typography>
+                        </Box>
+
                         <Button
                             variant="outlined"
                             startIcon={<AddIcon />}
@@ -459,10 +522,14 @@ export default function FormBuilder({ sections, onChange, errors = {} }: FormBui
                                     onSelectSection={(id) => {
                                         setSelectedSectionId(id);
                                         setSelectedFieldId(null);
+                                        // Auto-open right panel on mobile when selecting
+                                        if (isMobile) setRightPanelOpen(true);
                                     }}
                                     onSelectField={(sectionId, fieldId) => {
                                         setSelectedSectionId(sectionId);
                                         setSelectedFieldId(fieldId);
+                                        // Auto-open right panel on mobile when selecting
+                                        if (isMobile) setRightPanelOpen(true);
                                     }}
                                     onDeleteField={handleDeleteField}
                                     errors={errors}
@@ -472,17 +539,76 @@ export default function FormBuilder({ sections, onChange, errors = {} }: FormBui
                     </Box>
                 </Box>
 
-                {/* Right Panel - Field/Section Editor */}
-                <Paper
+                {/* Right Panel - Field/Section Editor (Desktop) */}
+                {!isMobile && (
+                    <Paper
+                        sx={{
+                            width: rightPanelOpen ? 320 : 0,
+                            borderRadius: 0,
+                            borderLeft: rightPanelOpen ? '1px solid' : 'none',
+                            borderColor: 'divider',
+                            overflow: rightPanelOpen ? 'auto' : 'hidden',
+                            flexShrink: 0,
+                            transition: 'width 0.3s ease',
+                        }}
+                    >
+                        {rightPanelOpen && (
+                            <Box sx={{ p: 2, width: 320 }}>
+                                <Typography variant="subtitle2" gutterBottom fontWeight={600} color="text.secondary">
+                                    {selectedField ? 'FIELD SETTINGS' : selectedSection ? 'SECTION SETTINGS' : 'EDITOR'}
+                                </Typography>
+                                {selectedField && selectedSectionId ? (
+                                    <FieldEditor
+                                        field={selectedField}
+                                        onChange={(updated) =>
+                                            updateField(selectedSectionId, selectedField.id, updated)
+                                        }
+                                        onDelete={() => handleDeleteField(selectedSectionId, selectedField.id)}
+                                        errors={errors}
+                                        selectedSectionId={selectedSectionId}
+                                        sections={sections}
+                                    />
+                                ) : selectedSection ? (
+                                    <SectionEditor
+                                        section={selectedSection}
+                                        onChange={(updated) => updateSection(selectedSection.id, updated)}
+                                        onDelete={() => handleDeleteSection(selectedSection.id)}
+                                        errors={errors}
+                                        sectionIndex={sections.findIndex(s => s.id === selectedSection.id)}
+                                    />
+                                ) : (
+                                    <Box sx={{ textAlign: 'center', py: 4 }}>
+                                        <Typography variant="body2" color="text.secondary">
+                                            Select a section or field to edit
+                                        </Typography>
+                                    </Box>
+                                )}
+                            </Box>
+                        )}
+                    </Paper>
+                )}
+
+                {/* Right Drawer - Field/Section Editor (Mobile/Tablet) */}
+                <Drawer
+                    anchor="right"
+                    open={isMobile && rightPanelOpen}
+                    onClose={() => setRightPanelOpen(false)}
                     sx={{
-                        width: 320,
-                        borderRadius: 0,
-                        borderLeft: '1px solid',
-                        borderColor: 'divider',
-                        overflow: 'auto',
-                        flexShrink: 0,
+                        display: { xs: 'block', md: 'none' },
+                        '& .MuiDrawer-paper': {
+                            width: { xs: '90%', sm: 360 },
+                            maxWidth: 450,
+                        },
                     }}
                 >
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+                        <Typography variant="h6" fontWeight={600}>
+                            {selectedField ? 'Field Settings' : selectedSection ? 'Section Settings' : 'Editor'}
+                        </Typography>
+                        <IconButton size="small" onClick={() => setRightPanelOpen(false)}>
+                            <CloseIcon />
+                        </IconButton>
+                    </Box>
                     <Box sx={{ p: 2 }}>
                         {selectedField && selectedSectionId ? (
                             <FieldEditor
@@ -511,7 +637,7 @@ export default function FormBuilder({ sections, onChange, errors = {} }: FormBui
                             </Box>
                         )}
                     </Box>
-                </Paper>
+                </Drawer>
             </Box>
 
             {/* Drag Overlay */}

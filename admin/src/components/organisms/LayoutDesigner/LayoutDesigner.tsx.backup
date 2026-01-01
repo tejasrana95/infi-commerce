@@ -505,50 +505,21 @@ export default function LayoutDesigner({
             onDragEnd={handleDragEnd}
         >
             <Box sx={{ display: 'flex', height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
-                {/* Left Sidebar - Module Palette (Desktop) */}
-                {!isMobile && (
-                    <Paper
-                        sx={{
-                            width: leftPanelOpen ? 280 : 0,
-                            borderRadius: 0,
-                            borderRight: leftPanelOpen ? '1px solid' : 'none',
-                            borderColor: 'divider',
-                            overflow: leftPanelOpen ? 'auto' : 'hidden',
-                            flexShrink: 0,
-                            transition: 'width 0.3s ease',
-                        }}
-                    >
-                        {leftPanelOpen && (
-                            <Box sx={{ p: 2, width: 280 }}>
-                                <ModulePalette layoutType={layout.type} />
-                            </Box>
-                        )}
-                    </Paper>
-                )}
-
-                {/* Left Drawer - Module Palette (Mobile/Tablet) */}
-                <Drawer
-                    anchor="left"
-                    open={isMobile && leftPanelOpen}
-                    onClose={() => setLeftPanelOpen(false)}
+                {/* Left Sidebar - Module Palette */}
+                <Paper
                     sx={{
-                        display: { xs: 'block', md: 'none' },
-                        '& .MuiDrawer-paper': {
-                            width: { xs: '85%', sm: 320 },
-                            maxWidth: 400,
-                        },
+                        width: 280,
+                        borderRadius: 0,
+                        borderRight: '1px solid',
+                        borderColor: 'divider',
+                        overflow: 'auto',
+                        flexShrink: 0,
                     }}
                 >
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-                        <Typography variant="h6" fontWeight={600}>Module Palette</Typography>
-                        <IconButton size="small" onClick={() => setLeftPanelOpen(false)}>
-                            <CloseIcon />
-                        </IconButton>
-                    </Box>
                     <Box sx={{ p: 2 }}>
                         <ModulePalette layoutType={layout.type} />
                     </Box>
-                </Drawer>
+                </Paper>
 
                 {/* Main Canvas */}
                 <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -564,31 +535,11 @@ export default function LayoutDesigner({
                             gap: 2,
                         }}
                     >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <IconButton onClick={onBack} size="small">
-                                <ArrowBackIcon />
-                            </IconButton>
+                        <IconButton onClick={onBack}>
+                            <ArrowBackIcon />
+                        </IconButton>
 
-                            {/* Panel Toggles */}
-                            <IconButton
-                                onClick={() => setLeftPanelOpen(!leftPanelOpen)}
-                                size="small"
-                                color={leftPanelOpen ? 'primary' : 'default'}
-                                title="Toggle Module Palette"
-                            >
-                                <MenuIcon />
-                            </IconButton>
-                            <IconButton
-                                onClick={() => setRightPanelOpen(!rightPanelOpen)}
-                                size="small"
-                                color={rightPanelOpen ? 'primary' : 'default'}
-                                title="Toggle Editor Panel"
-                            >
-                                <TuneIcon />
-                            </IconButton>
-                        </Box>
-
-                        <Box flex={1} sx={{ minWidth: 150 }}>
+                        <Box flex={1}>
                             <Typography variant="h6" fontWeight={600}>
                                 {layout.name}
                             </Typography>
@@ -697,14 +648,10 @@ export default function LayoutDesigner({
                                     onSelectSection={(id) => {
                                         setSelectedSectionId(id);
                                         setSelectedModuleId(null);
-                                        // Auto-open right panel on mobile when selecting
-                                        if (isMobile) setRightPanelOpen(true);
                                     }}
                                     onSelectModule={(sectionId, moduleId) => {
                                         setSelectedSectionId(sectionId);
                                         setSelectedModuleId(moduleId);
-                                        // Auto-open right panel on mobile when selecting
-                                        if (isMobile) setRightPanelOpen(true);
                                     }}
                                     onDeleteModule={handleDeleteModule}
                                     onAddSection={handleAddSection}
@@ -714,72 +661,17 @@ export default function LayoutDesigner({
                     </Box>
                 </Box>
 
-                {/* Right Sidebar - Editor Panel (Desktop) */}
-                {!isMobile && (
-                    <Paper
-                        sx={{
-                            width: rightPanelOpen ? 320 : 0,
-                            borderRadius: 0,
-                            borderLeft: rightPanelOpen ? '1px solid' : 'none',
-                            borderColor: 'divider',
-                            overflow: rightPanelOpen ? 'auto' : 'hidden',
-                            flexShrink: 0,
-                            transition: 'width 0.3s ease',
-                        }}
-                    >
-                        {rightPanelOpen && (
-                            <Box sx={{ p: 2, width: 320 }}>
-                                <Typography variant="subtitle2" gutterBottom fontWeight={600} color="text.secondary">
-                                    {selectedModule ? 'MODULE SETTINGS' : selectedSection ? 'SECTION SETTINGS' : 'EDITOR'}
-                                </Typography>
-                                {selectedModule && selectedSectionId ? (
-                                    <ModuleEditor
-                                        module={selectedModule}
-                                        onChange={(updated) =>
-                                            updateModule(selectedSectionId, selectedModule.id, updated)
-                                        }
-                                        onDelete={() => handleDeleteModule(selectedSectionId, selectedModule.id)}
-                                        storeId={layout.storeId}
-                                    />
-                                ) : selectedSection ? (
-                                    <SectionEditor
-                                        section={selectedSection}
-                                        onChange={(updated) => updateSection(selectedSection.id, updated)}
-                                        onDelete={() => handleDeleteSection(selectedSection.id)}
-                                    />
-                                ) : (
-                                    <Box sx={{ textAlign: 'center', py: 4 }}>
-                                        <Typography variant="body2" color="text.secondary">
-                                            Select a section or module to edit
-                                        </Typography>
-                                    </Box>
-                                )}
-                            </Box>
-                        )}
-                    </Paper>
-                )}
-
-                {/* Right Drawer - Editor Panel (Mobile/Tablet) */}
-                <Drawer
-                    anchor="right"
-                    open={isMobile && rightPanelOpen}
-                    onClose={() => setRightPanelOpen(false)}
+                {/* Right Sidebar - Settings */}
+                <Paper
                     sx={{
-                        display: { xs: 'block', md: 'none' },
-                        '& .MuiDrawer-paper': {
-                            width: { xs: '90%', sm: 360 },
-                            maxWidth: 450,
-                        },
+                        width: 320,
+                        borderRadius: 0,
+                        borderLeft: '1px solid',
+                        borderColor: 'divider',
+                        overflow: 'auto',
+                        flexShrink: 0,
                     }}
                 >
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-                        <Typography variant="h6" fontWeight={600}>
-                            {selectedModule ? 'Module Settings' : selectedSection ? 'Section Settings' : 'Editor'}
-                        </Typography>
-                        <IconButton size="small" onClick={() => setRightPanelOpen(false)}>
-                            <CloseIcon />
-                        </IconButton>
-                    </Box>
                     <Box sx={{ p: 2 }}>
                         {selectedModule && selectedSectionId ? (
                             <ModuleEditor
@@ -804,7 +696,7 @@ export default function LayoutDesigner({
                             </Box>
                         )}
                     </Box>
-                </Drawer>
+                </Paper>
             </Box>
 
             {/* Drag Overlay - renders the dragged item visually */}
