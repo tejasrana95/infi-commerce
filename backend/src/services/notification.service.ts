@@ -139,7 +139,15 @@ class NotificationService {
             }
 
             // Render content with template data
-            renderedContent = this.renderTemplate(template.htmlContent || template.textContent, templateData);
+            let htmlContent = template.htmlContent || template.textContent;
+
+            // Robust Gmail Markup Injection:
+            // If it's an email and has gmailMarkup in data, but not in template, prepend it.
+            if (channel === 'email' && templateData.gmailMarkup && !htmlContent.includes('gmailMarkup')) {
+                htmlContent = `{{{gmailMarkup}}}\n${htmlContent}`;
+            }
+
+            renderedContent = this.renderTemplate(htmlContent, templateData);
             renderedSubject = subject || (template.subject ? this.renderTemplate(template.subject, templateData) : undefined);
             templateId = template._id;
         }
@@ -226,7 +234,7 @@ class NotificationService {
 
         // Automatically wrap HTML variables in SafeString so they render correctly
         // even if user uses double braces {{variable}} instead of triple braces {{{variable}}}
-        const htmlVariables = ['order_items_table'];
+        const htmlVariables = ['order_items_table', 'gmailMarkup'];
         htmlVariables.forEach(key => {
             if (processedData[key] && typeof processedData[key] === 'string') {
                 processedData[key] = new Handlebars.SafeString(processedData[key]);

@@ -312,9 +312,6 @@ export async function fetchSearchPageData(
     };
 }
 
-// ============================================
-// Product Page Data Fetching (for future use)
-// ============================================
 
 export async function fetchProductBySlug(storeId: string, slug: string): Promise<any | null> {
     try {
@@ -332,9 +329,6 @@ export async function fetchProductBySlug(storeId: string, slug: string): Promise
     }
 }
 
-// ============================================
-// Blog Page Data Fetching (for future use)
-// ============================================
 
 export async function fetchBlogPostBySlug(storeId: string, slug: string): Promise<any | null> {
     try {

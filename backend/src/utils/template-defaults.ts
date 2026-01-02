@@ -237,6 +237,7 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         name: 'Order Confirmation',
         subject: 'Order #{{orderNumber}} Confirmed!',
         htmlContent: `
+{{{gmailMarkup}}}
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
@@ -280,6 +281,7 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         name: 'Order Pending Email',
         subject: 'Update Regarding Your Order #{{orderNumber}}',
         htmlContent: `
+{{{gmailMarkup}}}
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
@@ -323,6 +325,7 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         name: 'Order Processing Email',
         subject: 'We are processing your order #{{orderNumber}}',
         htmlContent: `
+{{{gmailMarkup}}}
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
@@ -366,6 +369,7 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         name: 'Order Shipped',
         subject: 'Your Order #{{orderNumber}} Has Shipped!',
         htmlContent: `
+{{{gmailMarkup}}}
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
@@ -412,6 +416,7 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         name: 'Order Delivered',
         subject: 'Your Order #{{orderNumber}} Has Been Delivered!',
         htmlContent: `
+{{{gmailMarkup}}}
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
@@ -453,6 +458,7 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         name: 'Order Cancelled',
         subject: 'Order #{{orderNumber}} Cancelled',
         htmlContent: `
+{{{gmailMarkup}}}
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
@@ -496,6 +502,7 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         name: 'Order Refunded',
         subject: 'Refund Processed for Order #{{orderNumber}}',
         htmlContent: `
+{{{gmailMarkup}}}
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
@@ -615,6 +622,7 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         name: 'Order Failed Email',
         subject: 'Payment Failed: Order #{{orderNumber}}',
         htmlContent: `
+{{{gmailMarkup}}}
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>

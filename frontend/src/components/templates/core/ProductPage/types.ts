@@ -321,8 +321,6 @@ export interface ProductPageTemplateProps {
     userId?: string;
     onHelpfulVote: (reviewId: string) => Promise<void>;
 
-    // Tax info now comes from product.pricing directly
-
     // Shipping Calculator
     shippingEstimate?: {
         loading: boolean;

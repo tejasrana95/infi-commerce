@@ -1,7 +1,8 @@
 // CheckoutPage types - Shared interfaces for Container and Template
 
 import { Section } from '@/types/layout';
-import { Address } from '@/services/checkout.service';
+import { Address, ShippingBreakdown } from '@/services/checkout.service';
+import { CartItem } from '@/types/cart';
 
 // Payment method type
 export interface PaymentMethod {
@@ -21,27 +22,10 @@ export interface TaxBreakdown {
     amount: number;
 }
 
-// Shipping breakdown type
-export interface ShippingBreakdown {
-    name: string;
-    cost: number;
-    carrier?: string;
-    estimatedDays?: number;
-}
 
-// Cart item type
-export interface CartItem {
-    productId: string;
-    variantId?: string;
-    name: string;
-    slug: string;
-    image?: string;
-    price: number;
-    salePrice?: number;
-    quantity: number;
-    sku?: string;
-    attributes?: Record<string, string>;
-}
+
+// Cart item re-exported for local use
+export type { CartItem };
 
 // Order summary type
 export interface OrderSummary {

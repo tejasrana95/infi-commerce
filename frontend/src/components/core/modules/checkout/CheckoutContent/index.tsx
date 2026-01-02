@@ -20,9 +20,9 @@ import {
     CheckoutContextType,
     CheckoutContentConfig,
     OrderSummary,
-    CartItem,
     AppliedCoupon
 } from '../context';
+import { CartItem } from '@/types/cart';
 
 // Import individual checkout components
 import CheckoutProgress from '@/components/core/modules/checkout/CheckoutProgress';

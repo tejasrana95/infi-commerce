@@ -1,10 +1,11 @@
 import { apiClient } from "./api-client";
+import { CartItem, Cart } from "@/types/cart";
 
 
 export interface CheckoutValidationResponse {
     valid: boolean;
     cart: {
-        items: any[];
+        items: CartItem[];
         subtotal: number;
         itemCount: number;
     };
@@ -40,6 +41,13 @@ export interface ShippingMethod {
     cost: number;
     currency: string;
     estimatedDays: string;
+}
+
+export interface ShippingBreakdown {
+    name: string;
+    cost: number;
+    carrier?: string;
+    estimatedDays?: number;
 }
 
 export interface TaxBreakdown {
@@ -108,23 +116,32 @@ export async function addAddress(address: Omit<Address, '_id'>): Promise<{ succe
  */
 export async function getShippingMethods(
     shippingAddress: Partial<Address>,
-    cartItems: any[]
+    cartItems: CartItem[]
 ): Promise<{
     shippingCost: number;
     currency: string;
     name?: string;
     description?: string;
-    breakdown: any[];
-    orderSummary: any;
+    breakdown: ShippingBreakdown[];
+    orderSummary: {
+        subtotal: number;
+        shipping: number;
+        tax: number;
+        discount: number;
+        total: number;
+    };
     success?: boolean;
     restrictedItems?: string[];
 }> {
     // Transform cart items to the format expected by the API
-    const items = cartItems.map(item => ({
-        productId: typeof item.productId === 'object' ? item.productId._id : (item.productId || item._id),
-        variantId: item.variantId,
-        quantity: item.quantity
-    }));
+    const items = cartItems.map(item => {
+        const productId = typeof item.productId === 'object' ? item.productId._id : item.productId;
+        return {
+            productId,
+            variantId: item.variantId,
+            quantity: item.quantity
+        };
+    });
 
     const response = await apiClient.post('shipping/calculate-smart', {
         country: shippingAddress.country,
@@ -183,7 +200,7 @@ export async function getPaymentMethods(
     amount?: number,
     currency?: string
 ): Promise<{ methods: PaymentMethod[]; currency: string }> {
-    const payload: any = {};
+    const payload: { country?: string; amount?: number; currency?: string } = {};
     if (country) payload.country = country;
     if (amount) payload.amount = amount;
     if (currency) payload.currency = currency;

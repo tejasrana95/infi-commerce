@@ -3,6 +3,7 @@
 'use client';
 
 import { createContext, useContext } from 'react';
+import { CartItem } from '@/types/cart';
 import type { Address, PaymentMethod, TaxBreakdown } from '@/services/checkout.service';
 
 // Order summary type
@@ -22,16 +23,8 @@ export interface AppliedCoupon {
     discountAmount: number;
 }
 
-// Cart item type
-export interface CartItem {
-    productId: string | { _id: string };
-    variantId?: string;
-    name?: string;
-    image?: string;
-    price?: number;
-    salePrice?: number;
-    quantity: number;
-}
+// Export CartItem for other modules
+export type { CartItem };
 
 // Config type (from admin module config)
 export interface CheckoutContentConfig {

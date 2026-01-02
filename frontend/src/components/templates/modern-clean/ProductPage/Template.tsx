@@ -66,7 +66,6 @@ export default function ModernCleanProductPageTemplate({
     cardConfig,
     layout,
     isLoggedIn,
-
     shippingEstimate,
     userDefaultCountry,
     onCalculateShipping,
@@ -540,6 +539,7 @@ export default function ModernCleanProductPageTemplate({
                     productImage={product.images[0]}
                 />
             )}
+
 
             {config.shipping?.showCalculator && (
                 <ShippingCalculator

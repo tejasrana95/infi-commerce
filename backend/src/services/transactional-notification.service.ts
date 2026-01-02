@@ -217,6 +217,7 @@ export class TransactionalNotificationService {
                 order_items_table: await this.renderOrderItemsTable(order, storeId),
                 trackingNumber: order.trackingNumber,
                 trackingUrl: order.trackingUrl || (order.trackingNumber ? `https://${(await Store.findById(storeId).select('domain').lean())?.domain}/orders/${order._id}/track` : undefined),
+                gmailMarkup: this.generateGmailMarkup(order, status, store.name || storeName),
             }
         });
 
@@ -342,6 +343,103 @@ export class TransactionalNotificationService {
             </table>
         </div>
         `;
+    }
+
+    /**
+     * Generate Gmail JSON-LD Markup for order/shipment cards
+     */
+    private generateGmailMarkup(order: any, status: string, storeName: string): string {
+        try {
+            const orderNumber = order.orderNumber;
+            const orderUrl = `${frontendUrl}/orders/${order._id}`;
+            const sellerName = storeName;
+
+            let schema: any = {
+                "@context": "http://schema.org",
+            };
+
+            if (status === 'shipped') {
+                schema["@type"] = "ParcelDelivery";
+                schema["deliveryAddress"] = {
+                    "@type": "PostalAddress",
+                    "name": `${order.shippingAddress.firstName} ${order.shippingAddress.lastName}`,
+                    "streetAddress": order.shippingAddress.address1,
+                    "addressLocality": order.shippingAddress.city,
+                    "addressRegion": order.shippingAddress.state,
+                    "addressCountry": order.shippingAddress.country,
+                    "postalCode": order.shippingAddress.postalCode
+                };
+                schema["partOfOrder"] = {
+                    "@type": "Order",
+                    "orderNumber": orderNumber,
+                    "merchant": {
+                        "@type": "Organization",
+                        "name": sellerName
+                    }
+                };
+                if (order.trackingNumber) {
+                    schema["trackingNumber"] = order.trackingNumber;
+                    if (order.trackingUrl) {
+                        schema["trackingUrl"] = order.trackingUrl;
+                    }
+                }
+                if (order.courierName) {
+                    schema["carrier"] = order.courierName;
+                }
+                // Default expected arrival to 7 days if not provided
+                schema["expectedArrivalUntil"] = order.estimatedDeliveryDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+            } else {
+                schema["@type"] = "Order";
+                schema["merchant"] = {
+                    "@type": "Organization",
+                    "name": sellerName
+                };
+                schema["orderNumber"] = orderNumber;
+                schema["priceCurrency"] = order.currency;
+                schema["price"] = order.total.toFixed(2);
+
+                if (order.items && order.items.length > 0) {
+                    schema["acceptedOffer"] = order.items.map((item: any) => ({
+                        "@type": "Offer",
+                        "itemOffered": {
+                            "@type": "Product",
+                            "name": item.name,
+                            "sku": item.sku,
+                            "image": item.image
+                        },
+                        "price": item.price.toFixed(2),
+                        "priceCurrency": order.currency,
+                        "eligibleQuantity": {
+                            "@type": "QuantitativeValue",
+                            "value": item.quantity
+                        }
+                    }));
+                }
+
+                schema["url"] = orderUrl;
+
+                // Map status to Schema.org order status
+                const statusMap: Record<string, string> = {
+                    created: 'OrderProcessing',
+                    pending: 'OrderProcessing',
+                    processing: 'OrderProcessing',
+                    shipped: 'OrderInTransit',
+                    delivered: 'OrderDelivered',
+                    cancelled: 'OrderCancelled',
+                    refunded: 'OrderCancelled'
+                };
+                const schemaStatus = statusMap[status.toLowerCase()] || 'OrderProcessing';
+                schema["orderStatus"] = `http://schema.org/${schemaStatus}`;
+            }
+
+            const markup = `<script type="application/ld+json">${JSON.stringify(schema)}</script>`;
+            console.log(`[GmailMarkup] Generated for order ${orderNumber} (status: ${status})`);
+            // console.log(`[GmailMarkup] Content:`, markup); // Optional: very verbose
+            return markup;
+        } catch (error) {
+            console.error('Failed to generate Gmail markup:', error);
+            return '';
+        }
     }
 }
 
