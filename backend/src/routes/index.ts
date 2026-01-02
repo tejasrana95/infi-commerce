@@ -43,6 +43,9 @@ import testimonialRoutes from './testimonial.routes';
 import brandShowcaseRoutes from './brandShowcase.routes';
 import newsletterRoutes from './newsletter.routes';
 
+// Backup & Restore Routes
+import backupRoutes from './backup.routes';
+
 const router = Router();
 
 // Mount authentication routes
@@ -161,6 +164,9 @@ router.use('/downloads', downloadRoutes);
 // Mount form routes
 import formRoutes from './form.routes';
 router.use('/forms', formRoutes);
+
+// Mount backup routes
+router.use('/backup', backupRoutes);
 
 export default router;
 

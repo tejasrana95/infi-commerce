@@ -138,6 +138,7 @@ const navigationItems: NavItem[] = [
       { name: 'Files', href: '/files', icon: <FolderIcon /> },
       { name: 'Notifications Queue', href: '/notifications', icon: <NotificationsOutlinedIcon /> },
       { name: 'Notification Templates', href: '/notification-templates', icon: <DescriptionIcon /> },
+      { name: 'Settings', href: '/settings', icon: <SettingsOutlinedIcon /> },
     ],
   },
 ];
