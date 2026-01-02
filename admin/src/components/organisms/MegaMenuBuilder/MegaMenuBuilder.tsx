@@ -187,10 +187,11 @@ interface ItemConfigDialogProps {
     item: MegaMenuItem | null;
     onClose: () => void;
     onSave: (item: MegaMenuItem) => void;
+    onDelete: (itemId: string) => void;
     storeId: string;
 }
 
-function ItemConfigDialog({ open, item, onClose, onSave, storeId }: ItemConfigDialogProps) {
+function ItemConfigDialog({ open, item, onClose, onSave, onDelete, storeId }: ItemConfigDialogProps) {
     const [formData, setFormData] = useState<MegaMenuItem>({
         id: uuidv4(),
         type: 'custom-link',
@@ -407,11 +408,24 @@ function ItemConfigDialog({ open, item, onClose, onSave, storeId }: ItemConfigDi
                     )}
                 </Box>
             </DialogContent>
-            <DialogActions>
-                <Button onClick={onClose}>Cancel</Button>
-                <Button onClick={handleSave} variant="contained">
-                    Save
-                </Button>
+            <DialogActions sx={{ justifyContent: 'space-between', px: 3, pb: 2 }}>
+                <Box>
+                    <Button
+                        color="error"
+                        onClick={() => {
+                            if (item) onDelete(item.id);
+                            onClose();
+                        }}
+                    >
+                        Delete
+                    </Button>
+                </Box>
+                <Box>
+                    <Button onClick={onClose} sx={{ mr: 1 }}>Cancel</Button>
+                    <Button onClick={handleSave} variant="contained">
+                        Save
+                    </Button>
+                </Box>
             </DialogActions>
         </Dialog>
     );
@@ -610,7 +624,6 @@ function MegaMenuColumnComponent({
             sx={{
                 flexBasis,
                 minWidth: 150,
-                overflow: 'hidden',
             }}
         >
             {/* Column Header */}
@@ -740,7 +753,7 @@ function MegaMenuSectionComponent({
     const handleAddColumn = () => {
         const newColumn: MegaMenuColumn = {
             id: uuidv4(),
-            width: 25,
+            width: 3,
             items: [],
         };
         onUpdate({ ...section, columns: [...section.columns, newColumn] });
@@ -875,7 +888,7 @@ export default function MegaMenuBuilder({ data, onChange, storeId }: MegaMenuBui
             type,
             columns: Array.from({ length: columnCount }, () => ({
                 id: uuidv4(),
-                width: columnWidth,
+                width: columnWidth > 12 ? 12 : columnWidth, // Ensure max 12
                 items: [],
             })),
             settings: {},
@@ -1284,6 +1297,11 @@ export default function MegaMenuBuilder({ data, onChange, storeId }: MegaMenuBui
                 item={editingItem?.item || null}
                 onClose={() => setEditingItem(null)}
                 onSave={handleSaveItem}
+                onDelete={(itemId) => {
+                    if (editingItem) {
+                        handleDeleteItem(editingItem.sectionId, editingItem.columnId, itemId);
+                    }
+                }}
                 storeId={storeId}
             />
         </DndContext>

@@ -121,10 +121,13 @@ export const getBrands = asyncHandler(async (req: AuthRequest, res: Response) =>
     const isStoreAdmin = req.user?.role === 'store_admin';
     const assignedStoreIds = req.user?.storeIds || [];
 
+    // Get store ID from multiple sources (header takes priority for API key requests)
+    const effectiveStoreId = (req.headers['x-store-id'] || req.query.storeId || req.body?.storeId) as string | undefined;
+
     if (isStoreAdmin) {
         filter.storeId = { $in: assignedStoreIds.map(id => new mongoose.Types.ObjectId(id)) };
-    } else if (req.query.storeId) {
-        filter.storeId = req.query.storeId;
+    } else if (effectiveStoreId) {
+        filter.storeId = effectiveStoreId;
     }
 
     if (req.query.isActive !== undefined) {

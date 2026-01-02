@@ -168,6 +168,10 @@ router.use('/forms', formRoutes);
 // Mount backup routes
 router.use('/backup', backupRoutes);
 
+// Mount API key management routes
+import apiKeyRoutes from './apiKey.routes';
+router.use('/api-keys', apiKeyRoutes);
+
 export default router;
 
 

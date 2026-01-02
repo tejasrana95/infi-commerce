@@ -107,10 +107,13 @@ export const getLayouts = asyncHandler(async (req: AuthRequest, res: Response) =
 
     const filter: any = {};
 
+    // Get store ID from multiple sources (header takes priority for API key requests)
+    const effectiveStoreId = (req.headers['x-store-id'] || req.query.storeId || req.body?.storeId) as string | undefined;
+
     // For admin requests, storeId is optional
     // If storeId is provided, filter by it; otherwise return all layouts (for admins)
-    if (req.query.storeId) {
-        filter.storeId = req.query.storeId;
+    if (effectiveStoreId) {
+        filter.storeId = effectiveStoreId;
     }
 
     if (req.query.type) {

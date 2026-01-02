@@ -104,9 +104,12 @@ export const getMenus = asyncHandler(async (req: AuthRequest, res: Response) => 
     const { page = 1, limit = 20, search, location } = req.query;
     const filter: any = {};
 
+    // Get store ID from multiple sources (header takes priority for API key requests)
+    const effectiveStoreId = (req.headers['x-store-id'] || req.query.storeId || req.body?.storeId) as string | undefined;
+
     // Store filter - optional for super_admin
-    if (req.query.storeId) {
-        filter.storeId = req.query.storeId;
+    if (effectiveStoreId) {
+        filter.storeId = effectiveStoreId;
     } else if (req.user?.role === 'super_admin') {
         // Super admin can see all menus
     } else if (req.user?.storeIds?.length) {

@@ -51,7 +51,7 @@ const MegaSubItem = ({ item }: { item: MenuItem }) => {
     if (item.type === 'image' && item.imageUrl) {
         return (
             <div className={styles.megaSubItem}>
-                <Link href={item.linkUrl || '#'} className={styles.megaImageLink}>
+                <Link href={item.imageLink || '#'} className={styles.megaImageLink}>
                     <img src={item.imageUrl} alt={item.label || item.imageAlt || ''} />
                 </Link>
             </div>

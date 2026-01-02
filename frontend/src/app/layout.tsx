@@ -119,6 +119,11 @@ export async function generateMetadata() {
       template: `%s | ${store.name || "Store"}`
     },
     description: store.seo?.metaDescription || store.description || "Your one-stop e-commerce solution",
+    icons: {
+      icon: store.favicon || '/favicon.ico',
+      shortcut: store.favicon || '/favicon.ico',
+      apple: store.favicon || '/favicon.ico', // Defaulting to favicon if no specific apple icon is provided
+    },
     other: {
       "currency": selectedCurrency?.code || "USD",
       "available-currencies": currencies.map(c => c.code).join(","),

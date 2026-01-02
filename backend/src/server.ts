@@ -84,6 +84,10 @@ app.get('/api-docs.json', (res: Response) => {
     res.send(swaggerSpec);
 });
 
+// Global API key authentication middleware - validates key if provided, allows if not
+import { optionalApiKeyAuth } from './middleware/apiKeyAuth';
+app.use('/api', optionalApiKeyAuth);
+
 // Mount API routes
 app.use('/api', apiRoutes);
 // API routes will be added here

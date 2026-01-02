@@ -75,6 +75,16 @@ export default function SettingsPage() {
             enabled: true
         },
         {
+            title: 'API Keys',
+            description: 'Manage API keys for third-party integrations and external services.',
+            icon: <KeyIcon sx={{ fontSize: 32 }} />,
+            link: '/settings/api-keys',
+            badge: 'Super Admin',
+            badgeColor: 'warning',
+            color: '#ef4444',
+            enabled: true
+        },
+        {
             title: 'Email Configuration',
             description: 'It has been moved to the store settings for store specific email configuration.',
             icon: <EmailIcon sx={{ fontSize: 32 }} />,
@@ -92,17 +102,6 @@ export default function SettingsPage() {
             badge: 'Moved',
             badgeColor: 'info',
             color: '#10b981',
-            enabled: false
-        },
-
-        {
-            title: 'API Keys',
-            description: 'Manage API keys for third-party integrations and external services.',
-            icon: <KeyIcon sx={{ fontSize: 32 }} />,
-            link: '/settings/api-keys',
-            badge: 'Coming Soon',
-            badgeColor: 'info',
-            color: '#ef4444',
             enabled: false
         },
     ];
@@ -155,7 +154,7 @@ export default function SettingsPage() {
                             }}
                             disabled={!card.enabled}
                         >
-                            <CardContent sx={{ py: 3.5, px: 3 }}>
+                            <CardContent sx={{ py: 3.5, px: 3, display: 'flex', flexDirection: 'column', height: '100%' }}>
                                 {/* Icon Container with Gradient */}
                                 <Box
                                     sx={{
@@ -201,9 +200,9 @@ export default function SettingsPage() {
                                     color="text.secondary"
                                     sx={{
                                         mb: 3,
-                                        minHeight: 48,
                                         lineHeight: 1.6,
-                                        fontSize: '0.875rem'
+                                        fontSize: '0.875rem',
+                                        flex: 1
                                     }}
                                 >
                                     {card.description}
@@ -217,7 +216,8 @@ export default function SettingsPage() {
                                         justifyContent: 'space-between',
                                         pt: 2,
                                         borderTop: 1,
-                                        borderColor: 'divider'
+                                        borderColor: 'divider',
+                                        mt: 'auto'
                                     }}
                                 >
                                     {card.badge && (

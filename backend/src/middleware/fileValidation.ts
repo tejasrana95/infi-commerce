@@ -2,7 +2,7 @@ import { Request } from 'express';
 import { AppError } from './validation';
 
 // Allowed file types
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/vnd.microsoft.icon'];
 const ALLOWED_DOCUMENT_TYPES = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
 const ALLOWED_ARCHIVE_TYPES = ['application/zip', 'application/x-zip-compressed', 'application/x-rar-compressed'];
 

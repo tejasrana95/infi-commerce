@@ -298,13 +298,20 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
     const isStoreAdmin = req.user?.role === 'store_admin';
     const assignedStoreIds = req.user?.storeIds || [];
 
+    // Get store ID from multiple sources (header takes priority for API key requests)
+    const storeIdFromHeader = req.headers['x-store-id'] as string;
+    const storeIdFromQuery = req.query.storeId as string;
+    const storeIdFromBody = req.body?.storeId as string;
+    const effectiveStoreId = storeIdFromHeader || storeIdFromQuery || storeIdFromBody;
+
     if (isStoreAdmin) {
         if (assignedStoreIds.length === 0) {
             return res.json({ products: [], total: 0, pages: 0 });
         }
         filter.storeId = { $in: assignedStoreIds.map(id => new mongoose.Types.ObjectId(id)) };
-    } else if (req.query.storeId) {
-        filter.storeId = req.query.storeId;
+    } else if (effectiveStoreId) {
+        // Filter by store ID from header, query, or body
+        filter.storeId = effectiveStoreId;
     }
 
     // Category filter - support single or multiple categories (includes subcategories)

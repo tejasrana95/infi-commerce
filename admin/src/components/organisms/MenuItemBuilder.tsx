@@ -97,11 +97,12 @@ interface EditItemDialogProps {
     item: MenuItemType | null;
     onClose: () => void;
     onSave: (item: MenuItemType) => void;
+    onDelete: (itemId: string) => void;
     storeId: string;
     isNew?: boolean;
 }
 
-function EditItemDialog({ open, item, onClose, onSave, storeId, isNew = false }: EditItemDialogProps) {
+function EditItemDialog({ open, item, onClose, onSave, onDelete, storeId, isNew = false }: EditItemDialogProps) {
     const [formData, setFormData] = useState<Partial<MenuItemType>>({
         label: '',
         type: 'link',
@@ -192,9 +193,17 @@ function EditItemDialog({ open, item, onClose, onSave, storeId, isNew = false }:
             badge: formData.badge,
             children: item?.children || [],
             order: item?.order || 0,
+            megaMenu: item?.megaMenu, // Preserve mega menu data
         };
         onSave(newItem);
         onClose();
+    };
+
+    const handleDelete = () => {
+        if (item) {
+            onDelete(item.id);
+            onClose();
+        }
     };
 
     return (
@@ -323,11 +332,20 @@ function EditItemDialog({ open, item, onClose, onSave, storeId, isNew = false }:
                     )}
                 </Box>
             </DialogContent>
-            <DialogActions>
-                <Button onClick={onClose}>Cancel</Button>
-                <Button onClick={handleSave} variant="contained" disabled={!formData.label}>
-                    {isNew ? 'Add Menu' : 'Save Changes'}
-                </Button>
+            <DialogActions sx={{ justifyContent: 'space-between', px: 3, pb: 2 }}>
+                <Box>
+                    {!isNew && (
+                        <Button color="error" onClick={handleDelete}>
+                            Delete
+                        </Button>
+                    )}
+                </Box>
+                <Box>
+                    <Button onClick={onClose} sx={{ mr: 1 }}>Cancel</Button>
+                    <Button onClick={handleSave} variant="contained" disabled={!formData.label}>
+                        {isNew ? 'Add Menu' : 'Save Changes'}
+                    </Button>
+                </Box>
             </DialogActions>
         </Dialog>
     );
@@ -713,6 +731,7 @@ export default function MenuItemBuilder({ items, onChange, storeId, maxDepth = 3
                 item={editDialog.item}
                 onClose={() => setEditDialog({ open: false, item: null, isNew: false })}
                 onSave={handleSaveItem}
+                onDelete={handleDeleteItem}
                 storeId={storeId}
                 isNew={editDialog.isNew}
             />

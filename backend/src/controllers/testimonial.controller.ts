@@ -10,8 +10,11 @@ export const getTestimonials = asyncHandler(async (req: AuthRequest, res: Respon
     const { page = 1, limit = 20, search } = req.query;
     const filter: any = {};
 
-    if (req.query.storeId) {
-        filter.storeId = req.query.storeId;
+    // Get store ID from multiple sources (header takes priority for API key requests)
+    const effectiveStoreId = (req.headers['x-store-id'] || req.query.storeId || req.body?.storeId) as string | undefined;
+
+    if (effectiveStoreId) {
+        filter.storeId = effectiveStoreId;
     } else if (req.user?.role === 'super_admin') {
         // Super admin can see all
     } else if (req.user?.storeIds?.length) {

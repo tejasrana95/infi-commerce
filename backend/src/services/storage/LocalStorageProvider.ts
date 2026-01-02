@@ -64,8 +64,9 @@ export class LocalStorageProvider implements IStorageProvider {
     }
 
     async getUrl(relativePath: string): Promise<string> {
+        const hasSlash = relativePath.startsWith('/');
         // Return CDN URL
-        return `${this.baseUrl}/uploads/${relativePath}`;
+        return `${this.baseUrl}/uploads${hasSlash ? relativePath : `/${relativePath}`}`;
     }
 
     async exists(relativePath: string): Promise<boolean> {

@@ -5,6 +5,7 @@ import { apiClient } from '@/services/api-client';
 import { ModuleProps } from '@/components/core/modules';
 import styles from './form.module.scss';
 import Honeypot from '@/components/core/common/Honeypot';
+import { track } from '@/lib/ga';
 
 interface FormField {
     id: string;
@@ -265,6 +266,14 @@ export default function FormModule({ config }: ModuleProps) {
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
+            // Track validation error impression
+            track('form_validation_error', {
+                form_id: form._id,
+                form_name: form.name,
+                error_count: Object.keys(newErrors).length,
+                error_fields: Object.keys(newErrors).join(', '),
+                path: typeof window !== 'undefined' ? window.location.pathname : '',
+            });
             return;
         }
 
@@ -304,6 +313,13 @@ export default function FormModule({ config }: ModuleProps) {
 
             setSubmitted(true);
 
+            // Track successful form submission
+            track('form_submit_success', {
+                form_id: form._id,
+                form_name: form.name,
+                path: typeof window !== 'undefined' ? window.location.pathname : '',
+            });
+
             // Redirect if URL provided
             if (redirectUrl) {
                 setTimeout(() => {
@@ -320,6 +336,14 @@ export default function FormModule({ config }: ModuleProps) {
                 'Failed to submit form. Please try again.';
 
             setErrors({ submit: serverMessage });
+
+            // Track failed form submission
+            track('form_submit_error', {
+                form_id: form._id,
+                form_name: form.name,
+                error_message: serverMessage,
+                path: typeof window !== 'undefined' ? window.location.pathname : '',
+            });
         } finally {
             setSubmitting(false);
         }
@@ -622,6 +646,9 @@ export default function FormModule({ config }: ModuleProps) {
                     type="submit"
                     className={styles.submitButton}
                     disabled={submitting}
+                    data-track="form_submit_click"
+                    data-form-id={form._id}
+                    data-form-name={form.name}
                 >
                     {submitting ? 'Submitting...' : submitButtonText}
                 </button>
