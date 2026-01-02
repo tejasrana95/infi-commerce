@@ -222,8 +222,19 @@ class NotificationService {
      * Render template with Handlebars
      */
     renderTemplate(template: string, data: Record<string, any>): string {
+        const processedData = { ...data };
+
+        // Automatically wrap HTML variables in SafeString so they render correctly
+        // even if user uses double braces {{variable}} instead of triple braces {{{variable}}}
+        const htmlVariables = ['order_items_table'];
+        htmlVariables.forEach(key => {
+            if (processedData[key] && typeof processedData[key] === 'string') {
+                processedData[key] = new Handlebars.SafeString(processedData[key]);
+            }
+        });
+
         const compiled = Handlebars.compile(template);
-        return compiled(data);
+        return compiled(processedData);
     }
 
     /**

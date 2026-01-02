@@ -389,7 +389,6 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
             // Clear cart after successful order creation
             await clearCart();
 
-            toast.success('Order placed successfully!');
             const redirectParams = new URLSearchParams();
             if (!customer && guestEmail) {
                 redirectParams.append('guestEmail', guestEmail);
@@ -398,6 +397,7 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
             if (result.order.paymentRequired) {
                 router.push(`/orders/${result.order.orderId}/payment${queryString}`);
             } else {
+                toast.success('Order placed successfully!');
                 router.push(`/orders/${result.order.orderId}/confirmation${queryString}`);
             }
         } catch (error: any) {

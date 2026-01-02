@@ -183,11 +183,12 @@ async function processSuccessfulPayment(order: any, paymentId: string, paymentDa
     await InventoryService.reduceStock(order.items);
 
     // Increment coupon usage if coupon was used
-    const couponId = order.paymentDetails?.couponId;
+    const couponId = order.paymentDetails?.couponId || order.couponId;
     if (couponId) {
         const coupon = await Coupon.findById(couponId);
         if (coupon) {
-            await coupon.incrementUsage(order.userId.toString());
+            const customerId = (order.customerId as any)?._id?.toString() || order.customerId?.toString();
+            await coupon.incrementUsage(customerId || order.guestEmail || '');
         }
     }
 

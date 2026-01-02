@@ -552,17 +552,6 @@ export default function ModernCleanProductPageTemplate({
                 />
             )}
 
-            {config.shipping?.showCalculator && (
-                <ShippingCalculator
-                    productId={product._id}
-                    variantId={selectedVariant?._id}
-                    quantity={quantity}
-                    userDefaultCountry={userDefaultCountry}
-                    onCalculate={onCalculateShipping}
-                    estimate={shippingEstimate}
-                />
-            )}
-
             {renderLightbox()}
         </div >
     );

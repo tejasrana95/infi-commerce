@@ -1315,7 +1315,9 @@ export const handlePaymentSuccess = asyncHandler(async (req: AuthRequest, res: R
         const coupon = await (await import('../models/Coupon')).default.findById(order.couponId);
         if (coupon) {
             // Use customer ID or guest email as identifier
-            const customerIdentifier = order.customerId?.toString() || order.guestEmail || '';
+            // Safely extract ID even if populated
+            const customerId = (order.customerId as any)?._id?.toString() || order.customerId?.toString();
+            const customerIdentifier = customerId || order.guestEmail || '';
             await coupon.incrementUsage(customerIdentifier);
         }
     }

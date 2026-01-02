@@ -75,7 +75,7 @@ const initialFormData: TemplateFormData = {
 };
 
 // Variable categories for the dynamic variables panel
-const VARIABLE_CATEGORIES = {
+const VARIABLE_CATEGORIES: Record<string, { label: string; variables: (string | { name: string; isHtml: boolean })[] }> = {
     user: {
         label: 'User',
         variables: ['firstName', 'lastName', 'email', 'phone'],
@@ -90,11 +90,14 @@ const VARIABLE_CATEGORIES = {
     },
     order: {
         label: 'Order',
-        variables: ['orderNumber', 'total', 'itemCount', 'orderUrl', 'invoiceDownloadLink'],
+        variables: [
+            'orderNumber', 'total', 'itemCount', 'orderUrl', 'invoiceDownloadLink',
+            { name: 'order_items_table', isHtml: true }
+        ],
     },
     shipping: {
         label: 'Shipping',
-        variables: ['trackingNumber', 'trackingUrl', 'estimatedDelivery'],
+        variables: ['trackingNumber', 'trackingUrl'],
     },
     product: {
         label: 'Product',
@@ -329,8 +332,8 @@ export default function NotificationTemplatesPage() {
         setPreviewOpen(true);
     };
 
-    const insertVariable = useCallback((variable: string) => {
-        const variableText = `{{${variable}}}`;
+    const insertVariable = useCallback((variable: string, isHtml: boolean = false) => {
+        const variableText = isHtml ? `{{{${variable}}}}` : `{{${variable}}}`;
         // Copy to clipboard
         navigator.clipboard.writeText(variableText);
         showNotification(`Copied ${variableText} to clipboard`, 'success');
@@ -787,18 +790,24 @@ export default function NotificationTemplatesPage() {
                                             {category.label}
                                         </Typography>
                                         <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mt: 0.5 }}>
-                                            {category.variables.map(variable => (
-                                                <Chip
-                                                    key={variable}
-                                                    label={`{{${variable}}}`}
-                                                    size="small"
-                                                    variant="outlined"
-                                                    clickable
-                                                    icon={<ContentCopy sx={{ fontSize: 12 }} />}
-                                                    sx={{ fontFamily: 'monospace', fontSize: 11 }}
-                                                    onClick={() => insertVariable(variable)}
-                                                />
-                                            ))}
+                                            {category.variables.map(item => {
+                                                const variable = typeof item === 'string' ? item : item.name;
+                                                const isHtml = typeof item === 'string' ? false : item.isHtml;
+                                                const displayLabel = isHtml ? `{{{${variable}}}}` : `{{${variable}}}`;
+
+                                                return (
+                                                    <Chip
+                                                        key={variable}
+                                                        label={displayLabel}
+                                                        size="small"
+                                                        variant="outlined"
+                                                        clickable
+                                                        icon={<ContentCopy sx={{ fontSize: 12 }} />}
+                                                        sx={{ fontFamily: 'monospace', fontSize: 11 }}
+                                                        onClick={() => insertVariable(variable, isHtml)}
+                                                    />
+                                                );
+                                            })}
                                         </Stack>
                                     </Box>
                                 ))}

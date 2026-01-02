@@ -224,7 +224,11 @@ export const addToCart = asyncHandler(async (req: AuthRequest, res: Response) =>
 
     // If variant is specified, get variant details
     if (variantId && product.type === 'variable') {
-        const variant = product.variants?.find((v: any) => v._id.toString() === variantId);
+        const variant = product.variants?.find((v: any) =>
+            (v._id && v._id.toString() === variantId) ||
+            (v.id && v.id.toString() === variantId)
+        );
+
         if (!variant) {
             throw new AppError('Variant not found', 404);
         }
@@ -257,7 +261,7 @@ export const addToCart = asyncHandler(async (req: AuthRequest, res: Response) =>
     const existingItemIndex = cart.items.findIndex(
         (item: any) =>
             item.productId.toString() === productId &&
-            (!variantId || item.variantId === variantId)
+            (!variantId || (item.variantId && item.variantId.toString() === variantId.toString()))
     );
 
     if (existingItemIndex > -1) {
@@ -352,7 +356,11 @@ export const updateCartItem = asyncHandler(async (req: AuthRequest, res: Respons
     let availableStock = product.stock;
     let itemPrice = product.salePrice || product.price;
     if (item.variantId && product.type === 'variable') {
-        const variant = product.variants?.find((v: any) => v._id.toString() === item.variantId);
+        const targetVariantId = String(item.variantId);
+        const variant = product.variants?.find((v: any) =>
+            (v._id && v._id.toString() === targetVariantId) ||
+            (v.id && v.id.toString() === targetVariantId)
+        );
         if (variant) {
             availableStock = variant.stock;
             itemPrice = variant.salePrice || variant.price;
@@ -516,7 +524,8 @@ export const mergeCart = asyncHandler(async (req: AuthRequest, res: Response) =>
         const existingItemIndex = userCart.items.findIndex(
             (item: any) =>
                 item.productId.toString() === guestItem.productId.toString() &&
-                item.variantId === guestItem.variantId
+                ((!item.variantId && !guestItem.variantId) ||
+                    (item.variantId && guestItem.variantId && item.variantId.toString() === guestItem.variantId.toString()))
         );
 
         if (existingItemIndex > -1) {
@@ -611,7 +620,11 @@ export const validateCart = asyncHandler(async (req: AuthRequest, res: Response)
             let currentPrice = (product as any).getEffectivePrice();
 
             if (item.variantId && product.type === 'variable') {
-                const variant = product.variants?.find((v: any) => v._id.toString() === item.variantId);
+                const targetVariantId = String(item.variantId);
+                const variant = product.variants?.find((v: any) =>
+                    (v._id && v._id.toString() === targetVariantId) ||
+                    (v.id && v.id.toString() === targetVariantId)
+                );
                 if (!variant) {
                     result.valid = false;
                     result.errors.push('Variant no longer exists');

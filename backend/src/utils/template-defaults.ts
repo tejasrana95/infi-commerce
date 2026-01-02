@@ -35,32 +35,32 @@ export const TEMPLATE_TYPES = {
     order_created: {
         label: 'Order Created',
         description: 'Sent when order is placed',
-        variables: ['firstName', 'orderNumber', 'total', 'itemCount', 'orderUrl', 'storeName'],
+        variables: ['firstName', 'orderNumber', 'total', 'itemCount', 'order_items_table', 'orderUrl', 'storeName'],
     },
     order_pending: {
         label: 'Order Pending',
         description: 'Sent when order is marked as pending',
-        variables: ['firstName', 'orderNumber', 'total', 'itemCount', 'orderUrl', 'storeName'],
+        variables: ['firstName', 'orderNumber', 'total', 'itemCount', 'order_items_table', 'orderUrl', 'storeName'],
     },
     order_processing: {
         label: 'Order Processing',
         description: 'Sent when order is being processed',
-        variables: ['firstName', 'orderNumber', 'total', 'itemCount', 'orderUrl', 'storeName'],
+        variables: ['firstName', 'orderNumber', 'total', 'itemCount', 'order_items_table', 'orderUrl', 'storeName'],
     },
     order_shipped: {
         label: 'Order Shipped',
         description: 'Sent when order is shipped',
-        variables: ['firstName', 'orderNumber', 'trackingNumber', 'trackingUrl', 'storeName'],
+        variables: ['firstName', 'orderNumber', 'trackingNumber', 'trackingUrl', 'order_items_table', 'storeName'],
     },
     order_delivered: {
         label: 'Order Delivered',
         description: 'Sent when order is delivered',
-        variables: ['firstName', 'orderNumber', 'reviewUrl', 'storeName'],
+        variables: ['firstName', 'orderNumber', 'reviewUrl', 'order_items_table', 'storeName'],
     },
     order_cancelled: {
         label: 'Order Cancelled',
         description: 'Sent when order is cancelled',
-        variables: ['firstName', 'orderNumber', 'reason', 'storeName'],
+        variables: ['firstName', 'orderNumber', 'reason', 'order_items_table', 'storeName'],
     },
     order_refunded: {
         label: 'Order Refunded',
@@ -70,27 +70,27 @@ export const TEMPLATE_TYPES = {
     order_failed: {
         label: 'Order Failed',
         description: 'Sent when payment fails',
-        variables: ['firstName', 'orderNumber', 'total', 'orderUrl', 'storeName'],
+        variables: ['firstName', 'orderNumber', 'total', 'order_items_table', 'orderUrl', 'storeName'],
     },
     admin_order_created: {
         label: 'Admin: New Order',
         description: 'Sent to admin when a new order is placed',
-        variables: ['orderNumber', 'customerName', 'total', 'status', 'orderId', 'storeName'],
+        variables: ['orderNumber', 'customerName', 'total', 'status', 'orderId', 'order_items_table', 'storeName'],
     },
     admin_order_updated: {
         label: 'Admin: Order Updated',
         description: 'Sent to admin when an order status is updated',
-        variables: ['orderNumber', 'customerName', 'total', 'status', 'orderId', 'storeName'],
+        variables: ['orderNumber', 'customerName', 'total', 'status', 'orderId', 'order_items_table', 'storeName'],
     },
     admin_return_requested: {
         label: 'Admin: Return Requested',
         description: 'Sent to admin when a return is requested',
-        variables: ['orderNumber', 'customerName', 'total', 'status', 'orderId', 'storeName'],
+        variables: ['orderNumber', 'customerName', 'total', 'status', 'orderId', 'order_items_table', 'storeName'],
     },
     admin_order_cancelled: {
-        label: 'Admin: Order Cancelled',
+        label: 'Admin: New Order Cancelled',
         description: 'Sent to admin when an order is cancelled',
-        variables: ['orderNumber', 'customerName', 'total', 'status', 'orderId', 'storeName'],
+        variables: ['orderNumber', 'customerName', 'total', 'status', 'orderId', 'order_items_table', 'storeName'],
     },
     admin_customer_signup: {
         label: 'Admin: New Customer',
@@ -245,10 +245,9 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         <h1 style="color: #333; margin-bottom: 24px;">Thank You for Your Order!</h1>
         <p style="color: #666; line-height: 1.6;">Hi {{firstName}},</p>
         <p style="color: #666; line-height: 1.6;">Your order <strong>#{{orderNumber}}</strong> has been confirmed.</p>
-        <div style="background: #f9f9f9; border-radius: 8px; padding: 20px; margin: 24px 0;">
-            <p style="margin: 0; color: #333;"><strong>Order Total:</strong> {{total}}</p>
-            <p style="margin: 8px 0 0; color: #666;"><strong>Items:</strong> {{itemCount}}</p>
-        </div>
+        
+        {{{order_items_table}}}
+
         <div style="text-align: center; margin: 32px 0;">
             <a href="{{orderUrl}}" style="display: inline-block; background: #000; color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px;">View Order</a>
         </div>
@@ -289,10 +288,9 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         <h1 style="color: #333; margin-bottom: 24px;">Order Status: Pending</h1>
         <p style="color: #666; line-height: 1.6;">Hi {{firstName}},</p>
         <p style="color: #666; line-height: 1.6;">Your order <strong>#{{orderNumber}}</strong> is currently pending. We will notify you once it moves to the next stage.</p>
-        <div style="background: #f9f9f9; border-radius: 8px; padding: 20px; margin: 24px 0;">
-            <p style="margin: 0; color: #333;"><strong>Order Total:</strong> {{total}}</p>
-            <p style="margin: 8px 0 0; color: #666;"><strong>Items:</strong> {{itemCount}}</p>
-        </div>
+        
+        {{{order_items_table}}}
+
         <div style="text-align: center; margin: 32px 0;">
             <a href="{{orderUrl}}" style="display: inline-block; background: #000; color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px;">View Order Status</a>
         </div>
@@ -333,10 +331,9 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         <h1 style="color: #333; margin-bottom: 24px;">Your Order is Being Processed</h1>
         <p style="color: #666; line-height: 1.6;">Hi {{firstName}},</p>
         <p style="color: #666; line-height: 1.6;">Good news! We're now processing your order <strong>#{{orderNumber}}</strong> and getting it ready for shipment.</p>
-        <div style="background: #f9f9f9; border-radius: 8px; padding: 20px; margin: 24px 0;">
-            <p style="margin: 0; color: #333;"><strong>Order Total:</strong> {{total}}</p>
-            <p style="margin: 8px 0 0; color: #666;"><strong>Items:</strong> {{itemCount}}</p>
-        </div>
+        
+        {{{order_items_table}}}
+
         <div style="text-align: center; margin: 32px 0;">
             <a href="{{orderUrl}}" style="display: inline-block; background: #000; color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px;">Check Details</a>
         </div>
@@ -377,6 +374,9 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         <h1 style="color: #333; margin-bottom: 24px;">Your Order is On Its Way!</h1>
         <p style="color: #666; line-height: 1.6;">Hi {{firstName}},</p>
         <p style="color: #666; line-height: 1.6;">Great news! Your order <strong>#{{orderNumber}}</strong> has been shipped.</p>
+        
+        {{{order_items_table}}}
+
         <div style="background: #f9f9f9; border-radius: 8px; padding: 20px; margin: 24px 0;">
             <p style="margin: 0; color: #333;"><strong>Tracking Number:</strong> {{trackingNumber}}</p>
         </div>
@@ -462,6 +462,9 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         <p style="color: #666; line-height: 1.6;">Hi {{firstName}},</p>
         <p style="color: #666; line-height: 1.6;">Your order <strong>#{{orderNumber}}</strong> has been cancelled.</p>
         {{#if reason}}<p style="color: #666; line-height: 1.6;"><strong>Reason:</strong> {{reason}}</p>{{/if}}
+        
+        {{{order_items_table}}}
+
         <p style="color: #666; line-height: 1.6;">If you have any questions, please contact our support team.</p>
     </div>
 </body>
@@ -620,9 +623,9 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         <h1 style="color: #d32f2f; margin-bottom: 24px;">Payment Failed</h1>
         <p style="color: #666; line-height: 1.6;">Hi {{firstName}},</p>
         <p style="color: #666; line-height: 1.6;">We were unable to process the payment for your order <strong>#{{orderNumber}}</strong>.</p>
-        <div style="background: #fff5f5; border: 1px solid #feb2b2; border-radius: 8px; padding: 20px; margin: 24px 0;">
-            <p style="margin: 0; color: #c53030;"><strong>Order Total:</strong> {{total}}</p>
-        </div>
+        
+        {{{order_items_table}}}
+
         <p style="color: #666; line-height: 1.6;">Please visit your order page to try the payment again or use a different payment method.</p>
         <div style="text-align: center; margin: 32px 0;">
             <a href="{{orderUrl}}" style="display: inline-block; background: #000; color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px;">Retry Payment</a>
@@ -677,13 +680,15 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
     <h2>New Order Received!</h2>
     <p><strong>Order Number:</strong> #{{orderNumber}}</p>
     <p><strong>Customer:</strong> {{customerName}}</p>
-    <p><strong>Total:</strong> {{total}}</p>
     <p><strong>Status:</strong> {{status}}</p>
+    
+    {{{order_items_table}}}
+
     <p><a href="{{storeUrl}}/admin/orders/{{orderId}}" style="padding: 10px 20px; background: #000; color: #fff; text-decoration: none; border-radius: 5px;">View Order in Admin</a></p>
 </body>
 </html>`,
         textContent: 'New Order Received! Order #{{orderNumber}}, Customer: {{customerName}}, Total: {{total}}, Status: {{status}}',
-        variables: ['orderNumber', 'customerName', 'total', 'status', 'orderId'],
+        variables: ['orderNumber', 'customerName', 'total', 'status', 'orderId', 'order_items_table'],
     },
     {
         type: 'admin_order_created',
@@ -705,11 +710,14 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
     <p><strong>Order Number:</strong> #{{orderNumber}}</p>
     <p><strong>Customer:</strong> {{customerName}}</p>
     <p><strong>New Status:</strong> {{status}}</p>
+
+    {{{order_items_table}}}
+
     <p><a href="{{storeUrl}}/admin/orders/{{orderId}}" style="padding: 10px 20px; background: #000; color: #fff; text-decoration: none; border-radius: 5px;">Update Details</a></p>
 </body>
 </html>`,
         textContent: 'Order #{{orderNumber}} status updated to {{status}}. Customer: {{customerName}}',
-        variables: ['orderNumber', 'customerName', 'status', 'orderId'],
+        variables: ['orderNumber', 'customerName', 'status', 'orderId', 'order_items_table'],
     },
     {
         type: 'admin_order_updated',
@@ -748,13 +756,15 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
     <h2>Order Cancelled</h2>
     <p><strong>Order Number:</strong> #{{orderNumber}}</p>
     <p><strong>Customer:</strong> {{customerName}}</p>
-    <p><strong>Total:</strong> {{total}}</p>
     <p><strong>Status:</strong> {{status}}</p>
+
+    {{{order_items_table}}}
+
     <p><a href="{{storeUrl}}/admin/orders/{{orderId}}" style="padding: 10px 20px; background: #000; color: #fff; text-decoration: none; border-radius: 5px;">Update Details</a></p>
 </body>
 </html>`,
         textContent: 'Order #{{orderNumber}} cancelled. Customer: {{customerName}}, Total: {{total}}, Status: {{status}}',
-        variables: ['orderNumber', 'customerName', 'total', 'status', 'orderId', 'storeUrl', 'storeName'],
+        variables: ['orderNumber', 'customerName', 'total', 'status', 'orderId', 'storeUrl', 'storeName', 'order_items_table'],
     },
     {
         type: 'admin_customer_signup',

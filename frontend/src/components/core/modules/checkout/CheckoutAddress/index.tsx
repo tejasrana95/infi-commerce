@@ -74,12 +74,11 @@ const AddressForm = ({
                 ...prev,
                 country: countryValue,
                 state: '',
-                city: '' // Clear city too when country changes
             }));
             setAvailableStates(country.states || []);
             setAvailableCities([]);
         } else {
-            setFormData(prev => ({ ...prev, country: '', state: '', city: '' }));
+            setFormData(prev => ({ ...prev, country: '', state: '' }));
             setAvailableStates([]);
             setAvailableCities([]);
         }
@@ -89,7 +88,7 @@ const AddressForm = ({
         const stateCode = e.target.value;
         const state = availableStates.find(s => s.name === stateCode);
 
-        setFormData(prev => ({ ...prev, state: stateCode, city: '' })); // Clear city when state changes
+        setFormData(prev => ({ ...prev, state: stateCode }));
 
         if (state) {
             setAvailableCities(state.cities || []);

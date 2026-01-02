@@ -214,6 +214,7 @@ export class TransactionalNotificationService {
                 total: `${order.currency} ${(order.total * (order.exchangeRate || 1)).toFixed(2)}`,
                 status,
                 orderUrl: `${frontendUrl}/orders/${order._id}`,
+                order_items_table: await this.renderOrderItemsTable(order, storeId),
                 trackingNumber: order.trackingNumber,
                 trackingUrl: order.trackingUrl || (order.trackingNumber ? `https://${(await Store.findById(storeId).select('domain').lean())?.domain}/orders/${order._id}/track` : undefined),
             }
@@ -233,12 +234,114 @@ export class TransactionalNotificationService {
                     customerName: recipientName,
                     total: `${order.currency} ${(order.total * (order.exchangeRate || 1)).toFixed(2)}`,
                     status,
-                    orderId: order._id
+                    orderId: order._id,
+                    order_items_table: await this.renderOrderItemsTable(order, storeId)
                 });
             }
         } catch (error) {
             console.error('Failed to trigger admin order notification:', error);
         }
+    }
+    /**
+     * Helper to render order items table as HTML for emails
+     */
+    private async renderOrderItemsTable(order: any, _storeId: string): Promise<string> {
+        let fullOrder = order;
+
+        // Ensure we have items and pricing details
+        if (!order.items || order.items.length === 0 || order.subtotal === undefined) {
+            try {
+                const OrderModel = (await import('../models/Order')).default;
+                const fetchedOrder = await OrderModel.findById(order._id || order.id).lean();
+                if (fetchedOrder) {
+                    fullOrder = fetchedOrder;
+                }
+            } catch (error) {
+                console.error('Failed to fetch full order for email table:', error);
+            }
+        }
+
+        const currency = fullOrder.currency || 'USD';
+        const rate = fullOrder.exchangeRate || 1;
+        const format = (amt: number) => {
+            if (amt === undefined || amt === null) return `${currency} 0.00`;
+            return `${currency} ${(amt * rate).toFixed(2)}`;
+        };
+
+        let itemsHtml = '';
+        const items = fullOrder.items || [];
+
+        for (const item of items) {
+            let attrHtml = '';
+            if (item.attributes && typeof item.attributes === 'object') {
+                const entries = Object.entries(item.attributes);
+                if (entries.length > 0) {
+                    attrHtml = `<div style="font-size: 12px; color: #666; margin-top: 4px;">` +
+                        entries.map(([k, v]) => `<span style="margin-right: 8px;"><strong>${k}:</strong> ${v}</span>`).join(' ') +
+                        `</div>`;
+                }
+            }
+
+            itemsHtml += `
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 12px 10px; vertical-align: top;">
+                    <div style="font-weight: 600; color: #333;">${item.name}</div>
+                    ${item.sku ? `<div style="font-size: 11px; color: #999; margin-top: 2px;">SKU: ${item.sku}</div>` : ''}
+                    ${attrHtml}
+                </td>
+                <td style="padding: 12px 10px; text-align: right; vertical-align: top; color: #666;">${item.quantity}</td>
+                <td style="padding: 12px 10px; text-align: right; vertical-align: top; color: #666;">${format(item.price)}</td>
+                <td style="padding: 12px 10px; text-align: right; vertical-align: top; font-weight: 600; color: #333;">${format(item.price * item.quantity)}</td>
+            </tr>
+            `;
+        }
+
+        const summaryRow = (label: string, value: string, bold = false, isDiscount = false) => `
+        <tr>
+            <td colspan="3" style="padding: 6px 10px; text-align: right; color: ${bold ? '#333' : '#666'}; ${bold ? 'font-weight: 700;' : ''}">${label}</td>
+            <td style="padding: 6px 10px; text-align: right; ${bold ? 'font-weight: 700; color: #000;' : `color: ${isDiscount ? '#d32f2f' : '#333'};`}${bold ? 'border-top: 1px solid #ddd;' : ''}">${value}</td>
+        </tr>
+        `;
+
+        let summaryHtml = '';
+        summaryHtml += summaryRow('Subtotal', format(fullOrder.subtotal || 0));
+
+        if (fullOrder.shippingCost > 0) {
+            summaryHtml += summaryRow('Shipping', format(fullOrder.shippingCost));
+        }
+
+        if (fullOrder.tax > 0) {
+            summaryHtml += summaryRow('Tax', format(fullOrder.tax));
+        }
+
+        if (fullOrder.discount > 0) {
+            const promoText = fullOrder.couponCode ? ` (Promo: ${fullOrder.couponCode})` : '';
+            summaryHtml += summaryRow(`Discount${promoText}`, `-${format(fullOrder.discount)}`, false, true);
+        }
+
+        summaryHtml += `<tr><td colspan="4" style="height: 10px;"></td></tr>`;
+        summaryHtml += summaryRow('Total', format(fullOrder.total || 0), true);
+
+        return `
+        <div style="margin: 24px 0; background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px; line-height: 1.5;">
+                <thead>
+                    <tr style="background-color: #f8f9fa; border-bottom: 2px solid #e0e0e0; text-align: left;">
+                        <th style="padding: 12px 10px; font-weight: 700; color: #333;">Product</th>
+                        <th style="padding: 12px 10px; text-align: right; font-weight: 700; color: #333;">Qty</th>
+                        <th style="padding: 12px 10px; text-align: right; font-weight: 700; color: #333;">Price</th>
+                        <th style="padding: 12px 10px; text-align: right; font-weight: 700; color: #333;">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${itemsHtml}
+                </tbody>
+                <tfoot style="background-color: #fcfcfc; border-top: 1px solid #e0e0e0;">
+                    ${summaryHtml}
+                </tfoot>
+            </table>
+        </div>
+        `;
     }
 }
 
