@@ -8,7 +8,7 @@ export interface ShippingRule {
     minOrderValue?: number;
     maxOrderValue?: number;
     shippingCost: number;
-    estimatedDays?: number;
+    estimatedDays?: string;
     isActive: boolean;
     createdAt: string;
     updatedAt: string;

@@ -22,8 +22,8 @@ interface CurrencyContextType {
     currencies: Currency[];
     loading: boolean;
     formatPrice: (amount: number, currencyCode?: string) => string;
-    convertPrice: (amount: number, toCurrency: string) => number;
-    convertAndFormat: (amount: number, toCurrency?: string) => string;
+    convertPrice: (amount: number, toCurrency: string, exchangeRate?: number) => number;
+    convertAndFormat: (amount: number, toCurrency?: string, exchangeRate?: number) => string;
     getCurrencyByCode: (code: string) => Currency | undefined;
     refetch: () => Promise<void>;
 }
@@ -118,7 +118,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     );
 
     const convertPrice = useCallback(
-        (amount: number, toCurrency: string): number => {
+        (amount: number, toCurrency: string, exchangeRate?: number): number => {
             // If no base currency or same as target, return as-is
             if (!baseCurrency || toCurrency === baseCurrency.code) {
                 return amount;
@@ -131,7 +131,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
 
             // Base currency always has exchangeRate of 1
             // Convert: amount * target exchangeRate
-            const convertedAmount = amount * to.exchangeRate;
+            const convertedAmount = amount * (exchangeRate || to.exchangeRate);
 
             return parseFloat(convertedAmount.toFixed(to.decimalPlaces || 2));
         },
@@ -140,13 +140,13 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
 
     // Combined function: convert from base currency and format in one call
     const convertAndFormat = useCallback(
-        (amount: number, toCurrency?: string): string => {
+        (amount: number, toCurrency?: string, exchangeRate?: number): string => {
             // If no target currency specified, use base currency (no conversion, just format)
             if (!toCurrency || toCurrency === baseCurrency?.code) {
                 return formatPrice(amount);
             }
             // Convert and then format
-            const converted = convertPrice(amount, toCurrency);
+            const converted = convertPrice(amount, toCurrency, exchangeRate);
             return formatPrice(converted, toCurrency);
         },
         [baseCurrency, formatPrice, convertPrice]

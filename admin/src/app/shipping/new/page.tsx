@@ -48,6 +48,7 @@ export default function NewShippingRulePage() {
     maxWeight: '',
     minOrderValue: '',
     maxOrderValue: '',
+    estimatedDays: '',
     priority: 0,
     isActive: true,
   });
@@ -144,6 +145,15 @@ export default function NewShippingRulePage() {
                   ))}
                 </Select>
               </FormControl>
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                fullWidth
+                label="Estimated Delivery (e.g., 3-5 business days)"
+                value={formData.estimatedDays}
+                onChange={handleChange('estimatedDays')}
+                placeholder="3-7 business days"
+              />
             </Grid>
             <Grid size={{ xs: 12 }}>
               <TextField

@@ -19,6 +19,7 @@ export interface IShippingRule extends Document {
     rateType: 'flat' | 'per_kg' | 'free' | 'percentage';
     rate: number;
     currency: string;
+    estimatedDays?: string; // e.g., "3-5 business days"
 
     createdAt: Date;
     updatedAt: Date;
@@ -80,6 +81,11 @@ const ShippingRuleSchema = new Schema<IShippingRule>(
             required: true,
             uppercase: true,
             maxlength: 3,
+        },
+        estimatedDays: {
+            type: String,
+            trim: true,
+            default: '3-7 business days',
         },
     },
     {

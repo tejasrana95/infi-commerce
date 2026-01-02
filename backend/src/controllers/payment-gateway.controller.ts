@@ -5,6 +5,7 @@ import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import { PaymentService } from '../services/payment/payment.service';
 import { PaymentGatewayFactory } from '../services/payment/payment-gateway.factory';
+import { encrypt } from '../utils/encryption.utils';
 
 /**
  * Validation rules
@@ -23,10 +24,8 @@ export const updateGatewayConfigValidation = [
 /**
  * Simple encryption for credentials (use proper encryption in production)
  */
-const encryptCredentials = (credentials: any): any => {
-    // TODO: Implement proper encryption using crypto
-    // For now, just return as-is (should use AES-256 encryption)
-    return credentials;
+const encryptCredentials = (credentials: any): string => {
+    return encrypt(credentials);
 };
 
 /**

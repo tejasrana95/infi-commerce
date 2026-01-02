@@ -72,7 +72,9 @@ export default function CheckoutShipping({ config: propsConfig }: CheckoutShippi
                     <div className={styles.methodInfo}>
                         <div className={styles.methodName}>{shippingDetails?.name || 'Standard Shipping'}</div>
                         {showEstimatedDates && (
-                            <div className={styles.estDate}>{shippingDetails?.description || 'Delivery in 3-5 business days'}</div>
+                            <div className={styles.estDate}>
+                                {shippingDetails?.estimatedDays || shippingDetails?.description || 'Delivery in 3-7 business days'}
+                            </div>
                         )}
                         <div className={styles.price}>
                             {shippingCost === 0 ? 'FREE' : formatPrice(shippingCost, currency)}

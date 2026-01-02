@@ -283,8 +283,16 @@ export const deleteTaxRate = asyncHandler(async (req: Request, res: Response) =>
         });
     }
 
-    // TODO: Check if tax rate is used by any products before deleting
-    // For now, allow deletion
+    // Check if tax rate is used by any products before deleting
+    const Product = (await import('../models/Product')).default;
+    const isUsed = await Product.exists({ taxClassId: req.params.id });
+
+    if (isUsed) {
+        return res.status(400).json({
+            success: false,
+            error: 'Cannot delete tax rate because it is used by one or more products',
+        });
+    }
 
     await TaxRate.findByIdAndDelete(req.params.id);
 

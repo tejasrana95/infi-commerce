@@ -180,7 +180,8 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
                     setShippingDetails({
                         name: result.name || 'Standard Shipping',
                         description: result.description,
-                        cost: result.shippingCost
+                        cost: result.shippingCost,
+                        estimatedDays: (result as any).estimatedDays
                     });
                     setOrderSummary(prev => ({
                         ...prev,

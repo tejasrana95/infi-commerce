@@ -46,7 +46,7 @@ const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#3b82f6'
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { formatPrice, baseCurrency } = useCurrency();
+  const { formatPrice, convertAndFormat, baseCurrency } = useCurrency();
   const { user } = useAuth();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,7 +72,7 @@ export default function DashboardPage() {
   const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
-      const storeId = canSelectStore ? selectedStoreId : (user?.storeId || '');
+      const storeId = canSelectStore ? selectedStoreId : (user?.storeIds?.[0] || '');
       const response = await api.get(`/dashboard/stats?storeId=${storeId}`);
       setData(response.data.data);
     } catch (err) {
@@ -80,7 +80,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [user?.storeId, canSelectStore, selectedStoreId]);
+  }, [user?.storeIds, canSelectStore, selectedStoreId]);
 
   useEffect(() => {
     if (user) {
@@ -350,7 +350,7 @@ export default function DashboardPage() {
                           </Typography>
                         </Box>
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>{formatPrice(order.total)}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{convertAndFormat(order.total, order.currency, order.exchangeRate)}</TableCell>
                       <TableCell>
                         <Chip
                           label={order.status.replace('_', ' ')}

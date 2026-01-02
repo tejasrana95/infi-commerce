@@ -4,6 +4,8 @@ import Coupon from '../models/Coupon';
 import { asyncHandler, AppError } from '../middleware/validation';
 import { PaymentService } from '../services/payment/payment.service';
 import InventoryService from '../services/inventory.service';
+import { transactionalNotificationService } from '../services/transactional-notification.service';
+import Store from '../models/Store';
 
 /**
  * @route   POST /api/webhooks/razorpay
@@ -192,7 +194,20 @@ async function processSuccessfulPayment(order: any, paymentId: string, paymentDa
         }
     }
 
-    // TODO: Send order confirmation email
+    // Send order confirmation email
+    try {
+        const store = await Store.findById(order.storeId);
+        if (store) {
+            await transactionalNotificationService.sendOrderStatusUpdate(
+                order.storeId.toString(),
+                store.name,
+                order,
+                'processing'
+            );
+        }
+    } catch (error) {
+        console.error('Failed to send order confirmation email:', error);
+    }
 
 }
 
@@ -209,6 +224,19 @@ async function processFailedPayment(order: any, paymentData: any) {
 
     await order.save();
 
-    // TODO: Send payment failed email
+    // Send payment failed email
+    try {
+        const store = await Store.findById(order.storeId);
+        if (store) {
+            await transactionalNotificationService.sendOrderStatusUpdate(
+                order.storeId.toString(),
+                store.name,
+                order,
+                'failed'
+            );
+        }
+    } catch (error) {
+        console.error('Failed to send payment failed email:', error);
+    }
 
 }

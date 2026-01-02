@@ -2,6 +2,7 @@ import PaymentGatewayConfig from '../../models/PaymentGatewayConfig';
 import GeoGroup from '../../models/GeoGroup';
 import { PaymentGatewayFactory } from './payment-gateway.factory';
 import { IPaymentGateway } from './payment-gateway.interface';
+import { decrypt } from '../../utils/encryption.utils';
 
 /**
  * Payment Service
@@ -96,9 +97,14 @@ export class PaymentService {
             throw new Error(`Payment gateway ${params.gatewayType} not configured for this store`);
         }
 
+        // Decrypt credentials before usage
+        const decryptedCredentials = typeof config.credentials === 'string'
+            ? decrypt(config.credentials)
+            : config.credentials;
+
         return PaymentGatewayFactory.create(
             config.gatewayType,
-            config.credentials,
+            decryptedCredentials,
             config.isTestMode
         );
     }

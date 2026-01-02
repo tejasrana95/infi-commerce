@@ -5,6 +5,7 @@ import Order from '../models/Order';
 import Cart from '../models/Cart';
 import Product from '../models/Product';
 import Coupon from '../models/Coupon';
+import TaxRate from '../models/TaxRate';
 import ProductOption from '../models/ProductOption';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
@@ -567,9 +568,25 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
     }
 
     // Calculate total
+    // Calculate tax
+    let tax = 0;
+
+    for (const item of cart.items) {
+        const product = item.productId as any;
+        const itemPrice = item.price; // This is already the effective price from cart
+        const itemTotal = itemPrice * item.quantity;
+
+        if (product && product.taxClassId) {
+            const taxRate = await TaxRate.findById(product.taxClassId);
+            if (taxRate) {
+                const taxAmount = (itemTotal * taxRate.rate) / 100;
+                tax += taxAmount;
+            }
+        }
+    }
+
     const subtotal = cart.subtotal;
     const shippingCost = shippingResult.cost;
-    const tax = 0; // TODO: Implement tax calculation
     const total = subtotal + shippingCost + tax - discount;
 
     // Generate order number

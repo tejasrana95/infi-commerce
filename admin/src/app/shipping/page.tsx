@@ -21,6 +21,7 @@ interface ShippingRule {
   rateType: 'flat' | 'per_kg' | 'free' | 'percentage';
   rate: number;
   currency: string;
+  estimatedDays?: string;
   isActive: boolean;
   priority: number;
   geoGroupId?: { _id: string; name: string; countries: string[] };
@@ -205,6 +206,16 @@ export default function ShippingPage() {
       width: 120,
       renderCell: (params: GridRenderCellParams) => (
         <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><strong>{formatRate(params.row)}</strong></Box>
+      ),
+    },
+    {
+      field: 'estimatedDays',
+      headerName: 'Est. Delivery',
+      width: 150,
+      renderCell: (params: GridRenderCellParams) => (
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+          <Typography variant="body2">{params.row.estimatedDays || '-'}</Typography>
+        </Box>
       ),
     },
     {
