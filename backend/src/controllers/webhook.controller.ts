@@ -17,16 +17,31 @@ export const handleRazorpayWebhook = asyncHandler(async (req: Request, res: Resp
     const payload = req.body;
 
     // Extract store ID from order metadata (you'll need to include this when creating order)
-    const orderId = payload.payload?.payment?.entity?.notes?.orderId;
+    // IMPORTANT: Razorpay/PaymentService puts MongoID in 'orderId' and readable ID in 'orderNumber'
+    const notes = payload.payload?.payment?.entity?.notes || {};
+    const orderNumber = notes.orderNumber;
+    const orderMongoId = notes.orderId;
+    const razorpayOrderId = payload.payload?.payment?.entity?.order_id;
 
-    if (!orderId) {
-        throw new AppError('Order ID not found in webhook payload', 400);
+    let order;
+
+    // 1. Try finding by readable order ID (best match)
+    if (orderNumber) {
+        order = await Order.findOne({ orderNumber: orderNumber });
     }
 
-    // Find order to get store ID
-    const order = await Order.findOne({ orderNumber: orderId });
+    // 2. Try finding by Mongo ID if provided (and valid MongoID format)
+    if (!order && orderMongoId && orderMongoId.match(/^[0-9a-fA-F]{24}$/)) {
+        order = await Order.findById(orderMongoId);
+    }
+
+    // 3. Fallback: If no ID found in notes, try finding by Razorpay Order ID (stored in paymentId for pending orders)
+    if (!order && razorpayOrderId) {
+        order = await Order.findOne({ paymentId: razorpayOrderId });
+    }
 
     if (!order) {
+        console.error('Webhook Error: Order not found for payload:', JSON.stringify(payload, null, 2));
         throw new AppError('Order not found', 404);
     }
 
@@ -51,7 +66,6 @@ export const handleRazorpayWebhook = asyncHandler(async (req: Request, res: Resp
     if (!verification.isValid) {
         throw new AppError('Invalid webhook signature', 401);
     }
-
     // Process webhook based on event
     if (verification.status === 'success') {
         await processSuccessfulPayment(order, verification.paymentId!, verification.data);
@@ -72,15 +86,24 @@ export const handleStripeWebhook = asyncHandler(async (req: Request, res: Respon
     const payload = req.body;
 
     // Extract order ID from metadata
-    const orderId = payload.data?.object?.metadata?.orderId;
+    const metadata = payload.data?.object?.metadata || {};
+    const orderNumber = metadata.orderNumber;
+    const orderMongoId = metadata.orderId;
 
-    if (!orderId) {
-        throw new AppError('Order ID not found in webhook payload', 400);
+    let order;
+
+    // 1. Try finding by readable order ID (best match)
+    if (orderNumber) {
+        order = await Order.findOne({ orderNumber: orderNumber });
     }
 
-    const order = await Order.findOne({ orderNumber: orderId });
+    // 2. Try finding by Mongo ID if provided
+    if (!order && orderMongoId && orderMongoId.match(/^[0-9a-fA-F]{24}$/)) {
+        order = await Order.findById(orderMongoId);
+    }
 
     if (!order) {
+        console.error('Webhook Error: Order not found for payload:', JSON.stringify(payload, null, 2));
         throw new AppError('Order not found', 404);
     }
 
