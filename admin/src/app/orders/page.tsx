@@ -144,16 +144,16 @@ export default function OrdersPage() {
 
     const getCustomerName = (order: Order): string => {
         if (order.customerId && typeof order.customerId === 'object') {
-            // @ts-ignore - populated field
-            return `${order.customerId.firstName || ''} ${order.customerId.lastName || ''}`.trim() || 'Unknown';
+            const customer = order.customerId as { firstName: string; lastName: string };
+            return `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'Unknown';
         }
         return order.guestEmail ? 'Guest' : 'Unknown';
     };
 
     const getCustomerEmail = (order: Order): string => {
         if (order.customerId && typeof order.customerId === 'object') {
-            // @ts-ignore - populated field
-            return order.customerId.email || '';
+            const customer = order.customerId as { email: string };
+            return customer.email || '';
         }
         return order.guestEmail || '';
     };

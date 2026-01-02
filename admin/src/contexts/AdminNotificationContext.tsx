@@ -3,16 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import api from '@/lib/api';
 import { useAuth } from './AuthContext';
-
-export interface AdminNotification {
-    _id: string;
-    type: 'order' | 'customer' | 'return' | 'system';
-    title: string;
-    message: string;
-    data?: any;
-    isRead: boolean;
-    createdAt: string;
-}
+import { AdminNotification } from '@/types';
 
 interface AdminNotificationContextType {
     notifications: AdminNotification[];
@@ -81,7 +72,6 @@ export function AdminNotificationProvider({ children }: { children: React.ReactN
                         if (promise) {
                             promise.catch(e => {
                                 // Autoplay policy might block this
-                                console.log('Audio play blocked:', e);
                             });
                         }
                     } catch (e) { }

@@ -7,6 +7,7 @@ import FormEditor from '@/components/organisms/FormEditor';
 import { Form } from '@/types';
 import api from '@/lib/api';
 import { Box, CircularProgress } from '@mui/material';
+import { useNotification } from '@/contexts/NotificationContext';
 
 export default function EditFormPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
@@ -14,6 +15,7 @@ export default function EditFormPage({ params }: { params: Promise<{ id: string 
     const [form, setForm] = useState<Form | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const { showNotification } = useNotification();
 
     useEffect(() => {
         const fetchForm = async () => {
@@ -22,7 +24,7 @@ export default function EditFormPage({ params }: { params: Promise<{ id: string 
                 setForm(response.data.form);
             } catch (error) {
                 console.error('Error fetching form:', error);
-                alert('Error loading form');
+                showNotification('Error loading form', 'error');
                 router.push('/forms');
             } finally {
                 setLoading(false);

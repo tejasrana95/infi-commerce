@@ -40,6 +40,7 @@ import { Order, OrderStatus } from '@/types/order';
 import LoadingSpinner from '@/components/atoms/LoadingSpinner';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
+import { useNotification } from '@/contexts/NotificationContext';
 
 export default function OrderDetailPage() {
     const { id } = useParams();
@@ -50,6 +51,7 @@ export default function OrderDetailPage() {
     const [actionLoading, setActionLoading] = useState(false);
     const { convertAndFormat } = useCurrency();
     const { confirm } = useConfirm();
+    const { showNotification } = useNotification();
     // Status update state
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -87,7 +89,7 @@ export default function OrderDetailPage() {
             await fetchOrder(); // Refresh
             setShipDialogOpen(false);
         } catch (err: any) {
-            alert(err.response?.data?.message || 'Failed to update status');
+            showNotification(err.response?.data?.message || 'Failed to update status', 'error');
         } finally {
             setActionLoading(false);
             setAnchorEl(null);
@@ -101,7 +103,7 @@ export default function OrderDetailPage() {
             await fetchOrder();
             setCancelDialogOpen(false);
         } catch (err: any) {
-            alert(err.response?.data?.message || 'Failed to cancel order');
+            showNotification(err.response?.data?.message || 'Failed to cancel order', 'error');
         } finally {
             setActionLoading(false);
         }
@@ -114,7 +116,7 @@ export default function OrderDetailPage() {
             await api.patch(`/orders/${id}/refund`);
             await fetchOrder();
         } catch (err: any) {
-            alert(err.response?.data?.message || 'Failed to refund');
+            showNotification(err.response?.data?.message || 'Failed to refund', 'error');
         } finally {
             setActionLoading(false);
             setAnchorEl(null);
@@ -127,7 +129,7 @@ export default function OrderDetailPage() {
             await api.patch(`/orders/${id}/return-status`, { status });
             await fetchOrder();
         } catch (err: any) {
-            alert(err.response?.data?.message || 'Failed to update return status');
+            showNotification(err.response?.data?.message || 'Failed to update return status', 'error');
         } finally {
             setActionLoading(false);
             setAnchorEl(null);
@@ -145,7 +147,7 @@ export default function OrderDetailPage() {
             setRefundDialogOpen(false);
             setAdminNote('');
         } catch (err: any) {
-            alert(err.response?.data?.message || 'Failed to update refund status');
+            showNotification(err.response?.data?.message || 'Failed to update refund status', 'error');
         } finally {
             setActionLoading(false);
         }
@@ -390,12 +392,14 @@ export default function OrderDetailPage() {
                                     <Divider />
                                     <CardContent>
                                         <Typography variant="body2" fontWeight={600} gutterBottom>
-                                            {/* @ts-ignore */}
-                                            {order.customerId ? `${order.customerId.firstName} ${order.customerId.lastName}` : 'Guest User'}
+                                            {order.customerId && typeof order.customerId === 'object'
+                                                ? `${(order.customerId as any).firstName} ${(order.customerId as any).lastName}`
+                                                : order.guestEmail ? 'Guest User' : 'Unknown User'}
                                         </Typography>
                                         <Typography variant="body2" color="text.secondary" gutterBottom>
-                                            {/* @ts-ignore */}
-                                            {order.customerId?.email || order.guestEmail}
+                                            {order.customerId && typeof order.customerId === 'object'
+                                                ? (order.customerId as any).email
+                                                : order.guestEmail}
                                         </Typography>
                                         {order.customerNote && (
                                             <Alert severity="info" sx={{ mt: 2 }}>
@@ -403,11 +407,9 @@ export default function OrderDetailPage() {
                                                 {order.customerNote}
                                             </Alert>
                                         )}
-                                        {/* @ts-ignore */}
                                         {order.refundStatus === 'requested' && (
                                             <Alert severity="warning" sx={{ mt: 2 }}>
                                                 <Typography variant="caption" fontWeight={600} display="block">Refund Requested:</Typography>
-                                                {/* @ts-ignore */}
                                                 {order.refundReason || 'No reason provided'}
                                                 <Button
                                                     size="small"
@@ -423,13 +425,11 @@ export default function OrderDetailPage() {
                                                 </Button>
                                             </Alert>
                                         )}
-                                        {/* @ts-ignore */}
                                         {order.refundStatus && !['none', 'requested'].includes(order.refundStatus) && (
                                             <Alert severity={order.refundStatus === 'rejected' ? 'error' : 'success'} sx={{ mt: 2 }}>
                                                 <Typography variant="caption" fontWeight={600} display="block">
-                                                    Refund {order.refundStatus}:
+                                                    Refund {order.refundStatus === 'rejected' ? 'Rejected' : 'Processed'}:
                                                 </Typography>
-                                                {/* @ts-ignore */}
                                                 {order.adminNote}
                                             </Alert>
                                         )}
@@ -481,7 +481,6 @@ export default function OrderDetailPage() {
                                                 <Typography variant="caption" fontWeight={600} color="primary.main" display="block">
                                                     Tracking Details
                                                 </Typography>
-                                                {/* @ts-ignore */}
                                                 {order.courierName && (
                                                     <Typography variant="body2" component="span" display="block">
                                                         Courier: <strong>{order.courierName}</strong>
@@ -490,7 +489,6 @@ export default function OrderDetailPage() {
                                                 <Typography variant="body2" component="span" display="block">
                                                     Number: <strong>{order.trackingNumber}</strong>
                                                 </Typography>
-                                                {/* @ts-ignore */}
                                                 {order.trackingUrl && (
                                                     <Button
                                                         variant="text"

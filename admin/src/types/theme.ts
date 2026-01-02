@@ -1,0 +1,161 @@
+import { ProductCardConfig, CategoryConfig, ProductPageConfig, CompareConfig } from './style';
+
+export interface HeaderTopBarItem {
+    id: string;
+    type: 'text' | 'link' | 'phone' | 'email' | 'social' | 'language' | 'currency';
+    content?: string;
+    label?: string;
+    url?: string;
+    icon?: string;
+    position: 'left' | 'center' | 'right';
+    order: number;
+}
+
+export interface HeaderTopBar {
+    enabled: boolean;
+    backgroundColor?: string;
+    textColor?: string;
+    height?: number;
+    items: HeaderTopBarItem[];
+}
+
+export interface HeaderElement {
+    id: string;
+    type: 'logo' | 'menu' | 'search' | 'cart' | 'account' | 'wishlist' | 'currency' | 'custom';
+    menuId?: string; // Reference to Menu._id
+    width?: number; // Grid units out of 12
+    settings?: {
+        logoUrl?: string;
+        logoHeight?: number;
+        logoAlt?: string;
+        searchPlaceholder?: string;
+        searchButtonText?: string;
+        showCartCount?: boolean;
+        cartIconStyle?: 'default' | 'bag' | 'basket';
+        showLoginRegister?: boolean;
+        loginText?: string;
+        registerText?: string;
+        wishlistIconStyle?: 'default' | 'heart' | 'star';
+        customHtml?: string;
+    };
+    order: number;
+}
+
+export interface HeaderSection {
+    id: string;
+    position: 'left' | 'center' | 'right';
+    items: HeaderElement[];
+}
+
+export interface HeaderMainConfig {
+    layout: 'default' | 'centered' | 'split' | 'minimal' | 'custom';
+    backgroundColor?: string;
+    height?: number;
+    sticky?: boolean;
+    transparent?: boolean;
+    sections: HeaderSection[];
+}
+
+export interface FooterElement {
+    id: string;
+    type: 'menu' | 'text' | 'html' | 'newsletter' | 'social' | 'contact' | 'payment-methods';
+    menuId?: string;
+    content?: string;
+    settings?: {
+        newsletterTitle?: string;
+        newsletterPlaceholder?: string;
+        newsletterButtonText?: string;
+        newsletterDescription?: string;
+        socialLinks?: Array<{
+            id: string;
+            platform: 'facebook' | 'twitter' | 'instagram' | 'linkedin' | 'youtube' | 'pinterest' | 'tiktok';
+            url: string;
+        }>;
+        contactInfo?: {
+            address?: string;
+            phone?: string;
+            email?: string;
+            workingHours?: string;
+        };
+        paymentMethods?: Array<{
+            id: string;
+            name: string;
+            icon: string;
+        }>;
+    };
+}
+
+export interface FooterColumn {
+    id: string;
+    title?: string;
+    width: number;
+    items: FooterElement[];
+}
+
+export interface FooterSection {
+    id: string;
+    type: 'columns' | 'bottom-bar';
+    backgroundColor?: string;
+    textColor?: string;
+    padding?: number;
+    columns?: FooterColumn[];
+    rows?: Array<{ id: string; columns: FooterColumn[] }>;
+    bottomBarContent?: string;
+}
+
+export interface FooterConfig {
+    sections: FooterSection[];
+}
+
+
+
+export interface ThemeConfig {
+    templateId: string;
+    header?: {
+        topBar?: HeaderTopBar;
+        main: HeaderMainConfig;
+        mobileMenu?: {
+            enabled: boolean;
+            menuId: string;
+        };
+    };
+    footer?: FooterConfig;
+    productCard?: ProductCardConfig;
+    category?: CategoryConfig;
+    product?: ProductPageConfig;
+    compare?: CompareConfig;
+    colors?: {
+        primary?: string;
+        secondary?: string;
+        accent?: string;
+        background?: string;
+        text?: string;
+    };
+    fonts?: {
+        heading?: string;
+        body?: string;
+    };
+    customScripts?: {
+        header?: string;
+        footer?: string;
+    };
+}
+
+export interface Theme {
+    _id: string;
+    name: string;
+    slug: string;
+    version: string;
+    description?: string;
+    thumbnail?: string;
+    author: string;
+    isSystem: boolean;
+    isActive: boolean;
+    colors: Record<string, string>;
+    typography: {
+        headings: { fontFamily: string; fontWeight: string };
+        body: { fontFamily: string; fontWeight: string };
+    };
+    createdAt: string;
+    updatedAt: string;
+}
