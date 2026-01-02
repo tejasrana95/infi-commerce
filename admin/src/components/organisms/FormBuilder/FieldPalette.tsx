@@ -57,30 +57,46 @@ function FieldPaletteItem({ definition }: FieldPaletteItemProps) {
             {...listeners}
             {...attributes}
             sx={{
-                p: 1.5,
+                p: 1.25,
                 mb: 1,
                 cursor: 'grab',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 1.5,
-                transition: 'all 0.2s',
-                opacity: isDragging ? 0.5 : 1,
-                '&:hover': {
-                    bgcolor: 'primary.50',
-                    borderColor: 'primary.main',
-                    boxShadow: 1,
-                },
+                gap: 1.25,
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                opacity: isDragging ? 0.3 : 1,
+                borderRadius: 1.5,
                 border: '1px solid',
-                borderColor: 'divider',
+                borderColor: 'rgba(0,0,0,0.08)',
+                bgcolor: 'background.paper',
+                '&:hover': {
+                    bgcolor: 'grey.50',
+                    borderColor: 'primary.main',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                    transform: 'translateY(-1px)',
+                },
             }}
         >
-            <DragIndicatorIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-            <IconComponent fontSize="small" color="primary" />
+            <DragIndicatorIcon fontSize="small" sx={{ color: 'rgba(0,0,0,0.2)' }} />
+            <Box
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 32,
+                    height: 32,
+                    borderRadius: 1,
+                    bgcolor: 'primary.50',
+                    color: 'primary.main'
+                }}
+            >
+                <IconComponent sx={{ fontSize: 18 }} />
+            </Box>
             <Box sx={{ flex: 1 }}>
-                <Typography variant="body2" fontWeight={600}>
+                <Typography variant="body2" fontWeight={700} sx={{ fontSize: '0.8rem' }}>
                     {definition.label}
                 </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.7rem', lineHeight: 1.2 }}>
                     {definition.description}
                 </Typography>
             </Box>
@@ -94,41 +110,45 @@ export default function FieldPalette() {
     const fileFields = fieldTypeDefinitions.filter(f => f.category === 'file');
 
     return (
-        <Box>
-            <Typography variant="h6" gutterBottom fontWeight={600}>
-                Field Types
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Drag fields to the form canvas
-            </Typography>
+        <Box sx={{ pb: 4 }}>
+            <Box sx={{ mb: 2, px: 1 }}>
+                <Typography variant="overline" color="text.secondary" fontWeight={800} sx={{ letterSpacing: 1 }}>
+                    Palette
+                </Typography>
+            </Box>
 
             {/* Basic Fields */}
-            <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: 'text.secondary' }}>
+            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1, mt: 1, px: 1, fontSize: '0.75rem', textTransform: 'uppercase', color: 'primary.main' }}>
                 Basic Fields
             </Typography>
-            {basicFields.map(definition => (
-                <FieldPaletteItem key={definition.type} definition={definition} />
-            ))}
+            <Box sx={{ px: 0.5 }}>
+                {basicFields.map(definition => (
+                    <FieldPaletteItem key={definition.type} definition={definition} />
+                ))}
+            </Box>
 
-            <Divider sx={{ my: 2 }} />
+            <Divider sx={{ my: 2, mx: 1, opacity: 0.5 }} />
 
             {/* Advanced Fields */}
-            <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: 'text.secondary' }}>
+            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1, px: 1, fontSize: '0.75rem', textTransform: 'uppercase', color: 'primary.main' }}>
                 Advanced Fields
             </Typography>
-            {advancedFields.map(definition => (
-                <FieldPaletteItem key={definition.type} definition={definition} />
-            ))}
+            <Box sx={{ px: 0.5 }}>
+                {advancedFields.map(definition => (
+                    <FieldPaletteItem key={definition.type} definition={definition} />
+                ))}
+            </Box>
 
-            <Divider sx={{ my: 2 }} />
+            <Divider sx={{ my: 2, mx: 1, opacity: 0.5 }} />
 
-            {/* File Fields */}
-            <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: 'text.secondary' }}>
+            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1, px: 1, fontSize: '0.75rem', textTransform: 'uppercase', color: 'primary.main' }}>
                 File Upload
             </Typography>
-            {fileFields.map(definition => (
-                <FieldPaletteItem key={definition.type} definition={definition} />
-            ))}
+            <Box sx={{ px: 0.5 }}>
+                {fileFields.map(definition => (
+                    <FieldPaletteItem key={definition.type} definition={definition} />
+                ))}
+            </Box>
         </Box>
     );
 }

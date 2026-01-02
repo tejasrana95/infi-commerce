@@ -362,7 +362,7 @@ export default function ModuleEditor({ module, onChange, onDelete, storeId }: Mo
                 <Tab label="Styling" />
             </Tabs>
 
-            <Divider />
+
 
             {tab === 0 && (
                 <Box>

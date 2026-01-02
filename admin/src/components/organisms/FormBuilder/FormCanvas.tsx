@@ -6,8 +6,10 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { FormSection, FormField } from '@/types';
 import { getFieldDefinition } from './types';
+import { useState } from 'react';
 
 interface FormCanvasProps {
     sections: FormSection[];
@@ -54,15 +56,20 @@ function FieldItem({ field, sectionId, columnId, isSelected, onSelect, onDelete,
             style={style}
             onClick={onSelect}
             sx={{
-                p: 1.5,
+                p: 1.25,
                 mb: 1,
                 cursor: 'pointer',
-                border: '2px solid',
-                borderColor: error ? 'error.main' : (isSelected ? 'primary.main' : 'divider'),
+                border: '1px solid',
+                borderColor: error ? 'error.main' : (isSelected ? 'primary.main' : 'rgba(0,0,0,0.08)'),
                 bgcolor: error ? 'error.50' : (isSelected ? 'primary.50' : 'background.paper'),
+                borderRadius: 1.5,
+                boxShadow: isSelected ? '0 4px 12px rgba(37, 99, 235, 0.1)' : '0 1px 3px rgba(0,0,0,0.02)',
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                 '&:hover': {
-                    borderColor: 'primary.light',
-                    bgcolor: 'grey.50',
+                    borderColor: error ? 'error.main' : 'primary.light',
+                    bgcolor: error ? 'error.50' : 'grey.50',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
                 },
             }}
         >
@@ -118,19 +125,19 @@ function DropZone({ id, sectionId, columnId }: DropZoneProps) {
         <Box
             ref={setNodeRef}
             sx={{
-                minHeight: 60,
-                border: '2px dashed',
-                borderColor: isOver ? 'primary.main' : 'divider',
-                borderRadius: 1,
+                minHeight: 50,
+                border: '1px dashed',
+                borderColor: isOver ? 'primary.main' : 'rgba(0,0,0,0.12)',
+                borderRadius: 1.5,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                bgcolor: isOver ? 'primary.50' : 'transparent',
+                bgcolor: isOver ? 'primary.50' : 'rgba(0,0,0,0.02)',
                 transition: 'all 0.2s',
             }}
         >
-            <Typography variant="caption" color="text.secondary">
-                Drop field here
+            <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                {isOver ? 'Drop here' : 'Empty'}
             </Typography>
         </Box>
     );
@@ -157,6 +164,8 @@ function SectionItem({
     errors,
     sectionIndex,
 }: SectionItemProps) {
+    const [expanded, setExpanded] = useState(true);
+
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: section.id,
         data: {
@@ -168,7 +177,7 @@ function SectionItem({
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
-        opacity: isDragging ? 0.5 : 1,
+        opacity: isDragging ? 0.3 : 1,
     };
 
     const hasColumns = section.type !== 'full-width' && section.columns && section.columns.length > 0;
@@ -178,86 +187,136 @@ function SectionItem({
             ref={setNodeRef}
             style={style}
             sx={{
-                p: 2,
                 mb: 2,
-                border: '2px solid',
-                borderColor: isSelected ? 'primary.main' : 'divider',
-                bgcolor: isSelected ? 'primary.50' : 'background.paper',
-                boxShadow: Object.keys(errors).some(k => k.startsWith(`sections[${sectionIndex}]`)) ? '0 0 0 2px #f44336' : 'none',
+                border: '1px solid',
+                borderColor: isSelected ? 'primary.main' : 'rgba(0,0,0,0.08)',
+                bgcolor: 'background.paper',
+                borderRadius: 2,
+                overflow: 'hidden',
+                boxShadow: isSelected ? '0 8px 24px rgba(0, 0, 0, 0.08)' : '0 2px 4px rgba(0,0,0,0.02)',
+                transition: 'all 0.3s ease',
             }}
         >
             {/* Section Header */}
             <Box
-                onClick={onSelectSection}
                 sx={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 1,
-                    mb: 2,
-                    cursor: 'pointer',
-                    pb: 1,
-                    borderBottom: '1px solid',
-                    borderColor: 'divider',
+                    gap: 1.5,
+                    p: 1.5,
+                    bgcolor: isSelected ? 'primary.50' : 'grey.50',
+                    borderBottom: expanded ? '1px solid' : 'none',
+                    borderColor: 'rgba(0,0,0,0.05)',
                 }}
             >
-                <Box {...attributes} {...listeners} sx={{ cursor: 'grab', display: 'flex' }}>
+                <Box
+                    {...attributes}
+                    {...listeners}
+                    sx={{
+                        cursor: 'grab',
+                        display: 'flex',
+                        color: 'text.secondary',
+                        '&:hover': { color: 'primary.main' }
+                    }}
+                >
                     <DragIndicatorIcon fontSize="small" />
                 </Box>
-                <Typography variant="subtitle2" fontWeight={600} sx={{ flex: 1 }}>
-                    {section.name || 'Untitled Section'}
-                </Typography>
-                <Chip label={section.type} size="small" variant="outlined" />
+
+                <Box
+                    onClick={onSelectSection}
+                    sx={{ flex: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 1 }}
+                >
+                    <Typography variant="subtitle2" fontWeight={700} color="text.primary">
+                        {section.name || 'Untitled Section'}
+                    </Typography>
+                    <Chip
+                        label={section.type}
+                        size="small"
+                        sx={{
+                            height: 18,
+                            fontSize: '0.65rem',
+                            textTransform: 'uppercase',
+                            fontWeight: 700,
+                            bgcolor: 'background.paper',
+                            border: '1px solid',
+                            borderColor: 'divider'
+                        }}
+                    />
+                </Box>
+
+                <IconButton
+                    size="small"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setExpanded(!expanded);
+                    }}
+                    sx={{
+                        transition: 'transform 0.3s ease',
+                        transform: expanded ? 'rotate(0deg)' : 'rotate(180deg)',
+                        bgcolor: 'background.paper',
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        width: 24,
+                        height: 24
+                    }}
+                >
+                    <ExpandLessIcon sx={{ fontSize: 16 }} />
+                </IconButton>
             </Box>
 
             {/* Section Content */}
-            {hasColumns ? (
-                <Box sx={{ display: 'grid', gridTemplateColumns: section.columns!.map(c => `${c.width}%`).join(' '), gap: 2 }}>
-                    {section.columns!.map((column) => (
-                        <Box key={column.id}>
-                            {column.fields.length > 0 ? (
-                                column.fields.map((field, fieldIndex) => (
+            {expanded && (
+                <Box sx={{ p: 2, bgcolor: isSelected ? 'rgba(37, 99, 235, 0.02)' : 'transparent' }}>
+                    {hasColumns ? (
+                        <Box sx={{ display: 'grid', gridTemplateColumns: section.columns!.map(c => `${c.width}%`).join(' '), gap: 2 }}>
+                            {section.columns!.map((column) => (
+                                <Box key={column.id}>
+                                    {column.fields.length > 0 ? (
+                                        column.fields.map((field, fieldIndex) => (
+                                            <FieldItem
+                                                key={field.id}
+                                                field={field}
+                                                sectionId={section.id}
+                                                columnId={column.id}
+                                                isSelected={selectedFieldId === field.id}
+                                                onSelect={() => onSelectField(field.id)}
+                                                onDelete={() => onDeleteField(field.id)}
+                                                error={errors[`sections[${sectionIndex}].columns[${section.columns!.indexOf(column)}].fields[${fieldIndex}].label`] ||
+                                                    errors[`sections[${sectionIndex}].columns[${section.columns!.indexOf(column)}].fields[${fieldIndex}].name`]}
+                                            />
+                                        ))
+                                    ) : (
+                                        <DropZone
+                                            id={`drop-${column.id}`}
+                                            sectionId={section.id}
+                                            columnId={column.id}
+                                        />
+                                    )}
+                                </Box>
+                            ))}
+                        </Box>
+                    ) : (
+                        <Box>
+                            {section.fields.length > 0 ? (
+                                section.fields.map((field, fieldIndex) => (
                                     <FieldItem
                                         key={field.id}
                                         field={field}
                                         sectionId={section.id}
-                                        columnId={column.id}
                                         isSelected={selectedFieldId === field.id}
                                         onSelect={() => onSelectField(field.id)}
                                         onDelete={() => onDeleteField(field.id)}
-                                        error={errors[`sections[${sectionIndex}].columns[${section.columns!.indexOf(column)}].fields[${fieldIndex}].label`] ||
-                                            errors[`sections[${sectionIndex}].columns[${section.columns!.indexOf(column)}].fields[${fieldIndex}].name`]}
+                                        error={errors[`sections[${sectionIndex}].fields[${fieldIndex}].label`] ||
+                                            errors[`sections[${sectionIndex}].fields[${fieldIndex}].name`]}
                                     />
                                 ))
                             ) : (
                                 <DropZone
-                                    id={`drop-${column.id}`}
+                                    id={`drop-${section.id}`}
                                     sectionId={section.id}
-                                    columnId={column.id}
                                 />
                             )}
                         </Box>
-                    ))}
-                </Box>
-            ) : (
-                <Box>
-                    {section.fields.length > 0 ? (
-                        section.fields.map((field, fieldIndex) => (
-                            <FieldItem
-                                key={field.id}
-                                field={field}
-                                sectionId={section.id}
-                                isSelected={selectedFieldId === field.id}
-                                onSelect={() => onSelectField(field.id)}
-                                onDelete={() => onDeleteField(field.id)}
-                                error={errors[`sections[${sectionIndex}].fields[${fieldIndex}].label`] ||
-                                    errors[`sections[${sectionIndex}].fields[${fieldIndex}].name`]}
-                            />
-                        ))
-                    ) : (
-                        <DropZone
-                            id={`drop-${section.id}`}
-                            sectionId={section.id}
-                        />
                     )}
                 </Box>
             )}

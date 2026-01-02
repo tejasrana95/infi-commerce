@@ -55,8 +55,11 @@ import ModulePalette from './ModulePalette';
 import SectionList from './SectionList';
 import SectionEditor from './SectionEditor';
 import ModuleEditor from './ModuleEditor';
+import FloatingToolbar from './FloatingToolbar';
+import PropertiesPanel from './PropertiesPanel';
 import { createSection, createModule, getModuleDefinition } from './types';
 import { ConfirmDialog } from '@/components/molecules/ConfirmDialog';
+
 
 interface LayoutDesignerProps {
     layout: Layout;
@@ -85,7 +88,7 @@ export default function LayoutDesigner({
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md')); // <900px
     const isTablet = useMediaQuery(theme.breakpoints.down('lg')); // <1200px
-    const [leftPanelOpen, setLeftPanelOpen] = useState(!isMobile);
+    const [leftPanelOpen, setLeftPanelOpen] = useState(false); // Start hidden
     const [rightPanelOpen, setRightPanelOpen] = useState(!isMobile);
 
     // Types that support slug-specific layouts
@@ -297,7 +300,22 @@ export default function LayoutDesigner({
 
         // Case 3: Reordering modules (within section/column or moving between them)
         const activeSection = findSectionByModuleId(active.id as string);
-        const overSection = findSectionByModuleId(over.id as string);
+
+        // Target container resolution
+        let overSection: LayoutSection | undefined;
+        if (overData?.type === 'section') {
+            overSection = overData.section;
+        } else if (overData?.type === 'section-drop' && overData.sectionId) {
+            // Find section containing this drop zone (could be main section or column)
+            const s = layout.sections.find(s => s.id === overData.sectionId);
+            if (s) {
+                overSection = s;
+            } else {
+                overSection = layout.sections.find(s => s.columns?.some(c => c.id === overData.sectionId));
+            }
+        } else {
+            overSection = findSectionByModuleId(over.id as string);
+        }
 
         // Handle moving modules
         if (activeSection) {
@@ -318,28 +336,23 @@ export default function LayoutDesigner({
             let targetModules: LayoutModule[] | null = null;
             let targetColumnId: string | null = null;
 
-            // If hovering over a module, find its container
             if (overSection) {
-                targetModules = overSection.modules;
-                if (overSection.columns) {
-                    const col = overSection.columns.find(c => c.modules.some(m => m.id === over.id));
-                    if (col) {
-                        targetModules = col.modules;
-                        targetColumnId = col.id;
+                // If hovering over a drop zone, use that container ID
+                if (overData?.type === 'section-drop' && overData.sectionId) {
+                    const containerId = overData.sectionId;
+                    const targetCol = overSection.columns?.find(c => c.id === containerId);
+                    if (targetCol) {
+                        targetModules = targetCol.modules;
+                        targetColumnId = targetCol.id;
+                    } else {
+                        targetModules = overSection.modules;
                     }
                 }
-            }
-            // If hovering over a drop zone (empty column/section)
-            else if (overData?.type === 'section-drop') {
-                const containerId = overData.sectionId;
-                targetSection = layout.sections.find(s => s.id === containerId);
-
-                if (targetSection) {
-                    targetModules = targetSection.modules;
-                } else {
-                    targetSection = layout.sections.find(s => s.columns?.some(c => c.id === containerId));
-                    if (targetSection && targetSection.columns) {
-                        const col = targetSection.columns.find(c => c.id === containerId);
+                // If hovering over a module, find its container
+                else {
+                    targetModules = overSection.modules;
+                    if (overSection.columns) {
+                        const col = overSection.columns.find(c => c.modules.some(m => m.id === over.id));
                         if (col) {
                             targetModules = col.modules;
                             targetColumnId = col.id;
@@ -350,9 +363,11 @@ export default function LayoutDesigner({
 
             if (targetSection && targetModules) {
                 const oldIndex = sourceModules.findIndex(m => m.id === active.id);
+                if (oldIndex === -1) return; // safety check
+
                 // If over a drop zone, append to end. If over a module, find its index.
                 const newIndex = overData?.type === 'section-drop'
-                    ? targetModules.length + 1
+                    ? targetModules.length
                     : targetModules.findIndex(m => m.id === over.id);
 
                 // Same container reorder
@@ -429,22 +444,36 @@ export default function LayoutDesigner({
 
     // Custom collision detection that works for both palette drops and sortable items
     const collisionDetection = useCallback((args: any) => {
-        // First check if we're dragging from palette
-        if (activeDragData?.type === 'palette-module') {
-            // For palette items, prefer pointer-based detection for precise drops
+        const { active, droppableContainers, pointerCoordinates } = args;
+        const activeData = active?.data.current;
+
+        // First check if we're dragging from palette OR dragging a module
+        if (activeData?.type === 'palette-module' || activeData?.type === 'module') {
+            // For modules/palette, prefer pointer-based detection for precise drops
             const pointerCollisions = pointerWithin(args);
-            // Filter to only include drop zones
-            const dropZoneCollisions = pointerCollisions.filter((c: any) =>
-                c.id?.toString().startsWith('drop-')
+
+            // Filter to include ALL possible drop zones (modules OR drop zones)
+            const moduleCollisions = pointerCollisions.filter((c: any) =>
+                c.data?.current?.type === 'module' ||
+                c.data?.current?.type === 'section-drop'
             );
-            if (dropZoneCollisions.length > 0) return dropZoneCollisions;
+
+            if (moduleCollisions.length > 0) return moduleCollisions;
+
+            // If no specific module/drop-zone collide, but we are over a section, 
+            // return the section collisions from pointerWithin
+            const sectionCollisions = pointerCollisions.filter((c: any) =>
+                c.data?.current?.type === 'section'
+            );
+            if (sectionCollisions.length > 0) return sectionCollisions;
+
             // Fall back to all pointer collisions
             if (pointerCollisions.length > 0) return pointerCollisions;
         }
 
-        // For everything else use closest corners
+        // For everything else (like reordering sections), use closest corners
         return closestCorners(args);
-    }, [activeDragData]);
+    }, []);
 
     // Render drag overlay content
     const renderDragOverlay = () => {
@@ -494,182 +523,103 @@ export default function LayoutDesigner({
             );
         }
 
+        // Module being dragged
+        if (activeDragData.type === 'module') {
+            const definition = getModuleDefinition(activeDragData.module?.type);
+            return (
+                <Paper
+                    sx={{
+                        p: 1.25,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        bgcolor: 'background.paper',
+                        border: '2px solid',
+                        borderColor: 'primary.main',
+                        boxShadow: 8,
+                        borderRadius: 1.5,
+                        minWidth: 200,
+                    }}
+                >
+                    <DragIndicatorIcon fontSize="small" color="primary" />
+                    <Typography variant="body2" fontWeight={600}>
+                        {definition?.label || activeDragData.module?.type}
+                    </Typography>
+                </Paper>
+            );
+        }
+
         return null;
     };
 
     return (
-        <DndContext
-            sensors={sensors}
-            collisionDetection={collisionDetection}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-        >
-            <Box sx={{ display: 'flex', height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
-                {/* Left Sidebar - Module Palette (Desktop) */}
-                {!isMobile && (
-                    <Paper
+        <Box sx={{ display: 'flex', flexDirection: 'column', bgcolor: '#FAFAFA', position: 'relative' }}>
+            {/* Floating Toolbar - Fixed Position */}
+            <FloatingToolbar
+                layoutName={layout.name}
+                layoutType={layout.type}
+                layoutStatus={layout.status}
+                isDefault={layout.isDefault}
+                slug={layout.slug}
+                previewDevice={previewDevice}
+                onPreviewChange={setPreviewDevice}
+                onBack={onBack}
+                onSave={onSave}
+                onSettings={() => setSettingsOpen(true)}
+                onToggleModules={() => setLeftPanelOpen(!leftPanelOpen)}
+                modulesOpen={leftPanelOpen}
+                isSaving={isSaving}
+            />
+
+            <DndContext
+                sensors={sensors}
+                collisionDetection={collisionDetection}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+            >
+                <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
+                    {/* Module Palette Drawer */}
+                    <Drawer
+                        variant="persistent"
+                        anchor="left"
+                        open={leftPanelOpen}
                         sx={{
                             width: leftPanelOpen ? 280 : 0,
-                            borderRadius: 0,
-                            borderRight: leftPanelOpen ? '1px solid' : 'none',
-                            borderColor: 'divider',
-                            overflow: leftPanelOpen ? 'auto' : 'hidden',
                             flexShrink: 0,
-                            transition: 'width 0.3s ease',
+                            mt: 2,
+                            zIndex: 1,
+                            mb: 4,
+                            '& .MuiDrawer-paper': {
+                                width: 280,
+                                position: 'relative',
+                                borderRight: '1px solid',
+                                borderColor: 'divider',
+                                boxShadow: '2px 0 8px rgba(0, 0, 0, 0.08)',
+                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            },
                         }}
                     >
-                        {leftPanelOpen && (
-                            <Box sx={{ p: 2, width: 280 }}>
-                                <ModulePalette layoutType={layout.type} />
-                            </Box>
-                        )}
-                    </Paper>
-                )}
-
-                {/* Left Drawer - Module Palette (Mobile/Tablet) */}
-                <Drawer
-                    anchor="left"
-                    open={isMobile && leftPanelOpen}
-                    onClose={() => setLeftPanelOpen(false)}
-                    sx={{
-                        display: { xs: 'block', md: 'none' },
-                        '& .MuiDrawer-paper': {
-                            width: { xs: '85%', sm: 320 },
-                            maxWidth: 400,
-                        },
-                    }}
-                >
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-                        <Typography variant="h6" fontWeight={600}>Module Palette</Typography>
-                        <IconButton size="small" onClick={() => setLeftPanelOpen(false)}>
-                            <CloseIcon />
-                        </IconButton>
-                    </Box>
-                    <Box sx={{ p: 2 }}>
-                        <ModulePalette layoutType={layout.type} />
-                    </Box>
-                </Drawer>
-
-                {/* Main Canvas */}
-                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                    {/* Header */}
-                    <Paper
-                        sx={{
-                            p: 2,
-                            borderRadius: 0,
-                            borderBottom: '1px solid',
-                            borderColor: 'divider',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 2,
-                        }}
-                    >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <IconButton onClick={onBack} size="small">
-                                <ArrowBackIcon />
-                            </IconButton>
-
-                            {/* Panel Toggles */}
-                            <IconButton
-                                onClick={() => setLeftPanelOpen(!leftPanelOpen)}
-                                size="small"
-                                color={leftPanelOpen ? 'primary' : 'default'}
-                                title="Toggle Module Palette"
-                            >
-                                <MenuIcon />
-                            </IconButton>
-                            <IconButton
-                                onClick={() => setRightPanelOpen(!rightPanelOpen)}
-                                size="small"
-                                color={rightPanelOpen ? 'primary' : 'default'}
-                                title="Toggle Editor Panel"
-                            >
-                                <TuneIcon />
-                            </IconButton>
+                        <Box sx={{ p: 1, pt: 2, height: '100%', overflow: 'auto' }}>
+                            <ModulePalette layoutType={layout.type} />
                         </Box>
+                    </Drawer>
 
-                        <Box flex={1} sx={{ minWidth: 150 }}>
-                            <Typography variant="h6" fontWeight={600}>
-                                {layout.name}
-                            </Typography>
-                            <Box sx={{ display: 'flex', gap: 1, mt: 0.5, alignItems: 'center' }}>
-                                <Chip label={layout.type} size="small" color="primary" variant="outlined" />
-                                {layout.slug && (
-                                    <Chip
-                                        label={`/${layout.slug}`}
-                                        size="small"
-                                        color="secondary"
-                                        variant="outlined"
-                                        sx={{ fontFamily: 'monospace', fontSize: '0.7rem' }}
-                                    />
-                                )}
-                                <Chip
-                                    label={layout.status}
-                                    size="small"
-                                    color={layout.status === 'published' ? 'success' : 'default'}
-                                />
-                                {layout.isDefault && <Chip label="Default" size="small" color="warning" />}
-                            </Box>
-                        </Box>
-
-                        {/* Settings Button */}
-                        <IconButton onClick={() => setSettingsOpen(true)} title="Layout Settings">
-                            <SettingsIcon />
-                        </IconButton>
-
-                        {/* Device Toggle */}
-                        <Box sx={{ display: 'flex', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
-                            <IconButton
-                                size="small"
-                                color={previewDevice === 'desktop' ? 'primary' : 'default'}
-                                onClick={() => setPreviewDevice('desktop')}
-                            >
-                                <DesktopWindowsIcon fontSize="small" />
-                            </IconButton>
-                            <IconButton
-                                size="small"
-                                color={previewDevice === 'tablet' ? 'primary' : 'default'}
-                                onClick={() => setPreviewDevice('tablet')}
-                            >
-                                <TabletIcon fontSize="small" />
-                            </IconButton>
-                            <IconButton
-                                size="small"
-                                color={previewDevice === 'mobile' ? 'primary' : 'default'}
-                                onClick={() => setPreviewDevice('mobile')}
-                            >
-                                <PhoneIphoneIcon fontSize="small" />
-                            </IconButton>
-                        </Box>
-
-                        <Button
-                            variant="contained"
-                            startIcon={<SaveIcon />}
-                            onClick={onSave}
-                            disabled={isSaving}
-                        >
-                            {isSaving ? 'Saving...' : 'Save'}
-                        </Button>
-                    </Paper>
-
-                    {/* Canvas */}
-                    <Box
-                        sx={{
-                            flex: 1,
-                            overflow: 'auto',
-                            p: 3,
-                            bgcolor: 'grey.100',
-                        }}
-                    >
+                    {/* Main Canvas */}
+                    <Box sx={{
+                        flex: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'auto',
+                        p: { xs: 2, md: 4 },
+                        bgcolor: '#FAFAFA',
+                        backgroundImage: 'radial-gradient(#E5E7EB 0.5px, transparent 0.5px)',
+                        backgroundSize: '16px 16px',
+                    }}>
                         <Box
                             sx={{
-                                maxWidth: previewDevice === 'mobile' ? 375 : previewDevice === 'tablet' ? 768 : '100%',
+                                maxWidth: previewDevice === 'mobile' ? 375 : previewDevice === 'tablet' ? 768 : 1200,
                                 mx: 'auto',
-                                bgcolor: 'background.paper',
-                                minHeight: 400,
-                                p: 2,
-                                borderRadius: 1,
-                                boxShadow: 1,
+                                width: '100%',
                             }}
                         >
                             {layout.sections.length === 0 ? (
@@ -697,186 +647,106 @@ export default function LayoutDesigner({
                                     onSelectSection={(id) => {
                                         setSelectedSectionId(id);
                                         setSelectedModuleId(null);
-                                        // Auto-open right panel on mobile when selecting
-                                        if (isMobile) setRightPanelOpen(true);
                                     }}
                                     onSelectModule={(sectionId, moduleId) => {
                                         setSelectedSectionId(sectionId);
                                         setSelectedModuleId(moduleId);
-                                        // Auto-open right panel on mobile when selecting
-                                        if (isMobile) setRightPanelOpen(true);
                                     }}
                                     onDeleteModule={handleDeleteModule}
                                     onAddSection={handleAddSection}
                                 />
-                            )}
-                        </Box>
+                            )}</Box>
                     </Box>
                 </Box>
 
-                {/* Right Sidebar - Editor Panel (Desktop) */}
-                {!isMobile && (
-                    <Paper
-                        sx={{
-                            width: rightPanelOpen ? 320 : 0,
-                            borderRadius: 0,
-                            borderLeft: rightPanelOpen ? '1px solid' : 'none',
-                            borderColor: 'divider',
-                            overflow: rightPanelOpen ? 'auto' : 'hidden',
-                            flexShrink: 0,
-                            transition: 'width 0.3s ease',
-                        }}
-                    >
-                        {rightPanelOpen && (
-                            <Box sx={{ p: 2, width: 320 }}>
-                                <Typography variant="subtitle2" gutterBottom fontWeight={600} color="text.secondary">
-                                    {selectedModule ? 'MODULE SETTINGS' : selectedSection ? 'SECTION SETTINGS' : 'EDITOR'}
-                                </Typography>
-                                {selectedModule && selectedSectionId ? (
-                                    <ModuleEditor
-                                        module={selectedModule}
-                                        onChange={(updated) =>
-                                            updateModule(selectedSectionId, selectedModule.id, updated)
-                                        }
-                                        onDelete={() => handleDeleteModule(selectedSectionId, selectedModule.id)}
-                                        storeId={layout.storeId}
-                                    />
-                                ) : selectedSection ? (
-                                    <SectionEditor
-                                        section={selectedSection}
-                                        onChange={(updated) => updateSection(selectedSection.id, updated)}
-                                        onDelete={() => handleDeleteSection(selectedSection.id)}
-                                    />
-                                ) : (
-                                    <Box sx={{ textAlign: 'center', py: 4 }}>
-                                        <Typography variant="body2" color="text.secondary">
-                                            Select a section or module to edit
-                                        </Typography>
-                                    </Box>
-                                )}
-                            </Box>
-                        )}
-                    </Paper>
-                )}
-
-                {/* Right Drawer - Editor Panel (Mobile/Tablet) */}
-                <Drawer
-                    anchor="right"
-                    open={isMobile && rightPanelOpen}
-                    onClose={() => setRightPanelOpen(false)}
-                    sx={{
-                        display: { xs: 'block', md: 'none' },
-                        '& .MuiDrawer-paper': {
-                            width: { xs: '90%', sm: 360 },
-                            maxWidth: 450,
-                        },
+                {/* Properties Panel - Smooth Drawer */}
+                <PropertiesPanel
+                    open={!!(selectedSectionId || selectedModuleId)}
+                    onClose={() => {
+                        setSelectedSectionId(null);
+                        setSelectedModuleId(null);
                     }}
-                >
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-                        <Typography variant="h6" fontWeight={600}>
-                            {selectedModule ? 'Module Settings' : selectedSection ? 'Section Settings' : 'Editor'}
-                        </Typography>
-                        <IconButton size="small" onClick={() => setRightPanelOpen(false)}>
-                            <CloseIcon />
-                        </IconButton>
-                    </Box>
-                    <Box sx={{ p: 2 }}>
-                        {selectedModule && selectedSectionId ? (
-                            <ModuleEditor
-                                module={selectedModule}
-                                onChange={(updated) =>
-                                    updateModule(selectedSectionId, selectedModule.id, updated)
-                                }
-                                onDelete={() => handleDeleteModule(selectedSectionId, selectedModule.id)}
-                                storeId={layout.storeId}
-                            />
-                        ) : selectedSection ? (
-                            <SectionEditor
-                                section={selectedSection}
-                                onChange={(updated) => updateSection(selectedSection.id, updated)}
-                                onDelete={() => handleDeleteSection(selectedSection.id)}
-                            />
-                        ) : (
-                            <Box sx={{ textAlign: 'center', py: 4 }}>
-                                <Typography variant="body2" color="text.secondary">
-                                    Select a section or module to edit
-                                </Typography>
-                            </Box>
-                        )}
-                    </Box>
-                </Drawer>
-            </Box>
+                    selectedSection={selectedSection}
+                    selectedModule={selectedModule}
+                    selectedSectionId={selectedSectionId}
+                    onUpdateSection={updateSection}
+                    onUpdateModule={updateModule}
+                    onDeleteSection={handleDeleteSection}
+                    onDeleteModule={handleDeleteModule}
+                    storeId={typeof layout.storeId === 'object' ? layout.storeId._id : layout.storeId}
+                />
 
-            {/* Drag Overlay - renders the dragged item visually */}
-            <DragOverlay dropAnimation={null} style={{ zIndex: 9999 }}>
-                {renderDragOverlay()}
-            </DragOverlay>
+                {/* Drag Overlay - renders the dragged item visually */}
+                <DragOverlay dropAnimation={null} style={{ zIndex: 9999 }}>
+                    {renderDragOverlay()}
+                </DragOverlay>
 
-            <ConfirmDialog
-                open={confirmOpen}
-                title={confirmConfig.title}
-                message={confirmConfig.message}
-                onConfirm={confirmConfig.onConfirm}
-                onCancel={() => setConfirmOpen(false)}
-                severity="error"
-                confirmLabel="Delete"
-            />
+                <ConfirmDialog
+                    open={confirmOpen}
+                    title={confirmConfig.title}
+                    message={confirmConfig.message}
+                    onConfirm={confirmConfig.onConfirm}
+                    onCancel={() => setConfirmOpen(false)}
+                    severity="error"
+                    confirmLabel="Delete"
+                />
 
-            {/* Layout Settings Dialog */}
-            <Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)} maxWidth="sm" fullWidth>
-                <DialogTitle>Layout Settings</DialogTitle>
-                <DialogContent>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-                        <TextField
-                            label="Layout Name"
-                            value={layout.name}
-                            onChange={(e) => onChange({ ...layout, name: e.target.value })}
-                            fullWidth
-                            required
-                        />
-                        <TextField
-                            label="Description"
-                            value={layout.description || ''}
-                            onChange={(e) => onChange({ ...layout, description: e.target.value })}
-                            fullWidth
-                            multiline
-                            rows={2}
-                        />
-                        {slugSupportedTypes.includes(layout.type) && (
+                {/* Layout Settings Dialog */}
+                <Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)} maxWidth="sm" fullWidth>
+                    <DialogTitle>Layout Settings</DialogTitle>
+                    <DialogContent>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
                             <TextField
-                                label="Page Slug (Optional)"
-                                value={layout.slug || ''}
-                                onChange={(e) => onChange({ ...layout, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-/]/g, '') })}
+                                label="Layout Name"
+                                value={layout.name}
+                                onChange={(e) => onChange({ ...layout, name: e.target.value })}
                                 fullWidth
-                                placeholder="e.g., about, marble-statues"
-                                helperText="Leave empty for a default layout. Enter a slug to create a page-specific layout and only slug not the prefix like category, product, etc."
+                                required
                             />
-                        )}
-                        <TextField
-                            select
-                            label="Status"
-                            value={layout.status}
-                            onChange={(e) => onChange({ ...layout, status: e.target.value as 'draft' | 'published' })}
-                            fullWidth
-                        >
-                            <MenuItem value="draft">Draft</MenuItem>
-                            <MenuItem value="published">Published</MenuItem>
-                        </TextField>
-                        <FormControlLabel
-                            control={
-                                <Switch
-                                    checked={layout.isDefault}
-                                    onChange={(e) => onChange({ ...layout, isDefault: e.target.checked })}
+                            <TextField
+                                label="Description"
+                                value={layout.description || ''}
+                                onChange={(e) => onChange({ ...layout, description: e.target.value })}
+                                fullWidth
+                                multiline
+                                rows={2}
+                            />
+                            {slugSupportedTypes.includes(layout.type) && (
+                                <TextField
+                                    label="Page Slug (Optional)"
+                                    value={layout.slug || ''}
+                                    onChange={(e) => onChange({ ...layout, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-/]/g, '') })}
+                                    fullWidth
+                                    placeholder="e.g., about, marble-statues"
+                                    helperText="Leave empty for a default layout. Enter a slug to create a page-specific layout and only slug not the prefix like category, product, etc."
                                 />
-                            }
-                            label="Set as default layout for this type"
-                        />
-                    </Box>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setSettingsOpen(false)}>Close</Button>
-                </DialogActions>
-            </Dialog>
-        </DndContext>
+                            )}
+                            <TextField
+                                select
+                                label="Status"
+                                value={layout.status}
+                                onChange={(e) => onChange({ ...layout, status: e.target.value as 'draft' | 'published' })}
+                                fullWidth
+                            >
+                                <MenuItem value="draft">Draft</MenuItem>
+                                <MenuItem value="published">Published</MenuItem>
+                            </TextField>
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={layout.isDefault}
+                                        onChange={(e) => onChange({ ...layout, isDefault: e.target.checked })}
+                                    />
+                                }
+                                label="Set as default layout for this type"
+                            />
+                        </Box>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setSettingsOpen(false)}>Close</Button>
+                    </DialogActions>
+                </Dialog>
+            </DndContext >
+        </Box >
     );
 }

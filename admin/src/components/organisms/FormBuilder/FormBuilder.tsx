@@ -13,13 +13,12 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
-import MenuIcon from '@mui/icons-material/Menu';
-import TuneIcon from '@mui/icons-material/Tune';
 import CloseIcon from '@mui/icons-material/Close';
 import {
     DndContext,
     DragEndEvent,
     DragStartEvent,
+    DragOverEvent,
     DragOverlay,
     closestCorners,
     pointerWithin,
@@ -31,8 +30,8 @@ import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-ki
 import { FormSection, FormField } from '@/types';
 import FieldPalette from './FieldPalette';
 import FormCanvas from './FormCanvas';
-import FieldEditor from './FieldEditor';
-import SectionEditor from './SectionEditor';
+import FloatingToolbar from './FloatingToolbar';
+import PropertiesPanel from './PropertiesPanel';
 import { createField, createFormSection, getFieldDefinition } from './types';
 
 interface FormBuilderProps {
@@ -49,10 +48,9 @@ export default function FormBuilder({ sections, onChange, errors = {} }: FormBui
 
     // Responsive state
     const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('md')); // <900px
-    const isTablet = useMediaQuery(theme.breakpoints.down('lg')); // <1200px
-    const [leftPanelOpen, setLeftPanelOpen] = useState(!isMobile);
-    const [rightPanelOpen, setRightPanelOpen] = useState(!isMobile);
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    const [leftPanelOpen, setLeftPanelOpen] = useState(false); // Start hidden for symmetry
+    const [rightPanelOpen, setRightPanelOpen] = useState(false);
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -385,265 +383,134 @@ export default function FormBuilder({ sections, onChange, errors = {} }: FormBui
     };
 
     return (
-        <DndContext
-            sensors={sensors}
-            collisionDetection={collisionDetection}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-        >
-            <Box sx={{ display: 'flex', height: { xs: 'calc(100vh - 220px)', sm: 'calc(100vh - 250px)', md: 'calc(100vh - 300px)' }, overflow: 'hidden' }}>
-                {/* Left Panel - Field Palette (Desktop) */}
-                {!isMobile && (
-                    <Paper
+        <Box sx={{ display: 'flex', flexDirection: 'column', bgcolor: '#FAFAFA', position: 'relative' }}>
+            {/* Floating Toolbar */}
+            <FloatingToolbar
+                onBack={() => window.history.back()}
+                onAddSection={handleAddSection}
+                onTogglePalette={() => setLeftPanelOpen(!leftPanelOpen)}
+                onToggleProperties={() => setRightPanelOpen(!rightPanelOpen)}
+                paletteOpen={leftPanelOpen}
+                propertiesOpen={rightPanelOpen}
+            />
+
+            <DndContext
+                sensors={sensors}
+                collisionDetection={collisionDetection}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+            >
+                <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative', pt: 1 }}>
+                    {/* Field Palette Drawer */}
+                    <Drawer
+                        variant="persistent"
+                        anchor="left"
+                        open={leftPanelOpen}
                         sx={{
                             width: leftPanelOpen ? 280 : 0,
-                            borderRadius: 0,
-                            borderRight: leftPanelOpen ? '1px solid' : 'none',
-                            borderColor: 'divider',
-                            overflow: leftPanelOpen ? 'auto' : 'hidden',
                             flexShrink: 0,
-                            transition: 'width 0.3s ease',
+                            zIndex: 1,
+                            mt: 2,
+                            mb: 4,
+                            '& .MuiDrawer-paper': {
+                                width: 280,
+                                position: 'relative',
+                                borderRight: '1px solid',
+                                borderColor: 'divider',
+                                boxShadow: '2px 0 8px rgba(0, 0, 0, 0.08)',
+                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            },
                         }}
                     >
-                        {leftPanelOpen && (
-                            <Box sx={{ p: 2, width: 280 }}>
-                                <FieldPalette />
-                            </Box>
-                        )}
-                    </Paper>
-                )}
-
-                {/* Left Drawer - Field Palette (Mobile/Tablet) */}
-                <Drawer
-                    anchor="left"
-                    open={isMobile && leftPanelOpen}
-                    onClose={() => setLeftPanelOpen(false)}
-                    sx={{
-                        display: { xs: 'block', md: 'none' },
-                        '& .MuiDrawer-paper': {
-                            width: { xs: '85%', sm: 320 },
-                            maxWidth: 400,
-                        },
-                    }}
-                >
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-                        <Typography variant="h6" fontWeight={600}>Field Palette</Typography>
-                        <IconButton size="small" onClick={() => setLeftPanelOpen(false)}>
-                            <CloseIcon />
-                        </IconButton>
-                    </Box>
-                    <Box sx={{ p: 2 }}>
-                        <FieldPalette />
-                    </Box>
-                </Drawer>
-
-                {/* Middle Panel - Form Canvas */}
-                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                    <Paper
-                        sx={{
-                            p: 2,
-                            borderRadius: 0,
-                            borderBottom: '1px solid',
-                            borderColor: 'divider',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                        }}
-                    >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, md: 2 } }}>
-                            {/* Panel Toggles */}
-                            <IconButton
-                                onClick={() => setLeftPanelOpen(!leftPanelOpen)}
-                                size="small"
-                                color={leftPanelOpen ? 'primary' : 'default'}
-                                title="Toggle Field Palette"
-                            >
-                                <MenuIcon />
-                            </IconButton>
-                            <IconButton
-                                onClick={() => setRightPanelOpen(!rightPanelOpen)}
-                                size="small"
-                                color={rightPanelOpen ? 'primary' : 'default'}
-                                title="Toggle Editor Panel"
-                            >
-                                <TuneIcon />
-                            </IconButton>
-
-                            <Typography variant="h6" fontWeight={600} sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }}>
-                                Form Builder
-                            </Typography>
+                        <Box sx={{ p: 1, pt: 2, height: '100%', overflow: 'auto' }}>
+                            <FieldPalette />
                         </Box>
+                    </Drawer>
 
-                        <Button
-                            variant="outlined"
-                            startIcon={<AddIcon />}
-                            onClick={handleAddSection}
-                            size="small"
+                    {/* Main Canvas */}
+                    <Box sx={{
+                        flex: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'auto',
+                        p: { xs: 2, md: 4 },
+                        bgcolor: '#FAFAFA',
+                        backgroundImage: 'radial-gradient(#E5E7EB 0.5px, transparent 0.5px)',
+                        backgroundSize: '16px 16px',
+                    }}>
+                        <Box
+                            sx={{
+                                maxWidth: 1200,
+                                mx: 'auto',
+                                width: '100%',
+                            }}
                         >
-                            Add Section
-                        </Button>
-                    </Paper>
-
-                    <Box
-                        sx={{
-                            flex: 1,
-                            overflow: 'auto',
-                            p: 3,
-                            bgcolor: 'grey.50',
-                        }}
-                    >
-                        {sections.length === 0 ? (
-                            <Box
-                                sx={{
-                                    py: 8,
-                                    textAlign: 'center',
-                                    border: '2px dashed',
-                                    borderColor: 'grey.300',
-                                    borderRadius: 2,
-                                    bgcolor: 'background.paper',
-                                }}
-                            >
-                                <Typography color="text.secondary" gutterBottom>
-                                    No sections yet
-                                </Typography>
-                                <Button variant="outlined" onClick={handleAddSection}>
-                                    Add First Section
-                                </Button>
-                            </Box>
-                        ) : (
-                            <SortableContext
-                                items={sections.map(s => s.id)}
-                                strategy={verticalListSortingStrategy}
-                            >
-                                <FormCanvas
-                                    sections={sections}
-                                    selectedSectionId={selectedSectionId}
-                                    selectedFieldId={selectedFieldId}
-                                    onSelectSection={(id) => {
-                                        setSelectedSectionId(id);
-                                        setSelectedFieldId(null);
-                                        // Auto-open right panel on mobile when selecting
-                                        if (isMobile) setRightPanelOpen(true);
+                            {sections.length === 0 ? (
+                                <Box
+                                    sx={{
+                                        py: 8,
+                                        textAlign: 'center',
+                                        border: '2px dashed',
+                                        borderColor: 'grey.300',
+                                        borderRadius: 2,
+                                        bgcolor: 'background.paper',
                                     }}
-                                    onSelectField={(sectionId, fieldId) => {
-                                        setSelectedSectionId(sectionId);
-                                        setSelectedFieldId(fieldId);
-                                        // Auto-open right panel on mobile when selecting
-                                        if (isMobile) setRightPanelOpen(true);
-                                    }}
-                                    onDeleteField={handleDeleteField}
-                                    errors={errors}
-                                />
-                            </SortableContext>
-                        )}
+                                >
+                                    <Typography color="text.secondary" gutterBottom>
+                                        No sections yet
+                                    </Typography>
+                                    <Button variant="outlined" onClick={handleAddSection}>
+                                        Add First Section
+                                    </Button>
+                                </Box>
+                            ) : (
+                                <SortableContext
+                                    items={sections.map(s => s.id)}
+                                    strategy={verticalListSortingStrategy}
+                                >
+                                    <FormCanvas
+                                        sections={sections}
+                                        selectedSectionId={selectedSectionId}
+                                        selectedFieldId={selectedFieldId}
+                                        onSelectSection={(id) => {
+                                            setSelectedSectionId(id);
+                                            setSelectedFieldId(null);
+                                            setRightPanelOpen(true);
+                                        }}
+                                        onSelectField={(sectionId, fieldId) => {
+                                            setSelectedSectionId(sectionId);
+                                            setSelectedFieldId(fieldId);
+                                            setRightPanelOpen(true);
+                                        }}
+                                        onDeleteField={handleDeleteField}
+                                        errors={errors}
+                                    />
+                                </SortableContext>
+                            )}
+                        </Box>
                     </Box>
                 </Box>
 
-                {/* Right Panel - Field/Section Editor (Desktop) */}
-                {!isMobile && (
-                    <Paper
-                        sx={{
-                            width: rightPanelOpen ? 320 : 0,
-                            borderRadius: 0,
-                            borderLeft: rightPanelOpen ? '1px solid' : 'none',
-                            borderColor: 'divider',
-                            overflow: rightPanelOpen ? 'auto' : 'hidden',
-                            flexShrink: 0,
-                            transition: 'width 0.3s ease',
-                        }}
-                    >
-                        {rightPanelOpen && (
-                            <Box sx={{ p: 2, width: 320 }}>
-                                <Typography variant="subtitle2" gutterBottom fontWeight={600} color="text.secondary">
-                                    {selectedField ? 'FIELD SETTINGS' : selectedSection ? 'SECTION SETTINGS' : 'EDITOR'}
-                                </Typography>
-                                {selectedField && selectedSectionId ? (
-                                    <FieldEditor
-                                        field={selectedField}
-                                        onChange={(updated) =>
-                                            updateField(selectedSectionId, selectedField.id, updated)
-                                        }
-                                        onDelete={() => handleDeleteField(selectedSectionId, selectedField.id)}
-                                        errors={errors}
-                                        selectedSectionId={selectedSectionId}
-                                        sections={sections}
-                                    />
-                                ) : selectedSection ? (
-                                    <SectionEditor
-                                        section={selectedSection}
-                                        onChange={(updated) => updateSection(selectedSection.id, updated)}
-                                        onDelete={() => handleDeleteSection(selectedSection.id)}
-                                        errors={errors}
-                                        sectionIndex={sections.findIndex(s => s.id === selectedSection.id)}
-                                    />
-                                ) : (
-                                    <Box sx={{ textAlign: 'center', py: 4 }}>
-                                        <Typography variant="body2" color="text.secondary">
-                                            Select a section or field to edit
-                                        </Typography>
-                                    </Box>
-                                )}
-                            </Box>
-                        )}
-                    </Paper>
-                )}
-
-                {/* Right Drawer - Field/Section Editor (Mobile/Tablet) */}
-                <Drawer
-                    anchor="right"
-                    open={isMobile && rightPanelOpen}
+                {/* Properties Panel Drawer */}
+                <PropertiesPanel
+                    open={rightPanelOpen && !!(selectedSectionId || selectedFieldId)}
                     onClose={() => setRightPanelOpen(false)}
-                    sx={{
-                        display: { xs: 'block', md: 'none' },
-                        '& .MuiDrawer-paper': {
-                            width: { xs: '90%', sm: 360 },
-                            maxWidth: 450,
-                        },
-                    }}
-                >
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-                        <Typography variant="h6" fontWeight={600}>
-                            {selectedField ? 'Field Settings' : selectedSection ? 'Section Settings' : 'Editor'}
-                        </Typography>
-                        <IconButton size="small" onClick={() => setRightPanelOpen(false)}>
-                            <CloseIcon />
-                        </IconButton>
-                    </Box>
-                    <Box sx={{ p: 2 }}>
-                        {selectedField && selectedSectionId ? (
-                            <FieldEditor
-                                field={selectedField}
-                                onChange={(updated) =>
-                                    updateField(selectedSectionId, selectedField.id, updated)
-                                }
-                                onDelete={() => handleDeleteField(selectedSectionId, selectedField.id)}
-                                errors={errors}
-                                selectedSectionId={selectedSectionId}
-                                sections={sections}
-                            />
-                        ) : selectedSection ? (
-                            <SectionEditor
-                                section={selectedSection}
-                                onChange={(updated) => updateSection(selectedSection.id, updated)}
-                                onDelete={() => handleDeleteSection(selectedSection.id)}
-                                errors={errors}
-                                sectionIndex={sections.findIndex(s => s.id === selectedSection.id)}
-                            />
-                        ) : (
-                            <Box sx={{ textAlign: 'center', py: 4 }}>
-                                <Typography variant="body2" color="text.secondary">
-                                    Select a section or field to edit
-                                </Typography>
-                            </Box>
-                        )}
-                    </Box>
-                </Drawer>
-            </Box>
+                    selectedSection={selectedSection}
+                    selectedField={selectedField}
+                    selectedSectionId={selectedSectionId}
+                    onUpdateSection={updateSection}
+                    onUpdateField={updateField}
+                    onDeleteSection={handleDeleteSection}
+                    onDeleteField={handleDeleteField}
+                    sections={sections}
+                    errors={errors}
+                />
 
-            {/* Drag Overlay */}
-            <DragOverlay dropAnimation={null} style={{ zIndex: 9999 }}>
-                {renderDragOverlay()}
-            </DragOverlay>
-        </DndContext>
+                {/* Drag Overlay */}
+                <DragOverlay dropAnimation={null} style={{ zIndex: 9999 }}>
+                    {renderDragOverlay()}
+                </DragOverlay>
+            </DndContext>
+        </Box>
     );
 }

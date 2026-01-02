@@ -11,7 +11,6 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import SettingsIcon from '@mui/icons-material/Settings';
 import DesktopWindowsIcon from '@mui/icons-material/DesktopWindows';
@@ -50,7 +49,13 @@ function SortableModule({ module, isSelected, onSelect, onDelete }: SortableModu
         transform,
         transition,
         isDragging,
-    } = useSortable({ id: module.id });
+    } = useSortable({
+        id: module.id,
+        data: {
+            type: 'module',
+            module,
+        }
+    });
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -62,7 +67,26 @@ function SortableModule({ module, isSelected, onSelect, onDelete }: SortableModu
         <Box
             ref={setNodeRef}
             style={style}
-            sx={{ display: 'flex', alignItems: 'stretch', gap: 0.5, mb: 0.5 }}
+            sx={{
+                display: 'flex',
+                alignItems: 'stretch',
+                gap: 1,
+                mb: 1.5,
+                p: 1.25,
+                bgcolor: 'background.paper',
+                border: isSelected ? '2px solid' : 'none',
+                borderColor: 'primary.main',
+                borderRadius: 1.5,
+                boxShadow: isSelected
+                    ? '0 2px 8px rgba(37, 99, 235, 0.15), 0 1px 3px rgba(37, 99, 235, 0.08)'
+                    : '0 1px 2px rgba(0, 0, 0, 0.04)',
+                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                transform: 'scale(1)',
+                '&:hover': {
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.03)',
+                    transform: 'scale(1.005)',
+                },
+            }}
         >
             <Box
                 {...attributes}
@@ -70,19 +94,34 @@ function SortableModule({ module, isSelected, onSelect, onDelete }: SortableModu
                 sx={{
                     display: 'flex',
                     alignItems: 'center',
-                    px: 0.5,
                     cursor: 'grab',
+                    color: 'grey.400',
+                    transition: 'color 0.2s',
+                    '&:hover': { color: 'grey.600' },
                     '&:active': { cursor: 'grabbing' },
                 }}
             >
-                <DragIndicatorIcon fontSize="small" color="action" />
+                <DragIndicatorIcon sx={{ fontSize: '1.1rem' }} />
             </Box>
-            <Box flex={1}>
+            <Box flex={1} onClick={onSelect} sx={{ cursor: 'pointer', minWidth: 0 }}>
                 <ModuleRenderer module={module} isSelected={isSelected} onClick={onSelect} />
             </Box>
             {isRemovable && (
-                <IconButton size="small" color="error" onClick={onDelete}>
-                    <DeleteIcon fontSize="small" />
+                <IconButton
+                    size="small"
+                    onClick={onDelete}
+                    sx={{
+                        p: 0.5,
+                        color: 'grey.400',
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                            color: 'error.main',
+                            bgcolor: 'error.50',
+                            transform: 'scale(1.05)',
+                        },
+                    }}
+                >
+                    <DeleteIcon sx={{ fontSize: '1.1rem' }} />
                 </IconButton>
             )}
         </Box>
@@ -108,10 +147,14 @@ function ModuleDropZone({ sectionId, children }: ModuleDropZoneProps) {
                 minHeight: 60,
                 p: 1,
                 border: isOver ? '2px dashed' : '1px dashed',
-                borderColor: isOver ? 'primary.main' : 'grey.300',
-                borderRadius: 1,
-                bgcolor: isOver ? 'action.hover' : 'transparent',
-                transition: 'all 0.2s',
+                borderColor: isOver ? 'primary.light' : 'grey.200',
+                borderRadius: 1.5,
+                bgcolor: isOver ? 'rgba(37, 99, 235, 0.03)' : 'transparent',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                '&:hover': {
+                    borderColor: 'grey.300',
+                    bgcolor: 'grey.50',
+                },
             }}
         >
             {children}
@@ -161,66 +204,137 @@ function SectionItem({
         <Paper
             ref={setNodeRef}
             style={style}
-            variant="outlined"
+            elevation={0}
             sx={{
                 mb: 2,
                 overflow: 'hidden',
                 border: isSelected ? '2px solid' : '1px solid',
-                borderColor: isSelected ? 'primary.main' : 'divider',
+                borderColor: isSelected ? 'primary.main' : 'grey.100',
+                borderRadius: 2,
+                bgcolor: 'background.paper',
+                boxShadow: isSelected
+                    ? '0 4px 16px rgba(37, 99, 235, 0.12), 0 2px 6px rgba(37, 99, 235, 0.06)'
+                    : '0 1px 4px rgba(0, 0, 0, 0.02)',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                transform: 'translateY(0)',
+                '&:hover': {
+                    boxShadow: '0 6px 20px rgba(0, 0, 0, 0.06), 0 3px 8px rgba(0, 0, 0, 0.03)',
+                    transform: 'translateY(-1px)',
+                },
             }}
         >
-            {/* Section Header */}
+            {/* Section Header - Compact */}
             <Box
                 sx={{
                     display: 'flex',
                     alignItems: 'center',
-                    p: 1,
-                    bgcolor: isSelected ? 'primary.50' : 'grey.50',
+                    p: 1.5,
+                    bgcolor: isSelected ? 'rgba(37, 99, 235, 0.02)' : 'transparent',
                     borderBottom: isExpanded ? '1px solid' : 'none',
-                    borderColor: 'divider',
+                    borderColor: 'grey.100',
+                    transition: 'all 0.2s',
                 }}
             >
-                <Box {...attributes} {...listeners} sx={{ cursor: 'grab', display: 'flex', mr: 1 }}>
-                    <DragIndicatorIcon color="action" />
+                <Box
+                    {...attributes}
+                    {...listeners}
+                    sx={{
+                        cursor: 'grab',
+                        display: 'flex',
+                        mr: 1,
+                        color: 'grey.400',
+                        transition: 'all 0.2s',
+                        '&:hover': { color: 'grey.600', transform: 'scale(1.05)' },
+                        '&:active': { cursor: 'grabbing' },
+                    }}
+                >
+                    <DragIndicatorIcon fontSize="small" />
                 </Box>
 
-                <Box flex={1} onClick={onSelectSection} sx={{ cursor: 'pointer' }}>
-                    <Typography variant="subtitle2" fontWeight={600}>
+                <Box
+                    flex={1}
+                    onClick={onSelectSection}
+                    sx={{
+                        cursor: 'pointer',
+                        transition: 'opacity 0.2s',
+                        '&:hover': { opacity: 0.7 },
+                    }}
+                >
+                    <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 0, fontSize: '0.875rem', lineHeight: 1.4 }}>
                         {section.name || 'Unnamed Section'}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" color="text.secondary" sx={{ letterSpacing: 0.2, fontSize: '0.7rem' }}>
                         {section.type} • {section.modules.length + (section.columns?.reduce((acc, col) => acc + col.modules.length, 0) || 0)} module(s)
                     </Typography>
                 </Box>
 
-                {/* Visibility indicators */}
-                <Box sx={{ display: 'flex', gap: 0.5, mr: 1 }}>
+                {/* Visibility indicators - Compact */}
+                <Box sx={{ display: 'flex', gap: 0.5, mr: 1, px: 1, py: 0.5, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid', borderColor: 'grey.100' }}>
                     <DesktopWindowsIcon
                         fontSize="small"
-                        color={section.visibility.desktop ? 'action' : 'disabled'}
+                        sx={{
+                            fontSize: '1rem',
+                            color: section.visibility.desktop ? 'primary.main' : 'grey.300',
+                            transition: 'color 0.2s',
+                        }}
                     />
                     <TabletIcon
                         fontSize="small"
-                        color={section.visibility.tablet ? 'action' : 'disabled'}
+                        sx={{
+                            fontSize: '1rem',
+                            color: section.visibility.tablet ? 'primary.main' : 'grey.300',
+                            transition: 'color 0.2s',
+                        }}
                     />
                     <PhoneIphoneIcon
                         fontSize="small"
-                        color={section.visibility.mobile ? 'action' : 'disabled'}
+                        sx={{
+                            fontSize: '1rem',
+                            color: section.visibility.mobile ? 'primary.main' : 'grey.300',
+                            transition: 'color 0.2s',
+                        }}
                     />
                 </Box>
 
-                <IconButton size="small" onClick={onSelectSection}>
-                    <SettingsIcon fontSize="small" />
+                <IconButton
+                    size="small"
+                    onClick={onSelectSection}
+                    sx={{
+                        p: 0.5,
+                        mr: 0.5,
+                        color: 'grey.400',
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                            color: 'primary.main',
+                            bgcolor: 'primary.50',
+                            transform: 'rotate(90deg)',
+                        },
+                    }}
+                >
+                    <SettingsIcon sx={{ fontSize: '1.1rem' }} />
                 </IconButton>
 
-                <IconButton size="small" onClick={() => setIsExpanded(!isExpanded)}>
-                    {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                <IconButton
+                    size="small"
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    sx={{
+                        p: 0.5,
+                        color: 'grey.400',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        transform: isExpanded ? 'rotate(0deg)' : 'rotate(180deg)',
+                        '&:hover': {
+                            color: 'primary.main',
+                            bgcolor: 'grey.100',
+                        },
+                    }}
+                >
+                    <ExpandLessIcon sx={{ fontSize: '1.1rem' }} />
                 </IconButton>
             </Box>
 
             {/* Section Content - Modules are sortable within the parent context */}
             <Collapse in={isExpanded}>
-                <Box sx={{ p: 1.5, bgcolor: 'background.paper' }}>
+                <Box sx={{ p: 1 }}>
                     {section.columns && section.columns.length > 0 ? (
                         <Box sx={{ display: 'flex', gap: 2 }}>
                             {section.columns.map((col) => (

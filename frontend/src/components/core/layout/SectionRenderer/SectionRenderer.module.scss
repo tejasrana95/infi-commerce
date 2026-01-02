@@ -21,18 +21,8 @@
 // Full-width - fluid, no max-width constraint
 .fullWidth {
     width: 100%;
-    padding-left: 1rem;
-    padding-right: 1rem;
-
-    @include tablet {
-        padding-left: 1.5rem;
-        padding-right: 1.5rem;
-    }
-
-    @include desktop {
-        padding-left: 2rem;
-        padding-right: 2rem;
-    }
+    padding-left: 0;
+    padding-right: 0;
 }
 
 // =============================================================================
