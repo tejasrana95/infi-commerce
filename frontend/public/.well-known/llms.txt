@@ -1,0 +1,31 @@
+# LLM Crawler Hints
+# This file provides guidance to AI agents and LLMs about which paths are valuable for indexing.
+# Similar to robots.txt but specifically for AI understanding.
+
+User-agent: *
+Allow: /product/
+Allow: /category/
+Allow: /blog/
+Allow: /page/
+Allow: /ai/products.json
+Allow: /sitemap.xml
+
+# Discourage AI from indexing user-specific or transient pages
+Disallow: /account/
+Disallow: /cart/
+Disallow: /checkout/
+Disallow: /login/
+Disallow: /register/
+Disallow: /api/
+
+# AI Product Feed (primary endpoint for product discovery)
+Feed: /ai/products.json
+
+# Sitemap for comprehensive URL discovery
+Sitemap: /sitemap.xml
+
+# Store contact and policies (trust signals)
+About: /page/about-us
+Contact: /page/contact-us
+Privacy: /page/privacy-policy
+Returns: /page/return-policy

@@ -63,6 +63,33 @@ async function getProductLayout(storeId: string) {
     }
 }
 
+// Server-side reviews fetching
+async function getProductReviews(productId: string) {
+    try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+        const response = await fetch(
+            `${apiUrl}/reviews/product/${productId}?limit=1`,
+            {
+                next: { revalidate: 60 },
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
+
+        if (!response.ok) {
+            return null;
+        }
+
+        const data = await response.json();
+        return data.stats || null;
+    } catch (error) {
+        console.error('Failed to fetch product reviews:', error);
+        return null;
+    }
+}
+
+
 // Generate SEO metadata
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
     const { slug } = await params;
@@ -129,21 +156,41 @@ export default async function ProductPage({ params }: ProductPageProps) {
         notFound();
     }
 
+    // Fetch review stats separately as they might not be synced to product object yet
+    const reviewStats = await getProductReviews(product._id);
+
+    // Merge stats into product for easier use in schema generation
+    if (reviewStats) {
+        product.averageRating = reviewStats.averageRating;
+        product.reviewCount = reviewStats.totalReviews;
+    }
+
+
     // Generate JSON-LD structured data for SEO
+    const productUrl = `https://${store.domain}/product/${slug}`;
     const jsonLd = {
         '@context': 'https://schema.org',
         '@type': 'Product',
+        '@id': `${productUrl}#product`,
+        url: productUrl,
         name: product.name,
         description: product.shortDescription || product.description?.replace(/<[^>]*>/g, '').substring(0, 500),
         image: product.images,
         sku: product.sku,
-        brand: product.brand ? {
+        brand: {
             '@type': 'Brand',
-            name: product.brand,
-        } : undefined,
+            name: product.brand
+                ? (typeof product.brand === 'object' ? product.brand.name : product.brand)
+                : store.name,
+        },
+        mainEntityOfPage: {
+            '@type': 'WebPage',
+            '@id': productUrl,
+        },
         offers: {
             '@type': 'Offer',
-            url: `https://${store.domain}/product/${slug}`,
+            '@id': `${productUrl}#offer`,
+            url: productUrl,
             priceCurrency: store.currency || 'USD',
             price: product.isOnSale && product.salePrice ? product.salePrice : product.price,
             priceValidUntil: product.salePriceEndDate,
@@ -154,6 +201,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     : 'https://schema.org/OutOfStock',
             seller: {
                 '@type': 'Organization',
+                '@id': `https://${store.domain}/#organization`,
                 name: store.name,
             },
         },

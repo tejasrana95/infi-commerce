@@ -8,6 +8,40 @@ import Order from '../models/Order';
 import Store from '../models/Store';
 
 /**
+ * Utility to update product's aggregate review stats
+ */
+const updateProductReviewStats = async (productId: string | mongoose.Types.ObjectId) => {
+    try {
+        const stats = await Review.aggregate([
+            {
+                $match: {
+                    productId: typeof productId === 'string'
+                        ? new mongoose.Types.ObjectId(productId)
+                        : productId,
+                    isApproved: true
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    averageRating: { $avg: '$rating' },
+                    reviewCount: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const result = stats[0] || { averageRating: 0, reviewCount: 0 };
+
+        await Product.findByIdAndUpdate(productId, {
+            averageRating: parseFloat((result.averageRating || 0).toFixed(1)),
+            reviewCount: result.reviewCount
+        });
+    } catch (error) {
+        console.error('Failed to update product review stats:', error);
+    }
+};
+
+/**
  * @swagger
  * /api/reviews:
  *   get:
@@ -278,6 +312,11 @@ export const createReview = asyncHandler(async (req: AuthRequest, res: Response)
         .populate('productId', 'name sku images')
         .populate('customerId', 'firstName lastName email');
 
+    // Update product stats if auto-approved
+    if (review.isApproved) {
+        await updateProductReviewStats(productId);
+    }
+
     res.status(201).json({
         success: true,
         message: 'Review created successfully',
@@ -354,6 +393,9 @@ export const updateReview = asyncHandler(async (req: AuthRequest, res: Response)
 
     await review.save();
 
+    // Re-sync product stats
+    await updateProductReviewStats(review.productId);
+
     const updatedReview = await Review.findById(id)
         .populate('storeId', 'name')
         .populate('productId', 'name sku images')
@@ -396,6 +438,9 @@ export const deleteReview = asyncHandler(async (req: AuthRequest, res: Response)
     if (!review) {
         throw new AppError('Review not found', 404);
     }
+
+    // Update product stats
+    await updateProductReviewStats(review.productId);
 
     res.json({
         success: true,
@@ -443,6 +488,9 @@ export const updateReviewStatus = asyncHandler(async (req: AuthRequest, res: Res
 
     review.isApproved = isApproved;
     await review.save();
+
+    // Update product stats
+    await updateProductReviewStats(review.productId);
 
     res.json({
         success: true,

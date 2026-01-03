@@ -201,11 +201,13 @@ export default async function RootLayout({
             dangerouslySetInnerHTML={{
               __html: JSON.stringify({
                 "@context": "https://schema.org",
-                "@type": "OnlineStore",
+                "@type": "Organization",
+                "@id": `https://${domain}/#organization`,
                 "name": store.name,
                 "description": store.description,
                 "currenciesAccepted": currencies.map(c => c.code).join(", "),
                 "url": `https://${domain}`,
+                "logo": store.logo || undefined,
               })
             }}
           />
