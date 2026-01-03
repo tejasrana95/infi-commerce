@@ -3,7 +3,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { HeaderTemplateProps } from '@/components/templates/core/Header/types';
@@ -13,6 +13,7 @@ import { useStore } from '@/providers/StoreProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import CurrencySelector from '@/components/molecules/CurrencySelector';
 import SearchAutocomplete from '@/components/molecules/SearchAutocomplete';
+import { useClickOutside } from '@/hooks/useClickOutside';
 import styles from './style.module.scss';
 
 export default function ModernCleanHeaderTemplate({
@@ -36,6 +37,17 @@ export default function ModernCleanHeaderTemplate({
     const { isAuthenticated, customer, logout } = useAuth();
     const [isScrolled, setIsScrolled] = useState(false);
     const cartTotal = 0;
+
+    // Refs for click outside
+    const accountRef = useRef<HTMLDivElement>(null);
+    const cartRef = useRef<HTMLDivElement>(null);
+    const searchRef = useRef<HTMLDivElement>(null);
+    const mobileMenuRef = useRef<HTMLDivElement>(null);
+
+    useClickOutside(accountRef, () => setAccountOpen(false));
+    useClickOutside(cartRef, () => setCartOpen(false));
+    useClickOutside(searchRef, () => setSearchOpen(false));
+    useClickOutside(mobileMenuRef, () => setMobileMenuOpen(false));
     // Handle scroll for sticky/transparent behavior
     useEffect(() => {
         if (!isSticky && !isTransparent) return;
@@ -93,7 +105,10 @@ export default function ModernCleanHeaderTemplate({
                     <button
                         key={element.id}
                         className={styles.actionBtn}
-                        onClick={() => setSearchOpen(!searchOpen)}
+                        onClick={(e) => {
+                            e.stopPropagation(); // Prevent immediate click-outside trigger
+                            setSearchOpen(!searchOpen);
+                        }}
                         aria-label={labels.search}
                     >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -104,7 +119,7 @@ export default function ModernCleanHeaderTemplate({
 
             case 'account':
                 return (
-                    <div key={element.id} className={styles.accountWrapper}>
+                    <div key={element.id} className={styles.accountWrapper} ref={accountRef}>
                         <button
                             className={styles.actionBtn}
                             onClick={() => setAccountOpen(!accountOpen)}
@@ -193,7 +208,7 @@ export default function ModernCleanHeaderTemplate({
 
             case 'cart':
                 return (
-                    <div key={element.id} className={styles.cartWrapper}>
+                    <div key={element.id} className={styles.cartWrapper} ref={cartRef}>
                         <button
                             className={styles.actionBtn}
                             onClick={() => setCartOpen(!cartOpen)}
@@ -324,7 +339,7 @@ export default function ModernCleanHeaderTemplate({
 
                     {/* Search Bar - Expanded with Autocomplete */}
                     {searchOpen && (
-                        <div className={styles.searchBar}>
+                        <div className={styles.searchBar} ref={searchRef}>
                             <SearchAutocomplete
                                 placeholder={search.placeholder}
                                 onClose={() => setSearchOpen(false)}
@@ -338,7 +353,7 @@ export default function ModernCleanHeaderTemplate({
             {/* ========== MOBILE MENU ========== */}
             {mobileMenuOpen && (
                 <div className={styles.mobileMenu}>
-                    <div className={styles.mobileMenuContent}>
+                    <div className={styles.mobileMenuContent} ref={mobileMenuRef}>
                         {/* Mobile Menu Builder */}
                         {mobileMenu && (
                             <MenuBuilder

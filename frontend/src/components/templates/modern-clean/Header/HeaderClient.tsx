@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import CurrencySelector from '@/components/molecules/CurrencySelector';
+import { useClickOutside } from '@/hooks/useClickOutside';
 
 const SearchAutocomplete = dynamic(() => import('@/components/molecules/SearchAutocomplete'), {
     loading: () => <div style={{ height: '60px', background: 'rgba(0,0,0,0.05)', borderRadius: '8px' }} />,
@@ -48,6 +49,9 @@ export default function HeaderClient({
     const [isScrolled, setIsScrolled] = useState(false);
     const cartTotal = 0;
 
+    const searchRef = useRef<HTMLDivElement>(null);
+    useClickOutside(searchRef, () => setSearchOpen(false));
+
     // Handle scroll for sticky/transparent behavior
     useEffect(() => {
         if (!isSticky && !isTransparent) return;
@@ -75,7 +79,7 @@ export default function HeaderClient({
 
             {/* Search Bar with Autocomplete - Rendered client-side for interactivity */}
             {searchOpen && (
-                <div className={styles.searchBar}>
+                <div className={styles.searchBar} ref={searchRef}>
                     <SearchAutocomplete
                         placeholder={searchPlaceholder}
                         onClose={() => setSearchOpen(false)}
@@ -119,9 +123,12 @@ export function CartButton({
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const cartTotal = 0;
+    const ref = useRef<HTMLDivElement>(null);
+
+    useClickOutside(ref, () => setIsOpen(false));
 
     return (
-        <div className={styles.cartWrapper}>
+        <div className={styles.cartWrapper} ref={ref}>
             <button
                 className={styles.actionBtn}
                 onClick={() => setIsOpen(!isOpen)}
