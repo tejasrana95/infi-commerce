@@ -54,6 +54,7 @@ import InventoryIcon from '@mui/icons-material/Inventory';
 import DescriptionIcon from '@mui/icons-material/Description';
 import ArticleIcon from '@mui/icons-material/Article';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import RemoveIcon from '@mui/icons-material/Remove';
 import { MenuItem as MenuItemType } from '@/types';
 import CategoryAutocomplete from '@/components/molecules/CategoryAutocomplete';
@@ -79,6 +80,7 @@ const menuItemTypes = [
     { value: 'page', label: 'Static Page', icon: <DescriptionIcon fontSize="small" /> },
     { value: 'blog-category', label: 'Blog Category', icon: <ArticleIcon fontSize="small" /> },
     { value: 'mega-menu', label: 'Mega Menu', icon: <ViewModuleIcon fontSize="small" /> },
+    { value: 'dropdown', label: 'Dropdown Group', icon: <ArrowDropDownIcon fontSize="small" /> },
     { value: 'divider', label: 'Divider', icon: <RemoveIcon fontSize="small" /> },
 ];
 
@@ -139,9 +141,7 @@ function EditItemDialog({ open, item, onClose, onSave, onDelete, storeId, isNew 
                 // Note: We don't have the full product data here, just the ID
                 // The ProductAutocomplete should handle loading by ID if needed
                 if (item.type === 'product' && item.productId) {
-                    // The autocomplete will need to fetch the product by ID
-                    // For now, set to null and let the autocomplete handle it via value prop
-                    setSelectedProduct(null);
+                    setSelectedProduct({ _id: item.productId } as any);
                 }
             } else {
                 // Creating new item - reset to defaults

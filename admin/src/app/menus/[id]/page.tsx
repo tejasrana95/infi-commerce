@@ -42,7 +42,6 @@ export default function EditMenuPage({ params }: { params: Promise<{ id: string 
         try {
             await api.put(`/menus/${id}`, data);
             showNotification('Menu updated successfully', 'success');
-            router.push('/menus');
         } catch (error: any) {
             showNotification(error.response?.data?.message || 'Failed to update menu', 'error');
         } finally {

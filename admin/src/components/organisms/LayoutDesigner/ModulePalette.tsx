@@ -24,6 +24,8 @@ import HistoryIcon from '@mui/icons-material/History';
 import SmartButtonIcon from '@mui/icons-material/SmartButton';
 import ViewStreamIcon from '@mui/icons-material/ViewStream';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
+import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
+import ExtensionIcon from '@mui/icons-material/Extension';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { ModuleDefinition, AVAILABLE_MODULES, MODULE_CATEGORIES, getModulesByCategory } from './types';
@@ -52,6 +54,9 @@ const iconMap: Record<string, React.ElementType> = {
     SmartButton: SmartButtonIcon,
     ViewStream: ViewStreamIcon,
     ViewModule: ViewModuleIcon,
+    MonetizationOn: MonetizationOnIcon,
+    Extension: ExtensionIcon,
+    TableChart: ViewModuleIcon, // Reuse ViewModuleIcon for now or import TableChart if available. I'll stick to ViewModule for simplicity as it's already there.
 };
 
 interface DraggableModuleItemProps {

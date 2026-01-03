@@ -4,6 +4,7 @@ export type ModuleType =
     | 'banner' | 'banner-slider' | 'text-block' | 'image' | 'image-gallery'
     | 'video' | 'spacer' | 'divider' | 'html' | 'newsletter' | 'testimonials'
     | 'countdown' | 'brand-logos' | 'cta-button' | 'strip-banner' | 'card-group'
+    | 'icon-box' | 'pricing-table'
     | 'product-carousel' | 'product-grid' | 'category-showcase' | 'featured-product'
     | 'related-products' | 'recently-viewed'
     | 'category-header' | 'category-products' | 'category-filters' | 'category-pagination' | 'product-details'
@@ -105,7 +106,7 @@ export interface Layout {
 export interface MenuItem {
     id: string;
     label: string;
-    type: 'link' | 'category' | 'product' | 'page' | 'blog-category' | 'mega-menu' | 'divider';
+    type: 'link' | 'category' | 'product' | 'page' | 'blog-category' | 'mega-menu' | 'divider' | 'dropdown';
     url?: string;
     categoryId?: string;
     categorySlug?: string;

@@ -31,15 +31,20 @@ export default function MenuLink({
     const getUrl = (): string => {
         switch (item.type) {
             case 'link':
-                return item.url || '#';
+                if (item.url?.startsWith('http') || item.url?.startsWith('#') || item.url?.startsWith('/')) {
+                    return item.url;
+                }
+                return `/${item.url || '#'}`;
             case 'category':
                 return `/category/${item.categorySlug}`;
             case 'product':
-                return `${item.productSlug ? item.productSlug : '#'}`;
+                return `/product/${item.productSlug || '#'}`;
             case 'page':
                 return `/page/${item.pageSlug}`;
             case 'blog-category':
                 return `/blog/category/${item.blogCategoryId}`;
+            case 'dropdown':
+                return '#';
             default:
                 return '#';
         }
@@ -63,6 +68,40 @@ export default function MenuLink({
         backgroundColor: item.badge.color || themeColors?.primary || '#000',
         color: '#fff',
     } : {};
+
+    if (item.type === 'dropdown') {
+        return (
+            <span
+                className={styles.menuLink}
+                onClick={handleClick}
+                style={{ cursor: 'default' }}
+            >
+                {/* Icon */}
+                {showIcon && item.icon && (
+                    <span className={styles.icon}>
+                        {item.icon.startsWith('http') ? (
+                            <img src={item.icon} alt="" />
+                        ) : (
+                            <i className={item.icon} />
+                        )}
+                    </span>
+                )}
+
+                {/* Label */}
+                <span className={styles.label}>{item.label}</span>
+
+                {/* Badge */}
+                {item.badge && (
+                    <span
+                        className={styles.badge}
+                        style={badgeStyle}
+                    >
+                        {item.badge.text}
+                    </span>
+                )}
+            </span>
+        );
+    }
 
     return (
         <Link

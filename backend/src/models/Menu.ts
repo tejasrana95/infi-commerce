@@ -6,7 +6,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IMenuItem {
     id: string;                         // UUID for frontend
     label: string;
-    type: 'link' | 'category' | 'product' | 'page' | 'blog-category' | 'mega-menu' | 'divider';
+    type: 'link' | 'category' | 'product' | 'page' | 'blog-category' | 'mega-menu' | 'divider' | 'dropdown';
 
     // Target based on type
     url?: string;                       // For type: link
@@ -108,7 +108,7 @@ const MenuItemSchema = new Schema<IMenuItem>(
         },
         type: {
             type: String,
-            enum: ['link', 'category', 'product', 'page', 'blog-category', 'mega-menu', 'divider'],
+            enum: ['link', 'category', 'product', 'page', 'blog-category', 'mega-menu', 'divider', 'dropdown'],
             default: 'link',
         },
 

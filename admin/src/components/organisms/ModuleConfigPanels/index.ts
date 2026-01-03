@@ -36,6 +36,8 @@ export type { RecentlyViewedConfig } from './RecentlyViewedConfigPanel';
 export * from './CTAConfigPanel';
 export * from './StripBannerConfigPanel';
 export * from './CardGroupConfigPanel';
+export { default as IconBoxConfigPanel } from './IconBoxConfigPanel';
+export { default as PricingTableConfigPanel } from './PricingTableConfigPanel';
 
 // Blog Config Panels
 export * from './BlogConfigPanels';

@@ -97,12 +97,44 @@ export default function ProductAutoComplete({
         }
     }, [storeId, excludeIds]);
 
+    // Fetch product by ID if value is just an ID or missing details
+    useEffect(() => {
+        if (!storeId || !value || multiple) return;
+
+        const currentVal = value as ProductOption;
+        if (currentVal._id && !currentVal.name) {
+            const fetchProduct = async () => {
+                try {
+                    setLoading(true);
+                    const response = await api.get(`/products/${currentVal._id}`);
+                    // Backend returns { product: { ... } }
+                    const product = response.data.product || response.data.data || response.data;
+                    if (product && product._id && product.name) {
+                        setOptions([product]);
+                        // Update the parent's value so it shows the label
+                        onChange(product);
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch initial product:', error);
+                } finally {
+                    setLoading(false);
+                }
+            };
+            fetchProduct();
+        }
+    }, [storeId, value, multiple, onChange]);
+
     useEffect(() => {
         const timer = setTimeout(() => {
-            searchProducts(inputValue);
+            // Don't search if it's the loading state, empty, or derived from a stub
+            const trimmedInput = inputValue?.trim();
+            if (!trimmedInput || trimmedInput.length < 2 || trimmedInput === 'Loading...' || trimmedInput.includes('undefined')) {
+                return;
+            }
+            searchProducts(trimmedInput);
         }, 500);
         return () => clearTimeout(timer);
-    }, [inputValue]);
+    }, [inputValue, searchProducts]);
 
     return (
         <Autocomplete
@@ -116,11 +148,13 @@ export default function ProductAutoComplete({
             disabled={disabled || !storeId}
             getOptionLabel={(option) => {
                 const opt = option as ProductOption;
-                return `${opt.name} (${opt.sku})`;
+                if (!opt.name) return 'Loading...';
+                return `${opt.name} (${opt.sku || 'N/A'})`;
             }}
             isOptionEqualToValue={(option, val) => {
-                const opt = option as ProductOption;
-                return opt._id === (val as any)._id;
+                const optId = (option as ProductOption)._id;
+                const valId = typeof val === 'string' ? val : (val as any)?._id;
+                return optId === valId;
             }}
             filterOptions={(x) => x} // Disable client-side filtering, rely on server
             renderOption={(props, option) => {

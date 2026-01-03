@@ -26,6 +26,8 @@ import {
     CTAConfigPanel,
     StripBannerConfigPanel,
     CardGroupConfigPanel,
+    IconBoxConfigPanel,
+    PricingTableConfigPanel,
     // Blog Config Panels
     BlogGridConfigPanel,
     BlogCategoriesSidebarConfigPanel,
@@ -211,6 +213,22 @@ export default function ModuleEditor({ module, onChange, onDelete, storeId }: Mo
             case 'strip-banner':
                 return (
                     <StripBannerConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
+                    />
+                );
+
+            case 'icon-box':
+                return (
+                    <IconBoxConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
+                    />
+                );
+
+            case 'pricing-table':
+                return (
+                    <PricingTableConfigPanel
                         config={module.config as any}
                         onChange={updateConfig}
                     />

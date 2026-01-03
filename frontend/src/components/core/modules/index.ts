@@ -12,6 +12,8 @@ import ProductCarouselModule from './standard/ProductCarousel';
 import ProductGridModule from './standard/ProductGrid';
 import CategoryShowcaseModule from './standard/CategoryShowcase';
 import TextBlockModule from './standard/TextBlock';
+import IconBoxModule from './standard/IconBox';
+import PricingTableModule from './standard/PricingTable';
 import ImageModule from './standard/Image';
 import ImageGalleryModule from './standard/ImageGallery';
 import VideoModule from './standard/Video';
@@ -65,6 +67,8 @@ export const moduleRegistry: Record<string, ModuleComponent> = {
     'product-grid': ProductGridModule,
     'category-showcase': CategoryShowcaseModule,
     'text-block': TextBlockModule,
+    'icon-box': IconBoxModule,
+    'pricing-table': PricingTableModule,
     'image': ImageModule,
     'image-gallery': ImageGalleryModule,
     'video': VideoModule,

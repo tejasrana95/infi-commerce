@@ -4,7 +4,7 @@
 export interface MenuItem {
     id: string;
     label: string;
-    type: 'link' | 'category' | 'product' | 'page' | 'blog-category' | 'mega-menu' | 'divider' | 'image' | 'custom-link';
+    type: 'link' | 'category' | 'product' | 'page' | 'blog-category' | 'mega-menu' | 'divider' | 'image' | 'custom-link' | 'dropdown';
 
     // Target based on type
     url?: string;

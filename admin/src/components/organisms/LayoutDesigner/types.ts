@@ -211,7 +211,32 @@ export const AVAILABLE_MODULES: ModuleDefinition[] = [
             columns: { desktop: 3, tablet: 2, mobile: 1 },
         },
     },
-
+    {
+        type: 'icon-box',
+        label: 'Icon Box',
+        icon: 'Extension',
+        category: 'standard',
+        description: 'Features or services with icons',
+        defaultConfig: {
+            items: [],
+            layout: 'icon-top',
+            displayMode: 'grid',
+            columns: 3,
+            iconType: 'icon',
+            textAlign: 'center'
+        },
+    },
+    {
+        type: 'pricing-table',
+        label: 'Pricing Table',
+        icon: 'MonetizationOn',
+        category: 'standard',
+        description: 'Pricing plans comparison',
+        defaultConfig: {
+            plans: [],
+            columns: 3
+        },
+    },
     // Product modules
     {
         type: 'product-carousel',
