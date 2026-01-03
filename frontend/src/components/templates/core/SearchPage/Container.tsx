@@ -28,6 +28,7 @@ function SearchPageInner({
     initialFilters = null,
     initialLayout = null,
     initialPagination = null,
+    didYouMean,
 }: SearchPageContainerProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -298,6 +299,7 @@ function SearchPageInner({
             brandLookup={filters.brandLookup}
             getBrandDisplay={filters.getBrandDisplay}
             isFilterValueActive={filters.isFilterValueActive}
+            didYouMean={didYouMean}
         />
     );
 }

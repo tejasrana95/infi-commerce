@@ -51,6 +51,7 @@ export default function ModernCleanCategoryPageTemplate({
     brandLookup = {},
     getBrandDisplay = (id) => brandLookup[id]?.name || id,
     isFilterValueActive,
+    didYouMean,
 }: CategoryPageTemplateProps) {
     // Filter state removed (handled by molecule)
     // Local state for slider values (for real-time visual feedback)
@@ -682,6 +683,12 @@ export default function ModernCleanCategoryPageTemplate({
                                 </svg>
                                 {pagination.total} Products
                             </span>
+
+                            {didYouMean && (
+                                <div className={styles.didYouMean}>
+                                    Did you mean: <Link href={`/search?q=${encodeURIComponent(didYouMean)}`}><strong>{didYouMean}</strong></Link>?
+                                </div>
+                            )}
                         </div>
 
                         {/* Description */}

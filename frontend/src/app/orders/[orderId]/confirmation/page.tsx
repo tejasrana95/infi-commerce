@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from '@/providers/ToastProvider';
 import { useDialog } from '@/providers/DialogProvider';
+import { useInterest } from '@/providers/InterestProvider';
 import styles from './page.module.scss';
 import { apiClient } from '@/services/api-client';
 import { useCurrency } from '@/hooks/useCurrency';
@@ -56,17 +57,34 @@ export default function OrderConfirmationPage() {
     const router = useRouter();
     const toast = useToast();
     const { showConfirm } = useDialog();
+    const { trackPurchase } = useInterest();
     const currency = useCurrency();
     const orderId = params.orderId as string;
 
     const [loading, setLoading] = useState(true);
     const [order, setOrder] = useState<OrderDetails | null>(null);
+    const trackedRef = useRef(false);
 
     useEffect(() => {
         if (orderId) {
             loadOrderDetails();
         }
     }, [orderId]);
+
+    // Track purchase for personalized recommendations (only once per page load)
+    useEffect(() => {
+        if (order && order.paymentStatus === 'paid' && !trackedRef.current) {
+            trackedRef.current = true;
+            const products = order.items.map(item => ({
+                productId: (item as any).productId || (item as any)._id || '',
+                categoryIds: (item as any).categoryIds || [],
+            })).filter(p => p.productId);
+
+            if (products.length > 0) {
+                trackPurchase(products);
+            }
+        }
+    }, [order, trackPurchase]);
 
     const loadOrderDetails = async () => {
         try {

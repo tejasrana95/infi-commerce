@@ -32,6 +32,8 @@ export { default as RelatedProductsConfigPanel, defaultRelatedProductsConfig } f
 export type { RelatedProductsConfig } from './RelatedProductsConfigPanel';
 export { default as RecentlyViewedConfigPanel, defaultRecentlyViewedConfig } from './RecentlyViewedConfigPanel';
 export type { RecentlyViewedConfig } from './RecentlyViewedConfigPanel';
+export { default as PersonalizedProductsConfigPanel, defaultPersonalizedProductsConfig } from './PersonalizedProductsConfigPanel';
+export type { PersonalizedProductsConfig } from './PersonalizedProductsConfigPanel';
 
 export * from './CTAConfigPanel';
 export * from './StripBannerConfigPanel';

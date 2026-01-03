@@ -236,7 +236,7 @@ export async function fetchSearchProducts(
     storeId: string,
     searchQuery: string,
     options: { limit?: number; sort?: string } = {}
-): Promise<{ products: any[]; pagination: any }> {
+): Promise<{ products: any[]; pagination: any; didYouMean?: string }> {
     const { limit = 24, sort = 'featured' } = options;
     try {
         const url = `${API_BASE}/products?storeId=${storeId}&limit=${limit}&sort=${sort}&search=${encodeURIComponent(searchQuery)}`;
@@ -248,7 +248,11 @@ export async function fetchSearchProducts(
 
         if (!res.ok) return { products: [], pagination: null };
         const data = await res.json();
-        return { products: data.products || [], pagination: data.pagination || null };
+        return {
+            products: data.products || [],
+            pagination: data.pagination || null,
+            didYouMean: data.didYouMean
+        };
     } catch (error) {
         console.error('Error fetching search products:', error);
         return { products: [], pagination: null };
@@ -307,6 +311,7 @@ export async function fetchSearchPageData(
         searchQuery: searchQuery.trim(),
         products: searchResult.products,
         pagination: searchResult.pagination,
+        didYouMean: searchResult.didYouMean,
         filters, // Global store filters for search
         layout
     };

@@ -163,6 +163,9 @@ export interface CategoryPageTemplateProps {
 
     // Layout
     layout?: any;
+
+    // Search Suggestions
+    didYouMean?: string;
 }
 
 // Default sort options

@@ -6,7 +6,7 @@ export type ModuleType =
     | 'countdown' | 'brand-logos' | 'cta-button' | 'strip-banner' | 'card-group'
     | 'icon-box' | 'pricing-table'
     | 'product-carousel' | 'product-grid' | 'category-showcase' | 'featured-product'
-    | 'related-products' | 'recently-viewed'
+    | 'related-products' | 'recently-viewed' | 'personalized-products'
     | 'category-header' | 'category-products' | 'category-filters' | 'category-pagination' | 'product-details'
     | 'search-header' | 'search-results' | 'search-filters' | 'search-pagination'
     | 'blog-listing' | 'blog-content' | 'page-content' | 'page-hero'

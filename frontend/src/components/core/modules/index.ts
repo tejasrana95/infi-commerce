@@ -22,6 +22,7 @@ import SpacerModule from './standard/Spacer';
 import HtmlModule from './standard/Html';
 import RelatedProductsModule from './standard/RelatedProducts';
 import RecentlyViewedModule from './standard/RecentlyViewed';
+import PersonalizedProductsModule from './standard/PersonalizedProducts';
 import CTAButtonModule from './standard/CTAButton';
 import StripBannerModule from './standard/StripBanner';
 import CardGroupModule from './standard/CardGroup';
@@ -78,6 +79,7 @@ export const moduleRegistry: Record<string, ModuleComponent> = {
     // Product context modules
     'related-products': RelatedProductsModule,
     'recently-viewed': RecentlyViewedModule,
+    'personalized-products': PersonalizedProductsModule,
     'cta-button': CTAButtonModule,
     'strip-banner': StripBannerModule,
     'card-group': CardGroupModule,

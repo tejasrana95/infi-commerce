@@ -292,6 +292,35 @@ export const AVAILABLE_MODULES: ModuleDefinition[] = [
             showRating: true,
         },
     },
+    {
+        type: 'personalized-products',
+        label: 'Personalized Products',
+        icon: 'AutoAwesome',
+        category: 'product',
+        description: 'AI-powered product suggestions based on user browsing and purchase history',
+        defaultConfig: {
+            title: 'Recommended For You',
+            subtitle: '',
+            limit: 8,
+            columns: { desktop: 4, tablet: 3, mobile: 2 },
+            layout: 'grid', // 'grid' | 'carousel'
+
+            // Exclusion settings
+            exclusionScope: 'category', // 'product' | 'category'
+            exclusionDays: 30,          // 1-90
+
+            // Data retention (for viewing history)
+            retentionDays: 30,          // 1-90
+
+            // Fallback when no personalization data
+            fallback: 'featured',       // 'trending' | 'featured' | 'latest' | 'sale'
+
+            // Display options
+            showRating: true,
+            showPrice: true,
+            autoplay: false, // For carousel
+        },
+    },
 
     // Placeholder modules
     {

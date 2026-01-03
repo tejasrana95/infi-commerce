@@ -459,13 +459,52 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         filter.isFeatured = true;
     }
 
+    // Smart Search - split query into words and match ANY word across multiple fields
     if (req.query.search) {
-        const searchRegex = { $regex: req.query.search as string, $options: 'i' };
-        filter.$or = [
-            { name: searchRegex },
-            { sku: searchRegex },
-            { 'variants.sku': searchRegex },
-        ];
+        const searchQuery = (req.query.search as string).trim();
+
+        if (searchQuery.length > 0) {
+            // Split into individual words, filter out very short words and common stop words
+            const stopWords = new Set(['the', 'and', 'for', 'with', 'this', 'that', 'from']);
+            const words = searchQuery
+                .toLowerCase()
+                .split(/[\s&,.-]+/)
+                .filter(word => word.length >= 2 && !stopWords.has(word));
+
+            if (words.length > 0) {
+                // Create regex patterns for each word (case insensitive)
+                const wordPatterns = words.map(word => new RegExp(word, 'i'));
+
+                // Build OR conditions for each word across multiple fields
+                const searchConditions = wordPatterns.flatMap(pattern => [
+                    { name: pattern },
+                    { description: pattern },
+                    { shortDescription: pattern },
+                    { sku: pattern },
+                    { 'variants.sku': pattern },
+                    { tags: { $in: words } },
+                    { 'seo.metaTitle': pattern },
+                    { 'seo.metaDescription': pattern },
+                ]);
+
+                // Use $or to match ANY word in ANY field
+                if (filter.$or) {
+                    // If there's already an $or from brand filter, use $and to combine
+                    filter.$and = filter.$and || [];
+                    filter.$and.push({ $or: searchConditions });
+                } else {
+                    filter.$or = searchConditions;
+                }
+            } else {
+                // If no valid words after filtering, use original query as fallback
+                const searchRegex = { $regex: searchQuery, $options: 'i' };
+                filter.$or = [
+                    { name: searchRegex },
+                    { sku: searchRegex },
+                    { 'variants.sku': searchRegex },
+                ];
+            }
+        }
     }
 
     // Attribute filters - support multiple formats:
@@ -588,7 +627,12 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         Product.countDocuments(filter),
     ]);
 
-
+    // Did you mean logic? - Only if 0 results and search query was provided
+    let didYouMean: string | null = null;
+    if (total === 0 && req.query.search && effectiveStoreId) {
+        const { getSearchSuggestions } = require('../utils/search.utils');
+        didYouMean = await getSearchSuggestions(effectiveStoreId, req.query.search as string);
+    }
 
     // Add computed pricing fields to each product (including variants)
     const productsWithPricing = products.map((product: any) => addPricingToProduct(product));
@@ -651,6 +695,7 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         },
         activeFilters: Object.keys(activeFilters).length > 0 ? activeFilters : undefined,
         sort: sortParam,
+        didYouMean: didYouMean || undefined,
     });
 });
 

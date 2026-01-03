@@ -176,6 +176,10 @@ router.use('/api-keys', apiKeyRoutes);
 import settingRoutes from './setting.routes';
 router.use('/settings', settingRoutes);
 
+// Mount interest tracking routes (personalized recommendations)
+import interestRoutes from './interest.routes';
+router.use('/interests', interestRoutes);
+
 export default router;
 
 

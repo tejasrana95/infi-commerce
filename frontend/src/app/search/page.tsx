@@ -60,7 +60,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         : store?.theme?.category?.sorting?.defaultSort || 'featured';
 
     // Fetch all search data server-side
-    const { products, filters, layout, pagination } = await fetchSearchPageData(
+    const { products, filters, layout, pagination, didYouMean } = await fetchSearchPageData(
         store._id,
         searchQuery,
         { sort }
@@ -74,6 +74,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 initialFilters={filters}
                 initialLayout={layout}
                 initialPagination={pagination}
+                didYouMean={didYouMean}
             />
         </Suspense>
     );

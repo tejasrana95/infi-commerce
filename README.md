@@ -19,6 +19,12 @@ Role	super_admin
 Name	Super Admin
 ### Prerequisites
 
+// Run daily via cron job
+await UserInterest.cleanupStaleData(30); // Clean data older than 30 days
+// Get stats for monitoring
+await UserInterest.getStats(); // Returns avg array sizes, guest/user counts
+
+
 - Node.js 20+
 - MongoDB
 - npm or yarn

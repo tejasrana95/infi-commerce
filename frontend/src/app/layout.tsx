@@ -19,6 +19,7 @@ import { getEnrichedMenus } from "@/lib/server-menu";
 import { getComponent } from "@/components/templates/registry";
 import { Currency, DEFAULT_TEMPLATE_ID } from "@/types";
 import { AnalyticsProvider } from "@/providers/AnalyticsProvider";
+import { InterestProvider } from "@/providers/InterestProvider";
 import AutoAnalytics from "@/components/analytics/AutoAnalytics";
 import ClientWidgets from "@/components/core/ClientWidgets";
 
@@ -226,33 +227,35 @@ export default async function RootLayout({
                 footer={store?.theme?.customScripts?.footer}
               />
               <CustomerProvider>
-                <CartProvider>
-                  <WishlistProvider>
-                    <CompareProvider>
-                      <ToastProvider>
-                        <DialogProvider>
-                          {store?.settings?.maintenanceMode ? (
-                            <Maintenance />
-                          ) : (
-                            <div className="flex flex-col min-h-screen">
-                              {/* Header - Template-specific container */}
-                              <Header config={store?.theme?.header} store={store} templateId={templateId} menus={menus} />
+                <InterestProvider>
+                  <CartProvider>
+                    <WishlistProvider>
+                      <CompareProvider>
+                        <ToastProvider>
+                          <DialogProvider>
+                            {store?.settings?.maintenanceMode ? (
+                              <Maintenance />
+                            ) : (
+                              <div className="flex flex-col min-h-screen">
+                                {/* Header - Template-specific container */}
+                                <Header config={store?.theme?.header} store={store} templateId={templateId} menus={menus} />
 
-                              {/* Main Content */}
-                              <main className="flex-1">
-                                {children}
-                              </main>
+                                {/* Main Content */}
+                                <main className="flex-1">
+                                  {children}
+                                </main>
 
-                              {/* Footer - Template-specific container */}
-                              <Footer config={store?.theme?.footer} store={store} templateId={templateId} />
-                            </div>
-                          )}
-                          <ClientWidgets showCompare={!store?.settings?.maintenanceMode} />
-                        </DialogProvider>
-                      </ToastProvider>
-                    </CompareProvider>
-                  </WishlistProvider>
-                </CartProvider>
+                                {/* Footer - Template-specific container */}
+                                <Footer config={store?.theme?.footer} store={store} templateId={templateId} />
+                              </div>
+                            )}
+                            <ClientWidgets showCompare={!store?.settings?.maintenanceMode} />
+                          </DialogProvider>
+                        </ToastProvider>
+                      </CompareProvider>
+                    </WishlistProvider>
+                  </CartProvider>
+                </InterestProvider>
               </CustomerProvider>
             </AnalyticsProvider>
           </UIProvider>

@@ -23,6 +23,7 @@ import {
     CategoryShowcaseConfigPanel,
     RelatedProductsConfigPanel,
     RecentlyViewedConfigPanel,
+    PersonalizedProductsConfigPanel,
     CTAConfigPanel,
     StripBannerConfigPanel,
     CardGroupConfigPanel,
@@ -196,6 +197,15 @@ export default function ModuleEditor({ module, onChange, onDelete, storeId }: Mo
             case 'recently-viewed':
                 return (
                     <RecentlyViewedConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
+                        storeId={effectiveStoreId}
+                    />
+                );
+
+            case 'personalized-products':
+                return (
+                    <PersonalizedProductsConfigPanel
                         config={module.config as any}
                         onChange={updateConfig}
                         storeId={effectiveStoreId}
