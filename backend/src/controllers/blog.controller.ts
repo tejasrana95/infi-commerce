@@ -190,7 +190,7 @@ export const getBlogCategories = asyncHandler(async (req: AuthRequest, res: Resp
     const categories = result.data;
     const total = result.total[0]?.count || 0;
 
-    res.json({
+    return res.json({
         success: true,
         categories: categories, // Returning as 'categories' to match other endpoints, or 'data' for compat
         data: categories, // Keep 'data' for backward compatibility

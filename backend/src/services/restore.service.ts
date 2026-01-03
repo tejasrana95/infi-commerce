@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs';
-import mongoose from 'mongoose';
+
 import Product from '../models/Product';
 import Order from '../models/Order';
 import Customer from '../models/Customer';
@@ -112,7 +112,7 @@ class RestoreService {
     /**
      * Import products from Excel
      */
-    async importProducts(buffer: Buffer, filters: ImportFilters = {}): Promise<ImportResult> {
+    async importProducts(buffer: Buffer, _filters: ImportFilters = {}): Promise<ImportResult> {
         const rows = await this.parseExcelFile(buffer);
         const result: ImportResult = {
             success: false,
@@ -250,7 +250,7 @@ class RestoreService {
     /**
      * Import orders from Excel
      */
-    async importOrders(buffer: Buffer, filters: ImportFilters = {}): Promise<ImportResult> {
+    async importOrders(buffer: Buffer, _filters: ImportFilters = {}): Promise<ImportResult> {
         const rows = await this.parseExcelFile(buffer);
         const result: ImportResult = {
             success: false,
@@ -327,7 +327,7 @@ class RestoreService {
     /**
      * Import customers from Excel
      */
-    async importCustomers(buffer: Buffer, filters: ImportFilters = {}): Promise<ImportResult> {
+    async importCustomers(buffer: Buffer, _filters: ImportFilters = {}): Promise<ImportResult> {
         const rows = await this.parseExcelFile(buffer);
         const result: ImportResult = {
             success: false,
@@ -426,19 +426,19 @@ class RestoreService {
     /**
      * Import categories, brands, coupons, reviews - similar pattern
      */
-    async importCategories(buffer: Buffer, filters: ImportFilters = {}): Promise<ImportResult> {
+    async importCategories(buffer: Buffer, _filters: ImportFilters = {}): Promise<ImportResult> {
         return this.genericImport(buffer, Category, ['title', 'slug', 'storeId'], { storeId: Store });
     }
 
-    async importBrands(buffer: Buffer, filters: ImportFilters = {}): Promise<ImportResult> {
+    async importBrands(buffer: Buffer, _filters: ImportFilters = {}): Promise<ImportResult> {
         return this.genericImport(buffer, Brand, ['name', 'slug', 'storeId'], { storeId: Store });
     }
 
-    async importCoupons(buffer: Buffer, filters: ImportFilters = {}): Promise<ImportResult> {
+    async importCoupons(buffer: Buffer, _filters: ImportFilters = {}): Promise<ImportResult> {
         return this.genericImport(buffer, Coupon, ['code', 'storeId', 'discountType', 'discountValue', 'startDate', 'endDate'], { storeId: Store });
     }
 
-    async importReviews(buffer: Buffer, filters: ImportFilters = {}): Promise<ImportResult> {
+    async importReviews(buffer: Buffer, _filters: ImportFilters = {}): Promise<ImportResult> {
         return this.genericImport(buffer, Review, ['storeId', 'productId', 'rating', 'title', 'content'], { storeId: Store });
     }
 

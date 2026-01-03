@@ -38,7 +38,7 @@ const uploadsDir = process.env.UPLOAD_DIR || path.join(__dirname, '..', '..', 'u
 app.use('/uploads', express.static(uploadsDir));
 
 // Health check endpoint
-app.get('/health', (res: Response) => {
+app.get('/health', (_req: Request, res: Response) => {
     res.status(200).json({
         status: 'ok',
         timestamp: new Date().toISOString(),
@@ -48,14 +48,18 @@ app.get('/health', (res: Response) => {
 
 /**
  * @swagger
+ * tags:
+ *   - name: Health
+ *     description: Server health and status endpoints
+ *
  * /health:
  *   get:
- *     summary: Health check endpoint
+ *     summary: Server health check
  *     tags: [Health]
- *     description: Returns the health status of the API
+ *     description: Returns the health status of the API server. Used by load balancers, container orchestration (Kubernetes), and monitoring tools.
  *     responses:
  *       200:
- *         description: API is healthy
+ *         description: Server is healthy and running
  *         content:
  *           application/json:
  *             schema:
@@ -64,12 +68,17 @@ app.get('/health', (res: Response) => {
  *                 status:
  *                   type: string
  *                   example: ok
+ *                   description: Health status indicator
  *                 timestamp:
  *                   type: string
  *                   format: date-time
+ *                   example: "2026-01-03T12:00:00.000Z"
+ *                   description: Current server timestamp
  *                 environment:
  *                   type: string
+ *                   enum: [development, staging, production]
  *                   example: development
+ *                   description: Current running environment
  */
 
 // Swagger documentation
@@ -79,7 +88,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 }));
 
 // Swagger JSON spec
-app.get('/api-docs.json', (res: Response) => {
+app.get('/api-docs.json', (_req: Request, res: Response) => {
     res.setHeader('Content-Type', 'application/json');
     res.send(swaggerSpec);
 });

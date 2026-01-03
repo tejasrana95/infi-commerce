@@ -286,7 +286,7 @@ export const validateImport = async (req: AuthRequest, res: Response): Promise<v
 /**
  * Download MongoDB dump
  */
-export const downloadDatabaseDump = async (req: AuthRequest, res: Response): Promise<void> => {
+export const downloadDatabaseDump = async (_req: AuthRequest, res: Response): Promise<void> => {
     try {
         // Check if tools are available
         const tools = await mongoDbBackupService.checkToolsAvailability();
@@ -364,7 +364,7 @@ export const restoreDatabaseDump = async (req: AuthRequest, res: Response): Prom
 /**
  * Check MongoDB tools availability
  */
-export const checkMongoDbTools = async (req: AuthRequest, res: Response): Promise<void> => {
+export const checkMongoDbTools = async (_req: AuthRequest, res: Response): Promise<void> => {
     try {
         const tools = await mongoDbBackupService.checkToolsAvailability();
         res.json(tools);
@@ -376,7 +376,7 @@ export const checkMongoDbTools = async (req: AuthRequest, res: Response): Promis
 /**
  * List available backups
  */
-export const listBackups = async (req: AuthRequest, res: Response): Promise<void> => {
+export const listBackups = async (_req: AuthRequest, res: Response): Promise<void> => {
     try {
         const backups = await mongoDbBackupService.listBackups();
         res.json(backups);

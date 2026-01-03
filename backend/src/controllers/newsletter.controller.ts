@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { body, query } from 'express-validator';
+import { body } from 'express-validator';
 import NewsletterSubscriber from '../models/NewsletterSubscriber';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
@@ -37,7 +37,7 @@ export const subscribe = asyncHandler(async (req: any, res: Response) => {
 
     await subscriber.save();
 
-    res.status(201).json({
+    return res.status(201).json({
         message: 'Subscribed successfully',
         subscriber,
     });

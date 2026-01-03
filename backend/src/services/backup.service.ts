@@ -79,7 +79,7 @@ class BackupService {
     /**
      * Export customers to Excel
      */
-    async exportCustomers(filters: ExportFilters = {}): Promise<Buffer> {
+    async exportCustomers(_filters: ExportFilters = {}): Promise<Buffer> {
         const query: any = {};
 
         // Note: Customers are not store-specific in the current model

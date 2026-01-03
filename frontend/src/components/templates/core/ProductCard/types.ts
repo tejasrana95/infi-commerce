@@ -59,7 +59,7 @@ export interface Product {
     stockStatus?: string;
     // Tax-inclusive pricing from API
     pricing?: {
-        basePrice: number;
+        price: number;
         salePrice?: number;
         priceWithTax: number;
         salePriceWithTax?: number;
@@ -69,7 +69,7 @@ export interface Product {
         originalPrice: number;
         isOnSale: boolean;
         discountPercent?: number;
-        taxRate?: number;
+        taxRate: number;
         taxName?: string;
     };
 }

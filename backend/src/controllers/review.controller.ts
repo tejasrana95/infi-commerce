@@ -98,7 +98,7 @@ export const getReviews = asyncHandler(async (req: AuthRequest, res: Response) =
         Review.countDocuments(filter),
     ]);
 
-    res.json({
+    return res.json({
         success: true,
         reviews,
         pagination: {

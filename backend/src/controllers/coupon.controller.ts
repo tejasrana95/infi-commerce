@@ -185,7 +185,7 @@ export const getCoupons = asyncHandler(async (req: AuthRequest, res: Response) =
         Coupon.countDocuments(filter),
     ]);
 
-    res.json({
+    return res.json({
         success: true,
         data: coupons,
         pagination: {

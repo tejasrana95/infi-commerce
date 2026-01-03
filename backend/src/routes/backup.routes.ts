@@ -11,7 +11,7 @@ const upload = multer({
     limits: {
         fileSize: 50 * 1024 * 1024 // 50MB limit
     },
-    fileFilter: (req, file, cb) => {
+    fileFilter: (_req, file, cb) => {
         // Accept only Excel files
         if (
             file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||

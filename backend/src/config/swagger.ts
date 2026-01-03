@@ -527,6 +527,7 @@ const options: swaggerJsdoc.Options = {
     swaggerDefinition,
     // Path to the API routes files where JSDoc comments are
     apis: [
+        './src/server.ts',
         './src/routes/*.ts',
         './src/controllers/*.ts',
         './src/models/*.ts',

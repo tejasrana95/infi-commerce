@@ -641,7 +641,7 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         }
     });
 
-    res.json({
+    return res.json({
         products: productsWithPricing,
         pagination: {
             total,

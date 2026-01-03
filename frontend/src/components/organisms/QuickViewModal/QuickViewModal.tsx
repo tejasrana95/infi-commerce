@@ -21,6 +21,9 @@ interface ProductPricing {
     taxRate: number;
     taxAmount: number;
     finalPrice: number;
+    originalPrice?: number;
+    isOnSale?: boolean;
+    discountPercent?: number;
 }
 
 interface ProductVariant {
