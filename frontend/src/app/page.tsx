@@ -4,6 +4,7 @@ import { getLayoutByType } from "@/lib/api/layouts";
 import { getComponent } from "@/components/templates/registry";
 import { DEFAULT_TEMPLATE_ID } from "@/types";
 import { prefetchModuleData } from "@/lib/api/server-modules";
+import HomepageSeoShell from "@/components/seo/HomepageSeoShell";
 
 export async function generateMetadata() {
   const headersList = await headers();
@@ -101,6 +102,11 @@ export default async function Page() {
           fetchPriority="high"
         />
       )}
+
+      {/* Server-Rendered SEO Shell */}
+      {store && <HomepageSeoShell store={store} />}
+
+      {/* Client Component for interactive parts */}
       <HomePage
         layout={layout}
         store={store}

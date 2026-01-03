@@ -4,9 +4,10 @@
     "private": true,
     "scripts": {
         "dev": "next dev -p 3000",
-        "build": "next build",
+        "build": "next build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/",
         "start": "next start -p 3000",
-        "lint": "eslint"
+        "lint": "eslint",
+        "analyze": "cross-env ANALYZE=true next build"
     },
     "dependencies": {
         "@dnd-kit/core": "^6.3.1",
@@ -42,12 +43,14 @@
         "zod": "^3.22.4"
     },
     "devDependencies": {
+        "@next/bundle-analyzer": "^16.1.1",
         "@types/node": "^20",
         "@types/react": "^19",
         "@types/react-dom": "^19",
         "@types/uuid": "^11.0.0",
         "autoprefixer": "^10.4.22",
         "babel-plugin-react-compiler": "1.0.0",
+        "cross-env": "^10.1.0",
         "eslint": "^9",
         "eslint-config-next": "16.0.8",
         "postcss": "^8.5.6",

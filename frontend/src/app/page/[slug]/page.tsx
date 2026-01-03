@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getServerStore, fetchPageBySlug } from '@/lib/api/server-store';
 import StaticPageContainer from '@/components/templates/core/StaticPage/Container';
+import StaticPageSeoShell from '@/components/seo/StaticPageSeoShell';
 
 interface PageProps {
     params: Promise<{
@@ -59,5 +60,13 @@ export default async function StaticPage({ params }: PageProps) {
     const page = result.data.data;
     const layout = result.layout;
 
-    return <StaticPageContainer page={page} initialLayout={layout} />;
+    return (
+        <>
+            {/* Server-Rendered SEO Shell */}
+            <StaticPageSeoShell page={page} storeName={store.name} />
+
+            {/* Client Component for interactive parts */}
+            <StaticPageContainer page={page} initialLayout={layout} />
+        </>
+    );
 }

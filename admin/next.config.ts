@@ -1,10 +1,21 @@
 import type { NextConfig } from "next";
+import withBundleAnalyzer from '@next/bundle-analyzer';
 
 const nextConfig: NextConfig = {
   /* config options here */
+  output: 'standalone',
   reactCompiler: true,
   experimental: {
-    optimizePackageImports: ['lucide-react', 'react-icons'],
+    optimizePackageImports: [
+      'lucide-react',
+      'react-icons',
+      '@mui/material',
+      '@mui/icons-material',
+      '@mui/x-data-grid',
+      'recharts',
+      '@tiptap/react',
+      '@tiptap/starter-kit'
+    ],
   },
   images: {
     remotePatterns: [
@@ -28,4 +39,6 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+})(nextConfig);

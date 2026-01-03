@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 
 import { getServerStore } from '@/lib/api/server-store';
 import ProductPageClient from './ProductPageClient';
+import ProductSeoShell from '@/components/seo/ProductSeoShell';
 
 interface ProductPageProps {
     params: Promise<{ slug: string }>;
@@ -201,6 +202,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
             />
+
+            {/* Server-Rendered SEO Shell - Critical HTML for crawlers */}
+            {/* This content appears in "View Page Source" and is indexable */}
+            <ProductSeoShell product={product} store={store} />
 
             {/* Client Component for interactive parts */}
             <ProductPageClient

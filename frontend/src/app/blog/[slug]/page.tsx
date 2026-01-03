@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { getServerStore, fetchBlogPostBySlug } from '@/lib/api/server-store';
 import { fetchBlogPosts } from '@/lib/api';
 import BlogPostContainer from '@/components/templates/core/BlogPost/Container';
+import BlogPostSeoShell from '@/components/seo/BlogPostSeoShell';
 
 interface BlogPostPageProps {
     params: Promise<{
@@ -75,5 +76,13 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         relatedPosts = relatedData.data.filter((p: any) => p._id !== post._id);
     }
 
-    return <BlogPostContainer post={post} relatedPosts={relatedPosts} initialLayout={layout} />;
+    return (
+        <>
+            {/* Server-Rendered SEO Shell */}
+            <BlogPostSeoShell post={post} storeName={store.name} />
+
+            {/* Client Component for interactive parts */}
+            <BlogPostContainer post={post} relatedPosts={relatedPosts} initialLayout={layout} />
+        </>
+    );
 }

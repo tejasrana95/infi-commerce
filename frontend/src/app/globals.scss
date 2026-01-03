@@ -85,4 +85,18 @@
       font-display: swap;
     }
   }
+
+  /* Screen-reader only - Content visible to crawlers but hidden from users */
+  /* Used for SEO shell that renders server-side HTML for indexing */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
 }

@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { getServerStore, fetchBlogPageData } from '@/lib/api/server-store';
 import BlogListingContainer from '@/components/templates/core/BlogListing/Container';
+import BlogListSeoShell from '@/components/seo/BlogListSeoShell';
 
 interface BlogPageProps {
     searchParams: Promise<{
@@ -55,16 +56,27 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
     );
 
     return (
-        <BlogListingContainer
-            initialPosts={posts}
-            initialCategories={categories}
-            initialTags={tags}
-            initialPagination={pagination}
-            initialLayout={layout}
-            page={page}
-            category={category}
-            tag={tag}
-            search={search}
-        />
+        <>
+            {/* Server-Rendered SEO Shell */}
+            <BlogListSeoShell
+                posts={posts}
+                storeName={store.name}
+                currentPage={page}
+                totalPosts={pagination.total}
+            />
+
+            {/* Client Component for interactive parts */}
+            <BlogListingContainer
+                initialPosts={posts}
+                initialCategories={categories}
+                initialTags={tags}
+                initialPagination={pagination}
+                initialLayout={layout}
+                page={page}
+                category={category}
+                tag={tag}
+                search={search}
+            />
+        </>
     );
 }
