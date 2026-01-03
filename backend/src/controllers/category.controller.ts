@@ -5,6 +5,7 @@ import Category from '../models/Category';
 import Store from '../models/Store';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
+import cache from '../utils/cache';
 
 // Validation rules
 export const createCategoryValidation = [
@@ -165,6 +166,9 @@ export const createCategory = asyncHandler(async (req: AuthRequest, res: Respons
         message: 'Category created successfully',
         category,
     });
+
+    // Invalidate store categories cache
+    cache.clearByPrefix(`categories:store:${storeId}`);
 });
 
 /**
@@ -292,6 +296,12 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
  */
 export const getCategoryTree = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { storeId } = req.params;
+    const cacheKey = `categories:store:${storeId}:tree`;
+
+    const cachedTree = cache.get(cacheKey);
+    if (cachedTree) {
+        return res.json({ storeId, tree: cachedTree });
+    }
 
     // Verify store exists
     const store = await Store.findById(storeId);
@@ -325,7 +335,9 @@ export const getCategoryTree = asyncHandler(async (req: AuthRequest, res: Respon
 
     const tree = buildTree();
 
-    res.json({
+    cache.set(cacheKey, tree, 600); // 10 minutes for tree
+
+    return res.json({
         storeId,
         tree,
     });
@@ -386,6 +398,12 @@ export const getCategoryById = asyncHandler(async (req: AuthRequest, res: Respon
  */
 export const getCategoryBySlug = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { storeId, slug } = req.params;
+    const cacheKey = `categories:store:${storeId}:slug:${slug}`;
+
+    const cachedCategory = cache.get(cacheKey);
+    if (cachedCategory) {
+        return res.json({ category: cachedCategory });
+    }
 
     const category = await Category.findOne({ storeId, slug })
         .populate('storeId', 'name slug')
@@ -395,7 +413,9 @@ export const getCategoryBySlug = asyncHandler(async (req: AuthRequest, res: Resp
         throw new AppError('Category not found', 404);
     }
 
-    res.json({ category });
+    cache.set(cacheKey, category, 300);
+
+    return res.json({ category });
 });
 
 /**
@@ -495,7 +515,10 @@ export const updateCategory = asyncHandler(async (req: AuthRequest, res: Respons
     Object.assign(category, updates);
     await category.save();
 
-    res.json({
+    // Invalidate store categories cache
+    cache.clearByPrefix(`categories:store:${category.storeId}`);
+
+    return res.json({
         message: 'Category updated successfully',
         category,
     });
@@ -545,7 +568,10 @@ export const deleteCategory = asyncHandler(async (req: AuthRequest, res: Respons
 
     await category.deleteOne();
 
-    res.json({
+    // Invalidate store categories cache
+    cache.clearByPrefix(`categories:store:${category.storeId}`);
+
+    return res.json({
         message: 'Category deleted successfully',
     });
 });

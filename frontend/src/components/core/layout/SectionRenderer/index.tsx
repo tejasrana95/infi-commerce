@@ -4,6 +4,7 @@ import { Section, Module } from '@/types/layout';
 import DefaultModuleRenderer from '../ModuleRenderer';
 import { useEffect, useState, ReactNode } from 'react';
 import { useDeviceType, checkVisibility } from '@/hooks/useDeviceType';
+import LazySection from '../../common/LazySection';
 import styles from './SectionRenderer.module.scss';
 
 // Module render function type - allows custom rendering for page-specific modules
@@ -14,6 +15,7 @@ interface SectionRendererProps {
     moduleData?: Record<string, any>;
     // Optional custom render function for modules (e.g., for page-specific placeholders)
     renderModule?: ModuleRenderFunction;
+    index?: number;
 }
 
 /**
@@ -21,7 +23,7 @@ interface SectionRendererProps {
  * Handles responsive visibility, section-level styling, container/full-width, and column layouts.
  * Can be used standalone or with a custom renderModule prop for page-specific module handling.
  */
-export default function SectionRenderer({ section, moduleData, renderModule }: SectionRendererProps) {
+export default function SectionRenderer({ section, moduleData, renderModule, index = 0 }: SectionRendererProps) {
     const [isMounted, setIsMounted] = useState(false);
     const deviceType = useDeviceType();
 
@@ -82,41 +84,37 @@ export default function SectionRenderer({ section, moduleData, renderModule }: S
     // Sort modules by order
     const sortedModules = [...(section.modules || [])].sort((a, b) => a.order - b.order);
 
-    // Render split layout with columns
-    if (section.columns && section.columns.length > 0) {
-        const columnCount = section.columns.length;
-        return (
-            <section
-                className={`${styles.section} ${section.settings?.customClass || ''}`}
-                style={sectionStyle}
-            >
-                <div className={`${getInnerClass()} ${styles.columnWrapper}`}>
-                    {section.columns.map((column) => {
-                        const sortedColumnModules = [...(column.modules || [])].sort((a, b) => a.order - b.order);
-                        // Convert 12-column grid value to percentage (e.g., 6 -> 50%)
-                        const widthPercent = (column.width / 12) * 100;
-                        return (
-                            <div
-                                key={column.id}
-                                className={styles.column}
-                                style={{
-                                    '--column-width': `${widthPercent}%`,
-                                    '--column-count': columnCount,
-                                } as React.CSSProperties}
-                            >
-                                {sortedColumnModules.map((module) =>
-                                    renderModuleFn(module, moduleData?.[module.id])
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-            </section>
-        );
-    }
+    const isLazy = index > 1; // Lazy load everything after the first 2 sections
 
-    // Render standard layout with modules
-    return (
+    const columnCount = section.columns?.length || 0;
+
+    const content = section.columns && section.columns.length > 0 ? (
+        <section
+            className={`${styles.section} ${section.settings?.customClass || ''}`}
+            style={sectionStyle}
+        >
+            <div className={`${getInnerClass()} ${styles.columnWrapper}`}>
+                {section.columns.map((column) => {
+                    const sortedColumnModules = [...(column.modules || [])].sort((a, b) => a.order - b.order);
+                    const widthPercent = (column.width / 12) * 100;
+                    return (
+                        <div
+                            key={column.id}
+                            className={styles.column}
+                            style={{
+                                '--column-width': `${widthPercent}%`,
+                                '--column-count': columnCount,
+                            } as React.CSSProperties}
+                        >
+                            {sortedColumnModules.map((module) =>
+                                renderModuleFn(module, moduleData?.[module.id])
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </section>
+    ) : (
         <section
             className={`${styles.section} ${section.settings?.customClass || ''}`}
             style={sectionStyle}
@@ -128,4 +126,14 @@ export default function SectionRenderer({ section, moduleData, renderModule }: S
             </div>
         </section>
     );
+
+    if (isLazy) {
+        return (
+            <LazySection placeholderHeight={400}>
+                {content}
+            </LazySection>
+        );
+    }
+
+    return content;
 }

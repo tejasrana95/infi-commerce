@@ -2,24 +2,14 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import ImageWithDimensions from '@/components/core/common/ImageWithDimensions';
 import api from '@/lib/api';
 import styles from './index.module.scss';
 import { FiTrendingUp, FiEye, FiHeart } from 'react-icons/fi';
 
-interface PopularPostsProps {
-    config: {
-        title?: string;
-        numberOfPosts?: number;
-        metric?: 'views' | 'likes' | 'comments';
-        timePeriod?: 'week' | 'month' | 'all';
-        showThumbnail?: boolean;
-        showRanking?: boolean;
-        showStats?: boolean;
-    };
-}
+import { ModuleProps } from '../..';
 
-export default function PopularPosts({ config }: PopularPostsProps) {
+export default function PopularPosts({ config, initialData }: ModuleProps) {
     const {
         title = 'Popular Posts',
         numberOfPosts = 5,
@@ -30,8 +20,8 @@ export default function PopularPosts({ config }: PopularPostsProps) {
         showStats = true,
     } = config;
 
-    const [posts, setPosts] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [posts, setPosts] = useState<any[]>(initialData || []);
+    const [loading, setLoading] = useState(!initialData);
 
     // Stabilize dependencies
     const configKey = useMemo(() =>
@@ -40,6 +30,8 @@ export default function PopularPosts({ config }: PopularPostsProps) {
     );
 
     useEffect(() => {
+        if (initialData) return;
+
         const fetchPopularPosts = async () => {
             setLoading(true);
             try {
@@ -59,7 +51,7 @@ export default function PopularPosts({ config }: PopularPostsProps) {
         };
 
         fetchPopularPosts();
-    }, [configKey]);
+    }, [configKey, initialData]);
 
     const getIcon = () => {
         switch (metric) {
@@ -101,11 +93,13 @@ export default function PopularPosts({ config }: PopularPostsProps) {
 
                         {showThumbnail && post.featuredImage && (
                             <div className={styles.thumbnail}>
-                                <Image
+                                <ImageWithDimensions
                                     src={post.featuredImage}
                                     alt={post.title}
                                     fill
                                     className={styles.image}
+                                    aspectRatio="1x1"
+                                    sizes="64px"
                                 />
                             </div>
                         )}

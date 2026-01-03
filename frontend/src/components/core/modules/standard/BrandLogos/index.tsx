@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
+import ImageWithDimensions from '@/components/core/common/ImageWithDimensions';
 import Link from 'next/link';
 import { ModuleProps } from '../..';
 import api from '@/lib/api';
@@ -35,11 +36,6 @@ interface BrandLogosConfig {
     showcaseId: string;
 }
 
-// Helper to clean image URLs
-const cleanImageUrl = (url: string): string => {
-    if (!url) return '';
-    return url.replace(/([^:]\/)\/+/g, '$1');
-};
 
 export default function BrandLogosModule({ config }: ModuleProps) {
     const { showcaseId } = config as BrandLogosConfig;
@@ -137,12 +133,13 @@ export default function BrandLogosModule({ config }: ModuleProps) {
     const renderLogo = (logo: BrandLogo, index: number) => {
         const logoContent = (
             <div className={`${styles.logoItem} ${grayscaleClass} ${hoverClass}`}>
-                <Image
-                    src={cleanImageUrl(logo.image)}
+                <ImageWithDimensions
+                    src={logo.image}
                     alt={logo.alt || `Brand ${index + 1}`}
                     fill
+                    aspectRatio="1x1"
                     className={styles.logoImage}
-                    unoptimized
+                    sizes="120px"
                 />
             </div>
         );

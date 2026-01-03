@@ -3,31 +3,14 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
+import ImageWithDimensions from '@/components/core/common/ImageWithDimensions';
 import api from '@/lib/api';
 import styles from './index.module.scss';
 import { FiClock, FiEye, FiGrid, FiList } from 'react-icons/fi';
 
-interface BlogGridProps {
-    config: {
-        title?: string;
-        numberOfPosts?: number;
-        columns?: 2 | 3 | 4;
-        filterByCategory?: string;
-        filterByTag?: string;
-        sortBy?: 'date' | 'views' | 'likes';
-        showFeaturedOnly?: boolean;
-        showImage?: boolean;
-        showExcerpt?: boolean;
-        showAuthor?: boolean;
-        showDate?: boolean;
-        showReadingTime?: boolean;
-        showViewCount?: boolean;
-        allowViewToggle?: boolean;
-    };
-}
+import { ModuleProps } from '../..';
 
-export default function BlogGrid({ config }: BlogGridProps) {
+export default function BlogGrid({ config, initialData }: ModuleProps) {
     const searchParams = useSearchParams();
 
     const {
@@ -57,8 +40,9 @@ export default function BlogGrid({ config }: BlogGridProps) {
     const activeTag = urlTag || filterByTag;
     const activeSearch = urlSearch;
 
-    const [posts, setPosts] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    // Use initialData if provided (SSR)
+    const [posts, setPosts] = useState<any[]>(initialData || []);
+    const [loading, setLoading] = useState(!initialData);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
     // Stabilize dependencies to prevent infinite loops - include URL params
@@ -75,6 +59,10 @@ export default function BlogGrid({ config }: BlogGridProps) {
     );
 
     useEffect(() => {
+        // Skip client-side fetch if we have initialData and no URL overrides are present
+        // (If there are URL overrides like search, we should re-fetch)
+        if (initialData && !urlCategory && !urlTag && !urlSearch) return;
+
         const fetchPosts = async () => {
             setLoading(true);
             try {
@@ -100,7 +88,7 @@ export default function BlogGrid({ config }: BlogGridProps) {
         };
 
         fetchPosts();
-    }, [configKey]);
+    }, [configKey, initialData, urlCategory, urlTag, urlSearch]);
 
     // Generate dynamic title based on active filters
     const displayTitle = useMemo(() => {
@@ -169,11 +157,13 @@ export default function BlogGrid({ config }: BlogGridProps) {
 
                         {showImage && post.featuredImage && (
                             <div className={styles.imageWrapper}>
-                                <Image
+                                <ImageWithDimensions
                                     src={post.featuredImage}
                                     alt={post.title}
                                     fill
+                                    aspectRatio="16x9"
                                     className={styles.image}
+                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                                 />
                             </div>
                         )}
@@ -195,7 +185,7 @@ export default function BlogGrid({ config }: BlogGridProps) {
                                 {showAuthor && post.author && (
                                     <div className={styles.author}>
                                         {post.author.avatar && (
-                                            <Image
+                                            <ImageWithDimensions
                                                 src={post.author.avatar}
                                                 alt={post.author.name}
                                                 width={24}

@@ -1,0 +1,58 @@
+.imageContainer {
+    position: relative;
+    overflow: hidden;
+    background: #f8f9fa;
+    width: 100%;
+}
+
+.fill {
+    height: 100%;
+}
+
+.image {
+    object-fit: cover;
+    transition: opacity 0.3s ease;
+}
+
+.responsive {
+    width: 100% !important;
+    height: auto !important;
+    position: relative !important;
+}
+
+.placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #d1d5db;
+    background: #f3f4f6;
+
+    svg {
+        width: 33%;
+        max-width: 48px;
+        height: auto;
+    }
+}
+
+// Aspect Ratios
+.aspect1x1 {
+    aspect-ratio: 1 / 1;
+}
+
+.aspect3x4 {
+    aspect-ratio: 3 / 4;
+}
+
+.aspect4x3 {
+    aspect-ratio: 4 / 3;
+}
+
+.aspect16x9 {
+    aspect-ratio: 16 / 9;
+}
+
+.aspectAuto {
+    aspect-ratio: auto;
+}

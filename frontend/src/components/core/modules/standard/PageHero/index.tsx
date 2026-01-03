@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { ChevronRight, Home } from 'lucide-react';
+import ImageWithDimensions from '@/components/core/common/ImageWithDimensions';
 import styles from './index.module.scss';
 
 interface PageHeroProps {
@@ -42,8 +43,17 @@ export default function PageHero({ config }: PageHeroProps) {
     const heroClass = `${styles.hero} ${hasImage ? styles.withImage : styles.noImage} ${styles[height]} ${styles[alignment]}`;
 
     return (
-        <section className={heroClass}
-            style={hasImage ? { backgroundImage: `url(${featuredImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
+        <section className={heroClass}>
+            {hasImage && (
+                <ImageWithDimensions
+                    src={featuredImage}
+                    alt={title}
+                    fill
+                    priority
+                    className={styles.backgroundImage}
+                    sizes="100vw"
+                />
+            )}
             {hasImage && <div className={styles.overlay} />}
             <div className={styles.heroContent}>
                 <div className={containerClass}>

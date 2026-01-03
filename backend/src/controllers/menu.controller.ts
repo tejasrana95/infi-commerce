@@ -3,6 +3,7 @@ import { body, param } from 'express-validator';
 import Menu from '../models/Menu';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
+import cache from '../utils/cache';
 
 // Validation rules
 export const createMenuValidation = [
@@ -173,13 +174,23 @@ export const getMenus = asyncHandler(async (req: AuthRequest, res: Response) => 
  *         description: Menu not found
  */
 export const getMenuById = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const menu = await Menu.findById(req.params.id);
+    const { id } = req.params;
+    const cacheKey = `menu:id:${id}`;
+
+    const cachedMenu = cache.get(cacheKey);
+    if (cachedMenu) {
+        return res.json({ menu: cachedMenu });
+    }
+
+    const menu = await Menu.findById(id);
 
     if (!menu) {
         throw new AppError('Menu not found', 404);
     }
 
-    res.json({ menu });
+    cache.set(cacheKey, menu, 300);
+
+    return res.json({ menu });
 });
 
 /**
@@ -233,7 +244,10 @@ export const updateMenu = asyncHandler(async (req: AuthRequest, res: Response) =
     Object.assign(menu, updates);
     await menu.save();
 
-    res.json({
+    // Invalidate cache
+    cache.delete(`menu:id:${id}`);
+
+    return res.json({
         message: 'Menu updated successfully',
         menu,
     });
@@ -258,13 +272,17 @@ export const updateMenu = asyncHandler(async (req: AuthRequest, res: Response) =
  *         description: Menu deleted successfully
  */
 export const deleteMenu = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const menu = await Menu.findByIdAndDelete(req.params.id);
+    const { id } = req.params;
+    const menu = await Menu.findByIdAndDelete(id);
 
     if (!menu) {
         throw new AppError('Menu not found', 404);
     }
 
-    res.json({
+    // Invalidate cache
+    cache.delete(`menu:id:${id}`);
+
+    return res.json({
         message: 'Menu deleted successfully',
     });
 });

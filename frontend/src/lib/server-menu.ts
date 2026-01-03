@@ -1,5 +1,6 @@
-import api from '@/lib/api';
 import { Menu, MenuItem } from '@/types/menu';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 /**
  * Fetch and enrich menus for server-side rendering
@@ -33,11 +34,17 @@ export async function getEnrichedMenus(headerConfig: any, storeId: string): Prom
     // 2. Fetch all menus in parallel
     const menuPromises = Array.from(menuIds).map(async (id) => {
         try {
-            const data = await api.get<{ menu: Menu }>(`menus/${id}?storeId=${storeId}`);
-            if (data?.menu) {
-                // Enrich the menu with dynamic data (products)
-                const enrichedMenu = await enrichMenu(data.menu, storeId);
-                return { id, menu: enrichedMenu };
+            const response = await fetch(`${API_BASE}/menus/${id}?storeId=${storeId}`, {
+                next: { revalidate: 300 } // Cache for 5 minutes
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data?.menu) {
+                    // Enrich the menu with dynamic data (products)
+                    const enrichedMenu = await enrichMenu(data.menu, storeId);
+                    return { id, menu: enrichedMenu };
+                }
             }
         } catch (error) {
             console.error(`Failed to fetch menu ${id}:`, error);
@@ -85,8 +92,13 @@ async function enrichMenuItem(item: MenuItem, storeId: string): Promise<MenuItem
                 storeId: storeId
             });
 
-            const response = await api.get<{ products: any[] }>(`products?${queryParams.toString()}`);
-            const products = response.products || (response as any).data || [];
+            const response = await fetch(`${API_BASE}/products?${queryParams.toString()}`, {
+                headers: { 'x-store-id': storeId },
+                next: { revalidate: 300 } // Cache for 5 minutes
+            });
+
+            const responseData = response.ok ? await response.json() : null;
+            const products = responseData?.products || responseData?.data || [];
 
             // Store enriched products in the item
             newItem.products = products.map((p: any) => ({

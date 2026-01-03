@@ -31,8 +31,8 @@ export default function LayoutEngine({ layout, moduleData }: LayoutEngineProps) 
             className={layout.settings?.bodyClass || ''}
             style={pageStyle}
         >
-            {sortedSections.map((section) => (
-                <SectionRenderer key={section.id} section={section} moduleData={moduleData} />
+            {sortedSections.map((section, index) => (
+                <SectionRenderer key={section.id} section={section} moduleData={moduleData} index={index} />
             ))}
 
             {/* Custom CSS */}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import ImageWithDimensions from '@/components/core/common/ImageWithDimensions';
 import api from '@/lib/api';
 import styles from './index.module.scss';
 import { FiClock, FiArrowRight } from 'react-icons/fi';
@@ -119,11 +119,13 @@ export default function RelatedBlogs({ config }: RelatedBlogsProps) {
                     >
                         {showImage && post.featuredImage && (
                             <div className={styles.imageWrapper}>
-                                <Image
+                                <ImageWithDimensions
                                     src={post.featuredImage}
                                     alt={post.title}
                                     fill
                                     className={styles.image}
+                                    aspectRatio="16x9"
+                                    sizes="(max-width: 768px) 100vw, 33vw"
                                 />
                             </div>
                         )}

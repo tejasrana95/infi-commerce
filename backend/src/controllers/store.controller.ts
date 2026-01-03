@@ -3,6 +3,7 @@ import { body, param } from 'express-validator';
 import Store from '../models/Store';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
+import cache from '../utils/cache';
 
 // Validation rules
 export const createStoreValidation = [
@@ -88,13 +89,24 @@ export const updateStoreValidation = [
  */
 export const getStoreByDomain = asyncHandler(async (req: Request, res: Response) => {
     const { domain } = req.params;
+    const cacheKey = `store:domain:${domain}`;
+
+    // Try cache first
+    const cachedStore = cache.get(cacheKey);
+    if (cachedStore) {
+        return res.json(cachedStore);
+    }
+
     const store = await Store.findOne({ domain, isActive: true });
 
     if (!store) {
         throw new AppError('Store not found', 404);
     }
 
-    res.json(store);
+    // Cache result (5 minutes)
+    cache.set(cacheKey, store, 300);
+
+    return res.json(store);
 });
 
 /**
@@ -326,13 +338,23 @@ export const getStores = asyncHandler(async (req: AuthRequest, res: Response) =>
  *         description: Store not found
  */
 export const getStoreById = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const store = await Store.findById(req.params.id);
+    const { id } = req.params;
+    const cacheKey = `store:id:${id}`;
+
+    const cachedStore = cache.get(cacheKey);
+    if (cachedStore) {
+        return res.json({ store: cachedStore });
+    }
+
+    const store = await Store.findById(id);
 
     if (!store) {
         throw new AppError('Store not found', 404);
     }
 
-    res.json({ store });
+    cache.set(cacheKey, store, 300);
+
+    return res.json({ store });
 });
 
 /**
@@ -363,13 +385,23 @@ export const getStoreById = asyncHandler(async (req: AuthRequest, res: Response)
  *         description: Store not found
  */
 export const getStoreBySlug = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const store = await Store.findOne({ slug: req.params.slug });
+    const { slug } = req.params;
+    const cacheKey = `store:slug:${slug}`;
+
+    const cachedStore = cache.get(cacheKey);
+    if (cachedStore) {
+        return res.json({ store: cachedStore });
+    }
+
+    const store = await Store.findOne({ slug });
 
     if (!store) {
         throw new AppError('Store not found', 404);
     }
 
-    res.json({ store });
+    cache.set(cacheKey, store, 300);
+
+    return res.json({ store });
 });
 
 /**
@@ -497,6 +529,11 @@ export const updateStore = asyncHandler(async (req: AuthRequest, res: Response) 
         throw new AppError('Store not found', 404);
     }
 
+    // Invalidate caches
+    cache.delete(`store:id:${id}`);
+    cache.delete(`store:domain:${store.domain}`);
+    cache.delete(`store:slug:${store.slug}`);
+
     res.json({
         message: 'Store updated successfully',
         store,
@@ -580,7 +617,8 @@ export const deleteStore = asyncHandler(async (req: AuthRequest, res: Response) 
  *         description: Unauthorized
  */
 export const toggleStoreStatus = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const store = await Store.findById(req.params.id);
+    const { id } = req.params;
+    const store = await Store.findById(id);
 
     if (!store) {
         throw new AppError('Store not found', 404);
@@ -589,7 +627,12 @@ export const toggleStoreStatus = asyncHandler(async (req: AuthRequest, res: Resp
     store.isActive = !store.isActive;
     await store.save();
 
-    res.json({
+    // Invalidate caches
+    cache.delete(`store:id:${id}`);
+    cache.delete(`store:domain:${store.domain}`);
+    cache.delete(`store:slug:${store.slug}`);
+
+    return res.json({
         message: `Store ${store.isActive ? 'activated' : 'deactivated'} successfully`,
         store,
     });

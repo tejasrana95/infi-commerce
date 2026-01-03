@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import styles from './ProductGallery.module.scss';
+import ImageWithDimensions from '@/components/core/common/ImageWithDimensions';
 
 interface ProductGalleryProps {
     images: string[];
@@ -94,11 +95,14 @@ export default function ProductGallery({
                             className={`${styles.gridItem} ${index === 0 ? styles.gridMain : ''}`}
                             onClick={() => handleImageClick(index)}
                         >
-                            <Image
+                            <ImageWithDimensions
                                 src={image}
                                 alt={`${productName} - ${index + 1}`}
                                 fill
-                                style={{ objectFit: 'cover', cursor: 'zoom-in' }}
+                                aspectRatio="1x1"
+                                className={styles.productImage}
+                                priority={index === 0}
+                                sizes="(max-width: 768px) 100vw, 50vw"
                             />
                             {index === 0 && hasDiscount && discountPercent > 0 && (
                                 <span className={styles.saleBadge}>-{discountPercent}%</span>
@@ -136,12 +140,14 @@ export default function ProductGallery({
                         } as React.CSSProperties}
                     >
                         {images[mainImageIndex] && (
-                            <Image
+                            <ImageWithDimensions
                                 src={images[mainImageIndex]}
                                 alt={productName}
                                 fill
+                                aspectRatio="1x1"
                                 priority
                                 className={styles.productImage}
+                                sizes="(max-width: 768px) 100vw, 50vw"
                             />
                         )}
                         {hasDiscount && discountPercent > 0 && (
@@ -199,10 +205,11 @@ export default function ProductGallery({
                     ‹
                 </button>
                 <div className={styles.lightboxContent} onClick={(e) => e.stopPropagation()}>
-                    <Image
+                    <ImageWithDimensions
                         src={images[mainImageIndex]}
                         alt={productName}
                         fill
+                        aspectRatio="auto"
                         style={{ objectFit: 'contain' }}
                     />
                 </div>
@@ -219,7 +226,7 @@ export default function ProductGallery({
                             className={`${styles.lightboxThumb} ${index === mainImageIndex ? styles.active : ''}`}
                             onClick={(e) => { e.stopPropagation(); setMainImageIndex(index); }}
                         >
-                            <Image src={image} alt="" width={60} height={60} style={{ objectFit: 'cover' }} />
+                            <ImageWithDimensions src={image} alt="" width={60} height={60} aspectRatio="1x1" />
                         </button>
                     ))}
                 </div>
@@ -238,12 +245,12 @@ export default function ProductGallery({
                             className={`${styles.thumbnail} ${index === mainImageIndex ? styles.active : ''}`}
                             onClick={() => setMainImageIndex(index)}
                         >
-                            <Image
+                            <ImageWithDimensions
                                 src={image}
                                 alt={`${productName} - ${index + 1}`}
                                 width={80}
                                 height={80}
-                                style={{ objectFit: 'cover' }}
+                                aspectRatio="1x1"
                             />
                         </button>
                     ))}
@@ -263,12 +270,14 @@ export default function ProductGallery({
                     } as React.CSSProperties}
                 >
                     {images[mainImageIndex] && (
-                        <Image
+                        <ImageWithDimensions
                             src={images[mainImageIndex]}
                             alt={productName}
                             fill
+                            aspectRatio="1x1"
                             priority
                             className={styles.productImage}
+                            sizes="(max-width: 768px) 100vw, 50vw"
                         />
                     )}
                     {hasDiscount && discountPercent > 0 && (

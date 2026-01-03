@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import Image from 'next/image';
+import ImageWithDimensions from '@/components/core/common/ImageWithDimensions';
 import Link from 'next/link';
 import { ModuleProps } from '../..';
 import api from '@/lib/api';
@@ -42,13 +43,8 @@ interface BannerSliderProps extends ModuleProps {
     initialData?: BannerSliderData;
 }
 
-// Helper to clean image URLs
-const cleanImageUrl = (url: string): string => {
-    if (!url) return '';
-    return url.replace(/([^:]\/)+\/+/g, '$1');
-};
 
-export default function BannerSliderModule({ config, initialData }: BannerSliderProps) {
+export default function BannerSliderModule({ config, initialData }: ModuleProps) {
     const { sliderId } = config as BannerSliderConfig;
     // Use initialData if provided (SSR), otherwise start null
     const [slider, setSlider] = useState<BannerSliderData | null>(initialData || null);
@@ -178,8 +174,8 @@ export default function BannerSliderModule({ config, initialData }: BannerSlider
                 {/* Slides Track */}
                 <div className={styles.track}>
                     {slides.map((slide, index) => {
-                        const desktopImage = slide.image ? cleanImageUrl(slide.image) : '';
-                        const mobileImage = slide.mobileImage ? cleanImageUrl(slide.mobileImage) : desktopImage;
+                        const desktopImage = slide.image || '';
+                        const mobileImage = slide.mobileImage || desktopImage;
                         const isActive = index === currentSlide;
                         const alignmentClass = styles[`align${(slide.alignment || 'center').charAt(0).toUpperCase() + (slide.alignment || 'center').slice(1)}`];
 
@@ -194,13 +190,14 @@ export default function BannerSliderModule({ config, initialData }: BannerSlider
                                 {/* Desktop Image */}
                                 {desktopImage && (
                                     <div className={styles.imageDesktop}>
-                                        <Image
+                                        <ImageWithDimensions
                                             src={desktopImage}
                                             alt={slide.title || `Slide ${index + 1}`}
                                             fill
                                             className={styles.image}
                                             priority={index === 0}
-                                            unoptimized
+                                            fetchPriority={index === 0 ? 'high' : undefined}
+                                            sizes="100vw"
                                         />
                                     </div>
                                 )}
@@ -208,13 +205,14 @@ export default function BannerSliderModule({ config, initialData }: BannerSlider
                                 {/* Mobile Image */}
                                 {mobileImage && (
                                     <div className={styles.imageMobile}>
-                                        <Image
+                                        <ImageWithDimensions
                                             src={mobileImage}
                                             alt={slide.title || `Slide ${index + 1}`}
                                             fill
                                             className={styles.image}
                                             priority={index === 0}
-                                            unoptimized
+                                            fetchPriority={index === 0 ? 'high' : undefined}
+                                            sizes="100vw"
                                         />
                                     </div>
                                 )}

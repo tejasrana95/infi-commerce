@@ -45,23 +45,11 @@ export default function ModuleRenderer({ module, sectionType, prefetchedData }: 
         return null;
     }
 
-    // Map prefetchedData to the correct prop name based on module type
-    const getModuleProps = () => {
-        const baseProps = { config: module.config, sectionType };
-
-        if (!prefetchedData) return baseProps;
-
-        switch (module.type) {
-            case 'product-carousel':
-            case 'product-grid':
-                return { ...baseProps, initialProducts: prefetchedData };
-            case 'banner-slider':
-                return { ...baseProps, initialData: prefetchedData };
-            case 'testimonials':
-                return { ...baseProps, initialData: prefetchedData };
-            default:
-                return baseProps;
-        }
+    // Build module props
+    const moduleProps = {
+        config: module.config,
+        sectionType,
+        initialData: prefetchedData
     };
 
     // Build module styles
@@ -77,7 +65,7 @@ export default function ModuleRenderer({ module, sectionType, prefetchedData }: 
             className={module.styling?.className || ''}
             style={moduleStyle}
         >
-            <ModuleComponent {...getModuleProps()} />
+            <ModuleComponent {...moduleProps} />
 
             {/* Custom CSS for this module */}
             {module.styling?.customCSS && (

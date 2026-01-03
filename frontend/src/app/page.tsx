@@ -67,12 +67,46 @@ export default async function Page() {
     moduleData = await prefetchModuleData(allModules, store._id);
   }
 
+  // Find LCP image for preloading (first banner slider slide)
+  let lcpImageUrl = '';
+  if (layout?.sections) {
+    outer: for (const section of layout.sections) {
+      const modules = [...(section.modules || [])];
+      if (section.columns) {
+        for (const col of section.columns) {
+          if (col.modules) modules.push(...col.modules);
+        }
+      }
+
+      for (const mod of modules) {
+        if (mod.type === 'banner-slider' && moduleData[mod.id]) {
+          const sliderData = moduleData[mod.id];
+          if (sliderData?.slides?.length > 0) {
+            lcpImageUrl = sliderData.slides[0].image;
+            break outer;
+          }
+        }
+      }
+    }
+  }
+
   return (
-    <HomePage
-      layout={layout}
-      store={store}
-      templateId={templateId}
-      moduleData={moduleData}
-    />
+    <>
+      {lcpImageUrl && (
+        <link
+          rel="preload"
+          as="image"
+          href={lcpImageUrl}
+          // @ts-ignore
+          fetchPriority="high"
+        />
+      )}
+      <HomePage
+        layout={layout}
+        store={store}
+        templateId={templateId}
+        moduleData={moduleData}
+      />
+    </>
   );
 }

@@ -33,11 +33,7 @@ interface Product {
     inStock?: boolean;
 }
 
-interface ProductCarouselProps extends ModuleProps {
-    initialProducts?: Product[];
-}
-
-export default function ProductCarouselModule({ config, initialProducts }: ProductCarouselProps) {
+export default function ProductCarouselModule({ config, initialData }: ModuleProps) {
     const {
         source,
         limit = 8,
@@ -51,6 +47,8 @@ export default function ProductCarouselModule({ config, initialProducts }: Produ
         title,
         viewAllLink,
     } = config as ProductCarouselConfig;
+
+    const initialProducts = initialData as Product[];
 
     // Use initialProducts if provided (SSR), otherwise start empty
     const hasSSRData = initialProducts && initialProducts.length > 0;

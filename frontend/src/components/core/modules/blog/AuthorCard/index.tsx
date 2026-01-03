@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import ImageWithDimensions from '@/components/core/common/ImageWithDimensions';
 import Link from 'next/link';
 import styles from './index.module.scss';
 import { FiUser } from 'react-icons/fi';
@@ -37,12 +37,14 @@ export default function AuthorCard({ config }: AuthorCardProps) {
         <div className={`${styles.authorCard} ${styles[layout]} ${styles[position]}`}>
             <div className={styles.avatarWrapper}>
                 {authorAvatar ? (
-                    <Image
+                    <ImageWithDimensions
                         src={authorAvatar}
                         alt={authorName}
                         width={layout === 'compact' ? 60 : 80}
                         height={layout === 'compact' ? 60 : 80}
                         className={styles.avatar}
+                        aspectRatio="1x1"
+                        sizes="(max-width: 768px) 60px, 80px"
                     />
                 ) : (
                     <div className={styles.avatarPlaceholder}>

@@ -65,7 +65,7 @@ export async function fetchProductsForModule(
 
         const response = await fetch(`${API_BASE}/products?${params.toString()}`, {
             headers: { 'x-store-id': storeId },
-            next: { revalidate: 60 } // Cache for 60 seconds
+            next: { revalidate: 300 } // Cache for 5 minutes
         });
 
         if (!response.ok) return [];
@@ -84,20 +84,20 @@ export async function fetchProductsForModule(
 export async function fetchBannerSliderData(
     sliderId: string,
     storeId: string
-): Promise<BannerSlide[]> {
+): Promise<any> {
     try {
         const response = await fetch(`${API_BASE}/banner-sliders/${sliderId}`, {
             headers: { 'x-store-id': storeId },
             next: { revalidate: 300 } // Cache for 5 minutes
         });
 
-        if (!response.ok) return [];
+        if (!response.ok) return null;
 
         const data = await response.json();
-        return data.slides || data.bannerSlider?.slides || [];
+        return data.slider || data;
     } catch (error) {
         console.error('Error fetching banner slider:', error);
-        return [];
+        return null;
     }
 }
 
@@ -125,6 +125,43 @@ export async function fetchTestimonialsData(
         return Array.isArray(data) ? data : data.testimonials || [];
     } catch (error) {
         console.error('Error fetching testimonials:', error);
+        return [];
+    }
+}
+/**
+ * Fetch blog posts for modules (BlogGrid, RecentPosts)
+ */
+export async function fetchBlogPostsForModule(
+    config: {
+        numberOfPosts?: number;
+        filterByCategory?: string;
+        filterByTag?: string;
+        sortBy?: string;
+        showFeaturedOnly?: boolean;
+    },
+    storeId: string
+): Promise<any[]> {
+    try {
+        const params = new URLSearchParams();
+        params.append('limit', (config.numberOfPosts || 6).toString());
+        params.append('status', 'published');
+
+        if (config.filterByCategory) params.append('category', config.filterByCategory);
+        if (config.filterByTag) params.append('tag', config.filterByTag);
+        if (config.showFeaturedOnly) params.append('featured', 'true');
+        if (config.sortBy) params.append('sortBy', config.sortBy);
+
+        const response = await fetch(`${API_BASE}/blog/posts?${params.toString()}`, {
+            headers: { 'x-store-id': storeId },
+            next: { revalidate: 300 } // Cache for 5 minutes
+        });
+
+        if (!response.ok) return [];
+
+        const data = await response.json();
+        return data.data || [];
+    } catch (error) {
+        console.error('Error fetching blog posts for module:', error);
         return [];
     }
 }
@@ -156,6 +193,12 @@ export async function prefetchModuleData(
                         if (module.config.testimonialIds) {
                             moduleData[module.id] = await fetchTestimonialsData(module.config.testimonialIds, storeId);
                         }
+                        break;
+                    case 'blog-grid':
+                    case 'blog-listing':
+                    case 'recent-posts':
+                    case 'popular-posts':
+                        moduleData[module.id] = await fetchBlogPostsForModule(module.config, storeId);
                         break;
                 }
             } catch (error) {

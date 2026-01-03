@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
+import ImageWithDimensions from '@/components/core/common/ImageWithDimensions';
 import { ModuleProps } from '../..';
 import api from '@/lib/api';
 import styles from './Testimonials.module.scss';
@@ -29,13 +30,8 @@ interface TestimonialsProps extends ModuleProps {
     initialData?: TestimonialData[];
 }
 
-// Helper to clean image URLs
-const cleanImageUrl = (url: string): string => {
-    if (!url) return '';
-    return url.replace(/([^:]\/)+\/+/g, '$1');
-};
 
-export default function TestimonialsModule({ config, initialData }: TestimonialsProps) {
+export default function TestimonialsModule({ config, initialData }: ModuleProps) {
     const {
         testimonialIds,
         layout = 'carousel',
@@ -178,12 +174,13 @@ export default function TestimonialsModule({ config, initialData }: Testimonials
                             <div className={styles.author}>
                                 <div className={styles.avatar}>
                                     {testimonial.customerImage ? (
-                                        <Image
-                                            src={cleanImageUrl(testimonial.customerImage)}
+                                        <ImageWithDimensions
+                                            src={testimonial.customerImage}
                                             alt={testimonial.customerName}
                                             fill
+                                            aspectRatio="1x1"
                                             className={styles.avatarImage}
-                                            unoptimized
+                                            sizes="48px"
                                         />
                                     ) : (
                                         <span className={styles.avatarInitial}>
@@ -253,12 +250,13 @@ export default function TestimonialsModule({ config, initialData }: Testimonials
                                     <div className={styles.authorFeatured}>
                                         <div className={styles.avatarLarge}>
                                             {testimonial.customerImage ? (
-                                                <Image
-                                                    src={cleanImageUrl(testimonial.customerImage)}
+                                                <ImageWithDimensions
+                                                    src={testimonial.customerImage}
                                                     alt={testimonial.customerName}
                                                     fill
+                                                    aspectRatio="1x1"
                                                     className={styles.avatarImage}
-                                                    unoptimized
+                                                    sizes="80px"
                                                 />
                                             ) : (
                                                 <span className={styles.avatarInitialLarge}>

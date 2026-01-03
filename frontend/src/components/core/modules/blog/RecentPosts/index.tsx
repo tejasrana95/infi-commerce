@@ -2,23 +2,14 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import ImageWithDimensions from '@/components/core/common/ImageWithDimensions';
 import api from '@/lib/api';
 import styles from './index.module.scss';
 import { FiClock } from 'react-icons/fi';
 
-interface RecentPostsProps {
-    config: {
-        title?: string;
-        numberOfPosts?: number;
-        showThumbnail?: boolean;
-        showDate?: boolean;
-        showExcerpt?: boolean;
-        layout?: 'vertical' | 'horizontal';
-    };
-}
+import { ModuleProps } from '../..';
 
-export default function RecentPosts({ config }: RecentPostsProps) {
+export default function RecentPosts({ config, initialData }: ModuleProps) {
     const {
         title = 'Recent Posts',
         numberOfPosts = 5,
@@ -28,10 +19,12 @@ export default function RecentPosts({ config }: RecentPostsProps) {
         layout = 'vertical',
     } = config;
 
-    const [posts, setPosts] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [posts, setPosts] = useState<any[]>(initialData || []);
+    const [loading, setLoading] = useState(!initialData);
 
     useEffect(() => {
+        if (initialData) return;
+
         const fetchRecentPosts = async () => {
             setLoading(true);
             try {
@@ -51,7 +44,7 @@ export default function RecentPosts({ config }: RecentPostsProps) {
         };
 
         fetchRecentPosts();
-    }, [numberOfPosts]);
+    }, [numberOfPosts, initialData]);
 
     if (loading) {
         return (
@@ -75,11 +68,13 @@ export default function RecentPosts({ config }: RecentPostsProps) {
                     <Link key={post._id} href={`/blog/${post.slug}`} className={styles.item}>
                         {showThumbnail && post.featuredImage && (
                             <div className={styles.thumbnail}>
-                                <Image
+                                <ImageWithDimensions
                                     src={post.featuredImage}
                                     alt={post.title}
                                     fill
+                                    aspectRatio="1x1"
                                     className={styles.image}
+                                    sizes="80px"
                                 />
                             </div>
                         )}

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import NextImage from 'next/image';
+import ImageWithDimensions from '@/components/core/common/ImageWithDimensions';
 import Link from 'next/link';
 import { ModuleProps } from '../..';
 import styles from './ImageGallery.module.scss';
@@ -39,11 +39,6 @@ const aspectRatioClassMap: Record<string, string> = {
     '21:9': 'aspect21x9',
 };
 
-// Helper to clean image URLs
-const cleanImageUrl = (url: string): string => {
-    if (!url) return '';
-    return url.replace(/([^:]\/)\/+/g, '$1');
-};
 
 export default function ImageGalleryModule({ config }: ModuleProps) {
     const {
@@ -129,7 +124,6 @@ export default function ImageGalleryModule({ config }: ModuleProps) {
 
     // Render image item
     const renderImageItem = (image: GalleryImage, index: number, isCarousel = false) => {
-        const cleanedSrc = cleanImageUrl(image.src);
         const caption = image.caption || image.alt;
 
         const imageContent = (
@@ -138,13 +132,13 @@ export default function ImageGalleryModule({ config }: ModuleProps) {
                 style={{ borderRadius: `${borderRadius}px` }}
                 onClick={() => !image.link && openLightbox(index)}
             >
-                <NextImage
-                    src={cleanedSrc}
+                <ImageWithDimensions
+                    src={image.src}
                     alt={image.alt || `Gallery image ${index + 1}`}
                     fill
                     className={styles.image}
-                    style={{ borderRadius: `${borderRadius}px` }}
-                    unoptimized
+                    aspectRatio={aspectRatio === 'square' ? '1x1' : (aspectRatio === 'auto' ? 'auto' : '16x9')}
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
                 {lightbox && !image.link && (
                     <div className={styles.overlay}>
@@ -208,12 +202,13 @@ export default function ImageGalleryModule({ config }: ModuleProps) {
                 </button>
 
                 <div className={styles.lightboxContent} onClick={(e) => e.stopPropagation()}>
-                    <NextImage
-                        src={cleanImageUrl(images[activeIndex].src)}
+                    <ImageWithDimensions
+                        src={images[activeIndex].src}
                         alt={images[activeIndex].alt || `Gallery image ${activeIndex + 1}`}
                         fill
                         className={styles.lightboxImage}
-                        unoptimized
+                        aspectRatio="auto"
+                        priority
                     />
                     {showCaptions && (images[activeIndex].caption || images[activeIndex].alt) && (
                         <div className={styles.lightboxCaption}>

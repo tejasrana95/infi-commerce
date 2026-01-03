@@ -2,6 +2,7 @@
 
 import React from 'react';
 import NextImage from 'next/image';
+import ImageWithDimensions from '@/components/core/common/ImageWithDimensions';
 import Link from 'next/link';
 import { ModuleProps } from '../..';
 import styles from './Image.module.scss';
@@ -20,11 +21,6 @@ interface ImageConfig {
     openInNewTab?: boolean;
 }
 
-// Helper to clean image URLs
-const cleanImageUrl = (url: string): string => {
-    if (!url) return '';
-    return url.replace(/([^:]\/)\/+/g, '$1');
-};
 
 export default function ImageModule({ config }: ModuleProps) {
     const {
@@ -55,7 +51,6 @@ export default function ImageModule({ config }: ModuleProps) {
         return null;
     }
 
-    const cleanedSrc = cleanImageUrl(src);
     const alignClass = styles[`align${alignment.charAt(0).toUpperCase() + alignment.slice(1)}`];
     const shadowClass = shadow !== 'none' ? styles[`shadow${shadow.charAt(0).toUpperCase() + shadow.slice(1)}`] : '';
 
@@ -71,19 +66,19 @@ export default function ImageModule({ config }: ModuleProps) {
                 borderRadius: `${borderRadius}px`,
             }}
         >
-            <NextImage
-                src={cleanedSrc}
+            <ImageWithDimensions
+                src={src}
                 alt={alt}
                 width={imageWidth}
                 height={imageHeight}
                 className={styles.image}
+                aspectRatio={height ? 'auto' : '16x9'}
                 style={{
                     width: width === 'full' ? '100%' : width === 'custom' && customWidth ? `${customWidth}px` : 'auto',
                     height: height ? `${height}px` : 'auto',
                     objectFit: objectFit,
                     borderRadius: `${borderRadius}px`,
                 }}
-                unoptimized
             />
         </div>
     );

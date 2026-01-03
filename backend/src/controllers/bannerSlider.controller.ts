@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import BannerSlider from '../models/BannerSlider';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/validation';
+import cache from '../utils/cache';
 
 // @desc    Get all banner sliders
 // @route   GET /api/banner-sliders
@@ -55,16 +56,25 @@ export const getBannerSliders = asyncHandler(async (req: AuthRequest, res: Respo
 // @route   GET /api/banner-sliders/:id
 // @access  Private/Admin
 export const getBannerSliderById = asyncHandler(async (req: Request, res: Response) => {
-    const slider = await BannerSlider.findById(req.params.id)
+    const { id } = req.params;
+    const cacheKey = `banner-slider:id:${id}`;
+
+    const cachedSlider = cache.get(cacheKey);
+    if (cachedSlider) {
+        return res.json({ success: true, slider: cachedSlider });
+    }
+
+    const slider = await BannerSlider.findById(id)
         .populate('storeId', 'name')
         .populate('slides.bannerId');
 
     if (!slider) {
-        res.status(404).json({ success: false, message: 'Banner slider not found' });
-        return;
+        return res.status(404).json({ success: false, message: 'Banner slider not found' });
     }
 
-    res.json({ success: true, slider });
+    cache.set(cacheKey, slider, 300);
+
+    return res.json({ success: true, slider });
 });
 
 // @desc    Create banner slider
@@ -85,30 +95,36 @@ export const createBannerSlider = asyncHandler(async (req: AuthRequest, res: Res
 // @route   PUT /api/banner-sliders/:id
 // @access  Private/Admin
 export const updateBannerSlider = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
     const slider = await BannerSlider.findByIdAndUpdate(
-        req.params.id,
+        id,
         req.body,
         { new: true, runValidators: true }
     );
 
     if (!slider) {
-        res.status(404).json({ success: false, message: 'Banner slider not found' });
-        return;
+        return res.status(404).json({ success: false, message: 'Banner slider not found' });
     }
 
-    res.json({ success: true, slider });
+    // Invalidate cache
+    cache.delete(`banner-slider:id:${id}`);
+
+    return res.json({ success: true, slider });
 });
 
 // @desc    Delete banner slider
 // @route   DELETE /api/banner-sliders/:id
 // @access  Private/Admin
 export const deleteBannerSlider = asyncHandler(async (req: Request, res: Response) => {
-    const slider = await BannerSlider.findByIdAndDelete(req.params.id);
+    const { id } = req.params;
+    const slider = await BannerSlider.findByIdAndDelete(id);
 
     if (!slider) {
-        res.status(404).json({ success: false, message: 'Banner slider not found' });
-        return;
+        return res.status(404).json({ success: false, message: 'Banner slider not found' });
     }
 
-    res.json({ success: true, message: 'Banner slider deleted' });
+    // Invalidate cache
+    cache.delete(`banner-slider:id:${id}`);
+
+    return res.json({ success: true, message: 'Banner slider deleted' });
 });

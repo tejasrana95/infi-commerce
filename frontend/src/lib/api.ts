@@ -406,7 +406,7 @@ export { ApiClient };
 export async function fetchStoreByDomain(domain: string): Promise<Store | null> {
     try {
         const res = await fetch(`${API_BASE_URL}/stores/domain/${encodeURIComponent(domain)}`, {
-            next: { revalidate: 60 }, // Cache for 60 seconds
+            next: { revalidate: 300 }, // Cache for 300 seconds (5 minutes)
             headers: {
                 'Content-Type': 'application/json',
             },
@@ -427,7 +427,7 @@ export async function fetchStoreByDomain(domain: string): Promise<Store | null> 
 export async function fetchStoreById(storeId: string): Promise<Store | null> {
     try {
         const res = await fetch(`${API_BASE_URL}/stores/${storeId}`, {
-            next: { revalidate: 60 },
+            next: { revalidate: 300 },
             headers: {
                 'Content-Type': 'application/json',
             },
@@ -498,7 +498,7 @@ export async function fetchBlogPosts(storeId: string, params?: {
         if (params?.search) queryParams.append('search', params.search);
 
         const res = await fetch(`${API_BASE_URL}/blog/posts?${queryParams.toString()}`, {
-            cache: 'no-store',
+            next: { revalidate: 600 }, // Cache for 10 minutes
             headers: {
                 'Content-Type': 'application/json',
                 'X-Store-ID': storeId,
@@ -516,7 +516,7 @@ export async function fetchBlogPosts(storeId: string, params?: {
 export async function fetchBlogPostBySlug(storeId: string, slug: string) {
     try {
         const res = await fetch(`${API_BASE_URL}/blog/posts/slug/${slug}`, {
-            cache: 'no-store',
+            next: { revalidate: 300 },
             headers: {
                 'Content-Type': 'application/json',
                 'X-Store-ID': storeId,
@@ -535,7 +535,7 @@ export async function fetchBlogPostBySlug(storeId: string, slug: string) {
 export async function fetchBlogCategories(storeId: string) {
     try {
         const res = await fetch(`${API_BASE_URL}/blog/categories`, {
-            cache: 'no-store',
+            next: { revalidate: 3600 }, // Cache for 1 hour
             headers: {
                 'Content-Type': 'application/json',
                 'X-Store-ID': storeId,
@@ -554,7 +554,7 @@ export async function fetchBlogCategories(storeId: string) {
 export async function fetchBlogTags(storeId: string, limit: number = 20) {
     try {
         const res = await fetch(`${API_BASE_URL}/blog/posts/tags?limit=${limit}`, {
-            cache: 'no-store',
+            next: { revalidate: 3600 },
             headers: {
                 'Content-Type': 'application/json',
                 'X-Store-ID': storeId,
@@ -573,7 +573,7 @@ export async function fetchBlogTags(storeId: string, limit: number = 20) {
 export async function fetchPageBySlug(storeId: string, slug: string) {
     try {
         const res = await fetch(`${API_BASE_URL}/pages/slug/${slug}`, {
-            cache: 'no-store',
+            next: { revalidate: 300 },
             headers: {
                 'Content-Type': 'application/json',
                 'X-Store-ID': storeId,

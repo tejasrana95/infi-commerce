@@ -30,11 +30,7 @@ interface Product {
     inStock?: boolean;
 }
 
-interface ProductGridProps extends ModuleProps {
-    initialProducts?: Product[];
-}
-
-export default function ProductGridModule({ config, initialProducts }: ProductGridProps) {
+export default function ProductGridModule({ config, initialData }: ModuleProps) {
     const {
         source,
         limit = 8,
@@ -45,6 +41,8 @@ export default function ProductGridModule({ config, initialProducts }: ProductGr
         categoryIds,
         title,
     } = config as ProductGridConfig;
+
+    const initialProducts = initialData as Product[];
 
     // Use initialProducts if provided (SSR), otherwise start empty
     const hasSSRData = initialProducts && initialProducts.length > 0;

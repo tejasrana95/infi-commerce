@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
+import ImageWithDimensions from '@/components/core/common/ImageWithDimensions';
 import Link from 'next/link';
 import { ModuleProps } from '../..';
 import api from '@/lib/api';
@@ -29,11 +30,6 @@ interface BannerData {
     textColor?: string;
 }
 
-// Helper to clean image URLs (remove double slashes)
-const cleanImageUrl = (url: string): string => {
-    if (!url) return '';
-    return url.replace(/([^:]\/)\/+/g, '$1');
-};
 
 export default function BannerModule({ config }: ModuleProps) {
     const { bannerId } = config as BannerConfig;
@@ -88,8 +84,8 @@ export default function BannerModule({ config }: ModuleProps) {
         return null;
     }
 
-    const desktopImage = cleanImageUrl(banner.image);
-    const mobileImage = banner.mobileImage ? cleanImageUrl(banner.mobileImage) : desktopImage;
+    const desktopImage = banner.image;
+    const mobileImage = banner.mobileImage || desktopImage;
     const hasContent = banner.title || banner.subtitle || banner.ctaText;
 
     return (
@@ -101,23 +97,21 @@ export default function BannerModule({ config }: ModuleProps) {
                 <div className={styles.imageWrapper}>
                     {desktopImage && !imageError ? (
                         <>
-                            <Image
+                            <ImageWithDimensions
                                 src={desktopImage}
                                 alt={banner.title || banner.name}
                                 fill
                                 className={`${styles.bannerImage} ${styles.desktopImage}`}
                                 priority
-                                unoptimized
-                                onError={() => setImageError(true)}
+                                sizes="100vw"
                             />
-                            <Image
+                            <ImageWithDimensions
                                 src={mobileImage}
                                 alt={banner.title || banner.name}
                                 fill
                                 className={`${styles.bannerImage} ${styles.mobileImage}`}
                                 priority
-                                unoptimized
-                                onError={() => setImageError(true)}
+                                sizes="100vw"
                             />
                         </>
                     ) : (

@@ -12,8 +12,6 @@ import { WishlistProvider } from "@/providers/WishlistProvider";
 import { CompareProvider } from "@/providers/CompareProvider";
 import { ToastProvider } from "@/providers/ToastProvider";
 import { DialogProvider } from "@/providers/DialogProvider";
-import CompareFloatingWidget from "@/components/core/CompareFloatingWidget";
-import AuthModal from "@/components/organisms/AuthModal/AuthModal";
 import { Maintenance } from "@/components/layout/Maintenance/Maintenance";
 import { fetchCurrencies, getStore } from "@/lib/api";
 import ThemeScriptInjector from "@/components/ThemeScriptInjector";
@@ -22,6 +20,7 @@ import { getComponent } from "@/components/templates/registry";
 import { Currency, DEFAULT_TEMPLATE_ID } from "@/types";
 import { AnalyticsProvider } from "@/providers/AnalyticsProvider";
 import AutoAnalytics from "@/components/analytics/AutoAnalytics";
+import ClientWidgets from "@/components/core/ClientWidgets";
 
 // Optimized font loading with display: swap to prevent FOIT
 const geistSans = Geist({
@@ -107,7 +106,7 @@ export async function generateMetadata() {
     };
   }
 
-  // Fetch currencies for metadata
+  // Fetch currencies for metadata in parallel if needed
   const currencies = await fetchCurrencies(store._id);
   const cookieStore = await cookies();
   const currencyCode = cookieStore.get("currency")?.value || store.currency || "USD";
@@ -131,10 +130,6 @@ export async function generateMetadata() {
   };
 }
 
-// ============================================
-// Root Layout - Server Component
-// ============================================
-
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -153,19 +148,21 @@ export default async function RootLayout({
   const themeCSSVariables = generateThemeCSSVariables(store?.theme);
   const googleFontsUrl = generateGoogleFontsUrl(store?.theme);
 
-  // Fetch currencies
-  let currencies: Currency[] = [];
+  // Fetch currencies and menus in parallel
+  const [currencies, menus] = await Promise.all([
+    store ? fetchCurrencies(store._id) : Promise.resolve([]),
+    (store?.theme?.header && store?._id)
+      ? getEnrichedMenus(store.theme.header, store._id)
+      : Promise.resolve({})
+  ]);
+
   let selectedCurrency: Currency | undefined;
 
-  if (store) {
-    currencies = await fetchCurrencies(store._id);
+  if (store && currencies.length > 0) {
     const cookieStore = await cookies();
     const currencyCode = cookieStore.get("currency")?.value || store.currency || "USD";
     selectedCurrency = currencies.find(c => c.code === currencyCode) || currencies[0];
   }
-
-  // Pre-fetch menus for SSR
-  const menus = (store?.theme?.header && store?._id) ? await getEnrichedMenus(store.theme.header, store._id) : {};
 
   // Get template-specific components
   const Header = getComponent("Header", templateId);
@@ -183,6 +180,8 @@ export default async function RootLayout({
           <>
             <link rel="preconnect" href="https://fonts.googleapis.com" />
             <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+            <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+            <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
             <link href={googleFontsUrl} rel="stylesheet" />
           </>
         )}
@@ -246,8 +245,7 @@ export default async function RootLayout({
                               <Footer config={store?.theme?.footer} store={store} templateId={templateId} />
                             </div>
                           )}
-                          <AuthModal />
-                          {!store?.settings?.maintenanceMode && <CompareFloatingWidget />}
+                          <ClientWidgets showCompare={!store?.settings?.maintenanceMode} />
                         </DialogProvider>
                       </ToastProvider>
                     </CompareProvider>

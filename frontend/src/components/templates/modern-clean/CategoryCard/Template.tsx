@@ -8,6 +8,7 @@ import React from 'react';
 import Link from 'next/link';
 import { CategoryTemplateProps } from '@/components/templates/core/CategoryCard/types';
 import styles from './CategoryCard.module.scss';
+import ImageWithDimensions from '@/components/core/common/ImageWithDimensions';
 
 export default function ModernCleanCategoryCardTemplate({
     title,
@@ -31,17 +32,14 @@ export default function ModernCleanCategoryCardTemplate({
             {/* Image Container */}
             <div className={styles.imageContainer}>
                 <div className={styles.imageInner}>
-                    {imageUrl ? (
-                        <img
-                            src={imageUrl}
-                            alt={imageAlt}
-                            className={styles.image}
-                        />
-                    ) : (
-                        <div className={styles.placeholder}>
-                            {title}
-                        </div>
-                    )}
+                    <ImageWithDimensions
+                        src={imageUrl}
+                        alt={imageAlt || title}
+                        aspectRatio="1x1" // Default for category cards, adjusted via CSS container
+                        fill
+                        className={styles.image}
+                        sizes="(max-width: 768px) 50vw, 25vw"
+                    />
                 </div>
 
                 {/* Overlay for hover effect */}

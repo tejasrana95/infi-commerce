@@ -1,7 +1,6 @@
-// Layout API - Fetch layouts from backend
-
 import { Layout } from '@/types/layout';
-import api from '@/lib/api';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 /**
  * Fetch layout by type (homepage, category, product, etc.)
@@ -15,7 +14,12 @@ export async function getLayoutByType(type: string, storeId: string): Promise<La
             storeId
         });
 
-        const result = await api.get<{ data: Layout[] }>(`layouts?${params}`);
+        const response = await fetch(`${API_BASE}/layouts?${params}`, {
+            next: { revalidate: 300 } // Cache for 5 minutes
+        });
+
+        if (!response.ok) return null;
+        const result = await response.json();
 
         // API returns { data: [...] }, get the first layout from the array
         return result.data && result.data.length > 0 ? result.data[0] : null;
@@ -30,8 +34,13 @@ export async function getLayoutByType(type: string, storeId: string): Promise<La
  */
 export async function getLayoutById(id: string): Promise<Layout | null> {
     try {
-        const data = await api.get<{ layout: Layout }>(`layouts/${id}`);
-        return data.layout || null;
+        const response = await fetch(`${API_BASE}/layouts/${id}`, {
+            next: { revalidate: 300 }
+        });
+
+        if (!response.ok) return null;
+        const data = await response.json();
+        return data.layout || data;
     } catch (error) {
         console.error('Error fetching layout:', error);
         return null;
@@ -51,7 +60,12 @@ export async function getDefaultLayout(type: string, storeId: string): Promise<L
             default: 'true'
         });
 
-        const data = await api.get<{ layout: Layout }>(`layouts?${params}`);
+        const response = await fetch(`${API_BASE}/layouts?${params}`, {
+            next: { revalidate: 300 }
+        });
+
+        if (!response.ok) return null;
+        const data = await response.json();
         return data.layout || null;
     } catch (error) {
         console.error('Error fetching default layout:', error);

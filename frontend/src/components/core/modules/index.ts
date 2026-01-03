@@ -49,6 +49,7 @@ import AuthorCardModule from './blog/AuthorCard';
 export interface ModuleProps {
     config: Record<string, any>;
     sectionType?: 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';
+    initialData?: any;
 }
 
 type ModuleComponent = React.ComponentType<ModuleProps>;
