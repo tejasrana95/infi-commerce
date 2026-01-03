@@ -172,6 +172,10 @@ router.use('/backup', backupRoutes);
 import apiKeyRoutes from './apiKey.routes';
 router.use('/api-keys', apiKeyRoutes);
 
+// Mount settings routes
+import settingRoutes from './setting.routes';
+router.use('/settings', settingRoutes);
+
 export default router;
 
 

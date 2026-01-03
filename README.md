@@ -13,7 +13,10 @@ infi-commerce/
 ```
 
 ## Getting Started
-
+Email	admin@demo.com
+Password	Admin@123
+Role	super_admin
+Name	Super Admin
 ### Prerequisites
 
 - Node.js 20+

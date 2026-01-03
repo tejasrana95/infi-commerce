@@ -66,6 +66,8 @@ import CollectionsIcon from '@mui/icons-material/Collections';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import DescriptionIcon from '@mui/icons-material/Description';
+import api from '@/lib/api';
+import Image from 'next/image';
 const drawerWidth = 260;
 
 interface NavItem {
@@ -296,7 +298,22 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
   const router = useRouter();
   const { user, logout } = useAuth();
   const theme = useTheme();
+  const [branding, setBranding] = useState({ name: 'Infi Commerce', logo: '', favicon: '' });
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const fetchBranding = async () => {
+    try {
+      const response = await api.get('/settings/admin-branding');
+      if (response.data.success && response.data.branding && response.data.branding.name && response.data.branding.logo && response.data.branding.favicon) {
+        setBranding(response.data.branding);
+      }
+    } catch (error) {
+      console.error('Failed to fetch branding:', error);
+    }
+  };
+  useEffect(() => {
+
+    fetchBranding();
+  }, []);
 
   const handleDrawerToggle = useCallback(() => {
     setMobileOpen((prev) => !prev);
@@ -412,11 +429,10 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
           <Box display="flex" alignItems="center" gap={1.5} position="relative" zIndex={1}>
             <Box
               sx={{
-
                 width: 44,
                 height: 44,
                 borderRadius: '10px',
-                background: 'linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%)',
+                background: branding.logo ? 'white' : 'linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -425,13 +441,18 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
                 fontSize: '1.25rem',
                 boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
                 border: '1px solid rgba(255,255,255,0.2)',
+                overflow: 'hidden'
               }}
             >
-              IC
+              {branding.logo ? (
+                <Image src={branding.logo} alt="L" width={44} height={44} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              ) : (
+                branding.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+              )}
             </Box>
             <Box flex={1}>
               <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.0625rem', lineHeight: 1.2, mb: 0.25 }}>
-                Infi Commerce
+                {branding.name}
               </Typography>
               <Typography variant="caption" sx={{ opacity: 0.95, fontSize: '0.6875rem', letterSpacing: '0.5px' }}>
                 ADMIN PORTAL
@@ -497,12 +518,12 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
             />
           </Box>
           <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.6875rem' }}>
-            © 2026 Infi Commerce
+            © {new Date().getFullYear()} {branding.name}
           </Typography>
         </Box>
       </Box>
     ),
-    [pathname, handleNavigate]
+    [pathname, handleNavigate, branding]
   );
 
   return (

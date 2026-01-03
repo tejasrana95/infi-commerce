@@ -416,6 +416,8 @@ export default function DashboardPage() {
                       </Avatar>
                     </ListItemAvatar>
                     <ListItemText
+                      primaryTypographyProps={{ component: 'div' }}
+                      secondaryTypographyProps={{ component: 'div' }}
                       primary={
                         <Box display="flex" justifyContent="space-between" alignItems="flex-start">
                           <Typography variant="body2" fontWeight={600} noWrap sx={{ maxWidth: '220px' }}>

@@ -7,6 +7,7 @@ import { AdminNotificationProvider } from "@/contexts/AdminNotificationContext";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { ConfirmProvider } from "@/contexts/ConfirmContext";
 import MUIThemeProvider from "@/theme/MUIThemeProvider";
+import BrandingManager from "@/components/atoms/BrandingManager";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,6 +33,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <MUIThemeProvider>
+          <BrandingManager />
           <NotificationProvider>
             <AuthProvider>
               <AdminNotificationProvider>

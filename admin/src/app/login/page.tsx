@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   Box,
   TextField,
@@ -21,8 +21,7 @@ import {
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { useAuth } from '@/contexts/AuthContext';
 import { Transition } from '@/utils/transition';
-
-
+import api from '@/lib/api';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -35,6 +34,21 @@ export default function LoginPage() {
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaToken, setMfaToken] = useState('');
   const [mfaCode, setMfaCode] = useState('');
+  const [branding, setBranding] = useState({ name: 'Infi Commerce', logo: '', favicon: '' });
+
+  useEffect(() => {
+    const fetchBranding = async () => {
+      try {
+        const response = await api.get('/settings/admin-branding');
+        if (response.data.success) {
+          setBranding(response.data.branding);
+        }
+      } catch (error) {
+        console.error('Failed to fetch branding:', error);
+      }
+    };
+    fetchBranding();
+  }, []);
 
   const handleClickOpen = () => {
     setOpen(true);
@@ -117,28 +131,48 @@ export default function LoginPage() {
         />
 
         <Box sx={{ position: 'relative', zIndex: 1, textAlign: 'center', maxWidth: 400 }}>
-          <Box
-            sx={{
-              width: 80,
-              height: 80,
-              borderRadius: '16px',
-              bgcolor: 'rgba(255, 255, 255, 0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              mx: 'auto',
-              mb: 3,
-              backdropFilter: 'blur(10px)',
-            }}
-          >
-            <LockOutlinedIcon sx={{ fontSize: 40 }} />
-          </Box>
+          {branding.logo ? (
+            <Box
+              sx={{
+                width: 80,
+                height: 80,
+                borderRadius: '16px',
+                bgcolor: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mx: 'auto',
+                mb: 3,
+                p: 1.5,
+                overflow: 'hidden'
+              }}
+            >
+              <img src={branding.logo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            </Box>
+          ) : (
+            <Box
+              sx={{
+                width: 80,
+                height: 80,
+                borderRadius: '16px',
+                bgcolor: 'rgba(255, 255, 255, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mx: 'auto',
+                mb: 3,
+                backdropFilter: 'blur(10px)',
+              }}
+            >
+              <LockOutlinedIcon sx={{ fontSize: 40 }} />
+            </Box>
+          )}
 
           <Typography variant="h3" fontWeight={700} gutterBottom>
-            Infi Commerce
+            {branding.name}
           </Typography>
           <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 400, mb: 4 }}>
-            Admin Panel
+            Admin Portal
           </Typography>
 
           <Box sx={{ textAlign: 'left', mt: 6 }}>
@@ -207,7 +241,7 @@ export default function LoginPage() {
               <LockOutlinedIcon sx={{ fontSize: 30, color: 'white' }} />
             </Box>
             <Typography variant="h5" fontWeight={700} color="text.primary">
-              Infi Commerce
+              {branding.name}
             </Typography>
           </Box>
 

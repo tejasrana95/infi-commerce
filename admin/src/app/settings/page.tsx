@@ -55,6 +55,16 @@ export default function SettingsPage() {
 
     const settingsCards: SettingCard[] = [
         {
+            title: 'General Settings',
+            description: 'Configure global admin branding, company information, and system-wide parameters.',
+            icon: <SettingsIcon sx={{ fontSize: 32 }} />,
+            link: '/settings/general',
+            badge: 'Admin',
+            badgeColor: 'info',
+            color: '#10b981',
+            enabled: true
+        },
+        {
             title: 'Backup & Restore',
             description: 'Export and import data in Excel format, manage database backups, and restore snapshots.',
             icon: <BackupIcon sx={{ fontSize: 32 }} />,
@@ -94,16 +104,7 @@ export default function SettingsPage() {
             color: '#f59e0b',
             enabled: false
         },
-        {
-            title: 'General Settings',
-            description: 'It has been moved to the store settings for store specific general settings.',
-            icon: <SettingsIcon sx={{ fontSize: 32 }} />,
-            link: '/settings/general',
-            badge: 'Moved',
-            badgeColor: 'info',
-            color: '#10b981',
-            enabled: false
-        },
+
     ];
 
     return (
