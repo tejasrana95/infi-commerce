@@ -140,9 +140,14 @@
 }
 
 .logoImage {
-    object-fit: contain;
-    padding: 1.25rem;
+    object-fit: scale-down;
+    padding: 0;
     transition: all 0.3s ease;
+    background-color: transparent;
+
+    img {
+        object-fit: scale-down;
+    }
 
     @include tablet {
         padding: 1.5rem;
@@ -244,7 +249,7 @@
     padding: 1rem;
 
     @include tablet {
-        padding: 1.25rem;
+        padding: 1rem;
     }
 }
 

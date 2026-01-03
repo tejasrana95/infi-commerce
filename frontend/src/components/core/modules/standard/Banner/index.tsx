@@ -31,7 +31,7 @@ interface BannerData {
 }
 
 
-export default function BannerModule({ config }: ModuleProps) {
+export default function BannerModule({ config, priority = false }: ModuleProps) {
     const { bannerId } = config as BannerConfig;
     const [banner, setBanner] = useState<BannerData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -102,7 +102,7 @@ export default function BannerModule({ config }: ModuleProps) {
                                 alt={banner.title || banner.name}
                                 fill
                                 className={`${styles.bannerImage} ${styles.desktopImage}`}
-                                priority
+                                priority={priority}
                                 sizes="100vw"
                             />
                             <ImageWithDimensions
@@ -110,7 +110,7 @@ export default function BannerModule({ config }: ModuleProps) {
                                 alt={banner.title || banner.name}
                                 fill
                                 className={`${styles.bannerImage} ${styles.mobileImage}`}
-                                priority
+                                priority={priority}
                                 sizes="100vw"
                             />
                         </>

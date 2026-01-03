@@ -8,7 +8,7 @@ import LazySection from '../../common/LazySection';
 import styles from './SectionRenderer.module.scss';
 
 // Module render function type - allows custom rendering for page-specific modules
-export type ModuleRenderFunction = (module: Module, prefetchedData?: any) => ReactNode;
+export type ModuleRenderFunction = (module: Module, prefetchedData?: any, priority?: boolean) => ReactNode;
 
 interface SectionRendererProps {
     section: Section;
@@ -44,12 +44,13 @@ export default function SectionRenderer({ section, moduleData, renderModule, ind
     }
 
     // Default module renderer using the standard ModuleRenderer component
-    const defaultRenderModule: ModuleRenderFunction = (module, prefetchedData) => (
+    const defaultRenderModule: ModuleRenderFunction = (module, prefetchedData, priority) => (
         <DefaultModuleRenderer
             key={module.id}
             module={module}
             sectionType={section.type}
             prefetchedData={prefetchedData}
+            priority={priority}
         />
     );
 
@@ -68,6 +69,7 @@ export default function SectionRenderer({ section, moduleData, renderModule, ind
         paddingBottom: section.settings?.paddingBottom ? `${section.settings.paddingBottom}px` : undefined,
         marginTop: section.settings?.marginTop ? `${section.settings.marginTop}px` : undefined,
         marginBottom: section.settings?.marginBottom ? `${section.settings.marginBottom}px` : undefined,
+        minHeight: section.settings?.minHeight ? `${section.settings.minHeight}px` : undefined,
     };
 
     // Check if section is full-width (no container wrapper needed)
@@ -107,7 +109,7 @@ export default function SectionRenderer({ section, moduleData, renderModule, ind
                             } as React.CSSProperties}
                         >
                             {sortedColumnModules.map((module) =>
-                                renderModuleFn(module, moduleData?.[module.id])
+                                renderModuleFn(module, moduleData?.[module.id], index === 0)
                             )}
                         </div>
                     );
@@ -121,7 +123,7 @@ export default function SectionRenderer({ section, moduleData, renderModule, ind
         >
             <div className={getInnerClass()}>
                 {sortedModules.map((module) =>
-                    renderModuleFn(module, moduleData?.[module.id])
+                    renderModuleFn(module, moduleData?.[module.id], index === 0)
                 )}
             </div>
         </section>
@@ -129,7 +131,7 @@ export default function SectionRenderer({ section, moduleData, renderModule, ind
 
     if (isLazy) {
         return (
-            <LazySection placeholderHeight={400}>
+            <LazySection placeholderHeight={section.settings?.minHeight || 400}>
                 {content}
             </LazySection>
         );

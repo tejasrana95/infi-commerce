@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import { body, param, query } from 'express-validator';
+import sharp from 'sharp';
 import File from '../models/File';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
@@ -51,6 +52,37 @@ export const uploadFiles = asyncHandler(async (req: AuthRequest, res: Response) 
     const folder = sanitizePath(req.body.folder || '/');
     const uploadedFiles = [];
     const provider = storageService.getStorageProvider();
+
+    // Process files (convert images to WebP)
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+
+        // Check if file is an image and not already webp or svg
+        if (file.mimetype.startsWith('image/') &&
+            !file.mimetype.includes('webp') &&
+            !file.mimetype.includes('svg')) {
+
+            try {
+                // Convert to WebP
+                const compressedBuffer = await sharp(file.buffer)
+                    .webp({ quality: 80 }) // Good balance of quality and size
+                    .toBuffer();
+
+                // Update file properties
+                files[i].buffer = compressedBuffer;
+                files[i].mimetype = 'image/webp';
+                files[i].size = compressedBuffer.length;
+
+                // Update original name to end with .webp
+                const nameWithoutExt = path.basename(file.originalname, path.extname(file.originalname));
+                files[i].originalname = `${nameWithoutExt}.webp`;
+
+            } catch (error) {
+                console.error(`Error converting image ${file.originalname} to WebP:`, error);
+                // Continue with original file if conversion fails
+            }
+        }
+    }
 
     for (const file of files) {
         // Generate unique filename

@@ -8,6 +8,7 @@ interface ModuleRendererProps {
     module: Module;
     sectionType?: 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';
     prefetchedData?: any; // SSR pre-fetched data for this module
+    priority?: boolean;
 }
 
 /**
@@ -15,7 +16,7 @@ interface ModuleRendererProps {
  * Looks up the module component from the registry and applies styling
  * Accepts prefetchedData for SSR to prevent client-side fetches
  */
-export default function ModuleRenderer({ module, sectionType, prefetchedData }: ModuleRendererProps) {
+export default function ModuleRenderer({ module, sectionType, prefetchedData, priority }: ModuleRendererProps) {
     const deviceType = useDeviceType();
 
     // Check visibility based on current device type
@@ -49,7 +50,8 @@ export default function ModuleRenderer({ module, sectionType, prefetchedData }: 
     const moduleProps = {
         config: module.config,
         sectionType,
-        initialData: prefetchedData
+        initialData: prefetchedData,
+        priority
     };
 
     // Build module styles

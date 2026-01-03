@@ -51,6 +51,7 @@ export interface Section {
         marginTop?: number;
         marginBottom?: number;
         maxWidth?: number;
+        minHeight?: number;
         customClass?: string;
     };
     columns?: Column[];
