@@ -22,6 +22,7 @@ import { AnalyticsProvider } from "@/providers/AnalyticsProvider";
 import { InterestProvider } from "@/providers/InterestProvider";
 import AutoAnalytics from "@/components/analytics/AutoAnalytics";
 import ClientWidgets from "@/components/core/ClientWidgets";
+import NextTopLoader from "nextjs-toploader";
 
 // Optimized font loading with display: swap to prevent FOIT
 const geistSans = Geist({
@@ -196,6 +197,7 @@ export default async function RootLayout({
         */}
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
+        <NextTopLoader showSpinner={false} color="#29D" />
         {store && (
           <script
             type="application/ld+json"

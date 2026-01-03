@@ -8,6 +8,7 @@ import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { ConfirmProvider } from "@/contexts/ConfirmContext";
 import MUIThemeProvider from "@/theme/MUIThemeProvider";
 import BrandingManager from "@/components/atoms/BrandingManager";
+import NextTopLoader from "nextjs-toploader";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,6 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
+        <NextTopLoader showSpinner={false} color="#29D" shadow={false} />
         <MUIThemeProvider>
           <BrandingManager />
           <NotificationProvider>
