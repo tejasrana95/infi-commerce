@@ -524,6 +524,10 @@ export interface StoreSettings {
         enabled: boolean;
         trackingId?: string;
     };
+    aiSettings?: {
+        enabled: boolean;
+        openaiKey?: string;
+    };
 }
 
 export interface StoreSEO {

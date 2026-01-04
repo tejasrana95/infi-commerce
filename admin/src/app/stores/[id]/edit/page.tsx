@@ -12,7 +12,7 @@ import Grid from '@mui/material/Grid';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import {
     Visibility, VisibilityOff, EmailOutlined, Send, SmsOutlined, WhatsApp,
-    Telegram, NotificationsActive
+    Telegram, NotificationsActive, SmartToyOutlined
 } from '@mui/icons-material';
 import api from '@/lib/api';
 import StoreForm from '@/components/organisms/StoreForm';
@@ -77,6 +77,11 @@ interface AdminNotificationSettings {
         orderCancel: boolean;
         newCustomer: boolean;
     };
+}
+
+interface AISettings {
+    enabled: boolean;
+    openaiKey: string;
 }
 
 interface TabPanelProps {
@@ -163,6 +168,13 @@ export default function EditStorePage() {
     });
     const [savingAdminNotif, setSavingAdminNotif] = useState(false);
 
+    // AI Assistant settings state
+    const [aiSettings, setAiSettings] = useState<AISettings>({
+        enabled: false,
+        openaiKey: '',
+    });
+    const [savingAI, setSavingAI] = useState(false);
+
     useEffect(() => {
         fetchStore();
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -198,6 +210,9 @@ export default function EditStorePage() {
             }
             if (currentStore?.settings?.adminNotificationSettings) {
                 setAdminNotificationSettings(currentStore.settings.adminNotificationSettings);
+            }
+            if (currentStore?.settings?.aiSettings) {
+                setAiSettings(currentStore.settings.aiSettings);
             }
         } catch (_err) {
             showNotification('Failed to load store', 'error');
@@ -351,6 +366,19 @@ export default function EditStorePage() {
         }
     };
 
+    const handleSaveAI = async () => {
+        setSavingAI(true);
+        try {
+            await api.put(`/stores/${id}`, { settings: { aiSettings } });
+            showNotification('AI Assistant settings saved successfully', 'success');
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } } };
+            showNotification(error.response?.data?.message || 'Failed to save AI Assistant settings', 'error');
+        } finally {
+            setSavingAI(false);
+        }
+    };
+
     return (
         <Box sx={{ position: 'relative' }}>
             {loading && (
@@ -397,6 +425,7 @@ export default function EditStorePage() {
                         <Tab label="WhatsApp Settings" />
                         <Tab label="Telegram Settings" />
                         <Tab label="Admin Notifications" />
+                        <Tab label="AI Assistant" />
                     </Tabs>
                 </Box>
 
@@ -1327,6 +1356,75 @@ export default function EditStorePage() {
                                         startIcon={savingAdminNotif ? <CircularProgress size={20} /> : <NotificationsActive />}
                                     >
                                         {savingAdminNotif ? 'Saving...' : 'Save Admin Notification Settings'}
+                                    </Button>
+                                </Box>
+                            </CardContent>
+                        </Card>
+                    </Box>
+                </TabPanel>
+
+                {/* AI Assistant Settings Tab */}
+                <TabPanel value={activeTab} index={6}>
+                    <Box sx={{ p: 3, pt: 0 }}>
+                        <Card sx={{ mb: 3 }}>
+                            <CardContent>
+                                <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+                                    <Box>
+                                        <Typography variant="h6">AI Shopping Assistant</Typography>
+                                        <Typography variant="body2" color="text.secondary">
+                                            Enable an AI-powered chat assistant to help customers with product discovery.
+                                        </Typography>
+                                    </Box>
+                                    <Button
+                                        variant={aiSettings.enabled ? "contained" : "outlined"}
+                                        color={aiSettings.enabled ? "success" : "inherit"}
+                                        onClick={() => setAiSettings({ ...aiSettings, enabled: !aiSettings.enabled })}
+                                    >
+                                        {aiSettings.enabled ? "Enabled" : "Disabled"}
+                                    </Button>
+                                </Box>
+
+                                <Alert severity="info" sx={{ mb: 3 }}>
+                                    The AI assistant uses OpenAI's GPT models to provide intelligent responses based on your product catalog.
+                                    {aiSettings.enabled && !aiSettings.openaiKey && (
+                                        <Typography variant="body2" sx={{ mt: 1, fontWeight: 600, color: 'error.main' }}>
+                                            Note: Assistant will be disabled on the storefront until a valid API key is provided.
+                                        </Typography>
+                                    )}
+                                </Alert>
+
+                                <Grid container spacing={3}>
+                                    <Grid size={{ xs: 12 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="OpenAI API Key"
+                                            value={aiSettings.openaiKey}
+                                            onChange={(e) => setAiSettings({ ...aiSettings, openaiKey: e.target.value })}
+                                            disabled={!aiSettings.enabled}
+                                            type={showPassword ? 'text' : 'password'}
+                                            placeholder="sk-..."
+                                            InputProps={{
+                                                endAdornment: (
+                                                    <InputAdornment position="end">
+                                                        <IconButton onClick={() => setShowPassword(!showPassword)}>
+                                                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                                                        </IconButton>
+                                                    </InputAdornment>
+                                                ),
+                                            }}
+                                            helperText="Enter your OpenAI API secret key here."
+                                        />
+                                    </Grid>
+                                </Grid>
+
+                                <Box sx={{ mt: 4 }}>
+                                    <Button
+                                        variant="contained"
+                                        onClick={handleSaveAI}
+                                        disabled={savingAI}
+                                        startIcon={savingAI ? <CircularProgress size={20} /> : <SmartToyOutlined />}
+                                    >
+                                        {savingAI ? 'Saving...' : 'Save AI Assistant Settings'}
                                     </Button>
                                 </Box>
                             </CardContent>

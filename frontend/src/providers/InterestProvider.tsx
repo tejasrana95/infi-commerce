@@ -175,6 +175,8 @@ export function InterestProvider({ children }: { children: React.ReactNode }) {
             const localData = getLocalData();
 
             if (localData.viewedProducts.length > 0 || localData.searchQueries.length > 0 || localData.purchasedProducts.length > 0) {
+                // Ensure store ID is set on API client before first fetch
+                api.setStoreId(store._id);
                 api.post('interests/sync', {
                     storeId: store._id,
                     localData,

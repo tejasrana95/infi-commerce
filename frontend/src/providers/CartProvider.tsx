@@ -106,6 +106,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     // Fetch cart on mount and when auth/session changes
     useEffect(() => {
         if (store?._id) {
+            // Ensure store ID is set on API client before first fetch
+            // This prevents race condition with StoreProvider
+            api.setStoreId(store._id);
             fetchCart();
         }
     }, [fetchCart, store?._id]);

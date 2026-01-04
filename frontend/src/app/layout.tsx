@@ -23,6 +23,7 @@ import { InterestProvider } from "@/providers/InterestProvider";
 import AutoAnalytics from "@/components/analytics/AutoAnalytics";
 import ClientWidgets from "@/components/core/ClientWidgets";
 import NextTopLoader from "nextjs-toploader";
+import AIAssistant from "@/components/core/AIAssistant/AIAssistant";
 
 // Optimized font loading with display: swap to prevent FOIT
 const geistSans = Geist({
@@ -252,6 +253,7 @@ export default async function RootLayout({
                               </div>
                             )}
                             <ClientWidgets showCompare={!store?.settings?.maintenanceMode} />
+                            <AIAssistant />
                           </DialogProvider>
                         </ToastProvider>
                       </CompareProvider>

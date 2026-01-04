@@ -75,6 +75,10 @@ export interface IStore extends Document {
             enabled: boolean;
             trackingId?: string;
         };
+        aiSettings?: {
+            enabled: boolean;
+            openaiKey?: string;
+        };
         [key: string]: any;
     };
 

@@ -46,6 +46,9 @@ import newsletterRoutes from './newsletter.routes';
 // Backup & Restore Routes
 import backupRoutes from './backup.routes';
 
+// AI Assistant Routes
+import aiRoutes from './ai.routes';
+
 const router = Router();
 
 // Mount authentication routes
@@ -167,6 +170,9 @@ router.use('/forms', formRoutes);
 
 // Mount backup routes
 router.use('/backup', backupRoutes);
+
+// Mount AI Assistant routes
+router.use('/ai', aiRoutes);
 
 // Mount API key management routes
 import apiKeyRoutes from './apiKey.routes';
