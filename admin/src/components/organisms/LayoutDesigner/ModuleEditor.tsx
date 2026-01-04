@@ -29,6 +29,8 @@ import {
     CardGroupConfigPanel,
     IconBoxConfigPanel,
     PricingTableConfigPanel,
+    AccordionConfigPanel,
+    HeadingConfigPanel,
     // Blog Config Panels
     BlogGridConfigPanel,
     BlogCategoriesSidebarConfigPanel,
@@ -239,6 +241,22 @@ export default function ModuleEditor({ module, onChange, onDelete, storeId }: Mo
             case 'pricing-table':
                 return (
                     <PricingTableConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
+                    />
+                );
+
+            case 'accordion':
+                return (
+                    <AccordionConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
+                    />
+                );
+
+            case 'heading':
+                return (
+                    <HeadingConfigPanel
                         config={module.config as any}
                         onChange={updateConfig}
                     />

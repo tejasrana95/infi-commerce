@@ -40,6 +40,8 @@ export * from './StripBannerConfigPanel';
 export * from './CardGroupConfigPanel';
 export { default as IconBoxConfigPanel } from './IconBoxConfigPanel';
 export { default as PricingTableConfigPanel } from './PricingTableConfigPanel';
+export { default as AccordionConfigPanel } from './AccordionConfigPanel';
+export { default as HeadingConfigPanel } from './HeadingConfigPanel';
 
 // Blog Config Panels
 export * from './BlogConfigPanels';

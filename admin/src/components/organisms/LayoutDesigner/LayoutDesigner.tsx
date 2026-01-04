@@ -589,6 +589,7 @@ export default function LayoutDesigner({
                             mt: 2,
                             zIndex: 1,
                             mb: 4,
+                            maxHeight: '90vh',
                             '& .MuiDrawer-paper': {
                                 width: 280,
                                 position: 'relative',

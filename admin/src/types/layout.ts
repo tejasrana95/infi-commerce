@@ -15,7 +15,9 @@ export type ModuleType =
     | 'checkout-content'
     | 'cart-details'
     | 'account-sidebar' | 'account-dashboard' | 'account-orders' | 'account-profile' | 'account-addresses'
-    | 'form';
+    | 'form'
+    | 'accordion'
+    | 'heading';
 
 export type SectionType = 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';
 

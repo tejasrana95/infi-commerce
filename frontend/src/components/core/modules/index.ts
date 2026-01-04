@@ -11,8 +11,10 @@ import BrandLogosModule from './standard/BrandLogos';
 import ProductCarouselModule from './standard/ProductCarousel';
 import ProductGridModule from './standard/ProductGrid';
 import CategoryShowcaseModule from './standard/CategoryShowcase';
+import HeadingModule from './standard/Heading';
 import TextBlockModule from './standard/TextBlock';
 import IconBoxModule from './standard/IconBox';
+import AccordionModule from './standard/Accordion';
 import PricingTableModule from './standard/PricingTable';
 import ImageModule from './standard/Image';
 import ImageGalleryModule from './standard/ImageGallery';
@@ -68,6 +70,8 @@ export const moduleRegistry: Record<string, ModuleComponent> = {
     'product-grid': ProductGridModule,
     'category-showcase': CategoryShowcaseModule,
     'text-block': TextBlockModule,
+    'heading': HeadingModule,
+    'accordion': AccordionModule,
     'icon-box': IconBoxModule,
     'pricing-table': PricingTableModule,
     'image': ImageModule,

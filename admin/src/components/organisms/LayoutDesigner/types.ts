@@ -698,6 +698,39 @@ export const AVAILABLE_MODULES: ModuleDefinition[] = [
             redirectUrl: '',
         },
     },
+    {
+        type: 'accordion',
+        label: 'Accordion',
+        icon: 'ExpandMore',
+        category: 'standard',
+        description: 'Collapsible content sections (FAQ)',
+        defaultConfig: {
+            items: [],
+            selectionMode: 'single',
+            defaultState: 'closed',
+            title: ''
+        },
+    },
+    {
+        type: 'heading',
+        label: 'Heading',
+        icon: 'Title',
+        category: 'standard',
+        description: 'Advanced heading with styling',
+        defaultConfig: {
+            heading: 'Your Title',
+            subheading: '',
+            tag: 'h2',
+            align: 'center',
+            styles: {
+                color: '#000000',
+                fontSize: 32,
+                fontWeight: 700,
+                paddingTop: 20,
+                paddingBottom: 20
+            }
+        },
+    },
 ];
 
 // Get modules by category
