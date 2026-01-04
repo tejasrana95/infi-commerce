@@ -52,11 +52,11 @@ export default function ProductVariantSelector({
                 onChange={(e) => onOptionChange(option.optionId, e.target.value)}
             >
                 <option value="">Select {option.name}</option>
-                {allValues.map((optionValue) => {
+                {allValues.map((optionValue, index) => {
                     const isAvailable = available.includes(optionValue.value);
                     return (
                         <option
-                            key={optionValue.value}
+                            key={`${optionValue.value}-${index}`}
                             value={optionValue.value}
                             disabled={!isAvailable}
                         >
@@ -74,13 +74,13 @@ export default function ProductVariantSelector({
 
         return (
             <div className={styles.optionButtons}>
-                {allValues.map((optionValue) => {
+                {allValues.map((optionValue, index) => {
                     const isSelected = selectedOptions[option.optionId] === optionValue.value;
                     const isAvailable = available.includes(optionValue.value);
 
                     return (
                         <button
-                            key={optionValue.value}
+                            key={`${optionValue.value}-${index}`}
                             className={`${styles.optionButton} ${isSelected ? styles.selected : ''} ${!isAvailable ? styles.unavailable : ''}`}
                             onClick={() => isAvailable && onOptionChange(option.optionId, optionValue.value)}
                             disabled={!isAvailable}
@@ -101,14 +101,14 @@ export default function ProductVariantSelector({
 
         return (
             <div className={styles.swatches}>
-                {allValues.map((optionValue) => {
+                {allValues.map((optionValue, index) => {
                     const isSelected = selectedOptions[option.optionId] === optionValue.value;
                     const isAvailable = available.includes(optionValue.value);
 
                     if (isColorOption && optionValue.colorCode) {
                         return (
                             <button
-                                key={optionValue.value}
+                                key={`${optionValue.value}-${index}`}
                                 className={`${styles.colorSwatch} ${isSelected ? styles.selected : ''} ${!isAvailable ? styles.unavailable : ''}`}
                                 onClick={() => isAvailable && onOptionChange(option.optionId, optionValue.value)}
                                 disabled={!isAvailable}
@@ -123,7 +123,7 @@ export default function ProductVariantSelector({
                     // Non-color swatches (like size)
                     return (
                         <button
-                            key={optionValue.value}
+                            key={`${optionValue.value}-${index}`}
                             className={`${styles.swatch} ${isSelected ? styles.selected : ''} ${!isAvailable ? styles.unavailable : ''}`}
                             onClick={() => isAvailable && onOptionChange(option.optionId, optionValue.value)}
                             disabled={!isAvailable}

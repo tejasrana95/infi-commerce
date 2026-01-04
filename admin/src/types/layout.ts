@@ -190,6 +190,7 @@ export interface Page {
         metaKeywords?: string[];
         ogImage?: string;
         canonicalUrl?: string;
+        score?: number;
     };
     status: 'published' | 'draft';
     showInFooter: boolean;
@@ -216,6 +217,7 @@ export interface BlogCategory {
         metaTitle?: string;
         metaDescription?: string;
         keywords?: string[];
+        score?: number;
     };
     storeId: string;
     createdAt: string;
@@ -250,6 +252,7 @@ export interface BlogPost {
         ogImage?: string;
         ogTitle?: string;
         ogDescription?: string;
+        score?: number;
     };
     stats: {
         views: number;

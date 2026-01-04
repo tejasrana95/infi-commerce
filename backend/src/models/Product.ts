@@ -391,6 +391,12 @@ const ProductSchema = new Schema<IProduct>(
             ogTitle: String,
             ogDescription: String,
             ogImage: String,
+            score: {
+                type: Number,
+                min: 0,
+                max: 100,
+                default: 0,
+            },
         },
 
         // Status

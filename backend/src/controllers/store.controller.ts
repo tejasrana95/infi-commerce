@@ -99,6 +99,10 @@ export const getStoreByDomain = asyncHandler(async (req: Request, res: Response)
 
     const store = await Store.findOne({ domain, isActive: true });
 
+    if (store && store.settings?.aiSettings?.openaiKey) {
+        store.settings.aiSettings.openaiKey = '••••••••••••••••••••';
+    }
+
     if (!store) {
         throw new AppError('Store not found', 404);
     }
@@ -299,6 +303,13 @@ export const getStores = asyncHandler(async (req: AuthRequest, res: Response) =>
         Store.countDocuments(filter),
     ]);
 
+    // Mask AI keys
+    stores.forEach(store => {
+        if (store.settings?.aiSettings?.openaiKey) {
+            store.settings.aiSettings.openaiKey = '••••••••••••••••••••';
+        }
+    });
+
     res.json({
         stores,
         pagination: {
@@ -352,6 +363,10 @@ export const getStoreById = asyncHandler(async (req: AuthRequest, res: Response)
         throw new AppError('Store not found', 404);
     }
 
+    if (store.settings?.aiSettings?.openaiKey) {
+        store.settings.aiSettings.openaiKey = '••••••••••••••••••••';
+    }
+
     cache.set(cacheKey, store, 300);
 
     return res.json({ store });
@@ -397,6 +412,10 @@ export const getStoreBySlug = asyncHandler(async (req: AuthRequest, res: Respons
 
     if (!store) {
         throw new AppError('Store not found', 404);
+    }
+
+    if (store.settings?.aiSettings?.openaiKey) {
+        store.settings.aiSettings.openaiKey = '••••••••••••••••••••';
     }
 
     cache.set(cacheKey, store, 300);
@@ -518,6 +537,11 @@ export const updateStore = asyncHandler(async (req: AuthRequest, res: Response) 
             });
         };
         flattenObject(settings);
+    }
+
+    // Handle OpenAI Key masking/preserving
+    if (finalUpdates['settings.aiSettings.openaiKey'] === '••••••••••••••••••••') {
+        delete finalUpdates['settings.aiSettings.openaiKey'];
     }
 
     const store = await Store.findByIdAndUpdate(id, finalUpdates, {

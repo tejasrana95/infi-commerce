@@ -14,7 +14,13 @@ import {
     Tabs,
     Tab,
     Typography,
+    Button,
+    CircularProgress,
 } from '@mui/material';
+import AssessmentIcon from '@mui/icons-material/Assessment';
+import AdminAIAssistant from '../organisms/AdminAIAssistant/AdminAIAssistant';
+import SeoSuggestions from '../molecules/SeoSuggestions';
+import api from '@/lib/api';
 import { Page } from '@/types';
 import StoreAutocomplete from '@/components/molecules/StoreAutocomplete';
 import FileManagerButton from '@/components/molecules/FileManagerButton';
@@ -41,6 +47,7 @@ const schema = z.object({
         metaDescription: z.string().max(160).optional(),
         metaKeywords: z.array(z.string()).optional(),
         ogImage: z.string().url().optional().or(z.literal('')),
+        score: z.number().min(0).max(100).optional(),
     }).optional(),
 });
 
@@ -69,18 +76,22 @@ const defaultValues: FormData = {
         metaDescription: '',
         metaKeywords: [],
         ogImage: '',
+        score: 0,
     },
 };
 
 export default function PageForm({ initialData, onSubmit, isSubmitting = false }: PageFormProps) {
-    const { control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FormData>({
+    const { control, handleSubmit, reset, watch, setValue, getValues, formState: { errors } } = useForm<FormData>({
         resolver: zodResolver(schema),
         defaultValues,
     });
 
     const [activeTab, setActiveTab] = useState(0);
+    const [isCalculatingSeo, setIsCalculatingSeo] = useState(false);
+    const [seoSuggestions, setSeoSuggestions] = useState<string[]>([]);
     const watchedTitle = watch('title');
     const watchedShowInFooter = watch('showInFooter');
+    const seoScore = watch('seo.score') || 0;
 
     useEffect(() => {
         if (initialData) {
@@ -95,16 +106,12 @@ export default function PageForm({ initialData, onSubmit, isSubmitting = false }
                 content: initialData.content || '',
                 featuredImage: initialData.featuredImage || '',
                 status: initialData.status || 'draft',
-                template: initialData.template || 'default',
-                showInHeader: initialData.showInHeader ?? false,
-                showInFooter: initialData.showInFooter ?? false,
-                footerGroup: initialData.footerGroup || '',
-                sortOrder: initialData.sortOrder ?? 0,
                 seo: {
                     metaTitle: initialData.seo?.metaTitle || '',
                     metaDescription: initialData.seo?.metaDescription || '',
                     metaKeywords: initialData.seo?.metaKeywords || [],
                     ogImage: initialData.seo?.ogImage || '',
+                    score: initialData.seo?.score || 0,
                 },
             });
         } else {
@@ -123,11 +130,32 @@ export default function PageForm({ initialData, onSubmit, isSubmitting = false }
         }
     }, [watchedTitle, initialData, setValue]);
 
+    const handleCalculateSeo = async () => {
+        setIsCalculatingSeo(true);
+        try {
+            const seoData = {
+                title: getValues('seo.metaTitle') || getValues('title'),
+                description: getValues('seo.metaDescription') || '',
+                keywords: getValues('seo.metaKeywords'),
+            };
+
+            const response = await api.post('/ai/admin/seo-score', { data: seoData });
+            if (response.data.success) {
+                const { score, suggestions } = response.data.analysis;
+                setValue('seo.score', score, { shouldDirty: true });
+                setSeoSuggestions(suggestions || []);
+            }
+        } catch (error) {
+            console.error('Failed to calculate SEO score:', error);
+        } finally {
+            setIsCalculatingSeo(false);
+        }
+    };
+
     return (
         <Box component="form" id="page-form" onSubmit={handleSubmit(onSubmit)}>
             <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)} sx={{ mb: 3 }}>
                 <Tab label="Content" />
-                <Tab label="Settings" />
                 <Tab label="SEO" />
             </Tabs>
 
@@ -260,107 +288,8 @@ export default function PageForm({ initialData, onSubmit, isSubmitting = false }
                 </Grid>
             )}
 
-            {/* Tab 1: Settings */}
+            {/* Tab 1: SEO */}
             {activeTab === 1 && (
-                <Grid container spacing={3}>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <Controller
-                            name="template"
-                            control={control}
-                            render={({ field }) => (
-                                <TextField
-                                    {...field}
-                                    select
-                                    label="Template"
-                                    fullWidth
-                                >
-                                    <MenuItem value="default">Default</MenuItem>
-                                    <MenuItem value="full-width">Full Width</MenuItem>
-                                    <MenuItem value="sidebar">With Sidebar</MenuItem>
-                                    <MenuItem value="landing">Landing Page</MenuItem>
-                                </TextField>
-                            )}
-                        />
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <Controller
-                            name="sortOrder"
-                            control={control}
-                            render={({ field: { onChange, value, ...field } }) => (
-                                <TextField
-                                    {...field}
-                                    value={value ?? 0}
-                                    onChange={(e) => onChange(e.target.value ? Number(e.target.value) : 0)}
-                                    label="Sort Order"
-                                    type="number"
-                                    fullWidth
-                                    helperText="Lower numbers appear first"
-                                />
-                            )}
-                        />
-                    </Grid>
-
-                    <Grid size={{ xs: 12 }}>
-                        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
-                            Navigation Settings
-                        </Typography>
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <Controller
-                            name="showInHeader"
-                            control={control}
-                            render={({ field }) => (
-                                <FormControlLabel
-                                    control={<Switch checked={field.value} onChange={field.onChange} />}
-                                    label="Show in Header Navigation"
-                                />
-                            )}
-                        />
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <Controller
-                            name="showInFooter"
-                            control={control}
-                            render={({ field }) => (
-                                <FormControlLabel
-                                    control={<Switch checked={field.value} onChange={field.onChange} />}
-                                    label="Show in Footer"
-                                />
-                            )}
-                        />
-                    </Grid>
-
-                    {watchedShowInFooter && (
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <Controller
-                                name="footerGroup"
-                                control={control}
-                                render={({ field }) => (
-                                    <TextField
-                                        {...field}
-                                        select
-                                        label="Footer Group"
-                                        fullWidth
-                                        helperText="Group this page under a footer section"
-                                    >
-                                        <MenuItem value="">None</MenuItem>
-                                        <MenuItem value="Company">Company</MenuItem>
-                                        <MenuItem value="Support">Support</MenuItem>
-                                        <MenuItem value="Legal">Legal</MenuItem>
-                                        <MenuItem value="Resources">Resources</MenuItem>
-                                    </TextField>
-                                )}
-                            />
-                        </Grid>
-                    )}
-                </Grid>
-            )}
-
-            {/* Tab 2: SEO */}
-            {activeTab === 2 && (
                 <Grid container spacing={3}>
                     <Grid size={{ xs: 12, md: 6 }}>
                         <Controller
@@ -434,8 +363,37 @@ export default function PageForm({ initialData, onSubmit, isSubmitting = false }
                             />
                         </Grid>
                     )}
+                    <Grid size={{ xs: 12 }}>
+                        <SeoSuggestions suggestions={seoSuggestions} score={seoScore} />
+                    </Grid>
                 </Grid>
             )}
+
+            {activeTab === 1 && (
+                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2 }}>
+                    {seoScore > 0 && (
+                        <Typography
+                            variant="subtitle1"
+                            sx={{
+                                fontWeight: 'bold',
+                                color: seoScore >= 70 ? 'success.main' : seoScore >= 40 ? 'warning.main' : 'error.main'
+                            }}
+                        >
+                            {seoScore}/100
+                        </Typography>
+                    )}
+                    <Button
+                        variant="outlined"
+                        startIcon={isCalculatingSeo ? <CircularProgress size={20} color="inherit" /> : <AssessmentIcon />}
+                        onClick={handleCalculateSeo}
+                        disabled={isCalculatingSeo}
+                    >
+                        {isCalculatingSeo ? 'Calculating...' : 'Calculate SEO Score'}
+                    </Button>
+                </Box>
+            )}
+
+            <AdminAIAssistant entityType="page" getValues={getValues} setValue={setValue as any} />
         </Box>
     );
 }

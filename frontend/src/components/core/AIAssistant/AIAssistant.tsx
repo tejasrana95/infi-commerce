@@ -19,7 +19,7 @@ const MarkdownContent = ({ content }: { content: string }) => {
     // 3. Replace plain URLs with <a href="url">url</a>
 
     // Process in stages to support nesting (e.g., links inside bold)
-    const processContent = (text: string): React.ReactNode[] => {
+    const processContent = (text: string, disableLinks = false): React.ReactNode[] => {
         const elements: React.ReactNode[] = [];
         let currentIndex = 0;
         let key = 0;
@@ -41,20 +41,52 @@ const MarkdownContent = ({ content }: { content: string }) => {
                 const innerText = matchedText.slice(2, -2);
                 elements.push(
                     <strong key={`bold-${key++}`}>
-                        {processContent(innerText)}
+                        {processContent(innerText, disableLinks)}
                     </strong>
                 );
             }
             // Handle markdown links
             else if (matchedText.startsWith('[')) {
-                const linkMatch = matchedText.match(/\[((?:[^\]]|\\\])*)\]\(((?:[^)]|\\\))*)\)/);
-                if (linkMatch) {
-                    const linkText = linkMatch[1];
-                    const linkUrl = linkMatch[2];
+                if (disableLinks) {
+                    elements.push(matchedText);
+                } else {
+                    const linkMatch = matchedText.match(/\[((?:[^\]]|\\\])*)\]\(((?:[^)]|\\\))*)\)/);
+                    if (linkMatch) {
+                        const linkText = linkMatch[1];
+                        const linkUrl = linkMatch[2];
+                        elements.push(
+                            <a
+                                key={`md-link-${key++}`}
+                                href={linkUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                    color: '#4A9EFF',
+                                    textDecoration: 'underline',
+                                    cursor: 'pointer',
+                                    display: 'inline',
+                                    wordBreak: 'break-word',
+                                    position: 'relative',
+                                    zIndex: 1
+                                }}
+                            >
+                                {processContent(linkText, true)}
+                            </a>
+                        );
+                    } else {
+                        elements.push(matchedText);
+                    }
+                }
+            }
+            // Handle plain URLs
+            else if (matchedText.startsWith('http')) {
+                if (disableLinks) {
+                    elements.push(matchedText);
+                } else {
                     elements.push(
                         <a
-                            key={`md-link-${key++}`}
-                            href={linkUrl}
+                            key={`url-${key++}`}
+                            href={matchedText}
                             target="_blank"
                             rel="noopener noreferrer"
                             style={{
@@ -67,34 +99,10 @@ const MarkdownContent = ({ content }: { content: string }) => {
                                 zIndex: 1
                             }}
                         >
-                            {processContent(linkText)}
+                            {matchedText}
                         </a>
                     );
-                } else {
-                    elements.push(matchedText);
                 }
-            }
-            // Handle plain URLs
-            else if (matchedText.startsWith('http')) {
-                elements.push(
-                    <a
-                        key={`url-${key++}`}
-                        href={matchedText}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                            color: '#4A9EFF',
-                            textDecoration: 'underline',
-                            cursor: 'pointer',
-                            display: 'inline',
-                            wordBreak: 'break-word',
-                            position: 'relative',
-                            zIndex: 1
-                        }}
-                    >
-                        {matchedText}
-                    </a>
-                );
             }
 
             currentIndex = match.index + matchedText.length;
@@ -318,9 +326,11 @@ export default function AIAssistant() {
                 <div className={styles.messages} ref={scrollRef}>
                     {history.map((msg, i) => (
                         <div key={i} className={`${styles.message} ${styles[msg.role]}`}>
-                            <div className={styles.bubble}>
-                                <MarkdownContent content={msg.content} />
-                            </div>
+                            {msg.content && (
+                                <div className={styles.bubble}>
+                                    <MarkdownContent content={msg.content} />
+                                </div>
+                            )}
                         </div>
                     ))}
                     {isLoading && (

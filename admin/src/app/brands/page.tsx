@@ -8,7 +8,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import api from '@/lib/api';
 import { Brand } from '@/types';
 import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules';
-import { LoadingSpinner, StatusChip, PermissionGuard } from '@/components/atoms';
+import { LoadingSpinner, StatusChip, PermissionGuard, SeoScoreBadge } from '@/components/atoms';
 import BrandForm from '@/components/organisms/BrandForm';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -187,6 +187,14 @@ export default function BrandsPage() {
             headerName: 'Status',
             width: 120,
             renderCell: (params: GridRenderCellParams) => <Box display="flex" flexDirection="column" justifyContent="center" height="100%"><StatusChip active={params.value as boolean} /></Box>,
+        },
+        {
+            field: 'seo',
+            headerName: 'SEO Score',
+            width: 120,
+            renderCell: (params: GridRenderCellParams) => (
+                <SeoScoreBadge score={params.row.seo?.score} />
+            ),
         },
         {
             field: 'actions',

@@ -101,7 +101,7 @@ const schema = z.object({
             trackingId: z.string().optional(),
         }).optional(),
     }).optional(),
-});
+}).optional();
 
 type FormData = z.infer<typeof schema>;
 
@@ -760,7 +760,6 @@ export default function StoreForm({ initialData, onSubmit, isSubmitting = false 
                         />
                     </Grid>
 
-                    {/* Review Settings Section */}
                     <Grid size={{ xs: 12 }}>
                         <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>Reviews</Typography>
                     </Grid>

@@ -10,7 +10,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import api from '@/lib/api';
 import { BlogPost, BlogCategory } from '@/types';
 import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules';
-import { LoadingSpinner, PermissionGuard } from '@/components/atoms';
+import { LoadingSpinner, PermissionGuard, SeoScoreBadge } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
@@ -229,6 +229,14 @@ export default function BlogPostsPage() {
                     </Typography>
                 </Box>
             )
+        },
+        {
+            field: 'seo',
+            headerName: 'SEO Score',
+            width: 120,
+            renderCell: (params: GridRenderCellParams) => (
+                <SeoScoreBadge score={params.row.seo?.score} />
+            ),
         },
         {
             field: 'actions',

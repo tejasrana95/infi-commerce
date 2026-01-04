@@ -172,6 +172,8 @@ router.use('/forms', formRoutes);
 router.use('/backup', backupRoutes);
 
 // Mount AI Assistant routes
+import adminAiRoutes from './admin-ai.routes';
+router.use('/ai/admin', adminAiRoutes);
 router.use('/ai', aiRoutes);
 
 // Mount API key management routes

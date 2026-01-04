@@ -78,6 +78,7 @@ export interface IStore extends Document {
         aiSettings?: {
             enabled: boolean;
             openaiKey?: string;
+            model?: string;
         };
         [key: string]: any;
     };

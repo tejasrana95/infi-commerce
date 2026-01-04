@@ -10,7 +10,7 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import api from '@/lib/api';
 import { Page } from '@/types';
 import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules';
-import { LoadingSpinner, StatusChip } from '@/components/atoms';
+import { LoadingSpinner, StatusChip, SeoScoreBadge } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { createDataGridStyles } from '@/utils/styles';
@@ -221,6 +221,15 @@ export default function PagesPage() {
                         {new Date(params.value).toLocaleDateString()}
                     </Typography>
                 </Box>
+            ),
+        },
+        {
+            field: 'seo',
+            headerName: 'SEO Score',
+            width: 120,
+            display: 'flex',
+            renderCell: (params: GridRenderCellParams) => (
+                <SeoScoreBadge score={params.row.seo?.score} />
             ),
         },
         {

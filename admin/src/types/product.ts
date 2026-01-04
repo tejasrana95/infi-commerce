@@ -19,6 +19,7 @@ export interface Category {
         ogDescription?: string;
         ogImage?: string;
         twitterCard?: 'summary' | 'summary_large_image' | 'app' | 'player';
+        score?: number;
     };
 
     level: number;
@@ -60,6 +61,12 @@ export interface Brand {
     description?: string;
     website?: string;
     isActive: boolean;
+    seo?: {
+        metaTitle?: string;
+        metaDescription?: string;
+        metaKeywords?: string[];
+        score?: number;
+    };
     storeId: string | Store; // Can be populated
     createdAt: string;
     updatedAt: string;
@@ -159,6 +166,7 @@ export interface Product {
         ogTitle?: string;
         ogDescription?: string;
         ogImage?: string;
+        score?: number;
     };
 
     // Status

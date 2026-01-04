@@ -15,8 +15,15 @@ import {
     Tab,
     Typography,
     Chip,
+    InputAdornment,
+    CircularProgress,
     Autocomplete,
+    Button
 } from '@mui/material';
+import AssessmentIcon from '@mui/icons-material/Assessment';
+import AdminAIAssistant from '../organisms/AdminAIAssistant/AdminAIAssistant';
+import SeoSuggestions from '../molecules/SeoSuggestions';
+import api from '@/lib/api';
 import { Category } from '@/types';
 import StoreAutocomplete from '@/components/molecules/StoreAutocomplete';
 import CategoryAutocomplete from '@/components/molecules/CategoryAutocomplete';
@@ -45,6 +52,7 @@ const schema = z.object({
         ogDescription: z.string().optional(),
         ogImage: z.string().url('Must be a valid URL').optional().or(z.literal('')),
         twitterCard: z.enum(['summary', 'summary_large_image', 'app', 'player']).optional(),
+        score: z.number().min(0).max(100).optional(),
     }).optional(),
 });
 
@@ -74,18 +82,22 @@ const defaultValues: FormData = {
         ogDescription: '',
         ogImage: '',
         twitterCard: 'summary_large_image',
+        score: 0,
     },
 };
 
 export default function CategoryForm({ initialData, onSubmit, isSubmitting = false }: CategoryFormProps) {
-    const { control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FormData>({
+    const { control, handleSubmit, reset, watch, setValue, getValues, formState: { errors } } = useForm<FormData>({
         resolver: zodResolver(schema),
         defaultValues,
     });
 
     const [activeTab, setActiveTab] = useState(0);
+    const [isCalculatingSeo, setIsCalculatingSeo] = useState(false);
+    const [seoSuggestions, setSeoSuggestions] = useState<string[]>([]);
     const watchedTitle = watch('title');
     const watchedStoreId = watch('storeId');
+    const seoScore = watch('seo.score') || 0;
 
     useEffect(() => {
         if (initialData) {
@@ -116,6 +128,7 @@ export default function CategoryForm({ initialData, onSubmit, isSubmitting = fal
                     ogDescription: initialData.seo?.ogDescription || '',
                     ogImage: initialData.seo?.ogImage || '',
                     twitterCard: initialData.seo?.twitterCard || 'summary_large_image',
+                    score: initialData.seo?.score || 0,
                 },
             });
         } else {
@@ -133,6 +146,28 @@ export default function CategoryForm({ initialData, onSubmit, isSubmitting = fal
             setValue('slug', slug);
         }
     }, [watchedTitle, initialData, setValue]);
+
+    const handleCalculateSeo = async () => {
+        setIsCalculatingSeo(true);
+        try {
+            const seoData = {
+                title: getValues('seo.metaTitle') || getValues('title'),
+                description: getValues('seo.metaDescription') || getValues('description'),
+                keywords: getValues('seo.metaKeywords'),
+            };
+
+            const response = await api.post('/ai/admin/seo-score', { data: seoData });
+            if (response.data.success) {
+                const { score, suggestions } = response.data.analysis;
+                setValue('seo.score', score, { shouldDirty: true });
+                setSeoSuggestions(suggestions || []);
+            }
+        } catch (error) {
+            console.error('Failed to calculate SEO score:', error);
+        } finally {
+            setIsCalculatingSeo(false);
+        }
+    };
 
     return (
         <Box component="form" id="category-form" onSubmit={handleSubmit(onSubmit)}>
@@ -249,9 +284,9 @@ export default function CategoryForm({ initialData, onSubmit, isSubmitting = fal
                                         error={!!errors.image}
                                         helperText={errors.image?.message}
                                         placeholder="https://example.com/category.jpg"
-                                        slotProps={{
-                                            input: {
-                                                endAdornment: (
+                                        InputProps={{
+                                            endAdornment: (
+                                                <InputAdornment position="end">
                                                     <FileManagerButton
                                                         label="Browse"
                                                         variant="outlined"
@@ -264,8 +299,8 @@ export default function CategoryForm({ initialData, onSubmit, isSubmitting = fal
                                                             }
                                                         }}
                                                     />
-                                                ),
-                                            },
+                                                </InputAdornment>
+                                            ),
                                         }}
                                     />
                                 </Box>
@@ -308,7 +343,7 @@ export default function CategoryForm({ initialData, onSubmit, isSubmitting = fal
                                     type="number"
                                     fullWidth
                                     helperText="Lower numbers appear first"
-                                    slotProps={{ htmlInput: { min: 0 } }}
+                                    InputProps={{ inputProps: { min: 0 } }}
                                 />
                             )}
                         />
@@ -333,9 +368,33 @@ export default function CategoryForm({ initialData, onSubmit, isSubmitting = fal
             {activeTab === 1 && (
                 <Grid container spacing={3}>
                     <Grid size={{ xs: 12 }}>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
-                            Optimize your category for search engines and social media
-                        </Typography>
+                        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                            <Typography variant="body2" color="text.secondary">
+                                Optimize your category for search engines and social media
+                            </Typography>
+                            <Box display="flex" alignItems="center" gap={2}>
+                                {seoScore > 0 && (
+                                    <Typography
+                                        variant="subtitle1"
+                                        sx={{
+                                            fontWeight: 'bold',
+                                            color: seoScore >= 70 ? 'success.main' : seoScore >= 40 ? 'warning.main' : 'error.main'
+                                        }}
+                                    >
+                                        {seoScore}/100
+                                    </Typography>
+                                )}
+                                <Button
+                                    variant="outlined"
+                                    startIcon={isCalculatingSeo ? <CircularProgress size={20} color="inherit" /> : <AssessmentIcon />}
+                                    onClick={handleCalculateSeo}
+                                    size="small"
+                                    disabled={isCalculatingSeo}
+                                >
+                                    {isCalculatingSeo ? 'Calculating...' : 'Calculate SEO Score'}
+                                </Button>
+                            </Box>
+                        </Box>
                     </Grid>
 
                     <Grid size={{ xs: 12, md: 6 }}>
@@ -495,6 +554,9 @@ export default function CategoryForm({ initialData, onSubmit, isSubmitting = fal
                             )}
                         />
                     </Grid>
+                    <Grid size={{ xs: 12 }}>
+                        <SeoSuggestions suggestions={seoSuggestions} score={seoScore} />
+                    </Grid>
                 </Grid>
             )}
 
@@ -540,6 +602,7 @@ export default function CategoryForm({ initialData, onSubmit, isSubmitting = fal
                     )}
                 </Grid>
             )}
+            <AdminAIAssistant entityType="category" getValues={getValues} setValue={setValue as any} />
         </Box>
     );
 }

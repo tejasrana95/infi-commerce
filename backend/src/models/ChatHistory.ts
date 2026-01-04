@@ -6,9 +6,11 @@ import mongoose, { Schema, Document } from 'mongoose';
  */
 
 interface IMessage {
-    role: 'user' | 'assistant' | 'system';
+    role: 'user' | 'assistant' | 'system' | 'tool';
     content: string;
     timestamp: Date;
+    tool_calls?: any[];
+    tool_call_id?: string;
 }
 
 export interface IChatHistory extends Document {
@@ -23,12 +25,20 @@ export interface IChatHistory extends Document {
 const MessageSchema = new Schema<IMessage>({
     role: {
         type: String,
-        enum: ['user', 'assistant', 'system'],
+        enum: ['user', 'assistant', 'system', 'tool'],
         required: true
     },
     content: {
         type: String,
-        required: true
+        required: false // Content can be null when tool_calls are present
+    },
+    tool_calls: {
+        type: [Schema.Types.Mixed],
+        required: false
+    },
+    tool_call_id: {
+        type: String,
+        required: false
     },
     timestamp: {
         type: Date,

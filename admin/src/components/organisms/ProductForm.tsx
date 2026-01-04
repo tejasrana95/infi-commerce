@@ -18,6 +18,7 @@ import {
     IconButton,
     Typography,
     Button,
+    CircularProgress,
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -25,6 +26,7 @@ import { z } from 'zod';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import api from '@/lib/api';
+import AssessmentIcon from '@mui/icons-material/Assessment';
 import { TaxRate } from '@/types';
 import StoreAutocomplete from '../molecules/StoreAutocomplete';
 import BrandAutocomplete from '../molecules/BrandAutocomplete';
@@ -37,6 +39,8 @@ import ProductOptionManager from './ProductForm/ProductOptionManager';
 import SpecificationManager from './ProductForm/SpecificationManager';
 import VariantManager from './ProductForm/VariantManager';
 import RichTextEditor from '../molecules/RichTextEditor';
+import AdminAIAssistant from '../organisms/AdminAIAssistant/AdminAIAssistant';
+import SeoSuggestions from '../molecules/SeoSuggestions';
 
 
 // Validation schema
@@ -143,6 +147,7 @@ const schema = z.object({
         ogTitle: z.string().optional(),
         ogDescription: z.string().optional(),
         ogImage: z.string().url().optional().or(z.literal('')),
+        score: z.number().min(0).max(100).optional(),
     }).optional(),
 
     // Status
@@ -183,6 +188,7 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
         handleSubmit,
         watch,
         setValue,
+        getValues,
         formState: { errors },
     } = useForm<FormData>({
         resolver: zodResolver(schema),
@@ -238,6 +244,7 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
                 ogTitle: '',
                 ogDescription: '',
                 ogImage: '',
+                score: 0,
             },
             isActive: true,
             isFeatured: false,
@@ -245,10 +252,15 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
         },
     });
 
+    const [isCalculatingSeo, setIsCalculatingSeo] = useState(false);
+    const [seoSuggestions, setSeoSuggestions] = useState<string[]>([]);
+
     const watchName = watch('name');
     const watchStoreId = watch('storeId');
     const watchTags = watch('tags') || [];
+
     const watchType = watch('type');
+    const seoScore = watch('seo.score') || 0;
 
 
     // Auto-generate slug from name
@@ -341,6 +353,7 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
                 ogTitle: initialData.seo?.ogTitle || '',
                 ogDescription: initialData.seo?.ogDescription || '',
                 ogImage: initialData.seo?.ogImage || '',
+                score: initialData.seo?.score || 0,
             });
             setValue('isActive', initialData.isActive !== undefined ? initialData.isActive : true);
             setValue('isFeatured', initialData.isFeatured || false);
@@ -363,6 +376,7 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
             seo: {
                 ...data.seo,
                 ogImage: data.seo?.ogImage || undefined,
+                score: data.seo?.score,
             },
             downloadable: data.type === 'digital',
         };
@@ -378,6 +392,28 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
 
     const handleDeleteTag = (tagToDelete: string) => {
         setValue('tags', watchTags.filter(tag => tag !== tagToDelete));
+    };
+
+    const handleCalculateSeo = async () => {
+        setIsCalculatingSeo(true);
+        try {
+            const seoData = {
+                title: getValues('seo.metaTitle') || getValues('name'),
+                description: getValues('seo.metaDescription') || getValues('description'),
+                keywords: getValues('seo.metaKeywords'),
+            };
+
+            const response = await api.post('/ai/admin/seo-score', { data: seoData });
+            if (response.data.success) {
+                const { score, suggestions } = response.data.analysis;
+                setValue('seo.score', score, { shouldDirty: true });
+                setSeoSuggestions(suggestions || []);
+            }
+        } catch (error) {
+            console.error('Failed to calculate SEO score:', error);
+        } finally {
+            setIsCalculatingSeo(false);
+        }
     };
 
     return (
@@ -655,6 +691,7 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
             )}
 
             {/* Pricing & Inventory Tab */}
+            <AdminAIAssistant entityType="product" getValues={getValues} setValue={setValue as any} />
             {activeTab === 1 && (
                 <Paper sx={{ p: 3 }}>
                     <Grid container spacing={3}>
@@ -1089,7 +1126,31 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
                 <Paper sx={{ p: 3 }}>
                     <Grid container spacing={3}>
                         <Grid size={{ xs: 12 }}>
-                            <Typography variant="h6" sx={{ mb: 2 }}>SEO Settings</Typography>
+                            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                                <Typography variant="h6" sx={{ mb: 0 }}>SEO Settings</Typography>
+                                <Box display="flex" alignItems="center" gap={2}>
+                                    {seoScore > 0 && (
+                                        <Typography
+                                            variant="subtitle1"
+                                            sx={{
+                                                fontWeight: 'bold',
+                                                color: seoScore >= 70 ? 'success.main' : seoScore >= 40 ? 'warning.main' : 'error.main'
+                                            }}
+                                        >
+                                            {seoScore}/100
+                                        </Typography>
+                                    )}
+                                    <Button
+                                        variant="outlined"
+                                        startIcon={isCalculatingSeo ? <CircularProgress size={20} color="inherit" /> : <AssessmentIcon />}
+                                        onClick={handleCalculateSeo}
+                                        size="small"
+                                        disabled={isCalculatingSeo}
+                                    >
+                                        {isCalculatingSeo ? 'Calculating...' : 'Calculate SEO Score'}
+                                    </Button>
+                                </Box>
+                            </Box>
                         </Grid>
 
 
@@ -1253,6 +1314,9 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
                             />
                         </Grid>
 
+                        <Grid size={{ xs: 12 }}>
+                            <SeoSuggestions suggestions={seoSuggestions} score={seoScore} />
+                        </Grid>
 
 
                         <Grid size={{ xs: 12 }}>

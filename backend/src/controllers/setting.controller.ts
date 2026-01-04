@@ -58,3 +58,67 @@ export const updateAdminBranding = asyncHandler(async (req: AuthRequest, res: Re
         branding: branding.value
     });
 });
+
+/**
+ * @swagger
+ * /api/settings/admin-ai:
+ *   get:
+ *     summary: Get admin AI settings
+ *     tags: [Settings]
+ *     responses:
+ *       200:
+ *         description: AI settings
+ *   put:
+ *     summary: Update admin AI settings
+ *     tags: [Settings]
+ */
+export const getAdminAiSettings = asyncHandler(async (_req: Request, res: Response) => {
+    const settings = await Setting.findOne({ key: 'adminAiSettings' });
+
+    const defaultSettings = {
+        enabled: false,
+        openaiKey: '',
+        model: 'gpt-4o-mini'
+    };
+
+    const responseData = settings ? settings.value : defaultSettings;
+
+    // Mask the key for security
+    if (responseData.openaiKey) {
+        responseData.openaiKey = '********';
+    }
+
+    res.json({
+        success: true,
+        settings: responseData
+    });
+});
+
+export const updateAdminAiSettings = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { enabled, openaiKey, model } = req.body;
+
+    const existingSettings = await Setting.findOne({ key: 'adminAiSettings' });
+    let finalOpenaiKey = openaiKey;
+
+    // If the received key is the mask, use the existing key from DB
+    if (openaiKey === '********' && existingSettings?.value?.openaiKey) {
+        finalOpenaiKey = existingSettings.value.openaiKey;
+    }
+
+    const settings = await Setting.findOneAndUpdate(
+        { key: 'adminAiSettings' },
+        {
+            key: 'adminAiSettings',
+            value: { enabled, openaiKey: finalOpenaiKey, model: model || 'gpt-4o-mini' },
+            isPublic: false, // AI settings should not be public
+            description: 'Global Admin AI Assistant Configuration'
+        },
+        { upsert: true, new: true }
+    );
+
+    res.json({
+        success: true,
+        message: 'Admin AI settings updated successfully',
+        settings: settings.value
+    });
+});

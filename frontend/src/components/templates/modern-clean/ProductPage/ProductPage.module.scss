@@ -88,6 +88,7 @@ $star-color: #fbbf24;
     position: sticky;
     top: 100px;
     height: fit-content;
+    z-index: 100;
 
     @media (max-width: 768px) {
         flex-direction: column-reverse;
@@ -96,6 +97,7 @@ $star-color: #fbbf24;
         /* Ensure it takes full width of parent */
         min-width: 0;
         /* Prevent grid item blowout */
+        z-index: auto;
     }
 }
 

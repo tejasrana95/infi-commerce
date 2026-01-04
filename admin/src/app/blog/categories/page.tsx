@@ -9,7 +9,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import api from '@/lib/api';
 import { BlogCategory } from '@/types';
 import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules';
-import { LoadingSpinner, StatusChip, PermissionGuard } from '@/components/atoms';
+import { LoadingSpinner, StatusChip, PermissionGuard, SeoScoreBadge } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
@@ -163,6 +163,14 @@ export default function BlogCategoriesPage() {
                 <Box display="flex" flexDirection="column" justifyContent="center" alignItems="start" height="100%">
                     <StatusChip active={params.value as boolean} />
                 </Box>
+            ),
+        },
+        {
+            field: 'seo',
+            headerName: 'SEO Score',
+            width: 120,
+            renderCell: (params: GridRenderCellParams) => (
+                <SeoScoreBadge score={params.row.seo?.score} />
             ),
         },
         {

@@ -116,6 +116,12 @@ const CategorySchema = new Schema<ICategory>(
                 enum: ['summary', 'summary_large_image', 'app', 'player'],
                 default: 'summary_large_image',
             },
+            score: {
+                type: Number,
+                min: 0,
+                max: 100,
+                default: 0,
+            },
         },
 
         // Hierarchy helpers

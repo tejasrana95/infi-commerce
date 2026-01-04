@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/providers/CartProvider';
 import { useCurrency } from '@/hooks/useCurrency';
@@ -11,7 +11,11 @@ import styles from './cart.module.scss';
 import { ModuleProps } from '@/components/core/modules';
 
 export default function CartModule({ config }: ModuleProps) {
-    const { cart, items, cartCount, updateCartItem, removeFromCart, isLoading } = useCart();
+    const { cart, items, cartCount, updateCartItem, removeFromCart, isLoading, refreshCart } = useCart();
+
+    useEffect(() => {
+        refreshCart();
+    }, [refreshCart]);
     const currency = useCurrency();
 
     // Calculate totals

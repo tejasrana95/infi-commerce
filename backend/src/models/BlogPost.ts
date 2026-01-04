@@ -130,6 +130,12 @@ const BlogPostSchema = new Schema<IBlogPost>(
             metaKeywords: { type: [String], default: [] },
             ogImage: { type: String, trim: true },
             canonicalUrl: { type: String, trim: true },
+            score: {
+                type: Number,
+                min: 0,
+                max: 100,
+                default: 0,
+            },
         },
 
         status: {

@@ -7,7 +7,15 @@ import {
     Checkbox,
     FormControlLabel,
     Grid,
+    Button,
+    Divider,
+    Typography,
+    CircularProgress
 } from '@mui/material';
+import AssessmentIcon from '@mui/icons-material/Assessment';
+import AdminAIAssistant from '../organisms/AdminAIAssistant/AdminAIAssistant';
+import SeoSuggestions from '../molecules/SeoSuggestions';
+import api from '@/lib/api';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -23,6 +31,12 @@ const schema = z.object({
     description: z.string().optional(),
     website: z.string().url('Must be a valid URL').optional().or(z.literal('')),
     isActive: z.boolean(),
+    seo: z.object({
+        metaTitle: z.string().max(60).optional(),
+        metaDescription: z.string().max(160).optional(),
+        metaKeywords: z.array(z.string()).optional(),
+        score: z.number().min(0).max(100).optional(),
+    }).optional(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -39,6 +53,7 @@ export default function BrandForm({ initialData, onSubmit, isSubmitting = false 
         handleSubmit,
         watch,
         setValue,
+        getValues, // Added getValues
         formState: { errors },
     } = useForm<FormData>({
         resolver: zodResolver(schema),
@@ -50,10 +65,20 @@ export default function BrandForm({ initialData, onSubmit, isSubmitting = false 
             description: '',
             website: '',
             isActive: true,
+            seo: {
+                metaTitle: '',
+                metaDescription: '',
+                metaKeywords: [],
+                score: 0,
+            },
         },
     });
-
+    const [isCalculatingSeo, setIsCalculatingSeo] = useState(false);
+    const [seoSuggestions, setSeoSuggestions] = useState<string[]>([]);
     const watchName = watch('name');
+    const seoScore = watch('seo.score') || 0;
+
+
 
     // Auto-generate slug from name
     useEffect(() => {
@@ -76,8 +101,36 @@ export default function BrandForm({ initialData, onSubmit, isSubmitting = false 
             setValue('description', initialData.description || '');
             setValue('website', initialData.website || '');
             setValue('isActive', initialData.isActive !== undefined ? initialData.isActive : true);
+            if (initialData.seo) {
+                setValue('seo.metaTitle', initialData.seo.metaTitle || '');
+                setValue('seo.metaDescription', initialData.seo.metaDescription || '');
+                setValue('seo.metaKeywords', initialData.seo.metaKeywords || []);
+                setValue('seo.score', initialData.seo.score || 0);
+            }
         }
     }, [initialData, setValue]);
+
+    const handleCalculateSeo = async () => {
+        setIsCalculatingSeo(true);
+        try {
+            const seoData = {
+                title: getValues('seo.metaTitle') || getValues('name'),
+                description: getValues('seo.metaDescription') || '',
+                keywords: getValues('seo.metaKeywords'),
+            };
+
+            const response = await api.post('/ai/admin/seo-score', { data: seoData });
+            if (response.data.success) {
+                const { score, suggestions } = response.data.analysis;
+                setValue('seo.score', score, { shouldDirty: true });
+                setSeoSuggestions(suggestions || []);
+            }
+        } catch (error) {
+            console.error('Failed to calculate SEO score:', error);
+        } finally {
+            setIsCalculatingSeo(false);
+        }
+    };
 
     const handleFormSubmit = (data: FormData) => {
         // Clean up empty optional fields
@@ -220,7 +273,74 @@ export default function BrandForm({ initialData, onSubmit, isSubmitting = false 
                         )}
                     />
                 </Grid>
+                <Grid size={{ xs: 12 }}>
+                    <Divider sx={{ my: 2 }} />
+                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                        <Typography variant="h6">SEO Settings</Typography>
+                        <Box display="flex" alignItems="center" gap={2}>
+                            {seoScore > 0 && (
+                                <Typography
+                                    variant="subtitle1"
+                                    sx={{
+                                        fontWeight: 'bold',
+                                        color: seoScore >= 70 ? 'success.main' : seoScore >= 40 ? 'warning.main' : 'error.main'
+                                    }}
+                                >
+                                    {seoScore}/100
+                                </Typography>
+                            )}
+                            <Button
+                                variant="outlined"
+                                startIcon={isCalculatingSeo ? <CircularProgress size={20} color="inherit" /> : <AssessmentIcon />}
+                                onClick={handleCalculateSeo}
+                                size="small"
+                                disabled={isCalculatingSeo}
+                            >
+                                {isCalculatingSeo ? 'Calculating...' : 'Calculate SEO Score'}
+                            </Button>
+                        </Box>
+                    </Box>
+                </Grid>
+
+                <Grid size={{ xs: 12, md: 6 }}>
+                    <Controller
+                        name="seo.metaTitle"
+                        control={control}
+                        render={({ field }) => (
+                            <TextField
+                                {...field}
+                                label="Meta Title"
+                                fullWidth
+                                error={!!errors.seo?.metaTitle}
+                                helperText={errors.seo?.metaTitle?.message}
+                            />
+                        )}
+                    />
+                </Grid>
+
+                <Grid size={{ xs: 12, md: 6 }}>
+                    <Controller
+                        name="seo.metaDescription"
+                        control={control}
+                        render={({ field }) => (
+                            <TextField
+                                {...field}
+                                label="Meta Description"
+                                fullWidth
+                                multiline
+                                rows={2}
+                                error={!!errors.seo?.metaDescription}
+                                helperText={errors.seo?.metaDescription?.message}
+                            />
+                        )}
+                    />
+                </Grid>
+
+                <Grid size={{ xs: 12 }}>
+                    <SeoSuggestions suggestions={seoSuggestions} score={seoScore} />
+                </Grid>
             </Grid>
+            <AdminAIAssistant entityType="brand" getValues={getValues} setValue={setValue as any} />
         </Box>
     );
 }

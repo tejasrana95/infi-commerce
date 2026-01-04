@@ -15,6 +15,7 @@ $error-color: #ef4444;
     position: sticky;
     top: 100px;
     height: fit-content;
+    z-index: 100;
 
     &.thumbnailsLeft {
         flex-direction: row;
@@ -27,6 +28,7 @@ $error-color: #ef4444;
     @media (max-width: 768px) {
         flex-direction: column-reverse;
         position: static;
+        z-index: auto;
     }
 }
 
@@ -34,6 +36,7 @@ $error-color: #ef4444;
     display: flex;
     flex-direction: column;
     gap: 8px;
+    flex-wrap: wrap;
 
     .thumbnailsBottom & {
         flex-direction: row;
@@ -129,8 +132,9 @@ $error-color: #ef4444;
     border-radius: 12px;
     background-repeat: no-repeat;
     pointer-events: none;
-    z-index: 10;
+    z-index: 1000; // Increased z-index to be above everything
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    background-color: white;
 
     @media (max-width: 1200px) {
         display: none;

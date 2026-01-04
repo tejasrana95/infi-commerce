@@ -11,6 +11,12 @@ export interface IBrand extends Document {
     description?: string;
     website?: string;
     isActive: boolean;
+    seo: {
+        metaTitle?: string;
+        metaDescription?: string;
+        metaKeywords?: string[];
+        score?: number;
+    };
     storeId: mongoose.Types.ObjectId;
     createdAt: Date;
     updatedAt: Date;
@@ -45,6 +51,28 @@ const BrandSchema = new Schema<IBrand>(
             type: Boolean,
             default: true,
             index: true,
+        },
+        seo: {
+            metaTitle: {
+                type: String,
+                trim: true,
+                maxlength: 60,
+            },
+            metaDescription: {
+                type: String,
+                trim: true,
+                maxlength: 160,
+            },
+            metaKeywords: {
+                type: [String],
+                default: [],
+            },
+            score: {
+                type: Number,
+                min: 0,
+                max: 100,
+                default: 0,
+            },
         },
         storeId: {
             type: Schema.Types.ObjectId,

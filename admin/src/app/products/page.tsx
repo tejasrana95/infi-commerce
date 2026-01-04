@@ -10,7 +10,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import api from '@/lib/api';
 import { Product } from '@/types';
 import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules';
-import { LoadingSpinner, StatusChip, PermissionGuard } from '@/components/atoms';
+import { LoadingSpinner, StatusChip, PermissionGuard, SeoScoreBadge } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -267,6 +267,14 @@ export default function ProductsPage() {
         <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
           <StatusChip active={params.value as boolean} />
         </Box>
+      ),
+    },
+    {
+      field: 'seo',
+      headerName: 'SEO Score',
+      width: 120,
+      renderCell: (params: GridRenderCellParams) => (
+        <SeoScoreBadge score={params.row.seo?.score} />
       ),
     },
     {

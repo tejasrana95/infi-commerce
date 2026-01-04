@@ -171,18 +171,21 @@ export default function ProductGallery({
                             />
                         ))}
                     </div>
-                    {/* Magnifier for carousel */}
-                    {isZooming && zoomType === 'magnify' && (
-                        <div
-                            className={styles.magnifier}
-                            style={{
-                                backgroundImage: `url(${images[mainImageIndex]})`,
-                                backgroundPosition: `${zoomPosition.x}% ${zoomPosition.y}%`,
-                                backgroundSize: '550%',
-                            }}
-                        />
+                    {hasDiscount && discountPercent > 0 && (
+                        <span className={styles.saleBadge}>-{discountPercent}%</span>
                     )}
                 </div>
+                {/* Magnifier for carousel */}
+                {isZooming && zoomType === 'magnify' && (
+                    <div
+                        className={styles.magnifier}
+                        style={{
+                            backgroundImage: `url(${images[mainImageIndex]})`,
+                            backgroundPosition: `${zoomPosition.x}% ${zoomPosition.y}%`,
+                            backgroundSize: '550%',
+                        }}
+                    />
+                )}
                 {renderLightbox()}
             </>
         );

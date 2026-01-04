@@ -82,6 +82,7 @@ interface AdminNotificationSettings {
 interface AISettings {
     enabled: boolean;
     openaiKey: string;
+    model?: string;
 }
 
 interface TabPanelProps {
@@ -172,6 +173,7 @@ export default function EditStorePage() {
     const [aiSettings, setAiSettings] = useState<AISettings>({
         enabled: false,
         openaiKey: '',
+        model: 'gpt-4o-mini',
     });
     const [savingAI, setSavingAI] = useState(false);
 
@@ -212,7 +214,10 @@ export default function EditStorePage() {
                 setAdminNotificationSettings(currentStore.settings.adminNotificationSettings);
             }
             if (currentStore?.settings?.aiSettings) {
-                setAiSettings(currentStore.settings.aiSettings);
+                setAiSettings({
+                    ...currentStore.settings.aiSettings,
+                    model: currentStore.settings.aiSettings.model || 'gpt-4o-mini'
+                });
             }
         } catch (_err) {
             showNotification('Failed to load store', 'error');
@@ -1394,7 +1399,7 @@ export default function EditStorePage() {
                                 </Alert>
 
                                 <Grid container spacing={3}>
-                                    <Grid size={{ xs: 12 }}>
+                                    <Grid size={{ xs: 12, md: 6 }}>
                                         <TextField
                                             fullWidth
                                             label="OpenAI API Key"
@@ -1412,8 +1417,29 @@ export default function EditStorePage() {
                                                     </InputAdornment>
                                                 ),
                                             }}
-                                            helperText="Enter your OpenAI API secret key here."
+                                            helperText={aiSettings.openaiKey === '••••••••••••••••••••' ? 'Key is saved. Enter a new key to update.' : 'Enter your OpenAI API secret key'}
                                         />
+                                    </Grid>
+                                    <Grid size={{ xs: 12, md: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            select
+                                            label="AI Model"
+                                            value={aiSettings.model || 'gpt-4o-mini'}
+                                            onChange={(e) => setAiSettings({ ...aiSettings, model: e.target.value })}
+                                            disabled={!aiSettings.enabled}
+                                        >
+                                            <MenuItem value="gpt-5.2">GPT-5.2 (Best for Coding & Agents)</MenuItem>
+                                            <MenuItem value="gpt-5.2-pro">GPT-5.2 Pro (Smart & Precise)</MenuItem>
+                                            <MenuItem value="gpt-5-mini">GPT-5 Mini (Fast & Cost-efficient)</MenuItem>
+                                            <MenuItem value="gpt-5-nano">GPT-5 Nano (Fastest)</MenuItem>
+                                            <MenuItem value="gpt-5">GPT-5 (Previous Reasoning Model)</MenuItem>
+                                            <MenuItem value="o1">o1 (High-tier Reasoning)</MenuItem>
+                                            <MenuItem value="o1-mini">o1-mini (Fast Reasoning)</MenuItem>
+                                            <MenuItem value="o3-mini">o3-mini (Advanced Small Reasoning)</MenuItem>
+                                            <MenuItem value="gpt-4o">GPT-4o (Modern Multimodal)</MenuItem>
+                                            <MenuItem value="gpt-4o-mini">GPT-4o Mini</MenuItem>
+                                        </TextField>
                                     </Grid>
                                 </Grid>
 

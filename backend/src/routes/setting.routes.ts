@@ -1,5 +1,10 @@
 import { Router } from 'express';
-import { getAdminBranding, updateAdminBranding } from '../controllers/setting.controller';
+import {
+    getAdminBranding,
+    updateAdminBranding,
+    getAdminAiSettings,
+    updateAdminAiSettings
+} from '../controllers/setting.controller';
 import { authenticate, authorize } from '../middleware/auth';
 
 const router = Router();
@@ -13,6 +18,21 @@ router.put(
     authenticate,
     authorize('super_admin'),
     updateAdminBranding
+);
+
+// Admin AI Settings
+router.get(
+    '/admin-ai',
+    authenticate,
+    authorize('super_admin'),
+    getAdminAiSettings
+);
+
+router.put(
+    '/admin-ai',
+    authenticate,
+    authorize('super_admin'),
+    updateAdminAiSettings
 );
 
 export default router;
