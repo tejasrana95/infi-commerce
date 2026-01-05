@@ -79,17 +79,19 @@ app.get('/health', (_req: Request, res: Response) => {
  *                   description: Current running environment
  */
 
-// Swagger documentation
-app.use('/api-docs', swaggerUi.serve as unknown as RequestHandler[], swaggerUi.setup(swaggerSpec, {
-    customCss: '.swagger-ui .topbar { display: none }',
-    customSiteTitle: 'Infi-Commerce API Documentation',
-}) as unknown as RequestHandler);
+// Swagger documentation (only in non-production)
+if (config.env !== 'production') {
+    app.use('/api-docs', swaggerUi.serve as unknown as RequestHandler[], swaggerUi.setup(swaggerSpec, {
+        customCss: '.swagger-ui .topbar { display: none }',
+        customSiteTitle: 'Infi-Commerce API Documentation',
+    }) as unknown as RequestHandler);
 
-// Swagger JSON spec
-app.get('/api-docs.json', (_req: Request, res: Response) => {
-    res.setHeader('Content-Type', 'application/json');
-    res.send(swaggerSpec);
-});
+    // Swagger JSON spec
+    app.get('/api-docs.json', (_req: Request, res: Response) => {
+        res.setHeader('Content-Type', 'application/json');
+        res.send(swaggerSpec);
+    });
+}
 
 // Global API key authentication middleware - validates key if provided, allows if not
 import { optionalApiKeyAuth } from './middleware/apiKeyAuth';

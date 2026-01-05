@@ -34,6 +34,9 @@ import EditIcon from '@mui/icons-material/Edit';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import PaymentIcon from '@mui/icons-material/Payment';
 import PersonIcon from '@mui/icons-material/Person';
+import DownloadIcon from '@mui/icons-material/Download';
+import ReceiptIcon from '@mui/icons-material/Receipt';
+import AssignmentIcon from '@mui/icons-material/Assignment';
 import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { Order, OrderStatus } from '@/types/order';
@@ -54,6 +57,7 @@ export default function OrderDetailPage() {
     const { showNotification } = useNotification();
     // Status update state
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const [downloadAnchorEl, setDownloadAnchorEl] = useState<null | HTMLElement>(null);
     const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
     const [shipDialogOpen, setShipDialogOpen] = useState(false);
     const [trackingNumber, setTrackingNumber] = useState('');
@@ -153,6 +157,26 @@ export default function OrderDetailPage() {
         }
     };
 
+    const handleDownload = async (type: 'invoice' | 'packing-slip') => {
+        try {
+            const response = await api.get(`/orders/${id}/${type}`, {
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${type}-${order?.orderNumber || id}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (err: any) {
+            showNotification(`Failed to download ${type}`, 'error');
+        } finally {
+            setDownloadAnchorEl(null);
+        }
+    };
+
     if (error && !loading) return <Alert severity="error">{error || 'Order not found'}</Alert>;
 
     const getStatusColor = (status: OrderStatus) => {
@@ -172,7 +196,7 @@ export default function OrderDetailPage() {
     return (
         <Box>
             {/* Header */}
-            <Box display="flex" alignItems="center" mb={3} gap={2}>
+            <Box display="flex" flexWrap="wrap" alignItems="center" mb={3} gap={2}>
                 <IconButton onClick={() => router.back()}>
                     <ArrowBackIcon />
                 </IconButton>
@@ -201,6 +225,29 @@ export default function OrderDetailPage() {
                 </Box>
 
                 <Box display="flex" gap={2}>
+                    <Button
+                        variant="outlined"
+                        startIcon={<DownloadIcon />}
+                        endIcon={<MoreVertIcon />}
+                        onClick={(e) => setDownloadAnchorEl(e.currentTarget)}
+                        disabled={!order}
+                    >
+                        Download
+                    </Button>
+                    <Menu
+                        anchorEl={downloadAnchorEl}
+                        open={Boolean(downloadAnchorEl)}
+                        onClose={() => setDownloadAnchorEl(null)}
+                    >
+                        <MenuItem onClick={() => handleDownload('invoice')}>
+                            <ReceiptIcon sx={{ mr: 1, fontSize: 'small' }} /> Invoice
+                        </MenuItem>
+                        {['shipped', 'delivered'].includes(order?.status || '') && (
+                            <MenuItem onClick={() => handleDownload('packing-slip')}>
+                                <AssignmentIcon sx={{ mr: 1, fontSize: 'small' }} /> Packing Slip
+                            </MenuItem>
+                        )}
+                    </Menu>
                     <Button
                         variant="outlined"
                         startIcon={<EditIcon />}

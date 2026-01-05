@@ -92,21 +92,61 @@
                 <h1>PACKING SLIP</h1>
                 <p><strong>Order #:</strong> {{order.orderNumber}}</p>
                 <p><strong>Date:</strong> {{formatDate order.createdAt}}</p>
+                <div style="margin-top: 20px;">
+                    <h3 style="margin: 0;">{{order.storeId.name}}</h3>
+                    <p style="margin: 0; font-size: 14px;">
+                        <a href="https://{{order.storeId.domain}}"
+                            style="color: #555; text-decoration: none;">{{order.storeId.domain}}</a>
+                    </p>
+                    {{#if order.storeId.settings.contact}}
+                    <p style="margin: 5px 0 0 0; font-size: 12px; color: #777;">
+                        {{#if order.storeId.settings.contact.address}}
+                        {{order.storeId.settings.contact.address}}<br>
+                        {{/if}}
+                        {{#if order.storeId.settings.contact.email}}
+                        Email: {{order.storeId.settings.contact.email}}
+                        {{/if}}
+                        {{#if order.storeId.settings.contact.phone}}
+                        <span style="margin-left: 10px;">Phone: {{order.storeId.settings.contact.phone}}</span>
+                        {{/if}}
+                    </p>
+                    {{/if}}
+                </div>
             </div>
         </div>
 
         <div class="addresses">
-            <div class="address-box">
-                <div class="section-title">Ship To:</div>
-                <p>
-                    <strong>{{order.shippingAddress.firstName}} {{order.shippingAddress.lastName}}</strong><br>
-                    {{order.shippingAddress.address1}}<br>
-                    {{#if order.shippingAddress.address2}}{{order.shippingAddress.address2}}<br>{{/if}}
-                    {{order.shippingAddress.city}}, {{order.shippingAddress.state}}
-                    {{order.shippingAddress.postalCode}}<br>
-                    {{order.shippingAddress.country}}<br>
-                    {{order.shippingAddress.phone}}
-                </p>
+            <div style="display: flex; justify-content: space-between;">
+                <!-- Ship To Address -->
+                <div class="address-box" style="flex: 1; padding-right: 20px;">
+                    <div class="section-title">To:</div>
+                    <p>
+                        <strong>{{order.shippingAddress.firstName}} {{order.shippingAddress.lastName}}</strong><br>
+                        {{order.shippingAddress.address1}}<br>
+                        {{#if order.shippingAddress.address2}}{{order.shippingAddress.address2}}<br>{{/if}}
+                        {{order.shippingAddress.city}}, {{order.shippingAddress.state}}
+                        {{order.shippingAddress.postalCode}}<br>
+                        {{order.shippingAddress.country}}<br>
+                        {{order.shippingAddress.phone}}
+                    </p>
+                </div>
+
+                <!-- Shipment Info -->
+                <div class="shipment-info" style="flex: 1; text-align: right;">
+                    {{#if order.trackingNumber}}
+                    <div class="section-title">Shipment Info:</div>
+                    <p>
+                        <strong>Courier:</strong> {{order.courierName}}<br>
+                        <strong>Tracking #:</strong> {{order.trackingNumber}}<br>
+                        {{#if order.shippedAt}}<strong>Date:</strong> {{formatDate order.shippedAt}}{{/if}}
+                    </p>
+                    {{#if barcodeImage}}
+                    <div style="margin-top: 10px;">
+                        <img src="{{barcodeImage}}" alt="Barcode" style="max-width: 200px;">
+                    </div>
+                    {{/if}}
+                    {{/if}}
+                </div>
             </div>
         </div>
 
@@ -138,6 +178,13 @@
 
         <div class="footer">
             <p>Please check all items specifically.</p>
+            {{#if order.storeId.settings.contact}}
+            <p>
+                For questions, contact us at:
+                {{#if order.storeId.settings.contact.email}}{{order.storeId.settings.contact.email}}{{/if}}
+                {{#if order.storeId.settings.contact.phone}} | {{order.storeId.settings.contact.phone}}{{/if}}
+            </p>
+            {{/if}}
         </div>
     </div>
 </body>

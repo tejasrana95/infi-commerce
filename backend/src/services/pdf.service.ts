@@ -2,6 +2,7 @@ import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
 import handlebars from 'handlebars';
+import bwipjs from 'bwip-js';
 import { IOrder } from '../models/Order';
 import { storageService } from './storage';
 
@@ -36,6 +37,25 @@ export class PdfService {
         const html = await fs.promises.readFile(filePath, 'utf-8');
         const template = handlebars.compile(html);
         return template(data);
+    }
+
+    private static async generateBarcode(text: string): Promise<string> {
+        return new Promise((resolve, reject) => {
+            bwipjs.toBuffer({
+                bcid: 'code128',       // Barcode type
+                text: text,           // Text to encode
+                scale: 3,             // 3x scaling factor
+                height: 10,           // Bar height, in millimeters
+                includetext: true,    // Show human-readable text
+                textxalign: 'center', // Always good to set
+            }, (err, png) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(`data:image/png;base64,${png.toString('base64')}`);
+                }
+            });
+        });
     }
 
     // Invoice folder path for storage provider
@@ -111,7 +131,20 @@ export class PdfService {
                 // Regenerate for latest data
             }
 
-            const htmlContent = await this.compileTemplate('packing-slip', { order: order.toObject() });
+            const orderData = order.toObject();
+            let barcodeImage = '';
+            if (orderData.trackingNumber) {
+                try {
+                    barcodeImage = await this.generateBarcode(orderData.trackingNumber);
+                } catch (barcodeErr) {
+                    console.error('Error generating barcode:', barcodeErr);
+                }
+            }
+
+            const htmlContent = await this.compileTemplate('packing-slip', {
+                order: orderData,
+                barcodeImage: barcodeImage
+            });
 
             const browser = await puppeteer.launch({
                 headless: true,

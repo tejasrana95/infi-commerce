@@ -96,10 +96,17 @@ const schema = z.object({
             }),
         }).optional(),
         // Google Analytics
+        // Google Analytics
         googleAnalytics: z.object({
             enabled: z.boolean(),
             trackingId: z.string().optional(),
         }),
+        // Contact Info
+        contact: z.object({
+            address: z.string().optional(),
+            phone: z.string().optional(),
+            email: z.string().email('Invalid email address').optional().or(z.literal('')),
+        }).optional(),
     }),
 });
 
@@ -151,6 +158,11 @@ const defaultValues: StoreFormData = {
         googleAnalytics: {
             enabled: false,
             trackingId: '',
+        },
+        contact: {
+            address: '',
+            phone: '',
+            email: '',
         },
     },
 };
@@ -216,6 +228,11 @@ export default function StoreForm({ initialData, onSubmit, isSubmitting = false 
                     googleAnalytics: {
                         enabled: initialData.settings?.googleAnalytics?.enabled ?? false,
                         trackingId: initialData.settings?.googleAnalytics?.trackingId ?? '',
+                    },
+                    contact: {
+                        address: initialData.settings?.contact?.address || '',
+                        phone: initialData.settings?.contact?.phone || '',
+                        email: initialData.settings?.contact?.email || '',
                     },
                 },
             });
@@ -458,14 +475,65 @@ export default function StoreForm({ initialData, onSubmit, isSubmitting = false 
                             control={control}
                             render={({ field }) => (
                                 <TextField
-                                    {...field}
-                                    label="Description"
                                     fullWidth
                                     multiline
                                     rows={3}
                                     error={!!errors.description}
                                     helperText={errors.description?.message}
                                     placeholder="Brief description of your store"
+                                />
+                            )}
+                        />
+                    </Grid>
+
+                    <Grid size={{ xs: 12 }}>
+                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>Contact Information</Typography>
+                    </Grid>
+
+                    <Grid size={{ xs: 12 }}>
+                        <Controller
+                            name="settings.contact.address"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField
+                                    {...field}
+                                    label="Store Address"
+                                    fullWidth
+                                    multiline
+                                    rows={2}
+                                    placeholder="123 Store Street, City, Country"
+                                />
+                            )}
+                        />
+                    </Grid>
+
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <Controller
+                            name="settings.contact.phone"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField
+                                    {...field}
+                                    label="Customer Care Number"
+                                    fullWidth
+                                    placeholder="+1 234 567 8900"
+                                />
+                            )}
+                        />
+                    </Grid>
+
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <Controller
+                            name="settings.contact.email"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField
+                                    {...field}
+                                    label="Customer Care Email"
+                                    fullWidth
+                                    error={!!errors.settings?.contact?.email}
+                                    helperText={errors.settings?.contact?.email?.message}
+                                    placeholder="support@example.com"
                                 />
                             )}
                         />

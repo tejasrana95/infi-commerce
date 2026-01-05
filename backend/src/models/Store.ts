@@ -80,6 +80,11 @@ export interface IStore extends Document {
             openaiKey?: string;
             model?: string;
         };
+        contact?: {
+            address?: string;
+            phone?: string;
+            email?: string;
+        };
         [key: string]: any;
     };
 

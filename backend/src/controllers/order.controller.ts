@@ -1489,8 +1489,7 @@ export const downloadPackingSlip = asyncHandler(async (req: AuthRequest, res: Re
     const { id } = req.params;
 
     // Auth Check: Admin only (handled by route middleware usually, but double check here if needed)
-
-    const order = await Order.findById(id);
+    const order = await Order.findById(id).populate('storeId');
     if (!order) {
         throw new AppError('Order not found', 404);
     }
