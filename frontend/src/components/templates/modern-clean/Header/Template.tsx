@@ -29,6 +29,7 @@ export default function ModernCleanHeaderTemplate({
     headerElements,
     mobileMenu,
     menus,
+    mobileBreakpoint = 768,
 }: HeaderTemplateProps) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [searchOpen, setSearchOpen] = useState(false);
@@ -36,6 +37,36 @@ export default function ModernCleanHeaderTemplate({
     const [accountOpen, setAccountOpen] = useState(false);
     const { isAuthenticated, customer, logout } = useAuth();
     const [isScrolled, setIsScrolled] = useState(false);
+
+    // Dynamic styles for configurable breakpoint
+    const dynamicStyles = `
+        @media (max-width: ${mobileBreakpoint}px) {
+            /* Only hide center section where desktop menu usually lives */
+            .${styles.sectionCenter} { display: none !important; }
+            
+            /* Explicitly hide any desktop menu components */
+            .${styles.menuElement} { display: none !important; }
+            
+            /* Show hamburger */
+            .${styles.mobileMenuBtn} { display: flex !important; }
+            
+            /* Ensure mobile menu drawer is visible when rendered */
+            .${styles.mobileMenu} { display: block !important; }
+            
+            /* Adjust logo size */
+            .${styles.logo} img { height: 32px !important; }
+            .${styles.logo} { min-height: 32px !important; }
+        }
+        
+        @media (min-width: ${mobileBreakpoint + 1}px) {
+            .${styles.mobileMenuBtn} { display: none !important; }
+            /* Restore desktop sections */
+            .${styles.sectionCenter} { display: flex !important; }
+            .${styles.menuElement} { display: block !important; }
+            /* Hide mobile menu drawer even if state thinks it's open (edge case) */
+            .${styles.mobileMenu} { display: none !important; }
+        }
+    `;
     const cartTotal = 0;
 
     // Refs for click outside
@@ -43,11 +74,42 @@ export default function ModernCleanHeaderTemplate({
     const cartRef = useRef<HTMLDivElement>(null);
     const searchRef = useRef<HTMLDivElement>(null);
     const mobileMenuRef = useRef<HTMLDivElement>(null);
+    const mobileMenuBtnRef = useRef<HTMLButtonElement>(null);
 
     useClickOutside(accountRef, () => setAccountOpen(false));
     useClickOutside(cartRef, () => setCartOpen(false));
     useClickOutside(searchRef, () => setSearchOpen(false));
-    useClickOutside(mobileMenuRef, () => setMobileMenuOpen(false));
+    // Close mobile menu only if click is outside menu AND outside the toggle button
+    useClickOutside(mobileMenuRef, () => {
+        if (!mobileMenuBtnRef.current?.contains(document.activeElement)) {
+            setMobileMenuOpen(false);
+        }
+    });
+
+    // Special handling for mobile menu toggle to avoid conflict with click-outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+            if (mobileMenuOpen &&
+                mobileMenuRef.current &&
+                !mobileMenuRef.current.contains(event.target as Node) &&
+                mobileMenuBtnRef.current &&
+                !mobileMenuBtnRef.current.contains(event.target as Node)
+            ) {
+                setMobileMenuOpen(false);
+            }
+        };
+
+        if (mobileMenuOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+            document.addEventListener('touchstart', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
+    }, [mobileMenuOpen]);
+
     // Handle scroll for sticky/transparent behavior
     useEffect(() => {
         if (!isSticky && !isTransparent) return;
@@ -248,6 +310,7 @@ export default function ModernCleanHeaderTemplate({
 
     return (
         <header className={headerClasses}>
+            <style>{dynamicStyles}</style>
             {/* ... */}
             {/* ========== TOP BAR ========== */}
             {topBar.enabled && (
@@ -300,8 +363,12 @@ export default function ModernCleanHeaderTemplate({
                     <div className={styles.headerContent}>
                         {/* Mobile Menu Toggle */}
                         <button
+                            ref={mobileMenuBtnRef}
                             className={styles.mobileMenuBtn}
-                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setMobileMenuOpen(!mobileMenuOpen);
+                            }}
                             aria-label="Toggle menu"
                         >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">

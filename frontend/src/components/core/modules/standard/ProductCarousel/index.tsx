@@ -63,7 +63,7 @@ export default function ProductCarouselModule({ config, initialData }: ModulePro
     // Calculate visible slides based on columns
     const getVisibleCount = () => {
         if (typeof window === 'undefined') return columns;
-        if (window.innerWidth < 768) return 2;
+        if (window.innerWidth < 768) return 1;
         if (window.innerWidth < 1024) return Math.min(columns, 3);
         return columns;
     };

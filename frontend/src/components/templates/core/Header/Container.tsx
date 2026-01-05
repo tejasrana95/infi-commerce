@@ -35,8 +35,8 @@ async function fetchMenuById(menuId: string): Promise<Menu | null> {
 // Fetch menus for store (by location)
 async function fetchMenus(storeId: string): Promise<Menu[]> {
     try {
-        const menus = await api.get<Menu[]>(`menus?storeId=${storeId}&isActive=true`);
-        return menus;
+        const menus = await api.get<{ menus: Menu[] }>(`menus?storeId=${storeId}&isActive=true`);
+        return menus.menus;
     } catch (error) {
         console.error('Failed to fetch menus:', error);
         return [];
@@ -167,10 +167,19 @@ async function processHeaderConfig(
     } else {
         // Fallback: fetch all active menus and find one with location 'mobile'
         const allMenus = store?._id ? await fetchMenus(store._id) : [];
-        mobileMenu = allMenus.find(m => m.location === 'mobile');
+
+        mobileMenu = allMenus?.find(m => m.location === 'mobile');
         if (mobileMenu) {
             fetchedMenus[mobileMenu._id] = mobileMenu;
         }
+    }
+
+    // Determine mobile breakpoint
+    let mobileBreakpoint = 768;
+    if (headerMenu?.settings?.mobileBreakpoint && headerMenu.settings.mobileBreakpoint > 300) {
+        mobileBreakpoint = headerMenu.settings.mobileBreakpoint;
+    } else if (mobileMenu?.settings?.mobileBreakpoint && mobileMenu.settings.mobileBreakpoint > 300) {
+        mobileBreakpoint = mobileMenu.settings.mobileBreakpoint;
     }
 
     // Build props object
@@ -209,6 +218,8 @@ async function processHeaderConfig(
         // Pass menus
         headerMenu: headerMenu || undefined,
         mobileMenu: mobileMenu || undefined,
+        // Layout Config
+        mobileBreakpoint,
     };
 
     return props;

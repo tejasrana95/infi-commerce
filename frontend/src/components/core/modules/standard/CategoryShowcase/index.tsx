@@ -71,6 +71,26 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
 
     const columnClass = styles[`columns${Math.min(Math.max(columns, 2), 6)}`];
 
+    // Responsive columns for carousel
+    const [visibleColumns, setVisibleColumns] = useState(columns);
+
+    useEffect(() => {
+        const updateColumns = () => {
+            const width = window.innerWidth;
+            if (width < 768) {
+                setVisibleColumns(1);
+            } else if (width < 1024) {
+                setVisibleColumns(Math.min(columns, 3)); // Max 3 on tablet
+            } else {
+                setVisibleColumns(columns);
+            }
+        };
+
+        updateColumns();
+        window.addEventListener('resize', updateColumns);
+        return () => window.removeEventListener('resize', updateColumns);
+    }, [columns]);
+
     // Carousel navigation handlers
     const scrollCarousel = (direction: 'left' | 'right') => {
         if (!carouselRef.current) return;
@@ -148,7 +168,7 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
                         <div
                             key={category._id}
                             className={styles.carouselItem}
-                            style={{ minWidth: `calc((100% - ${gap * (columns - 1)}px) / ${columns})` }}
+                            style={{ minWidth: `calc((100% - ${gap * (visibleColumns - 1)}px) / ${visibleColumns})` }}
                         >
                             <CategoryCard
                                 category={{ ...category, showDescription }}

@@ -86,11 +86,11 @@
 
 // Column variations
 .columns2 .carouselSlide {
-    width: 50%;
+    width: 100%;
 }
 
 .columns3 .carouselSlide {
-    width: 50%;
+    width: 100%;
 
     @include tablet {
         width: 33.333%;
@@ -98,7 +98,7 @@
 }
 
 .columns4 .carouselSlide {
-    width: 50%;
+    width: 100%;
 
     @include tablet {
         width: 33.333%;
@@ -110,7 +110,7 @@
 }
 
 .columns5 .carouselSlide {
-    width: 50%;
+    width: 100%;
 
     @include tablet {
         width: 33.333%;
@@ -122,7 +122,7 @@
 }
 
 .columns6 .carouselSlide {
-    width: 50%;
+    width: 100%;
 
     @include tablet {
         width: 25%;

@@ -102,6 +102,9 @@ export interface HeaderTemplateProps {
     headerMenu?: import('@/types/menu').Menu;
     mobileMenu?: import('@/types/menu').Menu;
     menus?: Record<string, import('@/types/menu').Menu>; // SSR Enriched Menus
+
+    // Layout Config
+    mobileBreakpoint?: number;
 }
 
 // Default labels

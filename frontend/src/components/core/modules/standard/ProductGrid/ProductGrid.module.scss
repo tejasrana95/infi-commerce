@@ -59,7 +59,7 @@
 }
 
 .columns3 {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(1, 1fr);
 
     @include tablet {
         grid-template-columns: repeat(3, 1fr);
@@ -67,7 +67,7 @@
 }
 
 .columns4 {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(1, 1fr);
 
     @include tablet {
         grid-template-columns: repeat(3, 1fr);
@@ -79,7 +79,7 @@
 }
 
 .columns5 {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(1, 1fr);
 
     @include tablet {
         grid-template-columns: repeat(3, 1fr);
@@ -91,7 +91,7 @@
 }
 
 .columns6 {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(1, 1fr);
 
     @include tablet {
         grid-template-columns: repeat(3, 1fr);
