@@ -21,9 +21,9 @@ import { Currency, DEFAULT_TEMPLATE_ID } from "@/types";
 import { AnalyticsProvider } from "@/providers/AnalyticsProvider";
 import { InterestProvider } from "@/providers/InterestProvider";
 import AutoAnalytics from "@/components/analytics/AutoAnalytics";
-import ClientWidgets from "@/components/core/ClientWidgets";
 import NextTopLoader from "nextjs-toploader";
-import AIAssistant from "@/components/core/AIAssistant/AIAssistant";
+import ClientOnlyWidgets from "@/components/core/ClientOnlyWidgets";
+
 
 // Optimized font loading with display: swap to prevent FOIT
 const geistSans = Geist({
@@ -252,8 +252,7 @@ export default async function RootLayout({
                                 <Footer config={store?.theme?.footer} store={store} templateId={templateId} />
                               </div>
                             )}
-                            <ClientWidgets showCompare={!store?.settings?.maintenanceMode} />
-                            <AIAssistant />
+                            <ClientOnlyWidgets showCompare={!store?.settings?.maintenanceMode} />
                           </DialogProvider>
                         </ToastProvider>
                       </CompareProvider>

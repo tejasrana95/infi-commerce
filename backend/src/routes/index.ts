@@ -188,6 +188,10 @@ router.use('/settings', settingRoutes);
 import interestRoutes from './interest.routes';
 router.use('/interests', interestRoutes);
 
+// Mount cleanup routes (for scheduled cron jobs)
+import cleanupRoutes from './cleanup.routes';
+router.use('/cleanup', cleanupRoutes);
+
 export default router;
 
 

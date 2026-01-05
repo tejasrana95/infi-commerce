@@ -1,14 +1,10 @@
-'use client';
-
 import { Section, Module } from '@/types/layout';
-import DefaultModuleRenderer from '../ModuleRenderer';
-import { useEffect, useState, ReactNode } from 'react';
-import { useDeviceType, checkVisibility } from '@/hooks/useDeviceType';
+import ModuleRenderer from '../ModuleRenderer';
 import LazySection from '../../common/LazySection';
 import styles from './SectionRenderer.module.scss';
 
 // Module render function type - allows custom rendering for page-specific modules
-export type ModuleRenderFunction = (module: Module, prefetchedData?: any, priority?: boolean) => ReactNode;
+export type ModuleRenderFunction = (module: Module, prefetchedData?: any, priority?: boolean) => React.ReactNode;
 
 interface SectionRendererProps {
     section: Section;
@@ -19,33 +15,14 @@ interface SectionRendererProps {
 }
 
 /**
- * SectionRenderer - Renders a layout section with its modules
- * Handles responsive visibility, section-level styling, container/full-width, and column layouts.
- * Can be used standalone or with a custom renderModule prop for page-specific module handling.
+ * SectionRenderer - Server-side compatible section renderer
+ * Renders sections with their modules for SEO
+ * Uses CSS media queries for responsive visibility instead of JS detection
  */
 export default function SectionRenderer({ section, moduleData, renderModule, index = 0 }: SectionRendererProps) {
-    const [isMounted, setIsMounted] = useState(false);
-    const deviceType = useDeviceType();
-
-    useEffect(() => {
-        setIsMounted(true);
-    }, []);
-
-    // Don't render until mounted (for responsive visibility)
-    if (!isMounted) {
-        return null;
-    }
-
-    // Check visibility based on current device type
-    const isVisible = checkVisibility(section.visibility, deviceType);
-
-    if (!isVisible) {
-        return null;
-    }
-
     // Default module renderer using the standard ModuleRenderer component
     const defaultRenderModule: ModuleRenderFunction = (module, prefetchedData, priority) => (
-        <DefaultModuleRenderer
+        <ModuleRenderer
             key={module.id}
             module={module}
             sectionType={section.type}
@@ -83,6 +60,19 @@ export default function SectionRenderer({ section, moduleData, renderModule, ind
         return styles.container;
     };
 
+    // Build visibility CSS classes for responsive hiding
+    // Uses CSS media queries instead of JS for SSR compatibility
+    const getVisibilityClasses = () => {
+        const classes: string[] = [];
+        const vis = section.visibility;
+
+        if (vis?.desktop === false) classes.push(styles.hideDesktop);
+        if (vis?.tablet === false) classes.push(styles.hideTablet);
+        if (vis?.mobile === false) classes.push(styles.hideMobile);
+
+        return classes.join(' ');
+    };
+
     // Sort modules by order
     const sortedModules = [...(section.modules || [])].sort((a, b) => a.order - b.order);
 
@@ -92,7 +82,7 @@ export default function SectionRenderer({ section, moduleData, renderModule, ind
 
     const content = section.columns && section.columns.length > 0 ? (
         <section
-            className={`${styles.section} ${section.settings?.customClass || ''}`}
+            className={`${styles.section} ${section.settings?.customClass || ''} ${getVisibilityClasses()}`}
             style={sectionStyle}
         >
             <div className={`${getInnerClass()} ${styles.columnWrapper}`}>
@@ -118,7 +108,7 @@ export default function SectionRenderer({ section, moduleData, renderModule, ind
         </section>
     ) : (
         <section
-            className={`${styles.section} ${section.settings?.customClass || ''}`}
+            className={`${styles.section} ${section.settings?.customClass || ''} ${getVisibilityClasses()}`}
             style={sectionStyle}
         >
             <div className={getInnerClass()}>

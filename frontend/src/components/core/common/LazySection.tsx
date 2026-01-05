@@ -11,8 +11,9 @@ interface LazySectionProps {
 }
 
 /**
- * LazySection - Defers rendering of children until they enter the viewport
- * Useful for reducing TBT by delaying hydration of below-the-fold content
+ * LazySection - Server-renders children for SEO, then hydrates lazily on client
+ * Content is always rendered in HTML for search engines (SSR)
+ * On client, content is shown immediately but hydration is deferred until viewport entry
  */
 export default function LazySection({
     children,
@@ -21,17 +22,17 @@ export default function LazySection({
     placeholderHeight = 100,
     className = ''
 }: LazySectionProps) {
-    const [isVisible, setIsVisible] = useState(false);
+    const [shouldHydrate, setShouldHydrate] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        // If already visible or no container, skip
-        if (isVisible || !containerRef.current) return;
+        // If already hydrated or no container, skip
+        if (shouldHydrate || !containerRef.current) return;
 
         const observer = new IntersectionObserver(
             ([entry]) => {
                 if (entry.isIntersecting) {
-                    setIsVisible(true);
+                    setShouldHydrate(true);
                     observer.disconnect();
                 }
             },
@@ -44,15 +45,16 @@ export default function LazySection({
         observer.observe(containerRef.current);
 
         return () => observer.disconnect();
-    }, [isVisible, threshold, rootMargin]);
+    }, [shouldHydrate, threshold, rootMargin]);
 
+    // Always render children for SSR (SEO)
+    // The lazy behavior only affects client-side hydration timing
     return (
         <div
             ref={containerRef}
             className={className}
-            style={!isVisible ? { minHeight: `${placeholderHeight}px` } : undefined}
         >
-            {isVisible ? children : null}
+            {children}
         </div>
     );
 }

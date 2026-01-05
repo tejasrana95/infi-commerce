@@ -1,10 +1,8 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import React from 'react';
-
-const AuthModal = dynamic(() => import('../organisms/AuthModal/AuthModal'), { ssr: false });
-const CompareFloatingWidget = dynamic(() => import('./CompareFloatingWidget'), { ssr: false });
+import AuthModal from '../organisms/AuthModal/AuthModal';
+import CompareFloatingWidget from './CompareFloatingWidget';
 
 interface ClientWidgetsProps {
     showCompare?: boolean;

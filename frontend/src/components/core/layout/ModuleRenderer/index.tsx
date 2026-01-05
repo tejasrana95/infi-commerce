@@ -1,8 +1,6 @@
-'use client';
-
 import { Module } from '@/types/layout';
 import { moduleRegistry } from '@/components/core/modules';
-import { useDeviceType, checkVisibility } from '@/hooks/useDeviceType';
+import styles from './ModuleRenderer.module.scss';
 
 interface ModuleRendererProps {
     module: Module;
@@ -12,20 +10,12 @@ interface ModuleRendererProps {
 }
 
 /**
- * ModuleRenderer - Renders a single module based on its type
+ * ModuleRenderer - Server-side compatible module renderer
+ * Renders a single module based on its type for SEO
  * Looks up the module component from the registry and applies styling
- * Accepts prefetchedData for SSR to prevent client-side fetches
+ * Uses CSS media queries for responsive visibility instead of JS detection
  */
 export default function ModuleRenderer({ module, sectionType, prefetchedData, priority }: ModuleRendererProps) {
-    const deviceType = useDeviceType();
-
-    // Check visibility based on current device type
-    const isVisible = checkVisibility(module.visibility, deviceType);
-
-    if (!isVisible) {
-        return null;
-    }
-
     // Get module component from registry
     const ModuleComponent = moduleRegistry[module.type];
 
@@ -62,9 +52,21 @@ export default function ModuleRenderer({ module, sectionType, prefetchedData, pr
         paddingBottom: module.styling?.paddingBottom ? `${module.styling.paddingBottom}px` : undefined,
     };
 
+    // Build visibility CSS classes for responsive hiding
+    const getVisibilityClasses = () => {
+        const classes: string[] = [];
+        const vis = module.visibility;
+
+        if (vis?.desktop === false) classes.push(styles.hideDesktop);
+        if (vis?.tablet === false) classes.push(styles.hideTablet);
+        if (vis?.mobile === false) classes.push(styles.hideMobile);
+
+        return classes.join(' ');
+    };
+
     return (
         <div
-            className={module.styling?.className || ''}
+            className={`${module.styling?.className || ''} ${getVisibilityClasses()}`}
             style={moduleStyle}
         >
             <ModuleComponent {...moduleProps} />

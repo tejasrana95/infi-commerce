@@ -1,5 +1,3 @@
-'use client';
-
 import { Layout } from '@/types/layout';
 import SectionRenderer from '../SectionRenderer';
 
@@ -9,8 +7,8 @@ interface LayoutEngineProps {
 }
 
 /**
- * LayoutEngine - Main component for rendering layouts
- * Processes layout data and renders sections in order
+ * LayoutEngine - Server-side compatible layout renderer
+ * Processes layout data and renders sections in order for SEO
  * Accepts moduleData for SSR to pass pre-fetched data to modules
  */
 export default function LayoutEngine({ layout, moduleData }: LayoutEngineProps) {
@@ -42,4 +40,3 @@ export default function LayoutEngine({ layout, moduleData }: LayoutEngineProps) 
         </div>
     );
 }
-

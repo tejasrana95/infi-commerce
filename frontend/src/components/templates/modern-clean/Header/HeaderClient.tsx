@@ -2,14 +2,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import CurrencySelector from '@/components/molecules/CurrencySelector';
+import SearchAutocomplete from '@/components/molecules/SearchAutocomplete';
 import { useClickOutside } from '@/hooks/useClickOutside';
-
-const SearchAutocomplete = dynamic(() => import('@/components/molecules/SearchAutocomplete'), {
-    loading: () => <div style={{ height: '60px', background: 'rgba(0,0,0,0.05)', borderRadius: '8px' }} />,
-    ssr: false // Search is purely interactive and depends on browser localStorage/router
-});
 
 import styles from './style.module.scss';
 
