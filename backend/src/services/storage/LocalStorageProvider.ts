@@ -10,7 +10,7 @@ export class LocalStorageProvider implements IStorageProvider {
     constructor() {
         // Upload directory outside project root for security
         this.baseDir = process.env.UPLOAD_DIR || path.join(process.cwd(), '..', 'uploads');
-        this.baseUrl = config.apiUrl; // Use API URL from config
+        this.baseUrl = config.staticUrl; // Use dedicated static file server URL
     }
 
     private getFullPath(relativePath: string): string {
@@ -65,8 +65,8 @@ export class LocalStorageProvider implements IStorageProvider {
 
     async getUrl(relativePath: string): Promise<string> {
         const hasSlash = relativePath.startsWith('/');
-        // Return CDN URL
-        return `${this.baseUrl}/uploads${hasSlash ? relativePath : `/${relativePath}`}`;
+        // Return static server URL (no /uploads prefix as static server serves from root)
+        return `${this.baseUrl}${hasSlash ? relativePath : `/${relativePath}`}`;
     }
 
     async exists(relativePath: string): Promise<boolean> {

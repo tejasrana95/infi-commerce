@@ -8,6 +8,7 @@ import Sale from '../models/Sale';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import { calculatePricing, calculateTaxBreakdown } from '../utils/pricing.utils';
+import { addTimezoneAwareDates } from '../utils/date.utils';
 
 // Helper function to add pricing with tax to a product (including variants)
 function addPricingToProduct(product: any) {
@@ -627,6 +628,21 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         Product.countDocuments(filter),
     ]);
 
+    // Determine timezone for the response
+    let storeTimezone = 'UTC';
+    if (effectiveStoreId) {
+        const store = await Store.findById(effectiveStoreId).select('timezone').lean();
+        if (store && store.timezone) {
+            storeTimezone = store.timezone;
+        }
+    } else if (isStoreAdmin && assignedStoreIds.length > 0) {
+        // For store admins, use their first assigned store's timezone as a reasonable default
+        const store = await Store.findById(assignedStoreIds[0]).select('timezone').lean();
+        if (store && store.timezone) {
+            storeTimezone = store.timezone;
+        }
+    }
+
     // Did you mean logic? - Only if 0 results and search query was provided
     let didYouMean: string | null = null;
     if (total === 0 && req.query.search && effectiveStoreId) {
@@ -634,8 +650,11 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         didYouMean = await getSearchSuggestions(effectiveStoreId, req.query.search as string);
     }
 
-    // Add computed pricing fields to each product (including variants)
-    const productsWithPricing = products.map((product: any) => addPricingToProduct(product));
+    // Add computed pricing fields to each product (including variants) and localized dates
+    const productsWithPricing = products.map((product: any) => {
+        const productWithPricing = addPricingToProduct(product);
+        return addTimezoneAwareDates(productWithPricing, storeTimezone);
+    });
 
     // Build active filters metadata for frontend URL reconstruction
     const activeFilters: Record<string, any> = {};
@@ -719,7 +738,7 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
  */
 export const getProductById = asyncHandler(async (req: AuthRequest, res: Response) => {
     const product = await Product.findById(req.params.id)
-        .populate('storeId', 'name slug domain')
+        .populate('storeId', 'name slug domain timezone')
         .populate('categoryIds', 'title slug path')
         .populate('attributes.attributeId', 'name slug type values')
         .populate('productOptions.optionId', 'name slug type values')
@@ -756,6 +775,10 @@ export const getProductById = asyncHandler(async (req: AuthRequest, res: Respons
     // Add computed pricing fields (including variants)
     addPricingToProduct(productObj);
 
+    // Add timezone-aware dates
+    const storeTimezone = (productObj.storeId as any)?.timezone || 'UTC';
+    addTimezoneAwareDates(productObj, storeTimezone);
+
     res.json({
         product: productObj,
         activeSales: sales,
@@ -789,7 +812,7 @@ export const getProductBySlug = asyncHandler(async (req: AuthRequest, res: Respo
     const { storeId, slug } = req.params;
 
     const product = await Product.findOne({ storeId, slug, isActive: true })
-        .populate('storeId', 'name slug domain')
+        .populate('storeId', 'name slug domain timezone')
         .populate('categoryIds', 'title slug path')
         .populate('attributes.attributeId', 'name slug type values')
         .populate('productOptions.optionId', 'name slug type values')
@@ -824,6 +847,10 @@ export const getProductBySlug = asyncHandler(async (req: AuthRequest, res: Respo
 
     // Add computed pricing fields (including variants)
     addPricingToProduct(productObj);
+
+    // Add timezone-aware dates
+    const storeTimezone = (productObj.storeId as any)?.timezone || 'UTC';
+    addTimezoneAwareDates(productObj, storeTimezone);
 
     res.json({ product: productObj });
 });

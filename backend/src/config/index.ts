@@ -6,6 +6,7 @@ export const config = {
     env: process.env.NODE_ENV || 'development',
     port: parseInt(process.env.PORT || '3001', 10),
     apiUrl: process.env.API_URL || 'http://localhost:3001',
+    staticUrl: process.env.STATIC_URL || 'http://localhost:3003',
     mfaIssuer: process.env.MFA_ISSUER || 'InfiCommerce',
 
     database: {

@@ -61,21 +61,26 @@ Copy `.env.example` to `.env` in each project and configure:
 
 ### Running the Projects
 
-**Backend API** (Port 5000)
+**Backend API** (Port 3001)
 ```bash
 cd backend
 npm run dev
 ```
 
-**Frontend** (Port 3000)
+**Frontend** (Port 3002)
 ```bash
 cd frontend
 npm run dev
 ```
 
-**Admin Panel** (Port 3001)
+**Admin Panel** (Port 3000)
 ```bash
 cd admin
+npm run dev
+```
+**static server** (Port 3003)
+```bash
+cd static-server
 npm run dev
 ```
 

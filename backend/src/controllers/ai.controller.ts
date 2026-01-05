@@ -12,6 +12,7 @@ import Cart from '../models/Cart';
 import Order from '../models/Order';
 import UserInterest from '../models/UserInterest';
 import Customer from '../models/Customer';
+import { addTimezoneAwareDates } from '../utils/date.utils';
 
 // Maximum iterations for tool call loops to prevent infinite loops
 const MAX_TOOL_ITERATIONS = 5;
@@ -33,6 +34,7 @@ interface ChatContext {
     currencySymbol: string;
     exchangeRate: number;
     allCurrencies: any[];
+    timezone: string;
 }
 
 // ============================================================================
@@ -165,7 +167,7 @@ async function executeToolCall(
     toolCall: any,
     context: ChatContext
 ): Promise<ToolResult> {
-    const { storeId, userId, sessionId, baseUrl, currencySymbol, exchangeRate, allCurrencies } = context;
+    const { storeId, userId, sessionId, baseUrl, currencySymbol, exchangeRate, allCurrencies, timezone } = context;
     const functionName = toolCall.function?.name || '';
     const args = JSON.parse(toolCall.function?.arguments || '{}');
 
@@ -371,18 +373,26 @@ async function executeToolCall(
             const orders = await Order.find(query)
                 .sort({ createdAt: -1 })
                 .limit(10)
-                .select('orderNumber total status createdAt currency exchangeRate')
+                .select('orderNumber total status createdAt updatedAt currency exchangeRate')
                 .lean();
 
             data = orders.map(o => {
+                // Apply timezone conversion
+                const localizedOrder = addTimezoneAwareDates(o, timezone, ['createdAt', 'updatedAt']);
+
                 const orderCurrency = allCurrencies.find(c => c.code === o.currency);
                 const orderSymbol = orderCurrency?.symbol || o.currency || '$';
                 const orderTotal = (o.total * (o.exchangeRate || 1)).toFixed(2);
+
                 return {
                     orderNumber: o.orderNumber,
                     total: `${orderSymbol}${orderTotal.toLocaleString()}`,
                     status: o.status,
                     date: o.createdAt,
+                    orderedAt: localizedOrder.createdAtLocal,
+                    lastUpdated: localizedOrder.updatedAtLocal,
+                    timezone: localizedOrder.createdAtTimezone,
+                    offset: localizedOrder.createdAtOffset,
                     currency: o.currency
                 };
             });
@@ -463,7 +473,8 @@ GUIDELINES:
 9. CATEGORIES: Do not guess category URLs. If the user asks for a category (e.g. "Accessories"), use searchProducts or category search to find relevant items or category instead of guessing a /category/accessories link that might not exist.
 10. When you add anything in cart on behalf of user then just say after successful addition "Added to cart successfully. Please refresh the page to see the cart items." and suggest some more product related to what you add in cart or from userinterests but not the same which already added in cart.
 11. If variable product then do not add to cart instead give the link of product page and say that please feel free to explore product option and then add to cart by clicking on add to cart button.
-12. CRITICAL: Do NOT use paths like /page/login, /page/register, /page/cart, etc. incorrectly. Use exactly /login, /register, /cart, /account as defined in URL PATTERNS.`;
+12. CRITICAL: Do NOT use paths like /page/login, /page/register, /page/cart, etc. incorrectly. Use exactly /login, /register, /cart, /account as defined in URL PATTERNS.
+13. TIMEZONES: When providing order status, always use the 'orderedAt' and 'lastUpdated' fields (which are in the store's local timezone) instead of the raw UTC 'date' field. Mention the timezone/offset (e.g., EST, IST) if helpful for clarity. Similarly, for products, use the localized date fields if available.`;
 }
 
 function formatHistoryForOpenAI(messages: any[]): OpenAI.Chat.ChatCompletionMessageParam[] {
@@ -588,7 +599,8 @@ export const chat = asyncHandler(async (req: AuthRequest, res: Response) => {
         baseUrl,
         currencySymbol,
         exchangeRate,
-        allCurrencies
+        allCurrencies,
+        timezone: store.timezone || 'UTC'
     };
 
     // Load or create chat history
