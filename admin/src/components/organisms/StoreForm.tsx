@@ -99,19 +99,19 @@ const schema = z.object({
         googleAnalytics: z.object({
             enabled: z.boolean(),
             trackingId: z.string().optional(),
-        }).optional(),
-    }).optional(),
-}).optional();
+        }),
+    }),
+});
 
-type FormData = z.infer<typeof schema>;
+export type StoreFormData = z.infer<typeof schema>;
 
 interface StoreFormProps {
     initialData?: Partial<Store>;
-    onSubmit: (data: FormData) => Promise<void>;
+    onSubmit: (data: StoreFormData) => Promise<void>;
     isSubmitting?: boolean;
 }
 
-const defaultValues: FormData = {
+const defaultValues: StoreFormData = {
     name: '',
     slug: '',
     domain: '',
@@ -156,7 +156,7 @@ const defaultValues: FormData = {
 };
 
 export default function StoreForm({ initialData, onSubmit, isSubmitting = false }: StoreFormProps) {
-    const { control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FormData>({
+    const { control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<StoreFormData>({
         resolver: zodResolver(schema),
         defaultValues,
     });

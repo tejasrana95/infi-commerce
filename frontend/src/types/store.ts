@@ -528,6 +528,11 @@ export interface StoreSettings {
         enabled: boolean;
         openaiKey?: string;
     };
+    contact?: {
+        email?: string;
+        phone?: string;
+        address?: string;
+    };
 }
 
 export interface StoreSEO {

@@ -15,7 +15,7 @@ import {
     Telegram, NotificationsActive, SmartToyOutlined
 } from '@mui/icons-material';
 import api from '@/lib/api';
-import StoreForm from '@/components/organisms/StoreForm';
+import StoreForm, { StoreFormData } from '@/components/organisms/StoreForm';
 import { LoadingSpinner } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
 import { Store } from '@/types';
@@ -227,7 +227,7 @@ export default function EditStorePage() {
         }
     };
 
-    const handleSubmit = async (data: Record<string, unknown>) => {
+    const handleSubmit = async (data: StoreFormData) => {
         setIsSubmitting(true);
         try {
             await api.put(`/stores/${id}`, data);
