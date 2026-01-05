@@ -6,13 +6,10 @@ import { fileValidationMiddleware, sanitizeFilename } from './fileValidation';
 // Memory storage - we'll handle file saving via StorageService
 const storage = multer.memoryStorage();
 
-// File filter
-const fileFilter = fileValidationMiddleware;
-
 // Multer configuration
 export const upload = multer({
     storage,
-    fileFilter,
+    fileFilter: fileValidationMiddleware as multer.Options['fileFilter'],
     limits: {
         fileSize: 50 * 1024 * 1024, // 50MB max
         files: 10, // Max 10 files at once

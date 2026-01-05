@@ -1,4 +1,4 @@
-import { Request } from 'express';
+import multer from 'multer';
 import { AppError } from './validation';
 
 // Allowed file types
@@ -66,10 +66,14 @@ export const validateFolderName = (name: string): boolean => {
     return /^[a-zA-Z0-9-_]+$/.test(name);
 };
 
-export const fileValidationMiddleware = (_req: Request, file: Express.Multer.File, cb: any) => {
+export const fileValidationMiddleware = (
+    _req: Express.Request,
+    file: Express.Multer.File,
+    cb: multer.FileFilterCallback
+) => {
     // Only validate file type here (size is not available yet in fileFilter)
     if (!validateFileType(file)) {
-        return cb(new AppError(`File type ${file.mimetype} is not allowed`, 400), false);
+        return cb(new AppError(`File type ${file.mimetype} is not allowed`, 400) as any);
     }
 
     cb(null, true);

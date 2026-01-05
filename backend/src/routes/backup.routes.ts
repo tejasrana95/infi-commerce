@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, RequestHandler } from 'express';
 import multer from 'multer';
 import { authenticate, authorize } from '../middleware/auth';
 import * as backupController from '../controllers/backup.controller';
@@ -6,7 +6,7 @@ import * as backupController from '../controllers/backup.controller';
 const router = Router();
 
 // Configure multer for memory storage (files stored in buffer)
-const upload = multer({
+const multerConfig = multer({
     storage: multer.memoryStorage(),
     limits: {
         fileSize: 50 * 1024 * 1024 // 50MB limit
@@ -28,6 +28,9 @@ const upload = multer({
     }
 });
 
+// Cast to RequestHandler to avoid type conflicts between @types/express versions
+const upload = (fieldName: string): RequestHandler => multerConfig.single(fieldName) as unknown as RequestHandler;
+
 // All routes require authentication and super_admin role
 router.use(authenticate);
 router.use(authorize('super_admin'));
@@ -42,20 +45,20 @@ router.post('/export/coupons', backupController.exportCoupons);
 router.post('/export/reviews', backupController.exportReviews);
 
 // ===== IMPORT ROUTES =====
-router.post('/import/products', upload.single('file'), backupController.importProducts);
-router.post('/import/orders', upload.single('file'), backupController.importOrders);
-router.post('/import/customers', upload.single('file'), backupController.importCustomers);
-router.post('/import/categories', upload.single('file'), backupController.importCategories);
-router.post('/import/brands', upload.single('file'), backupController.importBrands);
-router.post('/import/coupons', upload.single('file'), backupController.importCoupons);
-router.post('/import/reviews', upload.single('file'), backupController.importReviews);
+router.post('/import/products', upload('file'), backupController.importProducts);
+router.post('/import/orders', upload('file'), backupController.importOrders);
+router.post('/import/customers', upload('file'), backupController.importCustomers);
+router.post('/import/categories', upload('file'), backupController.importCategories);
+router.post('/import/brands', upload('file'), backupController.importBrands);
+router.post('/import/coupons', upload('file'), backupController.importCoupons);
+router.post('/import/reviews', upload('file'), backupController.importReviews);
 
 // ===== VALIDATION ROUTE =====
-router.post('/validate/:entity', upload.single('file'), backupController.validateImport);
+router.post('/validate/:entity', upload('file'), backupController.validateImport);
 
 // ===== MONGODB DUMP/RESTORE ROUTES =====
 router.get('/database/dump', backupController.downloadDatabaseDump);
-router.post('/database/restore', upload.single('file'), backupController.restoreDatabaseDump);
+router.post('/database/restore', upload('file'), backupController.restoreDatabaseDump);
 router.get('/database/tools', backupController.checkMongoDbTools);
 router.get('/database/backups', backupController.listBackups);
 

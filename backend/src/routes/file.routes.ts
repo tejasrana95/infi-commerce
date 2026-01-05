@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, RequestHandler } from 'express';
 import {
     uploadFiles,
     listFiles,
@@ -32,7 +32,7 @@ router.post('/sync', authenticate, syncFilesystem);
 router.post(
     '/upload',
     authenticate,
-    upload.array('files', 10),
+    upload.array('files', 10) as unknown as RequestHandler,
     uploadValidation,
     uploadFiles
 );

@@ -1,4 +1,4 @@
-import express, { Express, Request, Response } from 'express';
+import express, { Express, Request, Response, RequestHandler } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -16,7 +16,7 @@ const app: Express = express();
 app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow cross-origin resource loading
 })); // Security headers
-app.use(compression()); // Compress responses
+app.use(compression() as unknown as RequestHandler); // Compress responses
 app.use(morgan(config.env === 'development' ? 'dev' : 'combined')); // Logging
 
 // CORS configuration
@@ -80,10 +80,10 @@ app.get('/health', (_req: Request, res: Response) => {
  */
 
 // Swagger documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+app.use('/api-docs', swaggerUi.serve as unknown as RequestHandler[], swaggerUi.setup(swaggerSpec, {
     customCss: '.swagger-ui .topbar { display: none }',
     customSiteTitle: 'Infi-Commerce API Documentation',
-}));
+}) as unknown as RequestHandler);
 
 // Swagger JSON spec
 app.get('/api-docs.json', (_req: Request, res: Response) => {

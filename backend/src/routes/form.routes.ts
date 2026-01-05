@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, RequestHandler } from 'express';
 import { auth, checkRole } from '../middleware/auth';
 import {
     createForm,
@@ -119,7 +119,7 @@ router.post(
     '/public/submit/id/:id',
     publicSubmissionLimiter,
     honeypot('_form_trap'),
-    upload.any(),
+    upload.any() as unknown as RequestHandler,
     submitForm
 );
 
@@ -127,7 +127,7 @@ router.post(
     '/public/submit/:slug',
     publicSubmissionLimiter,
     honeypot('_form_trap'),
-    upload.any(),
+    upload.any() as unknown as RequestHandler,
     submitForm
 );
 
