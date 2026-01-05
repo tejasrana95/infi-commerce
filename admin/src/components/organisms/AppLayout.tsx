@@ -344,16 +344,16 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
   }, [user]);
 
   const filteredNavigationItems = useMemo(() => {
-    if (!user) return [];
-    if (user.role === 'super_admin') return navigationItems;
 
+    if (!user) return [];
+    if (user?.role === 'super_admin') return navigationItems;
     return navigationItems
       .map(item => {
         const newItem = { ...item };
 
         if (newItem.children) {
           newItem.children = newItem.children.filter(child => {
-            if (user.role === 'store_admin') {
+            if (user?.role === 'store_admin') {
               // Store Admin restrictions
               if (newItem.name === 'Sales & Marketing' && child.name === 'Stores') return false;
               if (newItem.name === 'Storefront' && child.name !== 'Blog') return false;
@@ -361,7 +361,7 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
               return true;
             }
 
-            if (user.role === 'admin') {
+            if (user?.role === 'admin') {
               // Admin restrictions
               if (newItem.name === 'Sales & Marketing' && child.name === 'Stores') return false;
               if (newItem.name === 'Settings') {
@@ -382,7 +382,7 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
       })
       .filter(item => {
         // Root level filtering
-        if (user.role === 'store_admin') {
+        if (user?.role === 'store_admin') {
           if (item.name === 'Settings') return false;
         }
 

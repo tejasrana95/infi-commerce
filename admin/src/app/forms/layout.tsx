@@ -1,6 +1,7 @@
 'use client';
 
 import DashboardLayout from '@/components/DashboardLayout';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 export default function FormsLayout({
     children,
@@ -8,6 +9,8 @@ export default function FormsLayout({
     children: React.ReactNode;
 }) {
     return (
-        <DashboardLayout>{children}</DashboardLayout>
+        <ProtectedRoute>
+            <DashboardLayout>{children}</DashboardLayout>
+        </ProtectedRoute>
     );
 }
