@@ -19,6 +19,7 @@ export interface ImageConfig {
     width: 'auto' | 'full' | 'custom';
     customWidth?: number;
     height?: number;
+    fullHeight?: boolean;
     objectFit: 'cover' | 'contain' | 'fill' | 'none';
     alignment: 'left' | 'center' | 'right';
     borderRadius: number;
@@ -38,6 +39,7 @@ export const defaultImageConfig: ImageConfig = {
     width: 'full',
     customWidth: undefined,
     height: undefined,
+    fullHeight: false,
     objectFit: 'cover',
     alignment: 'center',
     borderRadius: 0,
@@ -148,6 +150,20 @@ export default function ImageConfigPanel({ config, onChange }: ImageConfigPanelP
                 size="small"
                 placeholder="Leave empty for auto"
             />
+
+            <FormControlLabel
+                control={
+                    <Switch
+                        checked={config.fullHeight || false}
+                        onChange={(e) => handleChange('fullHeight', e.target.checked)}
+                        size="small"
+                    />
+                }
+                label="Full Section Height"
+            />
+            <Typography variant="caption" color="text.secondary" sx={{ mt: -1, display: 'block' }}>
+                Make image take full height of the section (uses cover mode)
+            </Typography>
 
             <Box sx={{ display: 'flex', gap: 2 }}>
                 <TextField

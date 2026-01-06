@@ -73,8 +73,25 @@ export default function IconBoxModule({ config }: ModuleProps) {
         setCurrentIndex(Math.max(0, Math.min(index, maxIndex)));
     };
 
+    const [gridColumns, setGridColumns] = useState(columns);
+
+    // Responsive grid columns calculation
+    useEffect(() => {
+        const calculateColumns = () => {
+            if (typeof window === 'undefined') return columns;
+            if (window.innerWidth < 768) return 1;  // Mobile
+            if (window.innerWidth < 1024) return 2; // Tablet
+            return columns; // Desktop - use configured value
+        };
+
+        const handleResize = () => setGridColumns(calculateColumns());
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [columns]);
+
     const gridStyle = {
-        gridTemplateColumns: `repeat(${columns}, 1fr)`,
+        gridTemplateColumns: `repeat(${gridColumns}, 1fr)`,
     } as React.CSSProperties;
 
     const boxStyle = {

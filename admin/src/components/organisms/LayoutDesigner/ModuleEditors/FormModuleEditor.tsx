@@ -94,6 +94,19 @@ export default function FormModuleEditor({ module, onChange }: FormModuleEditorP
                 size="small"
             />
 
+            <FormControlLabel
+                control={
+                    <Switch
+                        checked={module.config.inheritBackground ?? false}
+                        onChange={(e) => updateConfig('inheritBackground', e.target.checked)}
+                    />
+                }
+                label="Inherit Background Color"
+            />
+            <Typography variant="caption" color="text.secondary" sx={{ mt: -1, display: 'block' }}>
+                When enabled, form elements will use contrasting colors based on the section background
+            </Typography>
+
             <TextField
                 label="Success Message"
                 value={module.config.successMessage || 'Thank you! Your submission has been received.'}

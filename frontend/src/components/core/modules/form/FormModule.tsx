@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { apiClient } from '@/services/api-client';
 import { ModuleProps } from '@/components/core/modules';
 import styles from './form.module.scss';
@@ -54,7 +54,64 @@ export default function FormModule({ config }: ModuleProps) {
         submitButtonText = 'Submit',
         successMessage = 'Thank you! Your submission has been received.',
         redirectUrl,
+        inheritBackground = false,
     } = config;
+
+
+    // Get section background color from parent element
+    const [contrastColor, setContrastColor] = useState<string>('#FFFFFF');
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (inheritBackground && typeof window !== 'undefined' && containerRef.current) {
+            const detectBackground = () => {
+                let parent = containerRef.current?.parentElement;
+                let bgColor = 'transparent';
+
+                // Traverse up to find a non-transparent background color
+                while (parent) {
+                    const style = window.getComputedStyle(parent);
+                    bgColor = style.backgroundColor;
+
+                    // Improved check for transparent backgrounds
+                    // Handles 'transparent', 'rgba(0, 0, 0, 0)', 'rgba(0,0,0,0)', and any rgba with alpha 0
+                    const isTransparent = !bgColor ||
+                        bgColor === 'transparent' ||
+                        bgColor.replace(/\s/g, '') === 'rgba(0,0,0,0)' ||
+                        (bgColor.startsWith('rgba') && bgColor.endsWith(',0)')) ||
+                        (bgColor.startsWith('rgba') && bgColor.endsWith(', 0)'));
+
+                    if (!isTransparent) {
+                        break;
+                    }
+
+                    // Stop if we hit body or html
+                    if (parent.tagName === 'BODY' || parent.tagName === 'HTML') break;
+                    parent = parent.parentElement;
+                }
+
+                if (bgColor && bgColor !== 'transparent') {
+                    // Convert rgb/rgba to hex for luminance calculation
+                    const rgbMatch = bgColor.match(/\d+/g);
+                    if (rgbMatch && rgbMatch.length >= 3) {
+                        const r = parseInt(rgbMatch[0]);
+                        const g = parseInt(rgbMatch[1]);
+                        const b = parseInt(rgbMatch[2]);
+
+                        // Calculate luminance directly from RGB
+                        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+                        const newContrast = luminance > 0.5 ? '#000000' : '#FFFFFF';
+                        setContrastColor(newContrast);
+                    }
+                }
+            };
+
+            // Run detection after mount and with a slight delay to ensure styles are applied
+            detectBackground();
+            const timer = setTimeout(detectBackground, 100);
+            return () => clearTimeout(timer);
+        }
+    }, [inheritBackground]);
 
     useEffect(() => {
         if (formId) {
@@ -624,10 +681,17 @@ export default function FormModule({ config }: ModuleProps) {
     }
 
     return (
-        <div className={styles.formModule}>
-            {showTitle && <h2 className={styles.title}>{form.name}</h2>}
+        <div
+            ref={containerRef}
+            className={styles.formModule}
+            style={inheritBackground ? {
+                '--contrast-color': contrastColor,
+            } as React.CSSProperties : undefined}
+            data-inherit-background={inheritBackground}
+        >
+            {showTitle && <h2 className={styles.title} style={inheritBackground ? { color: contrastColor } : undefined}>{form.name}</h2>}
             {showDescription && form.description && (
-                <p className={styles.description}>{form.description}</p>
+                <p className={styles.description} style={inheritBackground ? { color: contrastColor } : undefined}>{form.description}</p>
             )}
 
             <form onSubmit={handleSubmit} className={styles.form} noValidate>

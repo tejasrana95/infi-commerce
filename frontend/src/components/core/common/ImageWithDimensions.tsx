@@ -10,6 +10,7 @@ interface ImageWithDimensionsProps extends Omit<ImageProps, 'onError' | 'classNa
     aspectRatio?: '1x1' | '3x4' | '4x3' | '16x9' | 'auto';
     fallback?: React.ReactNode;
     fetchPriority?: 'high' | 'low' | 'auto';
+    fullHeight?: boolean;
 }
 
 const cleanImageUrl = (url: string | any): string => {
@@ -33,6 +34,7 @@ export default function ImageWithDimensions({
     fallback,
     fill: explicitFill,
     priority,
+    fullHeight,
     sizes,
     width,
     height,
@@ -51,11 +53,11 @@ export default function ImageWithDimensions({
         : (width || height)
             ? false
             : aspectRatio !== 'auto';
-
     const containerClasses = [
         styles.imageContainer,
         styles[`aspect${aspectRatio}`],
-        shouldFill ? styles.fill : '',
+        (shouldFill) ? styles.fill : '',
+        fullHeight ? styles.fill : '',
         className
     ].filter(Boolean).join(' ');
 
@@ -74,7 +76,7 @@ export default function ImageWithDimensions({
     }
 
     return (
-        <div className={containerClasses}>
+        <div className={`${containerClasses}`}>
             <Image
                 src={cleanedSrc}
                 alt={alt || ''}

@@ -2,14 +2,113 @@
     width: 100%;
     max-width: 1000px;
     margin: 0 auto;
-    padding: 2.5rem 1.5rem;
-    background: var(--background);
-    border-radius: var(--card-border-radius, 12px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    background: transparent;
 
-    @media (max-width: 640px) {
-        padding: 1.5rem 1rem;
+    // Inherit background mode - apply contrast colors
+    &[data-inherit-background="true"] {
+        background: transparent;
         box-shadow: none;
+
+        .label,
+        .sectionTitle,
+        .repeaterItemTitle {
+            color: var(--contrast-color, var(--foreground)) !important;
+        }
+
+        .input,
+        textarea,
+        select {
+            background: transparent !important;
+            color: var(--contrast-color, var(--foreground)) !important;
+            border-width: 1.5px !important;
+            border-style: solid !important;
+            border-color: var(--contrast-color, rgba(255, 255, 255, 0.3)) !important;
+
+            &::placeholder {
+                color: var(--contrast-color, #ffffff) !important;
+                opacity: 0.7 !important;
+            }
+
+            &:hover {
+                border-color: var(--contrast-color, rgba(255, 255, 255, 0.5)) !important;
+            }
+
+            &:focus {
+                border-color: var(--contrast-color, var(--primary)) !important;
+                box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.1) !important;
+            }
+
+            &.error {
+                border-color: #ef4444 !important;
+                background-color: rgba(239, 68, 68, 0.1) !important;
+
+                &::placeholder {
+                    color: var(--contrast-color, #ffffff) !important;
+                    opacity: 0.8 !important;
+                }
+            }
+        }
+
+        .radioLabel,
+        .checkboxLabel {
+            background: transparent !important;
+            color: var(--contrast-color, var(--foreground)) !important;
+            border-color: var(--contrast-color, rgba(255, 255, 255, 0.3)) !important;
+
+            &:hover {
+                background: rgba(255, 255, 255, 0.05) !important;
+                border-color: var(--contrast-color, var(--primary)) !important;
+            }
+        }
+
+        .radioGroup,
+        .checkboxGroup {
+            &.errorGroup {
+                border-color: #ef4444 !important;
+                background-color: rgba(239, 68, 68, 0.1) !important;
+            }
+        }
+
+        .repeater {
+            &.errorContainer {
+                border-color: #ef4444 !important;
+                background-color: rgba(239, 68, 68, 0.1) !important;
+            }
+        }
+
+        .repeaterItem {
+            background: transparent !important;
+            border-color: var(--contrast-color, rgba(255, 255, 255, 0.3)) !important;
+        }
+
+        .repeaterItemHeader {
+            background: rgba(255, 255, 255, 0.03) !important;
+            border-color: var(--contrast-color, rgba(255, 255, 255, 0.3)) !important;
+        }
+
+        .addButton {
+            background: transparent !important;
+            color: var(--contrast-color, var(--primary)) !important;
+            border: 1.5px solid var(--contrast-color, var(--primary)) !important;
+            transition: all 0.3s ease !important;
+
+            &:hover {
+                background: var(--contrast-color, var(--primary)) !important;
+                color: #000000 !important;
+            }
+        }
+
+        .submitButton {
+            background: transparent !important;
+            color: var(--contrast-color, var(--primary)) !important;
+            border: 1.5px solid var(--contrast-color, var(--primary)) !important;
+            transition: all 0.3s ease !important;
+
+            &:hover:not(:disabled) {
+                background: var(--contrast-color, var(--primary)) !important;
+                color: #000000 !important; // Fixed black text for hover on dark background
+            }
+        }
     }
 
     .title {

@@ -14,6 +14,7 @@ interface ImageConfig {
     width?: 'full' | 'container' | 'custom';
     customWidth?: number;
     height?: number;
+    fullHeight?: boolean; // Take full section height
     objectFit?: 'cover' | 'contain' | 'fill' | 'none';
     alignment?: 'left' | 'center' | 'right';
     borderRadius?: number;
@@ -30,6 +31,7 @@ export default function ImageModule({ config }: ModuleProps) {
         width = 'full',
         customWidth,
         height,
+        fullHeight = false,
         objectFit = 'cover',
         alignment = 'center',
         borderRadius = 0,
@@ -60,9 +62,10 @@ export default function ImageModule({ config }: ModuleProps) {
 
     const imageElement = (
         <div
-            className={`${styles.imageWrapper} ${shadowClass}`}
+            className={`${styles.imageWrapper} ${shadowClass} ${fullHeight ? styles.fullHeight : ''}`}
             style={{
-                width: width === 'custom' && customWidth ? `${customWidth}px` : width === 'full' ? '100%' : undefined,
+                width: fullHeight ? '100%' : width === 'custom' && customWidth ? `${customWidth}px` : width === 'full' ? '100%' : undefined,
+                height: fullHeight ? '100%' : undefined,
                 borderRadius: `${borderRadius}px`,
             }}
         >
@@ -72,11 +75,12 @@ export default function ImageModule({ config }: ModuleProps) {
                 width={imageWidth}
                 height={imageHeight}
                 className={styles.image}
-                aspectRatio={height ? 'auto' : '16x9'}
+                fullHeight={fullHeight}
+                aspectRatio={fullHeight ? undefined : height ? 'auto' : '16x9'}
                 style={{
-                    width: width === 'full' ? '100%' : width === 'custom' && customWidth ? `${customWidth}px` : 'auto',
-                    height: height ? `${height}px` : 'auto',
-                    objectFit: objectFit,
+                    width: fullHeight ? '100%' : width === 'full' ? '100%' : width === 'custom' && customWidth ? `${customWidth}px` : 'auto',
+                    height: fullHeight ? '100%' : height ? `${height}px` : 'auto',
+                    objectFit: fullHeight ? 'cover' : objectFit,
                     borderRadius: `${borderRadius}px`,
                 }}
             />
@@ -95,7 +99,9 @@ export default function ImageModule({ config }: ModuleProps) {
     ) : imageElement;
 
     return (
-        <div className={`${styles.container} ${alignClass}`}>
+        <div
+            className={`${styles.container} ${alignClass} ${fullHeight ? styles.fullHeight : ''}`}
+        >
             {content}
         </div>
     );

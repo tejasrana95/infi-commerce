@@ -44,12 +44,16 @@ export default function ModuleRenderer({ module, sectionType, prefetchedData, pr
         priority
     };
 
+    // Check if module is full height
+    const isFullHeight = module.config?.fullHeight === true;
+
     // Build module styles
     const moduleStyle: React.CSSProperties = {
         marginTop: module.styling?.marginTop ? `${module.styling.marginTop}px` : undefined,
         marginBottom: module.styling?.marginBottom ? `${module.styling.marginBottom}px` : undefined,
         paddingTop: module.styling?.paddingTop ? `${module.styling.paddingTop}px` : undefined,
         paddingBottom: module.styling?.paddingBottom ? `${module.styling.paddingBottom}px` : undefined,
+        height: isFullHeight ? '100%' : undefined,
     };
 
     // Build visibility CSS classes for responsive hiding
@@ -64,9 +68,12 @@ export default function ModuleRenderer({ module, sectionType, prefetchedData, pr
         return classes.join(' ');
     };
 
+    // Check if module is full height
+    // (Already declared above)
+
     return (
         <div
-            className={`${module.styling?.className || ''} ${getVisibilityClasses()}`}
+            className={`${module.styling?.className || ''} ${getVisibilityClasses()} ${isFullHeight ? styles.fullHeight : ''}`}
             style={moduleStyle}
         >
             <ModuleComponent {...moduleProps} />
