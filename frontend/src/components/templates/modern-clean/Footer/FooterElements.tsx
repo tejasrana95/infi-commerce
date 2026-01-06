@@ -214,7 +214,8 @@ export function FooterContactElement({ element }: FooterContactElementProps) {
 
     return (
         <div className={styles.elementContact}>
-            <h4>Contact Us</h4>
+            {contactInfo.title && <h4>{contactInfo.title}</h4>}
+
             <div>
                 {contactInfo.address && (
                     <p>{contactInfo.address}</p>

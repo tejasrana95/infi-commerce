@@ -97,6 +97,7 @@ export interface FooterElement {
         }>;
         // Contact settings
         contactInfo?: {
+            title?: string;
             address?: string;
             phone?: string;
             email?: string;

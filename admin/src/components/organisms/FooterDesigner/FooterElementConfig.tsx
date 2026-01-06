@@ -349,6 +349,24 @@ export default function FooterElementConfig({
                     {formData.type === 'contact' && (
                         <>
                             <TextField
+                                label="Title"
+                                value={formData.settings?.contactInfo?.title || ''}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        settings: {
+                                            ...formData.settings,
+                                            contactInfo: {
+                                                ...formData.settings?.contactInfo,
+                                                title: e.target.value,
+                                            },
+                                        },
+                                    })
+                                }
+                                fullWidth
+                                placeholder="Contact Us"
+                            />
+                            <TextField
                                 label="Address"
                                 value={formData.settings?.contactInfo?.address || ''}
                                 onChange={(e) =>

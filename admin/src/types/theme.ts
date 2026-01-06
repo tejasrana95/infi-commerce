@@ -72,6 +72,7 @@ export interface FooterElement {
             url: string;
         }>;
         contactInfo?: {
+            title?: string;
             address?: string;
             phone?: string;
             email?: string;

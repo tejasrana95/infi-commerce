@@ -689,8 +689,15 @@ export default function FooterDesigner({ config, onChange, storeId }: FooterDesi
                                                             size="small"
                                                             sx={{
                                                                 flex: 1,
-                                                                '& input': { color: 'inherit', fontWeight: 600, fontSize: 14 },
-                                                                '& .MuiInput-underline:before': { borderColor: 'rgba(255,255,255,0.2)' },
+                                                                '& .MuiInputBase-input': {
+                                                                    color: columnsSection.textColor || '#ffffff',
+                                                                    fontWeight: 600,
+                                                                    fontSize: 14,
+                                                                    // Ensure placeholder is visible too if needed, though usually automatic with opacity
+                                                                },
+                                                                '& .MuiInput-underline:before': { borderBottomColor: columnsSection.textColor || '#ffffff !important' },
+                                                                '& .MuiInput-underline:after': { borderBottomColor: columnsSection.textColor || '#ffffff' },
+                                                                '& .MuiInput-underline:hover:before': { borderBottomColor: columnsSection.textColor || '#ffffff !important' },
                                                             }}
                                                         />
                                                         <TextField
