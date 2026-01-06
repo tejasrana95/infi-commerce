@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
     const response = NextResponse.next();
 
     // Check for nocache query parameter
@@ -18,7 +18,7 @@ export function middleware(request: NextRequest) {
     return response;
 }
 
-// Run middleware on all routes
+// Run proxy on all routes
 export const config = {
     matcher: [
         /*

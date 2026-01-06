@@ -139,6 +139,12 @@ https://yourstore.com/products?nocache=true
 https://yourstore.com/blog/post-title?nocache=true
 
 
+**On Command to Pull and Build**
+# Make script executable (first time only)
+chmod +x deploy.sh
+# Run the deployment
+./deploy.sh
+
 ## License
 
 ISC
