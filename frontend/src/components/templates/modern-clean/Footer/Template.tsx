@@ -96,15 +96,6 @@ export default function ModernCleanFooterTemplate() {
                     </div>
                 </div>
             )}
-
-            {/* Fallback for empty footer */}
-            {(!columnsSection || rows.length === 0) && !bottomBarSection && (
-                <div className={styles.footerFallback}>
-                    <div className={styles.container}>
-                        <p>© {new Date().getFullYear()} All rights reserved.</p>
-                    </div>
-                </div>
-            )}
         </footer>
     );
 }
