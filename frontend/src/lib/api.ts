@@ -403,10 +403,11 @@ export { ApiClient };
 // Server-Side Store Fetch Functions (SSR)
 // ============================================
 
-export async function fetchStoreByDomain(domain: string): Promise<Store | null> {
+export async function fetchStoreByDomain(domain: string, nocache: boolean = false): Promise<Store | null> {
     try {
+        const cacheOptions = nocache ? { cache: 'no-store' as RequestCache } : { next: { revalidate: 300 } };
         const res = await fetch(`${API_BASE_URL}/stores/domain/${encodeURIComponent(domain)}`, {
-            next: { revalidate: 300 }, // Cache for 300 seconds (5 minutes)
+            ...cacheOptions,
             headers: {
                 'Content-Type': 'application/json',
             },
@@ -424,10 +425,11 @@ export async function fetchStoreByDomain(domain: string): Promise<Store | null> 
     }
 }
 
-export async function fetchStoreById(storeId: string): Promise<Store | null> {
+export async function fetchStoreById(storeId: string, nocache: boolean = false): Promise<Store | null> {
     try {
+        const cacheOptions = nocache ? { cache: 'no-store' as RequestCache } : { next: { revalidate: 300 } };
         const res = await fetch(`${API_BASE_URL}/stores/${storeId}`, {
-            next: { revalidate: 300 },
+            ...cacheOptions,
             headers: {
                 'Content-Type': 'application/json',
             },
@@ -447,13 +449,13 @@ export async function fetchStoreById(storeId: string): Promise<Store | null> {
 
 const FALLBACK_STORE_ID = process.env.FALLBACK_STORE_ID || '675bd1d5334c9f136d8849b2';
 
-export async function getStore(domain: string): Promise<Store | null> {
+export async function getStore(domain: string, nocache: boolean = false): Promise<Store | null> {
     // First try to get store by domain
-    let store = await fetchStoreByDomain(domain);
+    let store = await fetchStoreByDomain(domain, nocache);
 
     // Fallback for localhost development
     if (!store && domain.includes('localhost')) {
-        store = await fetchStoreById(FALLBACK_STORE_ID);
+        store = await fetchStoreById(FALLBACK_STORE_ID, nocache);
     }
 
     return store;

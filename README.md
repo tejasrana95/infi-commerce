@@ -133,6 +133,12 @@ npm run dev
 - Tailwind CSS + SCSS
 - React 19
 
+**To bust cache**
+https://yourstore.com/?nocache=true
+https://yourstore.com/products?nocache=true
+https://yourstore.com/blog/post-title?nocache=true
+
+
 ## License
 
 ISC
