@@ -91,10 +91,15 @@ export const getStoreByDomain = asyncHandler(async (req: Request, res: Response)
     const { domain } = req.params;
     const cacheKey = `store:domain:${domain}`;
 
-    // Try cache first
-    const cachedStore = cache.get(cacheKey);
-    if (cachedStore) {
-        return res.json(cachedStore);
+    // Check for cache bypass parameters (nocache or purge)
+    const bypassCache = req.query.nocache === 'true' || req.query.purge === 'true';
+
+    // Try cache first (unless bypassed)
+    if (!bypassCache) {
+        const cachedStore = cache.get(cacheKey);
+        if (cachedStore) {
+            return res.json(cachedStore);
+        }
     }
 
     const store = await Store.findOne({ domain, isActive: true });
@@ -107,8 +112,10 @@ export const getStoreByDomain = asyncHandler(async (req: Request, res: Response)
         throw new AppError('Store not found', 404);
     }
 
-    // Cache result (5 minutes)
-    cache.set(cacheKey, store, 300);
+    // Only cache if not bypassed
+    if (!bypassCache) {
+        cache.set(cacheKey, store, 300);
+    }
 
     return res.json(store);
 });
@@ -352,9 +359,14 @@ export const getStoreById = asyncHandler(async (req: AuthRequest, res: Response)
     const { id } = req.params;
     const cacheKey = `store:id:${id}`;
 
-    const cachedStore = cache.get(cacheKey);
-    if (cachedStore) {
-        return res.json({ store: cachedStore });
+    // Check for cache bypass parameters
+    const bypassCache = req.query.nocache === 'true' || req.query.purge === 'true';
+
+    if (!bypassCache) {
+        const cachedStore = cache.get(cacheKey);
+        if (cachedStore) {
+            return res.json({ store: cachedStore });
+        }
     }
 
     const store = await Store.findById(id);
@@ -367,7 +379,9 @@ export const getStoreById = asyncHandler(async (req: AuthRequest, res: Response)
         store.settings.aiSettings.openaiKey = '••••••••••••••••••••';
     }
 
-    cache.set(cacheKey, store, 300);
+    if (!bypassCache) {
+        cache.set(cacheKey, store, 300);
+    }
 
     return res.json({ store });
 });

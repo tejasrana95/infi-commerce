@@ -4,10 +4,11 @@ import type { NextRequest } from 'next/server';
 export function proxy(request: NextRequest) {
     const response = NextResponse.next();
 
-    // Check for nocache query parameter
+    // Check for nocache or purge query parameter (both supported)
     const nocache = request.nextUrl.searchParams.get('nocache');
+    const purge = request.nextUrl.searchParams.get('purge');
 
-    if (nocache === 'true') {
+    if (nocache === 'true' || purge === 'true') {
         // Disable all caching when nocache=true is present
         response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
         response.headers.set('Pragma', 'no-cache');
