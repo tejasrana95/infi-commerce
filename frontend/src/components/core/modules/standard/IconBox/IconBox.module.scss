@@ -7,8 +7,13 @@
 .grid {
     display: grid;
     gap: 2rem;
+    grid-template-columns: repeat(var(--desktop-columns, 3), 1fr);
 
-    @include mobile {
+    @media (max-width: 1024px) {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    @media (max-width: 768px) {
         grid-template-columns: 1fr;
     }
 }
@@ -28,6 +33,21 @@
     display: grid;
     transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     width: 100%;
+
+    // CSS-driven responsive values
+    --visible-count: var(--desktop-columns, 3);
+
+    @media (max-width: 1024px) {
+        --visible-count: 2;
+    }
+
+    @media (max-width: 640px) {
+        --visible-count: 1;
+    }
+
+    // Dynamic grid columns and transform based on var inputs
+    grid-template-columns: repeat(var(--item-count), calc(100% / var(--visible-count)));
+    transform: translateX(calc(-100% * var(--current-index) / var(--visible-count)));
 }
 
 .carouselSlide {

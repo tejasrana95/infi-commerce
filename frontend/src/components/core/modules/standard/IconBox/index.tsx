@@ -42,9 +42,9 @@ export default function IconBoxModule({ config }: ModuleProps) {
     const primaryLightColor = `${primaryColor}15`; // 10% opacity
 
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [visibleCount, setVisibleCount] = useState(columns);
 
-    // Responsive columns calculation
+    // For interaction logic (clamping index), we track visible items in JS
+    // BUT rendering is handled by CSS to prevent FOUC
     const calculateVisibleCount = useCallback(() => {
         if (typeof window === 'undefined') return columns;
         if (window.innerWidth < 640) return 1;
@@ -52,14 +52,23 @@ export default function IconBoxModule({ config }: ModuleProps) {
         return columns;
     }, [columns]);
 
+    const [visibleCount, setVisibleCount] = useState(columns);
+
     useEffect(() => {
         const handleResize = () => setVisibleCount(calculateVisibleCount());
-        handleResize();
+        handleResize(); // Initial check
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, [calculateVisibleCount]);
 
     const maxIndex = Math.max(0, items.length - visibleCount);
+
+    // Adjust currentIndex if window resize changes visibleCount
+    useEffect(() => {
+        if (currentIndex > maxIndex) {
+            setCurrentIndex(Math.max(0, maxIndex));
+        }
+    }, [maxIndex, currentIndex]);
 
     const nextSlide = useCallback(() => {
         setCurrentIndex(prev => (prev >= maxIndex ? 0 : prev + 1));
@@ -73,25 +82,8 @@ export default function IconBoxModule({ config }: ModuleProps) {
         setCurrentIndex(Math.max(0, Math.min(index, maxIndex)));
     };
 
-    const [gridColumns, setGridColumns] = useState(columns);
-
-    // Responsive grid columns calculation
-    useEffect(() => {
-        const calculateColumns = () => {
-            if (typeof window === 'undefined') return columns;
-            if (window.innerWidth < 768) return 1;  // Mobile
-            if (window.innerWidth < 1024) return 2; // Tablet
-            return columns; // Desktop - use configured value
-        };
-
-        const handleResize = () => setGridColumns(calculateColumns());
-        handleResize();
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, [columns]);
-
     const gridStyle = {
-        gridTemplateColumns: `repeat(${gridColumns}, 1fr)`,
+        '--desktop-columns': columns,
     } as React.CSSProperties;
 
     const boxStyle = {
@@ -143,7 +135,11 @@ export default function IconBoxModule({ config }: ModuleProps) {
     };
 
     if (displayMode === 'carousel') {
-        const translateX = currentIndex * (100 / visibleCount);
+        const carouselStyle = {
+            '--desktop-columns': columns,
+            '--item-count': items.length,
+            '--current-index': currentIndex
+        } as React.CSSProperties;
 
         return (
             <div className={styles.iconBoxContainer}>
@@ -151,10 +147,7 @@ export default function IconBoxModule({ config }: ModuleProps) {
                     <div className={styles.carouselViewport}>
                         <div
                             className={styles.carouselTrack}
-                            style={{
-                                transform: `translateX(-${translateX}%)`,
-                                gridTemplateColumns: `repeat(${items.length}, ${100 / visibleCount}%)`
-                            }}
+                            style={carouselStyle}
                         >
                             {items.map((item, index) => (
                                 <div key={index} className={styles.carouselSlide}>
