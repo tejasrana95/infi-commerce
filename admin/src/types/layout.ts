@@ -21,7 +21,8 @@ export type ModuleType =
     | 'number-box'
     | 'flip-box'
     | 'progress-bar'
-    | 'marquee';
+    | 'marquee'
+    | 'content-card-grid';
 
 export type SectionType = 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';
 

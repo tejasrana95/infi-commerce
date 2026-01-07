@@ -144,6 +144,10 @@ router.use('/pages', pageRoutes);
 // Mount blog routes
 router.use('/blog', blogRoutes);
 
+// Mount content card routes
+import contentCardRoutes from './contentCard.routes';
+router.use('/content-cards', contentCardRoutes);
+
 // Mount global elements routes
 router.use('/global', globalElementsRoutes);
 

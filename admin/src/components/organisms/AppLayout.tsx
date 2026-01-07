@@ -57,11 +57,11 @@ import WebIcon from '@mui/icons-material/Web';
 import DashboardCustomizeIcon from '@mui/icons-material/DashboardCustomize';
 import ArticleIcon from '@mui/icons-material/Article';
 import RssFeedIcon from '@mui/icons-material/RssFeed';
-import ImageIcon from '@mui/icons-material/Image';
+import BallotIcon from '@mui/icons-material/Ballot';
 import ViewCarouselIcon from '@mui/icons-material/ViewCarousel';
 import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
 import WorkspacesIcon from '@mui/icons-material/Workspaces';
-import GridViewIcon from '@mui/icons-material/GridView';
+import MarkunreadMailboxIcon from '@mui/icons-material/MarkunreadMailbox';
 import CollectionsIcon from '@mui/icons-material/Collections';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
@@ -115,7 +115,16 @@ const navigationItems: NavItem[] = [
       { name: 'Testimonials', href: '/testimonials', icon: <FormatQuoteIcon /> },
       { name: 'Brand Showcases', href: '/brand-showcases', icon: <WorkspacesIcon /> },
       { name: 'Form Builder', href: '/forms', icon: <FormatListBulletedIcon /> },
-      { name: 'Newsletter Subscribers', href: '/newsletter', icon: <RssFeedIcon /> },
+      {
+        name: 'Content Card',
+        icon: <BallotIcon />,
+        children: [
+          { name: 'Content List', href: '/content-cards/cards', icon: <BallotIcon /> },
+          { name: 'Categories', href: '/content-cards/categories', icon: <CategoryIcon /> },
+        ],
+      },
+      { name: 'Newsletter Subscribers', href: '/newsletter', icon: <MarkunreadMailboxIcon /> },
+
       {
         name: 'Blog',
         icon: <RssFeedIcon />,
@@ -161,10 +170,23 @@ const NavItemComponent = memo(({
   onNavigate: () => void;
 }) => {
   const hasChildren = item.children && item.children.length > 0;
+
+  // Recursive function to check if any child (at any depth) is active
+  const isChildActive = useCallback((navItem: NavItem): boolean => {
+    if (navItem.href && (pathname === navItem.href || pathname.startsWith(`${navItem.href}/`))) {
+      return true;
+    }
+    if (navItem.children) {
+      return navItem.children.some(child => isChildActive(child));
+    }
+    return false;
+  }, [pathname]);
+
   const isActive = item.href ? (pathname === item.href || pathname.startsWith(`${item.href}/`)) : false;
-  const isParentActive = item.children?.some(child =>
-    child.href && (pathname === child.href || pathname.startsWith(`${child.href}/`))
-  );
+  const isParentActive = useMemo(() => {
+    if (!item.children) return false;
+    return item.children.some(child => isChildActive(child));
+  }, [item.children, isChildActive]);
 
   // Keep menu open if any child is active
   const [open, setOpen] = useState(isParentActive || false);

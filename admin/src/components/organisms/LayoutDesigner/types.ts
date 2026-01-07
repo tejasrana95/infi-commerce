@@ -789,6 +789,30 @@ export const AVAILABLE_MODULES: ModuleDefinition[] = [
             ]
         },
     },
+    {
+        type: 'content-card-grid',
+        label: 'Content Card Grid',
+        icon: 'ViewModule',
+        category: 'standard',
+        description: 'Generic content listing (jobs, events, features)',
+        defaultConfig: {
+            title: 'Content Cards',
+            categoryId: '',
+            limit: 6,
+            sortBy: 'latest',
+            gridColumns: 3,
+            direction: 'vertical',
+            variant: 'default',
+            gap: 3,
+            showImage: true,
+            showIcon: true,
+            showExcerpt: true,
+            showMetadata: true,
+            showValue: true,
+            showTags: true,
+            showButtons: true,
+        },
+    },
 ];
 
 // Get modules by category

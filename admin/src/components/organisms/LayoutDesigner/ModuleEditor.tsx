@@ -48,6 +48,7 @@ import {
     FlipBoxConfigPanel,
     ProgressBarConfigPanel,
     MarqueeConfigPanel,
+    ContentCardGridConfigPanel,
 } from '@/components/organisms/ModuleConfigPanels';
 import FormModuleEditor from './ModuleEditors/FormModuleEditor';
 
@@ -395,6 +396,14 @@ export default function ModuleEditor({ module, onChange, onDelete, storeId }: Mo
             case 'marquee':
                 return (
                     <MarqueeConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
+                    />
+                );
+
+            case 'content-card-grid':
+                return (
+                    <ContentCardGridConfigPanel
                         config={module.config as any}
                         onChange={updateConfig}
                     />

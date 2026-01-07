@@ -47,6 +47,10 @@ export { default as FlipBoxConfigPanel } from './FlipBoxConfigPanel';
 export { default as ProgressBarConfigPanel } from './ProgressBarConfigPanel';
 export { default as MarqueeConfigPanel } from './MarqueeConfigPanel';
 
+// Content Card Config Panel
+export { default as ContentCardGridConfigPanel, defaultContentCardGridConfig } from './ContentCardGridConfigPanel';
+export type { ContentCardGridConfig } from './ContentCardGridConfigPanel';
+
 // Blog Config Panels
 export * from './BlogConfigPanels';
 

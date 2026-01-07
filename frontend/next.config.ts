@@ -29,6 +29,14 @@ const nextConfig: NextConfig = {
     // Allow unoptimized images in development to avoid issues with localhost
     unoptimized: process.env.NODE_ENV === 'development',
   },
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'http://localhost:3001/api/:path*',
+      },
+    ];
+  },
 };
 
 export default withBundleAnalyzer({

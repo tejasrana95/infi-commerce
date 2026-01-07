@@ -1,0 +1,470 @@
+.container {
+    width: 100%;
+    padding: 2rem 0;
+}
+
+.title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+    text-align: center;
+    color: var(--text-primary, #1a1a1a);
+}
+
+.loading {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-secondary, #666);
+}
+
+/* Grid Layouts */
+.grid {
+    display: grid;
+    width: 100%;
+}
+
+.grid-1 {
+    grid-template-columns: 1fr;
+}
+
+.grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+
+    .grid-3,
+    .grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+
+    .grid-2,
+    .grid-3,
+    .grid-4 {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================
+   CARD STYLES - Modern Professional Design
+/* ============================================
+   VARIANT: DEFAULT
+   ============================================ */
+
+.variant-default .card {
+    position: relative;
+}
+
+/* ============================================
+   CARD STYLES - Modern Professional Design
+   ============================================ */
+
+.card {
+    background: #ffffff;
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.card:hover {
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+}
+
+/* ============================================
+   DIRECTION: VERTICAL (Default Grid Layout)
+   ============================================ */
+
+.direction-vertical .card {
+    flex-direction: column;
+}
+
+.direction-vertical .visual {
+    width: 100%;
+    height: 180px;
+    flex-shrink: 0;
+}
+
+.direction-vertical .image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.direction-vertical .iconContainer {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.direction-vertical .content {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    flex: 1;
+}
+
+.direction-vertical .cardHeader {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.direction-vertical .cardTitle {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0;
+    line-height: 1.3;
+}
+
+/* ============================================
+   DIRECTION: HORIZONTAL (Side-by-side Layout)
+   ============================================ */
+
+.direction-horizontal .card {
+    flex-direction: row;
+    align-items: stretch;
+}
+
+.direction-horizontal .visual {
+    width: 280px;
+    min-height: 220px;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.direction-horizontal .image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    position: absolute;
+    inset: 0;
+}
+
+.direction-horizontal .iconContainer {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.direction-horizontal .content {
+    flex: 1;
+    padding: 1.75rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.direction-horizontal .cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.direction-horizontal .cardTitle {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0;
+    line-height: 1.3;
+    flex: 1;
+}
+
+.direction-horizontal .valueDisplay {
+    flex-shrink: 0;
+    text-align: right;
+}
+
+@media (max-width: 768px) {
+    .direction-horizontal .card {
+        flex-direction: column;
+    }
+
+    .direction-horizontal .visual {
+        width: 100%;
+        min-height: 200px;
+    }
+
+    .direction-horizontal .cardHeader {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .direction-horizontal .valueDisplay {
+        text-align: left;
+    }
+}
+
+/* ============================================
+   COMMON ELEMENTS
+   ============================================ */
+
+/* Visual Container */
+.visual {
+    position: relative;
+    overflow: hidden;
+    background: #f8fafc;
+}
+
+.image {
+    display: block;
+}
+
+.iconContainer {
+    font-size: 3rem;
+}
+
+/* Content Container */
+.content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Card Header with Title and Value */
+.cardHeader {
+    display: flex;
+    gap: 1rem;
+}
+
+.cardTitle {
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0;
+}
+
+/* Metadata Row */
+.metadata {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+}
+
+.metaItem {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.875rem;
+    color: #64748b;
+}
+
+.metaIcon {
+    display: inline-flex;
+    align-items: center;
+    color: #6366f1;
+    flex-shrink: 0;
+}
+
+.metaLabel {
+    font-weight: 500;
+    color: #64748b;
+}
+
+.metaValue {
+    color: #334155;
+}
+
+/* Value Display (Price/Salary) */
+.valueDisplay {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+}
+
+.prefix {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #6366f1;
+}
+
+.amount {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #6366f1;
+    letter-spacing: -0.02em;
+}
+
+.postfix {
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: #94a3b8;
+}
+
+/* Excerpt */
+.excerpt {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: #64748b;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Tags */
+.tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.tag {
+    padding: 0.375rem 0.875rem;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 0.8125rem;
+    color: #475569;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.tag:hover {
+    background: #e2e8f0;
+    border-color: #cbd5e1;
+}
+
+/* Buttons */
+.buttons {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: auto;
+    padding-top: 1rem;
+}
+
+.button {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    text-align: center;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 120px;
+}
+
+.buttonPrimary {
+    background: #6366f1;
+    color: white;
+    border: 2px solid #6366f1;
+}
+
+.buttonPrimary:hover {
+    background: #4f46e5;
+    border-color: #4f46e5;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.buttonSecondary {
+    background: transparent;
+    color: #6366f1;
+    border: 2px solid #e2e8f0;
+}
+
+.buttonSecondary:hover {
+    border-color: #6366f1;
+    background: rgba(99, 102, 241, 0.04);
+}
+
+/* ============================================
+   VARIANT: COMPACT
+   ============================================ */
+
+.variant-compact .card {
+    border-radius: 12px;
+}
+
+.variant-compact .content {
+    padding: 1.25rem;
+    gap: 0.75rem;
+}
+
+.variant-compact .cardTitle {
+    font-size: 1.125rem;
+}
+
+.variant-compact .visual {
+    height: 160px;
+}
+
+.variant-compact .direction-horizontal .visual {
+    width: 200px;
+    min-height: 180px;
+}
+
+.variant-compact .amount {
+    font-size: 1.25rem;
+}
+
+.variant-compact .button {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.8125rem;
+    min-width: 100px;
+}
+
+/* ============================================
+   VARIANT: MINIMAL
+   ============================================ */
+
+.variant-minimal .card {
+    box-shadow: none;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+}
+
+.variant-minimal .card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    border-color: #cbd5e1;
+}
+
+.variant-minimal .content {
+    padding: 1.25rem;
+}
+
+.variant-minimal .cardTitle {
+    font-size: 1.125rem;
+}
+
+.variant-minimal .visual {
+    height: 140px;
+}
+
+.variant-minimal .button {
+    border-radius: 6px;
+}
