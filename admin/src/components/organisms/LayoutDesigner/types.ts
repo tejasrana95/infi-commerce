@@ -731,6 +731,64 @@ export const AVAILABLE_MODULES: ModuleDefinition[] = [
             }
         },
     },
+    {
+        type: 'number-box',
+        label: 'Number Box',
+        icon: 'FormatListNumbered',
+        category: 'standard',
+        description: 'Feature highlights with numbers',
+        defaultConfig: {
+            number: '01',
+            title: 'Feature Title',
+            description: 'Describe your feature here',
+            color: 'primary'
+        },
+    },
+    {
+        type: 'flip-box',
+        label: 'Flip Box',
+        icon: 'Loop',
+        category: 'standard',
+        description: 'Interactive 3D flip card',
+        defaultConfig: {
+            frontImage: '',
+            frontTitle: 'Front Side',
+            frontSubtitle: 'Subtitle',
+            backDescription: 'Back side description goes here.',
+            ctaText: 'Learn More',
+            ctaUrl: '#',
+            flipDirection: 'horizontal'
+        },
+    },
+    {
+        type: 'progress-bar',
+        label: 'Progress Bar',
+        icon: 'Poll',
+        category: 'standard',
+        description: 'Animated skill or progress indicator',
+        defaultConfig: {
+            title: 'Skill Level',
+            percentage: 80,
+            barColor: '#2563eb'
+        },
+    },
+    {
+        type: 'marquee',
+        label: 'Marquee',
+        icon: 'LowPriority',
+        category: 'standard',
+        description: 'Infinite scrolling text bar',
+        defaultConfig: {
+            bgColor: '#f3f4f6',
+            textColor: '#1f2937',
+            speed: 20,
+            gap: 40,
+            items: [
+                { id: '1', text: 'Free Shipping on orders over $50' },
+                { id: '2', text: 'New Arrivals: Winter Collection 2024' },
+            ]
+        },
+    },
 ];
 
 // Get modules by category

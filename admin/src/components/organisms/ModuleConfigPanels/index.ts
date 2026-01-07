@@ -42,6 +42,10 @@ export { default as IconBoxConfigPanel } from './IconBoxConfigPanel';
 export { default as PricingTableConfigPanel } from './PricingTableConfigPanel';
 export { default as AccordionConfigPanel } from './AccordionConfigPanel';
 export { default as HeadingConfigPanel } from './HeadingConfigPanel';
+export { default as NumberBoxConfigPanel } from './NumberBoxConfigPanel';
+export { default as FlipBoxConfigPanel } from './FlipBoxConfigPanel';
+export { default as ProgressBarConfigPanel } from './ProgressBarConfigPanel';
+export { default as MarqueeConfigPanel } from './MarqueeConfigPanel';
 
 // Blog Config Panels
 export * from './BlogConfigPanels';

@@ -17,7 +17,11 @@ export type ModuleType =
     | 'account-sidebar' | 'account-dashboard' | 'account-orders' | 'account-profile' | 'account-addresses'
     | 'form'
     | 'accordion'
-    | 'heading';
+    | 'heading'
+    | 'number-box'
+    | 'flip-box'
+    | 'progress-bar'
+    | 'marquee';
 
 export type SectionType = 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';
 
@@ -66,6 +70,8 @@ export interface LayoutSection {
         marginBottom?: number;
         maxWidth?: number;
         customClass?: string;
+        backgroundParallax?: boolean;
+        backgroundParallaxRatio?: number;
     };
     columns?: LayoutColumn[];
     modules: LayoutModule[];

@@ -18,7 +18,7 @@ interface CTAButtonProps {
 
 const CTAButton: React.FC<CTAButtonProps> = ({
     text,
-    link,
+    link = '#',
     variant = 'contained',
     color = 'primary',
     alignment = 'center',
@@ -59,12 +59,12 @@ const CTAButton: React.FC<CTAButtonProps> = ({
 
     return (
         <div className={wrapperClasses}>
-            {link.startsWith('/') ? (
+            {link && link.startsWith('/') ? (
                 <Link href={link} className={buttonClasses} style={dynamicStyles}>
                     {renderContent()}
                 </Link>
             ) : (
-                <a href={link} className={buttonClasses} target="_blank" rel="noopener noreferrer" style={dynamicStyles}>
+                <a href={link || '#'} className={buttonClasses} target="_blank" rel="noopener noreferrer" style={dynamicStyles}>
                     {renderContent()}
                 </a>
             )}

@@ -43,6 +43,11 @@ import {
     PageHeroConfigPanel,
     // Checkout Config Panel
     CheckoutContentConfigPanel,
+    // New Modules
+    NumberBoxConfigPanel,
+    FlipBoxConfigPanel,
+    ProgressBarConfigPanel,
+    MarqueeConfigPanel,
 } from '@/components/organisms/ModuleConfigPanels';
 import FormModuleEditor from './ModuleEditors/FormModuleEditor';
 
@@ -359,6 +364,39 @@ export default function ModuleEditor({ module, onChange, onDelete, storeId }: Mo
                     <FormModuleEditor
                         module={module}
                         onChange={onChange}
+                    />
+                );
+
+            // New modules
+            case 'number-box':
+                return (
+                    <NumberBoxConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
+                    />
+                );
+
+            case 'flip-box':
+                return (
+                    <FlipBoxConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
+                    />
+                );
+
+            case 'progress-bar':
+                return (
+                    <ProgressBarConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
+                    />
+                );
+
+            case 'marquee':
+                return (
+                    <MarqueeConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
                     />
                 );
 

@@ -192,33 +192,75 @@ export default function SectionEditor({ section, onChange, onDelete }: SectionEd
             </Box>
 
             {section.settings.backgroundImage && (
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                    <TextField
-                        select
-                        label="Size"
-                        value={section.settings.backgroundSize || 'cover'}
-                        onChange={(e) => updateSettings('backgroundSize', e.target.value)}
-                        size="small"
-                        sx={{ flex: 1 }}
-                    >
-                        <MenuItem value="cover">Cover</MenuItem>
-                        <MenuItem value="contain">Contain</MenuItem>
-                        <MenuItem value="auto">Auto</MenuItem>
-                    </TextField>
+                <>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                        <TextField
+                            select
+                            label="Size"
+                            value={section.settings.backgroundSize || 'cover'}
+                            onChange={(e) => updateSettings('backgroundSize', e.target.value)}
+                            size="small"
+                            sx={{ flex: 1 }}
+                        >
+                            <MenuItem value="cover">Cover</MenuItem>
+                            <MenuItem value="contain">Contain</MenuItem>
+                            <MenuItem value="auto">Auto</MenuItem>
+                        </TextField>
 
-                    <TextField
-                        select
-                        label="Position"
-                        value={section.settings.backgroundPosition || 'center'}
-                        onChange={(e) => updateSettings('backgroundPosition', e.target.value)}
-                        size="small"
-                        sx={{ flex: 1 }}
-                    >
-                        <MenuItem value="center">Center</MenuItem>
-                        <MenuItem value="top">Top</MenuItem>
-                        <MenuItem value="bottom">Bottom</MenuItem>
-                    </TextField>
-                </Box>
+                        <TextField
+                            select
+                            label="Position"
+                            value={section.settings.backgroundPosition || 'center'}
+                            onChange={(e) => updateSettings('backgroundPosition', e.target.value)}
+                            size="small"
+                            sx={{ flex: 1 }}
+                        >
+                            <MenuItem value="center">Center</MenuItem>
+                            <MenuItem value="top">Top</MenuItem>
+                            <MenuItem value="bottom">Bottom</MenuItem>
+                        </TextField>
+                    </Box>
+
+                    <Box sx={{ mt: 1 }}>
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={section.settings.backgroundParallax || false}
+                                    onChange={(e) => updateSettings('backgroundParallax', e.target.checked)}
+                                    size="small"
+                                />
+                            }
+                            label={
+                                <Box>
+                                    <Typography variant="caption" sx={{ display: 'block' }}>
+                                        Parallax Effect
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                        Smooth scroll-based background movement
+                                    </Typography>
+                                </Box>
+                            }
+                        />
+                    </Box>
+
+                    {section.settings.backgroundParallax && (
+                        <Box sx={{ mt: 1, px: 1 }}>
+                            <Typography variant="caption" color="text.secondary" gutterBottom display="block">
+                                Parallax Intensity: {Math.round((section.settings.backgroundParallaxRatio || 0.5) * 100)}%
+                            </Typography>
+                            <Slider
+                                value={section.settings.backgroundParallaxRatio || 0.5}
+                                onChange={(_, val) => updateSettings('backgroundParallaxRatio', val)}
+                                min={0}
+                                max={1}
+                                step={0.05}
+                                size="small"
+                                valueLabelDisplay="auto"
+                                valueLabelFormat={(v) => `${Math.round(v * 100)}%`}
+                            />
+                        </Box>
+                    )}
+                </>
             )}
 
             <Divider />
@@ -300,6 +342,6 @@ export default function SectionEditor({ section, onChange, onDelete }: SectionEd
                 fullWidth
                 placeholder="my-custom-section"
             />
-        </Box>
+        </Box >
     );
 }

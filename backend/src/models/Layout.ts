@@ -46,6 +46,8 @@ export interface ISection {
         backgroundImage?: string;
         backgroundSize?: string;        // 'cover' | 'contain' | 'auto'
         backgroundPosition?: string;    // 'center' | 'top' | 'bottom'
+        backgroundParallax?: boolean;
+        backgroundParallaxRatio?: number;
         paddingTop?: number;
         paddingBottom?: number;
         paddingLeft?: number;
@@ -155,6 +157,8 @@ const SectionSchema = new Schema<ISection>(
             backgroundImage: { type: String, trim: true },
             backgroundSize: { type: String, default: 'cover' },
             backgroundPosition: { type: String, default: 'center' },
+            backgroundParallax: { type: Boolean, default: false },
+            backgroundParallaxRatio: { type: Number, default: 0.5 },
             paddingTop: { type: Number, default: 40 },
             paddingBottom: { type: Number, default: 40 },
             paddingLeft: { type: Number },

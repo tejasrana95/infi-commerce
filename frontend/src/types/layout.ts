@@ -53,6 +53,8 @@ export interface Section {
         maxWidth?: number;
         minHeight?: number;
         customClass?: string;
+        backgroundParallax?: boolean;
+        backgroundParallaxRatio?: number;
     };
     columns?: Column[];
     modules: Module[];

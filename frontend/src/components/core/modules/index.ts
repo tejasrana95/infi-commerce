@@ -30,6 +30,10 @@ import StripBannerModule from './standard/StripBanner';
 import CardGroupModule from './standard/CardGroup';
 import PageContentModule from './standard/PageContent';
 import PageHeroModule from './standard/PageHero';
+import NumberBoxModule from './standard/NumberBox';
+import FlipBoxModule from './standard/FlipBox';
+import ProgressBarModule from './standard/ProgressBar';
+import MarqueeModule from './standard/Marquee';
 import CheckoutContentModule from './checkout/CheckoutContent';
 import CartModule from './cart/CartModule';
 import FormModule from './form/FormModule';
@@ -101,6 +105,11 @@ export const moduleRegistry: Record<string, ModuleComponent> = {
     // Static page modules
     'page-content': PageContentModule,
     'page-hero': PageHeroModule,
+    // New modules
+    'number-box': NumberBoxModule,
+    'flip-box': FlipBoxModule,
+    'progress-bar': ProgressBarModule,
+    'marquee': MarqueeModule,
     // Checkout module
     'checkout-content': CheckoutContentModule,
     // Cart module

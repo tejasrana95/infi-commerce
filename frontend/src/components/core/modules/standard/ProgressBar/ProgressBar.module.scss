@@ -1,0 +1,44 @@
+.container {
+    width: 100%;
+
+    // Mobile stacking - always stack on mobile
+    @media (max-width: 768px) {
+        flex-direction: column !important;
+        gap: 20px !important;
+    }
+}
+
+.progressItem {
+    flex: 1;
+    min-width: 0;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.label {
+    flex: 1;
+}
+
+.percentage {
+    margin-left: 12px;
+    font-feature-settings: 'tnum';
+}
+
+.barBackground {
+    width: 100%;
+    background-color: #e5e7eb;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.barFill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 1s ease-out;
+    background: linear-gradient(90deg, currentColor 0%, currentColor 100%);
+}

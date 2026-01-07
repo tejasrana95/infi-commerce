@@ -1,0 +1,82 @@
+.container {
+    width: 100%;
+
+    // Mobile stacking - always stack on mobile
+    @media (max-width: 768px) {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 20px !important;
+    }
+}
+
+.flipBox {
+    perspective: 1000px;
+    height: 300px;
+    cursor: pointer;
+
+    &:hover .flipBoxInner {
+        transform: rotateY(180deg);
+    }
+
+    &.vertical:hover .flipBoxInner {
+        transform: rotateX(180deg);
+    }
+}
+
+.flipBoxInner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+}
+
+.flipBoxFront,
+.flipBoxBack {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.flipBoxFront {
+    background-size: cover;
+    background-position: center;
+    background-color: #1976d2;
+    color: white;
+}
+
+.flipBoxBack {
+    background: #f8f9fa;
+    transform: rotateY(180deg);
+
+    .vertical & {
+        transform: rotateX(180deg);
+    }
+}
+
+.frontContent,
+.backContent {
+    text-align: center;
+    width: 100%;
+}
+
+.frontTitle {
+    margin: 0 0 8px 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.frontSubtitle {
+    margin: 0;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.backDescription {
+    margin: 0 0 20px 0;
+    line-height: 1.6;
+}

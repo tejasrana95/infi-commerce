@@ -554,22 +554,34 @@ export default function LayoutDesigner({
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', bgcolor: '#FAFAFA', position: 'relative' }}>
-            {/* Floating Toolbar - Fixed Position */}
-            <FloatingToolbar
-                layoutName={layout.name}
-                layoutType={layout.type}
-                layoutStatus={layout.status}
-                isDefault={layout.isDefault}
-                slug={layout.slug}
-                previewDevice={previewDevice}
-                onPreviewChange={setPreviewDevice}
-                onBack={onBack}
-                onSave={onSave}
-                onSettings={() => setSettingsOpen(true)}
-                onToggleModules={() => setLeftPanelOpen(!leftPanelOpen)}
-                modulesOpen={leftPanelOpen}
-                isSaving={isSaving}
-            />
+            {/* Floating Toolbar - Sticky at top */}
+            <Box
+                sx={{
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 1100,
+                    p: { xs: 1, md: 2 },
+                    bgcolor: '#FAFAFA',
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                }}
+            >
+                <FloatingToolbar
+                    layoutName={layout.name}
+                    layoutType={layout.type}
+                    layoutStatus={layout.status}
+                    isDefault={layout.isDefault}
+                    slug={layout.slug}
+                    previewDevice={previewDevice}
+                    onPreviewChange={setPreviewDevice}
+                    onBack={onBack}
+                    onSave={onSave}
+                    onSettings={() => setSettingsOpen(true)}
+                    onToggleModules={() => setLeftPanelOpen(!leftPanelOpen)}
+                    modulesOpen={leftPanelOpen}
+                    isSaving={isSaving}
+                />
+            </Box>
 
             <DndContext
                 sensors={sensors}
@@ -577,7 +589,7 @@ export default function LayoutDesigner({
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
             >
-                <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
+                <Box sx={{ display: 'flex', flex: 1, position: 'relative' }}>
                     {/* Module Palette Drawer */}
                     <Drawer
                         variant="persistent"
@@ -586,16 +598,19 @@ export default function LayoutDesigner({
                         sx={{
                             width: leftPanelOpen ? 280 : 0,
                             flexShrink: 0,
-                            mt: 2,
                             zIndex: 1,
-                            mb: 4,
-                            maxHeight: '90vh',
+                            transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                             '& .MuiDrawer-paper': {
                                 width: 280,
-                                position: 'relative',
+                                position: 'sticky',
+                                top: 100, // Account for toolbar height + spacing
+                                height: 'calc(100vh - 120px)',
                                 borderRight: '1px solid',
                                 borderColor: 'divider',
+                                borderTopRightRadius: 16,
+                                borderBottomRightRadius: 16,
                                 boxShadow: '2px 0 8px rgba(0, 0, 0, 0.08)',
+                                overflow: 'hidden',
                                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                             },
                         }}
@@ -610,7 +625,6 @@ export default function LayoutDesigner({
                         flex: 1,
                         display: 'flex',
                         flexDirection: 'column',
-                        overflow: 'auto',
                         p: { xs: 2, md: 4 },
                         bgcolor: '#FAFAFA',
                         backgroundImage: 'radial-gradient(#E5E7EB 0.5px, transparent 0.5px)',
