@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { apiClient } from '@/services/api-client';
 import { ModuleProps } from '@/components/core/modules';
+import { useStore } from '@/providers/StoreProvider';
 import styles from './form.module.scss';
 import Honeypot from '@/components/core/common/Honeypot';
 import { track } from '@/lib/ga';
@@ -56,6 +57,8 @@ export default function FormModule({ config }: ModuleProps) {
         redirectUrl,
         inheritBackground = false,
     } = config;
+
+    const { store } = useStore();
 
 
     // Get section background color from parent element
@@ -114,14 +117,14 @@ export default function FormModule({ config }: ModuleProps) {
     }, [inheritBackground]);
 
     useEffect(() => {
-        if (formId) {
+        if (formId && store?._id) {
             fetchForm();
         }
-    }, [formId]);
+    }, [formId, store?._id]);
 
     const fetchForm = async () => {
         try {
-            const response = await apiClient.get(`forms/public/id/${formId}`);
+            const response = await apiClient.get(`forms/public/id/${formId}?storeId=${store?._id}`);
             const formData = response.form || response.data;
             setForm(formData);
 
@@ -338,6 +341,11 @@ export default function FormModule({ config }: ModuleProps) {
 
         try {
             const formData = new FormData();
+
+            // Append store ID if available
+            if (store?._id) {
+                formData.append('storeId', store._id);
+            }
 
             // Append form values individually for backend to process
             Object.entries(formValues).forEach(([key, value]) => {

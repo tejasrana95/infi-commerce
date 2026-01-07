@@ -1,0 +1,208 @@
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 500;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    text-decoration: none;
+    border: none;
+    outline: none;
+
+    &:active {
+        transform: scale(0.98);
+    }
+}
+
+.arrow {
+    display: inline-block;
+    transition: transform 0.3s ease;
+}
+
+.button:hover .arrow {
+    transform: translateX(4px);
+}
+
+// Sizes
+.small {
+    padding: 6px 16px;
+    font-size: 0.875rem;
+    border-radius: 6px;
+}
+
+.medium {
+    padding: 10px 24px;
+    font-size: 1rem;
+    border-radius: 8px;
+}
+
+.large {
+    padding: 14px 32px;
+    font-size: 1.125rem;
+    border-radius: 10px;
+}
+
+// Variants
+.variant_contained {
+    background-color: var(--cta-bg, var(--color-primary));
+    color: var(--cta-text, #fff);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+    &:hover {
+        filter: brightness(1.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+}
+
+.variant_outlined {
+    background-color: transparent;
+    border: 2px solid var(--cta-border, var(--cta-bg, var(--color-primary)));
+    color: var(--cta-text, var(--cta-bg, var(--color-primary)));
+
+    &:hover {
+        background-color: var(--cta-bg, var(--color-primary));
+        color: var(--cta-text, #fff);
+    }
+}
+
+// Differentiated Ghost: PILL SHAPE + BOLD BORDER
+.variant_ghost {
+    background-color: transparent !important;
+    border: 2px solid var(--cta-border, var(--cta-bg, var(--color-primary))) !important;
+    color: var(--cta-text, var(--cta-bg, var(--color-primary))) !important;
+    border-radius: 99px !important;
+    padding: 10px 28px !important;
+    box-shadow: none !important;
+
+    &:hover {
+        background-color: var(--cta-bg, var(--color-primary)) !important;
+        color: #fff !important;
+        transform: translateY(-2px);
+    }
+}
+
+// Differentiated Glass: HEAVY BLUR + GLOSSY BORDER + CONTRAST AWARE TEXT
+.variant_glass {
+    background: rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(25px) saturate(200%) !important;
+    -webkit-backdrop-filter: blur(25px) saturate(200%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.45) !important;
+    color: var(--cta-text, #fff) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15) !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+
+    &.color_primary {
+        background: rgba(var(--color-primary-rgb, 255, 255, 255), 0.25) !important;
+        color: var(--cta-text, #fff) !important;
+    }
+
+    &.color_secondary {
+        background: rgba(var(--color-secondary-rgb, 255, 255, 255), 0.25) !important;
+        color: var(--cta-text, #fff) !important;
+    }
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.3) !important;
+        border-color: rgba(255, 255, 255, 0.8) !important;
+        transform: translateY(-3px) scale(1.02);
+        box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.25) !important;
+    }
+
+    [data-theme='dark'] & {
+        background: rgba(0, 0, 0, 0.2) !important;
+        border-color: rgba(255, 255, 255, 0.1) !important;
+    }
+}
+
+.variant_glow {
+    background-color: var(--cta-bg, var(--color-primary));
+    color: var(--cta-text, #fff);
+    box-shadow: 0 0 15px var(--cta-bg, var(--color-primary));
+
+    &:hover {
+        box-shadow: 0 0 25px var(--cta-bg, var(--color-primary));
+        transform: translateY(-2px);
+    }
+}
+
+.variant_3d {
+    background-color: var(--cta-bg, var(--color-primary));
+    color: var(--cta-text, #fff);
+    box-shadow: 0 6px 0 var(--cta-border, #ccc); // We'll use border for the dark shadow side
+    transform: translateY(-2px);
+
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 0 var(--cta-border, #ccc);
+    }
+
+    &:active {
+        transform: translateY(2px);
+        box-shadow: 0 0 0 var(--cta-border, #ccc);
+    }
+}
+
+.variant_underline {
+    background-color: transparent;
+    color: var(--cta-text, var(--cta-bg, var(--color-primary)));
+    padding-left: 0;
+    padding-right: 0;
+
+    &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background-color: var(--cta-bg, var(--color-primary));
+        transform: scaleX(0);
+        transform-origin: right;
+        transition: transform 0.3s ease;
+    }
+
+    &:hover::after {
+        transform: scaleX(1);
+        transform-origin: left;
+    }
+}
+
+// Differentiated Plain (Text): ZERO SCAFFOLDING + PURE LINK STYLE
+.variant_text {
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+    min-height: auto !important;
+    color: var(--cta-text, var(--cta-bg, var(--color-primary))) !important;
+    font-weight: 700 !important;
+    text-decoration: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    width: auto !important;
+    position: relative;
+
+    &::after {
+        content: '';
+        display: block;
+        width: 0;
+        height: 2px;
+        background: currentColor;
+        transition: width 0.3s ease;
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+    }
+
+    &:hover {
+        background: none !important;
+        opacity: 0.7;
+    }
+
+    &:hover::after {
+        width: 100%;
+    }
+}

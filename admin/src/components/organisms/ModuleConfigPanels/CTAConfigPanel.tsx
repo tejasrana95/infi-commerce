@@ -1,16 +1,18 @@
 import React from 'react';
-import { Box, TextField, FormControl, InputLabel, Select, MenuItem, Typography, Divider } from '@mui/material';
+import { Box, TextField, FormControl, InputLabel, Select, MenuItem, Typography, Divider, FormControlLabel, Switch } from '@mui/material';
 
 interface CTAConfigPanelProps {
     config: {
         text?: string;
         link?: string;
-        variant?: 'contained' | 'outlined' | 'text';
+        variant?: 'contained' | 'outlined' | 'text' | 'ghost' | 'glass' | 'glow' | '3d' | 'underline';
         color?: 'primary' | 'secondary' | 'custom';
         alignment?: 'left' | 'center' | 'right';
         size?: 'small' | 'medium' | 'large';
         backgroundColor?: string;
+        borderColor?: string;
         textColor?: string;
+        showArrow?: boolean;
     };
     onChange: (config: any) => void;
 }
@@ -48,44 +50,58 @@ export const CTAConfigPanel: React.FC<CTAConfigPanelProps> = ({ config, onChange
                     >
                         <MenuItem value="contained">Contained</MenuItem>
                         <MenuItem value="outlined">Outlined</MenuItem>
-                        <MenuItem value="text">Text</MenuItem>
+                        <MenuItem value="ghost">Ghost</MenuItem>
+                        <MenuItem value="glass">Glassmorphism</MenuItem>
+                        <MenuItem value="glow">Glow</MenuItem>
+                        <MenuItem value="3d">3D Perspective</MenuItem>
+                        <MenuItem value="underline">Animated Underline</MenuItem>
+                        <MenuItem value="text">Plain Text</MenuItem>
                     </Select>
                 </FormControl>
 
                 <FormControl fullWidth>
-                    <InputLabel>Color</InputLabel>
+                    <InputLabel>Color Preset</InputLabel>
                     <Select
                         value={config.color || 'primary'}
-                        label="Color"
+                        label="Color Preset"
                         onChange={(e) => handleChange('color', e.target.value)}
                     >
                         <MenuItem value="primary">Primary</MenuItem>
                         <MenuItem value="secondary">Secondary</MenuItem>
-                        <MenuItem value="custom">Custom</MenuItem>
+                        <MenuItem value="custom">Custom (Specify Below)</MenuItem>
                     </Select>
                 </FormControl>
             </Box>
 
-            {config.color === 'custom' && (
-                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-                    <TextField
-                        label="Background Color"
-                        type="color"
-                        value={config.backgroundColor || '#000000'}
-                        onChange={(e) => handleChange('backgroundColor', e.target.value)}
-                        fullWidth
-                        sx={{ '& input': { height: 40 } }}
-                    />
-                    <TextField
-                        label="Text Color"
-                        type="color"
-                        value={config.textColor || '#ffffff'}
-                        onChange={(e) => handleChange('textColor', e.target.value)}
-                        fullWidth
-                        sx={{ '& input': { height: 40 } }}
-                    />
-                </Box>
-            )}
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2 }}>
+                <TextField
+                    label="Background"
+                    type="color"
+                    value={config.backgroundColor || '#000000'}
+                    onChange={(e) => handleChange('backgroundColor', e.target.value)}
+                    fullWidth
+                    sx={{ '& input': { height: 40 } }}
+                    helperText="BG / Glow Color"
+                />
+                <TextField
+                    label="Border"
+                    type="color"
+                    value={config.borderColor || '#000000'}
+                    onChange={(e) => handleChange('borderColor', e.target.value)}
+                    fullWidth
+                    sx={{ '& input': { height: 40 } }}
+                    helperText="Outline Color"
+                />
+                <TextField
+                    label="Text"
+                    type="color"
+                    value={config.textColor || '#ffffff'}
+                    onChange={(e) => handleChange('textColor', e.target.value)}
+                    fullWidth
+                    sx={{ '& input': { height: 40 } }}
+                    helperText="Label Color"
+                />
+            </Box>
 
             <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
                 <FormControl fullWidth>
@@ -113,6 +129,21 @@ export const CTAConfigPanel: React.FC<CTAConfigPanelProps> = ({ config, onChange
                         <MenuItem value="right">Right</MenuItem>
                     </Select>
                 </FormControl>
+            </Box>
+
+            <Box>
+                <FormControlLabel
+                    control={
+                        <Switch
+                            checked={config.showArrow ?? false}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('showArrow', e.target.checked)}
+                        />
+                    }
+                    label="Show Animated Arrow (→)"
+                />
+                <Typography variant="caption" display="block" color="textSecondary" sx={{ ml: 4 }}>
+                    Adds a directional arrow that slides on hover.
+                </Typography>
             </Box>
         </Box>
     );

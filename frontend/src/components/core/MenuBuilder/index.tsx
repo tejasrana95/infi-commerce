@@ -90,8 +90,24 @@ export default function MenuBuilder({
         }
     };
 
+    // Dynamic visibility logic based on breakpoint
+    const breakpoint = menu.settings.mobileBreakpoint || 0;
+    const isMobileLocation = menu.location === 'mobile';
+    const menuUniqueId = `menu-${menu._id}`;
+
+    const visibilityStyles = breakpoint > 0 ? (
+        <style>{`
+            @media (${isMobileLocation ? 'min-width' : 'max-width'}: ${isMobileLocation ? breakpoint + 1 : breakpoint - 1}px) {
+                .${menuUniqueId} { 
+                    display: none !important; 
+                }
+            }
+        `}</style>
+    ) : null;
+
     return (
-        <div className={`menu-builder menu-location-${menu.location}`}>
+        <div className={`menu-builder menu-location-${menu.location} ${menuUniqueId}`}>
+            {visibilityStyles}
             {renderMenu()}
         </div>
     );

@@ -33,7 +33,7 @@ const schema = z.object({
         style: z.enum(['horizontal', 'vertical', 'mega', 'flyout', 'accordion']),
         showIcons: z.boolean(),
         maxDepth: z.number().min(1).max(5),
-        mobileBreakpoint: z.number().min(320).max(1200),
+        mobileBreakpoint: z.number().min(0).max(2000),
     }),
 });
 
@@ -60,7 +60,7 @@ const defaultValues: FormData = {
         style: 'horizontal',
         showIcons: false,
         maxDepth: 3,
-        mobileBreakpoint: 768,
+        mobileBreakpoint: 0,
     },
 };
 
@@ -75,6 +75,8 @@ export default function MenuForm({ initialData, onSubmit, isSubmitting = false }
     const watchedName = watch('name');
     const watchedStoreId = watch('storeId');
     const watchedMaxDepth = watch('settings.maxDepth');
+    const watchedLocation = watch('location');
+    const watchedBreakpoint = watch('settings.mobileBreakpoint');
 
     useEffect(() => {
         if (initialData) {
@@ -93,7 +95,7 @@ export default function MenuForm({ initialData, onSubmit, isSubmitting = false }
                     style: initialData.settings?.style || 'horizontal',
                     showIcons: initialData.settings?.showIcons ?? false,
                     maxDepth: initialData.settings?.maxDepth ?? 3,
-                    mobileBreakpoint: initialData.settings?.mobileBreakpoint ?? 768,
+                    mobileBreakpoint: initialData.settings?.mobileBreakpoint ?? 0,
                 },
             });
             setMenuItems(initialData.items || []);
@@ -102,6 +104,17 @@ export default function MenuForm({ initialData, onSubmit, isSubmitting = false }
             setMenuItems([]);
         }
     }, [initialData, reset]);
+
+    // Handle breakpoint defaults when location changes
+    useEffect(() => {
+        if (!initialData) {
+            if (watchedLocation === 'mobile' && watchedBreakpoint === 0) {
+                setValue('settings.mobileBreakpoint', 768);
+            } else if (watchedLocation !== 'mobile' && watchedBreakpoint === 768) {
+                setValue('settings.mobileBreakpoint', 0);
+            }
+        }
+    }, [watchedLocation, initialData, setValue]);
 
     // Auto-generate slug from name
     useEffect(() => {
@@ -299,17 +312,28 @@ export default function MenuForm({ initialData, onSubmit, isSubmitting = false }
                         <Controller
                             name="settings.mobileBreakpoint"
                             control={control}
-                            render={({ field: { onChange, value, ...field } }) => (
-                                <TextField
-                                    {...field}
-                                    value={value}
-                                    onChange={(e) => onChange(Number(e.target.value))}
-                                    label="Mobile Breakpoint (px)"
-                                    type="number"
-                                    fullWidth
-                                    helperText="Screen width below which mobile menu is shown"
-                                />
-                            )}
+                            render={({ field: { onChange, value, ...field } }) => {
+                                const isMobile = watchedLocation === 'mobile';
+                                const label = isMobile
+                                    ? 'Max Screen size to show menu (px)'
+                                    : 'Min Screen size to show menu (px)';
+                                const helperText = isMobile
+                                    ? 'Menu will be visible when screen is smaller than this width'
+                                    : 'Menu will be visible when screen is larger than this width. Set to 0 to show always.';
+
+                                return (
+                                    <TextField
+                                        {...field}
+                                        value={value}
+                                        onChange={(e) => onChange(Number(e.target.value))}
+                                        label={label}
+                                        type="number"
+                                        fullWidth
+                                        error={!!errors.settings?.mobileBreakpoint}
+                                        helperText={errors.settings?.mobileBreakpoint?.message || helperText}
+                                    />
+                                );
+                            }}
                         />
                     </Grid>
 
