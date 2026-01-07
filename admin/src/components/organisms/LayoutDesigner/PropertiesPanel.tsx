@@ -18,6 +18,8 @@ interface PropertiesPanelProps {
     onDeleteSection: (sectionId: string) => void;
     onDeleteModule: (sectionId: string, moduleId: string) => void;
     storeId: string;
+    copiedStyle?: any;
+    onCopyStyle?: (style: any) => void;
 }
 
 export default function PropertiesPanel({
@@ -31,6 +33,8 @@ export default function PropertiesPanel({
     onDeleteSection,
     onDeleteModule,
     storeId,
+    copiedStyle,
+    onCopyStyle,
 }: PropertiesPanelProps) {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -111,6 +115,8 @@ export default function PropertiesPanel({
                             section={selectedSection}
                             onChange={(updated) => onUpdateSection(selectedSection.id, updated)}
                             onDelete={() => onDeleteSection(selectedSection.id)}
+                            copiedStyle={copiedStyle}
+                            onCopyStyle={onCopyStyle!}
                         />
                     </Box>
                 ) : (

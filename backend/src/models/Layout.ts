@@ -39,6 +39,7 @@ export interface IColumn {
  */
 export interface ISection {
     id: string;                         // UUID for frontend
+    sectionId?: string;                 // Custom ID for scroll anchors
     name?: string;                      // "Hero Section", "Featured Products"
     type: 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';
     settings: {
@@ -55,7 +56,19 @@ export interface ISection {
         marginTop?: number;
         marginBottom?: number;
         maxWidth?: number;
+        minHeight?: number;
+        maxHeight?: number;
         customClass?: string;
+        // Border controls
+        borderTopWidth?: number;
+        borderRightWidth?: number;
+        borderBottomWidth?: number;
+        borderLeftWidth?: number;
+        borderColor?: string;
+        borderStyle?: 'none' | 'solid' | 'dashed' | 'dotted';
+        borderRadius?: number;
+        // Box shadow
+        boxShadow?: 'none' | 'small' | 'medium' | 'large';
     };
     columns?: IColumn[];                // For split layouts
     modules: IModule[];                 // For non-split layouts
@@ -146,6 +159,7 @@ const ColumnSchema = new Schema<IColumn>(
 const SectionSchema = new Schema<ISection>(
     {
         id: { type: String, required: true },
+        sectionId: { type: String, trim: true },
         name: { type: String, trim: true },
         type: {
             type: String,
@@ -166,7 +180,19 @@ const SectionSchema = new Schema<ISection>(
             marginTop: { type: Number },
             marginBottom: { type: Number },
             maxWidth: { type: Number },
+            minHeight: { type: Number },
+            maxHeight: { type: Number },
             customClass: { type: String, trim: true },
+            // Border controls
+            borderTopWidth: { type: Number },
+            borderRightWidth: { type: Number },
+            borderBottomWidth: { type: Number },
+            borderLeftWidth: { type: Number },
+            borderColor: { type: String },
+            borderStyle: { type: String, enum: ['none', 'solid', 'dashed', 'dotted'], default: 'solid' },
+            borderRadius: { type: Number },
+            // Box shadow
+            boxShadow: { type: String, enum: ['none', 'small', 'medium', 'large'], default: 'none' },
         },
         columns: { type: [ColumnSchema], default: [] },
         modules: { type: [ModuleSchema], default: [] },

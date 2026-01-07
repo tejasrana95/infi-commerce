@@ -167,7 +167,12 @@ export default function LayoutDesignerPage({ params }: { params: PageParams }) {
     }
 
     return (
-        <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{
+            height: { xs: 'calc(100vh - 60px)', sm: 'calc(100vh - 60px)' },
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+        }}>
             <LayoutDesigner
                 layout={layout}
                 onChange={handleChange}

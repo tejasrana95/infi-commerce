@@ -82,10 +82,33 @@ export default function SectionRenderer({ section, moduleData, renderModule, ind
         backgroundColor: section.settings?.backgroundColor,
         paddingTop: section.settings?.paddingTop ? `${section.settings.paddingTop}px` : undefined,
         paddingBottom: section.settings?.paddingBottom ? `${section.settings.paddingBottom}px` : undefined,
+        paddingLeft: section.settings?.paddingLeft ? `${section.settings.paddingLeft}px` : undefined,
+        paddingRight: section.settings?.paddingRight ? `${section.settings.paddingRight}px` : undefined,
         marginTop: section.settings?.marginTop ? `${section.settings.marginTop}px` : undefined,
         marginBottom: section.settings?.marginBottom ? `${section.settings.marginBottom}px` : undefined,
         minHeight: section.settings?.minHeight ? `${section.settings.minHeight}px` : undefined,
+        maxHeight: section.settings?.maxHeight ? `${section.settings.maxHeight}px` : undefined,
+        // Individual border widths
+        borderTopWidth: section.settings?.borderTopWidth ? `${section.settings.borderTopWidth}px` : undefined,
+        borderRightWidth: section.settings?.borderRightWidth ? `${section.settings.borderRightWidth}px` : undefined,
+        borderBottomWidth: section.settings?.borderBottomWidth ? `${section.settings.borderBottomWidth}px` : undefined,
+        borderLeftWidth: section.settings?.borderLeftWidth ? `${section.settings.borderLeftWidth}px` : undefined,
+        borderColor: section.settings?.borderColor,
+        borderStyle: section.settings?.borderStyle || 'solid',
+        borderRadius: section.settings?.borderRadius ? `${section.settings.borderRadius}px` : undefined,
+        // Box shadow
+        boxShadow: section.settings?.boxShadow ? getBoxShadow(section.settings.boxShadow) : undefined,
     };
+
+    // Helper function for box shadow presets
+    function getBoxShadow(preset: string): string | undefined {
+        switch (preset) {
+            case 'small': return '0 2px 8px rgba(0, 0, 0, 0.1)';
+            case 'medium': return '0 4px 16px rgba(0, 0, 0, 0.15)';
+            case 'large': return '0 8px 30px rgba(0, 0, 0, 0.2)';
+            default: return undefined;
+        }
+    }
 
     const backgroundStyle: React.CSSProperties = {
         backgroundImage: section.settings?.backgroundImage
@@ -136,6 +159,7 @@ export default function SectionRenderer({ section, moduleData, renderModule, ind
 
     const content = section.columns && section.columns.length > 0 ? (
         <section
+            id={section.sectionId || undefined}
             ref={sectionRef}
             className={`${styles.section} ${section.settings?.customClass || ''} ${getVisibilityClasses()}`}
             style={sectionStyle}
@@ -164,6 +188,7 @@ export default function SectionRenderer({ section, moduleData, renderModule, ind
         </section>
     ) : (
         <section
+            id={section.sectionId || undefined}
             ref={sectionRef}
             className={`${styles.section} ${section.settings?.customClass || ''} ${getVisibilityClasses()}`}
             style={sectionStyle}

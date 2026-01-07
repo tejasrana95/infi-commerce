@@ -102,6 +102,9 @@ export default function LayoutDesigner({
         onConfirm: () => void;
     }>({ title: '', message: '', onConfirm: () => { } });
 
+    // Global Clipboard State for Styles
+    const [copiedSectionStyle, setCopiedSectionStyle] = useState<any>(null);
+
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
     );
@@ -553,12 +556,10 @@ export default function LayoutDesigner({
     };
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', bgcolor: '#FAFAFA', position: 'relative' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', bgcolor: '#FAFAFA', position: 'relative', height: '100%' }}>
             {/* Floating Toolbar - Sticky at top */}
             <Box
                 sx={{
-                    position: 'sticky',
-                    top: 0,
                     zIndex: 1100,
                     p: { xs: 1, md: 2 },
                     bgcolor: '#FAFAFA',
@@ -589,7 +590,7 @@ export default function LayoutDesigner({
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
             >
-                <Box sx={{ display: 'flex', flex: 1, position: 'relative' }}>
+                <Box sx={{ display: 'flex', flex: 1, position: 'relative', overflow: 'hidden' }}>
                     {/* Module Palette Drawer */}
                     <Drawer
                         variant="persistent"
@@ -602,13 +603,11 @@ export default function LayoutDesigner({
                             transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                             '& .MuiDrawer-paper': {
                                 width: 280,
-                                position: 'sticky',
-                                top: 100, // Account for toolbar height + spacing
-                                height: 'calc(100vh - 120px)',
+                                position: 'absolute',
+                                top: 0,
+                                height: '100%',
                                 borderRight: '1px solid',
                                 borderColor: 'divider',
-                                borderTopRightRadius: 16,
-                                borderBottomRightRadius: 16,
                                 boxShadow: '2px 0 8px rgba(0, 0, 0, 0.08)',
                                 overflow: 'hidden',
                                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -629,6 +628,8 @@ export default function LayoutDesigner({
                         bgcolor: '#FAFAFA',
                         backgroundImage: 'radial-gradient(#E5E7EB 0.5px, transparent 0.5px)',
                         backgroundSize: '16px 16px',
+                        overflowY: 'auto',
+                        height: '100%',
                     }}>
                         <Box
                             sx={{
@@ -689,6 +690,8 @@ export default function LayoutDesigner({
                     onDeleteSection={handleDeleteSection}
                     onDeleteModule={handleDeleteModule}
                     storeId={typeof layout.storeId === 'object' ? layout.storeId._id : layout.storeId}
+                    copiedStyle={copiedSectionStyle}
+                    onCopyStyle={setCopiedSectionStyle}
                 />
 
                 {/* Drag Overlay - renders the dragged item visually */}

@@ -37,6 +37,7 @@ export interface Column {
  */
 export interface Section {
     id: string;
+    sectionId?: string; // Custom ID for scroll anchors
     name?: string;
     type: 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';
     settings: {
@@ -52,9 +53,20 @@ export interface Section {
         marginBottom?: number;
         maxWidth?: number;
         minHeight?: number;
+        maxHeight?: number;
         customClass?: string;
         backgroundParallax?: boolean;
         backgroundParallaxRatio?: number;
+        // Border controls - individual sides
+        borderTopWidth?: number;
+        borderRightWidth?: number;
+        borderBottomWidth?: number;
+        borderLeftWidth?: number;
+        borderColor?: string;
+        borderStyle?: 'none' | 'solid' | 'dashed' | 'dotted';
+        borderRadius?: number;
+        // Box shadow
+        boxShadow?: 'none' | 'small' | 'medium' | 'large';
     };
     columns?: Column[];
     modules: Module[];

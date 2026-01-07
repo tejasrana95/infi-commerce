@@ -56,6 +56,7 @@ export interface LayoutColumn {
 
 export interface LayoutSection {
     id: string;
+    sectionId?: string; // Custom ID for scroll anchors
     name?: string;
     type: SectionType;
     settings: {
@@ -73,6 +74,19 @@ export interface LayoutSection {
         customClass?: string;
         backgroundParallax?: boolean;
         backgroundParallaxRatio?: number;
+        // Border controls - individual sides
+        borderTopWidth?: number;
+        borderRightWidth?: number;
+        borderBottomWidth?: number;
+        borderLeftWidth?: number;
+        borderColor?: string;
+        borderStyle?: 'none' | 'solid' | 'dashed' | 'dotted';
+        borderRadius?: number;
+        // Box shadow
+        boxShadow?: 'none' | 'small' | 'medium' | 'large';
+        // Height constraints
+        minHeight?: number;
+        maxHeight?: number;
     };
     columns?: LayoutColumn[];
     modules: LayoutModule[];

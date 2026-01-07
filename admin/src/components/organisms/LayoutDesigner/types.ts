@@ -42,6 +42,18 @@ export interface SectionSettings {
     marginBottom?: number;
     maxWidth?: number;
     customClass?: string;
+    backgroundParallax?: boolean;
+    backgroundParallaxRatio?: number;
+    borderTopWidth?: number;
+    borderRightWidth?: number;
+    borderBottomWidth?: number;
+    borderLeftWidth?: number;
+    borderColor?: string;
+    borderStyle?: 'none' | 'solid' | 'dashed' | 'dotted';
+    borderRadius?: number;
+    boxShadow?: 'none' | 'small' | 'medium' | 'large';
+    minHeight?: number;
+    maxHeight?: number;
 }
 
 // Module styling form
@@ -104,7 +116,30 @@ export const AVAILABLE_MODULES: ModuleDefinition[] = [
         icon: 'Image',
         category: 'standard',
         description: 'Single image with optional link',
-        defaultConfig: { src: '', alt: '', link: '', width: 'full', objectFit: 'cover', alignment: 'center', borderRadius: 0, shadow: 'none' },
+        defaultConfig: {
+            src: '',
+            alt: '',
+            link: '',
+            width: 'full',
+            objectFit: 'cover',
+            alignment: 'center',
+            borderRadius: 0,
+            shadow: 'none',
+            overlayTitle: '',
+            overlaySubtitle: '',
+            titleColor: '#ffffff',
+            subtitleColor: '#ffffff',
+            textPosition: 'center',
+            ctaText: '',
+            ctaLink: '',
+            ctaNewTab: false,
+            ctaStyle: 'solid',
+            overlayEnabled: false,
+            overlayColor: '#000000',
+            overlayOpacity: 50,
+            hoverEffect: false,
+            hoverOpacity: 70,
+        },
     },
     {
         type: 'image-gallery',
