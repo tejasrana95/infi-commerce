@@ -1,0 +1,85 @@
+.heroSliderContainer {
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    height: var(--hero-height-mobile, 600px);
+    transition: height 0.3s ease;
+}
+
+@media (min-width: 768px) {
+    .heroSliderContainer {
+        height: var(--hero-height-tablet, 600px);
+    }
+}
+
+@media (min-width: 1024px) {
+    .heroSliderContainer {
+        height: var(--hero-height-desktop, 600px);
+    }
+}
+
+.heroLayer {
+    position: absolute;
+    /* Default to Mobile Position (which falls back to Desktop if not set in JS) */
+    left: var(--layer-x-mobile);
+    top: var(--layer-y-mobile);
+}
+
+@media (min-width: 768px) {
+    .heroLayer {
+        /* Tablet Override */
+        left: var(--layer-x-tablet, var(--layer-x-mobile));
+        top: var(--layer-y-tablet, var(--layer-y-mobile));
+    }
+}
+
+@media (min-width: 1024px) {
+    .heroLayer {
+        /* Desktop Override */
+        left: var(--layer-x-desktop, var(--layer-x-tablet, var(--layer-x-mobile)));
+        top: var(--layer-y-desktop, var(--layer-y-tablet, var(--layer-y-mobile)));
+    }
+}
+
+.skeletonContainer {
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    background-color: #e2e8f0;
+    /* Use variables matching component, fallback to 600px */
+    height: var(--hero-height-mobile, 600px);
+    transition: height 0.3s ease;
+}
+
+@media (min-width: 768px) {
+    .skeletonContainer {
+        height: var(--hero-height-tablet, 600px);
+    }
+}
+
+@media (min-width: 1024px) {
+    .skeletonContainer {
+        height: var(--hero-height-desktop, 600px);
+    }
+}
+
+.skeletonContainer::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
+}

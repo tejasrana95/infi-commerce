@@ -62,7 +62,8 @@ import ViewCarouselIcon from '@mui/icons-material/ViewCarousel';
 import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
 import WorkspacesIcon from '@mui/icons-material/Workspaces';
 import MarkunreadMailboxIcon from '@mui/icons-material/MarkunreadMailbox';
-import CollectionsIcon from '@mui/icons-material/Collections';
+import BurstModeIcon from '@mui/icons-material/BurstMode';
+import PanoramaWideAngleIcon from '@mui/icons-material/PanoramaWideAngle';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import DescriptionIcon from '@mui/icons-material/Description';
@@ -110,7 +111,8 @@ const navigationItems: NavItem[] = [
       { name: 'Layouts', href: '/layouts', icon: <DashboardCustomizeIcon /> },
       { name: 'Menus', href: '/menus', icon: <MenuIcon /> },
       { name: 'Pages', href: '/pages', icon: <ArticleIcon /> },
-      { name: 'Banners', href: '/banners', icon: <ViewCarouselIcon /> },
+      { name: 'Hero Sliders', href: '/hero-sliders', icon: <BurstModeIcon /> },
+      { name: 'Banners', href: '/banners', icon: <PanoramaWideAngleIcon /> },
       { name: 'Banner Sliders', href: '/banner-sliders', icon: <ViewCarouselIcon /> },
       { name: 'Testimonials', href: '/testimonials', icon: <FormatQuoteIcon /> },
       { name: 'Brand Showcases', href: '/brand-showcases', icon: <WorkspacesIcon /> },

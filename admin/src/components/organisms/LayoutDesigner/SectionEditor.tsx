@@ -126,7 +126,7 @@ export default function SectionEditor({ section, onChange, onDelete, copiedStyle
                 </Box>
             </Box>
 
-            <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} variant="fullWidth" size="small">
+            <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} variant="fullWidth">
                 <Tab label="General" />
                 <Tab label="Style" />
             </Tabs>

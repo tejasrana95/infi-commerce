@@ -103,6 +103,14 @@ export const AVAILABLE_MODULES: ModuleDefinition[] = [
         defaultConfig: { sliderId: '' },
     },
     {
+        type: 'hero-slider',
+        label: 'Hero Slider (Adv)',
+        icon: 'ViewCarousel',
+        category: 'standard',
+        description: 'Advanced layer-based slider',
+        defaultConfig: { sliderId: '', height: 600 },
+    },
+    {
         type: 'text-block',
         label: 'Text Block',
         icon: 'TextFields',

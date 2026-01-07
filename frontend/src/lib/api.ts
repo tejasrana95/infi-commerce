@@ -590,3 +590,21 @@ export async function fetchPageBySlug(storeId: string, slug: string) {
         return null;
     }
 }
+
+export async function fetchHeroSlider(storeId: string, id: string) {
+    try {
+        const res = await fetch(`${API_BASE_URL}/hero-sliders/${id}`, {
+            next: { revalidate: 300 },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Store-ID': storeId,
+            },
+        });
+
+        if (!res.ok) return null;
+        return await res.json();
+    } catch (error) {
+        console.error('Error fetching hero slider:', error);
+        return null;
+    }
+}

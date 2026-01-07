@@ -45,6 +45,8 @@ import newsletterRoutes from './newsletter.routes';
 
 // Backup & Restore Routes
 import backupRoutes from './backup.routes';
+import heroSliderRoutes from './heroSlider.routes';
+
 
 // AI Assistant Routes
 import aiRoutes from './ai.routes';
@@ -160,6 +162,9 @@ router.use('/newsletter', newsletterRoutes);
 
 // Mount compare routes
 router.use('/compare', compareRoutes);
+
+// Mount hero slider routes
+router.use('/hero-sliders', heroSliderRoutes);
 
 // Mount dashboard routes
 router.use('/dashboard', dashboardRoutes);
