@@ -73,6 +73,10 @@ interface ToolbarProps {
     // Multi-select alignment
     selectedLayerCount?: number;
     onAlignLayers?: (alignment: 'left' | 'right' | 'top' | 'bottom' | 'centerH' | 'centerV' | 'distributeH' | 'distributeV') => void;
+    // Layer grouping
+    onGroupLayers?: () => void;
+    onUngroupLayers?: () => void;
+    hasGroupedSelection?: boolean;
     // Panel toggles
     leftPanelOpen?: boolean;
     onToggleLeftPanel?: () => void;
@@ -143,6 +147,9 @@ export default function Toolbar({
     onDeleteLayer,
     selectedLayerCount = 0,
     onAlignLayers,
+    onGroupLayers,
+    onUngroupLayers,
+    hasGroupedSelection = false,
     leftPanelOpen = true,
     onToggleLeftPanel,
     rightPanelOpen = true,
@@ -165,7 +172,7 @@ export default function Toolbar({
         handleAlignClose();
     };
 
-    const canAlign = selectedLayerCount >= 2 && onAlignLayers;
+    const canAlign = selectedLayerCount >= 1 && onAlignLayers;
 
     return (
         <Box sx={{
@@ -309,6 +316,12 @@ export default function Toolbar({
                     disabled={!activeSlide}
                 />
                 <ToolbarButton
+                    icon={<TextFieldsIcon fontSize="small" sx={{ borderBottom: '2px solid currentColor' }} />}
+                    label="Add Rich Text (HTML)"
+                    onClick={() => onAddLayer('rte')}
+                    disabled={!activeSlide}
+                />
+                <ToolbarButton
                     icon={<ImageIcon fontSize="small" />}
                     label="Add Image Layer"
                     onClick={() => onAddLayer('image')}
@@ -350,6 +363,68 @@ export default function Toolbar({
                     onClick={onDeleteLayer}
                     disabled={!onDeleteLayer}
                 />
+            </Box>
+
+            <ToolbarDivider />
+
+            {/* Grouping */}
+            <Box sx={{ display: 'flex', gap: 0.25 }}>
+                <Tooltip title={selectedLayerCount >= 2 ? "Group Layers (Ctrl+G)" : "Select 2+ layers to group"} arrow>
+                    <span>
+                        <Button
+                            size="small"
+                            onClick={onGroupLayers}
+                            disabled={selectedLayerCount < 2}
+                            sx={{
+                                color: selectedLayerCount >= 2 ? colors.accent : colors.textSecondary,
+                                borderColor: selectedLayerCount >= 2 ? colors.accent : colors.border,
+                                textTransform: 'none',
+                                fontSize: 11,
+                                minWidth: 'auto',
+                                px: 1,
+                                '&:hover': {
+                                    borderColor: colors.accent,
+                                    backgroundColor: alpha(colors.accent, 0.1)
+                                },
+                                '&.Mui-disabled': {
+                                    color: alpha(colors.textSecondary, 0.3),
+                                    borderColor: alpha(colors.border, 0.3)
+                                }
+                            }}
+                            variant="outlined"
+                        >
+                            Group
+                        </Button>
+                    </span>
+                </Tooltip>
+                <Tooltip title={hasGroupedSelection ? "Ungroup Layers" : "Select grouped layers first"} arrow>
+                    <span>
+                        <Button
+                            size="small"
+                            onClick={onUngroupLayers}
+                            disabled={!hasGroupedSelection}
+                            sx={{
+                                color: hasGroupedSelection ? colors.accent : colors.textSecondary,
+                                borderColor: hasGroupedSelection ? colors.accent : colors.border,
+                                textTransform: 'none',
+                                fontSize: 11,
+                                minWidth: 'auto',
+                                px: 1,
+                                '&:hover': {
+                                    borderColor: colors.accent,
+                                    backgroundColor: alpha(colors.accent, 0.1)
+                                },
+                                '&.Mui-disabled': {
+                                    color: alpha(colors.textSecondary, 0.3),
+                                    borderColor: alpha(colors.border, 0.3)
+                                }
+                            }}
+                            variant="outlined"
+                        >
+                            Ungroup
+                        </Button>
+                    </span>
+                </Tooltip>
             </Box>
 
             <ToolbarDivider />

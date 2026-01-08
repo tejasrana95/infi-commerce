@@ -2,7 +2,7 @@ import api from '@/lib/api';
 
 export interface HeroSliderLayer {
     id: string;
-    type: 'text' | 'image' | 'button' | 'icon';
+    type: 'text' | 'image' | 'button' | 'icon' | 'rte';
     content: any;
     style: any;
     position: { x: number; y: number };
@@ -20,6 +20,7 @@ export interface HeroSliderLayer {
     locked?: boolean; // Prevent layer editing/moving (default: false)
     rotation?: number; // Rotation in degrees (default: 0)
     opacity?: number; // Opacity 0-1 (default: 1)
+    groupId?: string; // Group ID for grouped layers
     // Enhanced Styling
     border?: {
         color?: string;
@@ -38,6 +39,11 @@ export interface HeroSliderLayer {
         y?: number;
         spread?: number;
     };
+    // Device-specific styles
+    tabletStyle?: any; // Override styles for tablet
+    mobileStyle?: any; // Override styles for mobile
+    tabletVisible?: boolean; // Visibility on tablet (default: inherit from visible)
+    mobileVisible?: boolean; // Visibility on mobile (default: inherit from visible)
 }
 
 export interface HeroSliderSlide {

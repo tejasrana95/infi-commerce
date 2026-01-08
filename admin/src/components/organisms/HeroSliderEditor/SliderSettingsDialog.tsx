@@ -77,13 +77,13 @@ export default function SliderSettingsDialog({ open, onClose, settings, onSave }
                 {tab === 0 && (
                     <Box display="flex" flexDirection="column" gap={2}>
                         <TextField
-                            label="Width (px)"
+                            label="Slider Base Width (px)"
                             type="number"
                             fullWidth
                             size="small"
                             value={localSettings.width}
                             onChange={(e) => handleChange('width', parseInt(e.target.value))}
-                            helperText="Base width for responsiveness"
+                            helperText="Content container width for all devices"
                         />
                         <FormControlLabel
                             control={

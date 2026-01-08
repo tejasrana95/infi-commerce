@@ -2,9 +2,11 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IHeroSliderLayer {
     id: string;
-    type: 'text' | 'image' | 'button' | 'shape';
+    type: 'text' | 'image' | 'button' | 'shape' | 'icon' | 'rte';
     content: any; // Text string, Image URL, or Button config
     style: any; // CSS properties
+    tabletStyle?: any; // Override styles for tablet
+    mobileStyle?: any; // Override styles for mobile
     position: {
         x: number; // Percentage 0-100
         y: number; // Percentage 0-100
@@ -40,6 +42,15 @@ export interface IHeroSliderLayer {
         delay: number; // ms
         duration: number; // ms
     };
+    // Professional Editor Features
+    name?: string;
+    visible?: boolean;
+    locked?: boolean;
+    rotation?: number;
+    opacity?: number;
+    groupId?: string;
+    tabletVisible?: boolean;
+    mobileVisible?: boolean;
 }
 
 export interface IHeroSliderSlide {
@@ -87,6 +98,8 @@ const HeroSliderSchema: Schema = new Schema({
             type: { type: String, enum: ['text', 'image', 'button', 'shape', 'icon'], default: 'text' },
             content: { type: Schema.Types.Mixed, default: {} },
             style: { type: Schema.Types.Mixed, default: {} },
+            tabletStyle: { type: Schema.Types.Mixed },
+            mobileStyle: { type: Schema.Types.Mixed },
             position: {
                 x: { type: Number, default: 0 },
                 y: { type: Number, default: 0 }
@@ -99,6 +112,15 @@ const HeroSliderSchema: Schema = new Schema({
                 x: { type: Number },
                 y: { type: Number }
             },
+            // Professional Editor Features
+            name: { type: String },
+            visible: { type: Boolean, default: true },
+            locked: { type: Boolean, default: false },
+            rotation: { type: Number, default: 0 },
+            opacity: { type: Number, default: 1 },
+            groupId: { type: String },
+            tabletVisible: { type: Boolean },
+            mobileVisible: { type: Boolean },
             // Professional Styling
             border: {
                 color: { type: String },

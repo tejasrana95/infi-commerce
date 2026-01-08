@@ -17,6 +17,64 @@ const colors = {
     accent2: '#7c3aed'
 };
 
+import FormatAlignLeftIcon from '@mui/icons-material/FormatAlignLeft';
+import FormatAlignCenterIcon from '@mui/icons-material/FormatAlignCenter';
+import FormatAlignRightIcon from '@mui/icons-material/FormatAlignRight';
+import FormatAlignJustifyIcon from '@mui/icons-material/FormatAlignJustify';
+import { ToggleButton, ToggleButtonGroup } from '@mui/material';
+
+// Tiptap imports
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import TextAlign from '@tiptap/extension-text-align';
+import { TextStyle } from '@tiptap/extension-text-style';
+import { Color } from '@tiptap/extension-color';
+import Underline from '@tiptap/extension-underline';
+import Link from '@tiptap/extension-link';
+
+// Simple Tiptap Editor Component
+const TiptapEditor = ({ content, onChange }: { content: string; onChange: (html: string) => void }) => {
+    const editor = useEditor({
+        extensions: [
+            StarterKit,
+            TextAlign.configure({ types: ['heading', 'paragraph'] }),
+            TextStyle,
+            Color,
+            Underline,
+            Link.configure({ openOnClick: false })
+        ],
+        content: content,
+        onUpdate: ({ editor }) => {
+            onChange(editor.getHTML());
+        },
+        editorProps: {
+            attributes: {
+                style: `min-height: 100px; padding: 8px; background-color: ${colors.bgTertiary}; color: ${colors.text}; border-radius: 4px; outline: none; border: 1px solid ${colors.border}; font-size: 13px;`
+            }
+        },
+        immediatelyRender: false
+    });
+
+    React.useEffect(() => {
+        if (editor && content !== editor.getHTML()) {
+            // Only update if content is significantly different to avoid cursor jumping
+            // For simple integration, we might skip this or handle it carefully.
+            // editor.commands.setContent(content);
+        }
+    }, [content, editor]);
+
+    return (
+        <Box sx={{
+            '& .ProseMirror': {
+                '&:hover': { borderColor: colors.accent },
+                '&:focus': { borderColor: colors.accent }
+            }
+        }}>
+            <EditorContent editor={editor} />
+        </Box>
+    );
+};
+
 // Styled components
 const StyledAccordion = ({ children, defaultExpanded = false }: { children: NonNullable<React.ReactNode>; defaultExpanded?: boolean }) => (
     <Accordion
@@ -139,9 +197,88 @@ interface LayerPropertiesProps {
     slide?: HeroSliderSlide;
     onUpdateLayer: (id: string, updates: Partial<HeroSliderLayer>) => void;
     onUpdateSlide: (updates: Partial<HeroSliderSlide>) => void;
+    viewMode?: 'desktop' | 'tablet' | 'mobile';
 }
 
-export default function LayerProperties({ layer, slide, onUpdateLayer, onUpdateSlide }: LayerPropertiesProps) {
+export default function LayerProperties({ layer, slide, onUpdateLayer, onUpdateSlide, viewMode = 'desktop' }: LayerPropertiesProps) {
+    // Helper to get effective style for current viewMode
+    const getEffectiveStyle = () => {
+        if (!layer) return {};
+        if (viewMode === 'tablet' && layer.tabletStyle) {
+            return { ...layer.style, ...layer.tabletStyle };
+        }
+        if (viewMode === 'mobile' && layer.mobileStyle) {
+            return { ...layer.style, ...layer.mobileStyle };
+        }
+        return layer.style || {};
+    };
+
+    // Helper to update style based on viewMode
+    const updateStyle = (styleUpdates: any) => {
+        if (!layer) return;
+        if (viewMode === 'desktop') {
+            onUpdateLayer(layer.id, { style: { ...layer.style, ...styleUpdates } });
+        } else if (viewMode === 'tablet') {
+            onUpdateLayer(layer.id, { tabletStyle: { ...(layer.tabletStyle || {}), ...styleUpdates } });
+        } else if (viewMode === 'mobile') {
+            onUpdateLayer(layer.id, { mobileStyle: { ...(layer.mobileStyle || {}), ...styleUpdates } });
+        }
+    };
+
+    // Helper to get effective visibility for current viewMode
+    const getEffectiveVisibility = () => {
+        if (!layer) return true;
+        if (viewMode === 'tablet' && layer.tabletVisible !== undefined) {
+            return layer.tabletVisible;
+        }
+        if (viewMode === 'mobile' && layer.mobileVisible !== undefined) {
+            return layer.mobileVisible;
+        }
+        return layer.visible !== false;
+    };
+
+    // Helper to update visibility based on viewMode
+    const updateVisibility = (visible: boolean) => {
+        if (!layer) return;
+        if (viewMode === 'desktop') {
+            onUpdateLayer(layer.id, { visible });
+        } else if (viewMode === 'tablet') {
+            onUpdateLayer(layer.id, { tabletVisible: visible });
+        } else if (viewMode === 'mobile') {
+            onUpdateLayer(layer.id, { mobileVisible: visible });
+        }
+    };
+
+    // Helper to get effective position for current viewMode
+    const getEffectivePosition = () => {
+        if (!layer) return { x: 0, y: 0 };
+        if (viewMode === 'mobile' && layer.mobilePosition) {
+            return layer.mobilePosition;
+        }
+        if (viewMode === 'tablet' && layer.tabletPosition) {
+            return layer.tabletPosition;
+        }
+        return layer.position || { x: 0, y: 0 };
+    };
+
+    // Helper to update position based on viewMode
+    const updatePosition = (posUpdates: { x?: number; y?: number }) => {
+        if (!layer) return;
+        const currentPos = getEffectivePosition();
+        const newPos = { ...currentPos, ...posUpdates };
+
+        if (viewMode === 'desktop') {
+            onUpdateLayer(layer.id, { position: newPos });
+        } else if (viewMode === 'tablet') {
+            onUpdateLayer(layer.id, { tabletPosition: newPos });
+        } else if (viewMode === 'mobile') {
+            onUpdateLayer(layer.id, { mobilePosition: newPos });
+        }
+    };
+
+    const effectiveStyle = getEffectiveStyle();
+    const effectivePosition = getEffectivePosition();
+
     if (!slide) {
         return (
             <Box sx={{ p: 2, color: colors.textSecondary, textAlign: 'center' }}>
@@ -274,6 +411,12 @@ export default function LayerProperties({ layer, slide, onUpdateLayer, onUpdateS
                                     onChange={(e: any) => onUpdateLayer(layer.id, { content: e.target.value })}
                                 />
                             )}
+                            {layer.type === 'rte' && (
+                                <TiptapEditor
+                                    content={layer.content || ''}
+                                    onChange={(html) => onUpdateLayer(layer.id, { content: html })}
+                                />
+                            )}
                             {layer.type === 'button' && (
                                 <>
                                     <StyledTextField
@@ -283,8 +426,8 @@ export default function LayerProperties({ layer, slide, onUpdateLayer, onUpdateS
                                     />
                                     <StyledTextField
                                         label="Link URL"
-                                        value={layer.style?.href || ''}
-                                        onChange={(e: any) => onUpdateLayer(layer.id, { style: { ...layer.style, href: e.target.value } })}
+                                        value={effectiveStyle?.href || ''}
+                                        onChange={(e: any) => updateStyle({ href: e.target.value })}
                                     />
                                 </>
                             )}
@@ -341,23 +484,23 @@ export default function LayerProperties({ layer, slide, onUpdateLayer, onUpdateS
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             <Box>
                                 <Typography variant="caption" sx={{ color: colors.textSecondary, fontSize: 11 }}>
-                                    X: {(layer.position?.x || 0).toFixed(1)}%
+                                    X: {(effectivePosition.x || 0).toFixed(1)}%
                                 </Typography>
                                 <Slider
                                     min={0} max={100} step={0.5}
-                                    value={layer.position?.x || 0}
-                                    onChange={(_, v) => onUpdateLayer(layer.id, { position: { ...layer.position, x: v as number, y: layer.position?.y || 0 } })}
+                                    value={effectivePosition.x || 0}
+                                    onChange={(_, v) => updatePosition({ x: v as number })}
                                     sx={{ color: colors.accent }}
                                 />
                             </Box>
                             <Box>
                                 <Typography variant="caption" sx={{ color: colors.textSecondary, fontSize: 11 }}>
-                                    Y: {(layer.position?.y || 0).toFixed(1)}%
+                                    Y: {(effectivePosition.y || 0).toFixed(1)}%
                                 </Typography>
                                 <Slider
                                     min={0} max={100} step={0.5}
-                                    value={layer.position?.y || 0}
-                                    onChange={(_, v) => onUpdateLayer(layer.id, { position: { ...layer.position, x: layer.position?.x || 0, y: v as number } })}
+                                    value={effectivePosition.y || 0}
+                                    onChange={(_, v) => updatePosition({ y: v as number })}
                                     sx={{ color: colors.accent }}
                                 />
                             </Box>
@@ -388,21 +531,56 @@ export default function LayerProperties({ layer, slide, onUpdateLayer, onUpdateS
                 </StyledAccordion>
 
                 {/* Typography */}
-                {(layer.type === 'text' || layer.type === 'button') && (
+                {(layer.type === 'text' || layer.type === 'button' || layer.type === 'rte') && (
                     <StyledAccordion>
                         <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: colors.textSecondary, fontSize: 18 }} />}>
                             <Typography variant="body2" sx={{ color: colors.text, fontWeight: 500, fontSize: 12 }}>Typography</Typography>
                         </AccordionSummary>
                         <AccordionDetails>
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                {/* Typography Alignment */}
+                                {(layer.type === 'text' || layer.type === 'rte') && (
+                                    <Box>
+                                        <Typography variant="caption" sx={{ color: colors.textSecondary, fontSize: 11, display: 'block', mb: 0.5 }}>
+                                            Alignment
+                                        </Typography>
+                                        <ToggleButtonGroup
+                                            value={effectiveStyle?.textAlign || 'left'}
+                                            exclusive
+                                            onChange={(_, val) => val && updateStyle({ textAlign: val })}
+                                            size="small"
+                                            fullWidth
+                                            sx={{
+                                                '& .MuiToggleButton-root': {
+                                                    borderColor: colors.border,
+                                                    color: colors.textSecondary,
+                                                    '&.Mui-selected': {
+                                                        backgroundColor: alpha(colors.accent, 0.15),
+                                                        color: colors.accent,
+                                                        borderColor: colors.accent
+                                                    },
+                                                    '&:hover': {
+                                                        backgroundColor: alpha(colors.accent, 0.05)
+                                                    }
+                                                }
+                                            }}
+                                        >
+                                            <ToggleButton value="left"><FormatAlignLeftIcon fontSize="small" /></ToggleButton>
+                                            <ToggleButton value="center"><FormatAlignCenterIcon fontSize="small" /></ToggleButton>
+                                            <ToggleButton value="right"><FormatAlignRightIcon fontSize="small" /></ToggleButton>
+                                            <ToggleButton value="justify"><FormatAlignJustifyIcon fontSize="small" /></ToggleButton>
+                                        </ToggleButtonGroup>
+                                    </Box>
+                                )}
+
                                 <Box>
                                     <Typography variant="caption" sx={{ color: colors.textSecondary, fontSize: 11 }}>
-                                        Font Size: {layer.style?.fontSize || 16}px
+                                        Font Size: {effectiveStyle?.fontSize || 16}px
                                     </Typography>
                                     <Slider
                                         min={10} max={100}
-                                        value={parseInt(layer.style?.fontSize) || 16}
-                                        onChange={(_, v) => onUpdateLayer(layer.id, { style: { ...layer.style, fontSize: v } })}
+                                        value={parseInt(effectiveStyle?.fontSize) || 16}
+                                        onChange={(_, v) => updateStyle({ fontSize: v })}
                                         sx={{ color: colors.accent }}
                                     />
                                 </Box>
@@ -411,8 +589,8 @@ export default function LayerProperties({ layer, slide, onUpdateLayer, onUpdateS
                                     <InputLabel sx={{ color: colors.textSecondary, fontSize: 12 }}>Font Family</InputLabel>
                                     <StyledSelect
                                         label="Font Family"
-                                        value={layer.style?.fontFamily || 'Inter'}
-                                        onChange={(e: any) => onUpdateLayer(layer.id, { style: { ...layer.style, fontFamily: e.target.value } })}
+                                        value={effectiveStyle?.fontFamily || 'Inter'}
+                                        onChange={(e: any) => updateStyle({ fontFamily: e.target.value })}
                                     >
                                         <MenuItem value="Inter">Inter</MenuItem>
                                         <MenuItem value="Roboto">Roboto</MenuItem>
@@ -428,8 +606,8 @@ export default function LayerProperties({ layer, slide, onUpdateLayer, onUpdateS
                                     <InputLabel sx={{ color: colors.textSecondary, fontSize: 12 }}>Font Weight</InputLabel>
                                     <StyledSelect
                                         label="Font Weight"
-                                        value={layer.style?.fontWeight || '400'}
-                                        onChange={(e: any) => onUpdateLayer(layer.id, { style: { ...layer.style, fontWeight: e.target.value } })}
+                                        value={effectiveStyle?.fontWeight || '400'}
+                                        onChange={(e: any) => updateStyle({ fontWeight: e.target.value })}
                                     >
                                         <MenuItem value="300">Light</MenuItem>
                                         <MenuItem value="400">Regular</MenuItem>
@@ -442,21 +620,21 @@ export default function LayerProperties({ layer, slide, onUpdateLayer, onUpdateS
 
                                 <ColorInput
                                     label="Text Color"
-                                    value={layer.style?.color || '#ffffff'}
-                                    onChange={(val) => onUpdateLayer(layer.id, { style: { ...layer.style, color: val } })}
+                                    value={effectiveStyle?.color || '#ffffff'}
+                                    onChange={(val) => updateStyle({ color: val })}
                                 />
 
                                 <ColorInput
                                     label="Background Color"
-                                    value={layer.style?.backgroundColor || 'transparent'}
-                                    onChange={(val) => onUpdateLayer(layer.id, { style: { ...layer.style, backgroundColor: val } })}
+                                    value={effectiveStyle?.backgroundColor || 'transparent'}
+                                    onChange={(val) => updateStyle({ backgroundColor: val })}
                                 />
 
                                 <StyledTextField
                                     label="Padding"
-                                    value={layer.style?.padding || ''}
+                                    value={effectiveStyle?.padding || ''}
                                     placeholder="e.g., 10px 20px"
-                                    onChange={(e: any) => onUpdateLayer(layer.id, { style: { ...layer.style, padding: e.target.value } })}
+                                    onChange={(e: any) => updateStyle({ padding: e.target.value })}
                                 />
                             </Box>
                         </AccordionDetails>
@@ -472,15 +650,15 @@ export default function LayerProperties({ layer, slide, onUpdateLayer, onUpdateS
                         <Box sx={{ display: 'flex', gap: 1 }}>
                             <StyledTextField
                                 label="Width"
-                                value={layer.style?.width || ''}
+                                value={effectiveStyle?.width || ''}
                                 placeholder="auto"
-                                onChange={(e: any) => onUpdateLayer(layer.id, { style: { ...layer.style, width: e.target.value } })}
+                                onChange={(e: any) => updateStyle({ width: e.target.value })}
                             />
                             <StyledTextField
                                 label="Height"
-                                value={layer.style?.height || ''}
+                                value={effectiveStyle?.height || ''}
                                 placeholder="auto"
-                                onChange={(e: any) => onUpdateLayer(layer.id, { style: { ...layer.style, height: e.target.value } })}
+                                onChange={(e: any) => updateStyle({ height: e.target.value })}
                             />
                         </Box>
                     </AccordionDetails>

@@ -1,6 +1,6 @@
-import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Box, Typography } from '@mui/material';
-import { DndContext, useDraggable, DragEndEvent, DragStartEvent, DragMoveEvent, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
+import { DndContext, useDraggable, DragEndEvent, DragStartEvent, DragMoveEvent, useSensor, useSensors, PointerSensor, Modifier, ClientRect } from '@dnd-kit/core';
 import { HeroSliderSlide, HeroSliderLayer } from '@/services/heroSlider.service';
 
 import * as FaIcons from 'react-icons/fa';
@@ -9,20 +9,13 @@ import * as BiIcons from 'react-icons/bi';
 import * as IoIcons from 'react-icons/io5';
 import * as LucideIcons from 'lucide-react';
 
-// Viewport dimensions constants - must match frontend breakpoints exactly
-export const VIEWPORT_DIMENSIONS = {
-    desktop: { width: 1200 },
-    tablet: { width: 768 },
-    mobile: { width: 375 }
-} as const;
-
 interface SlideCanvasProps {
     slide: HeroSliderSlide;
     selectedLayerIds: string[];
     onSelectLayer: (id: string, addToSelection?: boolean) => void;
     onUpdateLayer: (id: string, updates: Partial<HeroSliderLayer>) => void;
     onUpdateSlide: (updates: Partial<HeroSliderSlide>) => void;
-    viewMode: 'desktop' | 'tablet' | 'mobile';
+    viewMode: string;
     settings: any;
     showGrid?: boolean;
     snapToGrid?: boolean;
@@ -56,65 +49,7 @@ const renderIcon = (iconName: string, fontSize: any) => {
     }
 };
 
-/**
- * Get position for a specific viewport with proper fallback chain
- * Desktop -> Tablet (inherits from Desktop) -> Mobile (inherits from Tablet)
- */
-export const getPositionForViewport = (
-    layer: HeroSliderLayer,
-    viewMode: 'desktop' | 'tablet' | 'mobile'
-): { x: number; y: number } => {
-    const desktopPos = layer.position || { x: 0, y: 0 };
-    const tabletPos = layer.tabletPosition || desktopPos;
-    const mobilePos = layer.mobilePosition || tabletPos;
-
-    if (viewMode === 'mobile') return mobilePos;
-    if (viewMode === 'tablet') return tabletPos;
-    return desktopPos;
-};
-
-/**
- * Get style for a specific viewport with proper inheritance
- * Desktop -> Tablet (merges with Desktop) -> Mobile (merges with Tablet)
- */
-export const getStyleForViewport = (
-    layer: HeroSliderLayer,
-    viewMode: 'desktop' | 'tablet' | 'mobile'
-): any => {
-    const desktopStyle = layer.style || {};
-    const tabletStyle = layer.tabletStyle ? { ...desktopStyle, ...layer.tabletStyle } : desktopStyle;
-    const mobileStyle = layer.mobileStyle ? { ...tabletStyle, ...layer.mobileStyle } : tabletStyle;
-
-    if (viewMode === 'mobile') return mobileStyle;
-    if (viewMode === 'tablet') return tabletStyle;
-    return desktopStyle;
-};
-
-/**
- * Get visibility for a specific viewport with proper inheritance
- */
-export const getVisibilityForViewport = (
-    layer: HeroSliderLayer,
-    viewMode: 'desktop' | 'tablet' | 'mobile'
-): boolean => {
-    const desktopVisible = layer.visible !== false;
-    const tabletVisible = layer.tabletVisible ?? desktopVisible;
-    const mobileVisible = layer.mobileVisible ?? tabletVisible;
-
-    if (viewMode === 'mobile') return mobileVisible;
-    if (viewMode === 'tablet') return tabletVisible;
-    return desktopVisible;
-};
-
-const ResizeHandle = ({ 
-    cursor, 
-    onPointerDown, 
-    style 
-}: { 
-    cursor: string; 
-    onPointerDown: (e: React.PointerEvent) => void; 
-    style: React.CSSProperties 
-}) => (
+const ResizeHandle = ({ cursor, onPointerDown, style }: { cursor: string; onPointerDown: (e: React.PointerEvent) => void; style: React.CSSProperties }) => (
     <div
         onPointerDown={(e) => { e.stopPropagation(); onPointerDown(e); }}
         style={{
@@ -131,17 +66,6 @@ const ResizeHandle = ({
     />
 );
 
-interface DraggableLayerProps {
-    layer: HeroSliderLayer;
-    isSelected: boolean;
-    onSelect: (addToSelection?: boolean) => void;
-    onUpdateLayer: (updates: Partial<HeroSliderLayer>) => void;
-    viewMode: 'desktop' | 'tablet' | 'mobile';
-    containerWidth: number;
-    containerHeight: number;
-    groupDragDelta?: { x: number; y: number } | null;
-}
-
 const DraggableLayer = ({
     layer,
     isSelected,
@@ -151,7 +75,17 @@ const DraggableLayer = ({
     containerWidth,
     containerHeight,
     groupDragDelta
-}: DraggableLayerProps) => {
+}: {
+    layer: HeroSliderLayer;
+    id?: string;
+    isSelected: boolean;
+    onSelect: (addToSelection?: boolean) => void;
+    onUpdateLayer: (updates: Partial<HeroSliderLayer>) => void;
+    viewMode: string;
+    containerWidth: number;
+    containerHeight: number;
+    groupDragDelta?: { x: number; y: number } | null;
+}) => {
     const layerRef = useRef<HTMLDivElement>(null);
     const [resizeState, setResizeState] = useState<{
         active: boolean;
@@ -161,15 +95,16 @@ const DraggableLayer = ({
         y: number;
     } | null>(null);
 
-    // Store current values in refs for event handlers
+    // Store current values in refs so event handlers always have access to latest values
     const stateRef = useRef({
         containerWidth,
         containerHeight,
         viewMode,
-        layer,
+        layer, // Store full layer to access all style props
         onUpdateLayer
     });
 
+    // Keep refs updated
     useEffect(() => {
         stateRef.current = {
             containerWidth,
@@ -186,10 +121,17 @@ const DraggableLayer = ({
         disabled: layer.locked || false
     });
 
-    // Get position for current viewport with proper fallback
-    const position = getPositionForViewport(layer, viewMode);
-    const posX = position.x;
-    const posY = position.y;
+    // Get position based on view mode
+    let posX = layer.position?.x || 0;
+    let posY = layer.position?.y || 0;
+
+    if (viewMode === 'tablet' && layer.tabletPosition) {
+        posX = layer.tabletPosition.x;
+        posY = layer.tabletPosition.y;
+    } else if (viewMode === 'mobile' && layer.mobilePosition) {
+        posX = layer.mobilePosition.x;
+        posY = layer.mobilePosition.y;
+    }
 
     // Calculate pixel position
     const basePixelX = (posX / 100) * containerWidth;
@@ -204,8 +146,31 @@ const DraggableLayer = ({
             ? { x: groupDragDelta.x, y: groupDragDelta.y }
             : null;
 
-    const effectiveLayerStyle = getStyleForViewport(layer, viewMode);
-    const isVisible = getVisibilityForViewport(layer, viewMode);
+    // Get effective style based on viewMode
+    // Get effective style based on viewMode with correct inheritance
+    const getEffectiveStyle = () => {
+        const desktopStyle = layer.style || {};
+        const tabletStyle = layer.tabletStyle ? { ...desktopStyle, ...layer.tabletStyle } : desktopStyle;
+        const mobileStyle = layer.mobileStyle ? { ...tabletStyle, ...layer.mobileStyle } : tabletStyle;
+
+        if (viewMode === 'mobile') return mobileStyle;
+        if (viewMode === 'tablet') return tabletStyle;
+        return desktopStyle;
+    };
+
+    // Get effective visibility based on viewMode with correct inheritance 
+    const getEffectiveVisibility = () => {
+        const desktopVisible = layer.visible !== false;
+        const tabletVisible = layer.tabletVisible ?? desktopVisible;
+        const mobileVisible = layer.mobileVisible ?? tabletVisible;
+
+        if (viewMode === 'mobile') return mobileVisible;
+        if (viewMode === 'tablet') return tabletVisible;
+        return desktopVisible;
+    };
+
+    const effectiveLayerStyle = getEffectiveStyle();
+    const isVisible = getEffectiveVisibility();
 
     const style: React.CSSProperties = {
         position: 'absolute',
@@ -249,7 +214,7 @@ const DraggableLayer = ({
         }
     };
 
-    // Resize handlers
+    // Resize handlers using refs - stored in refs to maintain stable identity
     const resizeDataRef = useRef<{
         direction: string;
         startX: number;
@@ -260,7 +225,7 @@ const DraggableLayer = ({
         startTop: number;
     } | null>(null);
 
-    const onPointerMove = useCallback((e: PointerEvent) => {
+    const onMouseMove = useRef((e: MouseEvent) => {
         if (!resizeDataRef.current) return;
 
         const { direction, startX, startY, startWidth, startHeight, startLeft, startTop } = resizeDataRef.current;
@@ -284,9 +249,12 @@ const DraggableLayer = ({
         }
 
         setResizeState({ active: true, width: newWidth, height: newHeight, x: newX, y: newY });
-    }, []);
+    }).current;
 
-    const onPointerUp = useCallback(() => {
+    const onMouseUp = useRef((e: MouseEvent) => {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+
         if (!resizeDataRef.current) return;
 
         const { direction } = resizeDataRef.current;
@@ -303,17 +271,17 @@ const DraggableLayer = ({
             const updates: Partial<HeroSliderLayer> = {};
 
             if (state.viewMode === 'desktop') {
-                updates.style = { ...state.layer.style, width: prev.width, height: prev.height };
+                updates.style = { ...(state.layer.style || {}), width: prev.width, height: prev.height };
                 if (direction.includes('w') || direction.includes('n')) {
                     updates.position = newPosPercent;
                 }
             } else if (state.viewMode === 'tablet') {
-                updates.tabletStyle = { ...state.layer.tabletStyle, width: prev.width, height: prev.height };
+                updates.tabletStyle = { ...(state.layer.tabletStyle || {}), width: prev.width, height: prev.height };
                 if (direction.includes('w') || direction.includes('n')) {
                     updates.tabletPosition = newPosPercent;
                 }
             } else if (state.viewMode === 'mobile') {
-                updates.mobileStyle = { ...state.layer.mobileStyle, width: prev.width, height: prev.height };
+                updates.mobileStyle = { ...(state.layer.mobileStyle || {}), width: prev.width, height: prev.height };
                 if (direction.includes('w') || direction.includes('n')) {
                     updates.mobilePosition = newPosPercent;
                 }
@@ -324,15 +292,7 @@ const DraggableLayer = ({
         });
 
         resizeDataRef.current = null;
-    }, []);
-
-    // Store current handlers in a ref for event listener management
-    const handlersRef = useRef({ onPointerMove, onPointerUp });
-    
-    // Update handlers ref when callbacks change
-    useEffect(() => {
-        handlersRef.current = { onPointerMove, onPointerUp };
-    }, [onPointerMove, onPointerUp]);
+    }).current;
 
     const handleResizeStart = (e: React.PointerEvent, direction: string) => {
         e.stopPropagation();
@@ -359,19 +319,17 @@ const DraggableLayer = ({
             y: basePixelY
         });
 
-        // Use pointer events for better cross-browser compatibility
-        const moveHandler = (ev: PointerEvent) => handlersRef.current.onPointerMove(ev);
-        const upHandler = () => {
-            handlersRef.current.onPointerUp();
-            document.removeEventListener('pointermove', moveHandler);
-            document.removeEventListener('pointerup', upHandler);
-            document.removeEventListener('pointercancel', upHandler);
-        };
-        
-        document.addEventListener('pointermove', moveHandler);
-        document.addEventListener('pointerup', upHandler);
-        document.addEventListener('pointercancel', upHandler);
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
     };
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+    }, [onMouseMove, onMouseUp]);
 
     const content = (
         <>
@@ -396,10 +354,13 @@ const DraggableLayer = ({
             {/* Resize Handles */}
             {isSelected && !layer.locked && (
                 <>
+                    {/* Corner Handles */}
                     <ResizeHandle cursor="nw-resize" onPointerDown={(e) => handleResizeStart(e, 'nw')} style={{ top: -5, left: -5 }} />
                     <ResizeHandle cursor="ne-resize" onPointerDown={(e) => handleResizeStart(e, 'ne')} style={{ top: -5, right: -5 }} />
                     <ResizeHandle cursor="sw-resize" onPointerDown={(e) => handleResizeStart(e, 'sw')} style={{ bottom: -5, left: -5 }} />
                     <ResizeHandle cursor="se-resize" onPointerDown={(e) => handleResizeStart(e, 'se')} style={{ bottom: -5, right: -5 }} />
+
+                    {/* Edge Handles */}
                     <ResizeHandle cursor="n-resize" onPointerDown={(e) => handleResizeStart(e, 'n')} style={{ top: -5, left: '50%', transform: 'translateX(-50%)' }} />
                     <ResizeHandle cursor="s-resize" onPointerDown={(e) => handleResizeStart(e, 's')} style={{ bottom: -5, left: '50%', transform: 'translateX(-50%)' }} />
                     <ResizeHandle cursor="e-resize" onPointerDown={(e) => handleResizeStart(e, 'e')} style={{ right: -5, top: '50%', transform: 'translateY(-50%)' }} />
@@ -428,17 +389,7 @@ const DraggableLayer = ({
 };
 
 // Grid Overlay Component
-const GridOverlay = ({ 
-    width, 
-    height, 
-    gridSize = 20, 
-    show = false 
-}: { 
-    width: number; 
-    height: number; 
-    gridSize?: number; 
-    show?: boolean 
-}) => {
+const GridOverlay = ({ width, height, gridSize = 20, show = false }: { width: number; height: number; gridSize?: number; show?: boolean }) => {
     if (!show) return null;
 
     return (
@@ -448,10 +399,12 @@ const GridOverlay = ({
             style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', zIndex: 1 }}
         >
             <defs>
+                {/* Small grid with dual-color for visibility on any background */}
                 <pattern id="smallGrid" width={gridSize} height={gridSize} patternUnits="userSpaceOnUse">
                     <path d={`M ${gridSize} 0 L 0 0 0 ${gridSize}`} fill="none" stroke="rgba(0,0,0,0.15)" strokeWidth="1" />
                     <path d={`M ${gridSize} 0 L 0 0 0 ${gridSize}`} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="0.5" />
                 </pattern>
+                {/* Large grid with more visible lines */}
                 <pattern id="grid" width={gridSize * 5} height={gridSize * 5} patternUnits="userSpaceOnUse">
                     <rect width={gridSize * 5} height={gridSize * 5} fill="url(#smallGrid)" />
                     <path d={`M ${gridSize * 5} 0 L 0 0 0 ${gridSize * 5}`} fill="none" stroke="rgba(0,0,0,0.25)" strokeWidth="1.5" />
@@ -463,26 +416,40 @@ const GridOverlay = ({
     );
 };
 
-// Center guides component
-const CenterGuides = ({ 
-    show, 
-    width, 
-    height, 
-    draggingPosition 
-}: { 
-    show: boolean; 
-    width: number; 
-    height: number; 
-    draggingPosition: { x: number; y: number } | null 
+// Spacing Indicator Component
+const SpacingLines = ({
+    draggingLayerId,
+    draggingPosition,
+    layers,
+    containerWidth,
+    containerHeight,
+    viewMode
+}: {
+    draggingLayerId: string | null;
+    draggingPosition: { x: number; y: number } | null;
+    layers: HeroSliderLayer[];
+    containerWidth: number;
+    containerHeight: number;
+    viewMode: string;
 }) => {
-    if (!show || !draggingPosition) return null;
+    if (!draggingLayerId || !draggingPosition) return null;
 
-    const centerX = width / 2;
-    const centerY = height / 2;
+    const draggingLayer = layers.find(l => l.id === draggingLayerId);
+    if (!draggingLayer) return null;
+
     const lines: React.ReactNode[] = [];
+    const threshold = 150; // Only show for nearby elements
+
+    // Get dragging layer position in pixels
+    const dragX = draggingPosition.x;
+    const dragY = draggingPosition.y;
+
+    // Center lines
+    const centerX = containerWidth / 2;
+    const centerY = containerHeight / 2;
 
     // Show center vertical guide
-    if (Math.abs(draggingPosition.x - centerX) < 20) {
+    if (Math.abs(dragX - centerX) < 20) {
         lines.push(
             <div
                 key="center-v"
@@ -491,7 +458,7 @@ const CenterGuides = ({
                     left: centerX,
                     top: 0,
                     width: 1,
-                    height: height,
+                    height: containerHeight,
                     background: 'linear-gradient(to bottom, transparent, #ff6b6b, transparent)',
                     zIndex: 999,
                     pointerEvents: 'none'
@@ -501,7 +468,7 @@ const CenterGuides = ({
     }
 
     // Show center horizontal guide
-    if (Math.abs(draggingPosition.y - centerY) < 20) {
+    if (Math.abs(dragY - centerY) < 20) {
         lines.push(
             <div
                 key="center-h"
@@ -509,7 +476,7 @@ const CenterGuides = ({
                     position: 'absolute',
                     left: 0,
                     top: centerY,
-                    width: width,
+                    width: containerWidth,
                     height: 1,
                     background: 'linear-gradient(to right, transparent, #ff6b6b, transparent)',
                     zIndex: 999,
@@ -519,23 +486,119 @@ const CenterGuides = ({
         );
     }
 
+    // Show spacing to other layers
+    layers.forEach((otherLayer, idx) => {
+        if (otherLayer.id === draggingLayerId || otherLayer.visible === false) return;
+
+        let otherX = otherLayer.position?.x || 0;
+        let otherY = otherLayer.position?.y || 0;
+
+        if (viewMode === 'tablet' && otherLayer.tabletPosition) {
+            otherX = otherLayer.tabletPosition.x;
+            otherY = otherLayer.tabletPosition.y;
+        } else if (viewMode === 'mobile' && otherLayer.mobilePosition) {
+            otherX = otherLayer.mobilePosition.x;
+            otherY = otherLayer.mobilePosition.y;
+        }
+
+        const otherPxX = (otherX / 100) * containerWidth;
+        const otherPxY = (otherY / 100) * containerHeight;
+
+        // Horizontal spacing
+        const hDist = Math.abs(dragX - otherPxX);
+        if (hDist < threshold && hDist > 5) {
+            const minX = Math.min(dragX, otherPxX);
+            const maxX = Math.max(dragX, otherPxX);
+            const lineY = (dragY + otherPxY) / 2;
+
+            lines.push(
+                <React.Fragment key={`h-${idx}`}>
+                    <div
+                        style={{
+                            position: 'absolute',
+                            left: minX,
+                            top: lineY,
+                            width: maxX - minX,
+                            height: 1,
+                            backgroundColor: '#00d4ff',
+                            zIndex: 999,
+                            pointerEvents: 'none'
+                        }}
+                    />
+                    <div
+                        style={{
+                            position: 'absolute',
+                            left: minX + (maxX - minX) / 2 - 20,
+                            top: lineY - 12,
+                            backgroundColor: '#00d4ff',
+                            color: '#000',
+                            padding: '2px 6px',
+                            borderRadius: 4,
+                            fontSize: 10,
+                            fontWeight: 600,
+                            zIndex: 1000,
+                            pointerEvents: 'none'
+                        }}
+                    >
+                        {Math.round(hDist)}px
+                    </div>
+                </React.Fragment>
+            );
+        }
+
+        // Vertical spacing
+        const vDist = Math.abs(dragY - otherPxY);
+        if (vDist < threshold && vDist > 5) {
+            const minY = Math.min(dragY, otherPxY);
+            const maxY = Math.max(dragY, otherPxY);
+            const lineX = (dragX + otherPxX) / 2;
+
+            lines.push(
+                <React.Fragment key={`v-${idx}`}>
+                    <div
+                        style={{
+                            position: 'absolute',
+                            left: lineX,
+                            top: minY,
+                            width: 1,
+                            height: maxY - minY,
+                            backgroundColor: '#00d4ff',
+                            zIndex: 999,
+                            pointerEvents: 'none'
+                        }}
+                    />
+                    <div
+                        style={{
+                            position: 'absolute',
+                            left: lineX + 8,
+                            top: minY + (maxY - minY) / 2 - 8,
+                            backgroundColor: '#00d4ff',
+                            color: '#000',
+                            padding: '2px 6px',
+                            borderRadius: 4,
+                            fontSize: 10,
+                            fontWeight: 600,
+                            zIndex: 1000,
+                            pointerEvents: 'none'
+                        }}
+                    >
+                        {Math.round(vDist)}px
+                    </div>
+                </React.Fragment>
+            );
+        }
+    });
+
     return <>{lines}</>;
 };
 
-// Ruler Component
-const Ruler = ({ 
-    orientation, 
-    size, 
-    actualSize 
-}: { 
-    orientation: 'horizontal' | 'vertical'; 
-    size: number; 
-    actualSize: number; 
-}) => {
+// Ruler Component - shows actual dimensions, not scaled
+const Ruler = ({ orientation, size, actualSize, zoom = 1 }: { orientation: 'horizontal' | 'vertical'; size: number; actualSize: number; zoom?: number }) => {
     const ticks = [];
     const majorInterval = 100;
     const minorInterval = 20;
 
+    // Draw ticks based on actual dimensions
     for (let i = 0; i <= actualSize; i += minorInterval) {
         const isMajor = i % majorInterval === 0;
         const scaledPos = (i / actualSize) * size;
@@ -583,6 +646,50 @@ const Ruler = ({
     );
 };
 
+// Container Boundary Component
+const ContainerBoundary = ({ containerWidth, canvasWidth, canvasHeight, zoom }: { containerWidth: number; canvasWidth: number; canvasHeight: number; zoom: number }) => {
+    // If we're in mobile/tablet, the boundary is usually the canvas edge anyway
+    if (!containerWidth) return null;
+
+    const scaledContainerWidth = containerWidth * zoom;
+    const leftOffset = Math.max(0, (canvasWidth - scaledContainerWidth) / 2);
+
+    return (
+        <div
+            style={{
+                position: 'absolute',
+                left: leftOffset,
+                top: 0,
+                width: Math.min(canvasWidth, scaledContainerWidth),
+                height: canvasHeight,
+                borderLeft: '2px solid rgba(0, 212, 255, 0.5)',
+                borderRight: '2px solid rgba(0, 212, 255, 0.5)',
+                pointerEvents: 'none',
+                zIndex: 1,
+                display: 'flex',
+                justifyContent: 'center'
+            }}
+        >
+            <div style={{
+                position: 'absolute',
+                top: 10,
+                backgroundColor: 'rgba(0, 212, 255, 0.2)',
+                color: '#00d4ff',
+                padding: '4px 12px',
+                borderRadius: 4,
+                fontSize: 11,
+                fontWeight: 700,
+                border: '1px solid rgba(0, 212, 255, 0.5)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                boxShadow: '0 0 10px rgba(0, 212, 255, 0.2)'
+            }}>
+                Content Area ({containerWidth}px)
+            </div>
+        </div>
+    );
+};
+
 export default function SlideCanvas({
     slide,
     selectedLayerIds,
@@ -597,6 +704,7 @@ export default function SlideCanvas({
     onBatchUpdateLayers
 }: SlideCanvasProps) {
     const containerRef = useRef<HTMLDivElement>(null);
+    const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
     const [draggingLayerId, setDraggingLayerId] = useState<string | null>(null);
     const [draggingPosition, setDraggingPosition] = useState<{ x: number; y: number } | null>(null);
     const [currentDragDelta, setCurrentDragDelta] = useState<{ x: number; y: number } | null>(null);
@@ -607,26 +715,21 @@ export default function SlideCanvas({
         })
     );
 
-    // Calculate canvas dimensions based on viewport mode
-    // IMPORTANT: Use the exact viewport widths for tablet/mobile to match frontend
-    const canvasDimensions = useMemo(() => {
-        let baseWidth: number;
+    // Calculate canvas dimensions - use settings.width for desktop
+    const getCanvasDimensions = useCallback(() => {
+        let baseWidth = settings?.width || 1200;
         let baseHeight = 600;
 
-        // Get the appropriate width for the viewport mode
-        if (viewMode === 'desktop') {
-            // For desktop, use settings.width if available, otherwise use standard desktop width
-            baseWidth = settings?.width || VIEWPORT_DIMENSIONS.desktop.width;
-        } else {
-            // For tablet/mobile, use fixed viewport widths to match frontend breakpoints
-            baseWidth = VIEWPORT_DIMENSIONS[viewMode].width;
-        }
-
-        // Get height from settings (supports responsive height object)
         if (typeof settings?.height === 'number') {
             baseHeight = settings.height;
-        } else if (settings?.height && typeof settings.height === 'object') {
+        } else if (settings?.height) {
             baseHeight = settings.height[viewMode] || settings.height.desktop || 600;
+        }
+
+        if (viewMode === 'tablet') {
+            baseWidth = 768;
+        } else if (viewMode === 'mobile') {
+            baseWidth = 375;
         }
 
         return {
@@ -637,7 +740,14 @@ export default function SlideCanvas({
         };
     }, [settings, viewMode, zoom]);
 
-    const { width, height, baseWidth, baseHeight } = canvasDimensions;
+    useEffect(() => {
+        const dims = getCanvasDimensions();
+        setContainerSize({ width: dims.width, height: dims.height });
+    }, [getCanvasDimensions]);
+
+    const dims = getCanvasDimensions();
+    const { width, height } = containerSize;
+    const { baseWidth, baseHeight } = dims;
 
     const handleDragStart = useCallback((event: DragStartEvent) => {
         const layer = slide.layers.find(l => l.id === event.active.id);
@@ -645,28 +755,55 @@ export default function SlideCanvas({
 
         setDraggingLayerId(layer.id);
 
-        const position = getPositionForViewport(layer, viewMode);
+        let posX = layer.position?.x || 0;
+        let posY = layer.position?.y || 0;
+
+        if (viewMode === 'tablet' && layer.tabletPosition) {
+            posX = layer.tabletPosition.x;
+            posY = layer.tabletPosition.y;
+        } else if (viewMode === 'mobile' && layer.mobilePosition) {
+            posX = layer.mobilePosition.x;
+            posY = layer.mobilePosition.y;
+        }
+
         setDraggingPosition({
-            x: (position.x / 100) * width,
-            y: (position.y / 100) * height
+            x: (posX / 100) * width,
+            y: (posY / 100) * height
         });
     }, [slide.layers, viewMode, width, height]);
+
+    // Calculate effective container width and offset
+    // Use settings.width for the content container
+    const layersContainerWidth = settings?.width || width;
+    const layersContainerOffset = (width - layersContainerWidth) / 2;
 
     const handleDragMove = useCallback((event: DragMoveEvent) => {
         const layer = slide.layers.find(l => l.id === event.active.id);
         if (!layer) return;
 
-        const position = getPositionForViewport(layer, viewMode);
-        const baseX = (position.x / 100) * width;
-        const baseY = (position.y / 100) * height;
+        let posX = layer.position?.x || 0;
+        let posY = layer.position?.y || 0;
+
+        if (viewMode === 'tablet' && layer.tabletPosition) {
+            posX = layer.tabletPosition.x;
+            posY = layer.tabletPosition.y;
+        } else if (viewMode === 'mobile' && layer.mobilePosition) {
+            posX = layer.mobilePosition.x;
+            posY = layer.mobilePosition.y;
+        }
+
+        // Calculate base position relative to canvas (including offset)
+        const baseX = (posX / 100) * layersContainerWidth + layersContainerOffset;
+        const baseY = (posY / 100) * height;
 
         setDraggingPosition({
             x: baseX + event.delta.x,
             y: baseY + event.delta.y
         });
 
+        // Track delta for multi-select sync
         setCurrentDragDelta({ x: event.delta.x, y: event.delta.y });
-    }, [slide.layers, viewMode, width, height]);
+    }, [slide.layers, viewMode, width, height, layersContainerWidth, layersContainerOffset]);
 
     const handleDragEnd = useCallback((event: DragEndEvent) => {
         setDraggingLayerId(null);
@@ -677,35 +814,45 @@ export default function SlideCanvas({
         const draggedLayer = slide.layers.find(l => l.id === active.id);
         if (!draggedLayer || draggedLayer.locked || !width || !height) return;
 
-        // Convert delta to percentage relative to current viewport dimensions
-        let deltaXPercent = (delta.x / width) * 100;
+        // Convert delta to percentage relative to container width
+        let deltaXPercent = (delta.x / layersContainerWidth) * 100;
         let deltaYPercent = (delta.y / height) * 100;
 
         // Apply grid snapping if enabled
         if (snapToGrid) {
-            const gridPercent = (20 / width) * 100;
+            const gridPercent = (20 / layersContainerWidth) * 100; // 20px grid
             deltaXPercent = Math.round(deltaXPercent / gridPercent) * gridPercent;
             deltaYPercent = Math.round(deltaYPercent / gridPercent) * gridPercent;
         }
 
-        // Determine which layers to move
+        // Determine which layers to move (all selected, or just the dragged one)
         const layersToMove = selectedLayerIds.includes(draggedLayer.id) && selectedLayerIds.length > 1
             ? slide.layers.filter(l => selectedLayerIds.includes(l.id) && !l.locked)
             : [draggedLayer];
 
+        // Collect all updates
         const batchUpdates: Array<{ id: string; updates: Partial<HeroSliderLayer> }> = [];
 
         layersToMove.forEach(layer => {
-            // Get current position for this viewport (with proper fallback)
-            const currentPos = getPositionForViewport(layer, viewMode);
+            // Get current position based on view mode
+            let currentX = layer.position?.x || 0;
+            let currentY = layer.position?.y || 0;
+
+            if (viewMode === 'tablet') {
+                currentX = layer.tabletPosition?.x ?? layer.position?.x ?? 0;
+                currentY = layer.tabletPosition?.y ?? layer.position?.y ?? 0;
+            } else if (viewMode === 'mobile') {
+                currentX = layer.mobilePosition?.x ?? layer.position?.x ?? 0;
+                currentY = layer.mobilePosition?.y ?? layer.position?.y ?? 0;
+            }
 
             // Calculate new position
             const newPos = {
-                x: Math.max(0, Math.min(100, currentPos.x + deltaXPercent)),
-                y: Math.max(0, Math.min(100, currentPos.y + deltaYPercent))
+                x: Math.max(0, Math.min(100, currentX + deltaXPercent)),
+                y: Math.max(0, Math.min(100, currentY + deltaYPercent))
             };
 
-            // Build update based on view mode - save to the correct viewport position property
+            // Build update based on view mode
             const updates: Partial<HeroSliderLayer> = {};
 
             if (viewMode === 'desktop') {
@@ -730,7 +877,7 @@ export default function SlideCanvas({
         if (!selectedLayerIds.includes(draggedLayer.id)) {
             onSelectLayer(draggedLayer.id);
         }
-    }, [slide.layers, width, height, snapToGrid, viewMode, onUpdateLayer, onSelectLayer, selectedLayerIds, onBatchUpdateLayers]);
+    }, [slide.layers, width, height, snapToGrid, viewMode, onUpdateLayer, onSelectLayer, selectedLayerIds, layersContainerWidth]);
 
     const handleCanvasClick = (e: React.MouseEvent) => {
         if (e.target === e.currentTarget) {
@@ -769,10 +916,11 @@ export default function SlideCanvas({
                 position: 'relative'
             }}
         >
+            {/* Canvas Wrapper with Rulers */}
             <Box sx={{ position: 'relative' }}>
-                {/* Rulers */}
-                <Ruler orientation="horizontal" size={width} actualSize={baseWidth} />
-                <Ruler orientation="vertical" size={height} actualSize={baseHeight} />
+                {/* Rulers - show actual dimensions */}
+                <Ruler orientation="horizontal" size={width} actualSize={baseWidth} zoom={zoom} />
+                <Ruler orientation="vertical" size={height} actualSize={baseHeight} zoom={zoom} />
 
                 {/* Corner */}
                 <Box sx={{
@@ -796,16 +944,11 @@ export default function SlideCanvas({
                         ref={containerRef}
                         style={backgroundStyle}
                         onClick={handleCanvasClick}
-                        data-viewport={viewMode}
-                        data-canvas-width={width}
-                        data-canvas-height={height}
-                        data-base-width={baseWidth}
-                        data-base-height={baseHeight}
                     >
                         {/* Grid Overlay */}
                         <GridOverlay width={width} height={height} gridSize={20} show={showGrid || !!draggingLayerId} />
 
-                        {/* Background Overlay */}
+                        {/* Overlay */}
                         {slide.background?.overlay && (
                             <div style={{
                                 position: 'absolute',
@@ -817,35 +960,42 @@ export default function SlideCanvas({
                             }} />
                         )}
 
-                        {/* Center Guides */}
-                        <CenterGuides
-                            show={!!draggingLayerId}
-                            width={width}
-                            height={height}
+                        {/* Spacing Lines */}
+                        <SpacingLines
+                            draggingLayerId={draggingLayerId}
                             draggingPosition={draggingPosition}
+                            layers={slide.layers}
+                            containerWidth={width}
+                            containerHeight={height}
+                            viewMode={viewMode}
                         />
 
                         {/* Layers */}
-                        {slide.layers.map(layer => (
-                            <DraggableLayer
-                                key={layer.id}
-                                layer={layer}
-                                isSelected={selectedLayerIds.includes(layer.id)}
-                                onSelect={(addToSelection) => onSelectLayer(layer.id, addToSelection)}
-                                onUpdateLayer={(updates) => onUpdateLayer(layer.id, updates)}
-                                viewMode={viewMode}
-                                containerWidth={width}
-                                containerHeight={height}
-                                groupDragDelta={
-                                    draggingLayerId && 
-                                    selectedLayerIds.includes(draggingLayerId) && 
-                                    selectedLayerIds.length > 1 && 
-                                    layer.id !== draggingLayerId 
-                                        ? currentDragDelta 
-                                        : null
-                                }
-                            />
-                        ))}
+                        {/* Layers Container */}
+                        <div style={{
+                            position: 'absolute',
+                            left: layersContainerOffset,
+                            top: 0,
+                            width: layersContainerWidth,
+                            height: '100%',
+                            // visual guide for debug (optional)
+                            // border: showContainer && settings?.containerWidth ? '1px dotted rgba(0, 255, 255, 0.3)' : 'none' 
+                        }}>
+                            {slide.layers.map(layer => (
+                                <DraggableLayer
+                                    key={layer.id}
+                                    id={`layer-${layer.id}`}
+                                    layer={layer}
+                                    isSelected={selectedLayerIds.includes(layer.id)}
+                                    onSelect={(addToSelection) => onSelectLayer(layer.id, addToSelection)}
+                                    onUpdateLayer={(updates) => onUpdateLayer(layer.id, updates)}
+                                    viewMode={viewMode}
+                                    containerWidth={layersContainerWidth}
+                                    containerHeight={height}
+                                    groupDragDelta={draggingLayerId && selectedLayerIds.includes(draggingLayerId) && selectedLayerIds.length > 1 && layer.id !== draggingLayerId ? currentDragDelta : null}
+                                />
+                            ))}
+                        </div>
                     </div>
                 </DndContext>
 
@@ -862,16 +1012,7 @@ export default function SlideCanvas({
                     <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>
                         {baseWidth} × {baseHeight}px
                     </Typography>
-                    <Typography variant="caption" sx={{ 
-                        color: 'rgba(255,255,255,0.6)', 
-                        fontWeight: 600,
-                        backgroundColor: viewMode === 'desktop' ? 'rgba(0, 212, 255, 0.2)' : 
-                                        viewMode === 'tablet' ? 'rgba(124, 58, 237, 0.3)' : 
-                                        'rgba(16, 185, 129, 0.3)',
-                        px: 1,
-                        py: 0.25,
-                        borderRadius: 0.5
-                    }}>
+                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>
                         {viewMode.charAt(0).toUpperCase() + viewMode.slice(1)}
                     </Typography>
                     <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>

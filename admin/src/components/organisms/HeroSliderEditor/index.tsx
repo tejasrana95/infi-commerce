@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Box, IconButton, useMediaQuery, useTheme, Typography, Tooltip, alpha, Snackbar, Alert } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
+import { Box, useMediaQuery, useTheme, Typography, Snackbar, Alert } from '@mui/material';
 import { HeroSlider, HeroSliderSlide, HeroSliderLayer } from '@/services/heroSlider.service';
 
 import SliderSettingsDialog from './SliderSettingsDialog';
@@ -8,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import Toolbar from './Toolbar';
 import SlideList from './SlideList';
 import LayerList from './LayerList';
-import SlideCanvas from './SlideCanvas';
+import SlideCanvas, { getPositionForViewport, getStyleForViewport, getVisibilityForViewport } from './SlideCanvas';
 import LayerProperties from './LayerProperties';
 import { useHistory } from './hooks/useHistory';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
@@ -80,12 +79,16 @@ export default function HeroSliderEditor({ initialData, sliderName, onBack, onSa
     const selectedLayers = activeSlide?.layers.filter(l => selectedLayerIds.includes(l.id)) || [];
     const selectedLayer = selectedLayers.length === 1 ? selectedLayers[0] : undefined;
 
-    // Layer selection handler (supports multi-select with Ctrl/Cmd)
+    // Layer selection handler (supports multi-select with Ctrl/Cmd and groups)
     const handleSelectLayer = useCallback((id: string, addToSelection: boolean = false) => {
         if (!id) {
             setSelectedLayerIds([]);
             return;
         }
+
+        // Check if clicked layer is in a group
+        const clickedLayer = activeSlide?.layers.find(l => l.id === id);
+        const groupId = clickedLayer?.groupId;
 
         if (addToSelection) {
             setSelectedLayerIds(prev =>
@@ -93,10 +96,16 @@ export default function HeroSliderEditor({ initialData, sliderName, onBack, onSa
                     ? prev.filter(lid => lid !== id)
                     : [...prev, id]
             );
+        } else if (groupId) {
+            // If layer is grouped, select all layers in the group
+            const groupLayerIds = activeSlide?.layers
+                .filter(l => l.groupId === groupId)
+                .map(l => l.id) || [];
+            setSelectedLayerIds(groupLayerIds);
         } else {
             setSelectedLayerIds([id]);
         }
-    }, []);
+    }, [activeSlide?.layers]);
 
     // Save handler with notification
     const handleSave = useCallback(async () => {
@@ -169,14 +178,15 @@ export default function HeroSliderEditor({ initialData, sliderName, onBack, onSa
         const newLayer: HeroSliderLayer = {
             id: uuidv4(),
             type,
-            content: type === 'text' ? 'New Text' : type === 'button' ? 'Click Me' : type === 'icon' ? 'FaStar' : '',
+            content: type === 'text' ? 'New Text' : type === 'button' ? 'Click Me' : type === 'icon' ? 'FaStar' : type === 'rte' ? '<h2>Rich Text</h2><p>Double click to edit</p>' : '',
             style: {
                 fontSize: type === 'text' ? 32 : 18,
                 fontWeight: type === 'text' ? '700' : '500',
                 color: '#ffffff',
                 backgroundColor: type === 'button' ? colors.accent : 'transparent',
                 padding: type === 'button' ? '12px 28px' : 0,
-                borderRadius: type === 'button' ? '8px' : 0
+                borderRadius: type === 'button' ? '8px' : 0,
+                textAlign: type === 'text' || type === 'rte' ? 'left' : undefined
             },
             position: { x: 5, y: 5 },
             animation: { in: 'fadeIn', out: 'fadeOut', delay: 0, duration: 800 },
@@ -194,6 +204,16 @@ export default function HeroSliderEditor({ initialData, sliderName, onBack, onSa
         handleUpdateSlide(activeSlide.id, {
             layers: activeSlide.layers.map(l => l.id === layerId ? { ...l, ...updates } : l)
         });
+    }, [activeSlide, handleUpdateSlide]);
+
+    // Batch update multiple layers at once (for synchronized multi-drag)
+    const handleBatchUpdateLayers = useCallback((updates: Array<{ id: string; updates: Partial<HeroSliderLayer> }>) => {
+        if (!activeSlide) return;
+        const updatedLayers = activeSlide.layers.map(layer => {
+            const update = updates.find(u => u.id === layer.id);
+            return update ? { ...layer, ...update.updates } : layer;
+        });
+        handleUpdateSlide(activeSlide.id, { layers: updatedLayers });
     }, [activeSlide, handleUpdateSlide]);
 
     const handleDeleteLayer = useCallback((layerId: string) => {
@@ -221,8 +241,21 @@ export default function HeroSliderEditor({ initialData, sliderName, onBack, onSa
     const handleToggleLayerVisibility = useCallback((layerId: string) => {
         if (!activeSlide) return;
         const layer = activeSlide.layers.find(l => l.id === layerId);
-        if (layer) handleUpdateLayer(layerId, { visible: layer.visible === false ? true : false });
-    }, [activeSlide, handleUpdateLayer]);
+        if (!layer) return;
+
+        // Get current visibility for the active viewport
+        const currentVisibility = getVisibilityForViewport(layer, viewMode);
+        const newVisibility = !currentVisibility;
+
+        // Update the viewport-specific visibility property
+        if (viewMode === 'mobile') {
+            handleUpdateLayer(layerId, { mobileVisible: newVisibility });
+        } else if (viewMode === 'tablet') {
+            handleUpdateLayer(layerId, { tabletVisible: newVisibility });
+        } else {
+            handleUpdateLayer(layerId, { visible: newVisibility });
+        }
+    }, [activeSlide, handleUpdateLayer, viewMode]);
 
     const handleToggleLayerLock = useCallback((layerId: string) => {
         if (!activeSlide) return;
@@ -254,114 +287,193 @@ export default function HeroSliderEditor({ initialData, sliderName, onBack, onSa
         setSelectedLayerIds([newLayer.id]);
     }, [copiedLayer, activeSlide, handleUpdateSlide]);
 
-    // Move layer with arrow keys
+    // Group selected layers
+    const handleGroupLayers = useCallback(() => {
+        if (!activeSlide || selectedLayerIds.length < 2) return;
+        const groupId = uuidv4();
+        const updatedLayers = activeSlide.layers.map(layer =>
+            selectedLayerIds.includes(layer.id) ? { ...layer, groupId } : layer
+        );
+        handleUpdateSlide(activeSlide.id, { layers: updatedLayers });
+    }, [activeSlide, selectedLayerIds, handleUpdateSlide]);
+
+    // Ungroup selected layers
+    const handleUngroupLayers = useCallback(() => {
+        if (!activeSlide || selectedLayerIds.length === 0) return;
+        const updatedLayers = activeSlide.layers.map(layer =>
+            selectedLayerIds.includes(layer.id) ? { ...layer, groupId: undefined } : layer
+        );
+        handleUpdateSlide(activeSlide.id, { layers: updatedLayers });
+    }, [activeSlide, selectedLayerIds, handleUpdateSlide]);
+
+    // Move layers with arrow keys (supports multi-select and viewMode)
     const handleMoveLayer = useCallback((direction: 'up' | 'down' | 'left' | 'right', large: boolean = false) => {
-        if (!selectedLayer || !activeSlide) return;
+        if (selectedLayers.length === 0 || !activeSlide) return;
 
         const step = large ? 2 : 0.5; // Percentage movement
-        let position = { ...selectedLayer.position };
 
-        switch (direction) {
-            case 'up': position.y = Math.max(0, position.y - step); break;
-            case 'down': position.y = Math.min(100, position.y + step); break;
-            case 'left': position.x = Math.max(0, position.x - step); break;
-            case 'right': position.x = Math.min(100, position.x + step); break;
+        // Build batch updates for all selected layers
+        const batchUpdates: Array<{ id: string; updates: Partial<HeroSliderLayer> }> = [];
+
+        // Determine target property based on viewMode
+        const positionProp = viewMode === 'mobile' ? 'mobilePosition' : viewMode === 'tablet' ? 'tabletPosition' : 'position';
+
+        selectedLayers.forEach(layer => {
+            if (layer.locked) return;
+
+            // Get the current position for this viewport using the helper
+            const currentPos = getPositionForViewport(layer, viewMode);
+            const newPos = { ...currentPos };
+
+            switch (direction) {
+                case 'up': newPos.y = Math.max(0, currentPos.y - step); break;
+                case 'down': newPos.y = Math.min(100, currentPos.y + step); break;
+                case 'left': newPos.x = Math.max(0, currentPos.x - step); break;
+                case 'right': newPos.x = Math.min(100, currentPos.x + step); break;
+            }
+
+            batchUpdates.push({ id: layer.id, updates: { [positionProp]: newPos } });
+        });
+
+        if (batchUpdates.length > 1) {
+            handleBatchUpdateLayers(batchUpdates);
+        } else if (batchUpdates.length === 1) {
+            handleUpdateLayer(batchUpdates[0].id, batchUpdates[0].updates);
         }
-
-        handleUpdateLayer(selectedLayer.id, { position });
-    }, [selectedLayer, activeSlide, handleUpdateLayer]);
+    }, [selectedLayers, activeSlide, handleUpdateLayer, handleBatchUpdateLayers, viewMode]);
 
     // -- Alignment Actions (for multi-select) --
+    // Fixed to properly calculate based on viewport-specific positions and dimensions
     const handleAlignLayers = useCallback((alignment: 'left' | 'right' | 'top' | 'bottom' | 'centerH' | 'centerV' | 'distributeH' | 'distributeV') => {
-        if (!activeSlide || selectedLayers.length < 2) return;
+        if (!activeSlide || selectedLayers.length === 0) return;
 
+        // If only 1 layer selected and trying to distribute, do nothing
+        if (selectedLayers.length < 2 && (alignment === 'distributeH' || alignment === 'distributeV')) return;
+
+        // Get canvas container for dimension reference
         const container = document.getElementById('slide-canvas-container');
         if (!container) return;
-        const containerRect = container.getBoundingClientRect();
+        
+        // Get the actual canvas dimensions from data attributes (set by SlideCanvas)
+        const canvasWidth = parseFloat(container.dataset.canvasWidth || '0');
+        const canvasHeight = parseFloat(container.dataset.canvasHeight || '0');
+        
+        if (!canvasWidth || !canvasHeight) return;
 
-        // Get accurate dimensions from DOM
-        const layersWithRects = selectedLayers.map(l => {
-            const el = document.getElementById(`layer-${l.id}`);
-            const rect = el ? el.getBoundingClientRect() : {
-                left: 0, top: 0, width: 0, height: 0, right: 0, bottom: 0
-            };
+        // Target property based on viewMode
+        const targetProp = viewMode === 'mobile' ? 'mobilePosition' : viewMode === 'tablet' ? 'tabletPosition' : 'position';
 
-            // Convert current DOM position back to percentages relative to container
-            // We use this for calculation to be consistent with what user sees
-            const x = ((rect.left - containerRect.left) / containerRect.width) * 100;
-            const y = ((rect.top - containerRect.top) / containerRect.height) * 100;
-            const w = (rect.width / containerRect.width) * 100;
-            const h = (rect.height / containerRect.height) * 100;
+        // Calculate layer positions and dimensions based on viewport-specific data
+        // NOT from DOM rects which can be affected by zoom and scaling
+        const layersWithRects = selectedLayers.map(layer => {
+            // Get the position for the current viewport using our helper
+            const pos = getPositionForViewport(layer, viewMode);
+            const style = getStyleForViewport(layer, viewMode);
+            
+            // Get width/height from style or DOM as fallback
+            const el = document.getElementById(`layer-${layer.id}`);
+            const rect = el?.getBoundingClientRect();
+            const containerRect = container.getBoundingClientRect();
+            
+            // Calculate width/height as percentage of container
+            let widthPercent = 0;
+            let heightPercent = 0;
+            
+            if (style?.width && typeof style.width === 'number') {
+                widthPercent = (style.width / canvasWidth) * 100;
+            } else if (rect && containerRect.width) {
+                widthPercent = (rect.width / containerRect.width) * 100;
+            }
+            
+            if (style?.height && typeof style.height === 'number') {
+                heightPercent = (style.height / canvasHeight) * 100;
+            } else if (rect && containerRect.height) {
+                heightPercent = (rect.height / containerRect.height) * 100;
+            }
 
             return {
-                id: l.id,
-                x, y, w, h,
-                originalX: l.position?.x || 0,
-                originalY: l.position?.y || 0
+                id: layer.id,
+                x: pos.x,
+                y: pos.y,
+                w: widthPercent,
+                h: heightPercent
             };
         });
 
-        let updates: { id: string; position: { x: number; y: number } }[] = [];
+        let updates: { id: string; newPoint: { x: number; y: number } }[] = [];
+        const isSingle = selectedLayers.length === 1;
 
         switch (alignment) {
             case 'left': {
-                const minX = Math.min(...layersWithRects.map(l => l.x));
-                updates = layersWithRects.map(l => ({ id: l.id, position: { x: minX, y: l.originalY } }));
+                // Align to left edge (0%) or to the leftmost layer
+                const targetX = isSingle ? 0 : Math.min(...layersWithRects.map(l => l.x));
+                updates = layersWithRects.map(l => ({ id: l.id, newPoint: { x: targetX, y: l.y } }));
                 break;
             }
             case 'right': {
-                // Align right edges: max(x + w) -> newX = maxRight - w
-                const maxRight = Math.max(...layersWithRects.map(l => l.x + l.w));
-                updates = layersWithRects.map(l => ({ id: l.id, position: { x: maxRight - l.w, y: l.originalY } }));
+                if (isSingle) {
+                    // Align to right edge (100% - width)
+                    updates = layersWithRects.map(l => ({ id: l.id, newPoint: { x: Math.max(0, 100 - l.w), y: l.y } }));
+                } else {
+                    // Align to rightmost layer's right edge
+                    const maxRight = Math.max(...layersWithRects.map(l => l.x + l.w));
+                    updates = layersWithRects.map(l => ({ id: l.id, newPoint: { x: Math.max(0, maxRight - l.w), y: l.y } }));
+                }
                 break;
             }
             case 'top': {
-                const minY = Math.min(...layersWithRects.map(l => l.y));
-                updates = layersWithRects.map(l => ({ id: l.id, position: { x: l.originalX, y: minY } }));
+                // Align to top (0%) or to the topmost layer
+                const targetY = isSingle ? 0 : Math.min(...layersWithRects.map(l => l.y));
+                updates = layersWithRects.map(l => ({ id: l.id, newPoint: { x: l.x, y: targetY } }));
                 break;
             }
             case 'bottom': {
-                // Align bottom edges: max(y + h) -> newY = maxBottom - h
-                const maxBottom = Math.max(...layersWithRects.map(l => l.y + l.h));
-                updates = layersWithRects.map(l => ({ id: l.id, position: { x: l.originalX, y: maxBottom - l.h } }));
+                if (isSingle) {
+                    // Align to bottom (100% - height)
+                    updates = layersWithRects.map(l => ({ id: l.id, newPoint: { x: l.x, y: Math.max(0, 100 - l.h) } }));
+                } else {
+                    // Align to bottommost layer's bottom edge
+                    const maxBottom = Math.max(...layersWithRects.map(l => l.y + l.h));
+                    updates = layersWithRects.map(l => ({ id: l.id, newPoint: { x: l.x, y: Math.max(0, maxBottom - l.h) } }));
+                }
                 break;
             }
             case 'centerH': {
-                // Align centers vertically: average(centerPoints) -> newX = avgCenter - w/2
-                // Center point = x + w/2
-                const avgCenterX = layersWithRects.reduce((sum, l) => sum + (l.x + (l.w / 2)), 0) / layersWithRects.length;
-                updates = layersWithRects.map(l => ({ id: l.id, position: { x: avgCenterX - (l.w / 2), y: l.originalY } }));
+                if (isSingle) {
+                    // Center horizontally in container
+                    updates = layersWithRects.map(l => ({ id: l.id, newPoint: { x: Math.max(0, 50 - (l.w / 2)), y: l.y } }));
+                } else {
+                    // Align to average center of selected layers
+                    const avgCenterX = layersWithRects.reduce((sum, l) => sum + (l.x + (l.w / 2)), 0) / layersWithRects.length;
+                    updates = layersWithRects.map(l => ({ id: l.id, newPoint: { x: Math.max(0, avgCenterX - (l.w / 2)), y: l.y } }));
+                }
                 break;
             }
             case 'centerV': {
-                // Align centers horizontally: average(centerPoints) -> newY = avgCenter - h/2
-                const avgCenterY = layersWithRects.reduce((sum, l) => sum + (l.y + (l.h / 2)), 0) / layersWithRects.length;
-                updates = layersWithRects.map(l => ({ id: l.id, position: { x: l.originalX, y: avgCenterY - (l.h / 2) } }));
+                if (isSingle) {
+                    // Center vertically in container
+                    updates = layersWithRects.map(l => ({ id: l.id, newPoint: { x: l.x, y: Math.max(0, 50 - (l.h / 2)) } }));
+                } else {
+                    // Align to average center of selected layers
+                    const avgCenterY = layersWithRects.reduce((sum, l) => sum + (l.y + (l.h / 2)), 0) / layersWithRects.length;
+                    updates = layersWithRects.map(l => ({ id: l.id, newPoint: { x: l.x, y: Math.max(0, avgCenterY - (l.h / 2)) } }));
+                }
                 break;
             }
             case 'distributeH': {
-                // Distribute centers evenly between minX and maxX
-                // Or distribute spacing? Usually "Distribute Horizontal Centers" or "Distribute Spacing"
-                // Standard UI tools often distribute centers if size varies, or spacing.
-                // Let's implement distinct center distribution for now as it's safer for varying widths.
-
                 const sorted = [...layersWithRects].sort((a, b) => (a.x + a.w / 2) - (b.x + b.w / 2));
-                if (sorted.length < 3) return; // minimal 3 items to distribute
+                if (sorted.length < 3) return;
 
-                // Range is from center of first to center of last
                 const first = sorted[0];
                 const last = sorted[sorted.length - 1];
-
                 const startCenter = first.x + (first.w / 2);
                 const endCenter = last.x + (last.w / 2);
                 const totalDist = endCenter - startCenter;
                 const step = totalDist / (sorted.length - 1);
 
                 updates = sorted.map((l, i) => {
-                    // Start + step * i gives target center
-                    // targetX = targetCenter - w/2
                     const targetCenter = startCenter + (step * i);
-                    return { id: l.id, position: { x: targetCenter - (l.w / 2), y: l.originalY } };
+                    return { id: l.id, newPoint: { x: Math.max(0, targetCenter - (l.w / 2)), y: l.y } };
                 });
                 break;
             }
@@ -371,7 +483,6 @@ export default function HeroSliderEditor({ initialData, sliderName, onBack, onSa
 
                 const first = sorted[0];
                 const last = sorted[sorted.length - 1];
-
                 const startCenter = first.y + (first.h / 2);
                 const endCenter = last.y + (last.h / 2);
                 const totalDist = endCenter - startCenter;
@@ -379,20 +490,20 @@ export default function HeroSliderEditor({ initialData, sliderName, onBack, onSa
 
                 updates = sorted.map((l, i) => {
                     const targetCenter = startCenter + (step * i);
-                    return { id: l.id, position: { x: l.originalX, y: targetCenter - (l.h / 2) } };
+                    return { id: l.id, newPoint: { x: l.x, y: Math.max(0, targetCenter - (l.h / 2)) } };
                 });
                 break;
             }
         }
 
-        // Apply all updates
+        // Apply all updates to the correct viewport position property
         const updatedLayers = activeSlide.layers.map(l => {
             const update = updates.find(u => u.id === l.id);
-            return update ? { ...l, position: update.position } : l;
+            return update ? { ...l, [targetProp]: update.newPoint } : l;
         });
 
         handleUpdateSlide(activeSlide.id, { layers: updatedLayers });
-    }, [activeSlide, selectedLayers, handleUpdateSlide]);
+    }, [activeSlide, selectedLayers, handleUpdateSlide, viewMode]);
 
     // Keyboard shortcuts
     useKeyboardShortcuts({
@@ -460,6 +571,10 @@ export default function HeroSliderEditor({ initialData, sliderName, onBack, onSa
                     // Multi-select alignment props
                     selectedLayerCount={selectedLayerIds.length}
                     onAlignLayers={handleAlignLayers}
+                    // Grouping props
+                    onGroupLayers={handleGroupLayers}
+                    onUngroupLayers={handleUngroupLayers}
+                    hasGroupedSelection={selectedLayers.some(l => l.groupId)}
                     // Panel toggles
                     leftPanelOpen={leftDrawerOpen}
                     onToggleLeftPanel={() => setLeftDrawerOpen(prev => !prev)}
@@ -519,6 +634,7 @@ export default function HeroSliderEditor({ initialData, sliderName, onBack, onSa
                             selectedLayerIds={selectedLayerIds}
                             onSelectLayer={handleSelectLayer}
                             onUpdateLayer={handleUpdateLayer}
+                            onBatchUpdateLayers={handleBatchUpdateLayers}
                             onUpdateSlide={(updates) => handleUpdateSlide(activeSlide.id, updates)}
                             viewMode={viewMode}
                             settings={slider.settings}
@@ -558,6 +674,7 @@ export default function HeroSliderEditor({ initialData, sliderName, onBack, onSa
                             slide={activeSlide}
                             onUpdateLayer={handleUpdateLayer}
                             onUpdateSlide={(updates) => handleUpdateSlide(activeSlideId, updates)}
+                            viewMode={viewMode}
                         />
                     </Box>
                 </Box>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ModuleProps } from '../../index';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, EffectFade, Navigation, Pagination } from 'swiper/modules';
@@ -11,21 +11,14 @@ import 'swiper/css/pagination';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchHeroSlider } from '@/lib/api';
 import { useStore } from '@/providers/StoreProvider';
-import styles from './HeroSlider.module.css';
+import styles from './HeroSlider.module.css'; // We might need to create this for specific hacks or just use inline styles
 import * as FaIcons from 'react-icons/fa';
 import * as MdIcons from 'react-icons/md';
 import * as BiIcons from 'react-icons/bi';
 import * as IoIcons from 'react-icons/io5';
 import * as LucideIcons from 'lucide-react';
 
-// Viewport breakpoints - MUST match admin SlideCanvas.tsx VIEWPORT_DIMENSIONS exactly
-const VIEWPORT_BREAKPOINTS = {
-    desktop: 1200, // >= 1200px
-    tablet: 768,   // >= 768px && < 1200px
-    mobile: 0      // < 768px
-} as const;
-
-// Helper to render icon by name
+// Helper to render icon by name (duplicated from admin side logic for consistency)
 const renderIcon = (iconName: string, fontSize: any) => {
     try {
         const size = parseInt(fontSize) || 24;
@@ -45,6 +38,7 @@ const renderIcon = (iconName: string, fontSize: any) => {
             const Icon = (IoIcons as any)[iconName];
             return Icon ? <Icon size={size} /> : null;
         }
+        // Fallback to Lucide
         const Icon = (LucideIcons as any)[iconName];
         return Icon ? <Icon size={size} /> : null;
     } catch (e) {
@@ -53,7 +47,7 @@ const renderIcon = (iconName: string, fontSize: any) => {
     }
 };
 
-// Types matching backend/admin
+// Types (should match backend/admin)
 interface HeroSliderLayer {
     id: string;
     type: 'text' | 'image' | 'button' | 'icon' | 'rte';
@@ -85,12 +79,14 @@ interface HeroSliderLayer {
         spread?: number;
         color?: string;
     };
-    visible?: boolean;
+    // Device-specific styles
     tabletStyle?: any;
     mobileStyle?: any;
     tabletVisible?: boolean;
     mobileVisible?: boolean;
 }
+
+// ... existing HeroSliderSlide interface ...
 
 interface HeroSliderSlide {
     id: string;
@@ -98,13 +94,14 @@ interface HeroSliderSlide {
         type: 'image' | 'color' | 'video';
         value: string;
         overlay?: string;
-        overlayOpacity?: number;
     };
     layers: HeroSliderLayer[];
     settings: {
         duration: number;
     };
 }
+
+// ... existing HeroSliderData interface ...
 
 interface HeroSliderData {
     _id: string;
@@ -121,89 +118,7 @@ interface HeroSliderData {
     isActive: boolean;
 }
 
-type ViewportMode = 'desktop' | 'tablet' | 'mobile';
-
-// Hook to detect current viewport
-const useViewport = (): ViewportMode => {
-    const [viewport, setViewport] = useState<ViewportMode>('desktop');
-
-    useEffect(() => {
-        const updateViewport = () => {
-            const width = window.innerWidth;
-            if (width >= VIEWPORT_BREAKPOINTS.desktop) {
-                setViewport('desktop');
-            } else if (width >= VIEWPORT_BREAKPOINTS.tablet) {
-                setViewport('tablet');
-            } else {
-                setViewport('mobile');
-            }
-        };
-
-        updateViewport();
-        window.addEventListener('resize', updateViewport);
-        return () => window.removeEventListener('resize', updateViewport);
-    }, []);
-
-    return viewport;
-};
-
-/**
- * Get position for a specific viewport with proper fallback chain
- * Desktop -> Tablet (inherits from Desktop) -> Mobile (inherits from Tablet)
- */
-const getPositionForViewport = (
-    layer: HeroSliderLayer,
-    viewport: ViewportMode
-): { x: number; y: number } => {
-    const desktopPos = layer.position || { x: 0, y: 0 };
-    const tabletPos = layer.tabletPosition || desktopPos;
-    const mobilePos = layer.mobilePosition || tabletPos;
-
-    if (viewport === 'mobile') return mobilePos;
-    if (viewport === 'tablet') return tabletPos;
-    return desktopPos;
-};
-
-/**
- * Get style for a specific viewport with proper inheritance
- * Desktop -> Tablet (merges with Desktop) -> Mobile (merges with Tablet)
- */
-const getStyleForViewport = (
-    layer: HeroSliderLayer,
-    viewport: ViewportMode
-): any => {
-    const desktopStyle = layer.style || {};
-    const tabletStyle = layer.tabletStyle ? { ...desktopStyle, ...layer.tabletStyle } : desktopStyle;
-    const mobileStyle = layer.mobileStyle ? { ...tabletStyle, ...layer.mobileStyle } : tabletStyle;
-
-    if (viewport === 'mobile') return mobileStyle;
-    if (viewport === 'tablet') return tabletStyle;
-    return desktopStyle;
-};
-
-/**
- * Get visibility for a specific viewport with proper inheritance
- */
-const getVisibilityForViewport = (
-    layer: HeroSliderLayer,
-    viewport: ViewportMode
-): boolean => {
-    const desktopVisible = layer.visible !== false;
-    const tabletVisible = layer.tabletVisible ?? desktopVisible;
-    const mobileVisible = layer.mobileVisible ?? tabletVisible;
-
-    if (viewport === 'mobile') return mobileVisible;
-    if (viewport === 'tablet') return tabletVisible;
-    return desktopVisible;
-};
-
-interface LayerProps {
-    layer: HeroSliderLayer;
-    isActive: boolean;
-    viewport: ViewportMode;
-}
-
-const Layer: React.FC<LayerProps> = ({ layer, isActive, viewport }) => {
+const Layer = ({ layer, isActive }: { layer: HeroSliderLayer; isActive: boolean }) => {
     // Map animation names to framer-motion variants
     const getAnimation = (name: string) => {
         switch (name) {
@@ -220,52 +135,80 @@ const Layer: React.FC<LayerProps> = ({ layer, isActive, viewport }) => {
 
     const initial = getAnimation(layer.animation.in);
 
-    // Get effective values for current viewport
-    const effectivePosition = getPositionForViewport(layer, viewport);
-    const effectiveStyle = getStyleForViewport(layer, viewport);
-    const effectiveVisible = getVisibilityForViewport(layer, viewport);
+    // Get styles per device
+    const desktopStyle = layer.style || {};
+    const tabletStyle = layer.tabletStyle ? { ...desktopStyle, ...layer.tabletStyle } : desktopStyle;
+    const mobileStyle = layer.mobileStyle ? { ...tabletStyle, ...layer.mobileStyle } : tabletStyle;
 
-    // Build border styles
-    const borderStyles: React.CSSProperties = {};
+    // Visibility per device
+    const desktopVisible = layer.visible !== false;
+    const tabletVisible = layer.tabletVisible ?? desktopVisible;
+    const mobileVisible = layer.mobileVisible ?? tabletVisible;
+
+    // Detect current viewport size to apply correct styles
+    const [currentBreakpoint, setCurrentBreakpoint] = React.useState<'desktop' | 'tablet' | 'mobile'>('desktop');
+
+    React.useEffect(() => {
+        const updateBreakpoint = () => {
+            const width = window.innerWidth;
+            if (width >= 1200) {
+                setCurrentBreakpoint('desktop');
+            } else if (width >= 768) {
+                setCurrentBreakpoint('tablet');
+            } else {
+                setCurrentBreakpoint('mobile');
+            }
+        };
+
+        updateBreakpoint();
+        window.addEventListener('resize', updateBreakpoint);
+        return () => window.removeEventListener('resize', updateBreakpoint);
+    }, []);
+
+    // Get the effective style based on current viewport
+    const effectiveStyle = currentBreakpoint === 'mobile' ? mobileStyle :
+        currentBreakpoint === 'tablet' ? tabletStyle :
+            desktopStyle;
+
+    // Get the effective visibility based on current viewport
+    const effectiveVisible = currentBreakpoint === 'mobile' ? mobileVisible :
+        currentBreakpoint === 'tablet' ? tabletVisible :
+            desktopVisible;
+
+    // Calculate Position and Style Variables (for positioning only, since CSS handles responsive positioning)
+    const styleVariables = {
+        // Position
+        '--layer-x-desktop': `${layer.position.x}%`,
+        '--layer-y-desktop': `${layer.position.y}%`,
+        '--layer-x-tablet': `${layer.tabletPosition?.x ?? layer.position.x}%`,
+        '--layer-y-tablet': `${layer.tabletPosition?.y ?? layer.position.y}%`,
+        '--layer-x-mobile': `${layer.mobilePosition?.x ?? layer.position.x}%`,
+        '--layer-y-mobile': `${layer.mobilePosition?.y ?? layer.position.y}%`,
+    } as React.CSSProperties;
+
+    // Construct extended styles (Border & Shadow)
+    const extendedStyle: React.CSSProperties = {};
+
+    // Apply border styling
     if (layer.border && layer.border.style !== 'none') {
         const defaultWidth = layer.border.width ?? 1;
-        borderStyles.borderWidth = `${layer.border.top ?? defaultWidth}px ${layer.border.right ?? defaultWidth}px ${layer.border.bottom ?? defaultWidth}px ${layer.border.left ?? defaultWidth}px`;
-        borderStyles.borderStyle = layer.border.style || 'solid';
-        borderStyles.borderColor = layer.border.color || '#000000';
+        extendedStyle.borderWidth = `${layer.border.top ?? defaultWidth}px ${layer.border.right ?? defaultWidth}px ${layer.border.bottom ?? defaultWidth}px ${layer.border.left ?? defaultWidth}px`;
+        extendedStyle.borderStyle = layer.border.style || 'solid';
+        extendedStyle.borderColor = layer.border.color || '#000000';
         if (layer.border.radius !== undefined) {
-            borderStyles.borderRadius = `${layer.border.radius}px`;
+            extendedStyle.borderRadius = `${layer.border.radius}px`;
         }
     }
 
-    // Build shadow styles
-    const shadowStyles: React.CSSProperties = {};
+    // Apply shadow
     if (layer.shadow) {
         const { x = 0, y = 0, blur = 0, spread = 0, color = 'rgba(0,0,0,0.5)' } = layer.shadow;
-        shadowStyles.boxShadow = `${x}px ${y}px ${blur}px ${spread}px ${color}`;
-    }
-
-    // Extract non-position styles from effectiveStyle
-    const { left, top, right, bottom, position, ...restStyle } = effectiveStyle || {};
-
-    // Combined styles
-    const layerStyles: React.CSSProperties = {
-        ...restStyle,
-        ...borderStyles,
-        ...shadowStyles,
-        position: 'absolute',
-        left: `${effectivePosition.x}%`,
-        top: `${effectivePosition.y}%`,
-        zIndex: 10,
-        textAlign: effectiveStyle?.textAlign || 'left',
-    };
-
-    if (!effectiveVisible) {
-        return null;
+        extendedStyle.boxShadow = `${x}px ${y}px ${blur}px ${spread}px ${color}`;
     }
 
     return (
         <AnimatePresence>
-            {isActive && (
+            {isActive && effectiveVisible && (
                 <motion.div
                     initial={initial}
                     animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
@@ -275,13 +218,21 @@ const Layer: React.FC<LayerProps> = ({ layer, isActive, viewport }) => {
                         delay: layer.animation.delay / 1000,
                         ease: 'easeOut'
                     }}
-                    style={layerStyles}
+                    className={styles.heroLayer}
+                    style={{
+                        ...styleVariables,
+                        ...(({ left, top, right, bottom, position, ...rest }) => rest)(effectiveStyle || {}),
+                        ...extendedStyle,
+                        zIndex: 10,
+                        position: 'absolute',
+                        textAlign: effectiveStyle?.textAlign || 'left',
+                    }}
                 >
                     {layer.type === 'text' && layer.content}
                     {layer.type === 'rte' && <div dangerouslySetInnerHTML={{ __html: layer.content }} />}
                     {layer.type === 'button' && (
                         <a
-                            href={layer.style?.href || '#'}
+                            href={layer.style.href || '#'}
                             style={{
                                 textDecoration: 'none',
                                 color: 'inherit',
@@ -305,7 +256,7 @@ const Layer: React.FC<LayerProps> = ({ layer, isActive, viewport }) => {
                             }}
                         />
                     )}
-                    {layer.type === 'icon' && renderIcon(layer.content, effectiveStyle?.fontSize)}
+                    {layer.type === 'icon' && renderIcon(layer.content, layer.style.fontSize)}
                 </motion.div>
             )}
         </AnimatePresence>
@@ -317,7 +268,6 @@ const HeroSliderModule: React.FC<ModuleProps> = ({ config }) => {
     const [sliderData, setSliderData] = useState<HeroSliderData | null>(null);
     const [loading, setLoading] = useState(true);
     const [activeIndex, setActiveIndex] = useState(0);
-    const viewport = useViewport();
 
     useEffect(() => {
         if (store?._id && config.sliderId) {
@@ -329,53 +279,33 @@ const HeroSliderModule: React.FC<ModuleProps> = ({ config }) => {
         }
     }, [store?._id, config.sliderId]);
 
-    // Calculate height based on viewport and settings
-    const containerHeight = useMemo(() => {
-        if (!sliderData) return 600;
-        
-        const heightSettings = sliderData.settings?.height;
-        
-        if (typeof heightSettings === 'number') {
-            return heightSettings;
-        } else if (heightSettings && typeof heightSettings === 'object') {
-            return heightSettings[viewport] || heightSettings.desktop || 600;
-        }
-        
-        return 600;
-    }, [sliderData, viewport]);
+    // CSS Variable calculation
+    const getCssVariables = (data: HeroSliderData | null, moduleConfig: any) => {
+        const cssVars: any = {};
+        // Prioritize fetch data, fallback to module config
+        const heightSettings = data?.settings?.height || moduleConfig?.settings?.height || moduleConfig?.height;
 
-    // CSS Variables for responsive heights
-    const containerStyle = useMemo(() => {
-        if (!sliderData) {
-            return {
-                '--hero-height-mobile': '600px',
-                '--hero-height-tablet': '600px',
-                '--hero-height-desktop': '600px'
-            } as React.CSSProperties;
+        // Check for config override
+        if (typeof heightSettings === 'number') {
+            cssVars['--hero-height-mobile'] = `${heightSettings}px`;
+            cssVars['--hero-height-tablet'] = `${heightSettings}px`;
+            cssVars['--hero-height-desktop'] = `${heightSettings}px`;
+        } else if (heightSettings) {
+            // Responsive object
+            cssVars['--hero-height-mobile'] = heightSettings.mobile ? `${heightSettings.mobile}px` : '600px';
+            cssVars['--hero-height-tablet'] = heightSettings.tablet ? `${heightSettings.tablet}px` : '600px';
+            cssVars['--hero-height-desktop'] = heightSettings.desktop ? `${heightSettings.desktop}px` : '600px';
+        } else {
+            // Fallback
+            cssVars['--hero-height-mobile'] = '600px';
+            cssVars['--hero-height-tablet'] = '600px';
+            cssVars['--hero-height-desktop'] = '600px';
         }
 
-        const heightSettings = sliderData.settings?.height;
-        
-        if (typeof heightSettings === 'number') {
-            return {
-                '--hero-height-mobile': `${heightSettings}px`,
-                '--hero-height-tablet': `${heightSettings}px`,
-                '--hero-height-desktop': `${heightSettings}px`
-            } as React.CSSProperties;
-        } else if (heightSettings && typeof heightSettings === 'object') {
-            return {
-                '--hero-height-mobile': `${heightSettings.mobile || 600}px`,
-                '--hero-height-tablet': `${heightSettings.tablet || 600}px`,
-                '--hero-height-desktop': `${heightSettings.desktop || 600}px`
-            } as React.CSSProperties;
-        }
-        
-        return {
-            '--hero-height-mobile': '600px',
-            '--hero-height-tablet': '600px',
-            '--hero-height-desktop': '600px'
-        } as React.CSSProperties;
-    }, [sliderData]);
+        return cssVars;
+    };
+
+    const containerStyle = getCssVariables(sliderData, config);
 
     if (loading) {
         return <div className={styles.skeletonContainer} style={containerStyle} />;
@@ -389,6 +319,7 @@ const HeroSliderModule: React.FC<ModuleProps> = ({ config }) => {
             style={{
                 ...containerStyle,
                 width: '100%',
+                // Removed fixed height prop
             }}
         >
             <Swiper
@@ -413,7 +344,7 @@ const HeroSliderModule: React.FC<ModuleProps> = ({ config }) => {
                             position: 'relative',
                             overflow: 'hidden'
                         }}>
-                            {/* Background Image */}
+                            {/* Background */}
                             {slide.background.type === 'image' && (
                                 <div
                                     style={{
@@ -425,8 +356,6 @@ const HeroSliderModule: React.FC<ModuleProps> = ({ config }) => {
                                     }}
                                 />
                             )}
-                            
-                            {/* Background Color */}
                             {slide.background.type === 'color' && (
                                 <div
                                     style={{
@@ -444,33 +373,30 @@ const HeroSliderModule: React.FC<ModuleProps> = ({ config }) => {
                                         position: 'absolute',
                                         inset: 0,
                                         backgroundColor: slide.background.overlay,
-                                        opacity: slide.background.overlayOpacity ?? 0.5,
                                     }}
                                 />
                             )}
 
-                            {/* Layers Container - Constrained to max width and centered */}
+                            {/* Layers Container - Constrained to base width */}
                             <div style={{
                                 position: 'absolute',
                                 inset: 0,
                                 maxWidth: sliderData.settings.width || 1200,
                                 margin: '0 auto',
                                 width: '100%',
-                                height: '100%',
                                 pointerEvents: 'none',
                             }}>
                                 <div style={{
                                     position: 'relative',
                                     width: '100%',
                                     height: '100%',
-                                    pointerEvents: 'auto',
+                                    pointerEvents: 'auto', // Re-enable for layers
                                 }}>
                                     {slide.layers.map(layer => (
                                         <Layer
                                             key={layer.id}
                                             layer={layer}
                                             isActive={index === activeIndex}
-                                            viewport={viewport}
                                         />
                                     ))}
                                 </div>
