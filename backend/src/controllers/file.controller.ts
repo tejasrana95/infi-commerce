@@ -60,6 +60,7 @@ export const uploadFiles = asyncHandler(async (req: AuthRequest, res: Response) 
         // Check if file is an image and not already webp or svg
         if (file.mimetype.startsWith('image/') &&
             !file.mimetype.includes('webp') &&
+            !file.mimetype.includes('gif') &&
             !file.mimetype.includes('svg')) {
 
             try {

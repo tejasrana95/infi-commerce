@@ -160,7 +160,7 @@ export default function HeroSliderListPage() {
                         <IconButton
                             size="small"
                             color="primary"
-                            onClick={() => router.push(`/hero-sliders/${params.row._id}`)}
+                            onClick={() => router.push(`/hero-sliders-edit/${params.row._id}`)}
                         >
                             <EditIcon fontSize="small" />
                         </IconButton>
