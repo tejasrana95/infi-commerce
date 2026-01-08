@@ -26,6 +26,8 @@ import TableRowsIcon from '@mui/icons-material/TableRows';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import ViewModuleIcon from '@mui/icons-material/ViewModule';
+import GridViewIcon from '@mui/icons-material/GridView';
 
 import LaptopMacIcon from '@mui/icons-material/LaptopMac';
 import TabletMacIcon from '@mui/icons-material/TabletMac';
@@ -159,12 +161,28 @@ export default function Toolbar({
     const [alignMenuAnchor, setAlignMenuAnchor] = React.useState<null | HTMLElement>(null);
     const alignMenuOpen = Boolean(alignMenuAnchor);
 
+    const [sectionMenuAnchor, setSectionMenuAnchor] = React.useState<null | HTMLElement>(null);
+    const sectionMenuOpen = Boolean(sectionMenuAnchor);
+
     const handleAlignClick = (event: React.MouseEvent<HTMLElement>) => {
         setAlignMenuAnchor(event.currentTarget);
     };
 
     const handleAlignClose = () => {
         setAlignMenuAnchor(null);
+    };
+
+    const handleSectionClick = (event: React.MouseEvent<HTMLElement>) => {
+        setSectionMenuAnchor(event.currentTarget);
+    };
+
+    const handleSectionClose = () => {
+        setSectionMenuAnchor(null);
+    };
+
+    const handleAddSection = (columns: number) => {
+        onAddLayer({ type: 'section', columns });
+        handleSectionClose();
     };
 
     const handleAlignment = (alignment: 'left' | 'right' | 'top' | 'bottom' | 'centerH' | 'centerV' | 'distributeH' | 'distributeV') => {
@@ -339,6 +357,74 @@ export default function Toolbar({
                     onClick={() => onAddLayer('icon')}
                     disabled={!activeSlide}
                 />
+                <Tooltip title="Add Section (Grid Container)" arrow>
+                    <span>
+                        <IconButton
+                            size="small"
+                            onClick={handleSectionClick}
+                            disabled={!activeSlide}
+                            sx={{
+                                color: colors.textSecondary,
+                                p: 0.75,
+                                '&:hover': {
+                                    bgcolor: alpha(colors.accent, 0.1),
+                                    color: colors.accent
+                                },
+                                '&.Mui-disabled': {
+                                    color: alpha(colors.textSecondary, 0.3)
+                                }
+                            }}
+                        >
+                            <ViewModuleIcon fontSize="small" />
+                        </IconButton>
+                    </span>
+                </Tooltip>
+                <Menu
+                    anchorEl={sectionMenuAnchor}
+                    open={sectionMenuOpen}
+                    onClose={handleSectionClose}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                    transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                    PaperProps={{
+                        sx: {
+                            bgcolor: colors.bgSecondary,
+                            border: `1px solid ${colors.border}`,
+                            minWidth: 180
+                        }
+                    }}
+                >
+                    <Typography variant="caption" sx={{ px: 2, py: 1, color: colors.textSecondary, display: 'block' }}>
+                        Add Section
+                    </Typography>
+                    {[2, 3, 4, 5, 6].map(cols => (
+                        <MenuItem
+                            key={cols}
+                            onClick={() => handleAddSection(cols)}
+                            sx={{
+                                color: colors.text,
+                                '&:hover': { bgcolor: alpha(colors.accent, 0.1) }
+                            }}
+                        >
+                            <ListItemIcon sx={{ color: colors.accent }}>
+                                <GridViewIcon fontSize="small" />
+                            </ListItemIcon>
+                            <ListItemText primary={`${cols} Column${cols > 1 ? 's' : ''}`} />
+                        </MenuItem>
+                    ))}
+                    <Divider sx={{ borderColor: colors.border, my: 1 }} />
+                    <MenuItem
+                        onClick={() => handleAddSection(1)}
+                        sx={{
+                            color: colors.text,
+                            '&:hover': { bgcolor: alpha(colors.accent, 0.1) }
+                        }}
+                    >
+                        <ListItemIcon sx={{ color: colors.accent2 }}>
+                            <TableRowsIcon fontSize="small" />
+                        </ListItemIcon>
+                        <ListItemText primary="Flex Container" secondary="Stack items" />
+                    </MenuItem>
+                </Menu>
             </Box>
 
             <ToolbarDivider />

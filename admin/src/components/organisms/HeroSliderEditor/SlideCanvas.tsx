@@ -131,6 +131,200 @@ const ResizeHandle = ({
     />
 );
 
+// Section Content Component - renders the grid with actual child content
+const SectionContent = ({ 
+    layer, 
+    viewMode,
+    isSelected,
+    allLayers,
+    onSelectLayer
+}: { 
+    layer: HeroSliderLayer; 
+    viewMode: 'desktop' | 'tablet' | 'mobile';
+    isSelected: boolean;
+    allLayers?: HeroSliderLayer[];
+    onSelectLayer?: (id: string, addToSelection?: boolean) => void;
+}) => {
+    const layout = layer.sectionLayout;
+    if (!layout) return null;
+
+    // Get responsive columns
+    const columns = viewMode === 'mobile' 
+        ? (layout.mobileColumns || 1)
+        : viewMode === 'tablet' 
+            ? (layout.tabletColumns || layout.columns)
+            : layout.columns;
+
+    const gap = viewMode === 'mobile'
+        ? (layout.mobileGap ?? layout.gap)
+        : viewMode === 'tablet'
+            ? (layout.tabletGap ?? layout.gap)
+            : layout.gap;
+
+    const direction = viewMode === 'mobile'
+        ? (layout.mobileDirection || 'column')
+        : viewMode === 'tablet'
+            ? (layout.tabletDirection || layout.direction)
+            : layout.direction;
+
+    // Get actual child layers
+    const childLayers = layer.children && allLayers
+        ? layer.children.map(id => allLayers.find(l => l.id === id)).filter(Boolean) as HeroSliderLayer[]
+        : [];
+
+    return (
+        <Box
+            sx={{
+                width: '100%',
+                height: '100%',
+                display: direction === 'column' ? 'flex' : 'grid',
+                flexDirection: direction === 'column' ? 'column' : undefined,
+                gridTemplateColumns: direction !== 'column' ? `repeat(${columns}, 1fr)` : undefined,
+                gap: `${gap}px`,
+                // For grid: alignItems = vertical alignment, justifyItems = horizontal alignment
+                // For flex: alignItems = cross-axis, justifyContent = main-axis
+                alignItems: layout.alignment,
+                justifyItems: direction !== 'column' ? layout.justify : undefined,
+                justifyContent: direction === 'column' ? layout.justify : undefined,
+                padding: layout.padding ? 
+                    `${layout.padding.top || 0}px ${layout.padding.right || 0}px ${layout.padding.bottom || 0}px ${layout.padding.left || 0}px` 
+                    : '16px',
+                border: isSelected ? '2px dashed rgba(0, 212, 255, 0.5)' : '2px dashed rgba(255,255,255,0.2)',
+                borderRadius: '8px',
+                minHeight: childLayers.length === 0 ? 60 : 'auto',
+                position: 'relative',
+                backgroundColor: 'rgba(0,0,0,0.1)',
+                overflow: 'hidden'
+            }}
+        >
+            {childLayers.length === 0 ? (
+                <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    color: 'rgba(255,255,255,0.4)',
+                    fontSize: 12,
+                    textAlign: 'center',
+                    padding: 2,
+                    gridColumn: `span ${columns}`
+                }}>
+                    <Box>
+                        <Typography variant="caption" sx={{ display: 'block', fontWeight: 600, mb: 0.5 }}>
+                            {columns} Column Section
+                        </Typography>
+                        <Typography variant="caption" sx={{ display: 'block', opacity: 0.7 }}>
+                            Select this section and use Layer List to add content
+                        </Typography>
+                    </Box>
+                </Box>
+            ) : (
+                // Render actual child layers with their content and styles
+                childLayers.map((childLayer) => {
+                    const childStyle = getStyleForViewport(childLayer, viewMode);
+                    const isVisible = getVisibilityForViewport(childLayer, viewMode);
+                    
+                    if (!isVisible) return null;
+
+                    // Build border styles
+                    const borderStyles: React.CSSProperties = {};
+                    if (childLayer.border && childLayer.border.style !== 'none') {
+                        const defaultWidth = childLayer.border.width ?? 1;
+                        borderStyles.borderWidth = `${childLayer.border.top ?? defaultWidth}px ${childLayer.border.right ?? defaultWidth}px ${childLayer.border.bottom ?? defaultWidth}px ${childLayer.border.left ?? defaultWidth}px`;
+                        borderStyles.borderStyle = childLayer.border.style || 'solid';
+                        borderStyles.borderColor = childLayer.border.color || '#000000';
+                        if (childLayer.border.radius !== undefined) {
+                            borderStyles.borderRadius = `${childLayer.border.radius}px`;
+                        }
+                    }
+
+                    // Build shadow styles
+                    const shadowStyles: React.CSSProperties = {};
+                    if (childLayer.shadow) {
+                        const { x = 0, y = 0, blur = 0, spread = 0, color = 'rgba(0,0,0,0.5)' } = childLayer.shadow;
+                        shadowStyles.boxShadow = `${x}px ${y}px ${blur}px ${spread}px ${color}`;
+                    }
+
+                    // Combined styles - removing position properties since grid handles layout
+                    const { left, top, right, bottom, position, ...restStyle } = childStyle || {};
+
+                    return (
+                        <Box
+                            key={childLayer.id}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onSelectLayer?.(childLayer.id);
+                            }}
+                            sx={{
+                                ...restStyle,
+                                ...borderStyles,
+                                ...shadowStyles,
+                                opacity: childLayer.opacity ?? 1,
+                                transform: childLayer.rotation ? `rotate(${childLayer.rotation}deg)` : undefined,
+                                cursor: 'pointer',
+                                transition: 'outline 0.2s',
+                                '&:hover': {
+                                    outline: '2px solid rgba(0, 212, 255, 0.5)'
+                                },
+                                minHeight: 40,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: childStyle?.textAlign === 'center' ? 'center' : 
+                                               childStyle?.textAlign === 'right' ? 'flex-end' : 'flex-start',
+                            }}
+                        >
+                            {childLayer.type === 'text' && childLayer.content}
+                            {childLayer.type === 'rte' && (
+                                <div 
+                                    dangerouslySetInnerHTML={{ __html: childLayer.content }} 
+                                    style={{ width: '100%' }}
+                                />
+                            )}
+                            {childLayer.type === 'button' && (
+                                <Box sx={{ 
+                                    display: 'inline-block',
+                                    cursor: 'pointer'
+                                }}>
+                                    {childLayer.content}
+                                </Box>
+                            )}
+                            {childLayer.type === 'image' && (
+                                <img
+                                    src={childLayer.content || '/placeholder.png'}
+                                    alt="Layer"
+                                    draggable={false}
+                                    style={{
+                                        width: '100%',
+                                        height: 'auto',
+                                        maxHeight: '100%',
+                                        objectFit: 'contain',
+                                        display: 'block',
+                                        pointerEvents: 'none'
+                                    }}
+                                />
+                            )}
+                            {childLayer.type === 'icon' && (
+                                <Box sx={{ color: childStyle?.color || 'inherit' }}>
+                                    {renderIcon(childLayer.content, childStyle?.fontSize)}
+                                </Box>
+                            )}
+                            {/* Recursive nested section rendering */}
+                            {childLayer.type === 'section' && (
+                                <SectionContent
+                                    layer={childLayer}
+                                    viewMode={viewMode}
+                                    isSelected={false}
+                                    allLayers={allLayers}
+                                    onSelectLayer={onSelectLayer}
+                                />
+                            )}
+                        </Box>
+                    );
+                })
+            )}
+        </Box>
+    );
+};
+
 interface DraggableLayerProps {
     layer: HeroSliderLayer;
     isSelected: boolean;
@@ -140,6 +334,9 @@ interface DraggableLayerProps {
     containerWidth: number;
     containerHeight: number;
     groupDragDelta?: { x: number; y: number } | null;
+    allLayers?: HeroSliderLayer[];
+    onSelectLayerById?: (id: string, addToSelection?: boolean) => void;
+    zoom?: number;
 }
 
 const DraggableLayer = ({
@@ -150,7 +347,10 @@ const DraggableLayer = ({
     viewMode,
     containerWidth,
     containerHeight,
-    groupDragDelta
+    groupDragDelta,
+    allLayers,
+    onSelectLayerById,
+    zoom = 1
 }: DraggableLayerProps) => {
     const layerRef = useRef<HTMLDivElement>(null);
     const [resizeState, setResizeState] = useState<{
@@ -264,8 +464,9 @@ const DraggableLayer = ({
         if (!resizeDataRef.current) return;
 
         const { direction, startX, startY, startWidth, startHeight, startLeft, startTop } = resizeDataRef.current;
-        const deltaX = e.clientX - startX;
-        const deltaY = e.clientY - startY;
+        // Adjust deltas for zoom - mouse moves in screen space, canvas is scaled
+        const deltaX = (e.clientX - startX) / zoom;
+        const deltaY = (e.clientY - startY) / zoom;
 
         let newWidth = startWidth;
         let newHeight = startHeight;
@@ -284,7 +485,7 @@ const DraggableLayer = ({
         }
 
         setResizeState({ active: true, width: newWidth, height: newHeight, x: newX, y: newY });
-    }, []);
+    }, [zoom]);
 
     const onPointerUp = useCallback(() => {
         if (!resizeDataRef.current) return;
@@ -341,20 +542,24 @@ const DraggableLayer = ({
         const rect = layerRef.current?.getBoundingClientRect();
         if (!rect) return;
 
+        // getBoundingClientRect returns scaled dimensions, so divide by zoom to get actual size
+        const actualWidth = rect.width / zoom;
+        const actualHeight = rect.height / zoom;
+
         resizeDataRef.current = {
             direction,
             startX: e.clientX,
             startY: e.clientY,
-            startWidth: rect.width,
-            startHeight: rect.height,
+            startWidth: actualWidth,
+            startHeight: actualHeight,
             startLeft: basePixelX,
             startTop: basePixelY
         };
 
         setResizeState({
             active: true,
-            width: rect.width,
-            height: rect.height,
+            width: actualWidth,
+            height: actualHeight,
             x: basePixelX,
             y: basePixelY
         });
@@ -388,10 +593,23 @@ const DraggableLayer = ({
                     }}
                 />
             )}
-            {layer.type === 'icon' && renderIcon(layer.content, layer.style?.fontSize)}
+            {layer.type === 'icon' && (
+                <Box sx={{ color: layer.style?.color || 'inherit' }}>
+                    {renderIcon(layer.content, layer.style?.fontSize)}
+                </Box>
+            )}
             {layer.type === 'rte' && <div dangerouslySetInnerHTML={{ __html: layer.content }} />}
             {layer.type === 'text' && layer.content}
             {layer.type === 'button' && layer.content}
+            {layer.type === 'section' && (
+                <SectionContent 
+                    layer={layer} 
+                    viewMode={viewMode}
+                    isSelected={isSelected}
+                    allLayers={allLayers}
+                    onSelectLayer={onSelectLayerById}
+                />
+            )}
 
             {/* Resize Handles */}
             {isSelected && !layer.locked && (
@@ -630,12 +848,13 @@ export default function SlideCanvas({
         }
 
         return {
-            width: baseWidth * zoom,
-            height: baseHeight * zoom,
+            // Don't multiply by zoom - we use CSS transform scale instead
+            width: baseWidth,
+            height: baseHeight,
             baseWidth,
             baseHeight
         };
-    }, [settings, viewMode, zoom]);
+    }, [settings, viewMode]);
 
     const { width, height, baseWidth, baseHeight } = canvasDimensions;
 
@@ -660,13 +879,17 @@ export default function SlideCanvas({
         const baseX = (position.x / 100) * width;
         const baseY = (position.y / 100) * height;
 
+        // Adjust delta for zoom - mouse moves in screen space, canvas is scaled
+        const adjustedDeltaX = event.delta.x / zoom;
+        const adjustedDeltaY = event.delta.y / zoom;
+
         setDraggingPosition({
-            x: baseX + event.delta.x,
-            y: baseY + event.delta.y
+            x: baseX + adjustedDeltaX,
+            y: baseY + adjustedDeltaY
         });
 
-        setCurrentDragDelta({ x: event.delta.x, y: event.delta.y });
-    }, [slide.layers, viewMode, width, height]);
+        setCurrentDragDelta({ x: adjustedDeltaX, y: adjustedDeltaY });
+    }, [slide.layers, viewMode, width, height, zoom]);
 
     const handleDragEnd = useCallback((event: DragEndEvent) => {
         setDraggingLayerId(null);
@@ -677,9 +900,13 @@ export default function SlideCanvas({
         const draggedLayer = slide.layers.find(l => l.id === active.id);
         if (!draggedLayer || draggedLayer.locked || !width || !height) return;
 
+        // Adjust delta for zoom - mouse moves in screen space, canvas is scaled
+        const adjustedDeltaX = delta.x / zoom;
+        const adjustedDeltaY = delta.y / zoom;
+
         // Convert delta to percentage relative to current viewport dimensions
-        let deltaXPercent = (delta.x / width) * 100;
-        let deltaYPercent = (delta.y / height) * 100;
+        let deltaXPercent = (adjustedDeltaX / width) * 100;
+        let deltaYPercent = (adjustedDeltaY / height) * 100;
 
         // Apply grid snapping if enabled
         if (snapToGrid) {
@@ -730,7 +957,7 @@ export default function SlideCanvas({
         if (!selectedLayerIds.includes(draggedLayer.id)) {
             onSelectLayer(draggedLayer.id);
         }
-    }, [slide.layers, width, height, snapToGrid, viewMode, onUpdateLayer, onSelectLayer, selectedLayerIds, onBatchUpdateLayers]);
+    }, [slide.layers, width, height, snapToGrid, viewMode, onUpdateLayer, onSelectLayer, selectedLayerIds, onBatchUpdateLayers, zoom]);
 
     const handleCanvasClick = (e: React.MouseEvent) => {
         if (e.target === e.currentTarget) {
@@ -738,7 +965,7 @@ export default function SlideCanvas({
         }
     };
 
-    // Background style
+    // Background style - apply zoom via CSS transform for proper layer scaling
     const backgroundStyle: React.CSSProperties = {
         width,
         height,
@@ -750,6 +977,8 @@ export default function SlideCanvas({
         overflow: 'hidden',
         borderRadius: 8,
         boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+        transform: `scale(${zoom})`,
+        transformOrigin: 'top left',
     };
 
     return (
@@ -770,9 +999,9 @@ export default function SlideCanvas({
             }}
         >
             <Box sx={{ position: 'relative' }}>
-                {/* Rulers */}
-                <Ruler orientation="horizontal" size={width} actualSize={baseWidth} />
-                <Ruler orientation="vertical" size={height} actualSize={baseHeight} />
+                {/* Rulers - show zoomed size for visual reference */}
+                <Ruler orientation="horizontal" size={width * zoom} actualSize={baseWidth} />
+                <Ruler orientation="vertical" size={height * zoom} actualSize={baseHeight} />
 
                 {/* Corner */}
                 <Box sx={{
@@ -825,8 +1054,10 @@ export default function SlideCanvas({
                             draggingPosition={draggingPosition}
                         />
 
-                        {/* Layers */}
-                        {slide.layers.map(layer => (
+                        {/* Layers - only render root layers (not children of sections) */}
+                        {slide.layers
+                            .filter(layer => !layer.parentId) // Filter out child layers
+                            .map(layer => (
                             <DraggableLayer
                                 key={layer.id}
                                 layer={layer}
@@ -844,6 +1075,9 @@ export default function SlideCanvas({
                                         ? currentDragDelta 
                                         : null
                                 }
+                                allLayers={slide.layers}
+                                onSelectLayerById={onSelectLayer}
+                                zoom={zoom}
                             />
                         ))}
                     </div>

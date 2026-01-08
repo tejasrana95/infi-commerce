@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography, TextField, Accordion, AccordionSummary, AccordionDetails, MenuItem, Select, FormControl, InputLabel, Slider, alpha } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { HeroSliderLayer, HeroSliderSlide } from '@/services/heroSlider.service';
+import { HeroSliderLayer, HeroSliderSlide, SectionLayout } from '@/services/heroSlider.service';
 import FileManagerButton from '@/components/molecules/FileManagerButton';
 import IconPicker from '@/components/atoms/IconPicker';
 
@@ -276,6 +276,14 @@ export default function LayerProperties({ layer, slide, onUpdateLayer, onUpdateS
         }
     };
 
+    // Helper to update section layout
+    const updateSectionLayout = (updates: Partial<SectionLayout>) => {
+        if (!layer || !layer.sectionLayout) return;
+        onUpdateLayer(layer.id, {
+            sectionLayout: { ...layer.sectionLayout, ...updates }
+        });
+    };
+
     const effectiveStyle = getEffectiveStyle();
     const effectivePosition = getEffectivePosition();
 
@@ -452,6 +460,9 @@ export default function LayerProperties({ layer, slide, onUpdateLayer, onUpdateS
                             )}
                             {layer.type === 'icon' && (
                                 <Box sx={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 2,
                                     '& .MuiTextField-root': {
                                         '& .MuiOutlinedInput-root': {
                                             backgroundColor: colors.bgTertiary,
@@ -469,11 +480,156 @@ export default function LayerProperties({ layer, slide, onUpdateLayer, onUpdateS
                                         onChange={(icon) => onUpdateLayer(layer.id, { content: icon })}
                                         fullWidth
                                     />
+                                    {/* Icon Size */}
+                                    <Box>
+                                        <Typography variant="caption" sx={{ color: colors.textSecondary, mb: 0.5, display: 'block' }}>
+                                            Icon Size: {effectiveStyle?.fontSize || 24}px
+                                        </Typography>
+                                        <Slider
+                                            size="small"
+                                            value={Number.parseInt(effectiveStyle?.fontSize) || 24}
+                                            min={12}
+                                            max={200}
+                                            onChange={(_, v) => updateStyle({ fontSize: `${v}px` })}
+                                            sx={{ color: colors.accent }}
+                                        />
+                                    </Box>
+                                    {/* Icon Color */}
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <Typography variant="caption" sx={{ color: colors.textSecondary, minWidth: 60 }}>
+                                            Color
+                                        </Typography>
+                                        <input
+                                            type="color"
+                                            value={effectiveStyle?.color || '#000000'}
+                                            onChange={(e) => updateStyle({ color: e.target.value })}
+                                            style={{
+                                                width: 32,
+                                                height: 32,
+                                                border: `1px solid ${colors.border}`,
+                                                borderRadius: 4,
+                                                cursor: 'pointer',
+                                                backgroundColor: 'transparent'
+                                            }}
+                                        />
+                                        <TextField
+                                            size="small"
+                                            value={effectiveStyle?.color || '#000000'}
+                                            onChange={(e) => updateStyle({ color: e.target.value })}
+                                            sx={{ flex: 1 }}
+                                            slotProps={{
+                                                input: {
+                                                    sx: { fontSize: 12, height: 32 }
+                                                }
+                                            }}
+                                        />
+                                    </Box>
                                 </Box>
                             )}
                         </Box>
                     </AccordionDetails>
                 </StyledAccordion>
+
+                {/* Section Layout Settings */}
+                {layer.type === 'section' && layer.sectionLayout && (
+                    <StyledAccordion defaultExpanded>
+                        <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: colors.textSecondary, fontSize: 18 }} />}>
+                            <Typography variant="body2" sx={{ color: colors.text, fontWeight: 500, fontSize: 12 }}>Section Layout</Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                {/* Columns */}
+                                <FormControl size="small" fullWidth>
+                                    <InputLabel sx={{ color: colors.textSecondary }}>Desktop Columns</InputLabel>
+                                    <Select
+                                        value={layer.sectionLayout.columns}
+                                        label="Desktop Columns"
+                                        onChange={(e) => updateSectionLayout({ columns: Number(e.target.value) })}
+                                        sx={{ color: colors.text, '.MuiOutlinedInput-notchedOutline': { borderColor: colors.border } }}
+                                    >
+                                        {[1, 2, 3, 4, 5, 6].map(n => (
+                                            <MenuItem key={n} value={n}>{n} Column{n > 1 ? 's' : ''}</MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+
+                                <FormControl size="small" fullWidth>
+                                    <InputLabel sx={{ color: colors.textSecondary }}>Tablet Columns</InputLabel>
+                                    <Select
+                                        value={layer.sectionLayout.tabletColumns ?? layer.sectionLayout.columns}
+                                        label="Tablet Columns"
+                                        onChange={(e) => updateSectionLayout({ tabletColumns: Number(e.target.value) })}
+                                        sx={{ color: colors.text, '.MuiOutlinedInput-notchedOutline': { borderColor: colors.border } }}
+                                    >
+                                        {[1, 2, 3, 4].map(n => (
+                                            <MenuItem key={n} value={n}>{n} Column{n > 1 ? 's' : ''}</MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+
+                                <FormControl size="small" fullWidth>
+                                    <InputLabel sx={{ color: colors.textSecondary }}>Mobile Columns</InputLabel>
+                                    <Select
+                                        value={layer.sectionLayout.mobileColumns ?? 1}
+                                        label="Mobile Columns"
+                                        onChange={(e) => updateSectionLayout({ mobileColumns: Number(e.target.value) })}
+                                        sx={{ color: colors.text, '.MuiOutlinedInput-notchedOutline': { borderColor: colors.border } }}
+                                    >
+                                        {[1, 2].map(n => (
+                                            <MenuItem key={n} value={n}>{n} Column{n > 1 ? 's' : ''}</MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+
+                                {/* Gap */}
+                                <Box>
+                                    <Typography variant="caption" sx={{ color: colors.textSecondary, fontSize: 11 }}>
+                                        Gap: {layer.sectionLayout.gap}px
+                                    </Typography>
+                                    <Slider
+                                        min={0} max={64} step={4}
+                                        value={layer.sectionLayout.gap}
+                                        onChange={(_, v) => updateSectionLayout({ gap: v as number })}
+                                        sx={{ color: colors.accent2 }}
+                                    />
+                                </Box>
+
+                                {/* Alignment */}
+                                <FormControl size="small" fullWidth>
+                                    <InputLabel sx={{ color: colors.textSecondary }}>Alignment</InputLabel>
+                                    <Select
+                                        value={layer.sectionLayout.alignment}
+                                        label="Alignment"
+                                        onChange={(e) => updateSectionLayout({ alignment: e.target.value as any })}
+                                        sx={{ color: colors.text, '.MuiOutlinedInput-notchedOutline': { borderColor: colors.border } }}
+                                    >
+                                        <MenuItem value="start">Start</MenuItem>
+                                        <MenuItem value="center">Center</MenuItem>
+                                        <MenuItem value="end">End</MenuItem>
+                                        <MenuItem value="stretch">Stretch</MenuItem>
+                                    </Select>
+                                </FormControl>
+
+                                <FormControl size="small" fullWidth>
+                                    <InputLabel sx={{ color: colors.textSecondary }}>Justify</InputLabel>
+                                    <Select
+                                        value={layer.sectionLayout.justify}
+                                        label="Justify"
+                                        onChange={(e) => updateSectionLayout({ justify: e.target.value as any })}
+                                        sx={{ color: colors.text, '.MuiOutlinedInput-notchedOutline': { borderColor: colors.border } }}
+                                    >
+                                        <MenuItem value="start">Start</MenuItem>
+                                        <MenuItem value="center">Center</MenuItem>
+                                        <MenuItem value="end">End</MenuItem>
+                                        <MenuItem value="space-between">Space Between</MenuItem>
+                                        <MenuItem value="space-around">Space Around</MenuItem>
+                                        <MenuItem value="space-evenly">Space Evenly</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </Box>
+                        </AccordionDetails>
+                    </StyledAccordion>
+                )}
 
                 {/* Position & Transform */}
                 <StyledAccordion defaultExpanded>

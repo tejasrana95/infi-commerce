@@ -1,8 +1,26 @@
 import api from '@/lib/api';
 
+// Section layout configuration
+export interface SectionLayout {
+    columns: number; // 1-6 columns
+    gap: number; // Gap in pixels
+    alignment: 'start' | 'center' | 'end' | 'stretch';
+    justify: 'start' | 'center' | 'end' | 'space-between' | 'space-around' | 'space-evenly';
+    wrap: boolean; // Enable wrapping
+    direction: 'row' | 'column';
+    padding?: { top?: number; right?: number; bottom?: number; left?: number };
+    // Responsive overrides
+    tabletColumns?: number;
+    mobileColumns?: number;
+    tabletGap?: number;
+    mobileGap?: number;
+    tabletDirection?: 'row' | 'column';
+    mobileDirection?: 'row' | 'column';
+}
+
 export interface HeroSliderLayer {
     id: string;
-    type: 'text' | 'image' | 'button' | 'icon' | 'rte';
+    type: 'text' | 'image' | 'button' | 'icon' | 'rte' | 'section';
     content: any;
     style: any;
     position: { x: number; y: number };
@@ -21,6 +39,10 @@ export interface HeroSliderLayer {
     rotation?: number; // Rotation in degrees (default: 0)
     opacity?: number; // Opacity 0-1 (default: 1)
     groupId?: string; // Group ID for grouped layers
+    // Section/Container features
+    parentId?: string; // Parent section ID (null for root layers)
+    children?: string[]; // Child layer IDs (for section type)
+    sectionLayout?: SectionLayout; // Section-specific layout config
     // Enhanced Styling
     border?: {
         color?: string;

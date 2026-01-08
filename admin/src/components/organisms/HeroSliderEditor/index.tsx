@@ -173,8 +173,48 @@ export default function HeroSliderEditor({ initialData, sliderName, onBack, onSa
     }, [slider, setSlider]);
 
     // -- Layer Actions --
-    const handleAddLayer = useCallback((type: HeroSliderLayer['type']) => {
+    const handleAddLayer = useCallback((typeOrConfig: HeroSliderLayer['type'] | { type: 'section'; columns: number }) => {
         if (!activeSlide) return;
+
+        // Handle section layer with column config
+        if (typeof typeOrConfig === 'object' && typeOrConfig.type === 'section') {
+            const { columns } = typeOrConfig;
+            const newLayer: HeroSliderLayer = {
+                id: uuidv4(),
+                type: 'section',
+                content: '',
+                style: {
+                    width: '90%',
+                    minHeight: 200,
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    borderRadius: 8
+                },
+                position: { x: 5, y: 10 },
+                animation: { in: 'fadeIn', out: 'fadeOut', delay: 0, duration: 800 },
+                visible: true,
+                locked: false,
+                rotation: 0,
+                opacity: 1,
+                children: [],
+                sectionLayout: {
+                    columns,
+                    gap: 16,
+                    alignment: 'stretch',
+                    justify: 'start',
+                    wrap: true,
+                    direction: columns === 1 ? 'column' : 'row',
+                    padding: { top: 16, right: 16, bottom: 16, left: 16 },
+                    tabletColumns: Math.min(columns, 2),
+                    mobileColumns: 1
+                }
+            };
+            handleUpdateSlide(activeSlide.id, { layers: [...activeSlide.layers, newLayer] });
+            setSelectedLayerIds([newLayer.id]);
+            return;
+        }
+
+        // Regular layer types
+        const type = typeOrConfig as HeroSliderLayer['type'];
         const newLayer: HeroSliderLayer = {
             id: uuidv4(),
             type,
@@ -218,8 +258,108 @@ export default function HeroSliderEditor({ initialData, sliderName, onBack, onSa
 
     const handleDeleteLayer = useCallback((layerId: string) => {
         if (!activeSlide) return;
-        handleUpdateSlide(activeSlide.id, { layers: activeSlide.layers.filter(l => l.id !== layerId) });
-        setSelectedLayerIds(prev => prev.filter(id => id !== layerId));
+        
+        // Find the layer to delete
+        const layerToDelete = activeSlide.layers.find(l => l.id === layerId);
+        if (!layerToDelete) return;
+        
+        // Recursively collect all descendant IDs using parentId (more reliable than children array)
+        const collectAllDescendantIds = (id: string): string[] => {
+            const ids = [id];
+            // Find all layers that have this layer as their parent
+            const children = activeSlide.layers.filter(l => l.parentId === id);
+            for (const child of children) {
+                ids.push(...collectAllDescendantIds(child.id));
+            }
+            return ids;
+        };
+        
+        const idsToDelete = collectAllDescendantIds(layerId);
+        
+        // Remove deleted layers and update parent's children array
+        const updatedLayers = activeSlide.layers
+            .filter(l => !idsToDelete.includes(l.id))
+            .map(l => {
+                // Update children array if this section had any deleted children
+                if (l.type === 'section' && l.children?.some(id => idsToDelete.includes(id))) {
+                    return { ...l, children: l.children.filter(id => !idsToDelete.includes(id)) };
+                }
+                return l;
+            });
+        
+        handleUpdateSlide(activeSlide.id, { layers: updatedLayers });
+        setSelectedLayerIds(prev => prev.filter(id => !idsToDelete.includes(id)));
+    }, [activeSlide, handleUpdateSlide]);
+
+    // Add a layer to a section as a child
+    const handleAddLayerToSection = useCallback((sectionId: string, type: 'text' | 'image' | 'button' | 'icon' | 'rte' | 'section') => {
+        if (!activeSlide) return;
+        
+        const section = activeSlide.layers.find(l => l.id === sectionId && l.type === 'section');
+        if (!section) return;
+
+        // Get default content based on type
+        const getDefaultContent = () => {
+            switch (type) {
+                case 'text': return 'New Text';
+                case 'button': return 'Click Me';
+                case 'icon': return 'FaStar';
+                case 'rte': return '<p>Rich Text</p>';
+                default: return '';
+            }
+        };
+
+        // Get default style based on type
+        const getDefaultStyle = () => {
+            const baseStyle: Record<string, any> = {
+                fontSize: type === 'text' ? 24 : 16,
+                fontWeight: type === 'text' ? '600' : '400',
+                color: '#ffffff',
+                backgroundColor: type === 'button' ? colors.accent : type === 'section' ? 'rgba(255,255,255,0.05)' : 'transparent',
+                padding: type === 'button' ? '10px 20px' : type === 'image' ? 0 : type === 'section' ? '16px' : '8px',
+                borderRadius: type === 'button' ? '6px' : 0,
+                width: '100%',
+                height: type === 'image' ? 150 : 'auto'
+            };
+            return baseStyle;
+        };
+
+        const newLayer: HeroSliderLayer = {
+            id: uuidv4(),
+            type,
+            parentId: sectionId,
+            content: getDefaultContent(),
+            style: getDefaultStyle(),
+            position: { x: 0, y: 0 }, // Position handled by section grid
+            animation: { in: 'fadeIn', out: 'fadeOut', delay: 0, duration: 500 },
+            visible: true,
+            locked: false,
+            rotation: 0,
+            opacity: 1,
+            // Add section-specific properties for nested sections
+            ...(type === 'section' && {
+                children: [],
+                sectionLayout: {
+                    columns: 2,
+                    gap: 16,
+                    alignment: 'stretch' as const,
+                    justify: 'start' as const,
+                    wrap: true,
+                    direction: 'row' as const
+                }
+            })
+        };
+
+        // Update section's children array and add the new layer
+        const updatedLayers = activeSlide.layers.map(l => {
+            if (l.id === sectionId) {
+                return { ...l, children: [...(l.children || []), newLayer.id] };
+            }
+            return l;
+        });
+
+        handleUpdateSlide(activeSlide.id, { layers: [...updatedLayers, newLayer] });
+        setSelectedLayerIds([newLayer.id]);
     }, [activeSlide, handleUpdateSlide]);
 
     const handleDuplicateLayer = useCallback((layerId: string) => {
@@ -227,15 +367,67 @@ export default function HeroSliderEditor({ initialData, sliderName, onBack, onSa
         const layer = activeSlide.layers.find(l => l.id === layerId);
         if (!layer) return;
 
-        const newLayer: HeroSliderLayer = {
-            ...layer,
-            id: uuidv4(),
-            name: layer.name ? `${layer.name} (Copy)` : undefined,
-            position: { x: (layer.position?.x || 0) + 3, y: (layer.position?.y || 0) + 3 }
+        // Map old IDs to new IDs for sections with children
+        const idMapping = new Map<string, string>();
+        
+        // Recursively collect all layers to duplicate using parentId (for sections)
+        const collectLayersToDuplicate = (id: string): HeroSliderLayer[] => {
+            const l = activeSlide.layers.find(layer => layer.id === id);
+            if (!l) return [];
+            
+            const layers = [l];
+            // Find children by parentId relationship
+            const children = activeSlide.layers.filter(layer => layer.parentId === id);
+            for (const child of children) {
+                layers.push(...collectLayersToDuplicate(child.id));
+            }
+            return layers;
         };
+        
+        const layersToDuplicate = collectLayersToDuplicate(layerId);
+        
+        // Generate new IDs for all layers being duplicated
+        layersToDuplicate.forEach(l => {
+            idMapping.set(l.id, uuidv4());
+        });
+        
+        // Create duplicated layers with updated IDs and references
+        const newLayers = layersToDuplicate.map((l, index) => {
+            const newId = idMapping.get(l.id)!;
+            const isRoot = index === 0; // First layer is the root being duplicated
+            
+            const duplicated: HeroSliderLayer = {
+                ...l,
+                id: newId,
+                name: isRoot && l.name ? `${l.name} (Copy)` : l.name,
+                // Offset position only for root layer (if it's a root-level layer)
+                position: isRoot && !l.parentId
+                    ? { x: (l.position?.x || 0) + 3, y: (l.position?.y || 0) + 3 }
+                    : l.position,
+                // Update parentId - if parent is being duplicated use new ID, otherwise keep original parentId
+                parentId: l.parentId 
+                    ? (idMapping.get(l.parentId) || l.parentId) 
+                    : undefined,
+                // Update children references to new IDs
+                children: l.children?.map(childId => idMapping.get(childId) || childId)
+            };
+            
+            return duplicated;
+        });
 
-        handleUpdateSlide(activeSlide.id, { layers: [...activeSlide.layers, newLayer] });
-        setSelectedLayerIds([newLayer.id]);
+        // If the duplicated layer has a parent (is inside a section), update that parent's children array
+        let updatedLayers = [...activeSlide.layers];
+        if (layer.parentId) {
+            updatedLayers = updatedLayers.map(l => {
+                if (l.id === layer.parentId && l.type === 'section') {
+                    return { ...l, children: [...(l.children || []), newLayers[0].id] };
+                }
+                return l;
+            });
+        }
+
+        handleUpdateSlide(activeSlide.id, { layers: [...updatedLayers, ...newLayers] });
+        setSelectedLayerIds([newLayers[0].id]);
     }, [activeSlide, handleUpdateSlide]);
 
     const handleToggleLayerVisibility = useCallback((layerId: string) => {
@@ -268,23 +460,112 @@ export default function HeroSliderEditor({ initialData, sliderName, onBack, onSa
         handleUpdateSlide(activeSlideId, { layers });
     }, [activeSlide, activeSlideId, handleUpdateSlide]);
 
-    // Copy/Paste Layer
+    // Copy/Paste Layer - for sections, also copy children
     const handleCopyLayer = useCallback(() => {
-        if (selectedLayer) setCopiedLayer(selectedLayer);
-    }, [selectedLayer]);
+        if (!selectedLayer || !activeSlide) return;
+        
+        // For sections, collect all children recursively
+        if (selectedLayer.type === 'section' && selectedLayer.children?.length) {
+            const collectLayersToCopy = (id: string): HeroSliderLayer[] => {
+                const l = activeSlide.layers.find(layer => layer.id === id);
+                if (!l) return [];
+                
+                const layers = [l];
+                if (l.type === 'section' && l.children?.length) {
+                    for (const childId of l.children) {
+                        layers.push(...collectLayersToCopy(childId));
+                    }
+                }
+                return layers;
+            };
+            // Store all layers as an array in copiedLayer (we'll handle it specially)
+            setCopiedLayer({ ...selectedLayer, _copiedChildren: collectLayersToCopy(selectedLayer.id) } as any);
+        } else {
+            setCopiedLayer(selectedLayer);
+        }
+    }, [selectedLayer, activeSlide]);
 
     const handlePasteLayer = useCallback(() => {
         if (!copiedLayer || !activeSlide) return;
 
-        const newLayer: HeroSliderLayer = {
-            ...copiedLayer,
-            id: uuidv4(),
-            name: copiedLayer.name ? `${copiedLayer.name} (Copy)` : undefined,
-            position: { x: (copiedLayer.position?.x || 0) + 3, y: (copiedLayer.position?.y || 0) + 3 }
-        };
+        // Check if this is a section with copied children
+        const copiedChildren = (copiedLayer as any)._copiedChildren as HeroSliderLayer[] | undefined;
+        const originalParentId = copiedLayer.parentId;
+        
+        if (copiedChildren && copiedChildren.length > 0) {
+            // Map old IDs to new IDs
+            const idMapping = new Map<string, string>();
+            copiedChildren.forEach(l => {
+                idMapping.set(l.id, uuidv4());
+            });
+            
+            // Create duplicated layers with updated IDs and references
+            const newLayers = copiedChildren.map((l, index) => {
+                const newId = idMapping.get(l.id)!;
+                const isRoot = index === 0;
+                
+                const duplicated: HeroSliderLayer = {
+                    ...l,
+                    id: newId,
+                    name: isRoot && l.name ? `${l.name} (Copy)` : l.name,
+                    position: isRoot && !l.parentId
+                        ? { x: (l.position?.x || 0) + 3, y: (l.position?.y || 0) + 3 }
+                        : l.position,
+                    // Keep original parentId for root layer, map for nested children
+                    parentId: l.parentId 
+                        ? (idMapping.get(l.parentId) || l.parentId) 
+                        : undefined,
+                    children: l.children?.map(childId => idMapping.get(childId) || childId)
+                };
+                
+                // Remove internal property
+                delete (duplicated as any)._copiedChildren;
+                
+                return duplicated;
+            });
+            
+            // If pasted layer has a parent, update parent's children array
+            let updatedLayers = [...activeSlide.layers];
+            if (originalParentId) {
+                updatedLayers = updatedLayers.map(l => {
+                    if (l.id === originalParentId && l.type === 'section') {
+                        return { ...l, children: [...(l.children || []), newLayers[0].id] };
+                    }
+                    return l;
+                });
+            }
+            
+            handleUpdateSlide(activeSlide.id, { layers: [...updatedLayers, ...newLayers] });
+            setSelectedLayerIds([newLayers[0].id]);
+        } else {
+            // Simple layer paste - keep it at same level
+            const newLayer: HeroSliderLayer = {
+                ...copiedLayer,
+                id: uuidv4(),
+                name: copiedLayer.name ? `${copiedLayer.name} (Copy)` : undefined,
+                position: !copiedLayer.parentId 
+                    ? { x: (copiedLayer.position?.x || 0) + 3, y: (copiedLayer.position?.y || 0) + 3 }
+                    : copiedLayer.position,
+                parentId: copiedLayer.parentId // Keep the same parent
+            };
+            
+            // Remove internal property if exists
+            delete (newLayer as any)._copiedChildren;
 
-        handleUpdateSlide(activeSlide.id, { layers: [...activeSlide.layers, newLayer] });
-        setSelectedLayerIds([newLayer.id]);
+            // If pasted layer has a parent, update parent's children array
+            let updatedLayers = [...activeSlide.layers];
+            if (copiedLayer.parentId) {
+                updatedLayers = updatedLayers.map(l => {
+                    if (l.id === copiedLayer.parentId && l.type === 'section') {
+                        return { ...l, children: [...(l.children || []), newLayer.id] };
+                    }
+                    return l;
+                });
+            }
+
+            handleUpdateSlide(activeSlide.id, { layers: [...updatedLayers, newLayer] });
+            setSelectedLayerIds([newLayer.id]);
+        }
     }, [copiedLayer, activeSlide, handleUpdateSlide]);
 
     // Group selected layers
@@ -607,7 +888,7 @@ export default function HeroSliderEditor({ initialData, sliderName, onBack, onSa
                             onPaste={copiedSlide ? handlePasteSlide : undefined}
                             onReorder={handleReorderSlides}
                         />
-                        <Box sx={{ borderTop: `1px solid ${colors.border}`, flex: 1 }}>
+                        <Box sx={{ borderTop: `1px solid ${colors.border}`, flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                             <LayerList
                                 layers={activeSlide?.layers || []}
                                 selectedIds={selectedLayerIds}
@@ -617,6 +898,7 @@ export default function HeroSliderEditor({ initialData, sliderName, onBack, onSa
                                 onToggleVisibility={handleToggleLayerVisibility}
                                 onToggleLock={handleToggleLayerLock}
                                 onReorder={handleReorderLayers}
+                                onAddToSection={handleAddLayerToSection}
                             />
                         </Box>
                     </Box>

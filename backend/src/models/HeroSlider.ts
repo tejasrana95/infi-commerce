@@ -1,8 +1,25 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+// Section layout configuration
+export interface ISectionLayout {
+    columns: number;
+    gap: number;
+    alignment: 'start' | 'center' | 'end' | 'stretch';
+    justify: 'start' | 'center' | 'end' | 'space-between' | 'space-around' | 'space-evenly';
+    wrap: boolean;
+    direction: 'row' | 'column';
+    padding?: { top?: number; right?: number; bottom?: number; left?: number };
+    tabletColumns?: number;
+    mobileColumns?: number;
+    tabletGap?: number;
+    mobileGap?: number;
+    tabletDirection?: 'row' | 'column';
+    mobileDirection?: 'row' | 'column';
+}
+
 export interface IHeroSliderLayer {
     id: string;
-    type: 'text' | 'image' | 'button' | 'shape' | 'icon' | 'rte';
+    type: 'text' | 'image' | 'button' | 'shape' | 'icon' | 'rte' | 'section';
     content: any; // Text string, Image URL, or Button config
     style: any; // CSS properties
     tabletStyle?: any; // Override styles for tablet
@@ -51,6 +68,10 @@ export interface IHeroSliderLayer {
     groupId?: string;
     tabletVisible?: boolean;
     mobileVisible?: boolean;
+    // Section/Container features
+    parentId?: string;
+    children?: string[];
+    sectionLayout?: ISectionLayout;
 }
 
 export interface IHeroSliderSlide {
@@ -95,7 +116,7 @@ const HeroSliderSchema: Schema = new Schema({
         },
         layers: [{
             id: { type: String, required: true },
-            type: { type: String, enum: ['text', 'image', 'button', 'shape', 'icon'], default: 'text' },
+            type: { type: String, enum: ['text', 'image', 'button', 'shape', 'icon', 'rte', 'section'], default: 'text' },
             content: { type: Schema.Types.Mixed, default: {} },
             style: { type: Schema.Types.Mixed, default: {} },
             tabletStyle: { type: Schema.Types.Mixed },
@@ -121,6 +142,29 @@ const HeroSliderSchema: Schema = new Schema({
             groupId: { type: String },
             tabletVisible: { type: Boolean },
             mobileVisible: { type: Boolean },
+            // Section/Container features
+            parentId: { type: String },
+            children: [{ type: String }],
+            sectionLayout: {
+                columns: { type: Number, default: 4 },
+                gap: { type: Number, default: 16 },
+                alignment: { type: String, enum: ['start', 'center', 'end', 'stretch'], default: 'stretch' },
+                justify: { type: String, enum: ['start', 'center', 'end', 'space-between', 'space-around', 'space-evenly'], default: 'start' },
+                wrap: { type: Boolean, default: true },
+                direction: { type: String, enum: ['row', 'column'], default: 'row' },
+                padding: {
+                    top: { type: Number },
+                    right: { type: Number },
+                    bottom: { type: Number },
+                    left: { type: Number }
+                },
+                tabletColumns: { type: Number },
+                mobileColumns: { type: Number },
+                tabletGap: { type: Number },
+                mobileGap: { type: Number },
+                tabletDirection: { type: String, enum: ['row', 'column'] },
+                mobileDirection: { type: String, enum: ['row', 'column'] }
+            },
             // Professional Styling
             border: {
                 color: { type: String },

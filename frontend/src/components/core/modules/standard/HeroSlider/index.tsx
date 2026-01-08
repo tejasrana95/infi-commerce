@@ -53,10 +53,28 @@ const renderIcon = (iconName: string, fontSize: any) => {
     }
 };
 
+// Section layout configuration
+interface SectionLayout {
+    columns: number; // 1-6 columns
+    gap: number; // Gap in pixels
+    alignment: 'start' | 'center' | 'end' | 'stretch';
+    justify: 'start' | 'center' | 'end' | 'space-between' | 'space-around' | 'space-evenly';
+    wrap: boolean; // Enable wrapping
+    direction: 'row' | 'column';
+    padding?: { top?: number; right?: number; bottom?: number; left?: number };
+    // Responsive overrides
+    tabletColumns?: number;
+    mobileColumns?: number;
+    tabletGap?: number;
+    mobileGap?: number;
+    tabletDirection?: 'row' | 'column';
+    mobileDirection?: 'row' | 'column';
+}
+
 // Types matching backend/admin
 interface HeroSliderLayer {
     id: string;
-    type: 'text' | 'image' | 'button' | 'icon' | 'rte';
+    type: 'text' | 'image' | 'button' | 'icon' | 'rte' | 'section';
     content: any;
     style: any;
     position: { x: number; y: number };
@@ -90,6 +108,10 @@ interface HeroSliderLayer {
     mobileStyle?: any;
     tabletVisible?: boolean;
     mobileVisible?: boolean;
+    // Section/Container features
+    parentId?: string; // Parent section ID (null for root layers)
+    children?: string[]; // Child layer IDs (for section type)
+    sectionLayout?: SectionLayout; // Section-specific layout config
 }
 
 interface HeroSliderSlide {
@@ -201,9 +223,199 @@ interface LayerProps {
     layer: HeroSliderLayer;
     isActive: boolean;
     viewport: ViewportMode;
+    allLayers: HeroSliderLayer[];
 }
 
-const Layer: React.FC<LayerProps> = ({ layer, isActive, viewport }) => {
+/**
+ * Get section columns for a specific viewport with fallback chain
+ */
+const getSectionColumnsForViewport = (
+    sectionLayout: SectionLayout,
+    viewport: ViewportMode
+): number => {
+    if (viewport === 'mobile') {
+        return sectionLayout.mobileColumns ?? sectionLayout.tabletColumns ?? sectionLayout.columns ?? 1;
+    }
+    if (viewport === 'tablet') {
+        return sectionLayout.tabletColumns ?? sectionLayout.columns ?? 2;
+    }
+    return sectionLayout.columns ?? 3;
+};
+
+/**
+ * Get section gap for a specific viewport with fallback chain
+ */
+const getSectionGapForViewport = (
+    sectionLayout: SectionLayout,
+    viewport: ViewportMode
+): number => {
+    if (viewport === 'mobile') {
+        return sectionLayout.mobileGap ?? sectionLayout.tabletGap ?? sectionLayout.gap ?? 16;
+    }
+    if (viewport === 'tablet') {
+        return sectionLayout.tabletGap ?? sectionLayout.gap ?? 16;
+    }
+    return sectionLayout.gap ?? 16;
+};
+
+/**
+ * Get section direction for a specific viewport with fallback chain
+ */
+const getSectionDirectionForViewport = (
+    sectionLayout: SectionLayout,
+    viewport: ViewportMode
+): 'row' | 'column' => {
+    if (viewport === 'mobile') {
+        return sectionLayout.mobileDirection ?? sectionLayout.tabletDirection ?? sectionLayout.direction ?? 'row';
+    }
+    if (viewport === 'tablet') {
+        return sectionLayout.tabletDirection ?? sectionLayout.direction ?? 'row';
+    }
+    return sectionLayout.direction ?? 'row';
+};
+
+// Render layer content (shared between regular and section child layers)
+const LayerContent: React.FC<{
+    layer: HeroSliderLayer;
+    effectiveStyle: any;
+}> = ({ layer, effectiveStyle }) => {
+    if (layer.type === 'text') return <>{layer.content}</>;
+    if (layer.type === 'rte') return <div dangerouslySetInnerHTML={{ __html: layer.content }} />;
+    if (layer.type === 'button') {
+        return (
+            <a
+                href={layer.style?.href || '#'}
+                style={{
+                    textDecoration: 'none',
+                    color: 'inherit',
+                    display: 'block',
+                    width: '100%',
+                    height: '100%'
+                }}
+            >
+                {layer.content}
+            </a>
+        );
+    }
+    if (layer.type === 'image') {
+        return (
+            <img
+                src={layer.content}
+                alt="Layer"
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    display: 'block'
+                }}
+            />
+        );
+    }
+    if (layer.type === 'icon') {
+        return <>{renderIcon(layer.content, effectiveStyle?.fontSize)}</>;
+    }
+    return null;
+};
+
+// Recursive nested section rendering component
+const NestedSectionContent: React.FC<{
+    layer: HeroSliderLayer;
+    viewport: ViewportMode;
+    allLayers: HeroSliderLayer[];
+    isActive: boolean;
+}> = ({ layer, viewport, allLayers, isActive }) => {
+    const sectionLayout = layer.sectionLayout || {
+        columns: 2,
+        gap: 16,
+        alignment: 'stretch' as const,
+        justify: 'start' as const,
+        wrap: true,
+        direction: 'row' as const
+    };
+    
+    const columns = getSectionColumnsForViewport(sectionLayout, viewport);
+    const gap = getSectionGapForViewport(sectionLayout, viewport);
+    
+    // Get child layers
+    const childLayers = layer.children && layer.children.length > 0
+        ? allLayers.filter(l => layer.children!.includes(l.id))
+        : [];
+
+    const nestedSectionStyles: React.CSSProperties = {
+        display: 'grid',
+        gridTemplateColumns: `repeat(${columns}, 1fr)`,
+        gap: `${gap}px`,
+        // For grid: alignItems = vertical alignment, justifyItems = horizontal alignment
+        alignItems: sectionLayout.alignment || 'stretch',
+        justifyItems: sectionLayout.justify || 'start',
+        padding: sectionLayout.padding
+            ? `${sectionLayout.padding.top || 0}px ${sectionLayout.padding.right || 0}px ${sectionLayout.padding.bottom || 0}px ${sectionLayout.padding.left || 0}px`
+            : undefined,
+        width: '100%',
+    };
+
+    return (
+        <div style={nestedSectionStyles}>
+            {childLayers.map((childLayer, index) => {
+                const childVisible = getVisibilityForViewport(childLayer, viewport);
+                if (!childVisible) return null;
+
+                const childStyle = getStyleForViewport(childLayer, viewport);
+                const childBorderStyles: React.CSSProperties = {};
+                if (childLayer.border && childLayer.border.style !== 'none') {
+                    const defaultWidth = childLayer.border.width ?? 1;
+                    childBorderStyles.borderWidth = `${childLayer.border.top ?? defaultWidth}px ${childLayer.border.right ?? defaultWidth}px ${childLayer.border.bottom ?? defaultWidth}px ${childLayer.border.left ?? defaultWidth}px`;
+                    childBorderStyles.borderStyle = childLayer.border.style || 'solid';
+                    childBorderStyles.borderColor = childLayer.border.color || '#000000';
+                    if (childLayer.border.radius !== undefined) {
+                        childBorderStyles.borderRadius = `${childLayer.border.radius}px`;
+                    }
+                }
+
+                const childShadowStyles: React.CSSProperties = {};
+                if (childLayer.shadow) {
+                    const { x = 0, y = 0, blur = 0, spread = 0, color = 'rgba(0,0,0,0.5)' } = childLayer.shadow;
+                    childShadowStyles.boxShadow = `${x}px ${y}px ${blur}px ${spread}px ${color}`;
+                }
+
+                // Remove position properties for grid items
+                const { left: _l, top: _t, right: _r, bottom: _b, position: _p, ...childRestStyle } = childStyle || {};
+
+                return (
+                    <motion.div
+                        key={childLayer.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{
+                            duration: childLayer.animation.duration / 1000,
+                            delay: (childLayer.animation.delay / 1000) + (index * 0.1),
+                            ease: 'easeOut'
+                        }}
+                        style={{
+                            ...childRestStyle,
+                            ...childBorderStyles,
+                            ...childShadowStyles,
+                        }}
+                    >
+                        {/* Recursive nested section */}
+                        {childLayer.type === 'section' ? (
+                            <NestedSectionContent 
+                                layer={childLayer} 
+                                viewport={viewport} 
+                                allLayers={allLayers}
+                                isActive={isActive}
+                            />
+                        ) : (
+                            <LayerContent layer={childLayer} effectiveStyle={childStyle} />
+                        )}
+                    </motion.div>
+                );
+            })}
+        </div>
+    );
+};
+
+const Layer: React.FC<LayerProps> = ({ layer, isActive, viewport, allLayers }) => {
     // Map animation names to framer-motion variants
     const getAnimation = (name: string) => {
         switch (name) {
@@ -247,7 +459,7 @@ const Layer: React.FC<LayerProps> = ({ layer, isActive, viewport }) => {
     // Extract non-position styles from effectiveStyle
     const { left, top, right, bottom, position, ...restStyle } = effectiveStyle || {};
 
-    // Combined styles
+    // Combined styles for regular layers (positioned absolutely)
     const layerStyles: React.CSSProperties = {
         ...restStyle,
         ...borderStyles,
@@ -263,6 +475,122 @@ const Layer: React.FC<LayerProps> = ({ layer, isActive, viewport }) => {
         return null;
     }
 
+    // Handle Section type with grid layout
+    if (layer.type === 'section') {
+        // Default section layout if not provided
+        const sectionLayout: SectionLayout = layer.sectionLayout || {
+            columns: 4,
+            gap: 16,
+            alignment: 'stretch',
+            justify: 'start',
+            wrap: true,
+            direction: 'row'
+        };
+        const columns = getSectionColumnsForViewport(sectionLayout, viewport);
+        const gap = getSectionGapForViewport(sectionLayout, viewport);
+        const direction = getSectionDirectionForViewport(sectionLayout, viewport);
+        
+        // Get child layers
+        const childLayers = layer.children && layer.children.length > 0
+            ? allLayers.filter(l => layer.children!.includes(l.id))
+            : [];
+
+        const sectionStyles: React.CSSProperties = {
+            ...borderStyles,
+            ...shadowStyles,
+            position: 'absolute',
+            left: `${effectivePosition.x}%`,
+            top: `${effectivePosition.y}%`,
+            display: 'grid',
+            gridTemplateColumns: `repeat(${columns}, 1fr)`,
+            gap: `${gap}px`,
+            // For grid: alignItems = vertical alignment, justifyItems = horizontal alignment
+            alignItems: sectionLayout.alignment || 'stretch',
+            justifyItems: sectionLayout.justify || 'start',
+            padding: sectionLayout.padding
+                ? `${sectionLayout.padding.top || 0}px ${sectionLayout.padding.right || 0}px ${sectionLayout.padding.bottom || 0}px ${sectionLayout.padding.left || 0}px`
+                : undefined,
+            zIndex: 10,
+            width: effectiveStyle?.width || 'auto',
+            minHeight: effectiveStyle?.minHeight || 'auto',
+        };
+
+        return (
+            <AnimatePresence>
+                {isActive && (
+                    <motion.div
+                        initial={initial}
+                        animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        transition={{
+                            duration: layer.animation.duration / 1000,
+                            delay: layer.animation.delay / 1000,
+                            ease: 'easeOut'
+                        }}
+                        style={sectionStyles}
+                    >
+                        {childLayers.map((childLayer, index) => {
+                            const childVisible = getVisibilityForViewport(childLayer, viewport);
+                            if (!childVisible) return null;
+
+                            const childStyle = getStyleForViewport(childLayer, viewport);
+                            const childBorderStyles: React.CSSProperties = {};
+                            if (childLayer.border && childLayer.border.style !== 'none') {
+                                const defaultWidth = childLayer.border.width ?? 1;
+                                childBorderStyles.borderWidth = `${childLayer.border.top ?? defaultWidth}px ${childLayer.border.right ?? defaultWidth}px ${childLayer.border.bottom ?? defaultWidth}px ${childLayer.border.left ?? defaultWidth}px`;
+                                childBorderStyles.borderStyle = childLayer.border.style || 'solid';
+                                childBorderStyles.borderColor = childLayer.border.color || '#000000';
+                                if (childLayer.border.radius !== undefined) {
+                                    childBorderStyles.borderRadius = `${childLayer.border.radius}px`;
+                                }
+                            }
+
+                            const childShadowStyles: React.CSSProperties = {};
+                            if (childLayer.shadow) {
+                                const { x = 0, y = 0, blur = 0, spread = 0, color = 'rgba(0,0,0,0.5)' } = childLayer.shadow;
+                                childShadowStyles.boxShadow = `${x}px ${y}px ${blur}px ${spread}px ${color}`;
+                            }
+
+                            // Remove position properties for grid items
+                            const { left: _l, top: _t, right: _r, bottom: _b, position: _p, ...childRestStyle } = childStyle || {};
+
+                            return (
+                                <motion.div
+                                    key={childLayer.id}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{
+                                        duration: childLayer.animation.duration / 1000,
+                                        delay: (childLayer.animation.delay / 1000) + (index * 0.1),
+                                        ease: 'easeOut'
+                                    }}
+                                    style={{
+                                        ...childRestStyle,
+                                        ...childBorderStyles,
+                                        ...childShadowStyles,
+                                    }}
+                                >
+                                    {/* Handle nested sections recursively */}
+                                    {childLayer.type === 'section' ? (
+                                        <NestedSectionContent 
+                                            layer={childLayer} 
+                                            viewport={viewport} 
+                                            allLayers={allLayers}
+                                            isActive={isActive}
+                                        />
+                                    ) : (
+                                        <LayerContent layer={childLayer} effectiveStyle={childStyle} />
+                                    )}
+                                </motion.div>
+                            );
+                        })}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        );
+    }
+
+    // Regular layer rendering
     return (
         <AnimatePresence>
             {isActive && (
@@ -277,35 +605,7 @@ const Layer: React.FC<LayerProps> = ({ layer, isActive, viewport }) => {
                     }}
                     style={layerStyles}
                 >
-                    {layer.type === 'text' && layer.content}
-                    {layer.type === 'rte' && <div dangerouslySetInnerHTML={{ __html: layer.content }} />}
-                    {layer.type === 'button' && (
-                        <a
-                            href={layer.style?.href || '#'}
-                            style={{
-                                textDecoration: 'none',
-                                color: 'inherit',
-                                display: 'block',
-                                width: '100%',
-                                height: '100%'
-                            }}
-                        >
-                            {layer.content}
-                        </a>
-                    )}
-                    {layer.type === 'image' && (
-                        <img
-                            src={layer.content}
-                            alt="Layer"
-                            style={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'cover',
-                                display: 'block'
-                            }}
-                        />
-                    )}
-                    {layer.type === 'icon' && renderIcon(layer.content, effectiveStyle?.fontSize)}
+                    <LayerContent layer={layer} effectiveStyle={effectiveStyle} />
                 </motion.div>
             )}
         </AnimatePresence>
@@ -465,14 +765,18 @@ const HeroSliderModule: React.FC<ModuleProps> = ({ config }) => {
                                     height: '100%',
                                     pointerEvents: 'auto',
                                 }}>
-                                    {slide.layers.map(layer => (
-                                        <Layer
-                                            key={layer.id}
-                                            layer={layer}
-                                            isActive={index === activeIndex}
-                                            viewport={viewport}
-                                        />
-                                    ))}
+                                    {/* Only render root layers (not children of sections) */}
+                                    {slide.layers
+                                        .filter(layer => !layer.parentId)
+                                        .map(layer => (
+                                            <Layer
+                                                key={layer.id}
+                                                layer={layer}
+                                                isActive={index === activeIndex}
+                                                viewport={viewport}
+                                                allLayers={slide.layers}
+                                            />
+                                        ))}
                                 </div>
                             </div>
                         </div>
