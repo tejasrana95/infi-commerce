@@ -13,9 +13,9 @@ export const getHeroSliders = async (req: Request, res: Response) => {
         }
 
         const sliders = await HeroSlider.find(filter).sort({ createdAt: -1 });
-        res.status(200).json(sliders);
+        return res.status(200).json(sliders);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching sliders', error });
+        return res.status(500).json({ message: 'Error fetching sliders', error });
     }
 };
 
@@ -29,9 +29,9 @@ export const getHeroSliderById = async (req: Request, res: Response) => {
             return res.status(404).json({ message: 'Slider not found' });
         }
 
-        res.status(200).json(slider);
+        return res.status(200).json(slider);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching slider', error });
+        return res.status(500).json({ message: 'Error fetching slider', error });
     }
 };
 
@@ -66,9 +66,9 @@ export const createHeroSlider = async (req: Request | any, res: Response) => {
         });
 
         const savedSlider = await newSlider.save();
-        res.status(201).json(savedSlider);
+        return res.status(201).json(savedSlider);
     } catch (error) {
-        res.status(500).json({ message: 'Error creating slider', error });
+        return res.status(500).json({ message: 'Error creating slider', error });
     }
 };
 
@@ -86,9 +86,9 @@ export const updateHeroSlider = async (req: Request, res: Response) => {
             return res.status(404).json({ message: 'Slider not found' });
         }
 
-        res.status(200).json(updatedSlider);
+        return res.status(200).json(updatedSlider);
     } catch (error) {
-        res.status(500).json({ message: 'Error updating slider', error });
+        return res.status(500).json({ message: 'Error updating slider', error });
     }
 };
 
@@ -102,8 +102,8 @@ export const deleteHeroSlider = async (req: Request, res: Response) => {
             return res.status(404).json({ message: 'Slider not found' });
         }
 
-        res.status(200).json({ message: 'Slider deleted successfully' });
+        return res.status(200).json({ message: 'Slider deleted successfully' });
     } catch (error) {
-        res.status(500).json({ message: 'Error deleting slider', error });
+        return res.status(500).json({ message: 'Error deleting slider', error });
     }
 };
