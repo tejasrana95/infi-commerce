@@ -156,6 +156,401 @@ export default function ModuleRenderer({ module, isSelected, onClick }: ModuleRe
                     </Box>
                 );
 
+            case 'heading':
+                return (
+                    <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <Typography
+                            variant="h6"
+                            sx={{
+                                fontWeight: module.config.styles?.fontWeight || 700,
+                                color: module.config.styles?.color || '#000000',
+                                textAlign: module.config.align || 'center',
+                                fontSize: '1rem',
+                            }}
+                        >
+                            {module.config.heading || 'Your Title'}
+                        </Typography>
+                        {module.config.subheading && (
+                            <Typography
+                                variant="caption"
+                                sx={{
+                                    color: 'text.secondary',
+                                    textAlign: module.config.align || 'center',
+                                    mt: 0.5,
+                                }}
+                            >
+                                {module.config.subheading}
+                            </Typography>
+                        )}
+                    </Box>
+                );
+
+            case 'form':
+                return (
+                    <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60, display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <IconComponent sx={{ fontSize: 32, color: 'primary.main' }} />
+                        <Box>
+                            <Typography variant="body2" fontWeight={600}>
+                                {module.config.formId ? `Form ID: ${module.config.formId}` : 'Custom form with dynamic fields'}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                                {definition?.category}
+                            </Typography>
+                        </Box>
+                    </Box>
+                );
+
+            case 'pricing-table':
+                return (
+                    <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                            <IconComponent sx={{ fontSize: 24, color: 'primary.main' }} />
+                            <Typography variant="body2" fontWeight={600}>
+                                Pricing plans comparison
+                            </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                            {module.config.plans?.length || 0} plan(s) • {module.config.columns || 3} columns
+                        </Typography>
+                    </Box>
+                );
+
+            case 'accordion':
+                return (
+                    <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                            <IconComponent sx={{ fontSize: 24, color: 'primary.main' }} />
+                            <Typography variant="body2" fontWeight={600}>
+                                {module.config.title || 'Accordion'}
+                            </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                            {module.config.items?.length || 0} item(s) • {module.config.selectionMode || 'single'} mode
+                        </Typography>
+                    </Box>
+                );
+
+            case 'icon-box':
+                return (
+                    <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                            <IconComponent sx={{ fontSize: 24, color: 'primary.main' }} />
+                            <Typography variant="body2" fontWeight={600}>
+                                Features or services with icons
+                            </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                            {module.config.items?.length || 0} item(s) • {module.config.columns || 3} columns
+                        </Typography>
+                    </Box>
+                );
+
+            case 'video':
+                return (
+                    <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                            <IconComponent sx={{ fontSize: 24, color: 'primary.main' }} />
+                            <Typography variant="body2" fontWeight={600}>
+                                {definition?.label || 'Video'}
+                            </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                            {module.config.source || 'youtube'} • {module.config.aspectRatio || '16:9'}
+                        </Typography>
+                    </Box>
+                );
+
+            case 'image-gallery':
+                return (
+                    <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                            <IconComponent sx={{ fontSize: 24, color: 'primary.main' }} />
+                            <Typography variant="body2" fontWeight={600}>
+                                {definition?.label || 'Image Gallery'}
+                            </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                            {module.config.images?.length || 0} image(s) • {module.config.layout || 'grid'} • {module.config.columns || 3} columns
+                        </Typography>
+                    </Box>
+                );
+
+            case 'html':
+                return (
+                    <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                            <IconComponent sx={{ fontSize: 24, color: 'primary.main' }} />
+                            <Typography variant="body2" fontWeight={600}>
+                                Custom HTML
+                            </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                            {module.config.content ? `${module.config.content.substring(0, 50)}...` : 'Custom HTML code'}
+                        </Typography>
+                    </Box>
+                );
+
+            case 'testimonials':
+                return (
+                    <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                            <IconComponent sx={{ fontSize: 24, color: 'primary.main' }} />
+                            <Typography variant="body2" fontWeight={600}>
+                                Testimonials
+                            </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                            {module.config.layout || 'carousel'} • {module.config.autoplay ? 'autoplay' : 'manual'}
+                        </Typography>
+                    </Box>
+                );
+
+            case 'brand-logos':
+                return (
+                    <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                            <IconComponent sx={{ fontSize: 24, color: 'primary.main' }} />
+                            <Typography variant="body2" fontWeight={600}>
+                                Brand Logos
+                            </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                            {module.config.showcaseId ? `Showcase ID: ${module.config.showcaseId}` : 'Brand logo showcase'}
+                        </Typography>
+                    </Box>
+                );
+
+            case 'card-group':
+                return (
+                    <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                            <IconComponent sx={{ fontSize: 24, color: 'primary.main' }} />
+                            <Typography variant="body2" fontWeight={600}>
+                                {module.config.title || 'Card Group'}
+                            </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                            {module.config.cards?.length || 0} card(s) • {module.config.layout || 'grid'} • {module.config.columns?.desktop || 3} columns
+                        </Typography>
+                    </Box>
+                );
+
+            case 'strip-banner':
+                return (
+                    <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                            <IconComponent sx={{ fontSize: 24, color: 'primary.main' }} />
+                            <Typography variant="body2" fontWeight={600}>
+                                Strip Banner
+                            </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                            {module.config.content || 'Special Offer'} • CTA: {module.config.ctaPosition || 'right'}
+                        </Typography>
+                    </Box>
+                );
+
+            case 'content-card-grid':
+                return (
+                    <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                            <IconComponent sx={{ fontSize: 24, color: 'primary.main' }} />
+                            <Typography variant="body2" fontWeight={600}>
+                                {module.config.title || 'Content Card Grid'}
+                            </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                            {module.config.limit || 6} items • {module.config.gridColumns || 3} columns • {module.config.variant || 'default'}
+                        </Typography>
+                    </Box>
+                );
+
+            case 'author-card':
+                return (
+                    <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                            <IconComponent sx={{ fontSize: 24, color: 'primary.main' }} />
+                            <Typography variant="body2" fontWeight={600}>
+                                Author Card
+                            </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                            {module.config.authorName || 'Author Name'} • {module.config.layout || 'expanded'}
+                        </Typography>
+                    </Box>
+                );
+
+            case 'tags-cloud':
+                return (
+                    <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                            <IconComponent sx={{ fontSize: 24, color: 'primary.main' }} />
+                            <Typography variant="body2" fontWeight={600}>
+                                {module.config.title || 'Tags Cloud'}
+                            </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                            Max {module.config.maxTags || 20} tags • {module.config.layout || 'cloud'}
+                        </Typography>
+                    </Box>
+                );
+
+            case 'popular-posts':
+                return (
+                    <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                            <IconComponent sx={{ fontSize: 24, color: 'primary.main' }} />
+                            <Typography variant="body2" fontWeight={600}>
+                                {module.config.title || 'Popular Posts'}
+                            </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                            {module.config.numberOfPosts || 5} posts • {module.config.metric || 'views'} • {module.config.timePeriod || 'month'}
+                        </Typography>
+                    </Box>
+                );
+
+            case 'recent-posts':
+                return (
+                    <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                            <IconComponent sx={{ fontSize: 24, color: 'primary.main' }} />
+                            <Typography variant="body2" fontWeight={600}>
+                                {module.config.title || 'Recent Posts'}
+                            </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                            {module.config.numberOfPosts || 5} posts • {module.config.layout || 'vertical'}
+                        </Typography>
+                    </Box>
+                );
+
+            case 'blog-grid':
+                return (
+                    <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                            <IconComponent sx={{ fontSize: 24, color: 'primary.main' }} />
+                            <Typography variant="body2" fontWeight={600}>
+                                {module.config.title || 'Blog Grid'}
+                            </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                            {module.config.numberOfPosts || 6} posts • {module.config.columns || 3} columns
+                        </Typography>
+                    </Box>
+                );
+
+            case 'blog-hero':
+                return (
+                    <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                            <IconComponent sx={{ fontSize: 24, color: 'primary.main' }} />
+                            <Typography variant="body2" fontWeight={600}>
+                                {module.config.title || 'Blog Hero'}
+                            </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                            {module.config.subtitle || 'Hero section for blog'} • {module.config.height || 'medium'}
+                        </Typography>
+                    </Box>
+                );
+
+            case 'related-blogs':
+                return (
+                    <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                            <IconComponent sx={{ fontSize: 24, color: 'primary.main' }} />
+                            <Typography variant="body2" fontWeight={600}>
+                                {module.config.title || 'Related Blogs'}
+                            </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                            {module.config.numberOfPosts || 3} posts • {module.config.matchBy || 'category'}
+                        </Typography>
+                    </Box>
+                );
+
+            case 'blog-categories-sidebar':
+                return (
+                    <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                            <IconComponent sx={{ fontSize: 24, color: 'primary.main' }} />
+                            <Typography variant="body2" fontWeight={600}>
+                                {module.config.title || 'Blog Categories'}
+                            </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                            {module.config.displayStyle || 'list'} • Max {module.config.maxCategories || 10}
+                        </Typography>
+                    </Box>
+                );
+
+            case 'newsletter-signup':
+                return (
+                    <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                            <IconComponent sx={{ fontSize: 24, color: 'primary.main' }} />
+                            <Typography variant="body2" fontWeight={600}>
+                                {module.config.title || 'Newsletter Signup'}
+                            </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                            {module.config.style || 'card'} • {module.config.buttonText || 'Subscribe'}
+                        </Typography>
+                    </Box>
+                );
+
+            case 'cta-button':
+                return (
+                    <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                            <IconComponent sx={{ fontSize: 24, color: 'primary.main' }} />
+                            <Typography variant="body2" fontWeight={600}>
+                                {module.config.text || 'Click Me'}
+                            </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                            {module.config.variant || 'contained'} • {module.config.alignment || 'center'}
+                        </Typography>
+                    </Box>
+                );
+
+            case 'category-showcase':
+            case 'related-products':
+            case 'recently-viewed':
+            case 'personalized-products':
+                return (
+                    <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                            <IconComponent sx={{ fontSize: 24, color: 'primary.main' }} />
+                            <Typography variant="body2" fontWeight={600}>
+                                {module.config.title || definition?.label || module.type}
+                            </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                            {module.config.limit || 8} items • {module.config.layout || 'grid'} • {typeof module.config.columns === 'object' ? module.config.columns.desktop : module.config.columns || 4} columns
+                        </Typography>
+                    </Box>
+                );
+
+            case 'number-box':
+            case 'flip-box':
+            case 'progress-bar':
+            case 'marquee':
+                return (
+                    <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                            <IconComponent sx={{ fontSize: 24, color: 'primary.main' }} />
+                            <Typography variant="body2" fontWeight={600}>
+                                {definition?.label || module.type}
+                            </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                            {definition?.description}
+                        </Typography>
+                    </Box>
+                );
+
             default:
                 return (
                     <Box

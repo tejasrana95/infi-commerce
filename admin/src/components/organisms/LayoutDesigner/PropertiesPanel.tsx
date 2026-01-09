@@ -92,16 +92,10 @@ export default function PropertiesPanel({
                 </IconButton>
             </Box>
 
-            {/* Content - No tabs, just show the editor directly */}
-            <Box
-                sx={{
-                    flex: 1,
-                    overflow: 'auto',
-                    bgcolor: 'grey.50',
-                }}
-            >
+            {/* Content */}
+            <Box sx={{ flex: 1, overflow: 'auto' }}>
                 {selectedModule && selectedSectionId ? (
-                    <Box sx={{ p: 1 }}>
+                    <Box sx={{ p: 2 }}>
                         <ModuleEditor
                             module={selectedModule}
                             onChange={(updated) => onUpdateModule(selectedSectionId, selectedModule.id, updated)}
@@ -110,7 +104,7 @@ export default function PropertiesPanel({
                         />
                     </Box>
                 ) : selectedSection ? (
-                    <Box sx={{ p: 1 }}>
+                    <Box sx={{ p: 2 }}>
                         <SectionEditor
                             section={selectedSection}
                             onChange={(updated) => onUpdateSection(selectedSection.id, updated)}
@@ -127,29 +121,17 @@ export default function PropertiesPanel({
                             alignItems: 'center',
                             justifyContent: 'center',
                             height: '100%',
-                            p: 4,
+                            p: 3,
                             textAlign: 'center',
+                            color: '#9CA3AF',
                         }}
                     >
-                        <Box
-                            sx={{
-                                width: 80,
-                                height: 80,
-                                borderRadius: '50%',
-                                bgcolor: 'grey.200',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                mb: 2,
-                            }}
-                        >
-                            <SettingsIcon sx={{ fontSize: 40, color: 'text.secondary' }} />
-                        </Box>
-                        <Typography variant="body1" color="text.secondary" fontWeight={500}>
-                            Select a section or module
+                        <SettingsIcon sx={{ fontSize: 48, color: '#D1D5DB', mb: 1.5 }} />
+                        <Typography variant="body2" sx={{ fontWeight: 500, color: '#6B7280', mb: 0.5 }}>
+                            No selection
                         </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                            Click on any element in the canvas to edit its properties
+                        <Typography variant="caption" sx={{ color: '#9CA3AF', fontSize: '0.8rem' }}>
+                            Click on elements to edit
                         </Typography>
                     </Box>
                 )}

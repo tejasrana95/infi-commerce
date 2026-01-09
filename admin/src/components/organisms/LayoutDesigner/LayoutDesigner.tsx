@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
     Box,
     Paper,
     Typography,
     Button,
     IconButton,
-    Chip,
     Dialog,
     DialogTitle,
     DialogContent,
@@ -20,44 +19,33 @@ import {
     useTheme,
     useMediaQuery,
 } from '@mui/material';
-import SaveIcon from '@mui/icons-material/Save';
 import SettingsIcon from '@mui/icons-material/Settings';
-import DesktopWindowsIcon from '@mui/icons-material/DesktopWindows';
-import TabletIcon from '@mui/icons-material/Tablet';
-import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
-import MenuIcon from '@mui/icons-material/Menu';
-import TuneIcon from '@mui/icons-material/Tune';
 import CloseIcon from '@mui/icons-material/Close';
+import GridViewIcon from '@mui/icons-material/GridView';
+import MenuIcon from '@mui/icons-material/Menu';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { useNotification } from '@/contexts/NotificationContext';
 
 import {
     DndContext,
     DragEndEvent,
     DragStartEvent,
-    DragOverEvent,
     DragOverlay,
-    closestCenter,
     closestCorners,
     pointerWithin,
-    rectIntersection,
-    getFirstCollision,
     PointerSensor,
     useSensor,
     useSensors,
-    Active,
-    UniqueIdentifier,
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 import { Layout, LayoutSection, LayoutModule, ModuleType, LayoutType } from '@/types';
 import ModulePalette from './ModulePalette';
 import SectionList from './SectionList';
-import SectionEditor from './SectionEditor';
-import ModuleEditor from './ModuleEditor';
 import FloatingToolbar from './FloatingToolbar';
 import PropertiesPanel from './PropertiesPanel';
-import { createSection, createModule, getModuleDefinition } from './types';
+import ModuleEditor from './ModuleEditor';
+import SectionEditor from './SectionEditor';
+import { createSection, getModuleDefinition, createModule } from './types';
 import { ConfirmDialog } from '@/components/molecules/ConfirmDialog';
 
 
@@ -87,9 +75,8 @@ export default function LayoutDesigner({
     // Responsive state
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md')); // <900px
-    const isTablet = useMediaQuery(theme.breakpoints.down('lg')); // <1200px
     const [leftPanelOpen, setLeftPanelOpen] = useState(false); // Start hidden
-    const [rightPanelOpen, setRightPanelOpen] = useState(!isMobile);
+    const [rightPanelOpen, setRightPanelOpen] = useState(true); // Auto-open when selection exists
 
     // Types that support slug-specific layouts
     const slugSupportedTypes: LayoutType[] = ['category', 'product', 'blog-post', 'page'];
@@ -113,6 +100,13 @@ export default function LayoutDesigner({
     const selectedSection = layout.sections.find((s) => s.id === selectedSectionId);
     const selectedModule = selectedSection?.modules.find((m) => m.id === selectedModuleId) ||
         selectedSection?.columns?.flatMap(c => c.modules).find(m => m.id === selectedModuleId);
+
+    // Auto-open right panel when section or module is selected
+    useEffect(() => {
+        if (selectedSectionId || selectedModuleId) {
+            setRightPanelOpen(true);
+        }
+    }, [selectedSectionId, selectedModuleId]);
 
     // Update sections
     const updateSections = useCallback(
@@ -590,15 +584,15 @@ export default function LayoutDesigner({
     };
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', bgcolor: '#FAFAFA', position: 'relative', height: '100%' }}>
-            {/* Floating Toolbar - Sticky at top */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', bgcolor: '#F0F2F5', position: 'relative', height: '100%', overflow: 'hidden' }}>
+            {/* Top Toolbar - Modern Header */}
             <Box
                 sx={{
                     zIndex: 1100,
-                    p: { xs: 1, md: 2 },
-                    bgcolor: '#FAFAFA',
+                    bgcolor: '#FFFFFF',
                     borderBottom: '1px solid',
-                    borderColor: 'divider',
+                    borderColor: '#E5E7EB',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
                 }}
             >
                 <FloatingToolbar
@@ -614,6 +608,8 @@ export default function LayoutDesigner({
                     onSettings={() => setSettingsOpen(true)}
                     onToggleModules={() => setLeftPanelOpen(!leftPanelOpen)}
                     modulesOpen={leftPanelOpen}
+                    onToggleProperties={() => setRightPanelOpen(!rightPanelOpen)}
+                    propertiesOpen={rightPanelOpen}
                     isSaving={isSaving}
                 />
             </Box>
@@ -624,111 +620,271 @@ export default function LayoutDesigner({
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
             >
-                <Box sx={{ display: 'flex', flex: 1, position: 'relative', overflow: 'hidden' }}>
-                    {/* Module Palette Drawer */}
+                <Box sx={{ display: 'flex', flex: 1, position: 'relative', overflow: 'hidden', gap: 0 }}>
+                    {/* Left Sidebar - Elements Panel */}
                     <Drawer
-                        variant="persistent"
+                        variant="permanent"
                         anchor="left"
-                        open={leftPanelOpen}
+                        open={true}
                         sx={{
-                            width: leftPanelOpen ? 280 : 0,
+                            width: leftPanelOpen ? 300 : 60,
                             flexShrink: 0,
-                            zIndex: 1,
-                            transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            zIndex: 10,
+                            transition: 'width 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
                             '& .MuiDrawer-paper': {
-                                width: 280,
-                                position: 'absolute',
-                                top: 0,
+                                width: leftPanelOpen ? 300 : 60,
+                                position: 'relative',
                                 height: '100%',
                                 borderRight: '1px solid',
-                                borderColor: 'divider',
-                                boxShadow: '2px 0 8px rgba(0, 0, 0, 0.08)',
-                                overflow: 'hidden',
-                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                borderColor: '#E5E7EB',
+                                bgcolor: '#FFFFFF',
+                                boxShadow: 'none',
+                                overflow: leftPanelOpen ? 'hidden' : 'hidden',
+                                transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
+                                display: 'flex',
+                                flexDirection: 'column',
                             },
                         }}
                     >
-                        <Box sx={{ p: 1, pt: 2, height: '100%', overflow: 'auto' }}>
-                            <ModulePalette layoutType={layout.type} />
+                        {/* Toggle Button on Sidebar */}
+                        <Box
+                            onClick={() => setLeftPanelOpen(!leftPanelOpen)}
+                            sx={{
+                                p: 1.5,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                color: '#6B7280',
+                                transition: 'all 0.2s',
+                                '&:hover': {
+                                    color: '#1F2937',
+                                    bgcolor: '#F3F4F6',
+                                },
+                            }}
+                        >
+                            {leftPanelOpen ? <CloseIcon fontSize="small" /> : <MenuIcon fontSize="small" />}
                         </Box>
+
+                        {leftPanelOpen && (
+                            <Box sx={{ flex: 1, overflow: 'auto', pb: 2 }}>
+                                <ModulePalette layoutType={layout.type} />
+                            </Box>
+                        )}
                     </Drawer>
 
-                    {/* Main Canvas */}
+                    {/* Main Canvas Area */}
                     <Box sx={{
                         flex: 1,
                         display: 'flex',
                         flexDirection: 'column',
-                        p: { xs: 2, md: 4 },
-                        bgcolor: '#FAFAFA',
-                        backgroundImage: 'radial-gradient(#E5E7EB 0.5px, transparent 0.5px)',
-                        backgroundSize: '16px 16px',
-                        overflowY: 'auto',
-                        height: '100%',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        bgcolor: '#F0F2F5',
                     }}>
+                        {/* Canvas Background with Grid */}
+                        <Box sx={{
+                            flex: 1,
+                            overflowY: 'auto',
+                            overflowX: 'hidden',
+                            p: { xs: 2, sm: 3, md: 4 },
+                            backgroundImage: 'radial-gradient(circle, #D1D5DB 0.5px, transparent 0.5px)',
+                            backgroundSize: '20px 20px',
+                            backgroundPosition: '0 0',
+                            position: 'relative',
+                            '&::-webkit-scrollbar': {
+                                width: '8px',
+                            },
+                            '&::-webkit-scrollbar-track': {
+                                bg: 'transparent',
+                            },
+                            '&::-webkit-scrollbar-thumb': {
+                                bgcolor: '#D1D5DB',
+                                borderRadius: '4px',
+                                '&:hover': {
+                                    bgcolor: '#9CA3AF',
+                                },
+                            },
+                        }}>
+                            {/* Canvas Content Container */}
+                            <Box
+                                sx={{
+                                    maxWidth: previewDevice === 'mobile' ? 390 : previewDevice === 'tablet' ? 820 : 1280,
+                                    mx: 'auto',
+                                    width: '100%',
+                                    position: 'relative',
+                                }}
+                            >
+                                {layout.sections.length === 0 ? (
+                                    <Box
+                                        sx={{
+                                            py: 12,
+                                            px: 4,
+                                            textAlign: 'center',
+                                            bgcolor: '#FFFFFF',
+                                            border: '2px dashed #D1D5DB',
+                                            borderRadius: 2.5,
+                                            transition: 'all 0.3s',
+                                        }}
+                                    >
+                                        <Box
+                                            sx={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                width: 56,
+                                                height: 56,
+                                                borderRadius: '50%',
+                                                bgcolor: '#F3F4F6',
+                                                mb: 2,
+                                                mx: 'auto',
+                                            }}
+                                        >
+                                            <GridViewIcon sx={{ fontSize: 28, color: '#9CA3AF' }} />
+                                        </Box>
+                                        <Typography variant="h6" sx={{ mb: 1, color: '#1F2937', fontWeight: 600 }}>
+                                            No Sections Yet
+                                        </Typography>
+                                        <Typography variant="body2" sx={{ mb: 3, color: '#6B7280' }}>
+                                            Start building your layout by adding a section
+                                        </Typography>
+                                        <Button 
+                                            variant="contained" 
+                                            onClick={handleAddSection}
+                                            sx={{
+                                                bgcolor: '#3B82F6',
+                                                '&:hover': { bgcolor: '#2563EB' },
+                                                textTransform: 'none',
+                                                fontWeight: 600,
+                                                px: 3,
+                                            }}
+                                        >
+                                            Add First Section
+                                        </Button>
+                                    </Box>
+                                ) : (
+                                    <SectionList
+                                        sections={layout.sections}
+                                        selectedSectionId={selectedSectionId}
+                                        selectedModuleId={selectedModuleId}
+                                        onSelectSection={(id) => {
+                                            setSelectedSectionId(id);
+                                            setSelectedModuleId(null);
+                                        }}
+                                        onSelectModule={(sectionId, moduleId) => {
+                                            setSelectedSectionId(sectionId);
+                                            setSelectedModuleId(moduleId);
+                                        }}
+                                        onDeleteModule={handleDeleteModule}
+                                        onAddSection={handleAddSection}
+                                    />
+                                )}
+                            </Box>
+                        </Box>
+                    </Box>
+
+                    {/* Right Sidebar - Properties Panel */}
+                    <Drawer
+                        variant="temporary"
+                        anchor="right"
+                        open={rightPanelOpen && !!(selectedSectionId || selectedModuleId)}
+                        onClose={() => setRightPanelOpen(false)}
+                        sx={{
+                            zIndex: 1200,
+                            '& .MuiDrawer-paper': {
+                                width: { xs: '90%', sm: 400, md: 360 },
+                                maxWidth: 500,
+                                borderLeft: '1px solid',
+                                borderColor: '#E5E7EB',
+                                bgcolor: '#FFFFFF',
+                                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                            },
+                            '& .MuiBackdrop-root': {
+                                backdropFilter: 'blur(4px)',
+                                bgcolor: 'rgba(0, 0, 0, 0.3)',
+                            },
+                        }}
+                    >
+                        {/* Properties Panel Header */}
                         <Box
                             sx={{
-                                maxWidth: previewDevice === 'mobile' ? 375 : previewDevice === 'tablet' ? 768 : 1200,
-                                mx: 'auto',
-                                width: '100%',
+                                p: 2,
+                                borderBottom: '1px solid',
+                                borderColor: '#E5E7EB',
+                                bgcolor: '#FAFBFC',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
                             }}
                         >
-                            {layout.sections.length === 0 ? (
-                                <Box
-                                    sx={{
-                                        py: 8,
-                                        textAlign: 'center',
-                                        border: '2px dashed',
-                                        borderColor: 'grey.300',
-                                        borderRadius: 2,
-                                    }}
-                                >
-                                    <Typography color="text.secondary" gutterBottom>
-                                        No sections yet
-                                    </Typography>
-                                    <Button variant="outlined" onClick={handleAddSection}>
-                                        Add First Section
-                                    </Button>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <SettingsIcon sx={{ fontSize: 20, color: '#3B82F6' }} />
+                                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1F2937' }}>
+                                    {selectedModule ? 'Module Settings' : selectedSection ? 'Section Settings' : 'Properties'}
+                                </Typography>
+                            </Box>
+                            <IconButton
+                                size="small"
+                                onClick={() => setRightPanelOpen(false)}
+                                sx={{
+                                    color: '#6B7280',
+                                    '&:hover': { bgcolor: '#E5E7EB', color: '#1F2937' },
+                                }}
+                            >
+                                <CloseIcon fontSize="small" />
+                            </IconButton>
+                        </Box>
+
+                        {/* Properties Panel Content */}
+                        <Box sx={{ flex: 1, overflow: 'auto' }}>
+                            {selectedModule && selectedSectionId ? (
+                                <Box sx={{ p: 2 }}>
+                                    <ModuleEditor
+                                        module={selectedModule}
+                                        onChange={(updated) => updateModule(selectedSectionId, selectedModule.id, updated)}
+                                        onDelete={() => handleDeleteModule(selectedSectionId, selectedModule.id)}
+                                        storeId={typeof layout.storeId === 'object' ? layout.storeId._id : layout.storeId}
+                                    />
+                                </Box>
+                            ) : selectedSection ? (
+                                <Box sx={{ p: 2 }}>
+                                    <SectionEditor
+                                        section={selectedSection}
+                                        onChange={(updated) => updateSection(selectedSection.id, updated)}
+                                        onDelete={() => handleDeleteSection(selectedSection.id)}
+                                        copiedStyle={copiedSectionStyle}
+                                        onCopyStyle={setCopiedSectionStyle}
+                                    />
                                 </Box>
                             ) : (
-                                <SectionList
-                                    sections={layout.sections}
-                                    selectedSectionId={selectedSectionId}
-                                    selectedModuleId={selectedModuleId}
-                                    onSelectSection={(id) => {
-                                        setSelectedSectionId(id);
-                                        setSelectedModuleId(null);
+                                <Box
+                                    sx={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        height: '100%',
+                                        p: 3,
+                                        textAlign: 'center',
+                                        color: '#9CA3AF',
                                     }}
-                                    onSelectModule={(sectionId, moduleId) => {
-                                        setSelectedSectionId(sectionId);
-                                        setSelectedModuleId(moduleId);
-                                    }}
-                                    onDeleteModule={handleDeleteModule}
-                                    onAddSection={handleAddSection}
-                                />
-                            )}</Box>
-                    </Box>
+                                >
+                                    <SettingsIcon sx={{ fontSize: 48, color: '#D1D5DB', mb: 1.5 }} />
+                                    <Typography variant="body2" sx={{ fontWeight: 500, color: '#6B7280', mb: 0.5 }}>
+                                        No selection
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: '#9CA3AF', fontSize: '0.8rem' }}>
+                                        Click on elements to edit
+                                    </Typography>
+                                </Box>
+                            )}
+                        </Box>
+                    </Drawer>
                 </Box>
 
-                {/* Properties Panel - Smooth Drawer */}
-                <PropertiesPanel
-                    open={!!(selectedSectionId || selectedModuleId)}
-                    onClose={() => {
-                        setSelectedSectionId(null);
-                        setSelectedModuleId(null);
-                    }}
-                    selectedSection={selectedSection}
-                    selectedModule={selectedModule}
-                    selectedSectionId={selectedSectionId}
-                    onUpdateSection={updateSection}
-                    onUpdateModule={updateModule}
-                    onDeleteSection={handleDeleteSection}
-                    onDeleteModule={handleDeleteModule}
-                    storeId={typeof layout.storeId === 'object' ? layout.storeId._id : layout.storeId}
-                    copiedStyle={copiedSectionStyle}
-                    onCopyStyle={setCopiedSectionStyle}
-                />
-
-                {/* Drag Overlay - renders the dragged item visually */}
+                {/* Drag Overlay */}
                 <DragOverlay dropAnimation={null} style={{ zIndex: 9999 }}>
                     {renderDragOverlay()}
                 </DragOverlay>
@@ -745,15 +901,16 @@ export default function LayoutDesigner({
 
                 {/* Layout Settings Dialog */}
                 <Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)} maxWidth="sm" fullWidth>
-                    <DialogTitle>Layout Settings</DialogTitle>
+                    <DialogTitle sx={{ fontWeight: 700, color: '#1F2937' }}>Layout Settings</DialogTitle>
                     <DialogContent>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2 }}>
                             <TextField
                                 label="Layout Name"
                                 value={layout.name}
                                 onChange={(e) => onChange({ ...layout, name: e.target.value })}
                                 fullWidth
                                 required
+                                variant="outlined"
                             />
                             <TextField
                                 label="Description"
@@ -762,6 +919,7 @@ export default function LayoutDesigner({
                                 fullWidth
                                 multiline
                                 rows={2}
+                                variant="outlined"
                             />
                             {slugSupportedTypes.includes(layout.type) && (
                                 <TextField
@@ -770,7 +928,8 @@ export default function LayoutDesigner({
                                     onChange={(e) => onChange({ ...layout, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-/]/g, '') })}
                                     fullWidth
                                     placeholder="e.g., about, marble-statues"
-                                    helperText="Leave empty for a default layout. Enter a slug to create a page-specific layout and only slug not the prefix like category, product, etc."
+                                    helperText="Leave empty for default layout. Only enter slug, not prefix."
+                                    variant="outlined"
                                 />
                             )}
                             <TextField
@@ -779,6 +938,7 @@ export default function LayoutDesigner({
                                 value={layout.status}
                                 onChange={(e) => onChange({ ...layout, status: e.target.value as 'draft' | 'published' })}
                                 fullWidth
+                                variant="outlined"
                             >
                                 <MenuItem value="draft">Draft</MenuItem>
                                 <MenuItem value="published">Published</MenuItem>
@@ -791,10 +951,11 @@ export default function LayoutDesigner({
                                     />
                                 }
                                 label="Set as default layout for this type"
+                                sx={{ ml: 0 }}
                             />
                         </Box>
                     </DialogContent>
-                    <DialogActions>
+                    <DialogActions sx={{ p: 2 }}>
                         <Button onClick={() => setSettingsOpen(false)}>Close</Button>
                     </DialogActions>
                 </Dialog>

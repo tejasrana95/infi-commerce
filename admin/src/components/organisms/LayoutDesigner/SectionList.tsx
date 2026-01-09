@@ -76,58 +76,61 @@ function SortableModule({ module, isSelected, onSelect, onDelete, sectionId, col
             sx={{
                 display: 'flex',
                 alignItems: 'stretch',
-                gap: 1,
-                mb: 1.5,
-                p: 1.25,
-                bgcolor: 'background.paper',
-                border: isSelected ? '2px solid' : 'none',
-                borderColor: 'primary.main',
-                borderRadius: 1.5,
+                gap: 0.75,
+                mb: 1,
+                p: 1,
+                bgcolor: '#FFFFFF',
+                border: isSelected ? '2px solid' : '1px solid',
+                borderColor: isSelected ? '#3B82F6' : '#E5E7EB',
+                borderRadius: 1,
                 boxShadow: isSelected
-                    ? '0 2px 8px rgba(37, 99, 235, 0.15), 0 1px 3px rgba(37, 99, 235, 0.08)'
-                    : '0 1px 2px rgba(0, 0, 0, 0.04)',
+                    ? '0 4px 12px rgba(59, 130, 246, 0.15)'
+                    : '0 1px 3px rgba(0, 0, 0, 0.05)',
                 transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                transform: 'scale(1)',
                 '&:hover': {
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.03)',
-                    transform: 'scale(1.005)',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                    borderColor: isSelected ? '#3B82F6' : '#D1D5DB',
+                    bgcolor: isSelected ? '#FFFFFF' : '#F9FAFB',
                 },
             }}
         >
+            {/* Drag Handle */}
             <Box
                 {...attributes}
                 {...listeners}
                 sx={{
                     display: 'flex',
                     alignItems: 'center',
-                    cursor: 'grab',
-                    color: 'grey.400',
-                    transition: 'color 0.2s',
-                    '&:hover': { color: 'grey.600' },
-                    '&:active': { cursor: 'grabbing' },
+                    cursor: isDragging ? 'grabbing' : 'grab',
+                    color: '#D1D5DB',
+                    transition: 'all 0.2s',
+                    '&:hover': { color: '#9CA3AF' },
                 }}
             >
-                <DragIndicatorIcon sx={{ fontSize: '1.1rem' }} />
+                <DragIndicatorIcon sx={{ fontSize: '1rem' }} />
             </Box>
-            <Box flex={1} onClick={onSelect} sx={{ cursor: 'pointer', minWidth: 0 }}>
+
+            {/* Module Content */}
+            <Box flex={1} onClick={onSelect} sx={{ cursor: 'pointer', minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <ModuleRenderer module={module} isSelected={isSelected} onClick={onSelect} />
             </Box>
+
+            {/* Delete Button */}
             {isRemovable && (
                 <IconButton
                     size="small"
                     onClick={onDelete}
                     sx={{
                         p: 0.5,
-                        color: 'grey.400',
+                        color: '#D1D5DB',
                         transition: 'all 0.2s',
                         '&:hover': {
-                            color: 'error.main',
-                            bgcolor: 'error.50',
-                            transform: 'scale(1.05)',
+                            color: '#EF4444',
+                            bgcolor: '#FEE2E2',
                         },
                     }}
                 >
-                    <DeleteIcon sx={{ fontSize: '1.1rem' }} />
+                    <DeleteIcon sx={{ fontSize: '1rem' }} />
                 </IconButton>
             )}
         </Box>
@@ -160,13 +163,13 @@ function ModuleDropZone({ sectionId, columnId, children }: ModuleDropZoneProps) 
                 minHeight: 60,
                 p: 1,
                 border: isOver ? '2px dashed' : '1px dashed',
-                borderColor: isOver ? 'primary.light' : 'grey.200',
-                borderRadius: 1.5,
-                bgcolor: isOver ? 'rgba(37, 99, 235, 0.03)' : 'transparent',
+                borderColor: isOver ? '#3B82F6' : '#E5E7EB',
+                borderRadius: 1,
+                bgcolor: isOver ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 '&:hover': {
-                    borderColor: 'grey.300',
-                    bgcolor: 'grey.50',
+                    borderColor: '#D1D5DB',
+                    bgcolor: 'rgba(59, 130, 246, 0.02)',
                 },
             }}
         >
@@ -219,51 +222,50 @@ function SectionItem({
             style={style}
             elevation={0}
             sx={{
-                mb: 2,
+                mb: 1.5,
                 overflow: 'hidden',
                 border: isSelected ? '2px solid' : '1px solid',
-                borderColor: isSelected ? 'primary.main' : 'grey.100',
-                borderRadius: 2,
-                bgcolor: 'background.paper',
+                borderColor: isSelected ? '#3B82F6' : '#E5E7EB',
+                borderRadius: 1.5,
+                bgcolor: '#FFFFFF',
                 boxShadow: isSelected
-                    ? '0 4px 16px rgba(37, 99, 235, 0.12), 0 2px 6px rgba(37, 99, 235, 0.06)'
-                    : '0 1px 4px rgba(0, 0, 0, 0.02)',
+                    ? '0 4px 16px rgba(59, 130, 246, 0.15)'
+                    : '0 1px 3px rgba(0, 0, 0, 0.05)',
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                transform: 'translateY(0)',
                 '&:hover': {
-                    boxShadow: '0 6px 20px rgba(0, 0, 0, 0.06), 0 3px 8px rgba(0, 0, 0, 0.03)',
-                    transform: 'translateY(-1px)',
+                    boxShadow: '0 6px 20px rgba(0, 0, 0, 0.08)',
+                    borderColor: isSelected ? '#3B82F6' : '#D1D5DB',
                 },
             }}
         >
-            {/* Section Header - Compact */}
+            {/* Section Header */}
             <Box
                 sx={{
                     display: 'flex',
                     alignItems: 'center',
-                    p: 1.5,
-                    bgcolor: isSelected ? 'rgba(37, 99, 235, 0.02)' : 'transparent',
-                    borderBottom: isExpanded ? '1px solid' : 'none',
-                    borderColor: 'grey.100',
+                    p: 1.25,
+                    gap: 1,
+                    bgcolor: isSelected ? '#F0F9FF' : '#FAFBFC',
+                    borderBottom: isExpanded ? '1px solid #E5E7EB' : 'none',
                     transition: 'all 0.2s',
                 }}
             >
+                {/* Drag Handle */}
                 <Box
                     {...attributes}
                     {...listeners}
                     sx={{
-                        cursor: 'grab',
+                        cursor: isDragging ? 'grabbing' : 'grab',
                         display: 'flex',
-                        mr: 1,
-                        color: 'grey.400',
+                        color: '#D1D5DB',
                         transition: 'all 0.2s',
-                        '&:hover': { color: 'grey.600', transform: 'scale(1.05)' },
-                        '&:active': { cursor: 'grabbing' },
+                        '&:hover': { color: '#9CA3AF' },
                     }}
                 >
-                    <DragIndicatorIcon fontSize="small" />
+                    <DragIndicatorIcon sx={{ fontSize: '1rem' }} />
                 </Box>
 
+                {/* Section Info */}
                 <Box
                     flex={1}
                     onClick={onSelectSection}
@@ -273,113 +275,113 @@ function SectionItem({
                         '&:hover': { opacity: 0.7 },
                     }}
                 >
-                    <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 0, fontSize: '0.875rem', lineHeight: 1.4 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.9rem', color: '#1F2937', lineHeight: 1.3 }}>
                         {section.name || 'Unnamed Section'}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ letterSpacing: 0.2, fontSize: '0.7rem' }}>
+                    <Typography variant="caption" sx={{ color: '#9CA3AF', fontSize: '0.75rem', letterSpacing: 0.3 }}>
                         {section.type} • {section.modules.length + (section.columns?.reduce((acc, col) => acc + col.modules.length, 0) || 0)} module(s)
                     </Typography>
                 </Box>
 
-                {/* Visibility indicators - Compact */}
-                <Box sx={{ display: 'flex', gap: 0.5, mr: 1, px: 1, py: 0.5, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid', borderColor: 'grey.100' }}>
+                {/* Visibility Indicators */}
+                <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', px: 0.75, py: 0.5, bgcolor: '#F3F4F6', borderRadius: 0.75, border: '1px solid #E5E7EB' }}>
                     <DesktopWindowsIcon
-                        fontSize="small"
                         sx={{
-                            fontSize: '1rem',
-                            color: section.visibility.desktop ? 'primary.main' : 'grey.300',
+                            fontSize: '0.9rem',
+                            color: section.visibility.desktop ? '#3B82F6' : '#D1D5DB',
                             transition: 'color 0.2s',
                         }}
                     />
                     <TabletIcon
-                        fontSize="small"
                         sx={{
-                            fontSize: '1rem',
-                            color: section.visibility.tablet ? 'primary.main' : 'grey.300',
+                            fontSize: '0.9rem',
+                            color: section.visibility.tablet ? '#3B82F6' : '#D1D5DB',
                             transition: 'color 0.2s',
                         }}
                     />
                     <PhoneIphoneIcon
-                        fontSize="small"
                         sx={{
-                            fontSize: '1rem',
-                            color: section.visibility.mobile ? 'primary.main' : 'grey.300',
+                            fontSize: '0.9rem',
+                            color: section.visibility.mobile ? '#3B82F6' : '#D1D5DB',
                             transition: 'color 0.2s',
                         }}
                     />
                 </Box>
 
+                {/* Settings Button */}
                 <IconButton
                     size="small"
                     onClick={onSelectSection}
                     sx={{
                         p: 0.5,
-                        mr: 0.5,
-                        color: 'grey.400',
+                        color: '#9CA3AF',
                         transition: 'all 0.2s',
                         '&:hover': {
-                            color: 'primary.main',
-                            bgcolor: 'primary.50',
-                            transform: 'rotate(90deg)',
+                            color: '#3B82F6',
+                            bgcolor: '#EFF6FF',
                         },
                     }}
                 >
-                    <SettingsIcon sx={{ fontSize: '1.1rem' }} />
+                    <SettingsIcon sx={{ fontSize: '1rem' }} />
                 </IconButton>
 
+                {/* Expand/Collapse Button */}
                 <IconButton
                     size="small"
                     onClick={() => setIsExpanded(!isExpanded)}
                     sx={{
                         p: 0.5,
-                        color: 'grey.400',
+                        color: '#9CA3AF',
                         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                         transform: isExpanded ? 'rotate(0deg)' : 'rotate(180deg)',
                         '&:hover': {
-                            color: 'primary.main',
-                            bgcolor: 'grey.100',
+                            color: '#3B82F6',
+                            bgcolor: '#EFF6FF',
                         },
                     }}
                 >
-                    <ExpandLessIcon sx={{ fontSize: '1.1rem' }} />
+                    <ExpandLessIcon sx={{ fontSize: '1rem' }} />
                 </IconButton>
             </Box>
 
-            {/* Section Content - Modules are sortable within the parent context */}
+            {/* Section Content */}
             <Collapse in={isExpanded}>
                 <Box sx={{ p: 1 }}>
                     {section.columns && section.columns.length > 0 ? (
-                        <Box sx={{ display: 'flex', gap: 2 }}>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
                             {section.columns.map((col) => (
                                 <Box key={col.id} sx={{ flex: col.width, minWidth: 0 }}>
                                     <SortableContext
-                                        id={col.id} // Column ID becomes the sortable context ID
+                                        id={col.id}
                                         items={col.modules.map(m => m.id)}
                                         strategy={verticalListSortingStrategy}
                                     >
-                                                <ModuleDropZone sectionId={section.id} columnId={col.id}> {/* Drop zone uses column ID */}
+                                        <ModuleDropZone sectionId={section.id} columnId={col.id}>
                                             {col.modules.length === 0 ? (
                                                 <Typography
                                                     variant="body2"
-                                                    color="text.secondary"
-                                                    textAlign="center"
-                                                    py={2}
+                                                    sx={{
+                                                        color: '#9CA3AF',
+                                                        textAlign: 'center',
+                                                        py: 1.5,
+                                                        fontSize: '0.875rem',
+                                                    }}
                                                 >
-                                                    Empty
+                                                    Empty column
                                                 </Typography>
                                             ) : (
-                                                        col.modules.map((mod, index) => (
-                                                            <SortableModule
-                                                                key={mod.id}
-                                                                module={mod}
-                                                                isSelected={selectedModuleId === mod.id}
-                                                                onSelect={() => onSelectModule(mod.id)}
-                                                                onDelete={() => onDeleteModule(mod.id)}
-                                                                sectionId={section.id}
-                                                                columnId={col.id}
-                                                                index={index}
-                                                            />
-                                                        ))
+                                                col.modules.map((mod, index) => (
+                                                    <SortableModule
+                                                        key={mod.id}
+                                                        module={mod}
+                                                        isSelected={selectedModuleId === mod.id}
+                                                        onSelect={() => onSelectModule(mod.id)}
+                                                        onDelete={() => onDeleteModule(mod.id)}
+                                                        sectionId={section.id}
+                                                        columnId={col.id}
+                                                        index={index}
+                                                    />
+                                                ))
                                             )}
                                         </ModuleDropZone>
                                     </SortableContext>
@@ -396,24 +398,27 @@ function SectionItem({
                                 {section.modules.length === 0 ? (
                                     <Typography
                                         variant="body2"
-                                        color="text.secondary"
-                                        textAlign="center"
-                                        py={2}
+                                        sx={{
+                                            color: '#9CA3AF',
+                                            textAlign: 'center',
+                                            py: 2,
+                                            fontSize: '0.875rem',
+                                        }}
                                     >
-                                        Drag modules here
+                                        Drag modules here to add
                                     </Typography>
                                 ) : (
-                                        section.modules.map((mod, index) => (
-                                            <SortableModule
-                                                key={mod.id}
-                                                module={mod}
-                                                isSelected={selectedModuleId === mod.id}
-                                                onSelect={() => onSelectModule(mod.id)}
-                                                onDelete={() => onDeleteModule(mod.id)}
-                                                sectionId={section.id}
-                                                index={index}
-                                            />
-                                        ))
+                                    section.modules.map((mod, index) => (
+                                        <SortableModule
+                                            key={mod.id}
+                                            module={mod}
+                                            isSelected={selectedModuleId === mod.id}
+                                            onSelect={() => onSelectModule(mod.id)}
+                                            onDelete={() => onDeleteModule(mod.id)}
+                                            sectionId={section.id}
+                                            index={index}
+                                        />
+                                    ))
                                 )}
                             </ModuleDropZone>
                         </SortableContext>
@@ -470,10 +475,22 @@ export default function SectionList({
 
             <Button
                 fullWidth
-                variant="outlined"
+                variant="contained"
                 startIcon={<AddIcon />}
                 onClick={onAddSection}
-                sx={{ mt: 1 }}
+                sx={{
+                    mt: 1.5,
+                    bgcolor: '#3B82F6',
+                    color: '#FFFFFF',
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    py: 1.25,
+                    transition: 'all 0.2s',
+                    '&:hover': {
+                        bgcolor: '#2563EB',
+                        boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                    },
+                }}
             >
                 Add Section
             </Button>
