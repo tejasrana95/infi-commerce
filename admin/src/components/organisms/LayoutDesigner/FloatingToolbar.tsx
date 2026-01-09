@@ -25,7 +25,6 @@ interface FloatingToolbarProps {
     onToggleModules?: () => void;
     modulesOpen?: boolean;
     onToggleProperties?: () => void;
-    propertiesOpen?: boolean;
     isSaving: boolean;
 }
 
@@ -43,7 +42,6 @@ export default function FloatingToolbar({
     onToggleModules,
     modulesOpen = true,
     onToggleProperties,
-    propertiesOpen = false,
     isSaving,
 }: FloatingToolbarProps) {
     const theme = useTheme();
@@ -270,16 +268,16 @@ export default function FloatingToolbar({
                     </IconButton>
                 </Tooltip>
                 {onToggleProperties && (
-                    <Tooltip title={propertiesOpen ? "Hide properties" : "Show properties"}>
+                    <Tooltip title={"Show properties"}>
                         <IconButton
                             onClick={onToggleProperties}
                             size="small"
                             sx={{
-                                color: propertiesOpen ? '#3B82F6' : '#6B7280',
-                                bgcolor: propertiesOpen ? '#EFF6FF' : 'transparent',
+                                color: '#6B7280',
+                                bgcolor: 'transparent',
                                 transition: 'all 0.2s',
                                 '&:hover': {
-                                    bgcolor: propertiesOpen ? '#DBEAFE' : '#F3F4F6',
+                                    bgcolor: '#F3F4F6',
                                     color: '#3B82F6',
                                 },
                             }}
