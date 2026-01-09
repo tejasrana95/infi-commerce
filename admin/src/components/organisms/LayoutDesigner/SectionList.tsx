@@ -34,9 +34,12 @@ interface SortableModuleProps {
     isSelected: boolean;
     onSelect: () => void;
     onDelete: () => void;
+    sectionId: string;
+    columnId?: string;
+    index: number;
 }
 
-function SortableModule({ module, isSelected, onSelect, onDelete }: SortableModuleProps) {
+function SortableModule({ module, isSelected, onSelect, onDelete, sectionId, columnId, index }: SortableModuleProps) {
     const definition = getModuleDefinition(module.type);
 
     // Check if module is removable - defaults to true unless explicitly false or is a placeholder
@@ -54,6 +57,9 @@ function SortableModule({ module, isSelected, onSelect, onDelete }: SortableModu
         data: {
             type: 'module',
             module,
+            sectionId,
+            columnId,
+            index,
         }
     });
 
@@ -131,13 +137,20 @@ function SortableModule({ module, isSelected, onSelect, onDelete }: SortableModu
 // Droppable area for modules from palette
 interface ModuleDropZoneProps {
     sectionId: string;
+    columnId?: string;
     children: React.ReactNode;
 }
 
-function ModuleDropZone({ sectionId, children }: ModuleDropZoneProps) {
+function ModuleDropZone({ sectionId, columnId, children }: ModuleDropZoneProps) {
+    const dropId = columnId ? `drop-${sectionId}-${columnId}` : `drop-${sectionId}`;
+
     const { setNodeRef, isOver } = useDroppable({
-        id: `drop-${sectionId}`,
-        data: { type: 'section-drop', sectionId },
+        id: dropId,
+        data: {
+            type: 'section-drop',
+            sectionId,
+            columnId,
+        },
     });
 
     return (
@@ -344,7 +357,7 @@ function SectionItem({
                                         items={col.modules.map(m => m.id)}
                                         strategy={verticalListSortingStrategy}
                                     >
-                                        <ModuleDropZone sectionId={col.id}> {/* Drop zone uses column ID */}
+                                                <ModuleDropZone sectionId={section.id} columnId={col.id}> {/* Drop zone uses column ID */}
                                             {col.modules.length === 0 ? (
                                                 <Typography
                                                     variant="body2"
@@ -355,15 +368,18 @@ function SectionItem({
                                                     Empty
                                                 </Typography>
                                             ) : (
-                                                col.modules.map((mod) => (
-                                                    <SortableModule
-                                                        key={mod.id}
-                                                        module={mod}
-                                                        isSelected={selectedModuleId === mod.id}
-                                                        onSelect={() => onSelectModule(mod.id)}
-                                                        onDelete={() => onDeleteModule(mod.id)}
-                                                    />
-                                                ))
+                                                        col.modules.map((mod, index) => (
+                                                            <SortableModule
+                                                                key={mod.id}
+                                                                module={mod}
+                                                                isSelected={selectedModuleId === mod.id}
+                                                                onSelect={() => onSelectModule(mod.id)}
+                                                                onDelete={() => onDeleteModule(mod.id)}
+                                                                sectionId={section.id}
+                                                                columnId={col.id}
+                                                                index={index}
+                                                            />
+                                                        ))
                                             )}
                                         </ModuleDropZone>
                                     </SortableContext>
@@ -387,15 +403,17 @@ function SectionItem({
                                         Drag modules here
                                     </Typography>
                                 ) : (
-                                    section.modules.map((mod) => (
-                                        <SortableModule
-                                            key={mod.id}
-                                            module={mod}
-                                            isSelected={selectedModuleId === mod.id}
-                                            onSelect={() => onSelectModule(mod.id)}
-                                            onDelete={() => onDeleteModule(mod.id)}
-                                        />
-                                    ))
+                                        section.modules.map((mod, index) => (
+                                            <SortableModule
+                                                key={mod.id}
+                                                module={mod}
+                                                isSelected={selectedModuleId === mod.id}
+                                                onSelect={() => onSelectModule(mod.id)}
+                                                onDelete={() => onDeleteModule(mod.id)}
+                                                sectionId={section.id}
+                                                index={index}
+                                            />
+                                        ))
                                 )}
                             </ModuleDropZone>
                         </SortableContext>

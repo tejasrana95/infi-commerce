@@ -237,6 +237,50 @@ export default function LayoutDesigner({
         );
     };
 
+    const insertModuleIntoSections = (
+        sections: LayoutSection[],
+        targetSectionId: string,
+        targetColumnId: string | undefined,
+        module: LayoutModule,
+        insertAfterId?: string
+    ): LayoutSection[] => {
+        const insertIntoList = (list: LayoutModule[]) => {
+            const newList = [...list];
+            if (insertAfterId) {
+                const insertIndex = newList.findIndex((m) => m.id === insertAfterId);
+                if (insertIndex !== -1) {
+                    newList.splice(insertIndex + 1, 0, module);
+                    return newList;
+                }
+            }
+            newList.push(module);
+            return newList;
+        };
+
+        return sections.map((section) => {
+            if (section.id !== targetSectionId) return section;
+
+            if (targetColumnId && section.columns) {
+                const columnFound = section.columns.some((c) => c.id === targetColumnId);
+                if (columnFound) {
+                    return {
+                        ...section,
+                        columns: section.columns.map((col) =>
+                            col.id === targetColumnId
+                                ? { ...col, modules: insertIntoList(col.modules) }
+                                : col
+                        ),
+                    };
+                }
+            }
+
+            return {
+                ...section,
+                modules: insertIntoList(section.modules),
+            };
+        });
+    };
+
     // Handle drag start
     const handleDragStart = (event: DragStartEvent) => {
         const { active } = event;
@@ -257,36 +301,31 @@ export default function LayoutDesigner({
 
         // Case 1: Dragging from palette to drop zone
         if (activeData?.type === 'palette-module' && activeData.moduleType) {
-            // Check if dropping on a section drop zone
+            const newModule = createModule(activeData.moduleType as ModuleType);
+
             if (overData?.type === 'section-drop' && overData.sectionId) {
-                const newModule = createModule(activeData.moduleType as ModuleType);
-                const sectionId = overData.sectionId; // This could be a section ID or a column ID
-
-                // Find if target is a section or a column
-                const section = layout.sections.find(s => s.id === sectionId);
-
-                if (section) {
-                    // Dropped directly on a non-split section
-                    updateSection(sectionId, {
-                        modules: [...section.modules, newModule],
-                    });
-                    setSelectedSectionId(sectionId);
-                    setSelectedModuleId(newModule.id);
-                } else {
-                    // Check if it's a column ID
-                    const sectionWithColumn = layout.sections.find(s => s.columns?.some(c => c.id === sectionId));
-                    if (sectionWithColumn && sectionWithColumn.columns) {
-                        updateSection(sectionWithColumn.id, {
-                            columns: sectionWithColumn.columns.map(col =>
-                                col.id === sectionId
-                                    ? { ...col, modules: [...col.modules, newModule] }
-                                    : col
-                            )
-                        });
-                        setSelectedSectionId(sectionWithColumn.id);
-                        setSelectedModuleId(newModule.id);
-                    }
-                }
+                updateSections(
+                    insertModuleIntoSections(
+                        layout.sections,
+                        overData.sectionId,
+                        overData.columnId,
+                        newModule
+                    )
+                );
+                setSelectedSectionId(overData.sectionId);
+                setSelectedModuleId(newModule.id);
+            } else if (overData?.type === 'module' && overData.sectionId) {
+                updateSections(
+                    insertModuleIntoSections(
+                        layout.sections,
+                        overData.sectionId,
+                        overData.columnId,
+                        newModule,
+                        overData.module?.id
+                    )
+                );
+                setSelectedSectionId(overData.sectionId);
+                setSelectedModuleId(newModule.id);
             }
             return;
         }
@@ -309,13 +348,7 @@ export default function LayoutDesigner({
         if (overData?.type === 'section') {
             overSection = overData.section;
         } else if (overData?.type === 'section-drop' && overData.sectionId) {
-            // Find section containing this drop zone (could be main section or column)
-            const s = layout.sections.find(s => s.id === overData.sectionId);
-            if (s) {
-                overSection = s;
-            } else {
-                overSection = layout.sections.find(s => s.columns?.some(c => c.id === overData.sectionId));
-            }
+            overSection = layout.sections.find((s) => s.id === overData.sectionId);
         } else {
             overSection = findSectionByModuleId(over.id as string);
         }
@@ -342,8 +375,9 @@ export default function LayoutDesigner({
             if (overSection) {
                 // If hovering over a drop zone, use that container ID
                 if (overData?.type === 'section-drop' && overData.sectionId) {
-                    const containerId = overData.sectionId;
-                    const targetCol = overSection.columns?.find(c => c.id === containerId);
+                    const targetCol = overData.columnId
+                        ? overSection.columns?.find(c => c.id === overData.columnId)
+                        : undefined;
                     if (targetCol) {
                         targetModules = targetCol.modules;
                         targetColumnId = targetCol.id;
