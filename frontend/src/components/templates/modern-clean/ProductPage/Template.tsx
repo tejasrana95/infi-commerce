@@ -24,6 +24,8 @@ import styles from './ProductPage.module.scss';
 import { formatPrice } from '@/lib/currency';
 import api from '@/lib/api';
 import { useToast } from '@/providers/ToastProvider';
+import { trackViewItem } from '@/lib/ga';
+import { useStore } from '@/providers/StoreProvider';
 
 export default function ModernCleanProductPageTemplate({
     product,
@@ -71,6 +73,7 @@ export default function ModernCleanProductPageTemplate({
     onCalculateShipping,
 }: ProductPageTemplateProps) {
     const { error: toastError } = useToast();
+    const { currentCurrency } = useStore();
     // Get ProductCard component
     const ProductCard = getComponent('ProductCard', templateId);
 
@@ -240,6 +243,29 @@ export default function ModernCleanProductPageTemplate({
             addToRecentlyViewed(product._id);
         }
     }, [product._id]);
+
+    // ============================================
+    // Track product view for Google Analytics
+    // ============================================
+    useEffect(() => {
+        if (product && currentCurrency) {
+            const categoryName = product.category && typeof product.category === 'object'
+                ? (product.category as any)?.name
+                : product.category;
+            const brandName = product.brand && typeof product.brand === 'object'
+                ? (product.brand as any)?.name
+                : product.brand;
+
+            trackViewItem({
+                item_id: product._id,
+                item_name: product.name,
+                price: effectivePrice,
+                item_category: categoryName,
+                item_brand: brandName,
+                item_variant: selectedVariant?.sku, // Use SKU instead of name
+            }, currentCurrency.code || 'USD');
+        }
+    }, [product._id, selectedVariant?._id]); // Track on product change or variant selection
 
     // ============================================
     // Render Module Helper (for page-specific placeholders)

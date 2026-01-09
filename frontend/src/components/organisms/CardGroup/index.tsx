@@ -102,11 +102,23 @@ const CardGroup: React.FC<CardGroupProps> = ({
                 {card.image && (
                     <div className={styles.imageWrapper}>
                         {isExternal ? (
-                            <a href={card.link} target="_blank" rel="noopener noreferrer" className={styles.cta}>
+                            <a
+                                href={card.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={styles.cta}
+                                data-track="card_click"
+                                data-card-title={card.title}
+                            >
                                 <Image src={card.image} alt={card.title} loading="lazy" width={425} height={265} />
                             </a>
                         ) : (
-                            <Link href={card.link} className={styles.cta}>
+                            <Link
+                                href={card.link}
+                                className={styles.cta}
+                                data-track="card_click"
+                                data-card-title={card.title}
+                            >
                                 <Image src={card.image} alt={card.title} loading="lazy" width={425} height={265} />
                             </Link>
                         )}
@@ -114,11 +126,23 @@ const CardGroup: React.FC<CardGroupProps> = ({
                 )}
                 <div className={styles.content}>
                     {isExternal ? (
-                        <a href={card.link} target="_blank" rel="noopener noreferrer" className={styles.cta}>
+                        <a
+                            href={card.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles.cta}
+                            data-track="card_click"
+                            data-card-title={card.title}
+                        >
                             <h3 className={styles.cardTitle}>{card.title}</h3>
                         </a>
                     ) : (
-                        <Link href={card.link} className={styles.cta}>
+                        <Link
+                            href={card.link}
+                            className={styles.cta}
+                            data-track="card_click"
+                            data-card-title={card.title}
+                        >
                             <h3 className={styles.cardTitle}>{card.title}</h3>
                         </Link>
                     )}
@@ -146,11 +170,23 @@ const CardGroup: React.FC<CardGroupProps> = ({
         );
 
         return isExternal ? (
-            <a href={card.link} target="_blank" rel="noopener noreferrer" className={styles.cta}>
+            <a
+                href={card.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.cta}
+                data-track="card_click"
+                data-card-title={card.title}
+            >
                 {content}
             </a>
         ) : (
-            <Link href={card.link} className={styles.cta}>
+            <Link
+                href={card.link}
+                className={styles.cta}
+                data-track="card_click"
+                data-card-title={card.title}
+            >
                 {content}
             </Link>
         );

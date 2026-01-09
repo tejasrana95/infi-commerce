@@ -4,6 +4,7 @@ import { useState } from 'react';
 import styles from './index.module.scss';
 import { FiMail, FiCheck } from 'react-icons/fi';
 import Honeypot from '@/components/core/common/Honeypot';
+import { track } from '@/lib/ga';
 
 interface NewsletterSignupProps {
     config: {
@@ -40,6 +41,10 @@ export default function NewsletterSignup({ config }: NewsletterSignupProps) {
 
         if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             setError('Please enter a valid email address');
+            track('newsletter_validation_error', {
+                error: 'invalid_email',
+                path: typeof window !== 'undefined' ? window.location.pathname : '',
+            });
             return;
         }
 
@@ -53,9 +58,23 @@ export default function NewsletterSignup({ config }: NewsletterSignupProps) {
 
             setSuccess(true);
             setEmail('');
+
+            // Track successful newsletter signup
+            track('newsletter_signup_success', {
+                source: 'blog',
+                path: typeof window !== 'undefined' ? window.location.pathname : '',
+            });
+
             setTimeout(() => setSuccess(false), 5000);
         } catch (err: any) {
-            setError(err.message || 'Something went wrong. Please try again.');
+            const errorMessage = err.message || 'Something went wrong. Please try again.';
+            setError(errorMessage);
+
+            // Track failed newsletter signup
+            track('newsletter_signup_error', {
+                error_message: errorMessage,
+                path: typeof window !== 'undefined' ? window.location.pathname : '',
+            });
         } finally {
             setLoading(false);
         }
@@ -76,7 +95,11 @@ export default function NewsletterSignup({ config }: NewsletterSignupProps) {
                         <p className={styles.description}>{description}</p>
                     </div>
 
-                    <form className={styles.form} onSubmit={handleSubmit}>
+                    <form
+                        className={styles.form}
+                        onSubmit={handleSubmit}
+                        data-track="newsletter_signup"
+                    >
                         <div className={styles.inputWrapper}>
                             <Honeypot
                                 name="_newsletter_trap"

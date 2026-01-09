@@ -11,6 +11,7 @@ import 'swiper/css/pagination';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchHeroSlider } from '@/lib/api';
 import { useStore } from '@/providers/StoreProvider';
+import { track } from '@/lib/ga';
 import styles from './HeroSlider.module.css';
 import * as FaIcons from 'react-icons/fa';
 import * as MdIcons from 'react-icons/md';
@@ -292,6 +293,9 @@ const LayerContent: React.FC<{
                     width: '100%',
                     height: '100%'
                 }}
+                data-track="hero_slider_cta_click"
+                data-cta-text={layer.content}
+                data-cta-link={layer.style?.href}
             >
                 {layer.content}
             </a>
@@ -332,10 +336,10 @@ const NestedSectionContent: React.FC<{
         wrap: true,
         direction: 'row' as const
     };
-    
+
     const columns = getSectionColumnsForViewport(sectionLayout, viewport);
     const gap = getSectionGapForViewport(sectionLayout, viewport);
-    
+
     // Get child layers
     const childLayers = layer.children && layer.children.length > 0
         ? allLayers.filter(l => layer.children!.includes(l.id))
@@ -399,9 +403,9 @@ const NestedSectionContent: React.FC<{
                     >
                         {/* Recursive nested section */}
                         {childLayer.type === 'section' ? (
-                            <NestedSectionContent 
-                                layer={childLayer} 
-                                viewport={viewport} 
+                            <NestedSectionContent
+                                layer={childLayer}
+                                viewport={viewport}
                                 allLayers={allLayers}
                                 isActive={isActive}
                             />
@@ -489,7 +493,7 @@ const Layer: React.FC<LayerProps> = ({ layer, isActive, viewport, allLayers }) =
         const columns = getSectionColumnsForViewport(sectionLayout, viewport);
         const gap = getSectionGapForViewport(sectionLayout, viewport);
         const direction = getSectionDirectionForViewport(sectionLayout, viewport);
-        
+
         // Get child layers
         const childLayers = layer.children && layer.children.length > 0
             ? allLayers.filter(l => layer.children!.includes(l.id))
@@ -572,9 +576,9 @@ const Layer: React.FC<LayerProps> = ({ layer, isActive, viewport, allLayers }) =
                                 >
                                     {/* Handle nested sections recursively */}
                                     {childLayer.type === 'section' ? (
-                                        <NestedSectionContent 
-                                            layer={childLayer} 
-                                            viewport={viewport} 
+                                        <NestedSectionContent
+                                            layer={childLayer}
+                                            viewport={viewport}
                                             allLayers={allLayers}
                                             isActive={isActive}
                                         />
@@ -632,15 +636,15 @@ const HeroSliderModule: React.FC<ModuleProps> = ({ config }) => {
     // Calculate height based on viewport and settings
     const containerHeight = useMemo(() => {
         if (!sliderData) return 600;
-        
+
         const heightSettings = sliderData.settings?.height;
-        
+
         if (typeof heightSettings === 'number') {
             return heightSettings;
         } else if (heightSettings && typeof heightSettings === 'object') {
             return heightSettings[viewport] || heightSettings.desktop || 600;
         }
-        
+
         return 600;
     }, [sliderData, viewport]);
 
@@ -655,7 +659,7 @@ const HeroSliderModule: React.FC<ModuleProps> = ({ config }) => {
         }
 
         const heightSettings = sliderData.settings?.height;
-        
+
         if (typeof heightSettings === 'number') {
             return {
                 '--hero-height-mobile': `${heightSettings}px`,
@@ -669,7 +673,7 @@ const HeroSliderModule: React.FC<ModuleProps> = ({ config }) => {
                 '--hero-height-desktop': `${heightSettings.desktop || 600}px`
             } as React.CSSProperties;
         }
-        
+
         return {
             '--hero-height-mobile': '600px',
             '--hero-height-tablet': '600px',
@@ -702,7 +706,21 @@ const HeroSliderModule: React.FC<ModuleProps> = ({ config }) => {
                 loop={true}
                 navigation
                 pagination={{ clickable: true }}
-                onSlideChange={(swiper: any) => setActiveIndex(swiper.realIndex)}
+                onSlideChange={(swiper: any) => {
+                    const newIndex = swiper.realIndex;
+                    setActiveIndex(newIndex);
+
+                    // Track slide change event
+                    if (sliderData) {
+                        track('hero_slider_slide_change', {
+                            slide_index: newIndex,
+                            total_slides: sliderData.slides.length,
+                            slider_id: sliderData._id,
+                            slider_name: sliderData.name,
+                            path: typeof window !== 'undefined' ? window.location.pathname : '',
+                        });
+                    }
+                }}
                 style={{ width: '100%', height: '100%' }}
             >
                 {sliderData.slides.map((slide, index) => (
@@ -725,7 +743,7 @@ const HeroSliderModule: React.FC<ModuleProps> = ({ config }) => {
                                     }}
                                 />
                             )}
-                            
+
                             {/* Background Color */}
                             {slide.background.type === 'color' && (
                                 <div

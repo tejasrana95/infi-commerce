@@ -86,7 +86,14 @@ export default function PricingTableModule({ config }: ModuleProps) {
                             ))}
                         </ul>
 
-                        <Link href={plan.ctaLink || '#'} className={styles.ctaButton}>
+                        <Link
+                            href={plan.ctaLink || '#'}
+                            className={styles.ctaButton}
+                            data-track="pricing_plan_select"
+                            data-plan-name={plan.name}
+                            data-plan-price={plan.price}
+                            data-plan-period={plan.period}
+                        >
                             {plan.ctaText || 'Choose Plan'}
                         </Link>
                     </div>

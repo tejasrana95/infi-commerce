@@ -14,6 +14,8 @@ import { formatStockStatus } from '@/lib/constants';
 import { formatPrice } from '@/lib/currency';
 import styles from './CategoryPage.module.scss';
 import CategoryFilters from '@/components/molecules/CategoryFilters';
+import { trackViewItemList } from '@/lib/ga';
+import { useStore } from '@/providers/StoreProvider';
 
 // (Layout helper functions removed - rendering now uses section-based iteration)
 
@@ -53,6 +55,7 @@ export default function ModernCleanCategoryPageTemplate({
     isFilterValueActive,
     didYouMean,
 }: CategoryPageTemplateProps) {
+    const { currentCurrency } = useStore();
     // Filter state removed (handled by molecule)
     // Local state for slider values (for real-time visual feedback)
     // Local slider state removed (handled by molecule)
@@ -84,6 +87,28 @@ export default function ModernCleanCategoryPageTemplate({
 
         return () => observer.disconnect();
     }, [config.pagination?.type, isLoading, pagination.page, pagination.pages, onLoadMore]);
+
+    // ============================================
+    // Track product list view for Google Analytics
+    // ============================================
+    useEffect(() => {
+        if (products && products.length > 0 && currentCurrency) {
+            const items = products.map((product, index) => ({
+                item_id: product._id,
+                item_name: product.name,
+                price: product.salePrice && product.salePrice < product.price ? product.salePrice : product.price,
+                item_category: product.category && typeof product.category === 'object' ? (product.category as any)?.name : product.category,
+                item_brand: product.brand && typeof product.brand === 'object' ? (product.brand as any)?.name : product.brand,
+                index,
+            }));
+
+            trackViewItemList(
+                items,
+                category?.title || 'Category Page',
+                currentCurrency.code || 'USD'
+            );
+        }
+    }, [products, category?.title, currentCurrency]);
 
     // Sync local slider state with active filters
     // Slider sync effect removed

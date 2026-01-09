@@ -102,6 +102,10 @@ export default function IconBoxModule({ config }: ModuleProps) {
                 {...wrapperProps}
                 className={`${styles.iconBox} ${styles[`layout-${layout}`]}`}
                 style={boxStyle as any}
+                {...(item.link ? {
+                    'data-track': 'icon_box_click',
+                    'data-icon-box-title': item.title
+                } : {})}
             >
                 <div className={styles.iconWrapper}>
                     {iconType === 'image' && item.image ? (

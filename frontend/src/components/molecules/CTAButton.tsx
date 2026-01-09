@@ -60,11 +60,27 @@ const CTAButton: React.FC<CTAButtonProps> = ({
     return (
         <div className={wrapperClasses}>
             {link && link.startsWith('/') ? (
-                <Link href={link} className={buttonClasses} style={dynamicStyles}>
+                <Link
+                    href={link}
+                    className={buttonClasses}
+                    style={dynamicStyles}
+                    data-track="cta_button_click"
+                    data-button-text={text}
+                    data-button-link={link}
+                >
                     {renderContent()}
                 </Link>
             ) : (
-                <a href={link || '#'} className={buttonClasses} target="_blank" rel="noopener noreferrer" style={dynamicStyles}>
+                <a
+                    href={link || '#'}
+                    className={buttonClasses}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={dynamicStyles}
+                    data-track="cta_button_click"
+                    data-button-text={text}
+                    data-button-link={link}
+                >
                     {renderContent()}
                 </a>
             )}

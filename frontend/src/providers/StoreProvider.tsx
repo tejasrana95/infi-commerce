@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect } from 'react';
 import { Store, StoreContextType, ThemeConfig, DEFAULT_TEMPLATE_ID } from '@/types';
 import api from '@/lib/api';
+import { detectCurrency, hasManualCurrencySelection } from '@/lib/geolocation';
 
 // ============================================
 // Context Creation
@@ -97,6 +98,43 @@ export function StoreProvider({ store, children, currentCurrency, availableCurre
         }
     }, [currentCurrency]);
 
+    // Auto-detect currency on first visit (only if no manual selection)
+    useEffect(() => {
+        const autoDetectCurrency = async () => {
+            // Skip if user has manually selected a currency
+            if (hasManualCurrencySelection()) {
+                return;
+            }
+
+            // Skip if no available currencies
+            if (!availableCurrencies || availableCurrencies.length === 0) {
+                return;
+            }
+            // Skip if currency is already set
+            if (currentCurrency) {
+                return;
+            }
+
+            try {
+                const currencyCodes = availableCurrencies
+                    .map(c => c.code)
+                    .filter((code): code is string => code !== undefined);
+                const detectedCode = await detectCurrency(currencyCodes);
+
+                // Set the detected currency
+                const detected = availableCurrencies.find(c => c.code === detectedCode);
+                if (detected) {
+                    setActiveCurrency(detected);
+                    // Don't set cookie - this is auto-detection, not manual selection
+                }
+            } catch (error) {
+                console.error('Currency auto-detection failed:', error);
+            }
+        };
+
+        autoDetectCurrency();
+    }, [availableCurrencies, currentCurrency]);
+
     const setCurrency = (code: string) => {
         // Update local state immediately for dynamic UI
         const newCurrency = availableCurrencies?.find(c => c.code === code);
@@ -104,8 +142,11 @@ export function StoreProvider({ store, children, currentCurrency, availableCurre
             setActiveCurrency(newCurrency);
         }
 
-        // Set cookie valid for 30 days
+        // Set cookie valid for 30 days (marks as manual selection)
         document.cookie = `currency=${code}; path=/; max-age=${60 * 60 * 24 * 30}`;
+
+        // Clear auto-detection cookie since user made manual choice
+        document.cookie = 'currency_auto_detected=; path=/; max-age=0';
 
         // No reload needed - context will propagate changes
     };

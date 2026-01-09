@@ -85,6 +85,10 @@ export default function Accordion({ config, sectionType }: ModuleProps) {
                                 className={styles.trigger}
                                 onClick={() => toggleItem(index)}
                                 aria-expanded={isOpen}
+                                data-track="accordion_toggle"
+                                data-accordion-title={item.title}
+                                data-accordion-index={index}
+                                data-accordion-action={isOpen ? 'collapse' : 'expand'}
                             >
                                 <div className={styles.titleWrapper}>
                                     {iconType === 'icon' && item.icon && (
