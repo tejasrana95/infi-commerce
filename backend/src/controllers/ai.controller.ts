@@ -583,7 +583,7 @@ export const chat = asyncHandler(async (req: AuthRequest, res: Response) => {
     }
 
     // Build context
-    const domain = store.domain || 'demostore.com';
+    const domain = store.domains?.[0] || 'demostore.com';
     const protocol = domain.includes('localhost') ? 'http' : 'https';
     const baseUrl = `${protocol}://${domain}`;
 

@@ -5,6 +5,13 @@ import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import cache from '../utils/cache';
 
+// Helper to validate domain format
+const isValidDomain = (value: string): boolean => {
+    const isLocalhost = /^localhost(:\d{1,5})?$/.test(value);
+    const isStandardDomain = /^[a-z0-9.-]+\.[a-z]{2,}$/.test(value);
+    return isLocalhost || isStandardDomain;
+};
+
 // Validation rules
 export const createStoreValidation = [
     body('name').trim().notEmpty().withMessage('Store name is required'),
@@ -14,16 +21,24 @@ export const createStoreValidation = [
         .withMessage('Store slug is required')
         .matches(/^[a-z0-9-]+$/)
         .withMessage('Slug must contain only lowercase letters, numbers, and hyphens'),
+    // Support both 'domains' array and legacy 'domain' string
+    body('domains')
+        .optional()
+        .isArray({ min: 1 })
+        .withMessage('Domains must be an array with at least one domain')
+        .custom((domains: string[]) => {
+            for (const d of domains) {
+                if (!isValidDomain(d.toLowerCase().trim())) {
+                    throw new Error(`Invalid domain format: ${d}`);
+                }
+            }
+            return true;
+        }),
     body('domain')
+        .optional()
         .trim()
-        .notEmpty()
-        .withMessage('Domain is required')
         .custom((value) => {
-            // Allow localhost (with optional port) or standard domain format
-            const isLocalhost = /^localhost(:\d{1,5})?$/.test(value);
-            const isStandardDomain = /^[a-z0-9.-]+\.[a-z]{2,}$/.test(value);
-
-            if (!isLocalhost && !isStandardDomain) {
+            if (value && !isValidDomain(value)) {
                 throw new Error('Invalid domain format');
             }
             return true;
@@ -45,15 +60,24 @@ export const updateStoreValidation = [
         .trim()
         .matches(/^[a-z0-9-]+$/)
         .withMessage('Slug must contain only lowercase letters, numbers, and hyphens'),
+    // Support both 'domains' array and legacy 'domain' string
+    body('domains')
+        .optional()
+        .isArray({ min: 1 })
+        .withMessage('Domains must be an array with at least one domain')
+        .custom((domains: string[]) => {
+            for (const d of domains) {
+                if (!isValidDomain(d.toLowerCase().trim())) {
+                    throw new Error(`Invalid domain format: ${d}`);
+                }
+            }
+            return true;
+        }),
     body('domain')
         .optional()
         .trim()
         .custom((value) => {
-            // Allow localhost (with optional port) or standard domain format
-            const isLocalhost = /^localhost(:\d{1,5})?$/.test(value);
-            const isStandardDomain = /^[a-z0-9.-]+\.[a-z]{2,}$/.test(value);
-
-            if (!isLocalhost && !isStandardDomain) {
+            if (value && !isValidDomain(value)) {
                 throw new Error('Invalid domain format');
             }
             return true;
@@ -102,7 +126,8 @@ export const getStoreByDomain = asyncHandler(async (req: Request, res: Response)
         }
     }
 
-    const store = await Store.findOne({ domain, isActive: true });
+    // MongoDB automatically matches if domain is in the domains array
+    const store = await Store.findOne({ domains: domain, isActive: true });
 
     if (store && store.settings?.aiSettings?.openaiKey) {
         store.settings.aiSettings.openaiKey = '••••••••••••••••••••';
@@ -190,27 +215,37 @@ export const createStore = asyncHandler(async (req: AuthRequest, res: Response) 
         throw new AppError('Unauthorized: Store admins cannot create stores', 403);
     }
 
-    const { name, slug, domain, description, logo, currency, timezone, settings } = req.body;
+    const { name, slug, domain, domains: domainsFromBody, description, logo, currency, timezone, settings } = req.body;
 
-    // Check if store with slug or domain already exists
-    const existingStore = await Store.findOne({
-        $or: [{ slug }, { domain }],
-    });
+    // Support both 'domains' array and legacy 'domain' string
+    const domains: string[] = domainsFromBody ||
+        (domain ? [domain.toLowerCase().trim()] : []);
 
-    if (existingStore) {
-        if (existingStore.slug === slug) {
-            throw new AppError('Store with this slug already exists', 400);
-        }
-        if (existingStore.domain === domain) {
-            throw new AppError('Store with this domain already exists', 400);
-        }
+    if (domains.length === 0) {
+        throw new AppError('At least one domain is required', 400);
+    }
+
+    // Normalize domains to lowercase
+    const normalizedDomains = domains.map((d: string) => d.toLowerCase().trim());
+
+    // Check if store with slug already exists
+    const existingBySlug = await Store.findOne({ slug });
+    if (existingBySlug) {
+        throw new AppError('Store with this slug already exists', 400);
+    }
+
+    // Check if any of the domains are already in use by another store
+    const existingByDomain = await Store.findOne({ domains: { $in: normalizedDomains } });
+    if (existingByDomain) {
+        const conflictingDomain = normalizedDomains.find(d => existingByDomain.domains.includes(d));
+        throw new AppError(`Domain "${conflictingDomain}" is already in use by another store`, 400);
     }
 
     // Create new store
     const store = await Store.create({
         name,
         slug,
-        domain,
+        domains: normalizedDomains,
         description,
         logo,
         currency: currency || 'USD',
@@ -300,7 +335,7 @@ export const getStores = asyncHandler(async (req: AuthRequest, res: Response) =>
     if (req.query.search) {
         filter.$or = [
             { name: { $regex: req.query.search, $options: 'i' } },
-            { domain: { $regex: req.query.search, $options: 'i' } },
+            { domains: { $regex: req.query.search, $options: 'i' } },
         ];
     }
 
@@ -508,11 +543,26 @@ export const updateStore = asyncHandler(async (req: AuthRequest, res: Response) 
         }
     }
 
-    const updates = req.body;
-    const { settings, ...otherUpdates } = updates;
+    // Get the current store to access old domains for cache invalidation
+    const currentStore = await Store.findById(id);
+    if (!currentStore) {
+        throw new AppError('Store not found', 404);
+    }
+    const oldDomains = currentStore.domains || [];
 
-    // If slug or domain is being updated, check for conflicts
-    if (updates.slug || updates.domain) {
+    const updates = req.body;
+    const { settings, domain, domains: domainsFromBody, ...otherUpdates } = updates;
+
+    // Handle domains: support both 'domains' array and legacy 'domain' string
+    let newDomains: string[] | undefined;
+    if (domainsFromBody !== undefined) {
+        newDomains = domainsFromBody.map((d: string) => d.toLowerCase().trim());
+    } else if (domain !== undefined) {
+        newDomains = [domain.toLowerCase().trim()];
+    }
+
+    // If slug or domains are being updated, check for conflicts
+    if (updates.slug || newDomains) {
         const conflictFilter: any = {
             _id: { $ne: id },
             $or: [],
@@ -521,23 +571,36 @@ export const updateStore = asyncHandler(async (req: AuthRequest, res: Response) 
         if (updates.slug) {
             conflictFilter.$or.push({ slug: updates.slug });
         }
-        if (updates.domain) {
-            conflictFilter.$or.push({ domain: updates.domain });
+        if (newDomains && newDomains.length > 0) {
+            // Check if any of the new domains conflict with other stores
+            conflictFilter.$or.push({ domains: { $in: newDomains } });
         }
 
-        const existingStore = await Store.findOne(conflictFilter);
-        if (existingStore) {
-            if (existingStore.slug === updates.slug) {
-                throw new AppError('Store with this slug already exists', 400);
-            }
-            if (existingStore.domain === updates.domain) {
-                throw new AppError('Store with this domain already exists', 400);
+        if (conflictFilter.$or.length > 0) {
+            const existingStore = await Store.findOne(conflictFilter);
+            if (existingStore) {
+                if (existingStore.slug === updates.slug) {
+                    throw new AppError('Store with this slug already exists', 400);
+                }
+                // Check which domain conflicts
+                if (newDomains) {
+                    const conflictingDomain = newDomains.find(d => existingStore.domains.includes(d));
+                    if (conflictingDomain) {
+                        throw new AppError(`Domain "${conflictingDomain}" is already in use by another store`, 400);
+                    }
+                }
             }
         }
     }
 
     // Flatten settings to avoid overwriting the whole object
     const finalUpdates: any = { ...otherUpdates };
+
+    // Add domains if being updated
+    if (newDomains !== undefined) {
+        finalUpdates.domains = newDomains;
+    }
+
     if (settings && typeof settings === 'object') {
         const flattenObject = (obj: any, prefix = 'settings') => {
             Object.keys(obj).forEach(key => {
@@ -567,10 +630,17 @@ export const updateStore = asyncHandler(async (req: AuthRequest, res: Response) 
         throw new AppError('Store not found', 404);
     }
 
-    // Invalidate caches
+    // Invalidate caches - clear all old domains and new domains
     cache.delete(`store:id:${id}`);
-    cache.delete(`store:domain:${store.domain}`);
     cache.delete(`store:slug:${store.slug}`);
+    // Clear cache for old domains
+    for (const d of oldDomains) {
+        cache.delete(`store:domain:${d}`);
+    }
+    // Clear cache for new domains
+    for (const d of store.domains) {
+        cache.delete(`store:domain:${d}`);
+    }
 
     res.json({
         message: 'Store updated successfully',
@@ -667,8 +737,11 @@ export const toggleStoreStatus = asyncHandler(async (req: AuthRequest, res: Resp
 
     // Invalidate caches
     cache.delete(`store:id:${id}`);
-    cache.delete(`store:domain:${store.domain}`);
     cache.delete(`store:slug:${store.slug}`);
+    // Clear cache for all domains
+    for (const d of store.domains) {
+        cache.delete(`store:domain:${d}`);
+    }
 
     return res.json({
         message: `Store ${store.isActive ? 'activated' : 'deactivated'} successfully`,

@@ -110,15 +110,27 @@ export default function StoresPage() {
       ),
     },
     {
-      field: 'domain',
+      field: 'domains',
       headerName: 'Domain',
       flex: 1,
       minWidth: 180,
-      renderCell: (params: GridRenderCellParams) => (
-        <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
-          <Typography variant="body2" fontWeight={600}>{params.row.domain}</Typography>
-        </Box>
-      ),
+      renderCell: (params: GridRenderCellParams) => {
+        const domains = params.row.domains || [];
+        const primaryDomain = domains[0] || 'No domain';
+        const additionalCount = domains.length > 1 ? domains.length - 1 : 0;
+        return (
+          <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+            <Typography variant="body2" fontWeight={600}>
+              {primaryDomain}
+              {additionalCount > 0 && (
+                <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                  (+{additionalCount} more)
+                </Typography>
+              )}
+            </Typography>
+          </Box>
+        );
+      },
     },
     {
       field: 'currency',

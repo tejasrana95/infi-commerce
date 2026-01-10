@@ -46,7 +46,7 @@ export interface Store {
     _id: string;
     name: string;
     slug: string;
-    domain: string;
+    domains: string[];
     description?: string;
     logo?: string;
     favicon?: string;

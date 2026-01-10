@@ -216,7 +216,7 @@ export class TransactionalNotificationService {
                 orderUrl: `${frontendUrl}/orders/${order._id}`,
                 order_items_table: await this.renderOrderItemsTable(order, storeId),
                 trackingNumber: order.trackingNumber,
-                trackingUrl: order.trackingUrl || (order.trackingNumber ? `https://${(await Store.findById(storeId).select('domain').lean())?.domain}/orders/${order._id}/track` : undefined),
+                trackingUrl: order.trackingUrl || (order.trackingNumber ? `https://${(await Store.findById(storeId).select('domains').lean())?.domains?.[0]}/orders/${order._id}/track` : undefined),
                 gmailMarkup: this.generateGmailMarkup(order, status, store.name || storeName),
             }
         });

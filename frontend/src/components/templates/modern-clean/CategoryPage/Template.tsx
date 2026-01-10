@@ -97,7 +97,9 @@ export default function ModernCleanCategoryPageTemplate({
                 item_id: product._id,
                 item_name: product.name,
                 price: product.salePrice && product.salePrice < product.price ? product.salePrice : product.price,
-                item_category: product.category && typeof product.category === 'object' ? (product.category as any)?.name : product.category,
+                item_category: product.category
+                    ? (typeof product.category === 'object' ? (product.category.name || product.category.title) : product.category)
+                    : (product.categoryIds?.[0]?.title || category?.title || 'Uncategorized'),
                 item_brand: product.brand && typeof product.brand === 'object' ? (product.brand as any)?.name : product.brand,
                 index,
             }));

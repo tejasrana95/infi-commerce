@@ -9,7 +9,7 @@ export interface StoreOption {
     value: string;
     _id: string;
     name: string;
-    domain: string;
+    domains: string[];
 }
 
 interface StoreAutocompleteProps {
@@ -47,11 +47,11 @@ export default function StoreAutocomplete({
                 const storeData = response.data.stores || response.data.data || [];
 
                 const formattedStores: StoreOption[] = storeData.map((store: any) => ({
-                    label: `${store.name} (${store.domain})`,
+                    label: `${store.name} (${store.domains?.[0] || 'No domain'})`,
                     value: store._id,
                     _id: store._id,
                     name: store.name,
-                    domain: store.domain,
+                    domains: store.domains || [],
                 }));
 
                 setStores(formattedStores);

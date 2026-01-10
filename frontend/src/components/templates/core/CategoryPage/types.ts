@@ -28,6 +28,7 @@ export interface ProductListItem {
     slug: string;
     price: number;
     compareAtPrice?: number;
+    salePrice?: number;
     images: string[];
     brand?: string;
     averageRating?: number;
@@ -36,6 +37,8 @@ export interface ProductListItem {
     isNew?: boolean;
     isOnSale?: boolean;
     discountPercent?: number;
+    categoryIds?: Array<{ _id: string; title: string; slug: string }>;
+    category?: string | { name?: string; title?: string;[key: string]: any };
 }
 
 // Filter option with count

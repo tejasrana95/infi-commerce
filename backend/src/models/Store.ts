@@ -3,7 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IStore extends Document {
     name: string;
     slug: string;
-    domain: string;
+    domains: string[];
     description?: string;
     logo?: string;
     favicon?: string;
@@ -223,12 +223,15 @@ const StoreSchema = new Schema<IStore>(
             lowercase: true,
             trim: true,
         },
-        domain: {
-            type: String,
+        domains: {
+            type: [String],
             required: true,
-            unique: true,
-            lowercase: true,
-            trim: true,
+            validate: {
+                validator: function (v: string[]) {
+                    return v && v.length > 0;
+                },
+                message: 'At least one domain is required'
+            },
         },
         description: {
             type: String,
@@ -340,7 +343,7 @@ const StoreSchema = new Schema<IStore>(
 
 // Indexes for performance
 StoreSchema.index({ slug: 1 });
-StoreSchema.index({ domain: 1 });
+StoreSchema.index({ domains: 1 });
 StoreSchema.index({ isActive: 1 });
 
 const Store = mongoose.model<IStore>('Store', StoreSchema);

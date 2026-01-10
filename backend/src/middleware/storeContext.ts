@@ -18,7 +18,7 @@ declare global {
                 _id: string;
                 name: string;
                 slug: string;
-                domain: string;
+                domains: string[];
                 settings?: any;
             };
         }
@@ -75,7 +75,7 @@ export const storeContext = async (
             _id: store._id.toString(),
             name: store.name,
             slug: store.slug,
-            domain: store.domain,
+            domains: store.domains,
             settings: store.settings,
         };
 
@@ -136,7 +136,7 @@ storeContext.optional = async (
                 _id: store._id.toString(),
                 name: store.name,
                 slug: store.slug,
-                domain: store.domain,
+                domains: store.domains,
                 settings: store.settings,
             };
         }

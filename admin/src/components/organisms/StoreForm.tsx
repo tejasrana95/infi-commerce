@@ -41,11 +41,11 @@ const TIMEZONES = [
 const schema = z.object({
     name: z.string().min(1, 'Name is required'),
     slug: z.string().min(1, 'Slug is required').regex(/^[a-z0-9-]+$/, 'Slug must be lowercase with hyphens only'),
-    domain: z.string().min(1, 'Domain is required').refine((value) => {
+    domains: z.array(z.string().refine((value) => {
         const isLocalhost = /^localhost(:\d{1,5})?$/.test(value);
         const isStandardDomain = /^[a-z0-9.-]+\.[a-z]{2,}$/.test(value);
         return isLocalhost || isStandardDomain;
-    }, 'Invalid domain format'),
+    }, 'Invalid domain format')).min(1, 'At least one domain is required'),
     description: z.string().optional(),
     logo: z.string().url('Must be a valid URL').optional().or(z.literal('')),
     favicon: z.string().url('Must be a valid URL').optional().or(z.literal('')),
@@ -121,7 +121,7 @@ interface StoreFormProps {
 const defaultValues: StoreFormData = {
     name: '',
     slug: '',
-    domain: '',
+    domains: [],
     description: '',
     logo: '',
     favicon: '',
@@ -181,7 +181,7 @@ export default function StoreForm({ initialData, onSubmit, isSubmitting = false 
             reset({
                 name: initialData.name || '',
                 slug: initialData.slug || '',
-                domain: initialData.domain || '',
+                domains: initialData.domains || [],
                 description: initialData.description || '',
                 logo: initialData.logo || '',
                 favicon: initialData.favicon || '',
@@ -340,17 +340,34 @@ export default function StoreForm({ initialData, onSubmit, isSubmitting = false 
 
                     <Grid size={{ xs: 12, md: 6 }}>
                         <Controller
-                            name="domain"
+                            name="domains"
                             control={control}
-                            render={({ field }) => (
-                                <TextField
-                                    {...field}
-                                    label="Domain"
-                                    fullWidth
-                                    required
-                                    error={!!errors.domain}
-                                    helperText={errors.domain?.message}
-                                    placeholder="mystore.com"
+                            render={({ field: { onChange, value } }) => (
+                                <Autocomplete
+                                    multiple
+                                    freeSolo
+                                    value={value || []}
+                                    onChange={(_, newValue) => onChange(newValue.map((v: string) => v.toLowerCase().trim()))}
+                                    options={[]}
+                                    renderTags={(value, getTagProps) =>
+                                        value.map((option, index) => (
+                                            <Chip
+                                                label={index === 0 ? `${option} (Primary)` : option}
+                                                {...getTagProps({ index })}
+                                                key={index}
+                                                color={index === 0 ? 'primary' : 'default'}
+                                            />
+                                        ))
+                                    }
+                                    renderInput={(params) => (
+                                        <TextField
+                                            {...params}
+                                            label="Domains *"
+                                            placeholder="Type domain and press Enter"
+                                            error={!!errors.domains}
+                                            helperText={errors.domains?.message || 'First domain is primary. Add www, subdomains as needed.'}
+                                        />
+                                    )}
                                 />
                             )}
                         />
