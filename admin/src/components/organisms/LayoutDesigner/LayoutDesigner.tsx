@@ -42,7 +42,6 @@ import { Layout, LayoutSection, LayoutModule, ModuleType, LayoutType } from '@/t
 import ModulePalette from './ModulePalette';
 import SectionList from './SectionList';
 import FloatingToolbar from './FloatingToolbar';
-import PropertiesPanel from './PropertiesPanel';
 import ModuleEditor from './ModuleEditor';
 import SectionEditor from './SectionEditor';
 import { createSection, getModuleDefinition, createModule } from './types';
@@ -609,7 +608,6 @@ export default function LayoutDesigner({
                     onToggleModules={() => setLeftPanelOpen(!leftPanelOpen)}
                     modulesOpen={leftPanelOpen}
                     onToggleProperties={() => setRightPanelOpen(!rightPanelOpen)}
-                    propertiesOpen={rightPanelOpen}
                     isSaving={isSaving}
                 />
             </Box>
@@ -748,8 +746,8 @@ export default function LayoutDesigner({
                                         <Typography variant="body2" sx={{ mb: 3, color: '#6B7280' }}>
                                             Start building your layout by adding a section
                                         </Typography>
-                                        <Button 
-                                            variant="contained" 
+                                        <Button
+                                            variant="contained"
                                             onClick={handleAddSection}
                                             sx={{
                                                 bgcolor: '#3B82F6',

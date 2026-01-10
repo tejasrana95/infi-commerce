@@ -42,7 +42,7 @@ interface LayerListProps {
     onToggleVisibility: (id: string) => void;
     onToggleLock: (id: string) => void;
     onReorder: (layers: HeroSliderLayer[]) => void;
-    onAddToSection?: (sectionId: string, type: 'text' | 'image' | 'button' | 'icon' | 'rte') => void;
+    onAddToSection?: (sectionId: string, type: 'text' | 'image' | 'button' | 'icon' | 'rte' | 'section') => void;
 }
 
 const getLayerIcon = (type: string) => {
@@ -141,9 +141,9 @@ function SortableLayerItem({
                     <IconButton
                         size="small"
                         onClick={() => setExpanded(!expanded)}
-                        sx={{ 
-                            width: 20, 
-                            height: 20, 
+                        sx={{
+                            width: 20,
+                            height: 20,
                             ml: 0.5,
                             color: colors.textSecondary
                         }}
@@ -162,185 +162,185 @@ function SortableLayerItem({
                         color: colors.textSecondary,
                         display: 'flex',
                         alignItems: 'center',
-                    '&:active': { cursor: 'grabbing' }
-                }}
-            >
-                <DragIndicatorIcon sx={{ fontSize: 16 }} />
-            </Box>
-
-            {/* Layer Type Icon */}
-            <Box sx={{
-                color: layerColor,
-                display: 'flex',
-                alignItems: 'center',
-                mr: 1
-            }}>
-                {getLayerIcon(layer.type)}
-            </Box>
-
-            {/* Layer Info */}
-            <Box
-                onClick={handleClick}
-                sx={{
-                    flex: 1,
-                    py: 0.75,
-                    cursor: isLocked ? 'not-allowed' : 'pointer',
-                    overflow: 'hidden'
-                }}
-            >
-                <Typography
-                    variant="body2"
-                    sx={{
-                        color: colors.text,
-                        fontWeight: 500,
-                        fontSize: 12,
-                        textTransform: 'capitalize',
-                        lineHeight: 1.2
+                        '&:active': { cursor: 'grabbing' }
                     }}
-                    noWrap
                 >
-                    {layer.name || layer.type}
-                </Typography>
-                {layer.content && typeof layer.content === 'string' && layer.type !== 'image' && (
+                    <DragIndicatorIcon sx={{ fontSize: 16 }} />
+                </Box>
+
+                {/* Layer Type Icon */}
+                <Box sx={{
+                    color: layerColor,
+                    display: 'flex',
+                    alignItems: 'center',
+                    mr: 1
+                }}>
+                    {getLayerIcon(layer.type)}
+                </Box>
+
+                {/* Layer Info */}
+                <Box
+                    onClick={handleClick}
+                    sx={{
+                        flex: 1,
+                        py: 0.75,
+                        cursor: isLocked ? 'not-allowed' : 'pointer',
+                        overflow: 'hidden'
+                    }}
+                >
                     <Typography
-                        variant="caption"
+                        variant="body2"
                         sx={{
-                            color: colors.textSecondary,
-                            fontSize: 10,
-                            display: 'block'
+                            color: colors.text,
+                            fontWeight: 500,
+                            fontSize: 12,
+                            textTransform: 'capitalize',
+                            lineHeight: 1.2
                         }}
                         noWrap
                     >
-                        {layer.content.substring(0, 20)}{layer.content.length > 20 ? '...' : ''}
+                        {layer.name || layer.type}
                     </Typography>
-                )}
-            </Box>
+                    {layer.content && typeof layer.content === 'string' && layer.type !== 'image' && (
+                        <Typography
+                            variant="caption"
+                            sx={{
+                                color: colors.textSecondary,
+                                fontSize: 10,
+                                display: 'block'
+                            }}
+                            noWrap
+                        >
+                            {layer.content.substring(0, 20)}{layer.content.length > 20 ? '...' : ''}
+                        </Typography>
+                    )}
+                </Box>
 
-            {/* Actions */}
-            <Box
-                className="layer-actions"
-                sx={{
-                    display: 'flex',
-                    gap: 0.25,
-                    pr: 0.5,
-                    opacity: isSelected ? 1 : 0,
-                    transition: 'opacity 0.15s'
-                }}
-            >
-                <Tooltip title={isVisible ? "Hide" : "Show"} arrow placement="top">
-                    <IconButton
-                        size="small"
-                        onClick={(e) => { e.stopPropagation(); onToggleVisibility(layer.id); }}
-                        sx={{
-                            width: 24,
-                            height: 24,
-                            color: isVisible ? colors.textSecondary : colors.accent,
-                            '&:hover': { color: colors.accent }
-                        }}
-                    >
-                        {isVisible ? <VisibilityIcon sx={{ fontSize: 14 }} /> : <VisibilityOffIcon sx={{ fontSize: 14 }} />}
-                    </IconButton>
-                </Tooltip>
-                <Tooltip title={isLocked ? "Unlock" : "Lock"} arrow placement="top">
-                    <IconButton
-                        size="small"
-                        onClick={(e) => { e.stopPropagation(); onToggleLock(layer.id); }}
-                        sx={{
-                            width: 24,
-                            height: 24,
-                            color: isLocked ? '#f59e0b' : colors.textSecondary,
-                            '&:hover': { color: '#f59e0b' }
-                        }}
-                    >
-                        {isLocked ? <LockIcon sx={{ fontSize: 14 }} /> : <LockOpenIcon sx={{ fontSize: 14 }} />}
-                    </IconButton>
-                </Tooltip>
-                <Tooltip title="Duplicate" arrow placement="top">
-                    <IconButton
-                        size="small"
-                        onClick={(e) => { e.stopPropagation(); onDuplicate(layer.id); }}
-                        sx={{
-                            width: 24,
-                            height: 24,
-                            color: colors.textSecondary,
-                            '&:hover': { color: colors.accent }
-                        }}
-                    >
-                        <ContentCopyIcon sx={{ fontSize: 14 }} />
-                    </IconButton>
-                </Tooltip>
-                <Tooltip title="Delete" arrow placement="top">
-                    <IconButton
-                        size="small"
-                        onClick={(e) => { 
-                            e.stopPropagation(); 
-                            console.log('Delete clicked for layer:', layer.id, layer.type);
-                            onDelete(layer.id); 
-                        }}
-                        sx={{
-                            width: 24,
-                            height: 24,
-                            color: colors.textSecondary,
-                            '&:hover': { color: '#ef4444' }
-                        }}
-                    >
-                        <DeleteIcon sx={{ fontSize: 14 }} />
-                    </IconButton>
-                </Tooltip>
-
-                {/* Add to Section Button */}
-                {isSection && onAddToSection && (
-                    <>
-                        <Tooltip title="Add Content" arrow placement="top">
-                            <IconButton
-                                size="small"
-                                onClick={(e) => { e.stopPropagation(); setAddMenuAnchor(e.currentTarget); }}
-                                sx={{
-                                    width: 24,
-                                    height: 24,
-                                    color: colors.accent,
-                                    '&:hover': { color: colors.accent2 }
-                                }}
-                            >
-                                <AddIcon sx={{ fontSize: 14 }} />
-                            </IconButton>
-                        </Tooltip>
-                        <Menu
-                            anchorEl={addMenuAnchor}
-                            open={Boolean(addMenuAnchor)}
-                            onClose={() => setAddMenuAnchor(null)}
-                            PaperProps={{
-                                sx: { bgcolor: colors.bgSecondary, border: `1px solid ${colors.border}` }
+                {/* Actions */}
+                <Box
+                    className="layer-actions"
+                    sx={{
+                        display: 'flex',
+                        gap: 0.25,
+                        pr: 0.5,
+                        opacity: isSelected ? 1 : 0,
+                        transition: 'opacity 0.15s'
+                    }}
+                >
+                    <Tooltip title={isVisible ? "Hide" : "Show"} arrow placement="top">
+                        <IconButton
+                            size="small"
+                            onClick={(e) => { e.stopPropagation(); onToggleVisibility(layer.id); }}
+                            sx={{
+                                width: 24,
+                                height: 24,
+                                color: isVisible ? colors.textSecondary : colors.accent,
+                                '&:hover': { color: colors.accent }
                             }}
                         >
-                            <MenuItem onClick={() => { onAddToSection(layer.id, 'text'); setAddMenuAnchor(null); }} sx={{ color: colors.text }}>
-                                <ListItemIcon><TextFieldsIcon sx={{ color: '#00d4ff', fontSize: 16 }} /></ListItemIcon>
-                                <ListItemText>Text</ListItemText>
-                            </MenuItem>
-                            <MenuItem onClick={() => { onAddToSection(layer.id, 'rte'); setAddMenuAnchor(null); }} sx={{ color: colors.text }}>
-                                <ListItemIcon><TextFieldsIcon sx={{ color: '#06b6d4', fontSize: 16, borderBottom: '2px solid currentColor' }} /></ListItemIcon>
-                                <ListItemText>Rich Text</ListItemText>
-                            </MenuItem>
-                            <MenuItem onClick={() => { onAddToSection(layer.id, 'image'); setAddMenuAnchor(null); }} sx={{ color: colors.text }}>
-                                <ListItemIcon><ImageIcon sx={{ color: '#10b981', fontSize: 16 }} /></ListItemIcon>
-                                <ListItemText>Image</ListItemText>
-                            </MenuItem>
-                            <MenuItem onClick={() => { onAddToSection(layer.id, 'button'); setAddMenuAnchor(null); }} sx={{ color: colors.text }}>
-                                <ListItemIcon><SmartButtonIcon sx={{ color: '#7c3aed', fontSize: 16 }} /></ListItemIcon>
-                                <ListItemText>Button</ListItemText>
-                            </MenuItem>
-                            <MenuItem onClick={() => { onAddToSection(layer.id, 'icon'); setAddMenuAnchor(null); }} sx={{ color: colors.text }}>
-                                <ListItemIcon><StarIcon sx={{ color: '#f59e0b', fontSize: 16 }} /></ListItemIcon>
-                                <ListItemText>Icon</ListItemText>
-                            </MenuItem>
-                            <MenuItem onClick={() => { onAddToSection(layer.id, 'section'); setAddMenuAnchor(null); }} sx={{ color: colors.text }}>
-                                <ListItemIcon><ViewModuleIcon sx={{ color: '#ec4899', fontSize: 16 }} /></ListItemIcon>
-                                <ListItemText>Nested Section</ListItemText>
-                            </MenuItem>
-                        </Menu>
-                    </>
-                )}
-            </Box>
+                            {isVisible ? <VisibilityIcon sx={{ fontSize: 14 }} /> : <VisibilityOffIcon sx={{ fontSize: 14 }} />}
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title={isLocked ? "Unlock" : "Lock"} arrow placement="top">
+                        <IconButton
+                            size="small"
+                            onClick={(e) => { e.stopPropagation(); onToggleLock(layer.id); }}
+                            sx={{
+                                width: 24,
+                                height: 24,
+                                color: isLocked ? '#f59e0b' : colors.textSecondary,
+                                '&:hover': { color: '#f59e0b' }
+                            }}
+                        >
+                            {isLocked ? <LockIcon sx={{ fontSize: 14 }} /> : <LockOpenIcon sx={{ fontSize: 14 }} />}
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Duplicate" arrow placement="top">
+                        <IconButton
+                            size="small"
+                            onClick={(e) => { e.stopPropagation(); onDuplicate(layer.id); }}
+                            sx={{
+                                width: 24,
+                                height: 24,
+                                color: colors.textSecondary,
+                                '&:hover': { color: colors.accent }
+                            }}
+                        >
+                            <ContentCopyIcon sx={{ fontSize: 14 }} />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete" arrow placement="top">
+                        <IconButton
+                            size="small"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                console.log('Delete clicked for layer:', layer.id, layer.type);
+                                onDelete(layer.id);
+                            }}
+                            sx={{
+                                width: 24,
+                                height: 24,
+                                color: colors.textSecondary,
+                                '&:hover': { color: '#ef4444' }
+                            }}
+                        >
+                            <DeleteIcon sx={{ fontSize: 14 }} />
+                        </IconButton>
+                    </Tooltip>
+
+                    {/* Add to Section Button */}
+                    {isSection && onAddToSection && (
+                        <>
+                            <Tooltip title="Add Content" arrow placement="top">
+                                <IconButton
+                                    size="small"
+                                    onClick={(e) => { e.stopPropagation(); setAddMenuAnchor(e.currentTarget); }}
+                                    sx={{
+                                        width: 24,
+                                        height: 24,
+                                        color: colors.accent,
+                                        '&:hover': { color: colors.accent2 }
+                                    }}
+                                >
+                                    <AddIcon sx={{ fontSize: 14 }} />
+                                </IconButton>
+                            </Tooltip>
+                            <Menu
+                                anchorEl={addMenuAnchor}
+                                open={Boolean(addMenuAnchor)}
+                                onClose={() => setAddMenuAnchor(null)}
+                                PaperProps={{
+                                    sx: { bgcolor: colors.bgSecondary, border: `1px solid ${colors.border}` }
+                                }}
+                            >
+                                <MenuItem onClick={() => { onAddToSection(layer.id, 'text'); setAddMenuAnchor(null); }} sx={{ color: colors.text }}>
+                                    <ListItemIcon><TextFieldsIcon sx={{ color: '#00d4ff', fontSize: 16 }} /></ListItemIcon>
+                                    <ListItemText>Text</ListItemText>
+                                </MenuItem>
+                                <MenuItem onClick={() => { onAddToSection(layer.id, 'rte'); setAddMenuAnchor(null); }} sx={{ color: colors.text }}>
+                                    <ListItemIcon><TextFieldsIcon sx={{ color: '#06b6d4', fontSize: 16, borderBottom: '2px solid currentColor' }} /></ListItemIcon>
+                                    <ListItemText>Rich Text</ListItemText>
+                                </MenuItem>
+                                <MenuItem onClick={() => { onAddToSection(layer.id, 'image'); setAddMenuAnchor(null); }} sx={{ color: colors.text }}>
+                                    <ListItemIcon><ImageIcon sx={{ color: '#10b981', fontSize: 16 }} /></ListItemIcon>
+                                    <ListItemText>Image</ListItemText>
+                                </MenuItem>
+                                <MenuItem onClick={() => { onAddToSection(layer.id, 'button'); setAddMenuAnchor(null); }} sx={{ color: colors.text }}>
+                                    <ListItemIcon><SmartButtonIcon sx={{ color: '#7c3aed', fontSize: 16 }} /></ListItemIcon>
+                                    <ListItemText>Button</ListItemText>
+                                </MenuItem>
+                                <MenuItem onClick={() => { onAddToSection(layer.id, 'icon'); setAddMenuAnchor(null); }} sx={{ color: colors.text }}>
+                                    <ListItemIcon><StarIcon sx={{ color: '#f59e0b', fontSize: 16 }} /></ListItemIcon>
+                                    <ListItemText>Icon</ListItemText>
+                                </MenuItem>
+                                <MenuItem onClick={() => { onAddToSection(layer.id, 'section'); setAddMenuAnchor(null); }} sx={{ color: colors.text }}>
+                                    <ListItemIcon><ViewModuleIcon sx={{ color: '#ec4899', fontSize: 16 }} /></ListItemIcon>
+                                    <ListItemText>Nested Section</ListItemText>
+                                </MenuItem>
+                            </Menu>
+                        </>
+                    )}
+                </Box>
             </Box>
 
             {/* Section Children */}
@@ -431,9 +431,9 @@ export default function LayerList({
             </Box>
 
             {/* Layers */}
-            <Box sx={{ 
-                flex: 1, 
-                overflow: 'auto', 
+            <Box sx={{
+                flex: 1,
+                overflow: 'auto',
                 p: 1,
                 '&::-webkit-scrollbar': {
                     width: 6,

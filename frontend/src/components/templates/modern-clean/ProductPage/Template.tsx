@@ -249,9 +249,7 @@ export default function ModernCleanProductPageTemplate({
     // ============================================
     useEffect(() => {
         if (product && currentCurrency) {
-            const categoryName = product.category && typeof product.category === 'object'
-                ? (product.category as any)?.name
-                : product.category;
+            const categoryName = product.categories?.[0]?.title || '';
             const brandName = product.brand && typeof product.brand === 'object'
                 ? (product.brand as any)?.name
                 : product.brand;
