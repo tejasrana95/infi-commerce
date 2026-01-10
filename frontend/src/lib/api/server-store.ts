@@ -424,7 +424,7 @@ export async function fetchBlogPageData(
 export async function fetchPageBySlug(storeId: string, slug: string): Promise<any | null> {
     try {
         const [pageRes, layout] = await Promise.all([
-            fetch(`${API_BASE}/pages/slug/${slug}`, {
+            fetch(`${API_BASE}/pages/slug/${slug}?storeId=${storeId}`, {
                 next: { revalidate: 60 },
                 headers: { 'Content-Type': 'application/json' },
             }),

@@ -49,6 +49,8 @@ import {
     FlipBoxConfigPanel,
     ProgressBarConfigPanel,
     MarqueeConfigPanel,
+    IconConfigPanel,
+    TableConfigPanel,
     ContentCardGridConfigPanel,
 } from '@/components/organisms/ModuleConfigPanels';
 import FormModuleEditor from './ModuleEditors/FormModuleEditor';
@@ -408,6 +410,22 @@ export default function ModuleEditor({ module, onChange, onDelete, storeId }: Mo
                     <MarqueeConfigPanel
                         config={module.config as any}
                         onChange={updateConfig}
+                    />
+                );
+
+            case 'icon':
+                return (
+                    <IconConfigPanel
+                        module={module}
+                        onChange={onChange}
+                    />
+                );
+
+            case 'table':
+                return (
+                    <TableConfigPanel
+                        module={module}
+                        onChange={onChange}
                     />
                 );
 

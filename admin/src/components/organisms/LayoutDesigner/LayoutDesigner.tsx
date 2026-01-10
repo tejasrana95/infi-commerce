@@ -25,6 +25,7 @@ import GridViewIcon from '@mui/icons-material/GridView';
 import MenuIcon from '@mui/icons-material/Menu';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { useNotification } from '@/contexts/NotificationContext';
+import StoreAutocomplete from '@/components/molecules/StoreAutocomplete';
 
 import {
     DndContext,
@@ -38,7 +39,8 @@ import {
     useSensors,
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
-import { Layout, LayoutSection, LayoutModule, ModuleType, LayoutType } from '@/types';
+import ColumnEditor from './ColumnEditor';
+import { Layout, LayoutSection, LayoutModule, ModuleType, LayoutType, LayoutColumn } from '@/types';
 import ModulePalette from './ModulePalette';
 import SectionList from './SectionList';
 import FloatingToolbar from './FloatingToolbar';
@@ -65,6 +67,7 @@ export default function LayoutDesigner({
 }: LayoutDesignerProps) {
     const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
     const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
+    const [selectedColumnId, setSelectedColumnId] = useState<string | null>(null);
     const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
     const [activeId, setActiveId] = useState<string | null>(null);
     const [activeDragData, setActiveDragData] = useState<any>(null);
@@ -90,6 +93,7 @@ export default function LayoutDesigner({
 
     // Global Clipboard State for Styles
     const [copiedSectionStyle, setCopiedSectionStyle] = useState<any>(null);
+    const [copiedColumnStyle, setCopiedColumnStyle] = useState<any>(null);
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -161,12 +165,66 @@ export default function LayoutDesigner({
         },
         [layout.sections, updateSections]
     );
+    // Clone a section
+    const handleCloneSection = (sectionId: string) => {
+        const sectionIndex = layout.sections.findIndex((s) => s.id === sectionId);
+        if (sectionIndex === -1) return;
+
+        const originalSection = layout.sections[sectionIndex];
+
+        // Deep clone and regenerate IDs
+        const clonedSection: LayoutSection = JSON.parse(JSON.stringify(originalSection));
+        clonedSection.id = crypto.randomUUID();
+        clonedSection.name = `${originalSection.name} (Copy)`;
+
+        // Regenerate IDs for modules
+        clonedSection.modules = clonedSection.modules.map((m) => ({
+            ...m,
+            id: crypto.randomUUID(),
+        }));
+
+        // Regenerate IDs for columns and their modules
+        if (clonedSection.columns) {
+            clonedSection.columns = clonedSection.columns.map((col) => ({
+                ...col,
+                id: crypto.randomUUID(),
+                modules: col.modules.map((m) => ({
+                    ...m,
+                    id: crypto.randomUUID(),
+                })),
+            }));
+        }
+
+        const newSections = [...layout.sections];
+        newSections.splice(sectionIndex + 1, 0, clonedSection);
+        updateSections(newSections);
+
+        // Select the new section
+        setSelectedSectionId(clonedSection.id);
+        setSelectedModuleId(null);
+        showNotification('Section duplicated', 'success');
+    };
+
+    // Select a column
+    const handleSelectColumn = (sectionId: string, columnId: string) => {
+        if (selectedColumnId === columnId) {
+            setSelectedColumnId(null);
+            setRightPanelOpen(false);
+            return;
+        }
+        setSelectedSectionId(sectionId);
+        setSelectedModuleId(null);
+        setSelectedColumnId(columnId);
+        setRightPanelOpen(true);
+    };
+
     // Add new section
     const handleAddSection = () => {
         const newSection = createSection('container');
         updateSections([...layout.sections, newSection]);
         setSelectedSectionId(newSection.id);
         setSelectedModuleId(null);
+        setSelectedColumnId(null);
     };
 
     // Delete section
@@ -179,6 +237,7 @@ export default function LayoutDesigner({
                 if (selectedSectionId === sectionId) {
                     setSelectedSectionId(null);
                     setSelectedModuleId(null);
+                    setSelectedColumnId(null);
                 }
                 setConfirmOpen(false);
                 showNotification('Section deleted', 'success');
@@ -220,6 +279,56 @@ export default function LayoutDesigner({
             }
         });
         setConfirmOpen(true);
+    };
+
+    const handleCloneModule = (sectionId: string, moduleId: string) => {
+        const section = layout.sections.find((s) => s.id === sectionId);
+        if (!section) return;
+
+        let updates: Partial<LayoutSection> = {};
+
+        // Check if module is in columns or main modules list
+        if (section.columns && section.columns.length > 0) {
+            const columnWithModule = section.columns.find(col =>
+                col.modules.some(m => m.id === moduleId)
+            );
+
+            if (columnWithModule) {
+                const moduleIndex = columnWithModule.modules.findIndex(m => m.id === moduleId);
+                const originalModule = columnWithModule.modules[moduleIndex];
+
+                // Deep clone the module with all settings
+                const clonedModule: LayoutModule = JSON.parse(JSON.stringify(originalModule));
+                clonedModule.id = crypto.randomUUID();
+
+                updates = {
+                    columns: section.columns.map(col => {
+                        if (col.id === columnWithModule.id) {
+                            const newModules = [...col.modules];
+                            newModules.splice(moduleIndex + 1, 0, clonedModule);
+                            return { ...col, modules: newModules };
+                        }
+                        return col;
+                    })
+                };
+            }
+        } else {
+            const moduleIndex = section.modules.findIndex(m => m.id === moduleId);
+            if (moduleIndex !== -1) {
+                const originalModule = section.modules[moduleIndex];
+
+                // Deep clone the module with all settings
+                const clonedModule: LayoutModule = JSON.parse(JSON.stringify(originalModule));
+                clonedModule.id = crypto.randomUUID();
+
+                const newModules = [...section.modules];
+                newModules.splice(moduleIndex + 1, 0, clonedModule);
+                updates = { modules: newModules };
+            }
+        }
+
+        updateSection(sectionId, updates);
+        showNotification('Module duplicated', 'success');
     };
 
     // Find which section contains a module
@@ -765,16 +874,34 @@ export default function LayoutDesigner({
                                         sections={layout.sections}
                                         selectedSectionId={selectedSectionId}
                                         selectedModuleId={selectedModuleId}
+                                        selectedColumnId={selectedColumnId}
                                         onSelectSection={(id) => {
-                                            setSelectedSectionId(id);
-                                            setSelectedModuleId(null);
+                                            if (selectedSectionId === id && !selectedColumnId && !selectedModuleId) {
+                                                setSelectedSectionId(null);
+                                                setRightPanelOpen(false);
+                                            } else {
+                                                setSelectedSectionId(id);
+                                                setSelectedModuleId(null);
+                                                setSelectedColumnId(null);
+                                                setRightPanelOpen(true);
+                                            }
                                         }}
+                                        onCloneSection={handleCloneSection}
                                         onSelectModule={(sectionId, moduleId) => {
-                                            setSelectedSectionId(sectionId);
-                                            setSelectedModuleId(moduleId);
+                                            if (selectedModuleId === moduleId) {
+                                                setSelectedModuleId(null);
+                                                setRightPanelOpen(false);
+                                            } else {
+                                                setSelectedSectionId(sectionId);
+                                                setSelectedModuleId(moduleId);
+                                                setSelectedColumnId(null);
+                                                setRightPanelOpen(true);
+                                            }
                                         }}
                                         onDeleteModule={handleDeleteModule}
+                                        onCloneModule={handleCloneModule}
                                         onAddSection={handleAddSection}
+                                        onSelectColumn={handleSelectColumn}
                                     />
                                 )}
                             </Box>
@@ -785,7 +912,7 @@ export default function LayoutDesigner({
                     <Drawer
                         variant="temporary"
                         anchor="right"
-                        open={rightPanelOpen && !!(selectedSectionId || selectedModuleId)}
+                        open={rightPanelOpen && !!(selectedSectionId || selectedModuleId || selectedColumnId)}
                         onClose={() => setRightPanelOpen(false)}
                         sx={{
                             zIndex: 1200,
@@ -820,7 +947,7 @@ export default function LayoutDesigner({
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <SettingsIcon sx={{ fontSize: 20, color: '#3B82F6' }} />
                                 <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1F2937' }}>
-                                    {selectedModule ? 'Module Settings' : selectedSection ? 'Section Settings' : 'Properties'}
+                                    {selectedModule ? 'Module Settings' : selectedColumnId ? 'Column Settings' : selectedSection ? 'Section Settings' : 'Properties'}
                                 </Typography>
                             </Box>
                             <IconButton
@@ -837,45 +964,49 @@ export default function LayoutDesigner({
 
                         {/* Properties Panel Content */}
                         <Box sx={{ flex: 1, overflow: 'auto' }}>
-                            {selectedModule && selectedSectionId ? (
-                                <Box sx={{ p: 2 }}>
-                                    <ModuleEditor
-                                        module={selectedModule}
-                                        onChange={(updated) => updateModule(selectedSectionId, selectedModule.id, updated)}
-                                        onDelete={() => handleDeleteModule(selectedSectionId, selectedModule.id)}
-                                        storeId={typeof layout.storeId === 'object' ? layout.storeId._id : layout.storeId}
-                                    />
-                                </Box>
-                            ) : selectedSection ? (
+                            {selectedModuleId && selectedSection && selectedModule ? (
+                                <ModuleEditor
+                                    module={selectedModule}
+                                    onChange={(updatedModule) => updateModule(selectedSection.id, selectedModule.id, updatedModule)}
+                                    onDelete={() => handleDeleteModule(selectedSection.id, selectedModule.id)}
+                                    storeId={typeof layout.storeId === 'object' ? layout.storeId._id : layout.storeId}
+                                />
+                            ) : selectedColumnId && selectedSection ? (
+                                (() => {
+                                    const column = selectedSection.columns?.find(c => c.id === selectedColumnId);
+                                    if (column) {
+                                        return (
+                                            <ColumnEditor
+                                                column={column}
+                                                onChange={(updatedColumn) => {
+                                                    if (selectedSection.columns) {
+                                                        const newColumns = selectedSection.columns.map(c =>
+                                                            c.id === updatedColumn.id ? updatedColumn : c
+                                                        );
+                                                        updateSection(selectedSection.id, { columns: newColumns });
+                                                    }
+                                                }}
+                                                copiedStyle={copiedColumnStyle}
+                                                onCopyStyle={setCopiedColumnStyle}
+                                            />
+                                        );
+                                    }
+                                    return <Typography color="text.secondary">Column not found</Typography>;
+                                })()
+                            ) : selectedSectionId && selectedSection ? (
                                 <Box sx={{ p: 2 }}>
                                     <SectionEditor
                                         section={selectedSection}
-                                        onChange={(updated) => updateSection(selectedSection.id, updated)}
+                                        onChange={(updatedSection) => updateSection(selectedSection.id, updatedSection)}
                                         onDelete={() => handleDeleteSection(selectedSection.id)}
                                         copiedStyle={copiedSectionStyle}
                                         onCopyStyle={setCopiedSectionStyle}
                                     />
                                 </Box>
                             ) : (
-                                <Box
-                                    sx={{
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        height: '100%',
-                                        p: 3,
-                                        textAlign: 'center',
-                                        color: '#9CA3AF',
-                                    }}
-                                >
-                                    <SettingsIcon sx={{ fontSize: 48, color: '#D1D5DB', mb: 1.5 }} />
-                                    <Typography variant="body2" sx={{ fontWeight: 500, color: '#6B7280', mb: 0.5 }}>
-                                        No selection
-                                    </Typography>
-                                    <Typography variant="caption" sx={{ color: '#9CA3AF', fontSize: '0.8rem' }}>
-                                        Click on elements to edit
-                                    </Typography>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'text.secondary', gap: 1 }}>
+                                    <SettingsIcon sx={{ fontSize: 40, opacity: 0.2 }} />
+                                    <Typography variant="body2">Select an element to edit</Typography>
                                 </Box>
                             )}
                         </Box>
@@ -885,7 +1016,7 @@ export default function LayoutDesigner({
                 {/* Drag Overlay */}
                 <DragOverlay dropAnimation={null} style={{ zIndex: 9999 }}>
                     {renderDragOverlay()}
-                </DragOverlay>
+                </DragOverlay >
 
                 <ConfirmDialog
                     open={confirmOpen}
@@ -909,6 +1040,11 @@ export default function LayoutDesigner({
                                 fullWidth
                                 required
                                 variant="outlined"
+                            />
+                            <StoreAutocomplete
+                                value={typeof layout.storeId === 'object' ? layout.storeId._id : layout.storeId}
+                                onChange={(value) => onChange({ ...layout, storeId: value as string })}
+                                required
                             />
                             <TextField
                                 label="Description"

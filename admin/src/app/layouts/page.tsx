@@ -22,7 +22,7 @@ export default function LayoutsPage() {
     const theme = useTheme();
     const [layouts, setLayouts] = useState<Layout[]>([]);
     const [loading, setLoading] = useState(true);
-    const [stores, setStores] = useState<any[]>([]);
+    const [filterStore, setFilterStore] = useState<string>('');
     const { showNotification } = useNotification();
     const { confirm } = useConfirm();
     const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
@@ -50,7 +50,7 @@ export default function LayoutsPage() {
 
     useEffect(() => {
         fetchLayouts();
-    }, [paginationModel, debouncedSearch, filterType, filterStatus]);
+    }, [paginationModel, debouncedSearch, filterType, filterStatus, filterStore]);
 
     const fetchLayouts = async () => {
         try {
@@ -59,6 +59,7 @@ export default function LayoutsPage() {
                 page: (paginationModel.page + 1).toString(),
                 limit: paginationModel.pageSize.toString(),
                 search: debouncedSearch,
+                storeId: filterStore,
             });
 
             if (filterType) params.append('type', filterType);
@@ -271,21 +272,6 @@ export default function LayoutsPage() {
         },
     ];
 
-
-
-    if (layouts.length === 0 && !searchQuery && !filterType && !filterStatus) {
-        return (
-            <Box>
-                <PageHeader title="Layouts" subtitle="Manage your Storefront layouts" actionLabel="Create Layout" onAction={handleCreate} />
-                <EmptyState
-                    message="No layouts found. Create your first layout!"
-                    actionLabel="Create Layout"
-                    onAction={handleCreate}
-                />
-            </Box>
-        );
-    }
-
     return (
         <Box>
             <PageHeader
@@ -300,15 +286,6 @@ export default function LayoutsPage() {
                 searchValue={searchQuery}
                 onSearchChange={setSearchQuery}
                 filters={[
-                    {
-                        id: 'store',
-                        label: 'Store',
-                        type: 'select',
-                        options: stores.map(store => ({
-                            value: store._id,
-                            label: store.name
-                        })),
-                    },
                     {
                         id: 'type',
                         label: 'Type',
@@ -336,6 +313,9 @@ export default function LayoutsPage() {
                         ],
                     },
                 ]}
+                showStoreFilter
+                storeFilterValue={filterStore}
+                onStoreFilterChange={setFilterStore}
                 activeFilters={{
                     type: filterType,
                     status: filterStatus

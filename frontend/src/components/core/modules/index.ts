@@ -34,6 +34,8 @@ import NumberBoxModule from './standard/NumberBox';
 import FlipBoxModule from './standard/FlipBox';
 import ProgressBarModule from './standard/ProgressBar';
 import MarqueeModule from './standard/Marquee';
+import IconModule from './standard/Icon';
+import TableModule from './standard/Table';
 import ContentCardGridModule from './standard/ContentCardGrid';
 import HeroSliderModule from './standard/HeroSlider';
 import CheckoutContentModule from './checkout/CheckoutContent';
@@ -112,6 +114,8 @@ export const moduleRegistry: Record<string, ModuleComponent> = {
     'flip-box': FlipBoxModule,
     'progress-bar': ProgressBarModule,
     'marquee': MarqueeModule,
+    'icon': IconModule,
+    'table': TableModule,
     'content-card-grid': ContentCardGridModule,
     'hero-slider': HeroSliderModule,
     // Checkout module

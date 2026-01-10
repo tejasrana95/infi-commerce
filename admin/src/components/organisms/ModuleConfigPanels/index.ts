@@ -47,6 +47,8 @@ export { default as NumberBoxConfigPanel } from './NumberBoxConfigPanel';
 export { default as FlipBoxConfigPanel } from './FlipBoxConfigPanel';
 export { default as ProgressBarConfigPanel } from './ProgressBarConfigPanel';
 export { default as MarqueeConfigPanel } from './MarqueeConfigPanel';
+export { default as IconConfigPanel } from './IconConfigPanel';
+export { default as TableConfigPanel } from './TableConfigPanel';
 
 // Content Card Config Panel
 export { default as ContentCardGridConfigPanel, defaultContentCardGridConfig } from './ContentCardGridConfigPanel';

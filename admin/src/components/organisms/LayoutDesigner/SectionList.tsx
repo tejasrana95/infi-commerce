@@ -16,6 +16,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import DesktopWindowsIcon from '@mui/icons-material/DesktopWindows';
 import TabletIcon from '@mui/icons-material/Tablet';
 import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import {
@@ -34,12 +35,13 @@ interface SortableModuleProps {
     isSelected: boolean;
     onSelect: () => void;
     onDelete: () => void;
+    onClone: () => void;
     sectionId: string;
     columnId?: string;
     index: number;
 }
 
-function SortableModule({ module, isSelected, onSelect, onDelete, sectionId, columnId, index }: SortableModuleProps) {
+function SortableModule({ module, isSelected, onSelect, onDelete, onClone, sectionId, columnId, index }: SortableModuleProps) {
     const definition = getModuleDefinition(module.type);
 
     // Check if module is removable - defaults to true unless explicitly false or is a placeholder
@@ -74,6 +76,7 @@ function SortableModule({ module, isSelected, onSelect, onDelete, sectionId, col
             ref={setNodeRef}
             style={style}
             sx={{
+                position: 'relative',
                 display: 'flex',
                 alignItems: 'stretch',
                 gap: 0.75,
@@ -91,6 +94,10 @@ function SortableModule({ module, isSelected, onSelect, onDelete, sectionId, col
                     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
                     borderColor: isSelected ? '#3B82F6' : '#D1D5DB',
                     bgcolor: isSelected ? '#FFFFFF' : '#F9FAFB',
+                    '& .module-actions': {
+                        opacity: 1,
+                        visibility: 'visible',
+                    }
                 },
             }}
         >
@@ -115,24 +122,60 @@ function SortableModule({ module, isSelected, onSelect, onDelete, sectionId, col
                 <ModuleRenderer module={module} isSelected={isSelected} onClick={onSelect} />
             </Box>
 
-            {/* Delete Button */}
-            {isRemovable && (
+            {/* Action Buttons - Top Right on Hover */}
+            <Box
+                className="module-actions"
+                sx={{
+                    position: 'absolute',
+                    top: 4,
+                    right: 4,
+                    display: 'flex',
+                    gap: 0.5,
+                    opacity: 0,
+                    visibility: 'hidden',
+                    transition: 'all 0.2s',
+                    bgcolor: 'rgba(255, 255, 255, 0.95)',
+                    borderRadius: 1,
+                    padding: '2px',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                }}
+            >
                 <IconButton
                     size="small"
-                    onClick={onDelete}
+                    onClick={onClone}
+                    title="Duplicate Module"
                     sx={{
                         p: 0.5,
-                        color: '#D1D5DB',
+                        color: '#9CA3AF',
                         transition: 'all 0.2s',
                         '&:hover': {
-                            color: '#EF4444',
-                            bgcolor: '#FEE2E2',
+                            color: '#3B82F6',
+                            bgcolor: '#EFF6FF',
                         },
                     }}
                 >
-                    <DeleteIcon sx={{ fontSize: '1rem' }} />
+                    <ContentCopyIcon sx={{ fontSize: '1rem' }} />
                 </IconButton>
-            )}
+
+                {isRemovable && (
+                    <IconButton
+                        size="small"
+                        onClick={onDelete}
+                        title="Delete Module"
+                        sx={{
+                            p: 0.5,
+                            color: '#9CA3AF',
+                            transition: 'all 0.2s',
+                            '&:hover': {
+                                color: '#EF4444',
+                                bgcolor: '#FEE2E2',
+                            },
+                        }}
+                    >
+                        <DeleteIcon sx={{ fontSize: '1rem' }} />
+                    </IconButton>
+                )}
+            </Box>
         </Box>
     );
 }
@@ -178,23 +221,31 @@ function ModuleDropZone({ sectionId, columnId, children }: ModuleDropZoneProps) 
     );
 }
 
-// Section Item - now uses useSortable instead of its own DndContext
+// Section Item
 interface SectionItemProps {
     section: LayoutSection;
     isSelected: boolean;
     selectedModuleId: string | null;
+    selectedColumnId?: string | null;
     onSelectSection: () => void;
+    onCloneSection: () => void;
     onSelectModule: (moduleId: string) => void;
     onDeleteModule: (moduleId: string) => void;
+    onCloneModule: (moduleId: string) => void;
+    onSelectColumn?: (sectionId: string, columnId: string) => void;
 }
 
 function SectionItem({
     section,
     isSelected,
     selectedModuleId,
+    selectedColumnId,
     onSelectSection,
+    onCloneSection,
     onSelectModule,
     onDeleteModule,
+    onCloneModule,
+    onSelectColumn,
 }: SectionItemProps) {
     const {
         attributes,
@@ -308,6 +359,27 @@ function SectionItem({
                     />
                 </Box>
 
+                {/* Clone Button */}
+                <IconButton
+                    size="small"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onCloneSection();
+                    }}
+                    title="Duplicate Section"
+                    sx={{
+                        p: 0.5,
+                        color: '#9CA3AF',
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                            color: '#3B82F6',
+                            bgcolor: '#EFF6FF',
+                        },
+                    }}
+                >
+                    <ContentCopyIcon sx={{ fontSize: '1rem' }} />
+                </IconButton>
+
                 {/* Settings Button */}
                 <IconButton
                     size="small"
@@ -349,8 +421,28 @@ function SectionItem({
                 <Box sx={{ p: 1 }}>
                     {section.columns && section.columns.length > 0 ? (
                         <Box sx={{ display: 'flex', gap: 1 }}>
-                            {section.columns.map((col) => (
-                                <Box key={col.id} sx={{ flex: col.width, minWidth: 0 }}>
+                            {section.columns.map((col, idx) => (
+                                <Box key={col.id} sx={{ flex: col.width, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                    {/* Column Header/Settings */}
+                                    <Box
+                                        onClick={() => onSelectColumn && onSelectColumn(section.id, col.id)}
+                                        sx={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            px: 1,
+                                            py: 0.5,
+                                            bgcolor: selectedColumnId === col.id ? '#EFF6FF' : 'transparent',
+                                            borderRadius: 1,
+                                            cursor: 'pointer',
+                                            border: selectedColumnId === col.id ? '1px solid #3B82F6' : '1px solid transparent',
+                                            '&:hover': { bgcolor: '#F9FAFB' }
+                                        }}
+                                    >
+                                        <Typography variant="caption" color="text.secondary">Col {idx + 1}</Typography>
+                                        <SettingsIcon sx={{ fontSize: '0.8rem', color: '#9CA3AF' }} />
+                                    </Box>
+
                                     <SortableContext
                                         id={col.id}
                                         items={col.modules.map(m => m.id)}
@@ -377,6 +469,7 @@ function SectionItem({
                                                         isSelected={selectedModuleId === mod.id}
                                                         onSelect={() => onSelectModule(mod.id)}
                                                         onDelete={() => onDeleteModule(mod.id)}
+                                                        onClone={() => onCloneModule(mod.id)}
                                                         sectionId={section.id}
                                                         columnId={col.id}
                                                         index={index}
@@ -415,6 +508,7 @@ function SectionItem({
                                             isSelected={selectedModuleId === mod.id}
                                             onSelect={() => onSelectModule(mod.id)}
                                             onDelete={() => onDeleteModule(mod.id)}
+                                            onClone={() => onCloneModule(mod.id)}
                                             sectionId={section.id}
                                             index={index}
                                         />
@@ -434,20 +528,28 @@ interface SectionListProps {
     sections: LayoutSection[];
     selectedSectionId: string | null;
     selectedModuleId: string | null;
+    selectedColumnId?: string | null;
     onSelectSection: (id: string) => void;
+    onCloneSection: (id: string) => void;
     onSelectModule: (sectionId: string, moduleId: string) => void;
     onDeleteModule: (sectionId: string, moduleId: string) => void;
+    onCloneModule: (sectionId: string, moduleId: string) => void;
     onAddSection: () => void;
+    onSelectColumn: (sectionId: string, columnId: string) => void;
 }
 
 export default function SectionList({
     sections,
     selectedSectionId,
     selectedModuleId,
+    selectedColumnId,
     onSelectSection,
+    onCloneSection,
     onSelectModule,
     onDeleteModule,
+    onCloneModule,
     onAddSection,
+    onSelectColumn,
 }: SectionListProps) {
     return (
         <Box>
@@ -467,12 +569,17 @@ export default function SectionList({
                                 : null
                         }
                         onSelectSection={() => onSelectSection(section.id)}
+                        onCloneSection={() => onCloneSection(section.id)}
                         onSelectModule={(moduleId) => onSelectModule(section.id, moduleId)}
                         onDeleteModule={(moduleId) => onDeleteModule(section.id, moduleId)}
+                        onCloneModule={(moduleId) => onCloneModule(section.id, moduleId)}
+                        selectedColumnId={selectedColumnId}
+                        onSelectColumn={onSelectColumn}
                     />
                 ))}
             </SortableContext>
 
+            {/* ... Add Button ... */}
             <Button
                 fullWidth
                 variant="contained"

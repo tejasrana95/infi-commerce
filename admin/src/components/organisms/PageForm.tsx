@@ -35,17 +35,14 @@ const schema = z.object({
     content: z.string().optional(),
     featuredImage: z.string().url('Must be a valid URL').optional().or(z.literal('')),
     status: z.enum(['draft', 'published']),
-    template: z.enum(['default', 'full-width', 'sidebar', 'landing']),
-    showInHeader: z.boolean(),
-    showInFooter: z.boolean(),
-    footerGroup: z.string().optional(),
-    sortOrder: z.number().min(0).optional(),
 
     // SEO
     seo: z.object({
         metaTitle: z.string().max(60).optional(),
         metaDescription: z.string().max(160).optional(),
         metaKeywords: z.array(z.string()).optional(),
+        ogTitle: z.string().max(60).optional(),
+        ogDescription: z.string().max(160).optional(),
         ogImage: z.string().url().optional().or(z.literal('')),
         score: z.number().min(0).max(100).optional(),
     }).optional(),
@@ -66,16 +63,13 @@ const defaultValues: FormData = {
     content: '',
     featuredImage: '',
     status: 'draft',
-    template: 'default',
-    showInHeader: false,
-    showInFooter: false,
-    footerGroup: '',
-    sortOrder: 0,
     seo: {
         metaTitle: '',
         metaDescription: '',
         metaKeywords: [],
         ogImage: '',
+        ogTitle: '',
+        ogDescription: '',
         score: 0,
     },
 };
@@ -90,7 +84,6 @@ export default function PageForm({ initialData, onSubmit, isSubmitting = false }
     const [isCalculatingSeo, setIsCalculatingSeo] = useState(false);
     const [seoSuggestions, setSeoSuggestions] = useState<string[]>([]);
     const watchedTitle = watch('title');
-    const watchedShowInFooter = watch('showInFooter');
     const seoScore = watch('seo.score') || 0;
 
     useEffect(() => {
@@ -111,6 +104,8 @@ export default function PageForm({ initialData, onSubmit, isSubmitting = false }
                     metaDescription: initialData.seo?.metaDescription || '',
                     metaKeywords: initialData.seo?.metaKeywords || [],
                     ogImage: initialData.seo?.ogImage || '',
+                    ogTitle: initialData.seo?.ogTitle || '',
+                    ogDescription: initialData.seo?.ogDescription || '',
                     score: initialData.seo?.score || 0,
                 },
             });
@@ -316,6 +311,56 @@ export default function PageForm({ initialData, onSubmit, isSubmitting = false }
                                     fullWidth
                                     multiline
                                     rows={3}
+                                    helperText={`${field.value?.length || 0}/160 characters`}
+                                />
+                            )}
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12 }}>
+                        <Controller
+                            name="seo.metaKeywords"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField
+                                    {...field}
+                                    label="Meta Keywords"
+                                    fullWidth
+                                    placeholder="keyword1, keyword2, keyword3"
+                                    helperText="Separate keywords with commas"
+                                    value={Array.isArray(field.value) ? field.value.join(', ') : field.value}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        // Store as array of strings
+                                        const kws = val.split(',').map(k => k.trim());
+                                        field.onChange(kws);
+                                    }}
+                                />
+                            )}
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <Controller
+                            name="seo.ogTitle"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField
+                                    {...field}
+                                    label="OG Title"
+                                    fullWidth
+                                    helperText={`${field.value?.length || 0}/60 characters`}
+                                />
+                            )}
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <Controller
+                            name="seo.ogDescription"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField
+                                    {...field}
+                                    label="OG Description"
+                                    fullWidth
                                     helperText={`${field.value?.length || 0}/160 characters`}
                                 />
                             )}

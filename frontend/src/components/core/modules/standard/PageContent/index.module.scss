@@ -15,21 +15,10 @@
 .documentContainer {
     width: 100%;
     margin: 0 auto;
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-
-    @include tablet {
-        padding-left: 2rem;
-        padding-right: 2rem;
-    }
 }
 
 .narrow {
     max-width: 800px;
-}
-
-.medium {
-    max-width: 1000px;
 }
 
 .full {
@@ -38,11 +27,7 @@
 
 /* Content Section */
 .contentSection {
-    padding: 2rem 0;
-
-    @include tablet {
-        padding: 4rem 0;
-    }
+    padding: 1rem 0;
 }
 
 .richText {
@@ -138,6 +123,16 @@
             background-color: var(--bg-subtle);
             color: var(--text-primary);
             font-weight: 600;
+        }
+    }
+
+    ol,
+    ul {
+        list-style: revert;
+        padding-left: 18px;
+
+        p {
+            margin-bottom: 0;
         }
     }
 }

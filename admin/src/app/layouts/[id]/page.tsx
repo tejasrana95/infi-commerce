@@ -135,16 +135,10 @@ export default function LayoutDesignerPage({ params }: { params: PageParams }) {
 
         try {
             setIsSaving(true);
-            await api.put(`/layouts/${layout._id}`, {
-                name: layout.name,
-                description: layout.description,
-                type: layout.type,
-                slug: layout.slug,  // Include slug in save
-                sections: layout.sections,
-                settings: layout.settings,
-                seo: layout.seo,
-                isDefault: layout.isDefault,
-                status: layout.status,
+            const { _id, createdAt, updatedAt, __v, ...payload } = layout;
+            await api.put(`/layouts/${_id}`, {
+                ...payload,
+                storeId: typeof layout.storeId === 'object' ? layout.storeId._id : layout.storeId,
             });
             showNotification('Layout saved successfully', 'success');
         } catch (err: any) {

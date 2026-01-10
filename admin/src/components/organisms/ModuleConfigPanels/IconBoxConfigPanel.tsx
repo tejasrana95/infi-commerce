@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, TextField, Typography, MenuItem, Select, FormControl, InputLabel, Button, IconButton, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import { Box, TextField, Typography, MenuItem, Select, FormControl, InputLabel, Button, IconButton, Accordion, AccordionSummary, AccordionDetails, Switch, FormControlLabel } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -115,7 +115,21 @@ export default function IconBoxConfigPanel({ config, onChange }: IconBoxConfigPa
                         <MenuItem value="icon">React Icon</MenuItem>
                         <MenuItem value="image">Custom Image</MenuItem>
                     </Select>
+
                 </FormControl>
+
+                {config.iconType === 'image' && (
+                    <FormControlLabel
+                        control={
+                            <Switch
+                                checked={config.fullSizeImage || false}
+                                onChange={(e) => handleChange('fullSizeImage', e.target.checked)}
+                            />
+                        }
+                        label="Full Size Image"
+                        sx={{ ml: 1 }}
+                    />
+                )}
             </Box>
 
             <Box>
@@ -217,6 +231,6 @@ export default function IconBoxConfigPanel({ config, onChange }: IconBoxConfigPa
                     ))}
                 </Box>
             </Box>
-        </Box>
+        </Box >
     );
 }

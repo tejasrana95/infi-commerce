@@ -14,6 +14,9 @@ export interface PageData {
         metaDescription?: string;
         metaKeywords?: string[];
         ogImage?: string;
+        ogTitle?: string;
+        ogDescription?: string;
+        canonicalUrl?: string;
     };
 }
 

@@ -151,6 +151,29 @@ const ColumnSchema = new Schema<IColumn>(
         id: { type: String, required: true },
         width: { type: Number, default: 50 },
         modules: { type: [ModuleSchema], default: [] },
+        settings: {
+            backgroundColor: { type: String, trim: true },
+            backgroundImage: { type: String, trim: true },
+            backgroundSize: { type: String, default: 'cover' },
+            backgroundPosition: { type: String, default: 'center' },
+            textColor: { type: String, trim: true },
+            paddingTop: { type: Number },
+            paddingBottom: { type: Number },
+            paddingLeft: { type: Number },
+            paddingRight: { type: Number },
+            marginTop: { type: Number },
+            marginBottom: { type: Number },
+            // Border controls
+            borderTopWidth: { type: Number },
+            borderRightWidth: { type: Number },
+            borderBottomWidth: { type: Number },
+            borderLeftWidth: { type: Number },
+            borderColor: { type: String },
+            borderStyle: { type: String, enum: ['none', 'solid', 'dashed', 'dotted'], default: 'solid' },
+            borderRadius: { type: Number },
+            // Hover
+            hoverEffect: { type: Boolean, default: false },
+        },
     },
     { _id: false }
 );

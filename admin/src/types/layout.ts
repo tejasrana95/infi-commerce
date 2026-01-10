@@ -22,6 +22,8 @@ export type ModuleType =
     | 'flip-box'
     | 'progress-bar'
     | 'marquee'
+    | 'icon'
+    | 'table'
     | 'content-card-grid';
 
 export type SectionType = 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';
@@ -52,6 +54,27 @@ export interface LayoutColumn {
     id: string;
     width: number;
     modules: LayoutModule[];
+    settings?: {
+        backgroundColor?: string;
+        backgroundImage?: string;
+        backgroundSize?: string;
+        backgroundPosition?: string;
+        textColor?: string;
+        paddingTop?: number;
+        paddingBottom?: number;
+        paddingLeft?: number;
+        paddingRight?: number;
+        marginTop?: number;
+        marginBottom?: number;
+        borderTopWidth?: number;
+        borderRightWidth?: number;
+        borderBottomWidth?: number;
+        borderLeftWidth?: number;
+        borderColor?: string;
+        borderStyle?: 'none' | 'solid' | 'dashed' | 'dotted';
+        borderRadius?: number;
+        hoverEffect?: boolean;
+    };
 }
 
 export interface LayoutSection {
@@ -124,6 +147,7 @@ export interface Layout {
     status: 'draft' | 'published';
     createdAt: string;
     updatedAt: string;
+    __v?: number;
 }
 
 export interface MenuItem {
@@ -212,6 +236,8 @@ export interface Page {
         metaDescription?: string;
         metaKeywords?: string[];
         ogImage?: string;
+        ogTitle?: string;
+        ogDescription?: string;
         canonicalUrl?: string;
         score?: number;
     };

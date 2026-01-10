@@ -32,8 +32,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         description: page.seo?.metaDescription,
         keywords: page.seo?.metaKeywords,
         openGraph: {
-            title: page.seo?.metaTitle || page.title,
-            description: page.seo?.metaDescription,
+            title: page.seo?.ogTitle || page.seo?.metaTitle || page.title,
+            description: page.seo?.ogDescription || page.seo?.metaDescription,
             type: 'website',
             images: page.seo?.ogImage || page.featuredImage ? [page.seo?.ogImage || page.featuredImage] : [],
         },

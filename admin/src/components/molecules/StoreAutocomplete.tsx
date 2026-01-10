@@ -105,6 +105,7 @@ export default function StoreAutocomplete({
                     required={required}
                     placeholder={placeholder}
                     size={minimal ? 'small' : 'medium'}
+                    fullWidth
                     InputProps={{
                         ...params.InputProps,
                         endAdornment: (

@@ -213,7 +213,7 @@
     background-color: var(--primary-color-light, #eff6ff);
     color: var(--primary-color, #3b82f6);
     transition: transform 0.3s ease;
-    align-self: inherit; // Follows parent's textAlign/alignItems logic
+    align-self: center; // Default to center
 
     svg {
         width: 2rem;
@@ -225,6 +225,86 @@
         height: 100%;
         object-fit: cover;
         border-radius: 0.75rem;
+    }
+}
+
+// Full Size Image Styles
+.fullSizeImage {
+    padding: 0;
+    overflow: hidden;
+
+    .iconWrapper {
+        width: 100%;
+        height: 14rem; // Default height for top/bottom
+        border-radius: 0;
+        background: none;
+        margin: 0;
+
+        img {
+            border-radius: 0;
+        }
+    }
+
+    .content {
+        padding: 1.5rem;
+    }
+
+    // Specific adjustments for layouts with full size image
+    &.layout-icon-left,
+    &.layout-icon-right {
+        .iconWrapper {
+            width: 40%; // Or fixed width
+            height: auto;
+            flex-shrink: 0;
+            min-height: 100%; // ensure it stretches
+            align-self: stretch;
+        }
+
+    }
+
+    // Fix corners for left/right
+    &.layout-icon-left {
+        .iconWrapper {
+            img {
+                border-top-left-radius: 1rem;
+                border-bottom-left-radius: 1rem;
+            }
+        }
+    }
+
+    &.layout-icon-right {
+        .iconWrapper {
+            img {
+                border-top-right-radius: 1rem;
+                border-bottom-right-radius: 1rem;
+            }
+        }
+    }
+
+    // Fix corners for top/bottom
+    &.layout-icon-top {
+        .iconWrapper {
+            img {
+                border-top-left-radius: 1rem;
+                border-top-right-radius: 1rem;
+            }
+        }
+    }
+
+    &.layout-icon-bottom {
+        .iconWrapper {
+            order: 2;
+            margin-top: 0;
+
+            img {
+                border-bottom-left-radius: 1rem;
+                border-bottom-right-radius: 1rem;
+            }
+        }
+
+        .content {
+            order: 1;
+        }
     }
 }
 

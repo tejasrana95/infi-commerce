@@ -198,8 +198,6 @@ export const updatePage = asyncHandler(async (req: AuthRequest, res: Response) =
         }
     }
 
-    delete updates.storeId;
-
     Object.assign(page, updates);
     await page.save();
 
@@ -261,14 +259,19 @@ export const deletePage = asyncHandler(async (req: AuthRequest, res: Response) =
  */
 export const getPageBySlug = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { slug } = req.params;
-    const filter: any = { slug, status: 'published' };
 
-    // Get store ID from header (for public routes) or query
+    // Get store ID from header or query - MANDATORY now
     const storeId = req.headers['x-store-id'] || req.query.storeId;
 
-    if (storeId) {
-        filter.storeId = storeId;
+    if (!storeId) {
+        throw new AppError('Store ID is required', 400);
     }
+
+    const filter: any = {
+        slug,
+        storeId,
+        status: 'published'
+    };
 
     const page = await Page.findOne(filter).populate('layoutId');
 

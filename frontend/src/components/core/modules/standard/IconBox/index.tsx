@@ -34,8 +34,9 @@ export default function IconBoxModule({ config }: ModuleProps) {
         displayMode = 'grid',
         columns = 3,
         iconType = 'icon',
-        textAlign = 'center'
-    } = config as IconBoxConfig;
+        textAlign = 'center',
+        fullSizeImage = false
+    } = config as IconBoxConfig & { fullSizeImage?: boolean };
 
     const { themeConfig } = useStore();
     const primaryColor = themeConfig?.colors?.primary || '#3b82f6';
@@ -96,11 +97,13 @@ export default function IconBoxModule({ config }: ModuleProps) {
         const Wrapper: any = item.link ? Link : 'div';
         const wrapperProps = item.link ? { href: item.link } : {};
 
+        const isFullImage = fullSizeImage && iconType === 'image' && item.image;
+
         return (
             <Wrapper
                 key={item.id || index}
                 {...wrapperProps}
-                className={`${styles.iconBox} ${styles[`layout-${layout}`]}`}
+                className={`${styles.iconBox} ${styles[`layout-${layout}`]} ${isFullImage ? styles.fullSizeImage : ''}`}
                 style={boxStyle as any}
                 {...(item.link ? {
                     'data-track': 'icon_box_click',

@@ -1,10 +1,13 @@
-import React from 'react';
-import { Box, TextField, FormControl, InputLabel, Select, MenuItem, Typography, Divider } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, TextField, FormControl, InputLabel, Select, MenuItem, Typography, Divider, Tabs, Tab } from '@mui/material';
 import FileManagerButton from '@/components/molecules/FileManagerButton';
+import RichTextEditor from '@/components/molecules/RichTextEditor';
 
 interface StripBannerConfigPanelProps {
     config: {
-        content?: string;
+        title?: string;
+        description?: string;
+        content?: string; // Legacy
         backgroundImage?: string;
         backgroundColor?: string;
         textColor?: string;
@@ -16,155 +19,298 @@ interface StripBannerConfigPanelProps {
         overlayOpacity?: number;
         ctaBackgroundColor?: string;
         ctaTextColor?: string;
+        titleStyles?: {
+            fontFamily?: string;
+            fontSize?: number;
+            fontWeight?: number;
+            color?: string;
+        };
+        descriptionStyles?: {
+            fontFamily?: string;
+            fontSize?: number;
+            fontWeight?: number;
+            color?: string;
+        };
     };
     onChange: (config: any) => void;
 }
 
+const COMMON_FONTS = [
+    { label: 'Default', value: '' },
+    { label: 'Inter', value: 'Inter, sans-serif' },
+    { label: 'Roboto', value: 'Roboto, sans-serif' },
+    { label: 'Open Sans', value: '"Open Sans", sans-serif' },
+    { label: 'Lato', value: 'Lato, sans-serif' },
+    { label: 'Montserrat', value: 'Montserrat, sans-serif' },
+    { label: 'Playfair Display', value: '"Playfair Display", serif' },
+    { label: 'Merriweather', value: 'Merriweather, serif' },
+];
+
 export const StripBannerConfigPanel: React.FC<StripBannerConfigPanelProps> = ({ config, onChange }) => {
+    const [tab, setTab] = useState(0);
+
     const handleChange = (field: string, value: any) => {
         onChange({ ...config, [field]: value });
     };
 
+    const handleStyleChange = (type: 'titleStyles' | 'descriptionStyles', field: string, value: any) => {
+        onChange({
+            ...config,
+            [type]: {
+                ...(config[type] || {}),
+                [field]: value
+            }
+        });
+    };
+
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField
-                label="Banner Text"
-                value={config.content || ''}
-                onChange={(e) => handleChange('content', e.target.value)}
-                multiline
-                rows={2}
-                fullWidth
-            />
+            <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="fullWidth">
+                <Tab label="Content" />
+                <Tab label="Typography" />
+                <Tab label="Settings" />
+            </Tabs>
 
-            <Box>
-                <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-                    Background Image
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', mb: 1 }}>
-                    {config.backgroundImage && (
-                        <Box
-                            component="img"
-                            src={config.backgroundImage}
-                            alt="Background Preview"
-                            sx={{ height: 60, width: 100, objectFit: 'cover', borderRadius: 1, border: '1px solid #eee' }}
-                        />
-                    )}
-                    <FileManagerButton
-                        onSelect={(files) => {
-                            if (files.length > 0) handleChange('backgroundImage', files[0].url);
+            {tab === 0 && (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+                    <TextField
+                        label="Title"
+                        value={config.title || ''}
+                        onChange={(e) => handleChange('title', e.target.value)}
+                        fullWidth
+                    />
+
+                    <RichTextEditor
+                        label="Description"
+                        value={config.description || config.content || ''}
+                        onChange={(value) => {
+                            handleChange('description', value);
+                            if (config.content) handleChange('content', '');
                         }}
-                        label={config.backgroundImage ? "Change" : "Select"}
-                        fullWidth={!config.backgroundImage}
+                        variant="minimal"
+                        minHeight={100}
+                    />
+                    <Divider sx={{ my: 1 }} />
+                    <Typography variant="subtitle2">Call to Action</Typography>
+                    <TextField
+                        label="Button Text"
+                        value={config.ctaText || ''}
+                        onChange={(e) => handleChange('ctaText', e.target.value)}
+                        fullWidth
+                    />
+                    <TextField
+                        label="Button Link"
+                        value={config.ctaLink || ''}
+                        onChange={(e) => handleChange('ctaLink', e.target.value)}
+                        fullWidth
+                    />
+                    <FormControl fullWidth>
+                        <InputLabel>CTA Position</InputLabel>
+                        <Select
+                            value={config.ctaPosition || 'right'}
+                            label="CTA Position"
+                            onChange={(e) => handleChange('ctaPosition', e.target.value)}
+                        >
+                            <MenuItem value="left">Left</MenuItem>
+                            <MenuItem value="right">Right</MenuItem>
+                            <MenuItem value="bottom">Bottom</MenuItem>
+                        </Select>
+                    </FormControl>
+                </Box>
+            )}
+
+            {tab === 1 && (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+                    <Typography variant="subtitle2">Title Typography</Typography>
+                    <FormControl fullWidth size="small">
+                        <InputLabel>Font Family</InputLabel>
+                        <Select
+                            value={config.titleStyles?.fontFamily || ''}
+                            label="Font Family"
+                            onChange={(e) => handleStyleChange('titleStyles', 'fontFamily', e.target.value)}
+                        >
+                            {COMMON_FONTS.map(font => (
+                                <MenuItem key={font.value} value={font.value} style={{ fontFamily: font.value || 'inherit' }}>
+                                    {font.label}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                        <TextField
+                            label="Size (px)"
+                            type="number"
+                            value={config.titleStyles?.fontSize || 24}
+                            onChange={(e) => handleStyleChange('titleStyles', 'fontSize', parseInt(e.target.value) || 0)}
+                            size="small"
+                        />
+                        <FormControl fullWidth size="small">
+                            <InputLabel>Weight</InputLabel>
+                            <Select
+                                value={config.titleStyles?.fontWeight || 700}
+                                label="Weight"
+                                onChange={(e) => handleStyleChange('titleStyles', 'fontWeight', Number(e.target.value))}
+                            >
+                                <MenuItem value={400}>Regular</MenuItem>
+                                <MenuItem value={500}>Medium</MenuItem>
+                                <MenuItem value={600}>Semi Bold</MenuItem>
+                                <MenuItem value={700}>Bold</MenuItem>
+                                <MenuItem value={800}>Extra Bold</MenuItem>
+                            </Select>
+                        </FormControl>
+                    </Box>
+                    <TextField
+                        label="Title Color"
+                        type="color"
+                        value={config.titleStyles?.color || config.textColor || '#000000'}
+                        onChange={(e) => handleStyleChange('titleStyles', 'color', e.target.value)}
+                        fullWidth
+                        size="small"
+                        InputLabelProps={{ shrink: true }}
+                    />
+
+                    <Divider sx={{ my: 1 }} />
+                    <Typography variant="subtitle2">Description Typography</Typography>
+                    <FormControl fullWidth size="small">
+                        <InputLabel>Font Family</InputLabel>
+                        <Select
+                            value={config.descriptionStyles?.fontFamily || ''}
+                            label="Font Family"
+                            onChange={(e) => handleStyleChange('descriptionStyles', 'fontFamily', e.target.value)}
+                        >
+                            {COMMON_FONTS.map(font => (
+                                <MenuItem key={font.value} value={font.value} style={{ fontFamily: font.value || 'inherit' }}>
+                                    {font.label}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                        <TextField
+                            label="Size (px)"
+                            type="number"
+                            value={config.descriptionStyles?.fontSize || 16}
+                            onChange={(e) => handleStyleChange('descriptionStyles', 'fontSize', parseInt(e.target.value) || 0)}
+                            size="small"
+                        />
+                        <FormControl fullWidth size="small">
+                            <InputLabel>Weight</InputLabel>
+                            <Select
+                                value={config.descriptionStyles?.fontWeight || 400}
+                                label="Weight"
+                                onChange={(e) => handleStyleChange('descriptionStyles', 'fontWeight', Number(e.target.value))}
+                            >
+                                <MenuItem value={400}>Regular</MenuItem>
+                                <MenuItem value={500}>Medium</MenuItem>
+                                <MenuItem value={600}>Semi Bold</MenuItem>
+                                <MenuItem value={700}>Bold</MenuItem>
+                            </Select>
+                        </FormControl>
+                    </Box>
+                    <TextField
+                        label="Description Color"
+                        type="color"
+                        value={config.descriptionStyles?.color || config.textColor || '#000000'}
+                        onChange={(e) => handleStyleChange('descriptionStyles', 'color', e.target.value)}
+                        fullWidth
+                        size="small"
+                        InputLabelProps={{ shrink: true }}
                     />
                 </Box>
-                <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-                    {config.backgroundImage && (
+            )}
+
+            {tab === 2 && (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+                    <Box>
+                        <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                            Background Image
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                            {config.backgroundImage && (
+                                <Box
+                                    component="img"
+                                    src={config.backgroundImage}
+                                    sx={{ height: 50, width: 80, objectFit: 'cover', borderRadius: 1 }}
+                                />
+                            )}
+                            <FileManagerButton
+                                onSelect={(files) => {
+                                    if (files.length > 0) handleChange('backgroundImage', files[0].url);
+                                }}
+                                label={config.backgroundImage ? "Change" : "Select Image"}
+                                fullWidth={!config.backgroundImage}
+                            />
+                        </Box>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', gap: 2 }}>
                         <TextField
-                            value={config.backgroundImage}
-                            onChange={(e) => handleChange('backgroundImage', e.target.value)}
-                            size="small"
+                            label="Bg Color"
+                            type="color"
+                            value={config.backgroundColor || '#f5f5f5'}
+                            onChange={(e) => handleChange('backgroundColor', e.target.value)}
                             fullWidth
-                            placeholder="Or enter URL"
+                            sx={{ '& input': { height: 40 } }}
+                            InputLabelProps={{ shrink: true }}
                         />
-                    )}
+                        <TextField
+                            label="Height (px)"
+                            type="number"
+                            value={config.height || 120}
+                            onChange={(e) => handleChange('height', parseInt(e.target.value))}
+                            fullWidth
+                        />
+                    </Box>
+
+                    <Divider />
+                    <Typography variant="subtitle2">Overlay</Typography>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                        <TextField
+                            label="Overlay Color"
+                            type="color"
+                            value={config.overlayColor || '#000000'}
+                            onChange={(e) => handleChange('overlayColor', e.target.value)}
+                            fullWidth
+                            sx={{ '& input': { height: 40 } }}
+                            InputLabelProps={{ shrink: true }}
+                        />
+                        <TextField
+                            label="Opacity (0-1)"
+                            type="number"
+                            inputProps={{ min: 0, max: 1, step: 0.1 }}
+                            value={config.overlayOpacity !== undefined ? config.overlayOpacity : 0.5}
+                            onChange={(e) => {
+                                const val = parseFloat(e.target.value);
+                                handleChange('overlayOpacity', isNaN(val) ? 0.5 : val);
+                            }}
+                            fullWidth
+                        />
+                    </Box>
+
+                    <Divider />
+                    <Typography variant="subtitle2">CTA Buttons</Typography>
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                        <TextField
+                            label="CTA Baground"
+                            type="color"
+                            value={config.ctaBackgroundColor || '#000000'}
+                            onChange={(e) => handleChange('ctaBackgroundColor', e.target.value)}
+                            fullWidth
+                            sx={{ '& input': { height: 40 } }}
+                            InputLabelProps={{ shrink: true }}
+                        />
+                        <TextField
+                            label="CTA Text Color"
+                            type="color"
+                            value={config.ctaTextColor || '#ffffff'}
+                            onChange={(e) => handleChange('ctaTextColor', e.target.value)}
+                            fullWidth
+                            sx={{ '& input': { height: 40 } }}
+                            InputLabelProps={{ shrink: true }}
+                        />
+                    </Box>
                 </Box>
-            </Box>
-
-            <Box sx={{ display: 'flex', gap: 2 }}>
-                <TextField
-                    label="Background Color"
-                    type="color"
-                    value={config.backgroundColor || '#f5f5f5'}
-                    onChange={(e) => handleChange('backgroundColor', e.target.value)}
-                    fullWidth
-                    sx={{ '& input': { height: 40 } }}
-                />
-                <TextField
-                    label="Text Color"
-                    type="color"
-                    value={config.textColor || '#000000'}
-                    onChange={(e) => handleChange('textColor', e.target.value)}
-                    fullWidth
-                    sx={{ '& input': { height: 40 } }}
-                />
-            </Box>
-
-            <Divider />
-            <Typography variant="subtitle2">Overlay Settings</Typography>
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-                <TextField
-                    label="Overlay Color"
-                    type="color"
-                    value={config.overlayColor || '#000000'}
-                    onChange={(e) => handleChange('overlayColor', e.target.value)}
-                    fullWidth
-                    sx={{ '& input': { height: 40 } }}
-                />
-                <TextField
-                    label="Opacity (0-1)"
-                    type="number"
-                    inputProps={{ min: 0, max: 1, step: 0.1 }}
-                    value={config.overlayOpacity !== undefined ? config.overlayOpacity : 0.5}
-                    onChange={(e) => handleChange('overlayOpacity', parseFloat(e.target.value))}
-                    fullWidth
-                />
-            </Box>
-
-            <Divider />
-            <Typography variant="subtitle2">CTA Button</Typography>
-
-            <TextField
-                label="Button Text"
-                value={config.ctaText || ''}
-                onChange={(e) => handleChange('ctaText', e.target.value)}
-                fullWidth
-            />
-            <TextField
-                label="Button Link"
-                value={config.ctaLink || ''}
-                onChange={(e) => handleChange('ctaLink', e.target.value)}
-                fullWidth
-            />
-
-            <Box sx={{ display: 'flex', gap: 2 }}>
-                <TextField
-                    label="CTA Background"
-                    type="color"
-                    value={config.ctaBackgroundColor || '#000000'}
-                    onChange={(e) => handleChange('ctaBackgroundColor', e.target.value)}
-                    fullWidth
-                    sx={{ '& input': { height: 40 } }}
-                />
-                <TextField
-                    label="CTA Text Color"
-                    type="color"
-                    value={config.ctaTextColor || '#ffffff'}
-                    onChange={(e) => handleChange('ctaTextColor', e.target.value)}
-                    fullWidth
-                    sx={{ '& input': { height: 40 } }}
-                />
-            </Box>
-
-            <FormControl fullWidth>
-                <InputLabel>CTA Position</InputLabel>
-                <Select
-                    value={config.ctaPosition || 'right'}
-                    label="CTA Position"
-                    onChange={(e) => handleChange('ctaPosition', e.target.value)}
-                >
-                    <MenuItem value="left">Left (Before Content)</MenuItem>
-                    <MenuItem value="right">Right (After Content)</MenuItem>
-                    <MenuItem value="bottom">Bottom</MenuItem>
-                </Select>
-            </FormControl>
-
-            <TextField
-                label="Height (px)"
-                type="number"
-                value={config.height || 120}
-                onChange={(e) => handleChange('height', parseInt(e.target.value))}
-                fullWidth
-            />
+            )}
         </Box>
     );
 };

@@ -23,6 +23,8 @@ export interface IPage extends Document {
         metaDescription?: string;
         metaKeywords?: string[];
         ogImage?: string;
+        ogTitle?: string;
+        ogDescription?: string;
         canonicalUrl?: string;
     };
 
@@ -86,6 +88,8 @@ const PageSchema = new Schema<IPage>(
             metaDescription: { type: String, trim: true, maxlength: 160 },
             metaKeywords: { type: [String], default: [] },
             ogImage: { type: String, trim: true },
+            ogTitle: { type: String, trim: true, maxlength: 60 },
+            ogDescription: { type: String, trim: true, maxlength: 160 },
             canonicalUrl: { type: String, trim: true },
             score: {
                 type: Number,

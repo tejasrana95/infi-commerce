@@ -14,6 +14,7 @@ export const createLayoutValidation = [
 export const updateLayoutValidation = [
     param('id').isMongoId().withMessage('Invalid layout ID'),
     body('name').optional().trim().notEmpty(),
+    body('storeId').optional().isMongoId().withMessage('Valid store ID is required'),
 ];
 
 /**
@@ -223,9 +224,9 @@ export const updateLayout = asyncHandler(async (req: AuthRequest, res: Response)
         throw new AppError('Layout not found', 404);
     }
 
-    // Prevent storeId and type change
-    delete updates.storeId;
+    // Prevent type change
     delete updates.type;
+    delete updates.__v;
 
     Object.assign(layout, updates);
     await layout.save();
@@ -374,15 +375,7 @@ export const resolveLayout = asyncHandler(async (req: AuthRequest, res: Response
         });
     }
 
-    // Step 3: If still no layout, try any published layout of this type
-    if (!layout) {
-        layout = await Layout.findOne({
-            storeId,
-            type,
-            status: 'published',
-            isTemplate: false,
-        }).sort({ updatedAt: -1 });
-    }
+
 
     if (!layout) {
         res.json({ layout: null });

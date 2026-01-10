@@ -2,7 +2,9 @@ import React from 'react';
 import Link from 'next/link';
 
 interface StripBannerProps {
-    content?: string;
+    title?: string;
+    description?: string;
+    content?: string; // Legacy field
     backgroundImage?: string;
     backgroundColor?: string;
     textColor?: string;
@@ -14,10 +16,24 @@ interface StripBannerProps {
     overlayOpacity?: number;
     ctaBackgroundColor?: string;
     ctaTextColor?: string;
+    titleStyles?: {
+        fontFamily?: string;
+        fontSize?: number;
+        fontWeight?: number;
+        color?: string;
+    };
+    descriptionStyles?: {
+        fontFamily?: string;
+        fontSize?: number;
+        fontWeight?: number;
+        color?: string;
+    };
     className?: string; // For margin/padding from layout engine
 }
 
 const StripBanner: React.FC<StripBannerProps> = ({
+    title,
+    description,
     content,
     backgroundImage,
     backgroundColor = '#f5f5f5',
@@ -30,17 +46,18 @@ const StripBanner: React.FC<StripBannerProps> = ({
     overlayOpacity,
     ctaBackgroundColor = '#000000', // Default to black
     ctaTextColor = '#ffffff',       // Default to white
+    titleStyles,
+    descriptionStyles,
     className,
 }) => {
-    const style: React.CSSProperties = {
+    const containerStyle: React.CSSProperties = {
         backgroundColor,
         color: textColor,
         minHeight: `${height}px`,
-        backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
         position: 'relative',
         borderRadius: '0.8rem',
+        overflow: 'hidden',
+        zIndex: 0, // Stacking context
     };
 
     const hasCTA = ctaText && ctaLink;
@@ -65,31 +82,97 @@ const StripBanner: React.FC<StripBannerProps> = ({
         );
     };
 
+    const effectiveDescription = description || content;
+
+    // Robust Overlay Logic
+    // If color is present, render.
+    // If opacity is present (>0) but no color, default to black and render.
+    let safeColor = overlayColor;
+    let safeOpacity = (overlayOpacity !== undefined && !isNaN(overlayOpacity)) ? overlayOpacity : 0.5;
+
+    // Default to black if opacity is explicitly set but no color provided
+    if (!safeColor && overlayOpacity !== undefined && overlayOpacity > 0) {
+        safeColor = '#000000';
+    }
+
+    const showOverlay = !!safeColor;
+
     return (
         <div
             className={`w-full flex items-center justify-center px-4 md:px-8 py-6 ${className || ''}`}
-            style={style}
+            style={containerStyle}
         >
-            {/* Overlay */}
-            {(overlayColor && overlayOpacity !== undefined) && (
+            {/* Background Image Layer */}
+            {backgroundImage && (
                 <div
-                    className="absolute inset-0"
+                    className="absolute inset-0 pointer-events-none"
                     style={{
-                        backgroundColor: overlayColor,
-                        opacity: overlayOpacity,
-                        borderRadius: '0.8rem',
+                        backgroundImage: `url(${backgroundImage})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        zIndex: 1,
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
                     }}
                 />
             )}
 
-            <div className={`relative z-10 container mx-auto flex flex-col  items-center gap-4 ${ctaPosition === 'left' ? 'md:flex-row-reverse md:justify-end' :
-                ctaPosition === 'right' ? 'md:justify-between md:flex-row' :
-                    'flex-col text-center md:flex-col' // bottom
-                }`}>
+            {/* Overlay Color Layer */}
+            {showOverlay && (
+                <div
+                    className="absolute inset-0 pointer-events-none"
+                    data-overlay-debug={`color:${safeColor}, opacity:${safeOpacity}`}
+                    style={{
+                        backgroundColor: safeColor,
+                        opacity: safeOpacity,
+                        zIndex: 2,
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                    }}
+                />
+            )}
+
+            {/* Content Layer */}
+            <div
+                className={`relative container mx-auto flex flex-col items-center gap-4 ${ctaPosition === 'left' ? 'md:flex-row-reverse md:justify-end' :
+                    ctaPosition === 'right' ? 'md:justify-between md:flex-row' :
+                        'flex-col text-center md:flex-col' // bottom
+                    }`}
+                style={{ zIndex: 10 }}
+            >
 
                 {/* Content */}
-                <div className={`text-lg md:text-xl font-medium ${ctaPosition === 'bottom' ? 'mb-2' : ''}`}>
-                    {content}
+                <div className={`flex flex-col gap-1 ${ctaPosition === 'bottom' ? 'mb-2' : ''} ${ctaPosition === 'right' ? 'text-left' : ctaPosition === 'left' ? 'text-right' : 'text-center'}`}>
+                    {title && (
+                        <div
+                            style={{
+                                fontFamily: titleStyles?.fontFamily,
+                                fontSize: titleStyles?.fontSize ? `${titleStyles.fontSize}px` : '1.5rem',
+                                fontWeight: titleStyles?.fontWeight || 700,
+                                color: titleStyles?.color || textColor,
+                                lineHeight: 1.2,
+                            }}
+                        >
+                            {title}
+                        </div>
+                    )}
+                    {effectiveDescription && (
+                        <div
+                            dangerouslySetInnerHTML={{ __html: effectiveDescription }}
+                            style={{
+                                fontFamily: descriptionStyles?.fontFamily,
+                                fontSize: descriptionStyles?.fontSize ? `${descriptionStyles.fontSize}px` : '1rem',
+                                fontWeight: descriptionStyles?.fontWeight || 400,
+                                color: descriptionStyles?.color || textColor,
+                                // opacity: descriptionStyles?.color ? 1 : 0.9, // Removed opacity to avoid conflict with RTE colors
+                            }}
+                            className="prose prose-sm max-w-none"
+                        />
+                    )}
                 </div>
 
                 {/* CTA */}

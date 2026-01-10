@@ -142,6 +142,10 @@ export default function SectionRenderer({ section, moduleData, renderModule, ind
         return classes.join(' ');
     };
 
+    // Hover effect class (needs to be defined in module.scss but we can't edit it here easily if it's not open. 
+    // Assuming we can rely on inline styles or standard classes. 
+    // Actually, I should edit the SCSS file for the hover class.)
+
     // Sort modules by order
     const sortedModules = [...(section.modules || [])].sort((a, b) => a.order - b.order);
 
@@ -169,14 +173,36 @@ export default function SectionRenderer({ section, moduleData, renderModule, ind
                 {section.columns.map((column) => {
                     const sortedColumnModules = [...(column.modules || [])].sort((a, b) => a.order - b.order);
                     const widthPercent = (column.width / 12) * 100;
+
+                    // Column Styles
+                    const columnStyle: React.CSSProperties = {
+                        '--column-width': `${widthPercent}%`,
+                        '--column-count': columnCount,
+                        backgroundColor: column.settings?.backgroundColor,
+                        backgroundImage: column.settings?.backgroundImage ? `url(${column.settings.backgroundImage})` : undefined,
+                        backgroundSize: column.settings?.backgroundSize,
+                        backgroundPosition: column.settings?.backgroundPosition,
+                        color: column.settings?.textColor,
+                        paddingTop: column.settings?.paddingTop ? `${column.settings.paddingTop}px` : undefined,
+                        paddingBottom: column.settings?.paddingBottom ? `${column.settings.paddingBottom}px` : undefined,
+                        paddingLeft: column.settings?.paddingLeft ? `${column.settings.paddingLeft}px` : undefined,
+                        paddingRight: column.settings?.paddingRight ? `${column.settings.paddingRight}px` : undefined,
+                        marginTop: column.settings?.marginTop ? `${column.settings.marginTop}px` : undefined,
+                        marginBottom: column.settings?.marginBottom ? `${column.settings.marginBottom}px` : undefined,
+                        borderTopWidth: column.settings?.borderTopWidth ? `${column.settings.borderTopWidth}px` : undefined,
+                        borderRightWidth: column.settings?.borderRightWidth ? `${column.settings.borderRightWidth}px` : undefined,
+                        borderBottomWidth: column.settings?.borderBottomWidth ? `${column.settings.borderBottomWidth}px` : undefined,
+                        borderLeftWidth: column.settings?.borderLeftWidth ? `${column.settings.borderLeftWidth}px` : undefined,
+                        borderColor: column.settings?.borderColor,
+                        borderStyle: column.settings?.borderStyle,
+                        borderRadius: column.settings?.borderRadius ? `${column.settings.borderRadius}px` : undefined,
+                    } as React.CSSProperties;
+
                     return (
                         <div
                             key={column.id}
-                            className={styles.column}
-                            style={{
-                                '--column-width': `${widthPercent}%`,
-                                '--column-count': columnCount,
-                            } as React.CSSProperties}
+                            className={`${styles.column} ${column.settings?.hoverEffect ? styles.columnHover : ''}`}
+                            style={columnStyle}
                         >
                             {sortedColumnModules.map((module) =>
                                 renderModuleFn(module, moduleData?.[module.id], index === 0)
