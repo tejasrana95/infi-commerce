@@ -68,6 +68,7 @@ export async function generateStaticParams() {
 
 // Revalidate every 30 minutes
 export const revalidate = 1800;
+export const dynamic = 'force-dynamic'; // Allow headers() usage in getServerStore()
 
 // Generate metadata for SEO
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {

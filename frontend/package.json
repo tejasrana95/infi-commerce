@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev -p 3002",
     "build": "next build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/",
-    "start": "next start -p 3012",
+    "start": "PORT=3012 node .next/standalone/server.js",
+    "start-old": "next start -p 3012",
+    "start-local": "PORT=3002 node .next/standalone/server.js",
     "lint": "eslint",
     "analyze": "cross-env ANALYZE=true next build"
   },
