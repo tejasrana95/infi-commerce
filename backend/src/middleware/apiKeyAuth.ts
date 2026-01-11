@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import ApiKey, { IApiKey } from '../models/ApiKey';
+import Store from '../models/Store';
+import cache from '../utils/cache';
 
 // Rate limit tracking (in-memory for simplicity, use Redis in production)
 const rateLimitStore: Map<string, { count: number; resetAt: number }> = new Map();
@@ -212,8 +214,38 @@ export const optionalApiKeyAuth = async (
             next();
             return;
         }
-        // External request without API key - require it
+        // New: Check if request is from a registered store domain
         else {
+            try {
+                // Extract hostname from origin/referer
+                let hostname = origin;
+                try {
+                    const url = new URL(origin);
+                    hostname = url.hostname;
+                } catch (e) {
+                    // Fallback if origin is just a hostname
+                    hostname = origin.replace(/^https?:\/\//, '').split('/')[0].split(':')[0];
+                }
+
+                if (hostname) {
+                    const cacheKey = `allowed_domain:${hostname}`;
+                    let isAllowed = cache.get<boolean>(cacheKey);
+
+                    if (isAllowed === null) {
+                        const store = await Store.findOne({ domains: hostname, isActive: true });
+                        isAllowed = !!store;
+                        cache.set(cacheKey, isAllowed, 3600); // Cache for 1 hour
+                    }
+
+                    if (isAllowed) {
+                        next();
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.error('Error in dynamic domain check:', err);
+            }
+
             res.status(401).json({ error: 'API key is required for external requests' });
             return;
         }
