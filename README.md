@@ -138,6 +138,10 @@ https://yourstore.com/?nocache=true
 https://yourstore.com/products?nocache=true
 https://yourstore.com/blog/post-title?nocache=true
 
+**To run Notification Cron**
+http://localhost:3001/api/notifications/processQueue?limit=20&priority=high
+http://localhost:3001/api/notifications/processQueue?limit=20&priority=normal
+
 
 **On Command to Pull and Build**
 # Make script executable (first time only)

@@ -23,13 +23,18 @@ import {
     markAllAsRead,
     createAdminNotification,
     createAdminNotificationValidation,
+    processQueueAutomated,
 } from '../controllers/notification.controller';
 import { authenticate, authorize } from '../middleware/auth';
 import { validate } from '../middleware/validation';
+import { localIpOnly } from '../middleware/localIpAuth';
 
 const router = Router();
 
-// All routes require authentication
+// Cron endpoint (local IP restricted) - must be before authenticate
+router.get('/processQueue', localIpOnly, processQueueAutomated);
+
+// All other routes require authentication
 router.use(authenticate);
 
 // ============================================

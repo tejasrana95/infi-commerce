@@ -12,6 +12,7 @@ import {
     getTemplateTypes,
     getTemplateVariables,
 } from '../utils/template-defaults';
+import { NotificationPriority } from '../models/NotificationQueue';
 
 // ============================================
 // Notification Queue Controller
@@ -171,6 +172,41 @@ export const processQueue = asyncHandler(async (req: AuthRequest, res: Response)
         success: true,
         message: `Processed ${result.processed} notifications, ${result.failed} failed`,
         ...result,
+    });
+});
+
+/**
+ * Process notification queue (Automated/Cron)
+ * GET /api/notifications/processQueue
+ * 
+ * Processes high, normal, and low priority notifications.
+ * Should be called by a frequent cron job (e.g., every 5 minutes).
+ */
+export const processQueueAutomated = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const limit = Number(req.query.limit) || 30;
+
+    // Process all priorities: high, then normal, then low
+    const results = await Promise.all([
+        notificationService.processQueue('high' as NotificationPriority, limit),
+        notificationService.processQueue('normal' as NotificationPriority, limit),
+        notificationService.processQueue('low' as NotificationPriority, limit)
+    ]);
+
+    const totalProcessed = results.reduce((sum, r) => sum + r.processed, 0);
+    const totalFailed = results.reduce((sum, r) => sum + r.failed, 0);
+
+    console.log(`[Cron] Processed ${totalProcessed} notifications (${totalFailed} failed)`);
+
+    res.json({
+        success: true,
+        message: 'Notification queue processed',
+        processed: totalProcessed,
+        failed: totalFailed,
+        details: {
+            high: results[0],
+            normal: results[1],
+            low: results[2]
+        }
     });
 });
 
