@@ -2,8 +2,9 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
-export default function Home() {
+function HomeContent() {
   const router = useRouter();
 
   useEffect(() => {
@@ -11,4 +12,12 @@ export default function Home() {
   }, [router]);
 
   return null;
+}
+
+export default function Home() {
+  return (
+    <ProtectedRoute>
+      <HomeContent />
+    </ProtectedRoute>
+  );
 }

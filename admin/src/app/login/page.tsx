@@ -34,13 +34,14 @@ export default function LoginPage() {
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaToken, setMfaToken] = useState('');
   const [mfaCode, setMfaCode] = useState('');
-  const [branding, setBranding] = useState({ name: 'Infi Commerce', logo: '', favicon: '' });
+  const [branding, setBranding] = useState({ name: 'Infi Commerce', logo: '/logo.webp', favicon: '' });
 
   useEffect(() => {
     const fetchBranding = async () => {
       try {
         const response = await api.get('/settings/admin-branding');
-        if (response.data.success) {
+        console.log(response.data);
+        if (response.data.success && response.data.branding && (response.data.branding.name || response.data.branding.logo || response.data.branding.favicon)) {
           setBranding(response.data.branding);
         }
       } catch (error) {
