@@ -74,7 +74,7 @@ async function fetchPages(storeId: string): Promise<any[]> {
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const store = await getServerStore();
-    const domain = store?.domain || 'localhost:3002';
+    const domain = (store?.domains && store.domains.length > 0) ? store.domains[0] : 'localhost:3002';
     const baseUrl = `https://${domain}`;
 
     const entries: SitemapEntry[] = [];

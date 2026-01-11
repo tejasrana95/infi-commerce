@@ -569,7 +569,7 @@ export interface Store {
     _id: string;
     name: string;
     slug: string;
-    domain: string;
+    domains: string[]; // Array of domains for multi-domain support
     description?: string;
     logo?: string;
     favicon?: string;
