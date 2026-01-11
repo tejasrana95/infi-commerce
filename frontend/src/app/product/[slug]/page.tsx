@@ -13,7 +13,8 @@ interface ProductPageProps {
 }
 
 // ISG: Revalidate product page based on environment configuration
-export const revalidate = getRevalidateTime('product');
+// ISG: Revalidate product page (15 minutes)
+export const revalidate = 900;
 // This ensures customers always see current stock status and pricing
 
 // Server-side product fetching with short cache

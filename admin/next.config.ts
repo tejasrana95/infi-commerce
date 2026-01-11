@@ -37,6 +37,15 @@ const nextConfig: NextConfig = {
     // Allow unoptimized images in development to avoid issues with localhost
     unoptimized: process.env.NODE_ENV === 'development',
   },
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/dashboard',
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default withBundleAnalyzer({

@@ -24,5 +24,17 @@ export const revalidationConfig = {
  * Get revalidation time for a specific page type
  */
 export function getRevalidateTime(pageType: keyof typeof revalidationConfig): number {
-    return revalidationConfig[pageType];
+    const time = revalidationConfig[pageType];
+    // Fallback to safe defaults if env vars fail or something goes wrong
+    if (typeof time !== 'number' || isNaN(time)) {
+        const defaults: Record<string, number> = {
+            homepage: 300,
+            category: 600,
+            product: 900,
+            store: 300,
+            blog: 3600
+        };
+        return defaults[pageType] || 60;
+    }
+    return time;
 }
