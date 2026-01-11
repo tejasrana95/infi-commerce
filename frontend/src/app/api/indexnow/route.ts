@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
         }
 
         const store = await getServerStore();
-        const domain = store?.domain || 'localhost:3002';
+        const domain = (store?.domains && store.domains.length > 0) ? store.domains[0] : 'localhost:3002';
         const host = domain.replace(/:\d+$/, ''); // Remove port for IndexNow
 
         // IndexNow payload

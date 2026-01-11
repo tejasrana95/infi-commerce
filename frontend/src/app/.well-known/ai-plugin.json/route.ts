@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
     try {
         const store = await getServerStore();
-        const domain = store?.domain || 'localhost:3002';
+        const domain = (store?.domains && store.domains.length > 0) ? store.domains[0] : 'localhost:3002';
         const storeName = store?.name || 'E-Commerce Store';
 
         const aiPlugin = {
