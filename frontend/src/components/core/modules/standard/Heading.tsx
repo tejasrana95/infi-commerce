@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { ModuleProps } from '../index';
+import { formatFontFamily } from '@/lib/fonts';
+import { useDynamicFonts } from '@/hooks/useDynamicFonts';
 
 interface HeadingConfig {
     heading?: string;
@@ -46,6 +48,12 @@ export default function Heading({ config, sectionType }: ModuleProps) {
         styles = {}
     } = config as HeadingConfig;
 
+    // Dynamically load fonts used in this component
+    const fontsToLoad = [];
+    if (styles?.fontFamily) fontsToLoad.push(styles.fontFamily);
+    if (styles?.subFontFamily) fontsToLoad.push(styles.subFontFamily);
+    useDynamicFonts(fontsToLoad);
+
     if (!heading && !subheading) {
         return null;
     }
@@ -75,7 +83,7 @@ export default function Heading({ config, sectionType }: ModuleProps) {
 
     // Heading specific styles
     const headingStyle: React.CSSProperties = {
-        fontFamily: styles.fontFamily,
+        fontFamily: formatFontFamily(styles.fontFamily),
         fontSize: styles.fontSize ? `${styles.fontSize}px` : undefined,
         fontWeight: styles.fontWeight,
         color: styles.color,
@@ -85,7 +93,7 @@ export default function Heading({ config, sectionType }: ModuleProps) {
 
     // Subheading styles
     const subheadingStyle: React.CSSProperties = {
-        fontFamily: styles.subFontFamily || styles.fontFamily,
+        fontFamily: formatFontFamily(styles.subFontFamily || styles.fontFamily),
         fontSize: styles.subFontSize ? `${styles.subFontSize}px` : (styles.fontSize ? `${Math.max(14, styles.fontSize * 0.6)}px` : '18px'),
         fontWeight: styles.subFontWeight || 400,
         color: styles.subColor || styles.color,

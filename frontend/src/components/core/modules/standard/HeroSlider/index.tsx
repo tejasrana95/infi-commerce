@@ -18,6 +18,8 @@ import * as MdIcons from 'react-icons/md';
 import * as BiIcons from 'react-icons/bi';
 import * as IoIcons from 'react-icons/io5';
 import * as LucideIcons from 'lucide-react';
+import { formatFontFamily } from '@/lib/fonts';
+import { useDynamicFonts } from '@/hooks/useDynamicFonts';
 
 // Viewport breakpoints - MUST match admin SlideCanvas.tsx VIEWPORT_DIMENSIONS exactly
 const VIEWPORT_BREAKPOINTS = {
@@ -199,9 +201,17 @@ const getStyleForViewport = (
     const tabletStyle = layer.tabletStyle ? { ...desktopStyle, ...layer.tabletStyle } : desktopStyle;
     const mobileStyle = layer.mobileStyle ? { ...tabletStyle, ...layer.mobileStyle } : tabletStyle;
 
-    if (viewport === 'mobile') return mobileStyle;
-    if (viewport === 'tablet') return tabletStyle;
-    return desktopStyle;
+    const rawStyle = viewport === 'mobile' ? mobileStyle : (viewport === 'tablet' ? tabletStyle : desktopStyle);
+
+    // Format font family if it exists
+    if (rawStyle.fontFamily) {
+        return {
+            ...rawStyle,
+            fontFamily: formatFontFamily(rawStyle.fontFamily)
+        };
+    }
+
+    return rawStyle;
 };
 
 /**
@@ -632,6 +642,29 @@ const HeroSliderModule: React.FC<ModuleProps> = ({ config }) => {
             });
         }
     }, [store?._id, config.sliderId]);
+
+    // Extract and dynamically load fonts from all Hero Slider layers
+    const fontsToLoad = useMemo(() => {
+        if (!sliderData) return [];
+
+        const fonts: string[] = [];
+
+        sliderData.slides.forEach(slide => {
+            slide.layers.forEach(layer => {
+                // Check desktop, tablet, and mobile styles
+                [layer.style, layer.tabletStyle, layer.mobileStyle].forEach(style => {
+                    if (style?.fontFamily) {
+                        fonts.push(style.fontFamily);
+                    }
+                });
+            });
+        });
+
+        return fonts;
+    }, [sliderData]);
+
+    // Use the hook to load fonts dynamically
+    useDynamicFonts(fontsToLoad);
 
     // Calculate height based on viewport and settings
     const containerHeight = useMemo(() => {

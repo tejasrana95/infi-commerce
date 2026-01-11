@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import { formatFontFamily } from '@/lib/fonts';
 
 interface StripBannerProps {
     title?: string;
@@ -150,7 +151,7 @@ const StripBanner: React.FC<StripBannerProps> = ({
                     {title && (
                         <div
                             style={{
-                                fontFamily: titleStyles?.fontFamily,
+                                fontFamily: formatFontFamily(titleStyles?.fontFamily),
                                 fontSize: titleStyles?.fontSize ? `${titleStyles.fontSize}px` : '1.5rem',
                                 fontWeight: titleStyles?.fontWeight || 700,
                                 color: titleStyles?.color || textColor,
@@ -164,7 +165,7 @@ const StripBanner: React.FC<StripBannerProps> = ({
                         <div
                             dangerouslySetInnerHTML={{ __html: effectiveDescription }}
                             style={{
-                                fontFamily: descriptionStyles?.fontFamily,
+                                fontFamily: formatFontFamily(descriptionStyles?.fontFamily),
                                 fontSize: descriptionStyles?.fontSize ? `${descriptionStyles.fontSize}px` : '1rem',
                                 fontWeight: descriptionStyles?.fontWeight || 400,
                                 color: descriptionStyles?.color || textColor,

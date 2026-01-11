@@ -23,6 +23,7 @@ import { InterestProvider } from "@/providers/InterestProvider";
 import AutoAnalytics from "@/components/analytics/AutoAnalytics";
 import NextTopLoader from "nextjs-toploader";
 import ClientOnlyWidgets from "@/components/core/ClientOnlyWidgets";
+import { formatFontFamily } from "@/lib/fonts";
 
 
 // Optimized font loading with display: swap to prevent FOIT
@@ -61,8 +62,8 @@ function generateThemeCSSVariables(themeConfig: any): string {
   // Fonts
   if (themeConfig.fonts) {
     const { heading, body } = themeConfig.fonts;
-    if (heading) variables.push(`--font-heading: ${heading}`);
-    if (body) variables.push(`--font-body: ${body}`);
+    if (heading) variables.push(`--font-heading: ${formatFontFamily(heading)}`);
+    if (body) variables.push(`--font-body: ${formatFontFamily(body)}`);
   }
 
   if (variables.length === 0) return '';
@@ -86,8 +87,8 @@ function generateGoogleFontsUrl(themeConfig: any): string | null {
   const fontFamilies = Array.from(fontsToLoad).map(font => {
     // Replace spaces with + for URL
     const family = font.replace(/\s+/g, '+');
-    // Load standard weights: 300, 400, 500, 600, 700
-    return `family=${family}:wght@300;400;500;600;700`;
+    // Load standard weights: 300, 400, 500, 600, 700, 800, 900
+    return `family=${family}:wght@300;400;500;600;700;800;900`;
   });
 
   return `https://fonts.googleapis.com/css2?${fontFamilies.join('&')}&display=swap`;
