@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
         const page = parseInt(searchParams.get('page') || '1');
 
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-        const domain = store.domain || 'localhost:3002';
+        const domain = (store.domains && store.domains.length > 0) ? store.domains[0] : 'localhost:3002';
 
         // Build query params for backend
         const params = new URLSearchParams({

@@ -101,6 +101,7 @@ async function getProductReviews(productId: string) {
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
     const { slug } = await params;
     const store = await getServerStore();
+    const domain = (store?.domains && store.domains.length > 0) ? store.domains[0] : 'localhost:3002';
 
     if (!store?._id) {
         return { title: 'Product Not Found' };
@@ -115,7 +116,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
     const title = product.seo?.metaTitle || product.name;
     const description = product.seo?.metaDescription || product.shortDescription || product.description?.replace(/<[^>]*>/g, '').substring(0, 160);
     const image = product.seo?.ogImage || product.featuredImage || product.images?.[0];
-    const canonical = product.seo?.canonicalUrl || `https://${store.domain}/product/${slug}`;
+    const canonical = product.seo?.canonicalUrl || `https://${domain}/product/${slug}`;
 
     return {
         title,
@@ -149,6 +150,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 export default async function ProductPage({ params }: ProductPageProps) {
     const { slug } = await params;
     const store = await getServerStore();
+    const domain = (store?.domains && store.domains.length > 0) ? store.domains[0] : 'localhost:3002';
 
     if (!store?._id) {
         notFound();
@@ -174,7 +176,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
 
     // Generate JSON-LD structured data for SEO
-    const productUrl = `https://${store.domain}/product/${slug}`;
+    const productUrl = `https://${domain}/product/${slug}`;
     const jsonLd = {
         '@context': 'https://schema.org',
         '@type': 'Product',
@@ -208,7 +210,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     : 'https://schema.org/OutOfStock',
             seller: {
                 '@type': 'Organization',
-                '@id': `https://${store.domain}/#organization`,
+                '@id': `https://${domain}/#organization`,
                 name: store.name,
             },
         },
@@ -230,13 +232,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 '@type': 'ListItem',
                 position: 1,
                 name: 'Home',
-                item: `https://${store.domain}/`,
+                item: `https://${domain}/`,
             },
             ...(product.categories?.length > 0 ? [{
                 '@type': 'ListItem',
                 position: 2,
                 name: product.categories[0].title,
-                item: `https://${store.domain}/category/${product.categories[0].slug}`,
+                item: `https://${domain}/category/${product.categories[0].slug}`,
             }] : []),
             {
                 '@type': 'ListItem',

@@ -18,6 +18,7 @@ export default function HomepageSeoShell({
     categories = []
 }: HomepageSeoShellProps) {
     const currencySymbol = store?.currency === 'INR' ? '₹' : '$';
+    const domain = (store?.domains && store.domains.length > 0) ? store.domains[0] : 'localhost:3002';
 
     return (
         <div
@@ -35,11 +36,11 @@ export default function HomepageSeoShell({
             )}
 
             {/* Site URL */}
-            <link itemProp="url" href={`https://${store.domain}`} />
+            <link itemProp="url" href={`https://${domain}`} />
 
             {/* Search Action for Sitelinks Search Box */}
             <div itemProp="potentialAction" itemScope itemType="https://schema.org/SearchAction">
-                <link itemProp="target" href={`https://${store.domain}/search?q={search_term_string}`} />
+                <link itemProp="target" href={`https://${domain}/search?q={search_term_string}`} />
                 <input type="hidden" itemProp="query-input" name="search_term_string" />
             </div>
 
@@ -49,7 +50,7 @@ export default function HomepageSeoShell({
                 {store.logo && (
                     <img itemProp="logo" src={store.logo} alt={store.name} width={200} height={200} />
                 )}
-                <link itemProp="url" href={`https://${store.domain}`} />
+                <link itemProp="url" href={`https://${domain}`} />
             </div>
 
             {/* Featured Products */}

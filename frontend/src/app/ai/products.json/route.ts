@@ -96,7 +96,7 @@ export async function GET() {
             );
         }
 
-        const domain = store.domain || 'localhost:3002';
+        const domain = (store.domains && store.domains.length > 0) ? store.domains[0] : 'localhost:3002';
         const products = await fetchAllProducts(store._id, domain);
 
         const feed: AIProductFeed = {
