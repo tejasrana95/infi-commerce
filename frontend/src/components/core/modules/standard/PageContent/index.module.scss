@@ -15,10 +15,15 @@
 .documentContainer {
     width: 100%;
     margin: 0 auto;
+
 }
 
 .narrow {
-    max-width: 800px;
+    max-width: 100%;
+}
+
+.medium {
+    max-width: 100%;
 }
 
 .full {
