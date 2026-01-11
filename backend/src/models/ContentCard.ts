@@ -116,7 +116,7 @@ const ContentCardSchema = new Schema<IContentCard>(
 
         valueDisplay: {
             prefix: { type: String, trim: true, maxlength: 10 },
-            amount: { type: String, required: true, trim: true, maxlength: 50 },
+            amount: { type: String, trim: true, maxlength: 50 },
             postfix: { type: String, trim: true, maxlength: 20 },
         },
 

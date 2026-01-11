@@ -18,6 +18,57 @@ interface CategoryPageProps {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
+// Generate static params for all categories at build time
+export async function generateStaticParams() {
+    try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+
+        // Fetch all stores
+        const storesRes = await fetch(`${apiUrl}/stores`, {
+            next: { revalidate: false }
+        });
+
+        if (!storesRes.ok) return [];
+
+        const storesData = await storesRes.json();
+        const stores = Array.isArray(storesData) ? storesData : storesData.data || [];
+
+        const paths = [];
+
+        // For each store, fetch all active categories
+        for (const store of stores) {
+            try {
+                const categoriesRes = await fetch(
+                    `${apiUrl}/categories?storeId=${store._id}&status=active`,
+                    { next: { revalidate: false } }
+                );
+
+                if (categoriesRes.ok) {
+                    const categoriesData = await categoriesRes.json();
+                    const categories = categoriesData.data || [];
+
+                    for (const category of categories) {
+                        if (category.slug) {
+                            paths.push({ slug: category.slug });
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error(`Failed to fetch categories for store ${store._id}:`, error);
+            }
+        }
+
+        console.log(`Generated ${paths.length} static category pages`);
+        return paths;
+    } catch (error) {
+        console.error('Failed to generate static params for categories:', error);
+        return [];
+    }
+}
+
+// Revalidate every 30 minutes
+export const revalidate = 1800;
+
 // Generate metadata for SEO
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
     const { slug } = await params;

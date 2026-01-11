@@ -16,6 +16,9 @@ interface IconBoxItem {
     description?: string;
     link?: string;
     ctaText?: string;
+    iconColor?: string;
+    ctaColor?: string;
+    bgColor?: string;
 }
 
 interface IconBoxConfig {
@@ -99,18 +102,32 @@ export default function IconBoxModule({ config }: ModuleProps) {
 
         const isFullImage = fullSizeImage && iconType === 'image' && item.image;
 
+        // Custom colors for this item
+        const itemStyle = {
+            ...boxStyle,
+            backgroundColor: item.bgColor || undefined,
+        } as React.CSSProperties;
+
+        const iconStyle = {
+            color: item.iconColor || undefined,
+        } as React.CSSProperties;
+
+        const ctaStyle = {
+            color: item.ctaColor || undefined,
+        } as React.CSSProperties;
+
         return (
             <Wrapper
                 key={item.id || index}
                 {...wrapperProps}
                 className={`${styles.iconBox} ${styles[`layout-${layout}`]} ${isFullImage ? styles.fullSizeImage : ''}`}
-                style={boxStyle as any}
+                style={itemStyle as any}
                 {...(item.link ? {
                     'data-track': 'icon_box_click',
                     'data-icon-box-title': item.title
                 } : {})}
             >
-                <div className={styles.iconWrapper}>
+                <div className={styles.iconWrapper} style={iconStyle}>
                     {iconType === 'image' && item.image ? (
                         <div className="relative w-full h-full">
                             <Image
@@ -131,7 +148,7 @@ export default function IconBoxModule({ config }: ModuleProps) {
                     {item.description && <p className={styles.description}>{item.description}</p>}
 
                     {item.link && item.ctaText && (
-                        <span className={styles.ctaLink}>
+                        <span className={styles.ctaLink} style={ctaStyle}>
                             {item.ctaText}
                             <DynamicIcon name="FaArrowRight" size={12} className="ml-1" />
                         </span>

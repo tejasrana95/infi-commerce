@@ -11,6 +11,57 @@ interface BlogPostPageProps {
     }>;
 }
 
+// Generate static params for blog posts at build time
+export async function generateStaticParams() {
+    try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+
+        // Fetch all stores
+        const storesRes = await fetch(`${apiUrl}/stores`, {
+            next: { revalidate: false }
+        });
+
+        if (!storesRes.ok) return [];
+
+        const storesData = await storesRes.json();
+        const stores = Array.isArray(storesData) ? storesData : storesData.data || [];
+
+        const paths = [];
+
+        // For each store, fetch published blog posts
+        for (const store of stores) {
+            try {
+                const postsRes = await fetch(
+                    `${apiUrl}/blog-posts?storeId=${store._id}&status=published&limit=100`,
+                    { next: { revalidate: false } }
+                );
+
+                if (postsRes.ok) {
+                    const postsData = await postsRes.json();
+                    const posts = postsData.data || [];
+
+                    for (const post of posts) {
+                        if (post.slug) {
+                            paths.push({ slug: post.slug });
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error(`Failed to fetch blog posts for store ${store._id}:`, error);
+            }
+        }
+
+        console.log(`Generated ${paths.length} static blog post pages`);
+        return paths;
+    } catch (error) {
+        console.error('Failed to generate static params for blog posts:', error);
+        return [];
+    }
+}
+
+// Revalidate every 30 minutes
+export const revalidate = 1800;
+
 // Generate metadata for SEO
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
     const { slug } = await params;

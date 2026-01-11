@@ -30,7 +30,7 @@ async function fetchCategories(storeId: string): Promise<any[]> {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
     try {
         const response = await fetch(
-            `${apiUrl}/categories?storeId=${storeId}&isActive=true`,
+            `${apiUrl}/categories?storeId=${storeId}&status=active`,
             { next: { revalidate: 3600 } }
         );
         if (!response.ok) return [];
@@ -60,11 +60,12 @@ async function fetchPages(storeId: string): Promise<any[]> {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
     try {
         const response = await fetch(
-            `${apiUrl}/pages?storeId=${storeId}&isPublished=true`,
+            `${apiUrl}/pages?storeId=${storeId}&status=published`,
             { next: { revalidate: 3600 } }
         );
         if (!response.ok) return [];
         const data = await response.json();
+
         return data.data || data.pages || [];
     } catch {
         return [];

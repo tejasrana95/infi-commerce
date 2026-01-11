@@ -14,15 +14,15 @@ import { validate } from '../middleware/validation';
 
 const router = express.Router();
 
-// Public route (no auth required)
+// Public routes (no auth required)
 router.get('/slug/:slug', getPageBySlug);
+router.get('/', getPages); // Public for sitemap (filtered by status)
 
 router.use(authenticate);
 
 router
     .route('/')
-    .post(authorize('admin', 'super_admin'), validate(createPageValidation), createPage)
-    .get(getPages);
+    .post(authorize('admin', 'super_admin'), validate(createPageValidation), createPage);
 
 router
     .route('/:id')

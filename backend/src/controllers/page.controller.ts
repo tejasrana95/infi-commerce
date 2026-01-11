@@ -3,6 +3,7 @@ import { body, param } from 'express-validator';
 import Page from '../models/Page';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
+import { triggerRevalidation } from '../utils/revalidation';
 
 export const createPageValidation = [
     body('title').trim().notEmpty().withMessage('Title is required'),
@@ -200,6 +201,11 @@ export const updatePage = asyncHandler(async (req: AuthRequest, res: Response) =
 
     Object.assign(page, updates);
     await page.save();
+
+    // Trigger frontend cache revalidation
+    triggerRevalidation(page.storeId.toString(), 'page', page.slug).catch(err => {
+        console.error('Revalidation failed:', err);
+    });
 
     res.json({
         message: 'Page updated successfully',

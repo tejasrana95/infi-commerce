@@ -11,14 +11,18 @@ interface ProductPageProps {
     params: Promise<{ slug: string }>;
 }
 
-// Server-side product fetching
+// Products use SSR (not static generation) for real-time stock accuracy
+// This ensures customers always see current stock status and pricing
+
+// Server-side product fetching with short cache
 async function getProduct(storeId: string, slug: string) {
     try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
         const response = await fetch(
             `${apiUrl}/products/slug/${storeId}/${slug}`,
             {
-                next: { revalidate: 60 }, // Revalidate every minute
+                // Short cache but allow revalidation for better performance
+                cache: 'no-store', // Always fetch fresh for stock accuracy
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -37,14 +41,17 @@ async function getProduct(storeId: string, slug: string) {
     }
 }
 
-// Server-side layout fetching
+// Server-side layout fetching (can be cached longer as it changes rarely)
 async function getProductLayout(storeId: string) {
     try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
         const response = await fetch(
             `${apiUrl}/layouts?storeId=${storeId}&type=product&isDefault=true`,
             {
-                next: { revalidate: 300 }, // Cache for 5 minutes
+                next: {
+                    revalidate: 3600, // Cache for 1 hour
+                    tags: ['product-layout']
+                },
                 headers: {
                     'Content-Type': 'application/json',
                 },

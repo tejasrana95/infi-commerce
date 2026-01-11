@@ -32,7 +32,10 @@ export default function IconBoxConfigPanel({ config, onChange }: IconBoxConfigPa
             title: 'New Feature',
             description: 'Feature description',
             icon: 'FaStar',
-            link: ''
+            link: '',
+            iconColor: '',
+            ctaColor: '',
+            bgColor: ''
         }];
         handleChange('items', newItems);
     };
@@ -208,6 +211,96 @@ export default function IconBoxConfigPanel({ config, onChange }: IconBoxConfigPa
                                         value={item.link || ''}
                                         onChange={(e) => handleItemChange(index, 'link', e.target.value)}
                                     />
+
+                                    {/* Color Options */}
+                                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1 }}>
+                                        <Box>
+                                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                                                Icon Color
+                                            </Typography>
+                                            <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                                                <input
+                                                    type="color"
+                                                    value={item.iconColor || '#000000'}
+                                                    onChange={(e) => handleItemChange(index, 'iconColor', e.target.value)}
+                                                    style={{
+                                                        width: '100%',
+                                                        height: 36,
+                                                        border: '1px solid #ddd',
+                                                        borderRadius: 4,
+                                                        cursor: 'pointer',
+                                                    }}
+                                                />
+                                                {item.iconColor && (
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={() => handleItemChange(index, 'iconColor', '')}
+                                                        sx={{ p: 0.5 }}
+                                                    >
+                                                        <DeleteIcon sx={{ fontSize: 16 }} />
+                                                    </IconButton>
+                                                )}
+                                            </Box>
+                                        </Box>
+
+                                        <Box>
+                                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                                                CTA Color
+                                            </Typography>
+                                            <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                                                <input
+                                                    type="color"
+                                                    value={item.ctaColor || '#3b82f6'}
+                                                    onChange={(e) => handleItemChange(index, 'ctaColor', e.target.value)}
+                                                    style={{
+                                                        width: '100%',
+                                                        height: 36,
+                                                        border: '1px solid #ddd',
+                                                        borderRadius: 4,
+                                                        cursor: 'pointer',
+                                                    }}
+                                                />
+                                                {item.ctaColor && (
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={() => handleItemChange(index, 'ctaColor', '')}
+                                                        sx={{ p: 0.5 }}
+                                                    >
+                                                        <DeleteIcon sx={{ fontSize: 16 }} />
+                                                    </IconButton>
+                                                )}
+                                            </Box>
+                                        </Box>
+
+                                        <Box>
+                                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                                                Background
+                                            </Typography>
+                                            <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                                                <input
+                                                    type="color"
+                                                    value={item.bgColor || '#ffffff'}
+                                                    onChange={(e) => handleItemChange(index, 'bgColor', e.target.value)}
+                                                    style={{
+                                                        width: '100%',
+                                                        height: 36,
+                                                        border: '1px solid #ddd',
+                                                        borderRadius: 4,
+                                                        cursor: 'pointer',
+                                                    }}
+                                                />
+                                                {item.bgColor && (
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={() => handleItemChange(index, 'bgColor', '')}
+                                                        sx={{ p: 0.5 }}
+                                                    >
+                                                        <DeleteIcon sx={{ fontSize: 16 }} />
+                                                    </IconButton>
+                                                )}
+                                            </Box>
+                                        </Box>
+                                    </Box>
 
                                     <TextField
                                         label="CTA Text"

@@ -397,7 +397,7 @@ export default function LayerProperties({ layer, slide, onUpdateLayer, onUpdateS
                 <StyledTextField
                     label="Layer Name"
                     value={layer.name || ''}
-                    placeholder={layer.type.charAt(0).toUpperCase() + layer.type.slice(1)}
+                    placeholder={layer.type ? layer.type.charAt(0).toUpperCase() + layer.type.slice(1) : 'Layer'}
                     onChange={(e: any) => onUpdateLayer(layer.id, { name: e.target.value })}
                 />
             </Box>

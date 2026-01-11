@@ -6,6 +6,7 @@ import User from '../models/User';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import mongoose from 'mongoose';
+import { triggerRevalidation } from '../utils/revalidation';
 
 
 // --- Blog Categories ---
@@ -735,6 +736,11 @@ export const updateBlogPost = asyncHandler(async (req: AuthRequest, res: Respons
     delete updates.storeId;
     Object.assign(post, updates);
     await post.save();
+
+    // Trigger frontend cache revalidation
+    triggerRevalidation(post.storeId.toString(), 'blog', post.slug).catch(err => {
+        console.error('Revalidation failed:', err);
+    });
 
     res.json({
         message: 'Post updated successfully',

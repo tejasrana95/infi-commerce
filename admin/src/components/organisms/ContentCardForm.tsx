@@ -53,7 +53,7 @@ const schema = z.object({
 
     valueDisplay: z.object({
         prefix: z.string().optional(),
-        amount: z.string().min(1, 'Amount is required'),
+        amount: z.string().optional(),
         postfix: z.string().optional(),
     }).optional(),
 
@@ -454,6 +454,8 @@ export default function ContentCardForm({ initialData, onSubmit, isSubmitting = 
                                             label="Prefix"
                                             fullWidth
                                             placeholder="e.g., $, €"
+                                            error={!!errors.valueDisplay?.prefix}
+                                            helperText={errors.valueDisplay?.prefix?.message}
                                         />
                                     )}
                                 />
@@ -468,6 +470,8 @@ export default function ContentCardForm({ initialData, onSubmit, isSubmitting = 
                                             label="Amount"
                                             fullWidth
                                             placeholder="e.g., 30000"
+                                            error={!!errors.valueDisplay?.amount}
+                                            helperText={errors.valueDisplay?.amount?.message}
                                         />
                                     )}
                                 />
@@ -482,6 +486,8 @@ export default function ContentCardForm({ initialData, onSubmit, isSubmitting = 
                                             label="Postfix"
                                             fullWidth
                                             placeholder="e.g., /yr, /month"
+                                            error={!!errors.valueDisplay?.postfix}
+                                            helperText={errors.valueDisplay?.postfix?.message}
                                         />
                                     )}
                                 />
@@ -641,6 +647,8 @@ export default function ContentCardForm({ initialData, onSubmit, isSubmitting = 
                                     {...field}
                                     label="Meta Title"
                                     fullWidth
+                                    error={!!errors.seo?.metaTitle}
+                                    helperText={errors.seo?.metaTitle?.message || 'Max 60 characters'}
                                 />
                             )}
                         />
@@ -656,6 +664,8 @@ export default function ContentCardForm({ initialData, onSubmit, isSubmitting = 
                                     fullWidth
                                     multiline
                                     rows={2}
+                                    error={!!errors.seo?.metaDescription}
+                                    helperText={errors.seo?.metaDescription?.message || 'Max 160 characters'}
                                 />
                             )}
                         />

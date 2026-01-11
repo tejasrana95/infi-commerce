@@ -25,6 +25,9 @@ export async function generateMetadata() {
   };
 }
 
+// Revalidate homepage every 10 minutes (ISR)
+export const revalidate = 600;
+
 export default async function Page() {
   // Fetch store data server-side for SEO
   const headersList = await headers();

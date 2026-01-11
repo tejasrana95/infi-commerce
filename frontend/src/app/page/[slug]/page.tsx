@@ -10,6 +10,57 @@ interface PageProps {
     }>;
 }
 
+// Generate static params for static pages at build time
+export async function generateStaticParams() {
+    try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+
+        // Fetch all stores
+        const storesRes = await fetch(`${apiUrl}/stores`, {
+            next: { revalidate: false }
+        });
+
+        if (!storesRes.ok) return [];
+
+        const storesData = await storesRes.json();
+        const stores = Array.isArray(storesData) ? storesData : storesData.data || [];
+
+        const paths = [];
+
+        // For each store, fetch published pages
+        for (const store of stores) {
+            try {
+                const pagesRes = await fetch(
+                    `${apiUrl}/pages?storeId=${store._id}&status=published`,
+                    { next: { revalidate: false } }
+                );
+
+                if (pagesRes.ok) {
+                    const pagesData = await pagesRes.json();
+                    const pages = pagesData.data || [];
+
+                    for (const page of pages) {
+                        if (page.slug) {
+                            paths.push({ slug: page.slug });
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error(`Failed to fetch pages for store ${store._id}:`, error);
+            }
+        }
+
+        console.log(`Generated ${paths.length} static pages`);
+        return paths;
+    } catch (error) {
+        console.error('Failed to generate static params for pages:', error);
+        return [];
+    }
+}
+
+// Revalidate every hour
+export const revalidate = 3600;
+
 // Generate metadata for SEO
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { slug } = await params;

@@ -6,6 +6,7 @@ import Store from '../models/Store';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import cache from '../utils/cache';
+import { triggerRevalidation } from '../utils/revalidation';
 
 // Validation rules
 export const createCategoryValidation = [
@@ -517,6 +518,11 @@ export const updateCategory = asyncHandler(async (req: AuthRequest, res: Respons
 
     // Invalidate store categories cache
     cache.clearByPrefix(`categories:store:${category.storeId}`);
+
+    // Trigger frontend cache revalidation
+    triggerRevalidation(category.storeId.toString(), 'category', category.slug).catch(err => {
+        console.error('Revalidation failed:', err);
+    });
 
     return res.json({
         message: 'Category updated successfully',
