@@ -5,6 +5,7 @@ import { getComponent } from "@/components/templates/registry";
 import { DEFAULT_TEMPLATE_ID } from "@/types";
 import { prefetchModuleData } from "@/lib/api/server-modules";
 import HomepageSeoShell from "@/components/seo/HomepageSeoShell";
+import { getRevalidateTime } from "@/lib/revalidation";
 
 export async function generateMetadata() {
   const headersList = await headers();
@@ -25,9 +26,9 @@ export async function generateMetadata() {
   };
 }
 
-// Revalidate homepage every 10 minutes (ISR)
-export const revalidate = 600;
-export const dynamic = 'force-dynamic'; // Allow headers() usage
+// ISG: Revalidate homepage based on environment configuration
+// Each store's homepage is cached separately by domain
+export const revalidate = getRevalidateTime('homepage'); // Default: 5 minutes
 
 export default async function Page() {
   // Fetch store data server-side for SEO

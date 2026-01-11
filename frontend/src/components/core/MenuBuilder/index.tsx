@@ -5,9 +5,8 @@
 'use client';
 
 import React from 'react';
-import useSWR from 'swr';
 import { Menu } from '@/types/menu';
-import api from '@/lib/api';
+import { useStore } from '@/providers/StoreProvider';
 import HorizontalMenu from './renderers/HorizontalMenu';
 import VerticalMenu from './renderers/VerticalMenu';
 import MegaMenu from './renderers/MegaMenu';
@@ -17,7 +16,7 @@ import AccordionMenu from './renderers/AccordionMenu';
 
 interface MenuBuilderProps {
     menuId: string;
-    initialData?: Menu; // New prop for SSR data
+    initialData?: Menu; // Optional - for backwards compatibility
     className?: string;
     themeColors?: {
         primary: string;
@@ -36,27 +35,15 @@ export default function MenuBuilder({
     themeColors,
     onItemClick,
 }: MenuBuilderProps) {
-    // Use SWR for data fetching with automatic caching and revalidation
-    // If initialData is provided, it acts as the fallback data
-    const { data, error, isLoading } = useSWR<{ menu: Menu }>(
-        menuId ? `menus/${menuId}` : null,
-        (url: string) => api.get<{ menu: Menu }>(url),
-        {
-            fallbackData: initialData ? { menu: initialData } : undefined,
-            revalidateOnMount: !initialData,
-            revalidateIfStale: !initialData,
-            revalidateOnFocus: false,
-            revalidateOnReconnect: false
-        }
-    );
+    // Get menus from StoreProvider context
+    const { menus } = useStore();
 
-    const menu = data?.menu;
+    // Use menu from context or fallback to initialData prop
+    const menu = menus?.[menuId] || initialData;
 
-    // Don't render if loading (and no data), error, or menu is inactive/empty
-    if (isLoading && !menu) return null;
-    if (error || !menu) return null;
-    if (!menu.isActive || !menu.items || menu.items.length === 0) {
-        return null; // Empty menu
+    // Don't render if no menu data, menu is inactive, or empty
+    if (!menu || !menu.isActive || !menu.items || menu.items.length === 0) {
+        return null;
     }
 
     // Select the appropriate renderer based on menu style

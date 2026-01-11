@@ -15,6 +15,7 @@ const StoreContext = createContext<StoreContextType>({
     themeConfig: null,
     isLoading: false,
     error: null,
+    menus: undefined,
 });
 
 // ============================================
@@ -50,13 +51,14 @@ interface StoreProviderProps {
     children: React.ReactNode;
     currentCurrency?: import("@/types").Currency;
     availableCurrencies?: import("@/types").Currency[];
+    menus?: Record<string, import("@/types/menu").Menu>; // SSR enriched menus
 }
 
 // ============================================
 // Provider Component
 // ============================================
 
-export function StoreProvider({ store, children, currentCurrency, availableCurrencies }: StoreProviderProps) {
+export function StoreProvider({ store, children, currentCurrency, availableCurrencies, menus }: StoreProviderProps) {
     const templateId = store?.theme?.templateId || DEFAULT_TEMPLATE_ID;
     const themeConfig = store?.theme || null;
     // Set store ID on API client for X-Store-ID header
@@ -160,6 +162,7 @@ export function StoreProvider({ store, children, currentCurrency, availableCurre
         currentCurrency: activeCurrency,
         availableCurrencies,
         setCurrency,
+        menus, // Add menus to context
     };
 
     return (

@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { body, param } from 'express-validator';
 import Store from '../models/Store';
+import Menu from '../models/Menu';
+import Product from '../models/Product';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import cache from '../utils/cache';
@@ -92,6 +94,153 @@ export const updateStoreValidation = [
     body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
+// ============================================
+// Menu Enrichment Helpers
+// ============================================
+
+/**
+ * Enrich a single menu item with product data
+ */
+async function enrichMenuItem(item: any, storeId: string): Promise<any> {
+    const newItem = { ...item };
+
+    // Enrichment logic for Category items with product limit
+    if (newItem.type === 'category' && newItem.categoryId && newItem.productLimit && newItem.productLimit > 0) {
+        try {
+            const products = await Product.find({
+                storeId,
+                category: newItem.categoryId,
+                isActive: true,
+            })
+                .select('_id name slug price salePrice images')
+                .limit(newItem.productLimit)
+                .lean();
+
+            // Store enriched products in the item
+            newItem.products = products.map((p: any) => ({
+                _id: p._id.toString(),
+                name: p.name,
+                slug: p.slug,
+                price: p.price,
+                salePrice: p.salePrice,
+                images: p.images,
+            }));
+        } catch (error) {
+            console.error(`Failed to enrich category item ${newItem.label}:`, error);
+        }
+    }
+
+    // Recursively enrich children
+    if (newItem.children && newItem.children.length > 0) {
+        newItem.children = await Promise.all(
+            newItem.children.map((child: any) => enrichMenuItem(child, storeId))
+        );
+    }
+
+    // Recursively enrich Mega Menu sections
+    if (newItem.megaMenu?.sections) {
+        newItem.megaMenu.sections = await Promise.all(
+            newItem.megaMenu.sections.map(async (section: any) => ({
+                ...section,
+                columns: await Promise.all(
+                    section.columns.map(async (column: any) => ({
+                        ...column,
+                        items: await Promise.all(
+                            column.items.map((subItem: any) => enrichMenuItem(subItem, storeId))
+                        ),
+                    }))
+                ),
+            }))
+        );
+    }
+
+    return newItem;
+}
+
+/**
+ * Enrich a menu with dynamic data
+ */
+async function enrichMenu(menu: any, storeId: string): Promise<any> {
+    if (!menu.items) return menu;
+
+    const enrichedItems = await Promise.all(
+        menu.items.map((item: any) => enrichMenuItem(item, storeId))
+    );
+
+    return { ...menu, items: enrichedItems };
+}
+
+/**
+ * Recursively extract all menu IDs from any object structure
+ */
+function extractMenuIds(obj: any, menuIds: Set<string>) {
+    if (!obj || typeof obj !== 'object') return;
+
+    // Check if this object has a menuId property
+    if (obj.menuId && typeof obj.menuId === 'string') {
+        menuIds.add(obj.menuId);
+    }
+
+    // Check for _id in mobileMenu context
+    if (obj._id && typeof obj._id === 'string' && obj.menuId === undefined) {
+        // This might be a menu reference
+        menuIds.add(obj._id);
+    }
+
+    // Recursively check all properties
+    for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            const value = obj[key];
+            if (Array.isArray(value)) {
+                value.forEach(item => extractMenuIds(item, menuIds));
+            } else if (typeof value === 'object') {
+                extractMenuIds(value, menuIds);
+            }
+        }
+    }
+}
+
+/**
+ * Fetch and enrich ALL menus referenced anywhere in theme config
+ */
+async function getEnrichedMenus(themeConfig: any, storeId: string): Promise<Record<string, any>> {
+    const menus: Record<string, any> = {};
+    const menuIds = new Set<string>();
+
+
+    // Recursively extract ALL menu IDs from the entire theme config
+    // This will find menus in header, footer, mobile menu, or anywhere else
+    extractMenuIds(themeConfig, menuIds);
+
+    // Fetch all menus in parallel
+
+    // 2. Fetch all menus in parallel
+    const menuPromises = Array.from(menuIds).map(async (id) => {
+        try {
+            const menu = await Menu.findById(id).lean();
+            if (menu) {
+                // Enrich the menu with dynamic data (products)
+                const enrichedMenu = await enrichMenu(menu, storeId);
+                return { id, menu: enrichedMenu };
+            }
+        } catch (error) {
+            console.error(`Failed to fetch menu ${id}:`, error);
+        }
+        return null;
+    });
+
+    const results = await Promise.all(menuPromises);
+
+    // 3. Map results
+    results.forEach((result) => {
+        if (result) {
+            menus[result.id] = result.menu;
+        }
+    });
+
+    return menus;
+}
+
 /**
  * @swagger
  * /api/stores/domain/{domain}:
@@ -122,6 +271,8 @@ export const getStoreByDomain = asyncHandler(async (req: Request, res: Response)
     if (!bypassCache) {
         const cachedStore = cache.get(cacheKey);
         if (cachedStore) {
+            // Set cache headers for browser caching
+            res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300');
             return res.json(cachedStore);
         }
     }
@@ -137,12 +288,32 @@ export const getStoreByDomain = asyncHandler(async (req: Request, res: Response)
         throw new AppError('Store not found', 404);
     }
 
-    // Only cache if not bypassed
-    if (!bypassCache) {
-        cache.set(cacheKey, store, 300);
+    // Fetch and enrich menus from entire theme config (header, footer, etc.)
+    let enrichedMenus = {};
+    if (store.theme?.header && store._id) {
+        try {
+            enrichedMenus = await getEnrichedMenus(store.theme, store._id.toString());
+        } catch (error) {
+            console.error('Failed to enrich menus:', error);
+            // Continue without menus rather than failing the entire request
+        }
     }
 
-    return res.json(store);
+    // Convert store to plain object and add menus
+    const storeWithMenus = {
+        ...store.toObject(),
+        menus: enrichedMenus,
+    };
+
+    // Only cache if not bypassed
+    if (!bypassCache) {
+        cache.set(cacheKey, storeWithMenus, 300);
+    }
+
+    // Set cache headers for browser caching
+    res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300');
+
+    return res.json(storeWithMenus);
 });
 
 /**

@@ -3,6 +3,7 @@
 // Components call their own endpoints using this library
 
 import { Store } from '@/types';
+import { getRevalidateTime } from '@/lib/revalidation';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -405,7 +406,7 @@ export { ApiClient };
 
 export async function fetchStoreByDomain(domain: string, nocache: boolean = false): Promise<Store | null> {
     try {
-        const cacheOptions = nocache ? { cache: 'no-store' as RequestCache } : { next: { revalidate: 300 } };
+        const cacheOptions = nocache ? { cache: 'no-store' as RequestCache } : { next: { revalidate: getRevalidateTime('store') } };
         const res = await fetch(`${API_BASE_URL}/stores/domain/${encodeURIComponent(domain)}`, {
             ...cacheOptions,
             headers: {
@@ -427,7 +428,7 @@ export async function fetchStoreByDomain(domain: string, nocache: boolean = fals
 
 export async function fetchStoreById(storeId: string, nocache: boolean = false): Promise<Store | null> {
     try {
-        const cacheOptions = nocache ? { cache: 'no-store' as RequestCache } : { next: { revalidate: 300 } };
+        const cacheOptions = nocache ? { cache: 'no-store' as RequestCache } : { next: { revalidate: getRevalidateTime('store') } };
         const res = await fetch(`${API_BASE_URL}/stores/${storeId}`, {
             ...cacheOptions,
             headers: {

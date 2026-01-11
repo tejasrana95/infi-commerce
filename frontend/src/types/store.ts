@@ -596,6 +596,7 @@ export interface StoreContextType {
     currentCurrency?: Currency;
     availableCurrencies?: Currency[];
     setCurrency?: (code: string) => void;
+    menus?: Record<string, import('./menu').Menu>; // SSR enriched menus
 }
 
 // Default template ID when none is set

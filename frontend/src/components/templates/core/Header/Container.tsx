@@ -150,29 +150,12 @@ async function processHeaderConfig(
         menuIds.add(mobileMenuId);
     }
 
-    // Fetch all menus in parallel
-    const fetchedMenus: Record<string, Menu> = {};
-    const menuPromises = Array.from(menuIds).map(async (id) => {
-        const menu = await fetchMenuById(id);
-        if (menu) {
-            fetchedMenus[id] = menu;
-        }
-    });
+    // Menus are now accessed via StoreProvider context in MenuBuilder
+    // No need to fetch or pass them here
 
-    await Promise.all(menuPromises);
-    // Determine mobile menu object
+    // Determine mobile menu object (for breakpoint calculation only)
     let mobileMenu: Menu | undefined;
-    if (mobileMenuId) {
-        mobileMenu = fetchedMenus[mobileMenuId];
-    } else {
-        // Fallback: fetch all active menus and find one with location 'mobile'
-        const allMenus = store?._id ? await fetchMenus(store._id) : [];
-
-        mobileMenu = allMenus?.find(m => m.location === 'mobile');
-        if (mobileMenu) {
-            fetchedMenus[mobileMenu._id] = mobileMenu;
-        }
-    }
+    // Mobile menu will be accessed via context in MenuBuilder
 
     // Determine mobile breakpoint
     let mobileBreakpoint = 768;
@@ -182,7 +165,7 @@ async function processHeaderConfig(
         mobileBreakpoint = mobileMenu.settings.mobileBreakpoint;
     }
 
-    // Build props object
+    // Menus accessed via context, not passed as props
     const props: HeaderTemplateProps = {
         storeName,
         logo,
@@ -215,7 +198,7 @@ async function processHeaderConfig(
         themeColors,
         // Pass header elements config
         headerElements,
-        // Pass menus
+        // headerMenu and mobileMenu deprecated - use context
         headerMenu: headerMenu || undefined,
         mobileMenu: mobileMenu || undefined,
         // Layout Config
@@ -231,7 +214,7 @@ export default async function HeaderContainer({
     store,
     templateId = 'modern-clean',
 }: HeaderContainerProps) {
-    // Process all the data from config (async to fetch menus)
+    // Process all the data from config
     const templateProps = await processHeaderConfig(config, store);
 
     // Get the template-specific presenter component

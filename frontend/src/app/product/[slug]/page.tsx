@@ -6,12 +6,14 @@ import { notFound } from 'next/navigation';
 import { getServerStore } from '@/lib/api/server-store';
 import ProductPageClient from './ProductPageClient';
 import ProductSeoShell from '@/components/seo/ProductSeoShell';
+import { getRevalidateTime } from '@/lib/revalidation';
 
 interface ProductPageProps {
     params: Promise<{ slug: string }>;
 }
 
-// Products use SSR (not static generation) for real-time stock accuracy
+// ISG: Revalidate product page based on environment configuration
+export const revalidate = getRevalidateTime('product');
 // This ensures customers always see current stock status and pricing
 
 // Server-side product fetching with short cache

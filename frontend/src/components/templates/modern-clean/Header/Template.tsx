@@ -36,7 +36,11 @@ export default function ModernCleanHeaderTemplate({
     const [cartOpen, setCartOpen] = useState(false);
     const [accountOpen, setAccountOpen] = useState(false);
     const { isAuthenticated, customer, logout } = useAuth();
+    const { store } = useStore();
     const [isScrolled, setIsScrolled] = useState(false);
+
+    // Get mobile menu ID from store config
+    const mobileMenuId = store?.theme?.header?.mobileMenu?.menuId;
 
     // Dynamic styles for configurable breakpoint
     const dynamicStyles = `
@@ -156,7 +160,6 @@ export default function ModernCleanHeaderTemplate({
                     <MenuBuilder
                         key={element.id}
                         menuId={element.menuId}
-                        initialData={menus?.[element.menuId]}
                         themeColors={themeColors}
                         className={styles.menuElement}
                     />
@@ -422,10 +425,9 @@ export default function ModernCleanHeaderTemplate({
                 <div className={styles.mobileMenu}>
                     <div className={styles.mobileMenuContent} ref={mobileMenuRef}>
                         {/* Mobile Menu Builder */}
-                        {mobileMenu && (
+                        {mobileMenuId && (
                             <MenuBuilder
-                                menuId={mobileMenu._id}
-                                initialData={menus?.[mobileMenu._id]}
+                                menuId={mobileMenuId}
                                 themeColors={themeColors}
                                 className={styles.mobileNav}
                             />

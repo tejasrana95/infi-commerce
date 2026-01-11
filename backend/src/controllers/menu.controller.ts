@@ -1,9 +1,27 @@
 import { Response } from 'express';
 import { body, param } from 'express-validator';
 import Menu from '../models/Menu';
+import Store from '../models/Store';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import cache from '../utils/cache';
+
+// Helper function to invalidate store cache
+async function invalidateStoreCache(storeId: string) {
+    try {
+        const store = await Store.findById(storeId);
+        if (store) {
+            // Invalidate cache for all domains
+            cache.delete(`store:id:${storeId}`);
+            cache.delete(`store:slug:${store.slug}`);
+            for (const domain of store.domains) {
+                cache.delete(`store:domain:${domain}`);
+            }
+        }
+    } catch (error) {
+        console.error('Failed to invalidate store cache:', error);
+    }
+}
 
 // Validation rules
 export const createMenuValidation = [
@@ -74,6 +92,9 @@ export const createMenu = asyncHandler(async (req: AuthRequest, res: Response) =
         settings,
         isActive: isActive !== undefined ? isActive : true,
     });
+
+    // Invalidate store cache since menus are now embedded
+    await invalidateStoreCache(storeId);
 
     res.status(201).json({
         message: 'Menu created successfully',
@@ -247,6 +268,9 @@ export const updateMenu = asyncHandler(async (req: AuthRequest, res: Response) =
     // Invalidate cache
     cache.delete(`menu:id:${id}`);
 
+    // Invalidate store cache since menus are now embedded
+    await invalidateStoreCache(menu.storeId.toString());
+
     return res.json({
         message: 'Menu updated successfully',
         menu,
@@ -281,6 +305,9 @@ export const deleteMenu = asyncHandler(async (req: AuthRequest, res: Response) =
 
     // Invalidate cache
     cache.delete(`menu:id:${id}`);
+
+    // Invalidate store cache since menus are now embedded
+    await invalidateStoreCache(menu.storeId.toString());
 
     return res.json({
         message: 'Menu deleted successfully',

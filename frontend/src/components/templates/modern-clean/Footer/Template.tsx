@@ -9,6 +9,8 @@ import { FooterElementRenderer } from './FooterElements';
 import { FooterSection, FooterColumn, FooterElement } from '@/types/store';
 import styles from './Footer.module.scss';
 
+import { Menu } from '@/types/menu';
+
 export default function ModernCleanFooterTemplate() {
     const { themeConfig } = useStore();
     const footerConfig = themeConfig?.footer;

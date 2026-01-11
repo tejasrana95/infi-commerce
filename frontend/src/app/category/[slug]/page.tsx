@@ -12,6 +12,7 @@ import {
     fetchCategoryBySlug,
     fetchCategoryPageData,
 } from '@/lib/api/server-store';
+import { getRevalidateTime } from '@/lib/revalidation';
 
 interface CategoryPageProps {
     params: Promise<{ slug: string }>;
@@ -66,9 +67,8 @@ export async function generateStaticParams() {
     }
 }
 
-// Revalidate every 30 minutes
-export const revalidate = 1800;
-export const dynamic = 'force-dynamic'; // Allow headers() usage in getServerStore()
+// Revalidate based on environment configuration
+export const revalidate = getRevalidateTime('category');
 
 // Generate metadata for SEO
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {

@@ -15,7 +15,6 @@ import { DialogProvider } from "@/providers/DialogProvider";
 import { Maintenance } from "@/components/layout/Maintenance/Maintenance";
 import { fetchCurrencies, getStore } from "@/lib/api";
 import ThemeScriptInjector from "@/components/ThemeScriptInjector";
-import { getEnrichedMenus } from "@/lib/server-menu";
 import { getComponent } from "@/components/templates/registry";
 import { Currency, DEFAULT_TEMPLATE_ID } from "@/types";
 import { AnalyticsProvider } from "@/providers/AnalyticsProvider";
@@ -152,13 +151,11 @@ export default async function RootLayout({
   const themeCSSVariables = generateThemeCSSVariables(store?.theme);
   const googleFontsUrl = generateGoogleFontsUrl(store?.theme);
 
-  // Fetch currencies and menus in parallel
-  const [currencies, menus] = await Promise.all([
-    store ? fetchCurrencies(store._id) : Promise.resolve([]),
-    (store?.theme?.header && store?._id)
-      ? getEnrichedMenus(store.theme.header, store._id)
-      : Promise.resolve({})
-  ]);
+  // Fetch currencies (store now includes menus embedded)
+  const currencies = store ? await fetchCurrencies(store._id) : [];
+
+  // Extract menus from store data (now embedded in store response)
+  const menus = (store as any)?.menus || {};
 
   let selectedCurrency: Currency | undefined;
 
@@ -222,6 +219,7 @@ export default async function RootLayout({
           store={store}
           currentCurrency={selectedCurrency}
           availableCurrencies={currencies}
+          menus={menus}
         >
           <UIProvider>
             <AnalyticsProvider>
@@ -242,7 +240,7 @@ export default async function RootLayout({
                             ) : (
                               <div className="flex flex-col min-h-screen">
                                 {/* Header - Template-specific container */}
-                                <Header config={store?.theme?.header} store={store} templateId={templateId} menus={menus} />
+                                <Header config={store?.theme?.header} store={store} templateId={templateId} />
 
                                 {/* Main Content */}
                                 <main className="flex-1">

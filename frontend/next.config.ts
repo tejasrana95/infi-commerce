@@ -7,8 +7,10 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   reactCompiler: true,
   experimental: {
-    optimizePackageImports: ['lucide-react', 'react-icons'],
+    optimizePackageImports: ['lucide-react', 'react-icons', 'framer-motion'],
   },
+  // Enable compression for better performance
+  compress: true,
   images: {
     remotePatterns: [
       {
