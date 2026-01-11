@@ -32,6 +32,27 @@ export interface IColumn {
     id: string;
     width: number;                      // Percentage or grid units
     modules: IModule[];
+    settings?: {
+        backgroundColor?: string;
+        backgroundImage?: string;
+        backgroundSize?: string;
+        backgroundPosition?: string;
+        textColor?: string;
+        paddingTop?: number;
+        paddingBottom?: number;
+        paddingLeft?: number;
+        paddingRight?: number;
+        marginTop?: number;
+        marginBottom?: number;
+        borderTopWidth?: number;
+        borderRightWidth?: number;
+        borderBottomWidth?: number;
+        borderLeftWidth?: number;
+        borderColor?: string;
+        borderStyle?: 'none' | 'solid' | 'dashed' | 'dotted';
+        borderRadius?: number;
+        hoverEffect?: boolean;
+    };
 }
 
 /**

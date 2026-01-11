@@ -19,15 +19,18 @@ export async function triggerRevalidation(
         }
 
         // Fetch store to get domain
-        const store = await Store.findById(storeId).select('domain').lean();
-        if (!store || !store.domain) {
-            console.warn(`Store ${storeId} not found or has no domain`);
+        const store = await Store.findById(storeId).select('domains').lean();
+        if (!store || !store.domains || store.domains.length === 0) {
+            console.warn(`Store ${storeId} not found or has no domains`);
             return;
         }
 
+        // Use first domain from domains array
+        const domain = store.domains[0];
+
         // Construct frontend URL from store domain
         const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-        const frontendUrl = `${protocol}://${store.domain}`;
+        const frontendUrl = `${protocol}://${domain}`;
 
         // Call revalidation API
         const response = await fetch(

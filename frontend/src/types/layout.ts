@@ -30,6 +30,27 @@ export interface Column {
     id: string;
     width: number;
     modules: Module[];
+    settings?: {
+        backgroundColor?: string;
+        backgroundImage?: string;
+        backgroundSize?: string;
+        backgroundPosition?: string;
+        textColor?: string;
+        paddingTop?: number;
+        paddingBottom?: number;
+        paddingLeft?: number;
+        paddingRight?: number;
+        marginTop?: number;
+        marginBottom?: number;
+        borderTopWidth?: number;
+        borderRightWidth?: number;
+        borderBottomWidth?: number;
+        borderLeftWidth?: number;
+        borderColor?: string;
+        borderStyle?: 'none' | 'solid' | 'dashed' | 'dotted';
+        borderRadius?: number;
+        hoverEffect?: boolean;
+    };
 }
 
 /**
