@@ -4,6 +4,10 @@ import withBundleAnalyzer from '@next/bundle-analyzer';
 const nextConfig: NextConfig = {
   /* config options here */
   output: 'standalone',
+  generateBuildId: async () => {
+    // This will force the client to clear cache by providing a new build ID every time
+    return `build-${Date.now()}`;
+  },
   reactCompiler: true,
   experimental: {
     optimizePackageImports: [

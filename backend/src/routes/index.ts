@@ -205,6 +205,8 @@ router.use('/cleanup', cleanupRoutes);
 import slugRoutes from './slug.routes';
 router.use('/slug', slugRoutes);
 
+// Mount redirection routes
+import redirectionRoutes from './redirection.routes';
+router.use('/redirections', redirectionRoutes);
+
 export default router;
-
-

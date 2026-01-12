@@ -1,8 +1,9 @@
 import mongoose from 'mongoose';
 import SlugRegistry from '../models/SlugRegistry';
+import Redirection from '../models/Redirection';
 
 /**
- * Service to handle global slug uniqueness
+ * Service to handle global slug uniqueness and redirection
  */
 class SlugService {
     /**
@@ -101,11 +102,50 @@ class SlugService {
 
     /**
      * Resolve a slug to an entity
+     * First checks for active redirections, then falls back to slug registry
      * @param storeId Store ID
      * @param slug Slug to resolve
      */
     async resolveSlug(storeId: string, slug: string) {
-        return SlugRegistry.findOne({ storeId, slug });
+        // Normalize for redirections: ensure it starts with / and remove trailing slash
+        let redirectionSlug = slug.startsWith('/') ? slug : `/${slug}`;
+        redirectionSlug = redirectionSlug.endsWith('/') && redirectionSlug.length > 1
+            ? redirectionSlug.slice(0, -1)
+            : redirectionSlug;
+
+        // First priority: Check for active redirections
+        const redirection = await Redirection.findOne({
+            storeId: new mongoose.Types.ObjectId(storeId),
+            origin_url: redirectionSlug.toLowerCase(),
+            status: 'active'
+        });
+
+        if (redirection) {
+            return {
+                type: 'redirect' as const,
+                destination_url: redirection.destination_url
+            };
+        }
+
+        // Normalize for slug registry: remove leading slash if present, remove trailing slash
+        let registrySlug = slug.startsWith('/') ? slug.substring(1) : slug;
+        registrySlug = registrySlug.endsWith('/') && registrySlug.length > 0
+            ? registrySlug.slice(0, -1)
+            : registrySlug;
+
+        // Second priority: Check slug registry for products/categories/pages
+        const registryEntry = await SlugRegistry.findOne({ storeId, slug: registrySlug.toLowerCase() });
+
+        if (registryEntry) {
+            return {
+                type: 'registry' as const,
+                entityType: registryEntry.entityType,
+                entityId: registryEntry.entityId,
+                slug: registryEntry.slug
+            };
+        }
+
+        return null;
     }
 }
 

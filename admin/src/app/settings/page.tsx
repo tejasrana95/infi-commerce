@@ -95,6 +95,17 @@ export default function SettingsPage() {
             enabled: true
         },
         {
+            title: 'URL Redirections',
+            description: 'Manage custom URL redirections that override product, category, and page slugs.',
+            icon: <SecurityIcon sx={{ fontSize: 32 }} />,
+            link: '/settings/redirections',
+            badge: 'Super Admin',
+            badgeColor: 'warning',
+            color: '#06b6d4',
+            enabled: true
+        },
+
+        {
             title: 'Email Configuration',
             description: 'It has been moved to the store settings for store specific email configuration.',
             icon: <EmailIcon sx={{ fontSize: 32 }} />,

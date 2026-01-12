@@ -93,3 +93,9 @@ export const optionalAuth = async (
 // Aliases for consistency with different naming conventions
 export const auth = authenticate;
 export const checkRole = authorize;
+
+// Super admin middleware
+export const isSuperAdmin = [
+    authenticate,
+    authorize('super_admin')
+];

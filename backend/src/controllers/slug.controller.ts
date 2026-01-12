@@ -28,6 +28,18 @@ export const resolveSlug = async (req: AuthRequest, res: Response): Promise<void
             return;
         }
 
+        if (resolved.type === 'redirect') {
+            res.status(200).json({
+                success: true,
+                data: {
+                    type: 'redirect',
+                    destination_url: resolved.destination_url
+                }
+            });
+            return;
+        }
+
+        // Otherwise it's a slug registry entry (resolved.type === 'registry')
         res.status(200).json({
             success: true,
             data: {

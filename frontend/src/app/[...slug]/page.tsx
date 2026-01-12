@@ -33,7 +33,7 @@ async function resolveSlug(storeId: string, slug: string) {
 
         if (!response.ok) return null;
         const data = await response.json();
-        return data.data; // { entityType, entityId, slug }
+        return data.data; // { entityType, entityId, slug } or { type: 'redirect', destination_url }
     } catch (error) {
         console.error('Failed to resolve slug:', error);
         return null;
@@ -181,6 +181,15 @@ export default async function UniversalPage({ params, searchParams }: UniversalP
         // But [...slug] captures everything. 
         // If resolution fails, it's 404.
         notFound();
+    }
+
+    // --- REDIRECT ---
+    // Check if this is a redirection before rendering entities
+    if (resolved.type === 'redirect') {
+        const destination = resolved.destination_url;
+        // Use 307 (Temporary Redirect) to preserve method and body
+        redirect(destination);
+        return; // TypeScript safety, though redirect() never returns
     }
 
     // --- PRODUCT ---
