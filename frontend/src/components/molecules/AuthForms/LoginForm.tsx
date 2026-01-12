@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import styles from './AuthForms.module.scss';
 import SocialLoginButtons from '../SocialLoginButtons/SocialLoginButtons';
 import { useAuth } from '@/providers/AuthProvider';
+import { useStore } from '@/providers/StoreProvider';
 
 interface LoginFormProps {
     isModal?: boolean;
@@ -15,6 +16,7 @@ interface LoginFormProps {
 export default function LoginForm({ isModal = false, onSuccess }: LoginFormProps) {
     const router = useRouter();
     const { login, verify2FA } = useAuth();
+    const { store } = useStore();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -129,11 +131,13 @@ export default function LoginForm({ isModal = false, onSuccess }: LoginFormProps
                     />
                 </div>
 
-                <div className={styles.forgotPassword}>
-                    <Link href="/forgot-password" className={styles.linkBtn}>
-                        Forgot Password?
-                    </Link>
-                </div>
+                {store?.settings?.allowCustomerLogin !== false && (
+                    <div className={styles.forgotPassword}>
+                        <Link href="/forgot-password" className={styles.linkBtn}>
+                            Forgot Password?
+                        </Link>
+                    </div>
+                )}
 
                 <button type="submit" className={styles.submitBtn} disabled={loading}>
                     {loading ? 'Signing in...' : 'Sign In'}
@@ -147,14 +151,16 @@ export default function LoginForm({ isModal = false, onSuccess }: LoginFormProps
                 onError={(err) => setError(err)}
             />
 
-            <div className={styles.footer}>
-                <p>
-                    Don't have an account?{' '}
-                    <Link href="/register" className={styles.linkBtn}>
-                        Sign up
-                    </Link>
-                </p>
-            </div>
+            {store?.settings?.allowCustomerSignup !== false && (
+                <div className={styles.footer}>
+                    <p>
+                        Don't have an account?{' '}
+                        <Link href="/register" className={styles.linkBtn}>
+                            Sign up
+                        </Link>
+                    </p>
+                </div>
+            )}
         </div>
     );
 }

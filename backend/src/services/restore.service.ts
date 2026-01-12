@@ -17,6 +17,7 @@ import {
     parseBoolean,
     parseArray
 } from '../utils/excel-validator';
+import slugService from '../services/slug.service';
 
 export interface ImportFilters {
     storeId?: string;
@@ -150,6 +151,19 @@ class RestoreService {
                 errors.push(...refErrors);
             }
 
+            // Validate slug uniqueness
+            if (unflattened.slug && unflattened.storeId) {
+                const isAvailable = await slugService.isSlugAvailable(
+                    unflattened.storeId,
+                    unflattened.slug,
+                    'product',
+                    unflattened._id
+                );
+                if (!isAvailable) {
+                    errors.push(`Slug "${unflattened.slug}" is already in use by another entity`);
+                }
+            }
+
             if (errors.length > 0) {
                 result.errors.push({ row: rowNumber, errors });
             } else {
@@ -223,8 +237,18 @@ class RestoreService {
                     const productId = sanitized._id;
                     delete sanitized._id; // Don't update _id field
 
-                    await Product.findByIdAndUpdate(productId, sanitized, { runValidators: true });
-                    result.updated++;
+                    // Use save() to trigger slug registry hooks
+                    const doc = await Product.findById(productId);
+                    if (doc) {
+                        doc.set(sanitized);
+                        await doc.save();
+                        result.updated++;
+                    } else {
+                        result.errors.push({
+                            row: validatedRows.indexOf({ data } as any) + 2,
+                            errors: [`Product with ID ${productId} not found`]
+                        });
+                    }
                 } else {
                     // Create new product
                     delete sanitized._id; // Remove invalid _id
@@ -533,11 +557,32 @@ class RestoreService {
                 if (sanitized._id && validateObjectId(sanitized._id)) {
                     const id = sanitized._id;
                     delete sanitized._id;
-                    await Model.findByIdAndUpdate(id, sanitized, { runValidators: true });
-                    result.updated++;
+
+                    // Use save() for models with slug registry hooks (Category)
+                    if (['Category'].includes(Model.modelName)) {
+                        const doc = await Model.findById(id);
+                        if (doc) {
+                            doc.set(sanitized);
+                            await doc.save();
+                            result.updated++;
+                        } else {
+                            result.errors.push({
+                                row: validatedRows.indexOf({ data } as any) + 2,
+                                errors: [`Record with ID ${id} not found`]
+                            });
+                        }
+                    } else {
+                        await Model.findByIdAndUpdate(id, sanitized, { runValidators: true });
+                        result.updated++;
+                    }
                 } else {
                     delete sanitized._id;
-                    await Model.create(sanitized);
+                    if (['Category'].includes(Model.modelName)) {
+                        const doc = new Model(sanitized);
+                        await doc.save();
+                    } else {
+                        await Model.create(sanitized);
+                    }
                     result.created++;
                 }
             } catch (error: any) {

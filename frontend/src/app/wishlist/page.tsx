@@ -145,7 +145,7 @@ export default function WishlistPage() {
                                 )}
                             </button>
 
-                            <Link href={`/product/${product.slug}`} className={styles.productLink}>
+                            <Link href={`/${product.slug}`} className={styles.productLink}>
                                 <div className={styles.imageWrapper}>
                                     {product.images?.[0] ? (
                                         <Image

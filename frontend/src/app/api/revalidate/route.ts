@@ -26,23 +26,23 @@ export async function POST(request: NextRequest) {
                 // Revalidate specific product
                 if (slug) {
                     revalidateTag(`product-${slug}`, 'page');
-                    revalidatePath(`/product/${slug}`, 'page');
+                    revalidatePath(`/${slug}`, 'page');
                 }
                 // Revalidate product listings (homepage, categories)
                 revalidatePath('/', 'page');
-                revalidatePath('/category/[slug]', 'page');
+                revalidatePath(`/[...slug]`, 'page');
                 break;
 
             case 'category':
                 if (slug) {
-                    revalidatePath(`/category/${slug}`, 'page');
+                    revalidatePath(`/${slug}`, 'page');
                 }
                 revalidatePath('/', 'page');
                 break;
 
             case 'page':
                 if (slug) {
-                    revalidatePath(`/page/${slug}`, 'page');
+                    revalidatePath(`/${slug}`, 'page');
                 }
                 break;
 

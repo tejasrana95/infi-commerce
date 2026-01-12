@@ -110,7 +110,8 @@ export default function ProductCarouselModule({ config, initialData }: ModulePro
         };
 
         fetchProducts();
-    }, [source, limit, categoryIds, productIds, initialProducts]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [source, limit, categoryIds, productIds]);
 
     // Navigation
     const maxIndex = Math.max(0, products.length - visibleCount);

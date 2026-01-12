@@ -92,7 +92,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         const products = await fetchProducts(store._id);
         for (const product of products) {
             entries.push({
-                url: `${baseUrl}/product/${product.slug}`,
+                url: `${baseUrl}/${product.slug}`,
                 lastModified: new Date(product.updatedAt || product.createdAt),
                 changeFrequency: 'weekly',
                 priority: 0.8,
@@ -103,7 +103,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         const categories = await fetchCategories(store._id);
         for (const category of categories) {
             entries.push({
-                url: `${baseUrl}/category/${category.slug}`,
+                url: `${baseUrl}/${category.slug}`,
                 lastModified: new Date(category.updatedAt || category.createdAt),
                 changeFrequency: 'weekly',
                 priority: 0.7,
@@ -125,7 +125,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         const pages = await fetchPages(store._id);
         for (const page of pages) {
             entries.push({
-                url: `${baseUrl}/page/${page.slug}`,
+                url: `${baseUrl}/${page.slug}`,
                 lastModified: new Date(page.updatedAt || page.createdAt),
                 changeFrequency: 'monthly',
                 priority: 0.5,

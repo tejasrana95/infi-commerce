@@ -83,9 +83,9 @@ export const DEFAULT_FOOTER_COLUMNS: FooterColumn[] = [
 ];
 
 export const DEFAULT_SOCIAL_LINKS: FooterSocialLink[] = [
-    { platform: 'facebook', url: '#' },
-    { platform: 'twitter', url: '#' },
-    { platform: 'instagram', url: '#' },
+    { platform: 'facebook', url: '#!' },
+    { platform: 'twitter', url: '#!' },
+    { platform: 'instagram', url: '#!' },
 ];
 
 export const DEFAULT_CONTACT: FooterContactInfo = {

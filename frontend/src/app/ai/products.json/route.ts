@@ -64,7 +64,7 @@ async function fetchAllProducts(storeId: string, domain: string): Promise<AIProd
                     category: categoryPath,
                     price: product.price,
                     salePrice: product.isOnSale ? product.salePrice : undefined,
-                    url: `https://${domain}/product/${product.slug}`,
+                    url: `https://${domain}/${product.slug}`,
                     image: product.featuredImage || product.images?.[0] || '',
                     inStock: product.stockStatus === 'in_stock',
                     brand: typeof product.brand === 'object' ? product.brand?.name : product.brand,

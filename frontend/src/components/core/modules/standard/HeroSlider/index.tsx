@@ -142,6 +142,12 @@ interface HeroSliderData {
         autoPlay: boolean;
         delay: number;
         effect: 'fade' | 'slide' | 'cube' | 'coverflow' | 'flip';
+        showBullets?: boolean;
+        bulletColor?: string;
+        showArrows?: boolean;
+        arrowColor?: string;
+        showProgress?: boolean;
+        progressPosition?: 'top' | 'bottom';
     };
     isActive: boolean;
 }
@@ -295,13 +301,18 @@ const LayerContent: React.FC<{
     if (layer.type === 'button') {
         return (
             <a
-                href={layer.style?.href || '#'}
+                href={layer.style?.href || '#!'}
                 style={{
                     textDecoration: 'none',
                     color: 'inherit',
                     display: 'block',
                     width: '100%',
                     height: '100%'
+                }}
+                onClick={(e) => {
+                    if (!layer.style?.href || layer.style.href === '#' || layer.style.href === '#!') {
+                        e.preventDefault();
+                    }
                 }}
                 data-track="hero_slider_cta_click"
                 data-cta-text={layer.content}
@@ -697,20 +708,26 @@ const HeroSliderModule: React.FC<ModuleProps> = ({ config }) => {
             return {
                 '--hero-height-mobile': `${heightSettings}px`,
                 '--hero-height-tablet': `${heightSettings}px`,
-                '--hero-height-desktop': `${heightSettings}px`
+                '--hero-height-desktop': `${heightSettings}px`,
+                '--swiper-navigation-color': sliderData.settings.arrowColor || '#ffffff',
+                '--swiper-pagination-color': sliderData.settings.bulletColor || '#ffffff'
             } as React.CSSProperties;
         } else if (heightSettings && typeof heightSettings === 'object') {
             return {
                 '--hero-height-mobile': `${heightSettings.mobile || 600}px`,
                 '--hero-height-tablet': `${heightSettings.tablet || 600}px`,
-                '--hero-height-desktop': `${heightSettings.desktop || 600}px`
+                '--hero-height-desktop': `${heightSettings.desktop || 600}px`,
+                '--swiper-navigation-color': sliderData.settings.arrowColor || '#ffffff',
+                '--swiper-pagination-color': sliderData.settings.bulletColor || '#ffffff'
             } as React.CSSProperties;
         }
 
         return {
             '--hero-height-mobile': '600px',
             '--hero-height-tablet': '600px',
-            '--hero-height-desktop': '600px'
+            '--hero-height-desktop': '600px',
+            '--swiper-navigation-color': sliderData.settings.arrowColor || '#ffffff',
+            '--swiper-pagination-color': sliderData.settings.bulletColor || '#ffffff'
         } as React.CSSProperties;
     }, [sliderData]);
 
@@ -737,8 +754,14 @@ const HeroSliderModule: React.FC<ModuleProps> = ({ config }) => {
                     disableOnInteraction: false,
                 } : false}
                 loop={true}
-                navigation
-                pagination={{ clickable: true }}
+                navigation={sliderData.settings.showArrows ?? true}
+                pagination={(sliderData.settings.showBullets && sliderData.slides.length > 1) ? { clickable: true } : false}
+                onAutoplayTimeLeft={(s: any, time: number, progress: number) => {
+                    const progressBar = document.getElementById(`progress-bar-${sliderData._id}`);
+                    if (progressBar) {
+                        progressBar.style.setProperty('--progress', `${(1 - progress) * 100}%`);
+                    }
+                }}
                 onSlideChange={(swiper: any) => {
                     const newIndex = swiper.realIndex;
                     setActiveIndex(newIndex);
@@ -833,6 +856,32 @@ const HeroSliderModule: React.FC<ModuleProps> = ({ config }) => {
                         </div>
                     </SwiperSlide>
                 ))}
+
+                {/* Progress Bar */}
+                {sliderData.settings.showProgress && (
+                    <div
+                        id={`progress-bar-${sliderData._id}`}
+                        style={{
+                            position: 'absolute',
+                            left: 0,
+                            right: 0,
+                            [sliderData.settings.progressPosition === 'top' ? 'top' : 'bottom']: 0,
+                            height: '4px',
+                            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                            zIndex: 20,
+                            pointerEvents: 'none'
+                        }}
+                    >
+                        <div
+                            style={{
+                                height: '100%',
+                                width: 'var(--progress, 0%)',
+                                backgroundColor: sliderData.settings.bulletColor || '#ffffff',
+                                transition: 'width 10ms linear'
+                            }}
+                        />
+                    </div>
+                )}
             </Swiper>
         </div>
     );

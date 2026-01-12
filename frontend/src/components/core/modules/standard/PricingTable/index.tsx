@@ -87,8 +87,13 @@ export default function PricingTableModule({ config }: ModuleProps) {
                         </ul>
 
                         <Link
-                            href={plan.ctaLink || '#'}
+                            href={plan.ctaLink || '#!'}
                             className={styles.ctaButton}
+                            onClick={(e) => {
+                                if (!plan.ctaLink || plan.ctaLink === '#' || plan.ctaLink === '#!') {
+                                    e.preventDefault();
+                                }
+                            }}
                             data-track="pricing_plan_select"
                             data-plan-name={plan.name}
                             data-plan-price={plan.price}

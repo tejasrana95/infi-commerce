@@ -68,6 +68,8 @@ const schema = z.object({
         emailNotifications: z.boolean().optional(),
         orderNotifications: z.boolean().optional(),
         maintenanceMode: z.boolean().optional(),
+        allowCustomerLogin: z.boolean().optional(),
+        allowCustomerSignup: z.boolean().optional(),
         allowGuestCheckout: z.boolean().optional(),
         requireEmailVerification: z.boolean().optional(),
         minOrderAmount: z.number().min(0).optional(),
@@ -140,8 +142,9 @@ const defaultValues: StoreFormData = {
         emailNotifications: true,
         orderNotifications: true,
         maintenanceMode: false,
+        allowCustomerLogin: true,
+        allowCustomerSignup: true,
         allowGuestCheckout: true,
-        requireEmailVerification: false,
         shippingEnabled: true,
         reviewSettings: {
             allowReviews: true,
@@ -200,6 +203,8 @@ export default function StoreForm({ initialData, onSubmit, isSubmitting = false 
                     emailNotifications: initialData.settings?.emailNotifications ?? true,
                     orderNotifications: initialData.settings?.orderNotifications ?? true,
                     maintenanceMode: initialData.settings?.maintenanceMode ?? false,
+                    allowCustomerLogin: initialData.settings?.allowCustomerLogin ?? true,
+                    allowCustomerSignup: initialData.settings?.allowCustomerSignup ?? true,
                     allowGuestCheckout: initialData.settings?.allowGuestCheckout ?? true,
                     requireEmailVerification: initialData.settings?.requireEmailVerification ?? false,
                     minOrderAmount: initialData.settings?.minOrderAmount,
@@ -721,6 +726,33 @@ export default function StoreForm({ initialData, onSubmit, isSubmitting = false 
             {/* Tab 2: Settings */}
             {activeTab === 2 && (
                 <Grid container spacing={3}>
+                    <Grid size={{ xs: 12 }}>
+                        <Typography variant="h6" gutterBottom>Customer Authentication</Typography>
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <Controller
+                            name="settings.allowCustomerLogin"
+                            control={control}
+                            render={({ field }) => (
+                                <FormControlLabel
+                                    control={<Switch checked={field.value} onChange={field.onChange} />}
+                                    label="Allow Customer Login"
+                                />
+                            )}
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <Controller
+                            name="settings.allowCustomerSignup"
+                            control={control}
+                            render={({ field }) => (
+                                <FormControlLabel
+                                    control={<Switch checked={field.value} onChange={field.onChange} />}
+                                    label="Allow Customer Signup"
+                                />
+                            )}
+                        />
+                    </Grid>
                     <Grid size={{ xs: 12 }}>
                         <Typography variant="h6" gutterBottom>Notifications</Typography>
                     </Grid>

@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import slugService from '../services/slug.service';
 
 /**
  * Category Model - Hierarchical category system with SEO support
@@ -206,7 +207,22 @@ CategorySchema.pre('save', async function (next) {
             const categoryPath = this.path;
 
             // Auto-generate canonical URL
-            this.seo.canonicalUrl = `${protocol}${domain}/category/${categoryPath}`;
+            // Update to flat URL structure (hierarchical path without /category/ prefix)
+            this.seo.canonicalUrl = `${protocol}${domain}/${categoryPath}`;
+        }
+    }
+
+    // Register slug in global registry
+    if (this.isModified('slug') || this.isModified('storeId') || this.isNew) {
+        try {
+            await slugService.registerSlug(
+                this.storeId,
+                this.slug,
+                'category',
+                this._id
+            );
+        } catch (error: any) {
+            return next(error);
         }
     }
 

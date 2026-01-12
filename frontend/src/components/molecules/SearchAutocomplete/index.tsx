@@ -190,7 +190,7 @@ export default function SearchAutocomplete({
                 if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
                     // Navigate to product
                     const product = suggestions[selectedIndex];
-                    router.push(`/product/${product.slug}`);
+                    router.push(`/${product.slug}`);
                     setIsOpen(false);
                     onClose?.();
                 } else if (selectedIndex >= suggestions.length) {
@@ -273,7 +273,7 @@ export default function SearchAutocomplete({
                             {suggestions.map((product, index) => (
                                 <Link
                                     key={product._id}
-                                    href={`/product/${product.slug}`}
+                                    href={`/${product.slug}`}
                                     className={`${styles.productItem} ${selectedIndex === index ? styles.selected : ''}`}
                                     onClick={() => {
                                         setIsOpen(false);

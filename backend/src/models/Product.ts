@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import slugService from '../services/slug.service';
 
 /**
  * Comprehensive Product Model for Ecommerce
@@ -104,6 +105,7 @@ export interface IProduct extends Document {
     categoryIds: mongoose.Types.ObjectId[];
     tags: string[];
     brand?: mongoose.Types.ObjectId;
+    categoryBreadcrumbs?: Array<{ label: string; href: string }>;
 
     // SEO
     seo: {
@@ -465,7 +467,22 @@ ProductSchema.pre('save', async function (next) {
         if (store) {
             const protocol = 'https://';
             const domain = (store as any).domain;
-            this.seo.canonicalUrl = `${protocol}${domain}/product/${this.slug}`;
+            // Update to flat URL structure
+            this.seo.canonicalUrl = `${protocol}${domain}/${this.slug}`;
+        }
+    }
+
+    // Register slug in global registry
+    if (this.isModified('slug') || this.isModified('storeId') || this.isNew) {
+        try {
+            await slugService.registerSlug(
+                this.storeId,
+                this.slug,
+                'product',
+                this._id
+            );
+        } catch (error: any) {
+            return next(error);
         }
     }
 

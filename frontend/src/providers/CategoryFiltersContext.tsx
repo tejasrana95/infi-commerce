@@ -114,18 +114,20 @@ const CategoryFiltersContext = createContext<CategoryFiltersContextValue | null>
 interface CategoryFiltersProviderProps {
     children: ReactNode;
     availableFilterSlugs?: string[]; // Attribute slugs to parse from URL
+    initialFilters?: AvailableFilters | null; // Initial filters for SSR
 }
 
 export function CategoryFiltersProvider({
     children,
-    availableFilterSlugs = []
+    availableFilterSlugs = [],
+    initialFilters = null
 }: CategoryFiltersProviderProps) {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
-    // State
-    const [availableFilters, setAvailableFilters] = useState<AvailableFilters | null>(null);
+    // State - initialize with initialFilters for SSR
+    const [availableFilters, setAvailableFilters] = useState<AvailableFilters | null>(initialFilters);
     const [brandLookup, setBrandLookup] = useState<Record<string, BrandInfo>>({});
     const [stagedFilters, setStagedFilters] = useState<Partial<AppliedFilters>>({});
 

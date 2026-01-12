@@ -4,12 +4,13 @@
 import { Suspense } from 'react';
 import { Metadata } from 'next';
 
-import CategoryPageSkeleton from '../category/[slug]/CategoryPageSkeleton';
+
 import SearchPageClient from './SearchPageClient';
 import {
     getServerStore,
     fetchSearchPageData,
 } from '@/lib/api/server-store';
+import CategoryPageSkeleton from '@/components/slug-pages/category/CategoryPageSkeleton';
 
 interface SearchPageProps {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>;

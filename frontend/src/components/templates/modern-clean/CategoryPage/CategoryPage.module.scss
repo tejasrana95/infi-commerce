@@ -1415,8 +1415,14 @@
 
 .paginationNav {
     display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
+
+    &.center {
+        justify-content: center;
+    }
 
     &.left {
         align-self: flex-start;

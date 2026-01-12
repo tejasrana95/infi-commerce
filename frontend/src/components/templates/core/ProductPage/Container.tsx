@@ -469,18 +469,22 @@ export default function ProductPageContainer({
     const breadcrumbs: BreadcrumbItem[] = useMemo(() => {
         const crumbs: BreadcrumbItem[] = [{ label: 'Home', href: '/' }];
 
-        if (product.categories && product.categories.length > 0) {
+        if (product.categoryBreadcrumbs && product.categoryBreadcrumbs.length > 0) {
+            product.categoryBreadcrumbs.forEach(crumb => {
+                crumbs.push(crumb);
+            });
+        } else if (product.categories && product.categories.length > 0) {
             const category = product.categories[0];
             crumbs.push({
                 label: category.title,
-                href: `/category/${category.slug}`,
+                href: `/${category.slug}`,
             });
         }
 
         crumbs.push({ label: product.name });
 
         return crumbs;
-    }, [product.categories, product.name]);
+    }, [product.categoryBreadcrumbs, product.categories, product.name]);
 
     // User State is now defined earlier in the file (line ~290)
 

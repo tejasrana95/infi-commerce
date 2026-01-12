@@ -85,7 +85,8 @@ export default function ProductGridModule({ config, initialData }: ModuleProps) 
         };
 
         fetchProducts();
-    }, [source, limit, categoryIds, productIds, initialProducts]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [source, limit, categoryIds, productIds]);
 
     const columnClass = styles[`columns${Math.min(Math.max(columns, 2), 6)}`];
 

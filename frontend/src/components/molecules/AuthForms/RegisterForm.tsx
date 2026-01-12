@@ -289,7 +289,7 @@ export default function RegisterForm({ isModal = false, onSuccess }: RegisterFor
                             />
                             <span className={styles.checkboxMark} />
                             <span className={styles.checkboxLabel}>
-                                I agree to the <Link href="/page/terms">Terms of Service</Link> and <Link href="/page/privacy">Privacy Policy</Link>
+                                I agree to the <Link href="/terms">Terms of Service</Link> and <Link href="/privacy">Privacy Policy</Link>
                             </span>
                         </label>
 

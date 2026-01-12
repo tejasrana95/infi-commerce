@@ -54,7 +54,8 @@ async function fetchStoreById(storeId: string): Promise<Store | null> {
         });
 
         if (!res.ok) return null;
-        return await res.json();
+        const data = await res.json();
+        return data.store || data;
     } catch (error) {
         console.error('Error fetching store by ID:', error);
         return null;
@@ -109,7 +110,7 @@ export async function fetchCategoryProducts(
     storeId: string,
     categoryId: string | null,
     options: { limit?: number; sort?: string } = {}
-): Promise<any[]> {
+): Promise<{ products: any[]; pagination: any }> {
     const { limit = 24, sort = 'featured' } = options;
     try {
         let url = `${API_BASE}/products?storeId=${storeId}&limit=${limit}&sort=${sort}`;
@@ -122,12 +123,15 @@ export async function fetchCategoryProducts(
             headers: { 'Content-Type': 'application/json' },
         });
 
-        if (!res.ok) return [];
+        if (!res.ok) return { products: [], pagination: null };
         const data = await res.json();
-        return data.products || [];
+        return {
+            products: data.products || [],
+            pagination: data.pagination || null
+        };
     } catch (error) {
         console.error('Error fetching category products:', error);
-        return [];
+        return { products: [], pagination: null };
     }
 }
 
@@ -192,7 +196,7 @@ export async function fetchCategoryPageData(
 ) {
     let category: CategoryData | null = null;
     let categoryId: string | null = null;
-
+    const storeConfig = await fetchStoreById(storeId);
     if (slug) {
         // Fetch specific category
         category = await fetchCategoryBySlug(storeId, slug);
@@ -214,15 +218,28 @@ export async function fetchCategoryPageData(
         };
     }
 
-    // Then fetch products, filters (if applicable), and layout in parallel
-    // Note: filters might need category context, passing null might fetch all store filters or fail depending on API
-    const [products, filters, layout] = await Promise.all([
-        fetchCategoryProducts(storeId, categoryId, { sort: options.sort }),
-        categoryId ? fetchCategoryFilters(storeId, categoryId) : Promise.resolve(null), // TODO: Fetch global filters?
-        fetchLayout(storeId, 'category', slug || undefined),  // Pass slug for slug-specific layout
+    // 2. Fetch layout first to get configuration (like products per page)
+    const layout = await fetchLayout(storeId, 'category', slug || undefined);
+    // 3. Determine limit from layout or use default
+    // The layout
+    const limit = storeConfig?.theme?.category?.grid?.productsPerPage || 8; // Default limit
+
+    // 4. Fetch products and filters in parallel using the correct limit
+    const [productData, filters] = await Promise.all([
+        fetchCategoryProducts(storeId, categoryId, {
+            sort: options.sort,
+            limit: limit
+        }),
+        categoryId ? fetchCategoryFilters(storeId, categoryId) : Promise.resolve(null),
     ]);
 
-    return { category, products, filters, layout };
+    return {
+        category,
+        products: productData.products,
+        pagination: productData.pagination,
+        filters,
+        layout
+    };
 }
 
 // ============================================

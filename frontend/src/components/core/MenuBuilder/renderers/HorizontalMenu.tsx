@@ -51,7 +51,7 @@ const MegaSubItem = ({ item }: { item: MenuItem }) => {
     if (item.type === 'image' && item.imageUrl) {
         return (
             <div className={styles.megaSubItem}>
-                <Link href={item.imageLink || '#'} className={styles.megaImageLink}>
+                <Link href={item.imageLink || '#!'} className={styles.megaImageLink}>
                     <img src={item.imageUrl} alt={item.label || item.imageAlt || ''} />
                 </Link>
             </div>
@@ -63,7 +63,7 @@ const MegaSubItem = ({ item }: { item: MenuItem }) => {
         return (
             <div className={styles.megaSubItem}>
                 <Link
-                    href={item.linkUrl || '#'}
+                    href={item.linkUrl || '#!'}
                     className={styles.megaCustomLink}
                     target={item.linkOpenInNewTab ? '_blank' : undefined}
                 >
@@ -80,7 +80,7 @@ const MegaSubItem = ({ item }: { item: MenuItem }) => {
 
         return (
             <div className={styles.megaSubItem}>
-                <Link href={`/page/${pageSlug}`} className={styles.megaPageLink}>
+                <Link href={`/${pageSlug}`} className={styles.megaPageLink}>
                     {pageLabel}
                 </Link>
             </div>
@@ -105,7 +105,7 @@ const MegaSubItem = ({ item }: { item: MenuItem }) => {
                     {productList.map((product: any) => (
                         <li key={product._id} className={styles.megaProductItem}>
                             <Link
-                                href={`/product/${product.slug || product._id}`}
+                                href={`/${product.slug || product._id}`}
                                 className={styles.megaProductLink}
                             >
                                 {product.name}
@@ -126,7 +126,7 @@ const MegaSubItem = ({ item }: { item: MenuItem }) => {
             <div className={styles.megaSubItem}>
                 {/* Category Label */}
                 {item.categoryId ? (
-                    <Link href={`/category/${categorySlug}`} className={styles.categoryLabel}>
+                    <Link href={`/${categorySlug}`} className={styles.categoryLabel}>
                         {categoryLabel}
                     </Link>
                 ) : (
@@ -142,7 +142,7 @@ const MegaSubItem = ({ item }: { item: MenuItem }) => {
                             categoryProducts.map((product: any) => (
                                 <li key={product._id} className={styles.megaProductItem}>
                                     <Link
-                                        href={`/product/${product.slug || product._id}`}
+                                        href={`/${product.slug || product._id}`}
                                         className={styles.megaProductLink}
                                     >
                                         {product.name}

@@ -3,7 +3,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useStore } from '@/providers/StoreProvider';
 import { CategoryFiltersProvider, useCategoryFilters, BrandInfo } from '@/providers/CategoryFiltersContext';
@@ -25,6 +25,7 @@ interface CategoryPageContainerProps {
     initialProducts?: ProductListItem[];
     initialFilters?: AvailableFilters | null;
     initialLayout?: any;
+    initialPagination?: { total: number; pages: number; limit: number; page: number } | null;
 }
 
 // Inner component that uses the context
@@ -33,7 +34,9 @@ function CategoryPageInner({
     initialProducts = [],
     initialFilters = null,
     initialLayout = null,
+    initialPagination = null,
 }: CategoryPageContainerProps) {
+    console.log('[CategoryPage] Component render - category:', category._id, category.title);
     const router = useRouter();
     const searchParams = useSearchParams();
     const { store, currentCurrency } = useStore();
@@ -79,12 +82,15 @@ function CategoryPageInner({
     const [isLoading, setIsLoading] = useState(initialProducts.length === 0);
     const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
+    // Ref to track if we've done initial fetch
+    const hasInitialFetchRef = useRef(false);
+
     // Pagination state
     const [pagination, setPagination] = useState<PaginationState>({
         page: parseInt(searchParams.get('page') || '1'),
         limit: config.grid?.productsPerPage || 24,
-        total: 0,
-        pages: 0,
+        total: initialPagination?.total || 0,
+        pages: initialPagination?.pages || 0,
     });
 
     // Current sort
@@ -106,7 +112,7 @@ function CategoryPageInner({
         if (category.parentCategory) {
             crumbs.push({
                 label: category.parentCategory.title,
-                href: `/category/${category.parentCategory.slug}`,
+                href: `/${category.parentCategory.slug}`,
             });
         }
 
@@ -197,7 +203,23 @@ function CategoryPageInner({
         } finally {
             setIsLoading(false);
         }
-    }, [store?._id, category._id, pagination.limit, currentSort, filters.appliedFilters]);
+    }, [store?._id, category._id, pagination.limit, currentSort, filters]);
+
+    // Serialize applied filters for comparison
+    const appliedFiltersKey = useMemo(() => {
+        const { appliedFilters } = filters;
+        return JSON.stringify({
+            price: appliedFilters.price,
+            brands: appliedFilters.brands.sort(),
+            tags: appliedFilters.tags.sort(),
+            rating: appliedFilters.rating,
+            stockStatus: appliedFilters.stockStatus.sort(),
+            attributes: Object.keys(appliedFilters.attributes).sort().reduce((acc, key) => {
+                acc[key] = appliedFilters.attributes[key].sort();
+                return acc;
+            }, {} as Record<string, string[]>)
+        });
+    }, [filters.appliedFilters]);
 
     // Fetch available filters
     const fetchFilters = useCallback(async () => {
@@ -217,10 +239,21 @@ function CategoryPageInner({
     }, [fetchFilters]);
 
     useEffect(() => {
+        // Skip if we already have initial products and this is the first render
+        if (!hasInitialFetchRef.current) {
+            hasInitialFetchRef.current = true;
+            if (initialProducts.length > 0) {
+                console.log('[CategoryPage] Skipping initial fetch - using SSR data');
+                return;
+            }
+        }
+
+        console.log('[CategoryPage] Fetching products - filters changed');
         // Fetch products when filters change (via URL)
         const currentPage = parseInt(searchParams.get('page') || '1');
         fetchProducts({ page: currentPage });
-    }, [fetchProducts, searchParams]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [appliedFiltersKey, searchParams]);
 
     // Handler: Page change
     const handlePageChange = useCallback((page: number) => {
@@ -314,7 +347,10 @@ export default function CategoryPageContainer(props: CategoryPageContainerProps)
     }, [props.initialFilters]);
 
     return (
-        <CategoryFiltersProvider availableFilterSlugs={attributeSlugs}>
+        <CategoryFiltersProvider
+            availableFilterSlugs={attributeSlugs}
+            initialFilters={props.initialFilters}
+        >
             <CategoryPageInner {...props} />
         </CategoryFiltersProvider>
     );

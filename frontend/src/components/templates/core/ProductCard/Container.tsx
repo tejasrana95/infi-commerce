@@ -78,7 +78,7 @@ function processProductData(product: Product, currency: import('@/types').Curren
             isOnSale,
             inStock: product.inStock ?? true,
             stockStatus: product.stockStatus,
-            productUrl: `/product/${product.slug}`,
+            productUrl: `/${product.slug}`,
             currency: typeof currency === 'string' ? currency : currency.code || 'USD',
         };
     }
@@ -123,7 +123,7 @@ function processProductData(product: Product, currency: import('@/types').Curren
         isOnSale: saleIsActive,
         inStock: product.inStock ?? true,
         stockStatus: product.stockStatus,
-        productUrl: `/product/${product.slug}`,
+        productUrl: `/${product.slug}`,
         currency: typeof currency === 'string' ? currency : currency.code || 'USD',
     };
 }
@@ -198,7 +198,7 @@ export default function ProductCardContainer({
     const handleAddToCart = useCallback(async () => {
         // For variable products, redirect to product page
         if ((product as any).type === 'variable') {
-            router.push(`/product/${product.slug}`);
+            router.push(`/${product.slug}`);
             return;
         }
 
@@ -227,7 +227,7 @@ export default function ProductCardContainer({
     const handleBuyNow = useCallback(async () => {
         // For variable products, redirect to product page
         if ((product as any).type === 'variable') {
-            router.push(`/product/${product.slug}`);
+            router.push(`/${product.slug}`);
             return;
         }
 

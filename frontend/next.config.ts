@@ -9,8 +9,8 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react', 'react-icons', 'framer-motion'],
   },
-  // Enable compression for better performance
-  compress: true,
+  // Disable compression temporarily to debug "transformAlgorithm is not a function" error
+  compress: false,
   images: {
     remotePatterns: [
       {

@@ -20,6 +20,7 @@ export interface CategoryFiltersProps {
     onApplyFilters?: () => void;
     onClearStagedFilters?: () => void;
     hasUnappliedChanges?: boolean;
+    isLoading?: boolean;
 
     // Config & Helpers
     config: CategoryConfig;
@@ -48,6 +49,7 @@ export default function CategoryFilters({
     onApplyFilters,
     onClearStagedFilters,
     hasUnappliedChanges,
+    isLoading,
     config,
     currencySymbol,
     exchangeRate,
@@ -596,6 +598,43 @@ export default function CategoryFilters({
             </div>
         );
     };
+
+    // Loading State - show skeleton when loading OR when filters data is not available yet
+    if (isLoading || !availableFilters) {
+        if (config.filters?.position === 'top') {
+            return (
+                <div className={styles.topFilters}>
+                    {/* Render a few placeholder chips for top filters */}
+                    {[1, 2, 3, 4].map(i => (
+                        <div
+                            key={i}
+                            className={styles.skeletonHeader}
+                            style={{
+                                width: '120px',
+                                height: '38px',
+                                marginBottom: 0,
+                                borderRadius: '8px'
+                            }}
+                        />
+                    ))}
+                </div>
+            );
+        }
+
+        // Sidebar Skeleton
+        return (
+            <div className={`${styles.filtersContent} ${className || ''}`}>
+                {[1, 2, 3, 4].map(i => (
+                    <div key={i} className={styles.skeletonFilter}>
+                        <div className={styles.skeletonHeader} />
+                        <div className={styles.skeletonItem} />
+                        <div className={styles.skeletonItem} />
+                        <div className={styles.skeletonItem} />
+                    </div>
+                ))}
+            </div>
+        );
+    }
 
     // If position is top, render horizontal filters
     if (config.filters?.position === 'top') {

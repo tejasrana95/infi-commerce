@@ -108,6 +108,12 @@ export const registerCustomer = asyncHandler(async (req: AuthRequest, res: Respo
     // Store context is provided by storeContext middleware
     const storeId = req.storeId!;
     const storeName = req.store!.name;
+    const storeSettings = req.store!.settings || {};
+
+    // Check if signup is allowed for this store
+    if (storeSettings.allowCustomerSignup === false) {
+        throw new AppError('Customer registration is currently disabled for this store.', 403);
+    }
 
     // Check if customer already exists
     const existingCustomer = await Customer.findOne({ email });
@@ -202,7 +208,12 @@ export const registerCustomer = asyncHandler(async (req: AuthRequest, res: Respo
  */
 export const loginCustomer = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { email, password } = req.body;
-    const storeId = req.headers['x-store-id'];
+    const storeSettings = req.store!.settings || {};
+
+    // Check if login is allowed for this store
+    if (storeSettings.allowCustomerLogin === false) {
+        throw new AppError('Customer login is currently disabled for this store.', 403);
+    }
     // Find customer
     const customer = await Customer.findOne({ email });
     if (!customer) {
@@ -230,7 +241,7 @@ export const loginCustomer = asyncHandler(async (req: AuthRequest, res: Response
     await customer.save();
 
     // Emit customer login event
-    emitCustomerEvent('customerLogin', customer, storeId as string);
+    emitCustomerEvent('customerLogin', customer, req.storeId as string);
 
     // Check if 2FA is enabled
     if (customer.twoFactorEnabled) {
@@ -840,6 +851,13 @@ export const forgotPassword = asyncHandler(async (req: AuthRequest, res: Respons
         throw new AppError('Email is required', 400);
     }
 
+    const storeSettings = req.store!.settings || {};
+
+    // Check if login/reset is allowed for this store
+    if (storeSettings.allowCustomerLogin === false) {
+        throw new AppError('Password reset is currently disabled because login is disabled for this store.', 403);
+    }
+
     // Always return success to prevent email enumeration
     const successMessage = 'If an account with that email exists, a password reset link has been sent';
 
@@ -905,9 +923,15 @@ export const forgotPassword = asyncHandler(async (req: AuthRequest, res: Respons
  */
 export const resetPassword = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { token, newPassword } = req.body;
-    const storeId = req.headers['x-store-id'];
     if (!token || !newPassword) {
         throw new AppError('Token and new password are required', 400);
+    }
+
+    const storeSettings = req.store!.settings || {};
+
+    // Check if login/reset is allowed for this store
+    if (storeSettings.allowCustomerLogin === false) {
+        throw new AppError('Password reset is currently disabled because login is disabled for this store.', 403);
     }
 
     if (newPassword.length < 6) {
@@ -931,7 +955,7 @@ export const resetPassword = asyncHandler(async (req: AuthRequest, res: Response
     customer.passwordResetToken = undefined;
     customer.passwordResetExpires = undefined;
     await customer.save();
-    emitCustomerEvent('customerPasswordReset', customer, storeId as string);
+    emitCustomerEvent('customerPasswordReset', customer, req.storeId as string);
     res.json({ message: 'Password reset successfully' });
 });
 

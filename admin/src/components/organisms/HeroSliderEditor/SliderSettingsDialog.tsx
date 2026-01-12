@@ -72,6 +72,7 @@ export default function SliderSettingsDialog({ open, onClose, settings, onSave }
                 <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
                     <Tab label="General" />
                     <Tab label="Responsive" />
+                    <Tab label="Navigation" />
                 </Tabs>
 
                 {tab === 0 && (
@@ -148,6 +149,85 @@ export default function SliderSettingsDialog({ open, onClose, settings, onSave }
                         <Typography variant="caption" color="text.secondary">
                             Define specific heights for different device break points.
                         </Typography>
+                    </Box>
+                )}
+
+                {tab === 2 && (
+                    <Box display="flex" flexDirection="column" gap={3}>
+                        <Typography variant="subtitle2">Bullets (Pagination)</Typography>
+                        <Box display="flex" alignItems="center" gap={4}>
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={localSettings.showBullets ?? true}
+                                        onChange={(e) => handleChange('showBullets', e.target.checked)}
+                                    />
+                                }
+                                label="Show Bullets"
+                            />
+                            <Box display="flex" alignItems="center" gap={1}>
+                                <Typography variant="caption">Color:</Typography>
+                                <input
+                                    type="color"
+                                    value={localSettings.bulletColor || '#ffffff'}
+                                    onChange={(e) => handleChange('bulletColor', e.target.value)}
+                                    style={{ border: 'none', padding: 0, width: 30, height: 30, cursor: 'pointer' }}
+                                />
+                            </Box>
+                        </Box>
+
+                        <Divider />
+
+                        <Typography variant="subtitle2">Arrows (Navigation)</Typography>
+                        <Box display="flex" alignItems="center" gap={4}>
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={localSettings.showArrows ?? true}
+                                        onChange={(e) => handleChange('showArrows', e.target.checked)}
+                                    />
+                                }
+                                label="Show Arrows"
+                            />
+                            <Box display="flex" alignItems="center" gap={1}>
+                                <Typography variant="caption">Color:</Typography>
+                                <input
+                                    type="color"
+                                    value={localSettings.arrowColor || '#ffffff'}
+                                    onChange={(e) => handleChange('arrowColor', e.target.value)}
+                                    style={{ border: 'none', padding: 0, width: 30, height: 30, cursor: 'pointer' }}
+                                />
+                            </Box>
+                        </Box>
+
+                        <Divider />
+
+                        <Typography variant="subtitle2">Slide Progress Bar</Typography>
+                        <Box display="flex" flexDirection="column" gap={2}>
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={localSettings.showProgress ?? false}
+                                        onChange={(e) => handleChange('showProgress', e.target.checked)}
+                                    />
+                                }
+                                label="Show Progress Bar"
+                            />
+                            {localSettings.showProgress && (
+                                <TextField
+                                    select
+                                    label="Position"
+                                    size="small"
+                                    fullWidth
+                                    value={localSettings.progressPosition || 'bottom'}
+                                    onChange={(e) => handleChange('progressPosition', e.target.value)}
+                                    SelectProps={{ native: true }}
+                                >
+                                    <option value="top">Top</option>
+                                    <option value="bottom">Bottom</option>
+                                </TextField>
+                            )}
+                        </Box>
                     </Box>
                 )}
             </DialogContent>

@@ -779,6 +779,24 @@ export const getProductById = asyncHandler(async (req: AuthRequest, res: Respons
     const storeTimezone = (productObj.storeId as any)?.timezone || 'UTC';
     addTimezoneAwareDates(productObj, storeTimezone);
 
+    // Add category breadcrumbs
+    if (productObj.categoryIds && productObj.categoryIds.length > 0) {
+        const primaryCategory: any = productObj.categoryIds[0];
+        if (primaryCategory.path) {
+            const pathSegments = primaryCategory.path.split('/');
+            const ancestors = await Category.find({
+                storeId: product.storeId,
+                slug: { $in: pathSegments },
+                status: 'active'
+            }).sort({ level: 1 });
+
+            productObj.categoryBreadcrumbs = ancestors.map(cat => ({
+                label: cat.title,
+                href: `/${cat.slug}`
+            }));
+        }
+    }
+
     res.json({
         product: productObj,
         activeSales: sales,
@@ -851,6 +869,24 @@ export const getProductBySlug = asyncHandler(async (req: AuthRequest, res: Respo
     // Add timezone-aware dates
     const storeTimezone = (productObj.storeId as any)?.timezone || 'UTC';
     addTimezoneAwareDates(productObj, storeTimezone);
+
+    // Add category breadcrumbs
+    if (productObj.categoryIds && productObj.categoryIds.length > 0) {
+        const primaryCategory: any = productObj.categoryIds[0];
+        if (primaryCategory.path) {
+            const pathSegments = primaryCategory.path.split('/');
+            const ancestors = await Category.find({
+                storeId: product.storeId,
+                slug: { $in: pathSegments },
+                status: 'active'
+            }).sort({ level: 1 });
+
+            productObj.categoryBreadcrumbs = ancestors.map(cat => ({
+                label: cat.title,
+                href: `/${cat.slug}`
+            }));
+        }
+    }
 
     res.json({ product: productObj });
 });

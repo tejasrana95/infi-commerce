@@ -21,7 +21,7 @@ function processCategoryData(category: Category, style: string): CategoryTemplat
         imageUrl: category.image,
         imageAlt: category.title,
         productCount: category.productCount,
-        categoryUrl: `/category/${category.slug}`,
+        categoryUrl: `/${category.slug}`,
         style: style as CategoryTemplateProps['style'],
         showDescription: category.showDescription ?? true,
     };

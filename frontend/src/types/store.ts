@@ -494,6 +494,8 @@ export interface StoreSettings {
     emailNotifications?: boolean;
     orderNotifications?: boolean;
     maintenanceMode?: boolean;
+    allowCustomerLogin?: boolean;
+    allowCustomerSignup?: boolean;
     allowGuestCheckout?: boolean;
     requireEmailVerification?: boolean;
     minOrderAmount?: number;

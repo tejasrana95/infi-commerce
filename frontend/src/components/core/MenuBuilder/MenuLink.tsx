@@ -34,19 +34,19 @@ export default function MenuLink({
                 if (item.url?.startsWith('http') || item.url?.startsWith('#') || item.url?.startsWith('/')) {
                     return item.url;
                 }
-                return `/${item.url || '#'}`;
+                return `/${item.url || '#!'}`;
             case 'category':
-                return `/category/${item.categorySlug}`;
+                return `/${item.categorySlug}`;
             case 'product':
-                return `/product/${item.productSlug || '#'}`;
+                return `/${item.productSlug || '#!'}`;
             case 'page':
-                return `/page/${item.pageSlug}`;
+                return `/${item.pageSlug}`;
             case 'blog-category':
                 return `/blog/category/${item.blogCategoryId}`;
             case 'dropdown':
-                return '#';
+                return '#!';
             default:
-                return '#';
+                return '#!';
         }
     };
 

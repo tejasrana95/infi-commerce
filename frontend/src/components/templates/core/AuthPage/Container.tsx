@@ -117,6 +117,62 @@ export default function AuthPageContainer({ type }: AuthPageContainerProps) {
         );
     }
 
+    // Check if the current auth type is disabled
+    const isLoginDisabled = store?.settings?.allowCustomerLogin === false;
+    const isSignupDisabled = store?.settings?.allowCustomerSignup === false;
+
+    if (type === 'login' && isLoginDisabled) {
+        title = 'Login Disabled';
+        subtitle = 'Customer login is currently disabled for this store.';
+        ContentComponent = () => (
+            <div className="text-center py-8">
+                <p className="text-gray-600 mb-6">We apologize for the inconvenience. Please contact support if you need assistance.</p>
+                <button
+                    onClick={() => router.push('/')}
+                    className="px-6 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition-colors"
+                >
+                    Back to Home
+                </button>
+            </div>
+        );
+    } else if (type === 'register' && isSignupDisabled) {
+        title = 'Signup Disabled';
+        subtitle = 'New customer registration is currently disabled for this store.';
+        ContentComponent = () => (
+            <div className="text-center py-8">
+                <p className="text-gray-600 mb-6">You can still browse our products. If you already have an account, you can try logging in.</p>
+                <div className="flex gap-4 justify-center">
+                    <button
+                        onClick={() => router.push('/login')}
+                        className="px-6 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition-colors"
+                    >
+                        Go to Login
+                    </button>
+                    <button
+                        onClick={() => router.push('/')}
+                        className="px-6 py-2 border border-black rounded-md hover:bg-gray-50 transition-colors"
+                    >
+                        Back to Home
+                    </button>
+                </div>
+            </div>
+        );
+    } else if ((type === 'forgot-password' || type === 'reset-password') && isLoginDisabled) {
+        title = 'Password Reset Disabled';
+        subtitle = 'Password reset functionality is currently disabled for this store.';
+        ContentComponent = () => (
+            <div className="text-center py-8">
+                <p className="text-gray-600 mb-6">Since login is disabled, password reset is also unavailable.</p>
+                <button
+                    onClick={() => router.push('/')}
+                    className="px-6 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition-colors"
+                >
+                    Back to Home
+                </button>
+            </div>
+        );
+    }
+
     return (
         <AuthPageTemplate title={title} subtitle={subtitle}>
             {ContentComponent && <ContentComponent />}

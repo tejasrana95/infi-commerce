@@ -83,7 +83,10 @@ export default function PageForm({ initialData, onSubmit, isSubmitting = false }
     const [activeTab, setActiveTab] = useState(0);
     const [isCalculatingSeo, setIsCalculatingSeo] = useState(false);
     const [seoSuggestions, setSeoSuggestions] = useState<string[]>([]);
+    const [slugCheck, setSlugCheck] = useState<{ loading: boolean; available: boolean | null; message: string }>({ loading: false, available: null, message: '' });
     const watchedTitle = watch('title');
+    const watchedSlug = watch('slug');
+    const watchedStoreId = watch('storeId');
     const seoScore = watch('seo.score') || 0;
 
     useEffect(() => {
@@ -121,9 +124,50 @@ export default function PageForm({ initialData, onSubmit, isSubmitting = false }
                 .toLowerCase()
                 .replace(/[^a-z0-9]+/g, '-')
                 .replace(/^-+|-+$/g, '');
-            setValue('slug', slug);
+            setValue('slug', slug, { shouldValidate: true });
         }
     }, [watchedTitle, initialData, setValue]);
+
+    // Check slug availability
+    useEffect(() => {
+        const checkSlug = async () => {
+            const storeId = typeof watchedStoreId === 'object' && watchedStoreId !== null
+                ? (watchedStoreId as any)._id
+                : watchedStoreId;
+
+            if (!watchedSlug || !storeId) {
+                setSlugCheck({ loading: false, available: null, message: '' });
+                return;
+            }
+
+            // Skip check if slug hasn't changed from initial data
+            if (initialData && initialData.slug === watchedSlug) {
+                setSlugCheck({ loading: false, available: true, message: '' });
+                return;
+            }
+
+            setSlugCheck(prev => ({ ...prev, loading: true }));
+            try {
+                const response = await api.get(`/slug/check/${storeId}/${watchedSlug}`, {
+                    params: { type: 'page', id: initialData?._id }
+                });
+
+                if (response.data.success) {
+                    if (response.data.isAvailable) {
+                        setSlugCheck({ loading: false, available: true, message: 'Slug is available' });
+                    } else {
+                        setSlugCheck({ loading: false, available: false, message: 'Slug is already taken by another entity' });
+                    }
+                }
+            } catch (error) {
+                console.error('Slug check failed', error);
+                setSlugCheck({ loading: false, available: null, message: 'Failed to validate slug' });
+            }
+        };
+
+        const timer = setTimeout(checkSlug, 500);
+        return () => clearTimeout(timer);
+    }, [watchedSlug, watchedStoreId, initialData]);
 
     const handleCalculateSeo = async () => {
         setIsCalculatingSeo(true);
@@ -222,9 +266,21 @@ export default function PageForm({ initialData, onSubmit, isSubmitting = false }
                                         label="Slug"
                                         fullWidth
                                         required
-                                        error={!!errors.slug}
-                                        helperText={errors.slug?.message || 'URL path: /page/your-slug'}
-                                        disabled={!!initialData}
+                                        error={!!errors.slug || (slugCheck.available === false)}
+                                        helperText={
+                                            (errors.slug?.message) ||
+                                            (slugCheck.available === false ? slugCheck.message : null) ||
+                                            (slugCheck.loading ? 'Checking availability...' : 'URL path: /your-slug (Must be unique across all content)')
+                                        }
+                                        color={slugCheck.available === true ? 'success' : undefined}
+                                        disabled={!!initialData} // If slugs are immutable after creation? Usually editable. User requirement implies redirects needed if changed. Form says disabled check existing code.
+                                    // Existing code said disabled={!!initialData}. So pages cannot change slug? 
+                                    // If so, validation only needed for new pages.
+                                    // But if user wants to refactor URL structure, existing pages might need slug updates? 
+                                    // The form disables it. I will keep it disabled if that's the current policy, but user wants flat URLs. 
+                                    // "Refactor URL structure": existing slugs like "about-us" are fine. 
+                                    // If I can't edit slug, I can't fix collisions if any? 
+                                    // I'll keep logic as is for disabled, but validation is useful for new pages.
                                     />
                                 )}
                             />

@@ -28,6 +28,8 @@ export interface IStore extends Document {
         smsNotifications?: boolean;
         whatsappNotifications?: boolean;
         maintenanceMode?: boolean;
+        allowCustomerLogin?: boolean;
+        allowCustomerSignup?: boolean;
         allowGuestCheckout?: boolean;
         requireEmailVerification?: boolean;
         minOrderAmount?: number;
@@ -273,7 +275,8 @@ const StoreSchema = new Schema<IStore>(
             default: {
                 emailNotifications: true,
                 orderNotifications: true,
-                maintenanceMode: false,
+                allowCustomerLogin: true,
+                allowCustomerSignup: true,
                 allowGuestCheckout: true,
                 requireEmailVerification: false,
                 shippingEnabled: true,

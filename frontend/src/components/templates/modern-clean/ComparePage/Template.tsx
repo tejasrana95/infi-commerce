@@ -406,7 +406,7 @@ export default function ComparePageTemplate({
                                                 </button>
                                             </div>
                                             <Link
-                                                href={`/product/${product.slug}`}
+                                                href={`/${product.slug}`}
                                                 className={styles.viewDetailsLink}
                                             >
                                                 View Details →

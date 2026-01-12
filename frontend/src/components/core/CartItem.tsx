@@ -36,7 +36,7 @@ export default function CartItem({ item, onUpdateQuantity, onRemove, compact = f
 
     const product = item.productId;
     const productImage = item.image || product.images?.[0] || '/placeholder-product.png';
-    const productUrl = `/product/${product.slug}`;
+    const productUrl = `/${product.slug}`;
 
     // Calculate available stock
     const availableStock = product.manageStock ? (product.stock || 0) : 999;

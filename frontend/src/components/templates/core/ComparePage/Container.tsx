@@ -77,7 +77,7 @@ export default function ComparePageContainer() {
     }, [clearCompare]);
 
     const handleViewProduct = useCallback((slug: string) => {
-        router.push(`/product/${slug}`);
+        router.push(`/${slug}`);
     }, [router]);
 
     const handleAddToCart = useCallback((productId: string) => {

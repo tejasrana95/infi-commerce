@@ -46,7 +46,7 @@ function processFooterConfig(config?: FooterConfig, store?: Store | null): Omit<
     if (socialItem?.settings?.socialLinks) {
         socialLinks = socialItem.settings.socialLinks.map(link => ({
             platform: link.platform || 'facebook',
-            url: link.url || '#',
+            url: link.url || '#!',
         }));
     }
 

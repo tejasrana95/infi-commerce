@@ -256,11 +256,15 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
     const [seoSuggestions, setSeoSuggestions] = useState<string[]>([]);
 
     const watchName = watch('name');
+    const watchSlug = watch('slug');
     const watchStoreId = watch('storeId');
     const watchTags = watch('tags') || [];
 
     const watchType = watch('type');
     const seoScore = watch('seo.score') || 0;
+
+    // Slug validation state
+    const [slugCheck, setSlugCheck] = useState<{ loading: boolean; available: boolean | null; message: string }>({ loading: false, available: null, message: '' });
 
 
     // Auto-generate slug from name
@@ -270,9 +274,50 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
                 .toLowerCase()
                 .replace(/[^a-z0-9]+/g, '-')
                 .replace(/^-+|-+$/g, '');
-            setValue('slug', slug);
+            setValue('slug', slug, { shouldValidate: true });
         }
     }, [watchName, setValue, initialData]);
+
+    // Check slug availability
+    useEffect(() => {
+        const checkSlug = async () => {
+            const storeId = typeof watchStoreId === 'object' && watchStoreId !== null
+                ? (watchStoreId as any)._id
+                : watchStoreId;
+
+            if (!watchSlug || !storeId) {
+                setSlugCheck({ loading: false, available: null, message: '' });
+                return;
+            }
+
+            // Skip check if slug hasn't changed from initial data
+            if (initialData && initialData.slug === watchSlug) {
+                setSlugCheck({ loading: false, available: true, message: '' });
+                return;
+            }
+
+            setSlugCheck(prev => ({ ...prev, loading: true }));
+            try {
+                const response = await api.get(`/slug/check/${storeId}/${watchSlug}`, {
+                    params: { type: 'product', id: initialData?._id }
+                });
+
+                if (response.data.success) {
+                    if (response.data.isAvailable) {
+                        setSlugCheck({ loading: false, available: true, message: 'Slug is available' });
+                    } else {
+                        setSlugCheck({ loading: false, available: false, message: 'Slug is already taken by another entity' });
+                    }
+                }
+            } catch (error) {
+                console.error('Slug check failed', error);
+                setSlugCheck({ loading: false, available: null, message: 'Failed to validate slug' });
+            }
+        };
+
+        const timer = setTimeout(checkSlug, 500);
+        return () => clearTimeout(timer);
+    }, [watchSlug, watchStoreId, initialData]);
 
     // Auto-set downloadable for digital products
     useEffect(() => {
@@ -461,8 +506,13 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
                                         label="Slug"
                                         fullWidth
                                         required
-                                        error={!!errors.slug}
-                                        helperText={errors.slug?.message || 'Auto-generated from name'}
+                                        error={!!errors.slug || (slugCheck.available === false)}
+                                        helperText={
+                                            (errors.slug?.message) ||
+                                            (slugCheck.available === false ? slugCheck.message : null) ||
+                                            (slugCheck.loading ? 'Checking availability...' : 'Auto-generated from name (Must be unique)')
+                                        }
+                                        color={slugCheck.available === true ? 'success' : undefined}
                                     />
                                 )}
                             />

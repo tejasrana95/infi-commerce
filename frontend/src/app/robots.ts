@@ -14,10 +14,8 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
                 userAgent: '*',
                 allow: [
                     '/',
-                    '/product/',
-                    '/category/',
+                    '/',
                     '/blog/',
-                    '/page/',
                     '/ai/products.json',
                 ],
                 disallow: [
@@ -38,8 +36,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
                 userAgent: 'GPTBot',
                 allow: [
                     '/',
-                    '/product/',
-                    '/category/',
+                    '/',
                     '/ai/products.json',
                     '/.well-known/ai-plugin.json',
                     '/.well-known/llms.txt',
@@ -49,8 +46,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
                 userAgent: 'Google-Extended',
                 allow: [
                     '/',
-                    '/product/',
-                    '/category/',
+                    '/',
                     '/ai/products.json',
                 ],
             },
@@ -58,8 +54,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
                 userAgent: 'CCBot',
                 allow: [
                     '/',
-                    '/product/',
-                    '/category/',
+                    '/',
                     '/ai/products.json',
                 ],
             },

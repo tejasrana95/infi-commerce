@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
             price: product.price,
             salePrice: product.isOnSale ? product.salePrice : undefined,
             currency: store.currency || 'USD',
-            url: `https://${domain}/product/${product.slug}`,
+            url: `https://${domain}/${product.slug}`,
             image: product.featuredImage || product.images?.[0] || '',
             inStock: product.stockStatus === 'in_stock',
             brand: typeof product.brand === 'object' ? product.brand?.name : product.brand,

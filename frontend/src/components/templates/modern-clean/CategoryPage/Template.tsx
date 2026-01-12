@@ -132,7 +132,7 @@ export default function ModernCleanCategoryPageTemplate({
                         {availableFilters!.subcategories!.map(sub => (
                             <Link
                                 key={sub._id}
-                                href={`/category/${sub.slug}`}
+                                href={`/${sub.slug}`}
                                 className={styles.subcategoryItem}
                             >
                                 <span>{sub.title}</span>
@@ -164,6 +164,7 @@ export default function ModernCleanCategoryPageTemplate({
                 getBrandDisplay={getBrandDisplay}
                 isFilterValueActive={isFilterValueActive}
                 className={styles.filtersContent}
+                isLoading={isLoading}
             >
                 {renderSubcategories()}
             </CategoryFilters>
@@ -180,7 +181,7 @@ export default function ModernCleanCategoryPageTemplate({
                         {availableFilters!.subcategories!.map(sub => (
                             <Link
                                 key={sub._id}
-                                href={`/category/${sub.slug}`}
+                                href={`/${sub.slug}`}
                                 className={styles.subcategoryItem}
                             >
                                 <span>{sub.title}</span>
@@ -212,6 +213,7 @@ export default function ModernCleanCategoryPageTemplate({
                 getBrandDisplay={getBrandDisplay}
                 isFilterValueActive={isFilterValueActive}
                 className={styles.filtersContent}
+                isLoading={isLoading}
             >
                 {renderSubcategories()}
             </CategoryFilters>
@@ -238,6 +240,7 @@ export default function ModernCleanCategoryPageTemplate({
             currency={currency}
             getBrandDisplay={getBrandDisplay}
             isFilterValueActive={isFilterValueActive}
+            isLoading={isLoading}
         />
     );
     // Check staged filters first (pending changes), fall back to active filters
@@ -258,7 +261,8 @@ export default function ModernCleanCategoryPageTemplate({
     const gridColumns = config.grid?.productsPerRow || { desktop: 4, tablet: 3, mobile: 2 };
 
     // Check if filters are enabled at all (regardless of position)
-    const hasFilters = config.filters?.enabled && availableFilters != null;
+    // Check if filters are enabled at all (regardless of position)
+    const hasFilters = config.filters?.enabled && (availableFilters != null || isLoading);
 
     // State for collapsible description
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(
@@ -461,7 +465,7 @@ export default function ModernCleanCategoryPageTemplate({
                                 ) : null}
                             </div>
                         ) : config.pagination?.type === 'pagination' && (
-                            <div className={`${styles.paginationNav} ${styles[config.pagination.position || 'center']}`}>
+                            <div className={`${styles.paginationNav} ${styles[config.pagination.position || 'left']}`}>
                                 <button
                                     disabled={pagination.page <= 1}
                                     onClick={() => onPageChange(pagination.page - 1)}
@@ -565,7 +569,7 @@ export default function ModernCleanCategoryPageTemplate({
                         style={sectionStyle}
                     >
                         <main className={styles.main} style={{ width: '100%' }}>
-                            {filterPosition === 'top' && hasFilters && renderHorizontalFilters()}
+                            {filterPosition === 'top' && config.filters?.enabled && renderHorizontalFilters()}
                             {productColumn?.modules?.map((module: any) => renderModule(module))}
                         </main>
                     </div>
@@ -623,7 +627,7 @@ export default function ModernCleanCategoryPageTemplate({
             m.type === 'category-products' || m.type === 'search-results'
         );
 
-        if (hasProductModules && filterPosition === 'top' && hasFilters) {
+        if (hasProductModules && filterPosition === 'top' && config.filters?.enabled) {
             const sectionStyle = {
                 paddingTop: section.settings?.paddingTop || 0,
                 paddingBottom: section.settings?.paddingBottom || 0,

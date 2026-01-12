@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import slugService from '../services/slug.service';
 
 /**
  * Page Model - Static pages (About, Contact, Privacy, etc.)
@@ -153,7 +154,21 @@ PageSchema.pre('save', async function (next) {
             if (!this.seo) {
                 this.seo = {};
             }
-            this.seo.canonicalUrl = `${protocol}${domain}/page/${this.slug}`;
+            this.seo.canonicalUrl = `${protocol}${domain}/${this.slug}`;
+        }
+    }
+
+    // Register slug in global registry
+    if (this.isModified('slug') || this.isModified('storeId') || this.isNew) {
+        try {
+            await slugService.registerSlug(
+                this.storeId,
+                this.slug,
+                'page',
+                this._id
+            );
+        } catch (error: any) {
+            return next(error);
         }
     }
     next();

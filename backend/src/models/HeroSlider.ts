@@ -98,6 +98,12 @@ export interface IHeroSlider extends Document {
         autoPlay: boolean;
         delay: number;
         effect: 'fade' | 'slide' | 'cube' | 'coverflow' | 'flip';
+        showBullets?: boolean;
+        bulletColor?: string;
+        showArrows?: boolean;
+        arrowColor?: string;
+        showProgress?: boolean;
+        progressPosition?: 'top' | 'bottom';
     };
     isActive: boolean;
     createdAt: Date;
@@ -200,7 +206,13 @@ const HeroSliderSchema: Schema = new Schema({
         responsive: { type: Boolean, default: true },
         autoPlay: { type: Boolean, default: true },
         delay: { type: Number, default: 5000 },
-        effect: { type: String, default: 'fade' }
+        effect: { type: String, default: 'fade' },
+        showBullets: { type: Boolean, default: true },
+        bulletColor: { type: String, default: '#ffffff' },
+        showArrows: { type: Boolean, default: true },
+        arrowColor: { type: String, default: '#ffffff' },
+        showProgress: { type: Boolean, default: false },
+        progressPosition: { type: String, enum: ['top', 'bottom'], default: 'bottom' }
     },
     isActive: { type: Boolean, default: true }
 }, { timestamps: true });

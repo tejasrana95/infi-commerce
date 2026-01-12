@@ -151,12 +151,12 @@ export default function ImageModule({ config }: ModuleProps) {
                         )}
                         {ctaText && (
                             <a
-                                href={ctaLink || '#'}
+                                href={ctaLink || '#!'}
                                 target={ctaNewTab ? '_blank' : undefined}
                                 rel={ctaNewTab ? 'noopener noreferrer' : undefined}
                                 className={`${styles.ctaButton} ${styles[`cta${ctaStyle.charAt(0).toUpperCase() + ctaStyle.slice(1)}`]}`}
                                 onClick={(e) => {
-                                    if (!ctaLink || ctaLink === '#') {
+                                    if (!ctaLink || ctaLink === '#' || ctaLink === '#!') {
                                         e.preventDefault();
                                     }
                                 }}

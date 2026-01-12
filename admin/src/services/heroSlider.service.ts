@@ -96,6 +96,12 @@ export interface HeroSlider {
         autoPlay: boolean;
         delay: number;
         effect: 'fade' | 'slide' | 'cube' | 'coverflow' | 'flip';
+        showBullets?: boolean;
+        bulletColor?: string;
+        showArrows?: boolean;
+        arrowColor?: string;
+        showProgress?: boolean;
+        progressPosition?: 'top' | 'bottom';
     };
     isActive: boolean;
     createdAt: string;

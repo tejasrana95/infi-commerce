@@ -48,7 +48,7 @@ export default function FlipBox({ config: moduleConfig }: ModuleProps) {
         frontSubtitle: config.frontSubtitle || '',
         backDescription: config.backDescription || '',
         ctaText: config.ctaText || '',
-        ctaUrl: config.ctaUrl || '#',
+        ctaUrl: config.ctaUrl || '#!',
     }] : []);
 
     const layout = config.layout || { direction: 'row', gap: 24, itemsPerRow: 3 };

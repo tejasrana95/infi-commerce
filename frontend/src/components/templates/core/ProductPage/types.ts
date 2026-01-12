@@ -138,8 +138,9 @@ export interface Product {
     videos?: ProductVideo[];
 
     // Categorization
-    categoryIds: Array<{ _id: string; title: string; slug: string }>;
-    categories?: Array<{ _id: string; title: string; slug: string }>;
+    categoryIds: Array<{ _id: string; title: string; slug: string; path?: string }>;
+    categories?: Array<{ _id: string; title: string; slug: string; path?: string }>;
+    categoryBreadcrumbs?: Array<{ label: string; href: string }>;
     tags: string[];
     brand?: string | { _id: string; name: string; slug: string; logo?: string };
 

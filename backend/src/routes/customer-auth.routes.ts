@@ -30,14 +30,14 @@ const router = Router();
 
 // Public routes with store context (for email notifications)
 router.post('/register', storeContext.required, validate(customerRegisterValidation), registerCustomer);
-router.post('/login', validate(customerLoginValidation), loginCustomer);
-router.post('/2fa/verify-login', verifyCustomer2FALogin);
+router.post('/login', storeContext.required, validate(customerLoginValidation), loginCustomer);
+router.post('/2fa/verify-login', storeContext.required, verifyCustomer2FALogin);
 router.post('/refresh', refreshCustomerToken);
-router.post('/social-login', socialLogin);
+router.post('/social-login', storeContext.required, socialLogin);
 
 // Password reset routes (public, require store context for emails)
 router.post('/forgot-password', storeContext.required, validate(forgotPasswordValidation), forgotPassword);
-router.post('/reset-password', validate(resetPasswordValidation), resetPassword);
+router.post('/reset-password', storeContext.required, validate(resetPasswordValidation), resetPassword);
 
 // Email verification (public - token-based)
 router.post('/verify-email', validate(verifyEmailValidation), verifyEmail);

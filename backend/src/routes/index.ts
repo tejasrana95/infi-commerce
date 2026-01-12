@@ -201,6 +201,10 @@ router.use('/interests', interestRoutes);
 import cleanupRoutes from './cleanup.routes';
 router.use('/cleanup', cleanupRoutes);
 
+// Mount slug routes
+import slugRoutes from './slug.routes';
+router.use('/slug', slugRoutes);
+
 export default router;
 
 

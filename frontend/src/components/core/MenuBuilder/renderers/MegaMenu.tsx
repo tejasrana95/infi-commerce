@@ -47,11 +47,11 @@ export default function MegaMenu({
                                                 {subItem.type === 'divider' ? (
                                                     <hr className={styles.divider} />
                                                 ) : subItem.type === 'image' && subItem.imageUrl ? (
-                                                    <Link href={subItem.linkUrl || '#'} className={styles.imageLink}>
+                                                    <Link href={subItem.linkUrl || '#!'} className={styles.imageLink}>
                                                         <img src={subItem.imageUrl} alt={subItem.label || ''} />
                                                     </Link>
                                                 ) : subItem.type === 'custom-link' ? (
-                                                    <Link href={subItem.linkUrl || '#'} className={styles.customLink}>
+                                                    <Link href={subItem.linkUrl || '#!'} className={styles.customLink}>
                                                         {subItem.label || subItem.linkUrl}
                                                     </Link>
                                                 ) : (

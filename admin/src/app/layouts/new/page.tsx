@@ -160,7 +160,7 @@ export default function NewLayoutPage() {
                                     onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-/]/g, '') })}
                                     fullWidth
                                     placeholder="e.g., about, marble-statues, category/summer-collection"
-                                    helperText="Leave empty for a default layout. Enter a slug to create a page-specific layout and only slug not the prefix  (e.g., 'about' for /page/about, 'electronics' for /category/electronics)."
+                                    helperText="Leave empty for a default layout. Enter a slug to create a page-specific layout and only slug not the prefix  (e.g., 'about' for /about, 'electronics' for /electronics)."
                                 />
                             </Grid>
                         )}

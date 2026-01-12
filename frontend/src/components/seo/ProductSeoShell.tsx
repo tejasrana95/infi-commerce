@@ -46,7 +46,7 @@ export default function ProductSeoShell({ product, store }: ProductSeoShellProps
                     <li><a href="/">Home</a></li>
                     {product.categories?.[0] && (
                         <li>
-                            <a href={`/category/${product.categories[0].slug}`}>
+                            <a href={`/${product.categories[0].slug}`}>
                                 {product.categories[0].title}
                             </a>
                         </li>

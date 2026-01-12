@@ -60,7 +60,7 @@ export default function HomepageSeoShell({
                     <ul>
                         {featuredProducts.slice(0, 6).map((product) => (
                             <li key={product._id} itemScope itemType="https://schema.org/Product">
-                                <a href={`/product/${product.slug}`} itemProp="url">
+                                <a href={`/${product.slug}`} itemProp="url">
                                     <span itemProp="name">{product.name}</span>
                                 </a>
                                 {product.images?.[0] && (
@@ -91,7 +91,7 @@ export default function HomepageSeoShell({
                     <ul>
                         {categories.slice(0, 10).map((category) => (
                             <li key={category._id}>
-                                <a href={`/category/${category.slug}`}>
+                                <a href={`/${category.slug}`}>
                                     {category.title}
                                 </a>
                             </li>
