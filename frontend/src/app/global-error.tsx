@@ -34,7 +34,14 @@ export default function GlobalError({
                         Please try resetting the application.
                     </p>
                     <button
-                        onClick={() => reset()}
+                        onClick={() => {
+                            // Safe reset or reload
+                            if (typeof reset === 'function') {
+                                reset();
+                            } else {
+                                window.location.reload();
+                            }
+                        }}
                         className="w-full py-4 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-red-200"
                     >
                         Restart Application

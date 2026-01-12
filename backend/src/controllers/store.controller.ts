@@ -278,7 +278,7 @@ export const getStoreByDomain = asyncHandler(async (req: Request, res: Response)
     }
 
     // MongoDB automatically matches if domain is in the domains array
-    const store = await Store.findOne({ domains: domain, isActive: true });
+    const store = await Store.findOne({ domains: domain });
 
     if (store && store.settings?.aiSettings?.openaiKey) {
         store.settings.aiSettings.openaiKey = '••••••••••••••••••••';

@@ -6,12 +6,22 @@ import { DEFAULT_TEMPLATE_ID } from "@/types";
 import { prefetchModuleData } from "@/lib/api/server-modules";
 import HomepageSeoShell from "@/components/seo/HomepageSeoShell";
 
+
+
 export async function generateMetadata() {
   const headersList = await headers();
   const domain = headersList.get("host") || "localhost:3000";
   const store = await getStore(domain);
 
   if (!store) return {};
+
+  if (!store.isActive) {
+    return {
+      title: "Store Unavailable",
+      description: "This store is currently unavailable.",
+      robots: "noindex, nofollow",
+    };
+  }
 
   return {
     title: store.seo?.metaTitle || store.name,

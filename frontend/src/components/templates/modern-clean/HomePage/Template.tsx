@@ -2,6 +2,7 @@
 
 import { Layout } from '@/types/layout';
 import LayoutEngine from '@/components/core/layout/LayoutEngine';
+import Image from 'next/image';
 
 interface ModernCleanHomePageProps {
     layout: Layout | null;
@@ -21,9 +22,12 @@ export default function ModernCleanHomePageTemplate({
         return (
             <div className="py-20 text-center bg-gradient-to-b from-gray-50 to-white">
                 <div className="container mx-auto px-4">
+                    <div className="w-30 h-30  bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Image src="/logo.webp" alt="Infi Commerce" width={100} height={52} />
+                    </div>
                     <div className="max-w-2xl mx-auto">
                         <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                            Welcome to {store?.name || "Our Store"}
+                            Welcome to {store?.name || "Infi Commerce"}
                         </h1>
                         <p className="text-xl text-gray-600 mb-8 leading-relaxed">
                             Your homepage is ready to be designed!
@@ -49,6 +53,9 @@ export default function ModernCleanHomePageTemplate({
                                 </div>
                             </div>
                         )}
+                    </div>
+                    <div className="mt-8 text-xs text-gray-400">
+                        Powered by &copy; {new Date().getFullYear()} <a href="https://www.infitechnology.com" target="_blank" rel="noopener noreferrer">Infi Commerce by Infi Technology</a>
                     </div>
                 </div>
             </div>

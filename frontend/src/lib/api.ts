@@ -415,14 +415,20 @@ export async function fetchStoreByDomain(domain: string, nocache: boolean = fals
         });
 
         if (!res.ok) {
-            console.warn(`Store not found for domain: ${domain}`);
-            return null;
+            if (res.status === 404) {
+                console.warn(`Store not found for domain: ${domain}`);
+                return null;
+            }
+            // For other errors (500, etc), throw so we can handle server down
+            throw new Error(`Failed to fetch store: ${res.status} ${res.statusText}`);
         }
 
         return await res.json();
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching store by domain:', error);
-        return null;
+        // Rethrow if it's not a 404 (which we handled above) to let error boundary catch it
+        // If it's a network error (fetch failed), this catch block catches it
+        throw error;
     }
 }
 
@@ -435,7 +441,6 @@ export async function fetchStoreById(storeId: string, nocache: boolean = false):
                 'Content-Type': 'application/json',
             },
         });
-
         if (!res.ok) {
             console.warn(`Store not found for ID: ${storeId}`);
             return null;

@@ -14,6 +14,8 @@ import { ToastProvider } from "@/providers/ToastProvider";
 import { DialogProvider } from "@/providers/DialogProvider";
 import { Maintenance } from "@/components/layout/Maintenance/Maintenance";
 import { fetchCurrencies, getStore } from "@/lib/api";
+import StoreInactive from "@/components/templates/core/StoreInactive";
+import ServerUnavailable from "@/components/layout/ServerUnavailable/ServerUnavailable";
 import ThemeScriptInjector from "@/components/ThemeScriptInjector";
 import { getComponent } from "@/components/templates/registry";
 import { Currency, DEFAULT_TEMPLATE_ID } from "@/types";
@@ -143,7 +145,19 @@ export default async function RootLayout({
   const domain = headersList.get("host") || "localhost:3000";
 
   // Get store data on the server
-  const store = await getStore(domain);
+  let store;
+  try {
+    store = await getStore(domain);
+  } catch (error) {
+    // If backend is down, render a fallback UI
+    return (
+      <html lang="en">
+        <body className={`${geistSans.variable} ${geistMono.variable}`}>
+          <ServerUnavailable />
+        </body>
+      </html>
+    );
+  }
 
   // Get template ID
   const templateId = store?.theme?.templateId || DEFAULT_TEMPLATE_ID;
@@ -168,6 +182,17 @@ export default async function RootLayout({
   // Get template-specific components
   const Header = getComponent("Header", templateId);
   const Footer = getComponent("Footer", templateId);
+
+  // Handle inactive store globally
+  if (store && !store.isActive) {
+    return (
+      <html lang="en">
+        <body className={`${geistSans.variable} ${geistMono.variable}`}>
+          <StoreInactive />
+        </body>
+      </html>
+    );
+  }
 
   return (
     <html lang="en">
