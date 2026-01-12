@@ -16,7 +16,8 @@ import StaticPageSeoShell from '@/components/seo/StaticPageSeoShell';
 import { Suspense } from 'react';
 
 // Revalidation
-export const revalidate = 900; // 15 minutes default
+// export const revalidate = 900; // 15 minutes default
+export const dynamic = 'force-dynamic'; // Ensure dynamic rendering for multi-tenant support
 
 interface UniversalPageProps {
     params: Promise<{ slug: string[] }>;
@@ -282,15 +283,4 @@ export default async function UniversalPage({ params, searchParams }: UniversalP
     }
 
     return notFound();
-}
-
-export async function generateStaticParams() {
-    // We can combine static params logic from all 3 controllers here.
-    // However, for ISR/on-demand, we might not need to pre-build EVERYTHING if there are too many.
-    // But existing pages did. So let's try to match.
-    // Fetch unified list from all? 
-    // Or just return empty and let ISG handle it to save build time?
-    // User asked for "update sitemap", "test generateStaticParams".
-    // Let's implement basics: fetch keys for all.
-    return []; // For now, empty to rely on ISG. Can be optimized later.
 }
