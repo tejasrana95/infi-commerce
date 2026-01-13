@@ -55,7 +55,7 @@ export default function ModernCleanHomePageTemplate({
                         )}
                     </div>
                     <div className="mt-8 text-xs text-gray-400">
-                        Powered by &copy; {new Date().getFullYear()} <a href="https://www.infitechnology.com" target="_blank" rel="noopener noreferrer">Infi Commerce by Infi Technology</a>
+                        &copy; {new Date().getFullYear()} Powered by <a href="https://www.infitechnology.com" target="_blank" rel="noopener noreferrer">Infi Commerce by Infi Technology</a>
                     </div>
                 </div>
             </div>
