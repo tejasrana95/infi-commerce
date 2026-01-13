@@ -7,7 +7,7 @@
 
 import mongoose from 'mongoose';
 import { config } from '../config';
-import seedData from './seed-2026-01-03T11-38-18.json';
+import seedData from './seed-demo-2026-01-13T09-37-44.json';
 
 // Import all models
 import Store from '../models/Store';
@@ -118,7 +118,7 @@ async function runSeed() {
         for (const collectionName of importOrder) {
             const model = models[collectionName];
             const data = (seedData as any)[collectionName] || [];
-            
+
             if (!model || data.length === 0) {
                 console.log(`  ⏭️  ${collectionName}: Skipped (no data)`);
                 continue;
@@ -127,7 +127,7 @@ async function runSeed() {
             try {
                 // Clear existing data (optional - comment out to preserve)
                 // await model.deleteMany({});
-                
+
                 // Insert seed data
                 await model.insertMany(data, { ordered: false });
                 console.log(`  ✅ ${collectionName}: ${data.length} documents imported`);
