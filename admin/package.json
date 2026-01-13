@@ -6,7 +6,7 @@
         "dev": "next dev -p 3000",
         "build": "next build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/",
         "start": "PORT=3011 node .next/standalone/server.js",
-        "start-old": "next start -p 3011",
+        "start-demo": "PORT=4011 node .next/standalone/server.js",
         "lint": "eslint",
         "analyze": "cross-env ANALYZE=true next build"
     },
