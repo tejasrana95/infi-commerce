@@ -10,6 +10,7 @@ import { config } from '../config';
 import seedData from './seed-demo-2026-01-13T09-47-17.json';
 
 // Import all models
+import User from '../models/User';
 import Store from '../models/Store';
 import Product from '../models/Product';
 import Category from '../models/Category';
@@ -41,6 +42,7 @@ import NotificationTemplate from '../models/NotificationTemplate';
 import NewsletterSubscriber from '../models/NewsletterSubscriber';
 
 const models: Record<string, mongoose.Model<any>> = {
+    users: User,
     stores: Store,
     products: Product,
     categories: Category,
@@ -75,6 +77,7 @@ const models: Record<string, mongoose.Model<any>> = {
 // Order matters - dependencies first
 const importOrder = [
     'stores',
+    'users',
     'currencies',
     'geos',
     'geoGroups',
