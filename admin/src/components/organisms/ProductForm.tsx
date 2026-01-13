@@ -160,7 +160,7 @@ type FormData = z.infer<typeof schema>;
 
 interface ProductFormProps {
     initialData?: any;
-    onSubmit: (data: FormData) => void;
+    onSubmit: (data: FormData, stay?: boolean) => void;
     isSubmitting?: boolean;
 }
 

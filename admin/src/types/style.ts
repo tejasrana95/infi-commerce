@@ -19,6 +19,7 @@ export interface ProductCardConfig {
     priceFontSize: 'small' | 'medium' | 'large';
     showBrand: boolean;
     showRating: boolean;
+    showRatingValue: boolean;
     showSalePercent: boolean;
     showStock: boolean;
     showSku: boolean;

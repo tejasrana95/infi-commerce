@@ -9,7 +9,7 @@ import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import { calculatePricing, calculateTaxBreakdown } from '../utils/pricing.utils';
 import { addTimezoneAwareDates } from '../utils/date.utils';
-import { escapeRegExp } from '../utils/search.utils';
+import { escapeRegExp, getSearchSuggestions } from '../utils/search.utils';
 
 // Helper function to add pricing with tax to a product (including variants)
 function addPricingToProduct(product: any) {
@@ -650,7 +650,6 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
     // Did you mean logic? - Only if 0 results and search query was provided
     let didYouMean: string | null = null;
     if (total === 0 && req.query.search && effectiveStoreId) {
-        const { getSearchSuggestions, escapeRegExp } = require('../utils/search.utils');
         didYouMean = await getSearchSuggestions(effectiveStoreId, req.query.search as string);
     }
 
