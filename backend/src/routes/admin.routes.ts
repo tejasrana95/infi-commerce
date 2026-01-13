@@ -9,6 +9,7 @@ import {
     updateAdminValidation,
 } from '../controllers/admin.controller';
 import { authenticate, authorize } from '../middleware/auth';
+import { checkDemoMode } from '../middleware/checkDemoMode';
 import { validate } from '../middleware/validation';
 
 const router = Router();
@@ -125,6 +126,7 @@ router.post(
     '/',
     authenticate,
     authorize('super_admin'),
+    checkDemoMode,
     validate(createAdminValidation),
     createAdmin
 );
@@ -153,6 +155,7 @@ router.put(
     '/:id',
     authenticate,
     authorize('super_admin'),
+    checkDemoMode,
     validate(updateAdminValidation),
     updateAdmin
 );
@@ -177,6 +180,8 @@ router.put(
  *       404:
  *         description: Admin not found
  */
-router.delete('/:id', authenticate, authorize('super_admin'), deleteAdmin);
+router.delete('/:id', authenticate, authorize('super_admin'), checkDemoMode, deleteAdmin);
 
 export default router;
+
+

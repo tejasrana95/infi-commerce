@@ -22,6 +22,7 @@ import {
 } from '../controllers/file.controller';
 import { authenticate } from '../middleware/auth';
 import { upload } from '../middleware/upload';
+import { checkDemoMode } from '../middleware/checkDemoMode';
 
 const router = Router();
 
@@ -32,6 +33,7 @@ router.post('/sync', authenticate, syncFilesystem);
 router.post(
     '/upload',
     authenticate,
+    checkDemoMode,
     upload.array('files', 10) as unknown as RequestHandler,
     uploadValidation,
     uploadFiles
@@ -44,6 +46,7 @@ router.get('/:id', getFileById);
 router.put(
     '/:id/rename',
     authenticate,
+    checkDemoMode,
     renameValidation,
     renameFile
 );
@@ -51,6 +54,7 @@ router.put(
 router.delete(
     '/:id',
     authenticate,
+    checkDemoMode,
     deleteValidation,
     deleteFile
 );
@@ -66,6 +70,7 @@ router.post(
 router.post(
     '/folders',
     authenticate,
+    checkDemoMode,
     createFolderValidation,
     createFolder
 );
@@ -73,6 +78,7 @@ router.post(
 router.put(
     '/folders/:id/rename',
     authenticate,
+    checkDemoMode,
     renameFolderValidation,
     renameFolder
 );
@@ -80,6 +86,7 @@ router.put(
 router.delete(
     '/folders/:id',
     authenticate,
+    checkDemoMode,
     deleteFolderValidation,
     deleteFolder
 );
