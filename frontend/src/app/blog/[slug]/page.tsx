@@ -16,12 +16,19 @@ export async function generateStaticParams() {
     try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
+        // Check if API is likely reachable (only in build environment)
+        // This is a safety measure for local builds where the user might not have started the backend
+
         // Fetch all stores
         const storesRes = await fetch(`${apiUrl}/stores`, {
-            next: { revalidate: false }
-        });
+            next: { revalidate: false },
+            signal: AbortSignal.timeout(5000) // Timeout after 5 seconds
+        }).catch(() => null);
 
-        if (!storesRes.ok) return [];
+        if (!storesRes || !storesRes.ok) {
+            console.warn('API unreachable during generateStaticParams for blog posts. Skipping static generation.');
+            return [];
+        }
 
         const storesData = await storesRes.json();
         const stores = Array.isArray(storesData) ? storesData : storesData.data || [];
@@ -33,10 +40,13 @@ export async function generateStaticParams() {
             try {
                 const postsRes = await fetch(
                     `${apiUrl}/blog-posts?storeId=${store._id}&status=published&limit=100`,
-                    { next: { revalidate: false } }
-                );
+                    {
+                        next: { revalidate: false },
+                        signal: AbortSignal.timeout(5000)
+                    }
+                ).catch(() => null);
 
-                if (postsRes.ok) {
+                if (postsRes && postsRes.ok) {
                     const postsData = await postsRes.json();
                     const posts = postsData.data || [];
 

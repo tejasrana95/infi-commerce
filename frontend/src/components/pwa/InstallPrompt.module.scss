@@ -1,0 +1,331 @@
+.installPrompt {
+    z-index: 9999;
+}
+
+/* Toast Style */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    max-width: 400px;
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.toastContent {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+}
+
+.toastIcon {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.toastText {
+    flex: 1;
+    min-width: 0;
+}
+
+.toastTitle {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    margin: 0 0 4px 0;
+    color: #1a1a1a;
+}
+
+.toastMessage {
+    font-size: 0.8125rem;
+    margin: 0;
+    color: #666;
+}
+
+.toastActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Banner Style */
+.banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+.bannerContent {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.bannerIcon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+.bannerText {
+    flex: 1;
+    min-width: 0;
+}
+
+.bannerTitle {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0 0 4px 0;
+}
+
+.bannerMessage {
+    font-size: 0.875rem;
+    margin: 0;
+    opacity: 0.95;
+}
+
+.bannerActions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Modal Style */
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9998;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 16px;
+    padding: 32px;
+    max-width: 400px;
+    width: calc(100% - 40px);
+    text-align: center;
+    animation: scaleIn 0.3s ease-out;
+}
+
+@keyframes scaleIn {
+    from {
+        transform: translate(-50%, -50%) scale(0.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+}
+
+.modalClose {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: none;
+    border: none;
+    font-size: 28px;
+    line-height: 1;
+    color: #999;
+    cursor: pointer;
+    padding: 4px;
+    transition: color 0.2s;
+
+    &:hover {
+        color: #333;
+    }
+}
+
+.modalIcon {
+    width: 96px;
+    height: 96px;
+    border-radius: 20px;
+    margin: 0 auto 20px;
+}
+
+.modalTitle {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 12px 0;
+    color: #1a1a1a;
+}
+
+.modalMessage {
+    font-size: 0.9375rem;
+    margin: 0 0 24px 0;
+    color: #666;
+    line-height: 1.5;
+}
+
+.modalActions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Buttons */
+.installButton {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    white-space: nowrap;
+
+    &:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    &:active:not(:disabled) {
+        transform: translateY(0);
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+}
+
+.dismissButton {
+    background: transparent;
+    color: #666;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    white-space: nowrap;
+
+    &:hover {
+        background: rgba(0, 0, 0, 0.05);
+        color: #333;
+    }
+}
+
+.toast .dismissButton {
+    padding: 4px;
+    font-size: 24px;
+    line-height: 1;
+}
+
+.banner .dismissButton {
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 10px 20px;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.5);
+    }
+}
+
+.banner .installButton {
+    background: white;
+    color: #667eea;
+
+    &:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
+    }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .toast {
+        bottom: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+
+    .toastContent {
+        padding: 12px;
+    }
+
+    .toastIcon {
+        width: 40px;
+        height: 40px;
+    }
+
+    .bannerContent {
+        padding: 12px 16px;
+        flex-wrap: wrap;
+    }
+
+    .bannerIcon {
+        width: 48px;
+        height: 48px;
+    }
+
+    .bannerActions {
+        width: 100%;
+        margin-top: 8px;
+    }
+
+    .modal {
+        padding: 24px;
+    }
+
+    .modalIcon {
+        width: 80px;
+        height: 80px;
+    }
+}

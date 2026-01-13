@@ -12,9 +12,25 @@ interface ClientHeaderWrapperProps {
 }
 
 export default function ClientHeaderWrapper({ TemplateComponent, templateProps }: ClientHeaderWrapperProps) {
-    const { cartCount } = useCart();
-    const { wishlistCount } = useWishlist();
-    const { isAuthenticated } = useAuth();
+    // Add safety checks as these hooks throw if provider is missing
+    let cartCount = 0;
+    let wishlistCount = 0;
+    let isAuthenticated = false;
+
+    try {
+        const cart = useCart();
+        cartCount = cart.cartCount;
+    } catch (e) { }
+
+    try {
+        const wishlist = useWishlist();
+        wishlistCount = wishlist.wishlistCount;
+    } catch (e) { }
+
+    try {
+        const auth = useAuth();
+        isAuthenticated = auth.isAuthenticated;
+    } catch (e) { }
 
     // Merge server props with client props
     const mergedProps = {

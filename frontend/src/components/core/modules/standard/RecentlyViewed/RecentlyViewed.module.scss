@@ -137,22 +137,30 @@
 
 // Column variations for carousel
 .columns2 .carouselSlide {
-    width: 50%;
+    width: 100%;
+
+    @include tablet {
+        width: 50%;
+    }
 }
 
 .columns3 .carouselSlide {
-    width: 50%;
+    width: 100%;
 
     @include tablet {
-        width: 33.333%;
+        width: 50%;
+    }
+
+    @include desktop {
+        width: 33.33%;
     }
 }
 
 .columns4 .carouselSlide {
-    width: 50%;
+    width: 100%;
 
     @include tablet {
-        width: 33.333%;
+        width: 50%;
     }
 
     @include desktop {
@@ -161,10 +169,10 @@
 }
 
 .columns5 .carouselSlide {
-    width: 50%;
+    width: 100%;
 
     @include tablet {
-        width: 33.333%;
+        width: 50%;
     }
 
     @include desktop {
@@ -173,10 +181,10 @@
 }
 
 .columns6 .carouselSlide {
-    width: 50%;
+    width: 100%;
 
     @include tablet {
-        width: 25%;
+        width: 50%;
     }
 
     @include desktop {
@@ -205,6 +213,10 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     transition: all 0.2s ease;
     opacity: 0;
+
+    &:not(:disabled) {
+        opacity: 1;
+    }
 
     .carouselWrapper:hover & {
         opacity: 1;

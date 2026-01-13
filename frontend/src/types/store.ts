@@ -566,6 +566,24 @@ export interface Currency {
 }
 
 // ============================================
+// PWA Configuration Types
+// ============================================
+
+export interface PWASettings {
+    enabled: boolean;
+    appName?: string;
+    appShortName?: string;
+    themeColor?: string;
+    backgroundColor?: string;
+    icons?: {
+        icon192?: string;  // 192x192 icon
+        icon512?: string;  // 512x512 icon
+        appleTouchIcon?: string;  // 180x180 Apple touch icon
+    };
+    installPromptStyle?: 'toast' | 'banner' | 'modal';
+}
+
+// ============================================
 // Main Store Interface
 // ============================================
 
@@ -583,6 +601,7 @@ export interface Store {
     theme?: ThemeConfig;
     settings?: StoreSettings;
     seo?: StoreSEO;
+    pwaSettings?: PWASettings;
     createdAt?: string;
     updatedAt?: string;
 }

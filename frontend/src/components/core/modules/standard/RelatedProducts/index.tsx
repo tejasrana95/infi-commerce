@@ -72,8 +72,8 @@ export default function RelatedProductsModule({
     // Get visible count based on screen size
     const getVisibleCount = () => {
         if (typeof window === 'undefined') return columns;
-        if (window.innerWidth < 768) return 2;
-        if (window.innerWidth < 1024) return Math.min(columns, 3);
+        if (window.innerWidth < 768) return 1;
+        if (window.innerWidth < 1024) return Math.min(columns, 2);
         return columns;
     };
 

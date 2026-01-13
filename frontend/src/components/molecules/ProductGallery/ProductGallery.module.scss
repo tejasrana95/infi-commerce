@@ -12,13 +12,23 @@ $error-color: #ef4444;
 .gallery {
     display: flex;
     gap: 16px;
-    position: sticky;
+
     top: 100px;
     height: fit-content;
     z-index: 100;
 
+    @media (min-width: 1024px) {
+        position: sticky;
+
+    }
+
     &.thumbnailsLeft {
-        flex-direction: row;
+        flex-direction: column-reverse;
+
+        @media (min-width: 768px) {
+            flex-direction: row;
+
+        }
     }
 
     &.thumbnailsBottom {

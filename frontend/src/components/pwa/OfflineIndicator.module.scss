@@ -1,0 +1,86 @@
+.offlineIndicator {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10000;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.icon {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+}
+
+.text {
+    flex: 1;
+}
+
+.title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 0.25rem 0;
+}
+
+.message {
+    font-size: 0.875rem;
+    margin: 0;
+    opacity: 0.95;
+}
+
+@media (max-width: 768px) {
+    .offlineIndicator {
+        padding: 0.75rem;
+    }
+
+    .icon {
+        width: 24px;
+        height: 24px;
+    }
+
+    .title {
+        font-size: 0.875rem;
+    }
+
+    .message {
+        font-size: 0.75rem;
+    }
+}

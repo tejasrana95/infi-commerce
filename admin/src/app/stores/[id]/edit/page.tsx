@@ -19,6 +19,7 @@ import StoreForm, { StoreFormData } from '@/components/organisms/StoreForm';
 import { LoadingSpinner } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
 import { Store } from '@/types';
+import PWASettings from '@/components/organisms/PWASettings/PWASettings';
 
 type EmailProvider = 'smtp' | 'ses' | 'sendgrid' | 'mailjet';
 
@@ -83,6 +84,20 @@ interface AISettings {
     enabled: boolean;
     openaiKey: string;
     model?: string;
+}
+
+interface PWASettings {
+    enabled: boolean;
+    appName?: string;
+    appShortName?: string;
+    themeColor?: string;
+    backgroundColor?: string;
+    icons?: {
+        icon192?: string;
+        icon512?: string;
+        appleTouchIcon?: string;
+    };
+    installPromptStyle?: 'toast' | 'banner' | 'modal';
 }
 
 interface TabPanelProps {
@@ -177,6 +192,22 @@ export default function EditStorePage() {
     });
     const [savingAI, setSavingAI] = useState(false);
 
+    // PWA settings state
+    const [pwaSettings, setPwaSettings] = useState<PWASettings>({
+        enabled: false,
+        appName: '',
+        appShortName: '',
+        themeColor: '#000000',
+        backgroundColor: '#ffffff',
+        icons: {
+            icon192: '',
+            icon512: '',
+            appleTouchIcon: '',
+        },
+        installPromptStyle: 'toast',
+    });
+    const [savingPWA, setSavingPWA] = useState(false);
+
     useEffect(() => {
         fetchStore();
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -217,6 +248,17 @@ export default function EditStorePage() {
                 setAiSettings({
                     ...currentStore.settings.aiSettings,
                     model: currentStore.settings.aiSettings.model || 'gpt-4o-mini'
+                });
+            }
+            if (currentStore?.pwaSettings) {
+                setPwaSettings({
+                    enabled: currentStore.pwaSettings.enabled || false,
+                    appName: currentStore.pwaSettings.appName || currentStore.name,
+                    appShortName: currentStore.pwaSettings.appShortName || currentStore.name.slice(0, 12),
+                    themeColor: currentStore.pwaSettings.themeColor || '#000000',
+                    backgroundColor: currentStore.pwaSettings.backgroundColor || '#ffffff',
+                    icons: currentStore.pwaSettings.icons || {},
+                    installPromptStyle: currentStore.pwaSettings.installPromptStyle || 'toast',
                 });
             }
         } catch (_err) {
@@ -384,6 +426,20 @@ export default function EditStorePage() {
         }
     };
 
+    const handleSavePWA = async (settings: PWASettings) => {
+        setSavingPWA(true);
+        try {
+            await api.put(`/stores/${id}`, { pwaSettings: settings });
+            setPwaSettings(settings);
+            showNotification('PWA settings saved successfully', 'success');
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } } };
+            showNotification(error.response?.data?.message || 'Failed to save PWA settings', 'error');
+        } finally {
+            setSavingPWA(false);
+        }
+    };
+
     return (
         <Box sx={{ position: 'relative' }}>
             {loading && (
@@ -431,6 +487,7 @@ export default function EditStorePage() {
                         <Tab label="Telegram Settings" />
                         <Tab label="Admin Notifications" />
                         <Tab label="AI Assistant" />
+                        <Tab label="PWA Settings" />
                     </Tabs>
                 </Box>
 
@@ -1455,6 +1512,18 @@ export default function EditStorePage() {
                                 </Box>
                             </CardContent>
                         </Card>
+                    </Box>
+                </TabPanel>
+
+                {/* PWA Settings Tab */}
+                <TabPanel value={activeTab} index={7}>
+                    <Box sx={{ p: 3, pt: 0 }}>
+                        <PWASettings
+                            storeId={id}
+                            initialSettings={pwaSettings}
+                            onSave={handleSavePWA}
+                            saving={savingPWA}
+                        />
                     </Box>
                 </TabPanel>
             </Paper>

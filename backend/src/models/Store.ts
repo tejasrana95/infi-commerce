@@ -207,6 +207,21 @@ export interface IStore extends Document {
         };
     };
 
+    // PWA Configuration
+    pwaSettings?: {
+        enabled: boolean;
+        appName?: string;
+        appShortName?: string;
+        themeColor?: string;
+        backgroundColor?: string;
+        icons?: {
+            icon192?: string;  // 192x192 icon
+            icon512?: string;  // 512x512 icon
+            appleTouchIcon?: string;  // 180x180 Apple touch icon
+        };
+        installPromptStyle?: 'toast' | 'banner' | 'modal';
+    };
+
     createdAt: Date;
     updatedAt: Date;
 }
@@ -337,6 +352,24 @@ const StoreSchema = new Schema<IStore>(
         theme: {
             type: Schema.Types.Mixed,
             default: null,
+        },
+        // PWA configuration
+        pwaSettings: {
+            enabled: { type: Boolean, default: false },
+            appName: { type: String, trim: true },
+            appShortName: { type: String, trim: true, maxlength: 12 },
+            themeColor: { type: String, trim: true },
+            backgroundColor: { type: String, trim: true },
+            icons: {
+                icon192: { type: String },
+                icon512: { type: String },
+                appleTouchIcon: { type: String },
+            },
+            installPromptStyle: {
+                type: String,
+                enum: ['toast', 'banner', 'modal'],
+                default: 'toast',
+            },
         },
     },
     {

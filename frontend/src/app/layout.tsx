@@ -25,6 +25,9 @@ import AutoAnalytics from "@/components/analytics/AutoAnalytics";
 import NextTopLoader from "nextjs-toploader";
 import ClientOnlyWidgets from "@/components/core/ClientOnlyWidgets";
 import { formatFontFamily } from "@/lib/fonts";
+import OfflineIndicator from "@/components/pwa/OfflineIndicator";
+import InstallPrompt from "@/components/pwa/InstallPrompt";
+import PWARegistration from "@/components/pwa/PWARegistration";
 
 
 // Optimized font loading with display: swap to prevent FOIT
@@ -215,6 +218,28 @@ export default async function RootLayout({
         <meta name="generator" content={`Infi Commerce v${pkg.version}`} />
         <meta name="application-name" content="Infi Commerce" />
         <meta name="platform" content="Infi Commerce" />
+
+        {/* PWA Meta Tags */}
+        {store?.pwaSettings?.enabled && (
+          <>
+            <link rel="manifest" href="/manifest.json" />
+            <meta name="theme-color" content={store.pwaSettings.themeColor || store.theme?.colors?.primary || '#000000'} />
+            <meta name="mobile-web-app-capable" content="yes" />
+            <meta name="apple-mobile-web-app-capable" content="yes" />
+            <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+            <meta name="apple-mobile-web-app-title" content={store.pwaSettings.appShortName || store.name} />
+            {store.pwaSettings.icons?.appleTouchIcon && (
+              <link rel="apple-touch-icon" href={store.pwaSettings.icons.appleTouchIcon} />
+            )}
+            {store.pwaSettings.icons?.icon192 && (
+              <link rel="icon" type="image/png" sizes="192x192" href={store.pwaSettings.icons.icon192} />
+            )}
+            {store.pwaSettings.icons?.icon512 && (
+              <link rel="icon" type="image/png" sizes="512x512" href={store.pwaSettings.icons.icon512} />
+            )}
+          </>
+        )}
+
         {/*
           Powered by Infi Commerce v${pkg.version}
           https://inficommerce.com
@@ -277,6 +302,14 @@ export default async function RootLayout({
                               </div>
                             )}
                             <ClientOnlyWidgets showCompare={!store?.settings?.maintenanceMode} />
+                            {/* PWA Components */}
+                            {store?.pwaSettings?.enabled && (
+                              <>
+                                <OfflineIndicator />
+                                <InstallPrompt />
+                                <PWARegistration />
+                              </>
+                            )}
                           </DialogProvider>
                         </ToastProvider>
                       </CompareProvider>
