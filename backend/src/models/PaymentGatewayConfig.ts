@@ -164,7 +164,7 @@ const PaymentGatewayConfigSchema = new Schema<IPaymentGatewayConfig>(
 // Compound indexes
 PaymentGatewayConfigSchema.index({ storeId: 1, isActive: 1 });
 PaymentGatewayConfigSchema.index({ storeId: 1, geoGroupId: 1, isActive: 1 });
-PaymentGatewayConfigSchema.index({ gatewayType: 1 });
+
 
 // Ensure at least one active gateway per store
 PaymentGatewayConfigSchema.pre('save', async function (next) {

@@ -47,7 +47,6 @@ import User from '../models/User';
 import ApiKey from '../models/ApiKey';
 import NotificationTemplate from '../models/NotificationTemplate';
 import PaymentGatewayConfig from '../models/PaymentGatewayConfig';
-import File from '../models/File';
 import NewsletterSubscriber from '../models/NewsletterSubscriber';
 
 interface CollectionConfig {
@@ -138,7 +137,6 @@ const collections: CollectionConfig[] = [
             return obj;
         },
     },
-    { name: 'files', model: File },
     { name: 'newsletterSubscribers', model: NewsletterSubscriber },
 ];
 

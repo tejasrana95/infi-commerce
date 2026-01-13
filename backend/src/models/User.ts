@@ -33,7 +33,7 @@ const UserSchema = new Schema<IUser>(
             unique: true,
             lowercase: true,
             trim: true,
-            index: true,
+
         },
         password: {
             type: String,
@@ -116,7 +116,7 @@ UserSchema.methods.comparePassword = async function (candidatePassword: string):
 };
 
 // Indexes
-UserSchema.index({ email: 1 }, { unique: true });
+
 UserSchema.index({ role: 1 });
 UserSchema.index({ storeIds: 1 });
 UserSchema.index({ isActive: 1 });

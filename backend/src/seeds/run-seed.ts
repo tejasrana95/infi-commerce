@@ -7,7 +7,7 @@
 
 import mongoose from 'mongoose';
 import { config } from '../config';
-import seedData from './seed-demo-2026-01-13T09-37-44.json';
+import seedData from './seed-demo-2026-01-13T09-47-17.json';
 
 // Import all models
 import Store from '../models/Store';
@@ -38,7 +38,6 @@ import Testimonial from '../models/Testimonial';
 import Review from '../models/Review';
 import Sale from '../models/Sale';
 import NotificationTemplate from '../models/NotificationTemplate';
-import File from '../models/File';
 import NewsletterSubscriber from '../models/NewsletterSubscriber';
 
 const models: Record<string, mongoose.Model<any>> = {
@@ -70,7 +69,6 @@ const models: Record<string, mongoose.Model<any>> = {
     reviews: Review,
     sales: Sale,
     notificationTemplates: NotificationTemplate,
-    files: File,
     newsletterSubscribers: NewsletterSubscriber,
 };
 
@@ -104,7 +102,6 @@ const importOrder = [
     'reviews',
     'sales',
     'notificationTemplates',
-    'files',
     'newsletterSubscribers',
 ];
 
@@ -126,7 +123,7 @@ async function runSeed() {
 
             try {
                 // Clear existing data (optional - comment out to preserve)
-                // await model.deleteMany({});
+                await model.deleteMany({});
 
                 // Insert seed data
                 await model.insertMany(data, { ordered: false });

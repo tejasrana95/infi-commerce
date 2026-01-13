@@ -243,8 +243,8 @@
       "twoFactorEnabled": false,
       "permissions": [],
       "storeIds": [],
-      "createdAt": "2026-01-13T09:37:44.439Z",
-      "updatedAt": "2026-01-13T09:37:44.440Z",
+      "createdAt": "2026-01-13T09:47:17.689Z",
+      "updatedAt": "2026-01-13T09:47:17.690Z",
       "__v": 0
     }
   ],
@@ -309,16 +309,75 @@
       "__v": 1
     },
     {
-      "_id": "696612686d6cc2f55ea78219",
+      "_id": "696614a5800afdc401a7ff9c",
       "storeId": "693aab5688efc150c73aa23b",
-      "name": "Amazing Device 974",
-      "slug": "amazing-device-974-2573",
-      "description": "<p>This is a randomly generated description for the <strong>Amazing Device 974</strong>. It features high quality materials and a stunning design.</p>",
-      "shortDescription": "A great Amazing Device 974 for your daily needs.",
+      "name": "Robust Gadget 350",
+      "slug": "robust-gadget-350-4589",
+      "description": "<p>This is a randomly generated description for the <strong>Robust Gadget 350</strong>. It features high quality materials and a stunning design.</p>",
+      "shortDescription": "A great Robust Gadget 350 for your daily needs.",
       "type": "simple",
-      "sku": "SKU-1768297064440-0",
-      "price": 77,
-      "stock": 5,
+      "sku": "SKU-1768297637690-0",
+      "price": 234,
+      "stock": 18,
+      "manageStock": true,
+      "stockStatus": "in_stock",
+      "lowStockThreshold": 5,
+      "dimensions": {
+        "unit": "cm"
+      },
+      "geoLimit": {
+        "enabled": false,
+        "countries": [],
+        "states": [],
+        "cities": []
+      },
+      "downloadable": false,
+      "images": [
+        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
+        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
+      ],
+      "categoryIds": [
+        "693aaf48939098a8931315cf"
+      ],
+      "tags": [
+        "demo",
+        "random"
+      ],
+      "seo": {
+        "metaTitle": "",
+        "metaDescription": "",
+        "metaKeywords": [],
+        "focusKeyword": "",
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "isActive": true,
+      "isFeatured": false,
+      "isOnSale": false,
+      "views": 80,
+      "salesCount": 0,
+      "reviewCount": 0,
+      "downloadFiles": [],
+      "productOptions": [],
+      "attributes": [],
+      "specifications": [],
+      "variants": [],
+      "videos": [],
+      "createdAt": "2026-01-13T09:47:17.690Z",
+      "updatedAt": "2026-01-13T09:47:17.690Z",
+      "__v": 0
+    },
+    {
+      "_id": "696614a5800afdc401a7ff9d",
+      "storeId": "693aab5688efc150c73aa23b",
+      "name": "Luxury System 558",
+      "slug": "luxury-system-558-6722",
+      "description": "<p>This is a randomly generated description for the <strong>Luxury System 558</strong>. It features high quality materials and a stunning design.</p>",
+      "shortDescription": "A great Luxury System 558 for your daily needs.",
+      "type": "simple",
+      "sku": "SKU-1768297637690-1",
+      "price": 381,
+      "stock": 16,
       "manageStock": true,
       "stockStatus": "in_stock",
       "lowStockThreshold": 5,
@@ -354,7 +413,7 @@
       "isActive": true,
       "isFeatured": false,
       "isOnSale": false,
-      "views": 77,
+      "views": 24,
       "salesCount": 0,
       "reviewCount": 0,
       "downloadFiles": [],
@@ -363,21 +422,257 @@
       "specifications": [],
       "variants": [],
       "videos": [],
-      "createdAt": "2026-01-13T09:37:44.440Z",
-      "updatedAt": "2026-01-13T09:37:44.440Z",
+      "createdAt": "2026-01-13T09:47:17.690Z",
+      "updatedAt": "2026-01-13T09:47:17.690Z",
       "__v": 0
     },
     {
-      "_id": "696612686d6cc2f55ea7821a",
+      "_id": "696614a5800afdc401a7ff9e",
       "storeId": "693aab5688efc150c73aa23b",
-      "name": "Incredible Invention 226",
-      "slug": "incredible-invention-226-7874",
-      "description": "<p>This is a randomly generated description for the <strong>Incredible Invention 226</strong>. It features high quality materials and a stunning design.</p>",
-      "shortDescription": "A great Incredible Invention 226 for your daily needs.",
+      "name": "Classic System 94",
+      "slug": "classic-system-94-4373",
+      "description": "<p>This is a randomly generated description for the <strong>Classic System 94</strong>. It features high quality materials and a stunning design.</p>",
+      "shortDescription": "A great Classic System 94 for your daily needs.",
       "type": "simple",
-      "sku": "SKU-1768297064440-1",
-      "price": 195,
-      "stock": 44,
+      "sku": "SKU-1768297637690-2",
+      "price": 124,
+      "stock": 89,
+      "manageStock": true,
+      "stockStatus": "in_stock",
+      "lowStockThreshold": 5,
+      "dimensions": {
+        "unit": "cm"
+      },
+      "geoLimit": {
+        "enabled": false,
+        "countries": [],
+        "states": [],
+        "cities": []
+      },
+      "downloadable": false,
+      "images": [
+        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
+        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
+      ],
+      "categoryIds": [
+        "693aaf32939098a8931315ca"
+      ],
+      "tags": [
+        "demo",
+        "random"
+      ],
+      "seo": {
+        "metaTitle": "",
+        "metaDescription": "",
+        "metaKeywords": [],
+        "focusKeyword": "",
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "isActive": true,
+      "isFeatured": true,
+      "isOnSale": false,
+      "views": 16,
+      "salesCount": 0,
+      "reviewCount": 0,
+      "downloadFiles": [],
+      "productOptions": [],
+      "attributes": [],
+      "specifications": [],
+      "variants": [],
+      "videos": [],
+      "createdAt": "2026-01-13T09:47:17.690Z",
+      "updatedAt": "2026-01-13T09:47:17.690Z",
+      "__v": 0
+    },
+    {
+      "_id": "696614a5800afdc401a7ff9f",
+      "storeId": "693aab5688efc150c73aa23b",
+      "name": "Incredible System 454",
+      "slug": "incredible-system-454-840",
+      "description": "<p>This is a randomly generated description for the <strong>Incredible System 454</strong>. It features high quality materials and a stunning design.</p>",
+      "shortDescription": "A great Incredible System 454 for your daily needs.",
+      "type": "simple",
+      "sku": "SKU-1768297637690-3",
+      "price": 28,
+      "stock": 26,
+      "manageStock": true,
+      "stockStatus": "in_stock",
+      "lowStockThreshold": 5,
+      "dimensions": {
+        "unit": "cm"
+      },
+      "geoLimit": {
+        "enabled": false,
+        "countries": [],
+        "states": [],
+        "cities": []
+      },
+      "downloadable": false,
+      "images": [
+        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
+        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
+      ],
+      "categoryIds": [
+        "693aaf32939098a8931315ca"
+      ],
+      "tags": [
+        "demo",
+        "random"
+      ],
+      "seo": {
+        "metaTitle": "",
+        "metaDescription": "",
+        "metaKeywords": [],
+        "focusKeyword": "",
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "isActive": true,
+      "isFeatured": true,
+      "isOnSale": false,
+      "views": 1,
+      "salesCount": 0,
+      "reviewCount": 0,
+      "downloadFiles": [],
+      "productOptions": [],
+      "attributes": [],
+      "specifications": [],
+      "variants": [],
+      "videos": [],
+      "createdAt": "2026-01-13T09:47:17.690Z",
+      "updatedAt": "2026-01-13T09:47:17.690Z",
+      "__v": 0
+    },
+    {
+      "_id": "696614a5800afdc401a7ffa0",
+      "storeId": "693aab5688efc150c73aa23b",
+      "name": "Classic Item 498",
+      "slug": "classic-item-498-2056",
+      "description": "<p>This is a randomly generated description for the <strong>Classic Item 498</strong>. It features high quality materials and a stunning design.</p>",
+      "shortDescription": "A great Classic Item 498 for your daily needs.",
+      "type": "simple",
+      "sku": "SKU-1768297637690-4",
+      "price": 346,
+      "stock": 21,
+      "manageStock": true,
+      "stockStatus": "in_stock",
+      "lowStockThreshold": 5,
+      "dimensions": {
+        "unit": "cm"
+      },
+      "geoLimit": {
+        "enabled": false,
+        "countries": [],
+        "states": [],
+        "cities": []
+      },
+      "downloadable": false,
+      "images": [
+        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
+        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
+      ],
+      "categoryIds": [
+        "693aaf32939098a8931315ca"
+      ],
+      "tags": [
+        "demo",
+        "random"
+      ],
+      "seo": {
+        "metaTitle": "",
+        "metaDescription": "",
+        "metaKeywords": [],
+        "focusKeyword": "",
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "isActive": true,
+      "isFeatured": true,
+      "isOnSale": false,
+      "views": 27,
+      "salesCount": 0,
+      "reviewCount": 0,
+      "downloadFiles": [],
+      "productOptions": [],
+      "attributes": [],
+      "specifications": [],
+      "variants": [],
+      "videos": [],
+      "createdAt": "2026-01-13T09:47:17.690Z",
+      "updatedAt": "2026-01-13T09:47:17.690Z",
+      "__v": 0
+    },
+    {
+      "_id": "696614a5800afdc401a7ffa1",
+      "storeId": "693aab5688efc150c73aa23b",
+      "name": "Modern Contraption 123",
+      "slug": "modern-contraption-123-2410",
+      "description": "<p>This is a randomly generated description for the <strong>Modern Contraption 123</strong>. It features high quality materials and a stunning design.</p>",
+      "shortDescription": "A great Modern Contraption 123 for your daily needs.",
+      "type": "simple",
+      "sku": "SKU-1768297637690-5",
+      "price": 286,
+      "stock": 35,
+      "manageStock": true,
+      "stockStatus": "in_stock",
+      "lowStockThreshold": 5,
+      "dimensions": {
+        "unit": "cm"
+      },
+      "geoLimit": {
+        "enabled": false,
+        "countries": [],
+        "states": [],
+        "cities": []
+      },
+      "downloadable": false,
+      "images": [
+        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
+        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
+      ],
+      "categoryIds": [
+        "693aaf48939098a8931315cf"
+      ],
+      "tags": [
+        "demo",
+        "random"
+      ],
+      "seo": {
+        "metaTitle": "",
+        "metaDescription": "",
+        "metaKeywords": [],
+        "focusKeyword": "",
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "isActive": true,
+      "isFeatured": false,
+      "isOnSale": false,
+      "views": 80,
+      "salesCount": 0,
+      "reviewCount": 0,
+      "downloadFiles": [],
+      "productOptions": [],
+      "attributes": [],
+      "specifications": [],
+      "variants": [],
+      "videos": [],
+      "createdAt": "2026-01-13T09:47:17.690Z",
+      "updatedAt": "2026-01-13T09:47:17.690Z",
+      "__v": 0
+    },
+    {
+      "_id": "696614a5800afdc401a7ffa2",
+      "storeId": "693aab5688efc150c73aa23b",
+      "name": "Amazing Device 825",
+      "slug": "amazing-device-825-9687",
+      "description": "<p>This is a randomly generated description for the <strong>Amazing Device 825</strong>. It features high quality materials and a stunning design.</p>",
+      "shortDescription": "A great Amazing Device 825 for your daily needs.",
+      "type": "simple",
+      "sku": "SKU-1768297637690-6",
+      "price": 448,
+      "stock": 9,
       "manageStock": true,
       "stockStatus": "in_stock",
       "lowStockThreshold": 5,
@@ -413,7 +708,7 @@
       "isActive": true,
       "isFeatured": false,
       "isOnSale": false,
-      "views": 86,
+      "views": 91,
       "salesCount": 0,
       "reviewCount": 0,
       "downloadFiles": [],
@@ -422,21 +717,552 @@
       "specifications": [],
       "variants": [],
       "videos": [],
-      "createdAt": "2026-01-13T09:37:44.440Z",
-      "updatedAt": "2026-01-13T09:37:44.440Z",
+      "createdAt": "2026-01-13T09:47:17.690Z",
+      "updatedAt": "2026-01-13T09:47:17.690Z",
       "__v": 0
     },
     {
-      "_id": "696612686d6cc2f55ea7821b",
+      "_id": "696614a5800afdc401a7ffa3",
       "storeId": "693aab5688efc150c73aa23b",
-      "name": "Incredible Tool 174",
-      "slug": "incredible-tool-174-9846",
-      "description": "<p>This is a randomly generated description for the <strong>Incredible Tool 174</strong>. It features high quality materials and a stunning design.</p>",
-      "shortDescription": "A great Incredible Tool 174 for your daily needs.",
+      "name": "Amazing Invention 27",
+      "slug": "amazing-invention-27-5007",
+      "description": "<p>This is a randomly generated description for the <strong>Amazing Invention 27</strong>. It features high quality materials and a stunning design.</p>",
+      "shortDescription": "A great Amazing Invention 27 for your daily needs.",
       "type": "simple",
-      "sku": "SKU-1768297064440-2",
-      "price": 231,
-      "stock": 73,
+      "sku": "SKU-1768297637690-7",
+      "price": 191,
+      "stock": 3,
+      "manageStock": true,
+      "stockStatus": "in_stock",
+      "lowStockThreshold": 5,
+      "dimensions": {
+        "unit": "cm"
+      },
+      "geoLimit": {
+        "enabled": false,
+        "countries": [],
+        "states": [],
+        "cities": []
+      },
+      "downloadable": false,
+      "images": [
+        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
+        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
+      ],
+      "categoryIds": [
+        "693aaf48939098a8931315cf"
+      ],
+      "tags": [
+        "demo",
+        "random"
+      ],
+      "seo": {
+        "metaTitle": "",
+        "metaDescription": "",
+        "metaKeywords": [],
+        "focusKeyword": "",
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "isActive": true,
+      "isFeatured": false,
+      "isOnSale": false,
+      "views": 56,
+      "salesCount": 0,
+      "reviewCount": 0,
+      "downloadFiles": [],
+      "productOptions": [],
+      "attributes": [],
+      "specifications": [],
+      "variants": [],
+      "videos": [],
+      "createdAt": "2026-01-13T09:47:17.690Z",
+      "updatedAt": "2026-01-13T09:47:17.690Z",
+      "__v": 0
+    },
+    {
+      "_id": "696614a5800afdc401a7ffa4",
+      "storeId": "693aab5688efc150c73aa23b",
+      "name": "Modern Contraption 352",
+      "slug": "modern-contraption-352-2800",
+      "description": "<p>This is a randomly generated description for the <strong>Modern Contraption 352</strong>. It features high quality materials and a stunning design.</p>",
+      "shortDescription": "A great Modern Contraption 352 for your daily needs.",
+      "type": "simple",
+      "sku": "SKU-1768297637690-8",
+      "price": 434,
+      "stock": 25,
+      "manageStock": true,
+      "stockStatus": "in_stock",
+      "lowStockThreshold": 5,
+      "dimensions": {
+        "unit": "cm"
+      },
+      "geoLimit": {
+        "enabled": false,
+        "countries": [],
+        "states": [],
+        "cities": []
+      },
+      "downloadable": false,
+      "images": [
+        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
+        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
+      ],
+      "categoryIds": [
+        "693aaf32939098a8931315ca"
+      ],
+      "tags": [
+        "demo",
+        "random"
+      ],
+      "seo": {
+        "metaTitle": "",
+        "metaDescription": "",
+        "metaKeywords": [],
+        "focusKeyword": "",
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "isActive": true,
+      "isFeatured": false,
+      "isOnSale": false,
+      "views": 87,
+      "salesCount": 0,
+      "reviewCount": 0,
+      "downloadFiles": [],
+      "productOptions": [],
+      "attributes": [],
+      "specifications": [],
+      "variants": [],
+      "videos": [],
+      "createdAt": "2026-01-13T09:47:17.690Z",
+      "updatedAt": "2026-01-13T09:47:17.690Z",
+      "__v": 0
+    },
+    {
+      "_id": "696614a5800afdc401a7ffa5",
+      "storeId": "693aab5688efc150c73aa23b",
+      "name": "Practical Item 179",
+      "slug": "practical-item-179-7563",
+      "description": "<p>This is a randomly generated description for the <strong>Practical Item 179</strong>. It features high quality materials and a stunning design.</p>",
+      "shortDescription": "A great Practical Item 179 for your daily needs.",
+      "type": "simple",
+      "sku": "SKU-1768297637690-9",
+      "price": 279,
+      "stock": 92,
+      "manageStock": true,
+      "stockStatus": "in_stock",
+      "lowStockThreshold": 5,
+      "dimensions": {
+        "unit": "cm"
+      },
+      "geoLimit": {
+        "enabled": false,
+        "countries": [],
+        "states": [],
+        "cities": []
+      },
+      "downloadable": false,
+      "images": [
+        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
+        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
+      ],
+      "categoryIds": [
+        "693aaf48939098a8931315cf"
+      ],
+      "tags": [
+        "demo",
+        "random"
+      ],
+      "seo": {
+        "metaTitle": "",
+        "metaDescription": "",
+        "metaKeywords": [],
+        "focusKeyword": "",
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "isActive": true,
+      "isFeatured": false,
+      "isOnSale": true,
+      "views": 78,
+      "salesCount": 0,
+      "reviewCount": 0,
+      "downloadFiles": [],
+      "productOptions": [],
+      "attributes": [],
+      "specifications": [],
+      "variants": [],
+      "videos": [],
+      "createdAt": "2026-01-13T09:47:17.690Z",
+      "updatedAt": "2026-01-13T09:47:17.690Z",
+      "__v": 0
+    },
+    {
+      "_id": "696614a5800afdc401a7ffa6",
+      "storeId": "693aab5688efc150c73aa23b",
+      "name": "Fantastic Solution 476",
+      "slug": "fantastic-solution-476-9026",
+      "description": "<p>This is a randomly generated description for the <strong>Fantastic Solution 476</strong>. It features high quality materials and a stunning design.</p>",
+      "shortDescription": "A great Fantastic Solution 476 for your daily needs.",
+      "type": "simple",
+      "sku": "SKU-1768297637690-10",
+      "price": 396,
+      "stock": 16,
+      "manageStock": true,
+      "stockStatus": "in_stock",
+      "lowStockThreshold": 5,
+      "dimensions": {
+        "unit": "cm"
+      },
+      "geoLimit": {
+        "enabled": false,
+        "countries": [],
+        "states": [],
+        "cities": []
+      },
+      "downloadable": false,
+      "images": [
+        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
+        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
+      ],
+      "categoryIds": [
+        "693aaf32939098a8931315ca"
+      ],
+      "tags": [
+        "demo",
+        "random"
+      ],
+      "seo": {
+        "metaTitle": "",
+        "metaDescription": "",
+        "metaKeywords": [],
+        "focusKeyword": "",
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "isActive": true,
+      "isFeatured": false,
+      "isOnSale": false,
+      "views": 25,
+      "salesCount": 0,
+      "reviewCount": 0,
+      "downloadFiles": [],
+      "productOptions": [],
+      "attributes": [],
+      "specifications": [],
+      "variants": [],
+      "videos": [],
+      "createdAt": "2026-01-13T09:47:17.690Z",
+      "updatedAt": "2026-01-13T09:47:17.690Z",
+      "__v": 0
+    },
+    {
+      "_id": "696614a5800afdc401a7ffa7",
+      "storeId": "693aab5688efc150c73aa23b",
+      "name": "Amazing Widget 690",
+      "slug": "amazing-widget-690-4969",
+      "description": "<p>This is a randomly generated description for the <strong>Amazing Widget 690</strong>. It features high quality materials and a stunning design.</p>",
+      "shortDescription": "A great Amazing Widget 690 for your daily needs.",
+      "type": "simple",
+      "sku": "SKU-1768297637691-11",
+      "price": 177,
+      "stock": 95,
+      "manageStock": true,
+      "stockStatus": "in_stock",
+      "lowStockThreshold": 5,
+      "dimensions": {
+        "unit": "cm"
+      },
+      "geoLimit": {
+        "enabled": false,
+        "countries": [],
+        "states": [],
+        "cities": []
+      },
+      "downloadable": false,
+      "images": [
+        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
+        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
+      ],
+      "categoryIds": [
+        "693aaf32939098a8931315ca"
+      ],
+      "tags": [
+        "demo",
+        "random"
+      ],
+      "seo": {
+        "metaTitle": "",
+        "metaDescription": "",
+        "metaKeywords": [],
+        "focusKeyword": "",
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "isActive": true,
+      "isFeatured": false,
+      "isOnSale": false,
+      "views": 88,
+      "salesCount": 0,
+      "reviewCount": 0,
+      "downloadFiles": [],
+      "productOptions": [],
+      "attributes": [],
+      "specifications": [],
+      "variants": [],
+      "videos": [],
+      "createdAt": "2026-01-13T09:47:17.691Z",
+      "updatedAt": "2026-01-13T09:47:17.691Z",
+      "__v": 0
+    },
+    {
+      "_id": "696614a5800afdc401a7ffa8",
+      "storeId": "693aab5688efc150c73aa23b",
+      "name": "Elegant Invention 353",
+      "slug": "elegant-invention-353-6433",
+      "description": "<p>This is a randomly generated description for the <strong>Elegant Invention 353</strong>. It features high quality materials and a stunning design.</p>",
+      "shortDescription": "A great Elegant Invention 353 for your daily needs.",
+      "type": "simple",
+      "sku": "SKU-1768297637691-12",
+      "price": 65,
+      "stock": 48,
+      "manageStock": true,
+      "stockStatus": "in_stock",
+      "lowStockThreshold": 5,
+      "dimensions": {
+        "unit": "cm"
+      },
+      "geoLimit": {
+        "enabled": false,
+        "countries": [],
+        "states": [],
+        "cities": []
+      },
+      "downloadable": false,
+      "images": [
+        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
+        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
+      ],
+      "categoryIds": [
+        "693aaf48939098a8931315cf"
+      ],
+      "tags": [
+        "demo",
+        "random"
+      ],
+      "seo": {
+        "metaTitle": "",
+        "metaDescription": "",
+        "metaKeywords": [],
+        "focusKeyword": "",
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "isActive": true,
+      "isFeatured": false,
+      "isOnSale": false,
+      "views": 40,
+      "salesCount": 0,
+      "reviewCount": 0,
+      "downloadFiles": [],
+      "productOptions": [],
+      "attributes": [],
+      "specifications": [],
+      "variants": [],
+      "videos": [],
+      "createdAt": "2026-01-13T09:47:17.691Z",
+      "updatedAt": "2026-01-13T09:47:17.691Z",
+      "__v": 0
+    },
+    {
+      "_id": "696614a5800afdc401a7ffa9",
+      "storeId": "693aab5688efc150c73aa23b",
+      "name": "Incredible Gadget 881",
+      "slug": "incredible-gadget-881-5117",
+      "description": "<p>This is a randomly generated description for the <strong>Incredible Gadget 881</strong>. It features high quality materials and a stunning design.</p>",
+      "shortDescription": "A great Incredible Gadget 881 for your daily needs.",
+      "type": "simple",
+      "sku": "SKU-1768297637691-13",
+      "price": 452,
+      "stock": 40,
+      "manageStock": true,
+      "stockStatus": "in_stock",
+      "lowStockThreshold": 5,
+      "dimensions": {
+        "unit": "cm"
+      },
+      "geoLimit": {
+        "enabled": false,
+        "countries": [],
+        "states": [],
+        "cities": []
+      },
+      "downloadable": false,
+      "images": [
+        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
+        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
+      ],
+      "categoryIds": [
+        "693aaf32939098a8931315ca"
+      ],
+      "tags": [
+        "demo",
+        "random"
+      ],
+      "seo": {
+        "metaTitle": "",
+        "metaDescription": "",
+        "metaKeywords": [],
+        "focusKeyword": "",
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "isActive": true,
+      "isFeatured": false,
+      "isOnSale": false,
+      "views": 90,
+      "salesCount": 0,
+      "reviewCount": 0,
+      "downloadFiles": [],
+      "productOptions": [],
+      "attributes": [],
+      "specifications": [],
+      "variants": [],
+      "videos": [],
+      "createdAt": "2026-01-13T09:47:17.691Z",
+      "updatedAt": "2026-01-13T09:47:17.691Z",
+      "__v": 0
+    },
+    {
+      "_id": "696614a5800afdc401a7ffaa",
+      "storeId": "693aab5688efc150c73aa23b",
+      "name": "Incredible Solution 602",
+      "slug": "incredible-solution-602-6604",
+      "description": "<p>This is a randomly generated description for the <strong>Incredible Solution 602</strong>. It features high quality materials and a stunning design.</p>",
+      "shortDescription": "A great Incredible Solution 602 for your daily needs.",
+      "type": "simple",
+      "sku": "SKU-1768297637691-14",
+      "price": 433,
+      "stock": 68,
+      "manageStock": true,
+      "stockStatus": "in_stock",
+      "lowStockThreshold": 5,
+      "dimensions": {
+        "unit": "cm"
+      },
+      "geoLimit": {
+        "enabled": false,
+        "countries": [],
+        "states": [],
+        "cities": []
+      },
+      "downloadable": false,
+      "images": [
+        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
+        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
+      ],
+      "categoryIds": [
+        "693aaf32939098a8931315ca"
+      ],
+      "tags": [
+        "demo",
+        "random"
+      ],
+      "seo": {
+        "metaTitle": "",
+        "metaDescription": "",
+        "metaKeywords": [],
+        "focusKeyword": "",
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "isActive": true,
+      "isFeatured": false,
+      "isOnSale": false,
+      "views": 54,
+      "salesCount": 0,
+      "reviewCount": 0,
+      "downloadFiles": [],
+      "productOptions": [],
+      "attributes": [],
+      "specifications": [],
+      "variants": [],
+      "videos": [],
+      "createdAt": "2026-01-13T09:47:17.691Z",
+      "updatedAt": "2026-01-13T09:47:17.691Z",
+      "__v": 0
+    },
+    {
+      "_id": "696614a5800afdc401a7ffab",
+      "storeId": "693aab5688efc150c73aa23b",
+      "name": "Classic Gadget 493",
+      "slug": "classic-gadget-493-1987",
+      "description": "<p>This is a randomly generated description for the <strong>Classic Gadget 493</strong>. It features high quality materials and a stunning design.</p>",
+      "shortDescription": "A great Classic Gadget 493 for your daily needs.",
+      "type": "simple",
+      "sku": "SKU-1768297637691-15",
+      "price": 122,
+      "stock": 16,
+      "manageStock": true,
+      "stockStatus": "in_stock",
+      "lowStockThreshold": 5,
+      "dimensions": {
+        "unit": "cm"
+      },
+      "geoLimit": {
+        "enabled": false,
+        "countries": [],
+        "states": [],
+        "cities": []
+      },
+      "downloadable": false,
+      "images": [
+        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
+        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
+      ],
+      "categoryIds": [
+        "693aaf48939098a8931315cf"
+      ],
+      "tags": [
+        "demo",
+        "random"
+      ],
+      "seo": {
+        "metaTitle": "",
+        "metaDescription": "",
+        "metaKeywords": [],
+        "focusKeyword": "",
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "isActive": true,
+      "isFeatured": false,
+      "isOnSale": false,
+      "views": 72,
+      "salesCount": 0,
+      "reviewCount": 0,
+      "downloadFiles": [],
+      "productOptions": [],
+      "attributes": [],
+      "specifications": [],
+      "variants": [],
+      "videos": [],
+      "createdAt": "2026-01-13T09:47:17.691Z",
+      "updatedAt": "2026-01-13T09:47:17.691Z",
+      "__v": 0
+    },
+    {
+      "_id": "696614a5800afdc401a7ffac",
+      "storeId": "693aab5688efc150c73aa23b",
+      "name": "Sleek Tool 118",
+      "slug": "sleek-tool-118-7303",
+      "description": "<p>This is a randomly generated description for the <strong>Sleek Tool 118</strong>. It features high quality materials and a stunning design.</p>",
+      "shortDescription": "A great Sleek Tool 118 for your daily needs.",
+      "type": "simple",
+      "sku": "SKU-1768297637691-16",
+      "price": 19,
+      "stock": 35,
       "manageStock": true,
       "stockStatus": "in_stock",
       "lowStockThreshold": 5,
@@ -481,257 +1307,21 @@
       "specifications": [],
       "variants": [],
       "videos": [],
-      "createdAt": "2026-01-13T09:37:44.440Z",
-      "updatedAt": "2026-01-13T09:37:44.440Z",
+      "createdAt": "2026-01-13T09:47:17.691Z",
+      "updatedAt": "2026-01-13T09:47:17.691Z",
       "__v": 0
     },
     {
-      "_id": "696612686d6cc2f55ea7821c",
+      "_id": "696614a5800afdc401a7ffad",
       "storeId": "693aab5688efc150c73aa23b",
-      "name": "Amazing Item 129",
-      "slug": "amazing-item-129-9142",
-      "description": "<p>This is a randomly generated description for the <strong>Amazing Item 129</strong>. It features high quality materials and a stunning design.</p>",
-      "shortDescription": "A great Amazing Item 129 for your daily needs.",
+      "name": "Classic Contraption 820",
+      "slug": "classic-contraption-820-7055",
+      "description": "<p>This is a randomly generated description for the <strong>Classic Contraption 820</strong>. It features high quality materials and a stunning design.</p>",
+      "shortDescription": "A great Classic Contraption 820 for your daily needs.",
       "type": "simple",
-      "sku": "SKU-1768297064441-3",
-      "price": 261,
-      "stock": 50,
-      "manageStock": true,
-      "stockStatus": "in_stock",
-      "lowStockThreshold": 5,
-      "dimensions": {
-        "unit": "cm"
-      },
-      "geoLimit": {
-        "enabled": false,
-        "countries": [],
-        "states": [],
-        "cities": []
-      },
-      "downloadable": false,
-      "images": [
-        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
-        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
-      ],
-      "categoryIds": [
-        "693aaf32939098a8931315ca"
-      ],
-      "tags": [
-        "demo",
-        "random"
-      ],
-      "seo": {
-        "metaTitle": "",
-        "metaDescription": "",
-        "metaKeywords": [],
-        "focusKeyword": "",
-        "ogTitle": "",
-        "ogDescription": ""
-      },
-      "isActive": true,
-      "isFeatured": false,
-      "isOnSale": false,
-      "views": 19,
-      "salesCount": 0,
-      "reviewCount": 0,
-      "downloadFiles": [],
-      "productOptions": [],
-      "attributes": [],
-      "specifications": [],
-      "variants": [],
-      "videos": [],
-      "createdAt": "2026-01-13T09:37:44.441Z",
-      "updatedAt": "2026-01-13T09:37:44.441Z",
-      "__v": 0
-    },
-    {
-      "_id": "696612686d6cc2f55ea7821d",
-      "storeId": "693aab5688efc150c73aa23b",
-      "name": "Modern System 671",
-      "slug": "modern-system-671-1889",
-      "description": "<p>This is a randomly generated description for the <strong>Modern System 671</strong>. It features high quality materials and a stunning design.</p>",
-      "shortDescription": "A great Modern System 671 for your daily needs.",
-      "type": "simple",
-      "sku": "SKU-1768297064441-4",
-      "price": 154,
-      "stock": 82,
-      "manageStock": true,
-      "stockStatus": "in_stock",
-      "lowStockThreshold": 5,
-      "dimensions": {
-        "unit": "cm"
-      },
-      "geoLimit": {
-        "enabled": false,
-        "countries": [],
-        "states": [],
-        "cities": []
-      },
-      "downloadable": false,
-      "images": [
-        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
-        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
-      ],
-      "categoryIds": [
-        "693aaf32939098a8931315ca"
-      ],
-      "tags": [
-        "demo",
-        "random"
-      ],
-      "seo": {
-        "metaTitle": "",
-        "metaDescription": "",
-        "metaKeywords": [],
-        "focusKeyword": "",
-        "ogTitle": "",
-        "ogDescription": ""
-      },
-      "isActive": true,
-      "isFeatured": true,
-      "isOnSale": false,
-      "views": 26,
-      "salesCount": 0,
-      "reviewCount": 0,
-      "downloadFiles": [],
-      "productOptions": [],
-      "attributes": [],
-      "specifications": [],
-      "variants": [],
-      "videos": [],
-      "createdAt": "2026-01-13T09:37:44.441Z",
-      "updatedAt": "2026-01-13T09:37:44.441Z",
-      "__v": 0
-    },
-    {
-      "_id": "696612686d6cc2f55ea7821e",
-      "storeId": "693aab5688efc150c73aa23b",
-      "name": "Incredible Gadget 416",
-      "slug": "incredible-gadget-416-2853",
-      "description": "<p>This is a randomly generated description for the <strong>Incredible Gadget 416</strong>. It features high quality materials and a stunning design.</p>",
-      "shortDescription": "A great Incredible Gadget 416 for your daily needs.",
-      "type": "simple",
-      "sku": "SKU-1768297064441-5",
-      "price": 223,
-      "stock": 44,
-      "manageStock": true,
-      "stockStatus": "in_stock",
-      "lowStockThreshold": 5,
-      "dimensions": {
-        "unit": "cm"
-      },
-      "geoLimit": {
-        "enabled": false,
-        "countries": [],
-        "states": [],
-        "cities": []
-      },
-      "downloadable": false,
-      "images": [
-        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
-        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
-      ],
-      "categoryIds": [
-        "693aaf32939098a8931315ca"
-      ],
-      "tags": [
-        "demo",
-        "random"
-      ],
-      "seo": {
-        "metaTitle": "",
-        "metaDescription": "",
-        "metaKeywords": [],
-        "focusKeyword": "",
-        "ogTitle": "",
-        "ogDescription": ""
-      },
-      "isActive": true,
-      "isFeatured": false,
-      "isOnSale": false,
-      "views": 67,
-      "salesCount": 0,
-      "reviewCount": 0,
-      "downloadFiles": [],
-      "productOptions": [],
-      "attributes": [],
-      "specifications": [],
-      "variants": [],
-      "videos": [],
-      "createdAt": "2026-01-13T09:37:44.441Z",
-      "updatedAt": "2026-01-13T09:37:44.441Z",
-      "__v": 0
-    },
-    {
-      "_id": "696612686d6cc2f55ea7821f",
-      "storeId": "693aab5688efc150c73aa23b",
-      "name": "Classic Gadget 76",
-      "slug": "classic-gadget-76-8742",
-      "description": "<p>This is a randomly generated description for the <strong>Classic Gadget 76</strong>. It features high quality materials and a stunning design.</p>",
-      "shortDescription": "A great Classic Gadget 76 for your daily needs.",
-      "type": "simple",
-      "sku": "SKU-1768297064441-6",
-      "price": 381,
-      "stock": 52,
-      "manageStock": true,
-      "stockStatus": "in_stock",
-      "lowStockThreshold": 5,
-      "dimensions": {
-        "unit": "cm"
-      },
-      "geoLimit": {
-        "enabled": false,
-        "countries": [],
-        "states": [],
-        "cities": []
-      },
-      "downloadable": false,
-      "images": [
-        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
-        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
-      ],
-      "categoryIds": [
-        "693aaf48939098a8931315cf"
-      ],
-      "tags": [
-        "demo",
-        "random"
-      ],
-      "seo": {
-        "metaTitle": "",
-        "metaDescription": "",
-        "metaKeywords": [],
-        "focusKeyword": "",
-        "ogTitle": "",
-        "ogDescription": ""
-      },
-      "isActive": true,
-      "isFeatured": true,
-      "isOnSale": false,
-      "views": 35,
-      "salesCount": 0,
-      "reviewCount": 0,
-      "downloadFiles": [],
-      "productOptions": [],
-      "attributes": [],
-      "specifications": [],
-      "variants": [],
-      "videos": [],
-      "createdAt": "2026-01-13T09:37:44.441Z",
-      "updatedAt": "2026-01-13T09:37:44.441Z",
-      "__v": 0
-    },
-    {
-      "_id": "696612686d6cc2f55ea78220",
-      "storeId": "693aab5688efc150c73aa23b",
-      "name": "Fantastic Widget 114",
-      "slug": "fantastic-widget-114-6485",
-      "description": "<p>This is a randomly generated description for the <strong>Fantastic Widget 114</strong>. It features high quality materials and a stunning design.</p>",
-      "shortDescription": "A great Fantastic Widget 114 for your daily needs.",
-      "type": "simple",
-      "sku": "SKU-1768297064441-7",
-      "price": 371,
-      "stock": 11,
+      "sku": "SKU-1768297637691-17",
+      "price": 358,
+      "stock": 17,
       "manageStock": true,
       "stockStatus": "in_stock",
       "lowStockThreshold": 5,
@@ -767,7 +1357,7 @@
       "isActive": true,
       "isFeatured": false,
       "isOnSale": false,
-      "views": 93,
+      "views": 5,
       "salesCount": 0,
       "reviewCount": 0,
       "downloadFiles": [],
@@ -776,80 +1366,21 @@
       "specifications": [],
       "variants": [],
       "videos": [],
-      "createdAt": "2026-01-13T09:37:44.441Z",
-      "updatedAt": "2026-01-13T09:37:44.441Z",
+      "createdAt": "2026-01-13T09:47:17.691Z",
+      "updatedAt": "2026-01-13T09:47:17.691Z",
       "__v": 0
     },
     {
-      "_id": "696612686d6cc2f55ea78221",
+      "_id": "696614a5800afdc401a7ffae",
       "storeId": "693aab5688efc150c73aa23b",
-      "name": "Luxury Device 280",
-      "slug": "luxury-device-280-3851",
-      "description": "<p>This is a randomly generated description for the <strong>Luxury Device 280</strong>. It features high quality materials and a stunning design.</p>",
-      "shortDescription": "A great Luxury Device 280 for your daily needs.",
+      "name": "Elegant System 700",
+      "slug": "elegant-system-700-541",
+      "description": "<p>This is a randomly generated description for the <strong>Elegant System 700</strong>. It features high quality materials and a stunning design.</p>",
+      "shortDescription": "A great Elegant System 700 for your daily needs.",
       "type": "simple",
-      "sku": "SKU-1768297064441-8",
-      "price": 161,
-      "stock": 40,
-      "manageStock": true,
-      "stockStatus": "in_stock",
-      "lowStockThreshold": 5,
-      "dimensions": {
-        "unit": "cm"
-      },
-      "geoLimit": {
-        "enabled": false,
-        "countries": [],
-        "states": [],
-        "cities": []
-      },
-      "downloadable": false,
-      "images": [
-        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
-        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
-      ],
-      "categoryIds": [
-        "693aaf32939098a8931315ca"
-      ],
-      "tags": [
-        "demo",
-        "random"
-      ],
-      "seo": {
-        "metaTitle": "",
-        "metaDescription": "",
-        "metaKeywords": [],
-        "focusKeyword": "",
-        "ogTitle": "",
-        "ogDescription": ""
-      },
-      "isActive": true,
-      "isFeatured": false,
-      "isOnSale": false,
-      "views": 52,
-      "salesCount": 0,
-      "reviewCount": 0,
-      "downloadFiles": [],
-      "productOptions": [],
-      "attributes": [],
-      "specifications": [],
-      "variants": [],
-      "videos": [],
-      "createdAt": "2026-01-13T09:37:44.441Z",
-      "updatedAt": "2026-01-13T09:37:44.441Z",
-      "__v": 0
-    },
-    {
-      "_id": "696612686d6cc2f55ea78222",
-      "storeId": "693aab5688efc150c73aa23b",
-      "name": "Luxury System 816",
-      "slug": "luxury-system-816-2413",
-      "description": "<p>This is a randomly generated description for the <strong>Luxury System 816</strong>. It features high quality materials and a stunning design.</p>",
-      "shortDescription": "A great Luxury System 816 for your daily needs.",
-      "type": "simple",
-      "sku": "SKU-1768297064441-9",
-      "price": 467,
-      "stock": 9,
+      "sku": "SKU-1768297637691-18",
+      "price": 468,
+      "stock": 88,
       "manageStock": true,
       "stockStatus": "in_stock",
       "lowStockThreshold": 5,
@@ -869,596 +1400,6 @@
       ],
       "categoryIds": [
         "693aaf48939098a8931315cf"
-      ],
-      "tags": [
-        "demo",
-        "random"
-      ],
-      "seo": {
-        "metaTitle": "",
-        "metaDescription": "",
-        "metaKeywords": [],
-        "focusKeyword": "",
-        "ogTitle": "",
-        "ogDescription": ""
-      },
-      "isActive": true,
-      "isFeatured": false,
-      "isOnSale": false,
-      "views": 28,
-      "salesCount": 0,
-      "reviewCount": 0,
-      "downloadFiles": [],
-      "productOptions": [],
-      "attributes": [],
-      "specifications": [],
-      "variants": [],
-      "videos": [],
-      "createdAt": "2026-01-13T09:37:44.441Z",
-      "updatedAt": "2026-01-13T09:37:44.441Z",
-      "__v": 0
-    },
-    {
-      "_id": "696612686d6cc2f55ea78223",
-      "storeId": "693aab5688efc150c73aa23b",
-      "name": "Modern Device 105",
-      "slug": "modern-device-105-3906",
-      "description": "<p>This is a randomly generated description for the <strong>Modern Device 105</strong>. It features high quality materials and a stunning design.</p>",
-      "shortDescription": "A great Modern Device 105 for your daily needs.",
-      "type": "simple",
-      "sku": "SKU-1768297064441-10",
-      "price": 442,
-      "stock": 3,
-      "manageStock": true,
-      "stockStatus": "in_stock",
-      "lowStockThreshold": 5,
-      "dimensions": {
-        "unit": "cm"
-      },
-      "geoLimit": {
-        "enabled": false,
-        "countries": [],
-        "states": [],
-        "cities": []
-      },
-      "downloadable": false,
-      "images": [
-        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
-        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
-      ],
-      "categoryIds": [
-        "693aaf48939098a8931315cf"
-      ],
-      "tags": [
-        "demo",
-        "random"
-      ],
-      "seo": {
-        "metaTitle": "",
-        "metaDescription": "",
-        "metaKeywords": [],
-        "focusKeyword": "",
-        "ogTitle": "",
-        "ogDescription": ""
-      },
-      "isActive": true,
-      "isFeatured": false,
-      "isOnSale": false,
-      "views": 74,
-      "salesCount": 0,
-      "reviewCount": 0,
-      "downloadFiles": [],
-      "productOptions": [],
-      "attributes": [],
-      "specifications": [],
-      "variants": [],
-      "videos": [],
-      "createdAt": "2026-01-13T09:37:44.441Z",
-      "updatedAt": "2026-01-13T09:37:44.441Z",
-      "__v": 0
-    },
-    {
-      "_id": "696612686d6cc2f55ea78224",
-      "storeId": "693aab5688efc150c73aa23b",
-      "name": "Modern Contraption 392",
-      "slug": "modern-contraption-392-3110",
-      "description": "<p>This is a randomly generated description for the <strong>Modern Contraption 392</strong>. It features high quality materials and a stunning design.</p>",
-      "shortDescription": "A great Modern Contraption 392 for your daily needs.",
-      "type": "simple",
-      "sku": "SKU-1768297064441-11",
-      "price": 97,
-      "stock": 23,
-      "manageStock": true,
-      "stockStatus": "in_stock",
-      "lowStockThreshold": 5,
-      "dimensions": {
-        "unit": "cm"
-      },
-      "geoLimit": {
-        "enabled": false,
-        "countries": [],
-        "states": [],
-        "cities": []
-      },
-      "downloadable": false,
-      "images": [
-        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
-        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
-      ],
-      "categoryIds": [
-        "693aaf48939098a8931315cf"
-      ],
-      "tags": [
-        "demo",
-        "random"
-      ],
-      "seo": {
-        "metaTitle": "",
-        "metaDescription": "",
-        "metaKeywords": [],
-        "focusKeyword": "",
-        "ogTitle": "",
-        "ogDescription": ""
-      },
-      "isActive": true,
-      "isFeatured": false,
-      "isOnSale": false,
-      "views": 55,
-      "salesCount": 0,
-      "reviewCount": 0,
-      "downloadFiles": [],
-      "productOptions": [],
-      "attributes": [],
-      "specifications": [],
-      "variants": [],
-      "videos": [],
-      "createdAt": "2026-01-13T09:37:44.441Z",
-      "updatedAt": "2026-01-13T09:37:44.441Z",
-      "__v": 0
-    },
-    {
-      "_id": "696612686d6cc2f55ea78225",
-      "storeId": "693aab5688efc150c73aa23b",
-      "name": "Modern Contraption 731",
-      "slug": "modern-contraption-731-8451",
-      "description": "<p>This is a randomly generated description for the <strong>Modern Contraption 731</strong>. It features high quality materials and a stunning design.</p>",
-      "shortDescription": "A great Modern Contraption 731 for your daily needs.",
-      "type": "simple",
-      "sku": "SKU-1768297064441-12",
-      "price": 276,
-      "stock": 82,
-      "manageStock": true,
-      "stockStatus": "in_stock",
-      "lowStockThreshold": 5,
-      "dimensions": {
-        "unit": "cm"
-      },
-      "geoLimit": {
-        "enabled": false,
-        "countries": [],
-        "states": [],
-        "cities": []
-      },
-      "downloadable": false,
-      "images": [
-        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
-        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
-      ],
-      "categoryIds": [
-        "693aaf48939098a8931315cf"
-      ],
-      "tags": [
-        "demo",
-        "random"
-      ],
-      "seo": {
-        "metaTitle": "",
-        "metaDescription": "",
-        "metaKeywords": [],
-        "focusKeyword": "",
-        "ogTitle": "",
-        "ogDescription": ""
-      },
-      "isActive": true,
-      "isFeatured": true,
-      "isOnSale": false,
-      "views": 18,
-      "salesCount": 0,
-      "reviewCount": 0,
-      "downloadFiles": [],
-      "productOptions": [],
-      "attributes": [],
-      "specifications": [],
-      "variants": [],
-      "videos": [],
-      "createdAt": "2026-01-13T09:37:44.441Z",
-      "updatedAt": "2026-01-13T09:37:44.441Z",
-      "__v": 0
-    },
-    {
-      "_id": "696612686d6cc2f55ea78226",
-      "storeId": "693aab5688efc150c73aa23b",
-      "name": "Incredible Solution 615",
-      "slug": "incredible-solution-615-7397",
-      "description": "<p>This is a randomly generated description for the <strong>Incredible Solution 615</strong>. It features high quality materials and a stunning design.</p>",
-      "shortDescription": "A great Incredible Solution 615 for your daily needs.",
-      "type": "simple",
-      "sku": "SKU-1768297064441-13",
-      "price": 258,
-      "stock": 75,
-      "manageStock": true,
-      "stockStatus": "in_stock",
-      "lowStockThreshold": 5,
-      "dimensions": {
-        "unit": "cm"
-      },
-      "geoLimit": {
-        "enabled": false,
-        "countries": [],
-        "states": [],
-        "cities": []
-      },
-      "downloadable": false,
-      "images": [
-        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
-        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
-      ],
-      "categoryIds": [
-        "693aaf32939098a8931315ca"
-      ],
-      "tags": [
-        "demo",
-        "random"
-      ],
-      "seo": {
-        "metaTitle": "",
-        "metaDescription": "",
-        "metaKeywords": [],
-        "focusKeyword": "",
-        "ogTitle": "",
-        "ogDescription": ""
-      },
-      "isActive": true,
-      "isFeatured": false,
-      "isOnSale": false,
-      "views": 47,
-      "salesCount": 0,
-      "reviewCount": 0,
-      "downloadFiles": [],
-      "productOptions": [],
-      "attributes": [],
-      "specifications": [],
-      "variants": [],
-      "videos": [],
-      "createdAt": "2026-01-13T09:37:44.441Z",
-      "updatedAt": "2026-01-13T09:37:44.441Z",
-      "__v": 0
-    },
-    {
-      "_id": "696612686d6cc2f55ea78227",
-      "storeId": "693aab5688efc150c73aa23b",
-      "name": "Robust Widget 754",
-      "slug": "robust-widget-754-9540",
-      "description": "<p>This is a randomly generated description for the <strong>Robust Widget 754</strong>. It features high quality materials and a stunning design.</p>",
-      "shortDescription": "A great Robust Widget 754 for your daily needs.",
-      "type": "simple",
-      "sku": "SKU-1768297064441-14",
-      "price": 105,
-      "stock": 34,
-      "manageStock": true,
-      "stockStatus": "in_stock",
-      "lowStockThreshold": 5,
-      "dimensions": {
-        "unit": "cm"
-      },
-      "geoLimit": {
-        "enabled": false,
-        "countries": [],
-        "states": [],
-        "cities": []
-      },
-      "downloadable": false,
-      "images": [
-        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
-        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
-      ],
-      "categoryIds": [
-        "693aaf48939098a8931315cf"
-      ],
-      "tags": [
-        "demo",
-        "random"
-      ],
-      "seo": {
-        "metaTitle": "",
-        "metaDescription": "",
-        "metaKeywords": [],
-        "focusKeyword": "",
-        "ogTitle": "",
-        "ogDescription": ""
-      },
-      "isActive": true,
-      "isFeatured": false,
-      "isOnSale": false,
-      "views": 22,
-      "salesCount": 0,
-      "reviewCount": 0,
-      "downloadFiles": [],
-      "productOptions": [],
-      "attributes": [],
-      "specifications": [],
-      "variants": [],
-      "videos": [],
-      "createdAt": "2026-01-13T09:37:44.441Z",
-      "updatedAt": "2026-01-13T09:37:44.441Z",
-      "__v": 0
-    },
-    {
-      "_id": "696612686d6cc2f55ea78228",
-      "storeId": "693aab5688efc150c73aa23b",
-      "name": "Practical Device 185",
-      "slug": "practical-device-185-2602",
-      "description": "<p>This is a randomly generated description for the <strong>Practical Device 185</strong>. It features high quality materials and a stunning design.</p>",
-      "shortDescription": "A great Practical Device 185 for your daily needs.",
-      "type": "simple",
-      "sku": "SKU-1768297064441-15",
-      "price": 191,
-      "stock": 92,
-      "manageStock": true,
-      "stockStatus": "in_stock",
-      "lowStockThreshold": 5,
-      "dimensions": {
-        "unit": "cm"
-      },
-      "geoLimit": {
-        "enabled": false,
-        "countries": [],
-        "states": [],
-        "cities": []
-      },
-      "downloadable": false,
-      "images": [
-        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
-        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
-      ],
-      "categoryIds": [
-        "693aaf32939098a8931315ca"
-      ],
-      "tags": [
-        "demo",
-        "random"
-      ],
-      "seo": {
-        "metaTitle": "",
-        "metaDescription": "",
-        "metaKeywords": [],
-        "focusKeyword": "",
-        "ogTitle": "",
-        "ogDescription": ""
-      },
-      "isActive": true,
-      "isFeatured": false,
-      "isOnSale": false,
-      "views": 16,
-      "salesCount": 0,
-      "reviewCount": 0,
-      "downloadFiles": [],
-      "productOptions": [],
-      "attributes": [],
-      "specifications": [],
-      "variants": [],
-      "videos": [],
-      "createdAt": "2026-01-13T09:37:44.441Z",
-      "updatedAt": "2026-01-13T09:37:44.441Z",
-      "__v": 0
-    },
-    {
-      "_id": "696612686d6cc2f55ea78229",
-      "storeId": "693aab5688efc150c73aa23b",
-      "name": "Amazing Solution 158",
-      "slug": "amazing-solution-158-8820",
-      "description": "<p>This is a randomly generated description for the <strong>Amazing Solution 158</strong>. It features high quality materials and a stunning design.</p>",
-      "shortDescription": "A great Amazing Solution 158 for your daily needs.",
-      "type": "simple",
-      "sku": "SKU-1768297064441-16",
-      "price": 359,
-      "stock": 26,
-      "manageStock": true,
-      "stockStatus": "in_stock",
-      "lowStockThreshold": 5,
-      "dimensions": {
-        "unit": "cm"
-      },
-      "geoLimit": {
-        "enabled": false,
-        "countries": [],
-        "states": [],
-        "cities": []
-      },
-      "downloadable": false,
-      "images": [
-        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
-        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
-      ],
-      "categoryIds": [
-        "693aaf48939098a8931315cf"
-      ],
-      "tags": [
-        "demo",
-        "random"
-      ],
-      "seo": {
-        "metaTitle": "",
-        "metaDescription": "",
-        "metaKeywords": [],
-        "focusKeyword": "",
-        "ogTitle": "",
-        "ogDescription": ""
-      },
-      "isActive": true,
-      "isFeatured": false,
-      "isOnSale": true,
-      "views": 86,
-      "salesCount": 0,
-      "reviewCount": 0,
-      "downloadFiles": [],
-      "productOptions": [],
-      "attributes": [],
-      "specifications": [],
-      "variants": [],
-      "videos": [],
-      "createdAt": "2026-01-13T09:37:44.441Z",
-      "updatedAt": "2026-01-13T09:37:44.441Z",
-      "__v": 0
-    },
-    {
-      "_id": "696612686d6cc2f55ea7822a",
-      "storeId": "693aab5688efc150c73aa23b",
-      "name": "Robust Item 374",
-      "slug": "robust-item-374-7770",
-      "description": "<p>This is a randomly generated description for the <strong>Robust Item 374</strong>. It features high quality materials and a stunning design.</p>",
-      "shortDescription": "A great Robust Item 374 for your daily needs.",
-      "type": "simple",
-      "sku": "SKU-1768297064441-17",
-      "price": 104,
-      "stock": 7,
-      "manageStock": true,
-      "stockStatus": "in_stock",
-      "lowStockThreshold": 5,
-      "dimensions": {
-        "unit": "cm"
-      },
-      "geoLimit": {
-        "enabled": false,
-        "countries": [],
-        "states": [],
-        "cities": []
-      },
-      "downloadable": false,
-      "images": [
-        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
-        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
-      ],
-      "categoryIds": [
-        "693aaf48939098a8931315cf"
-      ],
-      "tags": [
-        "demo",
-        "random"
-      ],
-      "seo": {
-        "metaTitle": "",
-        "metaDescription": "",
-        "metaKeywords": [],
-        "focusKeyword": "",
-        "ogTitle": "",
-        "ogDescription": ""
-      },
-      "isActive": true,
-      "isFeatured": false,
-      "isOnSale": true,
-      "views": 82,
-      "salesCount": 0,
-      "reviewCount": 0,
-      "downloadFiles": [],
-      "productOptions": [],
-      "attributes": [],
-      "specifications": [],
-      "variants": [],
-      "videos": [],
-      "createdAt": "2026-01-13T09:37:44.441Z",
-      "updatedAt": "2026-01-13T09:37:44.441Z",
-      "__v": 0
-    },
-    {
-      "_id": "696612686d6cc2f55ea7822b",
-      "storeId": "693aab5688efc150c73aa23b",
-      "name": "Fantastic Widget 175",
-      "slug": "fantastic-widget-175-9447",
-      "description": "<p>This is a randomly generated description for the <strong>Fantastic Widget 175</strong>. It features high quality materials and a stunning design.</p>",
-      "shortDescription": "A great Fantastic Widget 175 for your daily needs.",
-      "type": "simple",
-      "sku": "SKU-1768297064441-18",
-      "price": 288,
-      "stock": 76,
-      "manageStock": true,
-      "stockStatus": "in_stock",
-      "lowStockThreshold": 5,
-      "dimensions": {
-        "unit": "cm"
-      },
-      "geoLimit": {
-        "enabled": false,
-        "countries": [],
-        "states": [],
-        "cities": []
-      },
-      "downloadable": false,
-      "images": [
-        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
-        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
-      ],
-      "categoryIds": [
-        "693aaf32939098a8931315ca"
-      ],
-      "tags": [
-        "demo",
-        "random"
-      ],
-      "seo": {
-        "metaTitle": "",
-        "metaDescription": "",
-        "metaKeywords": [],
-        "focusKeyword": "",
-        "ogTitle": "",
-        "ogDescription": ""
-      },
-      "isActive": true,
-      "isFeatured": false,
-      "isOnSale": false,
-      "views": 83,
-      "salesCount": 0,
-      "reviewCount": 0,
-      "downloadFiles": [],
-      "productOptions": [],
-      "attributes": [],
-      "specifications": [],
-      "variants": [],
-      "videos": [],
-      "createdAt": "2026-01-13T09:37:44.441Z",
-      "updatedAt": "2026-01-13T09:37:44.441Z",
-      "__v": 0
-    },
-    {
-      "_id": "696612686d6cc2f55ea7822c",
-      "storeId": "693aab5688efc150c73aa23b",
-      "name": "Amazing Accessory 797",
-      "slug": "amazing-accessory-797-2786",
-      "description": "<p>This is a randomly generated description for the <strong>Amazing Accessory 797</strong>. It features high quality materials and a stunning design.</p>",
-      "shortDescription": "A great Amazing Accessory 797 for your daily needs.",
-      "type": "simple",
-      "sku": "SKU-1768297064441-19",
-      "price": 422,
-      "stock": 38,
-      "manageStock": true,
-      "stockStatus": "in_stock",
-      "lowStockThreshold": 5,
-      "dimensions": {
-        "unit": "cm"
-      },
-      "geoLimit": {
-        "enabled": false,
-        "countries": [],
-        "states": [],
-        "cities": []
-      },
-      "downloadable": false,
-      "images": [
-        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
-        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
-      ],
-      "categoryIds": [
-        "693aaf32939098a8931315ca"
       ],
       "tags": [
         "demo",
@@ -1484,8 +1425,67 @@
       "specifications": [],
       "variants": [],
       "videos": [],
-      "createdAt": "2026-01-13T09:37:44.441Z",
-      "updatedAt": "2026-01-13T09:37:44.441Z",
+      "createdAt": "2026-01-13T09:47:17.691Z",
+      "updatedAt": "2026-01-13T09:47:17.691Z",
+      "__v": 0
+    },
+    {
+      "_id": "696614a5800afdc401a7ffaf",
+      "storeId": "693aab5688efc150c73aa23b",
+      "name": "Luxury Device 591",
+      "slug": "luxury-device-591-502",
+      "description": "<p>This is a randomly generated description for the <strong>Luxury Device 591</strong>. It features high quality materials and a stunning design.</p>",
+      "shortDescription": "A great Luxury Device 591 for your daily needs.",
+      "type": "simple",
+      "sku": "SKU-1768297637691-19",
+      "price": 493,
+      "stock": 64,
+      "manageStock": true,
+      "stockStatus": "in_stock",
+      "lowStockThreshold": 5,
+      "dimensions": {
+        "unit": "cm"
+      },
+      "geoLimit": {
+        "enabled": false,
+        "countries": [],
+        "states": [],
+        "cities": []
+      },
+      "downloadable": false,
+      "images": [
+        "https://images.unsplash.com/photo-1595909307779-11ba18815124?w=800&q=80",
+        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
+      ],
+      "categoryIds": [
+        "693aaf32939098a8931315ca"
+      ],
+      "tags": [
+        "demo",
+        "random"
+      ],
+      "seo": {
+        "metaTitle": "",
+        "metaDescription": "",
+        "metaKeywords": [],
+        "focusKeyword": "",
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "isActive": true,
+      "isFeatured": false,
+      "isOnSale": false,
+      "views": 9,
+      "salesCount": 0,
+      "reviewCount": 0,
+      "downloadFiles": [],
+      "productOptions": [],
+      "attributes": [],
+      "specifications": [],
+      "variants": [],
+      "videos": [],
+      "createdAt": "2026-01-13T09:47:17.691Z",
+      "updatedAt": "2026-01-13T09:47:17.691Z",
       "__v": 0
     }
   ],
@@ -10606,6 +10606,5 @@
     }
   ],
   "paymentGatewayConfigs": [],
-  "files": [],
   "newsletterSubscribers": []
 }

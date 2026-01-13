@@ -51,7 +51,7 @@ const CouponSchema = new Schema<ICoupon>(
             unique: true,
             uppercase: true,
             trim: true,
-            index: true,
+
         },
         storeId: {
             type: Schema.Types.ObjectId,

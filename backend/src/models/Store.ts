@@ -345,7 +345,7 @@ const StoreSchema = new Schema<IStore>(
 );
 
 // Indexes for performance
-StoreSchema.index({ slug: 1 });
+
 StoreSchema.index({ domains: 1 });
 StoreSchema.index({ isActive: 1 });
 

@@ -105,7 +105,7 @@ const ApiKeySchema = new Schema<IApiKey>(
 );
 
 // Indexes
-ApiKeySchema.index({ keyHash: 1 });
+
 ApiKeySchema.index({ isActive: 1 });
 ApiKeySchema.index({ createdBy: 1 });
 

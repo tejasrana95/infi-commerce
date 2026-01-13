@@ -76,7 +76,7 @@ const CurrencySchema = new Schema<ICurrency>(
     }
 );
 
-CurrencySchema.index({ code: 1 });
+
 CurrencySchema.index({ isActive: 1 });
 CurrencySchema.index({ isBaseCurrency: 1 });
 

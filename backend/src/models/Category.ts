@@ -158,7 +158,7 @@ CategorySchema.index({ storeId: 1, slug: 1 }, { unique: true });
 CategorySchema.index({ storeId: 1, parentCategory: 1 });
 CategorySchema.index({ storeId: 1, status: 1 });
 CategorySchema.index({ storeId: 1, level: 1 });
-CategorySchema.index({ path: 1 });
+
 
 // Pre-save middleware to update level, path, and canonical URL
 CategorySchema.pre('save', async function (next) {
