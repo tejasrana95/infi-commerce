@@ -91,7 +91,15 @@ export function StoreProvider({ store, children, currentCurrency, availableCurre
     }, [themeConfig, templateId]);
 
     // State for dynamic currency updates
-    const [activeCurrency, setActiveCurrency] = React.useState(currentCurrency);
+    // Initialize with fallback: prop -> first available currency (ensures immediate render)
+    const getDefaultCurrency = () => {
+        if (currentCurrency) return currentCurrency;
+        if (availableCurrencies && availableCurrencies.length > 0) return availableCurrencies[0];
+        return undefined;
+    };
+
+    const [activeCurrency, setActiveCurrency] = React.useState(getDefaultCurrency);
+    const [isDetecting, setIsDetecting] = React.useState(false);
 
     // Update active currency when prop changes (hydration/SSR)
     useEffect(() => {
@@ -100,7 +108,7 @@ export function StoreProvider({ store, children, currentCurrency, availableCurre
         }
     }, [currentCurrency]);
 
-    // Auto-detect currency on first visit (only if no manual selection)
+    // Auto-detect currency on first visit (non-blocking, updates reactively)
     useEffect(() => {
         const autoDetectCurrency = async () => {
             // Skip if user has manually selected a currency
@@ -112,10 +120,8 @@ export function StoreProvider({ store, children, currentCurrency, availableCurre
             if (!availableCurrencies || availableCurrencies.length === 0) {
                 return;
             }
-            // Skip if currency is already set
-            if (currentCurrency) {
-                return;
-            }
+
+            setIsDetecting(true);
 
             try {
                 const currencyCodes = availableCurrencies
@@ -123,19 +129,22 @@ export function StoreProvider({ store, children, currentCurrency, availableCurre
                     .filter((code): code is string => code !== undefined);
                 const detectedCode = await detectCurrency(currencyCodes);
 
-                // Set the detected currency
+                // Only update if detected currency is different from current
                 const detected = availableCurrencies.find(c => c.code === detectedCode);
-                if (detected) {
+                if (detected && detected.code !== activeCurrency?.code) {
                     setActiveCurrency(detected);
                     // Don't set cookie - this is auto-detection, not manual selection
                 }
             } catch (error) {
                 console.error('Currency auto-detection failed:', error);
+            } finally {
+                setIsDetecting(false);
             }
         };
 
         autoDetectCurrency();
-    }, [availableCurrencies, currentCurrency]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [availableCurrencies]); // Only run once on mount when currencies are available
 
     const setCurrency = (code: string) => {
         // Update local state immediately for dynamic UI
