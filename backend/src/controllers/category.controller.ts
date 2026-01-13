@@ -7,6 +7,7 @@ import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import cache from '../utils/cache';
 import { triggerRevalidation } from '../utils/revalidation';
+import { escapeRegExp } from '../utils/search.utils';
 
 // Validation rules
 export const createCategoryValidation = [
@@ -144,6 +145,7 @@ export const createCategory = asyncHandler(async (req: AuthRequest, res: Respons
         if (!parent) {
             throw new AppError('Parent category not found', 404);
         }
+        console.log(parent.storeId.toString(), storeId);
         if (parent.storeId.toString() !== storeId) {
             throw new AppError('Parent category must belong to the same store', 400);
         }
@@ -504,7 +506,7 @@ export const updateCategory = asyncHandler(async (req: AuthRequest, res: Respons
             if (!parent) {
                 throw new AppError('Parent category not found', 404);
             }
-            if (parent.storeId.toString() !== category.storeId.toString()) {
+            if (parent.storeId.toString() !== updates.storeId.toString()) {
                 throw new AppError('Parent category must belong to the same store', 400);
             }
         } else {
@@ -640,7 +642,7 @@ export const getCategoryFilters = asyncHandler(async (req: AuthRequest, res: Res
         if (includeSubcategories === 'true') {
             const subcategories = await Category.find({
                 storeId,
-                path: { $regex: new RegExp(`^${category.path}`) },
+                path: { $regex: new RegExp(`^${escapeRegExp(category.path)}`) },
             }).select('_id');
             categoryIds = subcategories.map((c) => c._id.toString());
         }

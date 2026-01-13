@@ -264,7 +264,7 @@ export default function FormEditor({ form, onSave, onBack, saving = false }: For
             </Paper>
 
             {/* Tab Content */}
-            <Paper sx={{ p: 0 }}>
+            <Paper sx={{ p: 2 }}>
                 {/* General Tab */}
                 {activeTab === 0 && (
                     <Box>

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import styles from './ProductGallery.module.scss';
 import ImageWithDimensions from '@/components/core/common/ImageWithDimensions';
@@ -195,8 +196,9 @@ export default function ProductGallery({
     const layoutClass = layout === 'thumbnails-bottom' ? styles.thumbnailsBottom : styles.thumbnailsLeft;
 
     function renderLightbox() {
-        if (!isLightboxOpen || !enableLightbox) return null;
-        return (
+        if (!isLightboxOpen || !enableLightbox || typeof document === 'undefined') return null;
+
+        return createPortal(
             <div className={styles.lightbox} onClick={closeLightbox}>
                 <button className={styles.lightboxClose} onClick={closeLightbox}>
                     ×
@@ -233,7 +235,8 @@ export default function ProductGallery({
                         </button>
                     ))}
                 </div>
-            </div>
+            </div>,
+            document.body
         );
     }
 

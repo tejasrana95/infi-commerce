@@ -4,6 +4,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import Image from 'next/image';
 import ModuleRenderer from '@/components/core/layout/ModuleRenderer';
@@ -310,9 +311,9 @@ export default function ModernCleanProductPageTemplate({
     // Lightbox
     // ============================================
     const renderLightbox = () => {
-        if (!lightboxImage) return null;
+        if (!lightboxImage || typeof document === 'undefined') return null;
 
-        return (
+        return createPortal(
             <div className={styles.lightboxOverlay} onClick={() => setLightboxImage(null)}>
                 <div className={styles.lightboxContent} onClick={(e) => e.stopPropagation()}>
                     <button
@@ -327,7 +328,8 @@ export default function ModernCleanProductPageTemplate({
                         className={styles.lightboxImage}
                     />
                 </div>
-            </div>
+            </div>,
+            document.body
         );
     };
 
@@ -575,8 +577,6 @@ export default function ModernCleanProductPageTemplate({
                     estimate={shippingEstimate}
                 />
             )}
-
-            {renderLightbox()}
         </div >
     );
 
@@ -962,15 +962,18 @@ export default function ModernCleanProductPageTemplate({
     // If layout exists, render sections using SectionRenderer
     if (layout?.sections && layout.sections.length > 0) {
         return (
-            <div className={styles.productPage}>
-                {layout.sections.map((section: any) => (
-                    <SectionRenderer
-                        key={section.id}
-                        section={section}
-                        renderModule={(module) => renderModule(module)}
-                    />
-                ))}
-            </div>
+            <>
+                <div className={styles.productPage}>
+                    {layout.sections.map((section: any) => (
+                        <SectionRenderer
+                            key={section.id}
+                            section={section}
+                            renderModule={(module) => renderModule(module)}
+                        />
+                    ))}
+                </div>
+                {renderLightbox()}
+            </>
         );
     }
 
@@ -989,6 +992,7 @@ export default function ModernCleanProductPageTemplate({
 
                 {/* Related Products - add via layout builder module */}
             </div>
+            {renderLightbox()}
         </div>
     );
 }

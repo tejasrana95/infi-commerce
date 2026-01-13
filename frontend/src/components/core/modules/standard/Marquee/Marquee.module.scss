@@ -2,19 +2,19 @@
     width: 100%;
     overflow: hidden;
     position: relative;
-    background: #f8f9fa;
     padding: 16px 0;
 }
 
 .marqueeContent {
     display: flex;
     gap: 48px;
-    animation: scroll linear infinite;
     will-change: transform;
 }
 
-.marquee.pauseOnHover .marqueeContent:hover {
-    animation-play-state: paused;
+.marqueeGroup {
+    display: flex;
+    gap: 48px;
+    flex-shrink: 0;
 }
 
 .marqueeItem {
@@ -27,14 +27,4 @@
 
 .marqueeText {
     line-height: 1;
-}
-
-@keyframes scroll {
-    0% {
-        transform: translateX(0);
-    }
-
-    100% {
-        transform: translateX(-50%);
-    }
 }

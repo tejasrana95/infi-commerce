@@ -203,7 +203,8 @@ export const getRecommendations = asyncHandler(async (req: AuthRequest, res: Res
 
     // Strategy 1: Products matching search keywords (highest priority)
     if (searchKeywords.size > 0 && products.length < limitNum) {
-        const searchRegexes = Array.from(searchKeywords).map(kw => new RegExp(kw, 'i'));
+        const { escapeRegExp } = require('../utils/search.utils');
+        const searchRegexes = Array.from(searchKeywords).map(kw => new RegExp(escapeRegExp(kw), 'i'));
         const searchQuery = {
             ...baseQuery,
             _id: {

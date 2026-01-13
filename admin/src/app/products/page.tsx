@@ -105,10 +105,6 @@ export default function ProductsPage() {
     }
   };
 
-  const handleEdit = (id: string) => {
-    router.push(`/products/${id}/edit`);
-  };
-
   const handleCreate = () => {
     router.push('/products/new');
   };
@@ -290,7 +286,7 @@ export default function ProductsPage() {
             </IconButton>
           </Tooltip>
           <Tooltip title="Edit">
-            <IconButton onClick={() => handleEdit(params.row._id)} size="small" color="primary">
+            <IconButton href={`/products/${params.row._id}/edit`} size="small" color="primary">
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>

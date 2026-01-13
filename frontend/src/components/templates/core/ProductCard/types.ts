@@ -35,6 +35,9 @@ export interface ProductTemplateProps {
 
     // Currency
     currency: string;
+
+    // Config
+    cardConfig?: import('@/types').ProductCardConfig;
 }
 
 // Raw product data from API

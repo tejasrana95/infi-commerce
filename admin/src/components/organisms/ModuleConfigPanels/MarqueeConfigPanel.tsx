@@ -30,6 +30,7 @@ export interface MarqueeConfig {
     speed?: number;
     direction?: 'left' | 'right';
     pauseOnHover?: boolean;
+    backgroundColor?: string;
     typography?: {
         textFontSize?: number;
         textFontWeight?: string;
@@ -48,6 +49,7 @@ export const defaultMarqueeConfig: MarqueeConfig = {
     speed: 30,
     direction: 'left',
     pauseOnHover: true,
+    backgroundColor: '#f8f9fa',
     typography: {
         textFontSize: 16,
         textFontWeight: '500',
@@ -199,6 +201,27 @@ export default function MarqueeConfigPanel({ config, onChange }: MarqueeConfigPa
                             <MenuItem value="no">No</MenuItem>
                         </Select>
                     </FormControl>
+                </Box>
+            </Box>
+
+            <Divider />
+
+            {/* Background Settings */}
+            <Box>
+                <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>
+                    Background Style
+                </Typography>
+
+                <Box>
+                    <Typography variant="caption" display="block" sx={{ mb: 0.5 }}>
+                        Background Color
+                    </Typography>
+                    <input
+                        type="color"
+                        value={config.backgroundColor || '#f8f9fa'}
+                        onChange={(e) => onChange({ ...config, backgroundColor: e.target.value })}
+                        style={{ width: '100%', height: 32, border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }}
+                    />
                 </Box>
             </Box>
 

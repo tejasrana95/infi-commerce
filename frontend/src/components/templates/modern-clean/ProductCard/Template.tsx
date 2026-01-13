@@ -124,6 +124,7 @@ export default function ModernCleanProductCardTemplate({
         // Display options
         showBrand = true,
         showRating = styleDefaults.showRating ?? true,
+        showRatingValue = true,
         showSalePercent = true,
         showStock = styleDefaults.showStock,
         showSku = styleDefaults.showSku,
@@ -195,6 +196,9 @@ export default function ModernCleanProductCardTemplate({
 
         return (
             <div className={styles.rating}>
+                {showRatingValue && (
+                    <span className={styles.ratingValue}>{rating.toFixed(1)}</span>
+                )}
                 <div className={styles.stars}>{stars}</div>
                 {reviewCount !== undefined && reviewCount > 0 && (
                     <span className={styles.reviewCount}>({reviewCount})</span>

@@ -14,7 +14,13 @@ export default function CoreProductCardTemplate({
     rating,
     reviewCount,
     productUrl,
+    cardConfig,
 }: ProductTemplateProps) {
+    const {
+        showRating = true,
+        showRatingValue = true,
+    } = cardConfig || {};
+
     return (
         <div className="group bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
             {/* Image */}
@@ -49,8 +55,11 @@ export default function CoreProductCardTemplate({
                 </a>
 
                 {/* Rating */}
-                {rating !== undefined && (
+                {showRating && rating !== undefined && (
                     <div className="flex items-center gap-1 mb-2">
+                        {showRatingValue && (
+                            <span className="text-sm font-bold text-gray-900">{rating.toFixed(1)}</span>
+                        )}
                         <div className="flex text-yellow-400">
                             {[...Array(5)].map((_, i) => (
                                 <svg

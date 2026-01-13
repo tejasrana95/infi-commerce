@@ -227,9 +227,6 @@ export const updateForm = asyncHandler(async (req: AuthRequest, res: Response) =
 
     const updates = { ...req.body };
 
-    // Prevent storeId change
-    delete updates.storeId;
-
     // If slug is being updated, check for duplicates
     if (updates.slug && updates.slug !== form.slug) {
         const existingForm = await Form.findOne({

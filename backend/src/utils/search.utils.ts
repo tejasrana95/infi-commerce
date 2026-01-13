@@ -116,3 +116,10 @@ export async function getSearchSuggestions(storeId: string, query: string): Prom
 
     return corrected ? suggestedWords.join(' ') : null;
 }
+
+/**
+ * Escape special characters in a string for use in a regular expression
+ */
+export function escapeRegExp(string: string): string {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+}

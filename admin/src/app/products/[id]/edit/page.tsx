@@ -37,7 +37,7 @@ export default function EditProductPage() {
         }
     };
 
-    const handleSubmit = async (data: any) => {
+    const handleSubmit = async (data: any, stay: boolean = false) => {
         setIsSubmitting(true);
         try {
             // Clean up data before sending
@@ -54,7 +54,9 @@ export default function EditProductPage() {
 
             await api.put(`/products/${id}`, cleanedData);
             showNotification('Product updated successfully', 'success');
-            router.push('/products');
+            if (!stay) {
+                router.push('/products');
+            }
         } catch (err: any) {
             showNotification(err.response?.data?.message || 'Failed to update product', 'error');
         } finally {

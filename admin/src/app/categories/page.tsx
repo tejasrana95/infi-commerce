@@ -195,7 +195,7 @@ export default function CategoriesPage() {
       renderCell: (params: GridRenderCellParams) => (
         <Box display="flex" flexDirection="row" justifyContent="center" height="100%">
           <Tooltip title="Edit">
-            <IconButton onClick={() => handleEdit(params.row._id)} size="small" color="primary">
+            <IconButton href={`/categories/${params.row._id}/edit`} size="small" color="primary">
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>

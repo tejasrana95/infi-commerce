@@ -9,6 +9,7 @@ import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import { calculatePricing, calculateTaxBreakdown } from '../utils/pricing.utils';
 import { addTimezoneAwareDates } from '../utils/date.utils';
+import { escapeRegExp } from '../utils/search.utils';
 
 // Helper function to add pricing with tax to a product (including variants)
 function addPricingToProduct(product: any) {
@@ -79,6 +80,9 @@ function addPricingToProduct(product: any) {
             };
         });
     }
+
+    // Map averageRating to rating for frontend consistency
+    product.rating = product.averageRating;
 
     return product;
 }
@@ -402,8 +406,8 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
             // To prevent slowing down too much, we'll do it.
             const foundBrands = await Brand.find({
                 $or: [
-                    { name: { $in: brandNames.map(b => new RegExp(`^${b}$`, 'i')) } },
-                    { slug: { $in: brandNames.map(b => new RegExp(`^${b}$`, 'i')) } }
+                    { name: { $in: brandNames.map(b => new RegExp(`^${escapeRegExp(b)}$`, 'i')) } },
+                    { slug: { $in: brandNames.map(b => new RegExp(`^${escapeRegExp(b)}$`, 'i')) } }
                 ]
             }).select('_id');
 
@@ -474,7 +478,7 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
 
             if (words.length > 0) {
                 // Create regex patterns for each word (case insensitive)
-                const wordPatterns = words.map(word => new RegExp(word, 'i'));
+                const wordPatterns = words.map(word => new RegExp(escapeRegExp(word), 'i'));
 
                 // Build OR conditions for each word across multiple fields
                 const searchConditions = wordPatterns.flatMap(pattern => [
@@ -646,7 +650,7 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
     // Did you mean logic? - Only if 0 results and search query was provided
     let didYouMean: string | null = null;
     if (total === 0 && req.query.search && effectiveStoreId) {
-        const { getSearchSuggestions } = require('../utils/search.utils');
+        const { getSearchSuggestions, escapeRegExp } = require('../utils/search.utils');
         didYouMean = await getSearchSuggestions(effectiveStoreId, req.query.search as string);
     }
 
@@ -668,8 +672,8 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         const foundBrands = await Brand.find({
             $or: [
                 { _id: { $in: validObjectIds.length > 0 ? validObjectIds.map(id => new mongoose.Types.ObjectId(id)) : [] } },
-                { slug: { $in: brandNames.map(b => new RegExp(`^${b}$`, 'i')) } },
-                { name: { $in: brandNames.map(b => new RegExp(`^${b}$`, 'i')) } }
+                { slug: { $in: brandNames.map(b => new RegExp(`^${escapeRegExp(b)}$`, 'i')) } },
+                { name: { $in: brandNames.map(b => new RegExp(`^${escapeRegExp(b)}$`, 'i')) } }
             ]
         }).select('_id name slug');
 

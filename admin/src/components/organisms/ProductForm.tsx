@@ -425,7 +425,7 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
             },
             downloadable: data.type === 'digital',
         };
-        onSubmit(cleanedData);
+        onSubmit(cleanedData, true);
     };
 
     const handleAddTag = () => {

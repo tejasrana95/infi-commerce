@@ -53,6 +53,7 @@ const defaultProductCardConfig: ProductCardConfig = {
     // Display Options
     showBrand: true,
     showRating: true,
+    showRatingValue: true,
     showSalePercent: true,
     showStock: false,
     showSku: false,
@@ -450,6 +451,19 @@ export default function ProductCardSettings({ config, onChange }: ProductCardSet
                             }
                             label="Show Rating"
                         />
+
+                        {productCard.showRating && (
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={productCard.showRatingValue}
+                                        onChange={(e) => handleChange('showRatingValue', e.target.checked)}
+                                    />
+                                }
+                                label="Show Rating Value (e.g. 4.3)"
+                                sx={{ ml: 2 }}
+                            />
+                        )}
 
                         <FormControlLabel
                             control={

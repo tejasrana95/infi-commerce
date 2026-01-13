@@ -175,6 +175,7 @@ export interface ProductCardConfig {
     // Display Options
     showBrand: boolean;
     showRating: boolean;
+    showRatingValue: boolean;
     showSalePercent: boolean;
     showStock: boolean;
     showSku: boolean;
@@ -210,6 +211,7 @@ export const DEFAULT_PRODUCT_CARD_CONFIG: ProductCardConfig = {
     priceFontSize: 'medium',
     showBrand: true,
     showRating: true,
+    showRatingValue: true,
     showSalePercent: true,
     showStock: false,
     showSku: false,

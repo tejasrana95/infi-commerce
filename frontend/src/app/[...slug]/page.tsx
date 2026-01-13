@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
-import { getServerStore } from '@/lib/api/server-store';
+import { fetchLayout, getServerStore } from '@/lib/api/server-store';
 
 // Product Imports
 import ProductPageClient from '@/components/slug-pages/product/ProductPageClient';
@@ -62,16 +62,11 @@ async function getProduct(storeId: string, slug: string) {
     } catch (err) { return null; }
 }
 
-async function getProductLayout(storeId: string) {
+async function getProductLayout(storeId: string, slug: string) {
     try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-        const response = await fetch(`${apiUrl}/layouts?storeId=${storeId}&type=product&isDefault=true`, {
-            next: { revalidate: 3600, tags: ['product-layout'] },
-            headers: { 'Content-Type': 'application/json' },
-        });
-        if (!response.ok) return null;
-        const data = await response.json();
-        return data.data?.[0] || null;
+        const layout = await fetchLayout(storeId, 'product', slug)
+        if (!layout) return null;
+        return layout;
     } catch (err) { return null; }
 }
 
@@ -197,7 +192,7 @@ export default async function UniversalPage({ params, searchParams }: UniversalP
     if (resolved.entityType === 'product') {
         const [product, layout] = await Promise.all([
             getProduct(store._id, slug),
-            getProductLayout(store._id),
+            getProductLayout(store._id, slug),
         ]);
 
         if (!product) notFound();
