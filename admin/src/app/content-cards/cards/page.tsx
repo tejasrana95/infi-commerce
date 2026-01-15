@@ -16,11 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { createDataGridStyles } from '@/utils/styles';
 import { useDebounce } from '@/hooks/useDebounce';
-import * as FaIcons from 'react-icons/fa';
-import * as MdIcons from 'react-icons/md';
-import * as BiIcons from 'react-icons/bi';
-import * as IoIcons from 'react-icons/io5';
-import * as LucideIcons from 'lucide-react';
+import DynamicIcon from '@/components/atoms/DynamicIcon';
 
 export default function ContentCardsPage() {
     const router = useRouter();
@@ -137,28 +133,7 @@ export default function ContentCardsPage() {
     };
 
     const renderIcon = (iconName: string, size = 24) => {
-        try {
-            if (iconName.startsWith('Fa')) {
-                const Icon = (FaIcons as any)[iconName];
-                return Icon ? <Icon size={size} /> : null;
-            }
-            if (iconName.startsWith('Md')) {
-                const Icon = (MdIcons as any)[iconName];
-                return Icon ? <Icon size={size} /> : null;
-            }
-            if (iconName.startsWith('Bi')) {
-                const Icon = (BiIcons as any)[iconName];
-                return Icon ? <Icon size={size} /> : null;
-            }
-            if (iconName.startsWith('Io')) {
-                const Icon = (IoIcons as any)[iconName];
-                return Icon ? <Icon size={size} /> : null;
-            }
-            const Icon = (LucideIcons as any)[iconName];
-            return Icon ? <Icon size={size} /> : null;
-        } catch (e) {
-            return null;
-        }
+        return <DynamicIcon name={iconName} size={size} />;
     };
 
     const columns: GridColDef[] = [

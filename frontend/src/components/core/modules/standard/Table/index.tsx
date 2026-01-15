@@ -1,15 +1,7 @@
 'use client';
 
 import React from 'react';
-import * as FaIcons from 'react-icons/fa';
-import * as MdIcons from 'react-icons/md';
-import * as AiIcons from 'react-icons/ai';
-import * as BiIcons from 'react-icons/bi';
-import * as BsIcons from 'react-icons/bs';
-import * as IoIcons from 'react-icons/io5';
-import * as HiIcons from 'react-icons/hi';
-import * as RiIcons from 'react-icons/ri';
-import * as LucideIcons from 'lucide-react';
+import DynamicIcon from '../../../common/DynamicIcon';
 import styles from './index.module.scss';
 
 interface TableProps {
@@ -37,26 +29,6 @@ export default function Table({ config }: TableProps) {
         responsiveMode = 'scroll',
     } = config;
 
-    const getIconComponent = (iconName: string) => {
-        if (!iconName) return null;
-
-        const prefix = iconName.substring(0, 2).toLowerCase();
-        const libraries: Record<string, any> = {
-            'fa': FaIcons,
-            'md': MdIcons,
-            'ai': AiIcons,
-            'bi': BiIcons,
-            'bs': BsIcons,
-            'io': IoIcons,
-            'hi': HiIcons,
-            'ri': RiIcons,
-        };
-
-        const iconLibrary = libraries[prefix] || LucideIcons;
-        const IconComponent = (iconLibrary as any)[iconName];
-        return IconComponent || null;
-    };
-
     const renderCellContent = (cell: any) => {
         // Handle legacy string format
         if (typeof cell === 'string') {
@@ -65,8 +37,6 @@ export default function Table({ config }: TableProps) {
 
         // Handle new object format with icons and HTML
         const { content = '', prefixIcon = '', suffixIcon = '', textColor = '', bgColor = '' } = cell;
-        const PrefixIcon = getIconComponent(prefixIcon);
-        const SuffixIcon = getIconComponent(suffixIcon);
 
         return (
             <div style={{
@@ -78,9 +48,9 @@ export default function Table({ config }: TableProps) {
                 padding: bgColor ? '4px 8px' : '0',
                 borderRadius: bgColor ? '4px' : '0',
             }}>
-                {PrefixIcon && <PrefixIcon style={{ flexShrink: 0 }} size={16} />}
+                {prefixIcon && <DynamicIcon name={prefixIcon} size={16} />}
                 <span dangerouslySetInnerHTML={{ __html: content }} />
-                {SuffixIcon && <SuffixIcon style={{ flexShrink: 0 }} size={16} />}
+                {suffixIcon && <DynamicIcon name={suffixIcon} size={16} />}
             </div>
         );
     };

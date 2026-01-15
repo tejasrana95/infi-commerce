@@ -9,18 +9,15 @@ const FaIconSet = dynamic(() => import('./icons/FaIcon'), { ssr: false });
 const MdIconSet = dynamic(() => import('./icons/MdIcon'), { ssr: false });
 const BiIconSet = dynamic(() => import('./icons/BiIcon'), { ssr: false });
 const IoIconSet = dynamic(() => import('./icons/IoIcon'), { ssr: false });
-const AiIconSet = dynamic(() => import('./icons/AiIcon'), { ssr: false });
-const BsIconSet = dynamic(() => import('./icons/BsIcon'), { ssr: false });
-const HiIconSet = dynamic(() => import('./icons/HiIcon'), { ssr: false });
-const RiIconSet = dynamic(() => import('./icons/RiIcon'), { ssr: false });
 
 interface DynamicIconProps {
     name: string;
     className?: string;
     size?: number;
+    color?: string;
 }
 
-export default function DynamicIcon({ name, className, size = 24 }: DynamicIconProps) {
+export default function DynamicIcon({ name, className, size = 24, color }: DynamicIconProps) {
     if (!name) return null;
 
     // Normalize name: Some icons might come as LucideGithub or just Github
@@ -31,6 +28,7 @@ export default function DynamicIcon({ name, className, size = 24 }: DynamicIconP
     }
     if (normalizedName.endsWith('Icon') && Object.keys(dynamicIconImports).includes(normalizedName.toLowerCase() as any) === false) {
         // Only strip 'Icon' if the version WITH 'Icon' isn't actually a valid key
+        // Most Lucide icons don't end in 'Icon', but some might? (unlikely in standard lib)
         const stripped = normalizedName.slice(0, -4);
         if (stripped.length > 0) {
             normalizedName = stripped;
@@ -49,50 +47,30 @@ export default function DynamicIcon({ name, className, size = 24 }: DynamicIconP
             loading: () => <div style={{ width: size, height: size }} />,
             ssr: false
         });
-        return <LucideIcon className={className} size={size} />;
+        return <LucideIcon className={className} size={size} color={color} />;
     }
 
     // 2. Handle Material Design (Md)
     if (name.startsWith('Md')) {
-        return <MdIconSet name={name} className={className} size={size} />;
+        return <MdIconSet name={name} className={className} size={size} style={{ color }} />;
     }
 
     // 3. Handle Bootstrap/BoxIcons (Bi)
     if (name.startsWith('Bi')) {
-        return <BiIconSet name={name} className={className} size={size} />;
+        return <BiIconSet name={name} className={className} size={size} style={{ color }} />;
     }
 
     // 4. Handle Ionicons (Io)
     if (name.startsWith('Io')) {
-        return <IoIconSet name={name} className={className} size={size} />;
+        return <IoIconSet name={name} className={className} size={size} style={{ color }} />;
     }
 
-    // 5. Handle Ant Design (Ai)
-    if (name.startsWith('Ai')) {
-        return <AiIconSet name={name} className={className} size={size} />;
-    }
-
-    // 6. Handle Bootstrap (Bs)
-    if (name.startsWith('Bs')) {
-        return <BsIconSet name={name} className={className} size={size} />;
-    }
-
-    // 7. Handle Heroicons (Hi)
-    if (name.startsWith('Hi')) {
-        return <HiIconSet name={name} className={className} size={size} />;
-    }
-
-    // 8. Handle Remix Icon (Ri)
-    if (name.startsWith('Ri')) {
-        return <RiIconSet name={name} className={className} size={size} />;
-    }
-
-    // 9. Handle FontAwesome (Fa)
+    // 5. Handle FontAwesome (Fa)
     if (name.startsWith('Fa')) {
-        return <FaIconSet name={name} className={className} size={size} />;
+        return <FaIconSet name={name} className={className} size={size} style={{ color }} />;
     }
 
     // Fallback: Try Fa if no prefix ( legacy behavior )
     const faName = name.startsWith('Fa') ? name : `Fa${name}`;
-    return <FaIconSet name={faName} className={className} size={size} />;
+    return <FaIconSet name={faName} className={className} size={size} style={{ color }} />;
 }

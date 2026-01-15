@@ -3,11 +3,7 @@ import { Box, Typography } from '@mui/material';
 import { DndContext, useDraggable, DragEndEvent, DragStartEvent, DragMoveEvent, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 import { HeroSliderSlide, HeroSliderLayer } from '@/services/heroSlider.service';
 
-import * as FaIcons from 'react-icons/fa';
-import * as MdIcons from 'react-icons/md';
-import * as BiIcons from 'react-icons/bi';
-import * as IoIcons from 'react-icons/io5';
-import * as LucideIcons from 'lucide-react';
+import DynamicIcon from '../../atoms/DynamicIcon';
 
 // Viewport dimensions constants - must match frontend breakpoints exactly
 export const VIEWPORT_DIMENSIONS = {
@@ -31,29 +27,8 @@ interface SlideCanvasProps {
 }
 
 const renderIcon = (iconName: string, fontSize: any) => {
-    try {
-        const size = parseInt(fontSize) || 24;
-        if (iconName.startsWith('Fa')) {
-            const Icon = (FaIcons as any)[iconName];
-            return Icon ? <Icon size={size} /> : null;
-        }
-        if (iconName.startsWith('Md')) {
-            const Icon = (MdIcons as any)[iconName];
-            return Icon ? <Icon size={size} /> : null;
-        }
-        if (iconName.startsWith('Bi')) {
-            const Icon = (BiIcons as any)[iconName];
-            return Icon ? <Icon size={size} /> : null;
-        }
-        if (iconName.startsWith('Io')) {
-            const Icon = (IoIcons as any)[iconName];
-            return Icon ? <Icon size={size} /> : null;
-        }
-        const Icon = (LucideIcons as any)[iconName];
-        return Icon ? <Icon size={size} /> : null;
-    } catch (e) {
-        return null;
-    }
+    const size = parseInt(fontSize) || 24;
+    return <DynamicIcon name={iconName} size={size} />;
 };
 
 /**
@@ -106,14 +81,14 @@ export const getVisibilityForViewport = (
     return desktopVisible;
 };
 
-const ResizeHandle = ({ 
-    cursor, 
-    onPointerDown, 
-    style 
-}: { 
-    cursor: string; 
-    onPointerDown: (e: React.PointerEvent) => void; 
-    style: React.CSSProperties 
+const ResizeHandle = ({
+    cursor,
+    onPointerDown,
+    style
+}: {
+    cursor: string;
+    onPointerDown: (e: React.PointerEvent) => void;
+    style: React.CSSProperties
 }) => (
     <div
         onPointerDown={(e) => { e.stopPropagation(); onPointerDown(e); }}
@@ -132,14 +107,14 @@ const ResizeHandle = ({
 );
 
 // Section Content Component - renders the grid with actual child content
-const SectionContent = ({ 
-    layer, 
+const SectionContent = ({
+    layer,
     viewMode,
     isSelected,
     allLayers,
     onSelectLayer
-}: { 
-    layer: HeroSliderLayer; 
+}: {
+    layer: HeroSliderLayer;
     viewMode: 'desktop' | 'tablet' | 'mobile';
     isSelected: boolean;
     allLayers?: HeroSliderLayer[];
@@ -149,9 +124,9 @@ const SectionContent = ({
     if (!layout) return null;
 
     // Get responsive columns
-    const columns = viewMode === 'mobile' 
+    const columns = viewMode === 'mobile'
         ? (layout.mobileColumns || 1)
-        : viewMode === 'tablet' 
+        : viewMode === 'tablet'
             ? (layout.tabletColumns || layout.columns)
             : layout.columns;
 
@@ -186,8 +161,8 @@ const SectionContent = ({
                 alignItems: layout.alignment,
                 justifyItems: direction !== 'column' ? layout.justify : undefined,
                 justifyContent: direction === 'column' ? layout.justify : undefined,
-                padding: layout.padding ? 
-                    `${layout.padding.top || 0}px ${layout.padding.right || 0}px ${layout.padding.bottom || 0}px ${layout.padding.left || 0}px` 
+                padding: layout.padding ?
+                    `${layout.padding.top || 0}px ${layout.padding.right || 0}px ${layout.padding.bottom || 0}px ${layout.padding.left || 0}px`
                     : '16px',
                 border: isSelected ? '2px dashed rgba(0, 212, 255, 0.5)' : '2px dashed rgba(255,255,255,0.2)',
                 borderRadius: '8px',
@@ -198,9 +173,9 @@ const SectionContent = ({
             }}
         >
             {childLayers.length === 0 ? (
-                <Box sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
                     justifyContent: 'center',
                     color: 'rgba(255,255,255,0.4)',
                     fontSize: 12,
@@ -222,7 +197,7 @@ const SectionContent = ({
                 childLayers.map((childLayer) => {
                     const childStyle = getStyleForViewport(childLayer, viewMode);
                     const isVisible = getVisibilityForViewport(childLayer, viewMode);
-                    
+
                     if (!isVisible) return null;
 
                     // Build border styles
@@ -268,19 +243,19 @@ const SectionContent = ({
                                 minHeight: 40,
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: childStyle?.textAlign === 'center' ? 'center' : 
-                                               childStyle?.textAlign === 'right' ? 'flex-end' : 'flex-start',
+                                justifyContent: childStyle?.textAlign === 'center' ? 'center' :
+                                    childStyle?.textAlign === 'right' ? 'flex-end' : 'flex-start',
                             }}
                         >
                             {childLayer.type === 'text' && childLayer.content}
                             {childLayer.type === 'rte' && (
-                                <div 
-                                    dangerouslySetInnerHTML={{ __html: childLayer.content }} 
+                                <div
+                                    dangerouslySetInnerHTML={{ __html: childLayer.content }}
                                     style={{ width: '100%' }}
                                 />
                             )}
                             {childLayer.type === 'button' && (
-                                <Box sx={{ 
+                                <Box sx={{
                                     display: 'inline-block',
                                     cursor: 'pointer'
                                 }}>
@@ -529,7 +504,7 @@ const DraggableLayer = ({
 
     // Store current handlers in a ref for event listener management
     const handlersRef = useRef({ onPointerMove, onPointerUp });
-    
+
     // Update handlers ref when callbacks change
     useEffect(() => {
         handlersRef.current = { onPointerMove, onPointerUp };
@@ -572,7 +547,7 @@ const DraggableLayer = ({
             document.removeEventListener('pointerup', upHandler);
             document.removeEventListener('pointercancel', upHandler);
         };
-        
+
         document.addEventListener('pointermove', moveHandler);
         document.addEventListener('pointerup', upHandler);
         document.addEventListener('pointercancel', upHandler);
@@ -602,8 +577,8 @@ const DraggableLayer = ({
             {layer.type === 'text' && layer.content}
             {layer.type === 'button' && layer.content}
             {layer.type === 'section' && (
-                <SectionContent 
-                    layer={layer} 
+                <SectionContent
+                    layer={layer}
                     viewMode={viewMode}
                     isSelected={isSelected}
                     allLayers={allLayers}
@@ -646,16 +621,16 @@ const DraggableLayer = ({
 };
 
 // Grid Overlay Component
-const GridOverlay = ({ 
-    width, 
-    height, 
-    gridSize = 20, 
-    show = false 
-}: { 
-    width: number; 
-    height: number; 
-    gridSize?: number; 
-    show?: boolean 
+const GridOverlay = ({
+    width,
+    height,
+    gridSize = 20,
+    show = false
+}: {
+    width: number;
+    height: number;
+    gridSize?: number;
+    show?: boolean
 }) => {
     if (!show) return null;
 
@@ -682,16 +657,16 @@ const GridOverlay = ({
 };
 
 // Center guides component
-const CenterGuides = ({ 
-    show, 
-    width, 
-    height, 
-    draggingPosition 
-}: { 
-    show: boolean; 
-    width: number; 
-    height: number; 
-    draggingPosition: { x: number; y: number } | null 
+const CenterGuides = ({
+    show,
+    width,
+    height,
+    draggingPosition
+}: {
+    show: boolean;
+    width: number;
+    height: number;
+    draggingPosition: { x: number; y: number } | null
 }) => {
     if (!show || !draggingPosition) return null;
 
@@ -741,14 +716,14 @@ const CenterGuides = ({
 };
 
 // Ruler Component
-const Ruler = ({ 
-    orientation, 
-    size, 
-    actualSize 
-}: { 
-    orientation: 'horizontal' | 'vertical'; 
-    size: number; 
-    actualSize: number; 
+const Ruler = ({
+    orientation,
+    size,
+    actualSize
+}: {
+    orientation: 'horizontal' | 'vertical';
+    size: number;
+    actualSize: number;
 }) => {
     const ticks = [];
     const majorInterval = 100;
@@ -1058,28 +1033,28 @@ export default function SlideCanvas({
                         {slide.layers
                             .filter(layer => !layer.parentId) // Filter out child layers
                             .map(layer => (
-                            <DraggableLayer
-                                key={layer.id}
-                                layer={layer}
-                                isSelected={selectedLayerIds.includes(layer.id)}
-                                onSelect={(addToSelection) => onSelectLayer(layer.id, addToSelection)}
-                                onUpdateLayer={(updates) => onUpdateLayer(layer.id, updates)}
-                                viewMode={viewMode}
-                                containerWidth={width}
-                                containerHeight={height}
-                                groupDragDelta={
-                                    draggingLayerId && 
-                                    selectedLayerIds.includes(draggingLayerId) && 
-                                    selectedLayerIds.length > 1 && 
-                                    layer.id !== draggingLayerId 
-                                        ? currentDragDelta 
-                                        : null
-                                }
-                                allLayers={slide.layers}
-                                onSelectLayerById={onSelectLayer}
-                                zoom={zoom}
-                            />
-                        ))}
+                                <DraggableLayer
+                                    key={layer.id}
+                                    layer={layer}
+                                    isSelected={selectedLayerIds.includes(layer.id)}
+                                    onSelect={(addToSelection) => onSelectLayer(layer.id, addToSelection)}
+                                    onUpdateLayer={(updates) => onUpdateLayer(layer.id, updates)}
+                                    viewMode={viewMode}
+                                    containerWidth={width}
+                                    containerHeight={height}
+                                    groupDragDelta={
+                                        draggingLayerId &&
+                                            selectedLayerIds.includes(draggingLayerId) &&
+                                            selectedLayerIds.length > 1 &&
+                                            layer.id !== draggingLayerId
+                                            ? currentDragDelta
+                                            : null
+                                    }
+                                    allLayers={slide.layers}
+                                    onSelectLayerById={onSelectLayer}
+                                    zoom={zoom}
+                                />
+                            ))}
                     </div>
                 </DndContext>
 
@@ -1096,12 +1071,12 @@ export default function SlideCanvas({
                     <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>
                         {baseWidth} × {baseHeight}px
                     </Typography>
-                    <Typography variant="caption" sx={{ 
-                        color: 'rgba(255,255,255,0.6)', 
+                    <Typography variant="caption" sx={{
+                        color: 'rgba(255,255,255,0.6)',
                         fontWeight: 600,
-                        backgroundColor: viewMode === 'desktop' ? 'rgba(0, 212, 255, 0.2)' : 
-                                        viewMode === 'tablet' ? 'rgba(124, 58, 237, 0.3)' : 
-                                        'rgba(16, 185, 129, 0.3)',
+                        backgroundColor: viewMode === 'desktop' ? 'rgba(0, 212, 255, 0.2)' :
+                            viewMode === 'tablet' ? 'rgba(124, 58, 237, 0.3)' :
+                                'rgba(16, 185, 129, 0.3)',
                         px: 1,
                         py: 0.25,
                         borderRadius: 0.5

@@ -13,11 +13,7 @@ import { fetchHeroSlider } from '@/lib/api';
 import { useStore } from '@/providers/StoreProvider';
 import { track } from '@/lib/ga';
 import styles from './HeroSlider.module.css';
-import * as FaIcons from 'react-icons/fa';
-import * as MdIcons from 'react-icons/md';
-import * as BiIcons from 'react-icons/bi';
-import * as IoIcons from 'react-icons/io5';
-import * as LucideIcons from 'lucide-react';
+import DynamicIcon from '../../../common/DynamicIcon';
 import { formatFontFamily } from '@/lib/fonts';
 import { useDynamicFonts } from '@/hooks/useDynamicFonts';
 
@@ -30,30 +26,8 @@ const VIEWPORT_BREAKPOINTS = {
 
 // Helper to render icon by name
 const renderIcon = (iconName: string, fontSize: any) => {
-    try {
-        const size = parseInt(fontSize) || 24;
-        if (iconName.startsWith('Fa')) {
-            const Icon = (FaIcons as any)[iconName];
-            return Icon ? <Icon size={size} /> : null;
-        }
-        if (iconName.startsWith('Md')) {
-            const Icon = (MdIcons as any)[iconName];
-            return Icon ? <Icon size={size} /> : null;
-        }
-        if (iconName.startsWith('Bi')) {
-            const Icon = (BiIcons as any)[iconName];
-            return Icon ? <Icon size={size} /> : null;
-        }
-        if (iconName.startsWith('Io')) {
-            const Icon = (IoIcons as any)[iconName];
-            return Icon ? <Icon size={size} /> : null;
-        }
-        const Icon = (LucideIcons as any)[iconName];
-        return Icon ? <Icon size={size} /> : null;
-    } catch (e) {
-        console.warn(`Failed to render icon: ${iconName}`, e);
-        return null;
-    }
+    const size = parseInt(fontSize) || 24;
+    return <DynamicIcon name={iconName} size={size} />;
 };
 
 // Section layout configuration

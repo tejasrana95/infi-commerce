@@ -18,11 +18,7 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
-import * as FaIcons from 'react-icons/fa';
-import * as MdIcons from 'react-icons/md';
-import * as BiIcons from 'react-icons/bi';
-import * as IoIcons from 'react-icons/io5';
-import * as LucideIcons from 'lucide-react';
+import DynamicIcon from './DynamicIcon';
 
 interface IconPickerProps {
     value: string;
@@ -47,32 +43,41 @@ export default function IconPicker({
     const [allIcons, setAllIcons] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
 
-    // Load icons only once on mount to avoid heavy processing on every render
-    useEffect(() => {
-        setLoading(true);
-        // Use timeout to allow UI to render first if needed, though mostly fast enough
-        setTimeout(() => {
-            const faKeys = Object.keys(FaIcons).filter(key => key !== 'default');
-            const mdKeys = Object.keys(MdIcons).filter(key => key !== 'default');
-            const biKeys = Object.keys(BiIcons).filter(key => key !== 'default');
-            const ioKeys = Object.keys(IoIcons).filter(key => key !== 'default');
+    const handleOpen = async () => {
+        setOpen(true);
+        if (allIcons.length === 0) {
+            setLoading(true);
+            try {
+                // Dynamically import libraries only to get keys
+                // These will be in their own chunks
+                const [fa, md, bi, io, lucide] = await Promise.all([
+                    import('react-icons/fa'),
+                    import('react-icons/md'),
+                    import('react-icons/bi'),
+                    import('react-icons/io5'),
+                    import('lucide-react')
+                ]);
 
-            // Lucide exports icons as named exports, but also some utility functions. 
-            // Most Lucide icons seem to be PascalCase. 
-            // We can filter for things that look like React components (usually valid pascal case names provided by the lib).
-            // A simple heuristic is that they don't start with lower case.
-            const lucideKeys = Object.keys(LucideIcons).filter(key =>
-                key !== 'default' &&
-                key !== 'createLucideIcon' &&
-                /^[A-Z]/.test(key)
-            );
+                const faKeys = Object.keys(fa).filter(key => key !== 'default');
+                const mdKeys = Object.keys(md).filter(key => key !== 'default');
+                const biKeys = Object.keys(bi).filter(key => key !== 'default');
+                const ioKeys = Object.keys(io).filter(key => key !== 'default');
 
-            setAllIcons([...faKeys, ...mdKeys, ...biKeys, ...ioKeys, ...lucideKeys]);
-            setLoading(false);
-        }, 0);
-    }, []);
+                const lucideKeys = Object.keys(lucide).filter(key =>
+                    key !== 'default' &&
+                    key !== 'createLucideIcon' &&
+                    /^[A-Z]/.test(key)
+                );
 
-    const handleOpen = () => setOpen(true);
+                setAllIcons([...faKeys, ...mdKeys, ...biKeys, ...ioKeys, ...lucideKeys]);
+            } catch (error) {
+                console.error('Failed to load icons:', error);
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
     const handleClose = () => {
         setOpen(false);
         setSearchTerm('');
@@ -106,30 +111,7 @@ export default function IconPicker({
 
     // Helper to render icon by name
     const renderIcon = (iconName: string, iconSize = 24) => {
-        try {
-            if (iconName.startsWith('Fa')) {
-                const Icon = (FaIcons as any)[iconName];
-                return Icon ? <Icon size={iconSize} /> : null;
-            }
-            if (iconName.startsWith('Md')) {
-                const Icon = (MdIcons as any)[iconName];
-                return Icon ? <Icon size={iconSize} /> : null;
-            }
-            if (iconName.startsWith('Bi')) {
-                const Icon = (BiIcons as any)[iconName];
-                return Icon ? <Icon size={iconSize} /> : null;
-            }
-            if (iconName.startsWith('Io')) {
-                const Icon = (IoIcons as any)[iconName];
-                return Icon ? <Icon size={iconSize} /> : null;
-            }
-            // Fallback to Lucide for others or explicitly check
-            const Icon = (LucideIcons as any)[iconName];
-            return Icon ? <Icon size={iconSize} /> : null;
-        } catch (e) {
-            console.warn(`Failed to render icon: ${iconName}`, e);
-            return null;
-        }
+        return <DynamicIcon name={iconName} size={iconSize} />;
     };
 
     return (

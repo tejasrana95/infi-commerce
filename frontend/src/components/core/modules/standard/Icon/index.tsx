@@ -1,15 +1,6 @@
 'use client';
 
-import React from 'react';
-import * as FaIcons from 'react-icons/fa';
-import * as MdIcons from 'react-icons/md';
-import * as AiIcons from 'react-icons/ai';
-import * as BiIcons from 'react-icons/bi';
-import * as BsIcons from 'react-icons/bs';
-import * as IoIcons from 'react-icons/io5';
-import * as HiIcons from 'react-icons/hi';
-import * as RiIcons from 'react-icons/ri';
-import * as LucideIcons from 'lucide-react';
+import DynamicIcon from '../../../common/DynamicIcon';
 import styles from './index.module.scss';
 
 interface IconProps {
@@ -33,30 +24,6 @@ export default function Icon({ config }: IconProps) {
         hoverEffect = false,
     } = config;
 
-    // Get the icon library based on prefix
-    const getIconLibrary = (iconName: string) => {
-        // Check if icon has a 2-letter prefix (e.g., Fa, Md, Ai, etc.)
-        const prefix = iconName.substring(0, 2).toLowerCase();
-        const libraries: Record<string, any> = {
-            'fa': FaIcons,
-            'md': MdIcons,
-            'ai': AiIcons,
-            'bi': BiIcons,
-            'bs': BsIcons,
-            'io': IoIcons,
-            'hi': HiIcons,
-            'ri': RiIcons,
-        };
-
-        // If prefix exists in libraries, use it; otherwise assume Lucide
-        return libraries[prefix] || LucideIcons;
-    };
-
-    // Get the icon component dynamically
-    const iconLibrary = getIconLibrary(icon);
-    const IconComponent = (iconLibrary as any)[icon] || FaIcons.FaStar;
-    const isLucideIcon = iconLibrary === LucideIcons;
-
     const containerStyle: React.CSSProperties = {
         display: 'flex',
         justifyContent: position === 'left' ? 'flex-start' : position === 'right' ? 'flex-end' : 'center',
@@ -68,7 +35,6 @@ export default function Icon({ config }: IconProps) {
         alignItems: 'center',
         justifyContent: 'center',
         color: iconColor,
-        fontSize: `${size}px`,
         ...(showBorder && {
             border: `${borderSize}px solid ${borderColor}`,
             borderRadius: `${borderRadius}px`,
@@ -84,11 +50,7 @@ export default function Icon({ config }: IconProps) {
     return (
         <div style={containerStyle} className={styles.container}>
             <div style={iconWrapperStyle} className={iconWrapperClasses}>
-                {isLucideIcon ? (
-                    <IconComponent size={size} strokeWidth={1.5} />
-                ) : (
-                    <IconComponent />
-                )}
+                <DynamicIcon name={icon} size={size} />
             </div>
         </div>
     );
