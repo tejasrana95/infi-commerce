@@ -43,131 +43,50 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  webpack: (config, { isServer }) => {
-    // Only apply optimizations for client-side bundles
-    if (!isServer) {
-      // Optimize chunk splitting
+  // Added turbopack config to silence Next.js 16 build error
+  turbopack: {},
+  webpack: (config, { isServer, dev }) => {
+    // Optimization: Only apply heavy splitting for production client builds to avoid worker crashes
+    if (!isServer && !dev) {
       config.optimization = {
         ...config.optimization,
         splitChunks: {
           chunks: 'all',
+          maxSize: 500000,
+          minSize: 20000,
           cacheGroups: {
-            // Separate vendor chunks for better caching
             default: false,
             vendors: false,
-
-            // Framework chunk (React, Next.js core)
             framework: {
               name: 'framework',
               test: /[\\/]node_modules[\\/](react|react-dom|next)[\\/]/,
               priority: 40,
-              reuseExistingChunk: true,
               enforce: true,
             },
-
-            // Stripe libraries
-            stripe: {
-              name: 'stripe',
-              test: /[\\/]node_modules[\\/](@stripe)[\\/]/,
-              priority: 35,
-              reuseExistingChunk: true,
-            },
-
-            // Animation libraries
-            animations: {
-              name: 'animations',
-              test: /[\\/]node_modules[\\/](framer-motion|swiper)[\\/]/,
+            // Group icons to reduce complexity during build
+            icons: {
+              name: 'vendor-icons',
+              test: /[\\/]node_modules[\\/](react-icons|lucide-react)[\\/]/,
               priority: 30,
-              reuseExistingChunk: true,
             },
-
-            // Icons - each library as separate chunk (only loaded when used)
-            iconsFA: {
-              name: 'icons-fa',
-              test: /[\\/]node_modules[\\/]react-icons[\\/]fa[\\/]/,
-              priority: 25,
-              reuseExistingChunk: true,
-            },
-            iconsMD: {
-              name: 'icons-md',
-              test: /[\\/]node_modules[\\/]react-icons[\\/]md[\\/]/,
-              priority: 25,
-              reuseExistingChunk: true,
-            },
-            iconsBi: {
-              name: 'icons-bi',
-              test: /[\\/]node_modules[\\/]react-icons[\\/]bi[\\/]/,
-              priority: 25,
-              reuseExistingChunk: true,
-            },
-            iconsBs: {
-              name: 'icons-bs',
-              test: /[\\/]node_modules[\\/]react-icons[\\/]bs[\\/]/,
-              priority: 25,
-              reuseExistingChunk: true,
-            },
-            iconsHi: {
-              name: 'icons-hi',
-              test: /[\\/]node_modules[\\/]react-icons[\\/]hi[\\/]/,
-              priority: 25,
-              reuseExistingChunk: true,
-            },
-            iconsRi: {
-              name: 'icons-ri',
-              test: /[\\/]node_modules[\\/]react-icons[\\/]ri[\\/]/,
-              priority: 25,
-              reuseExistingChunk: true,
-            },
-            iconsIo: {
-              name: 'icons-io',
-              test: /[\\/]node_modules[\\/]react-icons[\\/]io5[\\/]/,
-              priority: 25,
-              reuseExistingChunk: true,
-            },
-            iconsAi: {
-              name: 'icons-ai',
-              test: /[\\/]node_modules[\\/]react-icons[\\/]ai[\\/]/,
-              priority: 25,
-              reuseExistingChunk: true,
-            },
-            iconsLucide: {
-              name: 'icons-lucide',
-              test: /[\\/]node_modules[\\/]lucide-react[\\/]/,
-              priority: 25,
-              reuseExistingChunk: true,
-            },
-
-            // Other common libraries
-            lib: {
-              test: /[\\/]node_modules[\\/]/,
-              name(module: any) {
-                // Get the package name
-                const packageName = module.context.match(
-                  /[\\/]node_modules[\\/](.*?)([\\/]|$)/
-                )?.[1];
-                // npm package names are URL-safe, but some servers don't like @ symbols
-                return `npm.${packageName?.replace('@', '')}`;
-              },
-              priority: 20,
-              minChunks: 2,
-              reuseExistingChunk: true,
-            },
-
-            // Common app code used across the site
             commons: {
               name: 'commons',
               minChunks: 2,
+              priority: 20,
+            },
+            lib: {
+              test: /[\\/]node_modules[\\/]/,
+              name(module: any) {
+                const packageName = module.context.match(/[\\/]node_modules[\\/](.*?)([\\/]|$)/)?.[1];
+                return `npm.${packageName?.replace('@', '').replace('/', '.')}`;
+              },
               priority: 10,
-              reuseExistingChunk: true,
+              minChunks: 2,
             },
           },
-          // Set maximum size limits for chunks
-          maxSize: 500000, // 500KB - forces splitting of large chunks
-          minSize: 20000, // 20KB minimum
         },
       };
     }
-
     return config;
   },
 };
