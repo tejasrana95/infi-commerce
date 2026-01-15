@@ -3,11 +3,25 @@
  * 
  * Extracts store context from X-Store-ID header and attaches to request.
  * This enables multi-tenant functionality where each request is scoped to a specific store.
+ * 
+ * Uses Redis cache (when enabled) to minimize database lookups.
  */
 
 import { Response, NextFunction } from 'express';
 import Store from '../models/Store';
 import { AuthRequest } from './auth';
+import redisService from '../services/redis.service';
+import { CacheKeys, CACHE_TTL } from '../utils/cache-keys';
+
+// Interface for cached store data
+interface CachedStoreData {
+    _id: string;
+    name: string;
+    slug: string;
+    domains: string[];
+    settings?: any;
+    isActive: boolean;
+}
 
 // Extend AuthRequest to include store context
 declare global {
@@ -24,6 +38,42 @@ declare global {
         }
     }
 }
+
+/**
+ * Helper function to fetch store data with caching
+ */
+const getStoreWithCache = async (storeId: string): Promise<CachedStoreData | null> => {
+    const cacheKey = CacheKeys.store(storeId);
+
+    // Try cache first
+    let store = await redisService.get<CachedStoreData>(cacheKey);
+
+    if (store) {
+        return store;
+    }
+
+    // Cache miss - fetch from database
+    const storeDoc = await Store.findById(storeId)
+        .select('_id name slug domains settings isActive')
+        .lean();
+
+    if (storeDoc) {
+        // Prepare cache data
+        store = {
+            _id: storeDoc._id.toString(),
+            name: storeDoc.name,
+            slug: storeDoc.slug,
+            domains: storeDoc.domains || [],
+            settings: storeDoc.settings,
+            isActive: storeDoc.isActive,
+        };
+
+        // Cache the result
+        await redisService.set(cacheKey, store, CACHE_TTL.STORE);
+    }
+
+    return store;
+};
 
 /**
  * Middleware to extract and validate store context from X-Store-ID header.
@@ -56,8 +106,8 @@ export const storeContext = async (
             return;
         }
 
-        // Find store and attach to request
-        const store = await Store.findById(storeId).select('_id name slug domain settings isActive');
+        // Get store with caching
+        const store = await getStoreWithCache(storeId);
 
         if (!store) {
             res.status(404).json({ error: 'Store not found' });
@@ -70,9 +120,9 @@ export const storeContext = async (
         }
 
         // Attach store context to request
-        req.storeId = store._id.toString();
+        req.storeId = store._id;
         req.store = {
-            _id: store._id.toString(),
+            _id: store._id,
             name: store.name,
             slug: store.slug,
             domains: store.domains,
@@ -127,13 +177,13 @@ storeContext.optional = async (
             return;
         }
 
-        // Find store and attach to request
-        const store = await Store.findById(storeId).select('_id name slug domain settings isActive');
+        // Get store with caching
+        const store = await getStoreWithCache(storeId);
 
         if (store && store.isActive) {
-            req.storeId = store._id.toString();
+            req.storeId = store._id;
             req.store = {
-                _id: store._id.toString(),
+                _id: store._id,
                 name: store.name,
                 slug: store.slug,
                 domains: store.domains,

@@ -3,6 +3,7 @@ import { body, param } from 'express-validator';
 import Layout from '../models/Layout';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
+import { invalidateLayoutCache } from '../utils/cache-invalidation';
 
 // Validation rules
 export const createLayoutValidation = [
@@ -79,6 +80,9 @@ export const createLayout = asyncHandler(async (req: AuthRequest, res: Response)
         message: 'Layout created successfully',
         layout,
     });
+
+    // Invalidate layout cache for this store
+    await invalidateLayoutCache(storeId);
 });
 
 /**
@@ -231,6 +235,9 @@ export const updateLayout = asyncHandler(async (req: AuthRequest, res: Response)
     Object.assign(layout, updates);
     await layout.save();
 
+    // Invalidate layout cache for this store
+    await invalidateLayoutCache(layout.storeId.toString());
+
     res.json({
         message: 'Layout updated successfully',
         layout,
@@ -267,6 +274,9 @@ export const deleteLayout = asyncHandler(async (req: AuthRequest, res: Response)
     }
 
     await layout.deleteOne();
+
+    // Invalidate layout cache for this store
+    await invalidateLayoutCache(layout.storeId.toString());
 
     res.json({
         message: 'Layout deleted successfully',
@@ -313,6 +323,9 @@ export const duplicateLayout = asyncHandler(async (req: AuthRequest, res: Respon
         message: 'Layout duplicated successfully',
         layout: newLayout,
     });
+
+    // Invalidate layout cache for this store
+    await invalidateLayoutCache(newLayout.storeId.toString());
 });
 
 /**

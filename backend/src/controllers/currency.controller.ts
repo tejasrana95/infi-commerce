@@ -3,6 +3,7 @@ import { body } from 'express-validator';
 import Currency from '../models/Currency';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
+import { invalidateCurrencyCache } from '../utils/cache-invalidation';
 
 // Validation rules
 export const createCurrencyValidation = [
@@ -84,6 +85,9 @@ export const createCurrency = asyncHandler(async (req: AuthRequest, res: Respons
         message: 'Currency created successfully',
         currency,
     });
+
+    // Invalidate currency cache
+    await invalidateCurrencyCache();
 });
 
 /**
@@ -209,6 +213,9 @@ export const updateCurrency = asyncHandler(async (req: AuthRequest, res: Respons
     Object.assign(currency, updates);
     await currency.save();
 
+    // Invalidate currency cache
+    await invalidateCurrencyCache();
+
     res.json({
         message: 'Currency updated successfully',
         currency,
@@ -245,6 +252,9 @@ export const deleteCurrency = asyncHandler(async (req: AuthRequest, res: Respons
     }
 
     await currency.deleteOne();
+
+    // Invalidate currency cache
+    await invalidateCurrencyCache();
 
     res.json({
         message: 'Currency deleted successfully',
@@ -348,6 +358,9 @@ export const updateExchangeRate = asyncHandler(async (req: AuthRequest, res: Res
 
     currency.exchangeRate = exchangeRate;
     await currency.save();
+
+    // Invalidate currency cache
+    await invalidateCurrencyCache();
 
     res.json({
         message: 'Exchange rate updated successfully',

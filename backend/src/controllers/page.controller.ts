@@ -3,6 +3,7 @@ import { body, param } from 'express-validator';
 import Page from '../models/Page';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
+import { invalidatePageCache } from '../utils/cache-invalidation';
 import { triggerRevalidation } from '../utils/revalidation';
 
 export const createPageValidation = [
@@ -68,6 +69,9 @@ export const createPage = asyncHandler(async (req: AuthRequest, res: Response) =
         message: 'Page created successfully',
         page,
     });
+
+    // Invalidate page cache for this store
+    await invalidatePageCache(storeId);
 });
 
 /**
@@ -202,6 +206,9 @@ export const updatePage = asyncHandler(async (req: AuthRequest, res: Response) =
     Object.assign(page, updates);
     await page.save();
 
+    // Invalidate page cache for this store
+    await invalidatePageCache(page.storeId.toString());
+
     // Trigger frontend cache revalidation
     triggerRevalidation(page.storeId.toString(), 'page', page.slug).catch(err => {
         console.error('Revalidation failed:', err);
@@ -237,6 +244,9 @@ export const deletePage = asyncHandler(async (req: AuthRequest, res: Response) =
     if (!page) {
         throw new AppError('Page not found', 404);
     }
+
+    // Invalidate page cache for this store
+    await invalidatePageCache(page.storeId.toString());
 
     res.json({
         message: 'Page deleted successfully',

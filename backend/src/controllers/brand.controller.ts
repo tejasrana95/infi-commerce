@@ -5,6 +5,7 @@ import Brand from '../models/Brand';
 import Store from '../models/Store';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
+import { invalidateBrandCache } from '../utils/cache-invalidation';
 
 // Validation rules
 export const createBrandValidation = [
@@ -90,6 +91,9 @@ export const createBrand = asyncHandler(async (req: AuthRequest, res: Response) 
         message: 'Brand created successfully',
         brand,
     });
+
+    // Invalidate brand cache for this store
+    await invalidateBrandCache(storeId);
 });
 
 /**
@@ -248,6 +252,9 @@ export const updateBrand = asyncHandler(async (req: AuthRequest, res: Response) 
     Object.assign(brand, updates);
     await brand.save();
 
+    // Invalidate brand cache for this store
+    await invalidateBrandCache(brand.storeId.toString());
+
     res.json({
         message: 'Brand updated successfully',
         brand,
@@ -283,6 +290,9 @@ export const deleteBrand = asyncHandler(async (req: AuthRequest, res: Response) 
     if (!brand) {
         throw new AppError('Brand not found', 404);
     }
+
+    // Invalidate brand cache for this store
+    await invalidateBrandCache(brand.storeId.toString());
 
     res.json({
         message: 'Brand deleted successfully',

@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import ApiKey, { IApiKey } from '../models/ApiKey';
 import Store from '../models/Store';
-import cache from '../utils/cache';
+import redisService from '../services/redis.service';
+import { CacheKeys, CACHE_TTL } from '../utils/cache-keys';
 
 // Rate limit tracking (in-memory for simplicity, use Redis in production)
 const rateLimitStore: Map<string, { count: number; resetAt: number }> = new Map();
@@ -228,13 +229,13 @@ export const optionalApiKeyAuth = async (
                 }
 
                 if (hostname) {
-                    const cacheKey = `allowed_domain:${hostname}`;
-                    let isAllowed = cache.get<boolean>(cacheKey);
+                    const cacheKey = CacheKeys.domainAllowed(hostname);
+                    let isAllowed = await redisService.get<boolean>(cacheKey);
 
-                    if (isAllowed === null) {
+                    if (isAllowed === null || isAllowed === undefined) {
                         const store = await Store.findOne({ domains: hostname, isActive: true });
                         isAllowed = !!store;
-                        cache.set(cacheKey, isAllowed, 3600); // Cache for 1 hour
+                        await redisService.set(cacheKey, isAllowed, CACHE_TTL.DOMAIN_CHECK);
                     }
 
                     if (isAllowed) {

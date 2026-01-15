@@ -7,6 +7,7 @@ import Product from '../models/Product';
 import Store from '../models/Store';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
+import { invalidateShippingCache } from '../utils/cache-invalidation';
 
 // Validation rules
 export const createShippingRuleValidation = [
@@ -53,6 +54,9 @@ export const createShippingRule = asyncHandler(async (req: AuthRequest, res: Res
     }
 
     const shippingRule = await ShippingRule.create(ruleData);
+
+    // Invalidate shipping cache for this store
+    await invalidateShippingCache(ruleData.storeId);
 
     res.status(201).json({
         success: true,
@@ -150,6 +154,9 @@ export const updateShippingRule = asyncHandler(async (req: AuthRequest, res: Res
         throw new AppError('Shipping rule not found', 404);
     }
 
+    // Invalidate shipping cache for this store
+    await invalidateShippingCache(shippingRule.storeId.toString());
+
     res.json({
         success: true,
         message: 'Shipping rule updated successfully',
@@ -170,6 +177,9 @@ export const deleteShippingRule = asyncHandler(async (req: AuthRequest, res: Res
     if (!shippingRule) {
         throw new AppError('Shipping rule not found', 404);
     }
+
+    // Invalidate shipping cache for this store
+    await invalidateShippingCache(shippingRule.storeId.toString());
 
     res.json({
         success: true,

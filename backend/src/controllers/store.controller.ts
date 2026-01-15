@@ -5,7 +5,9 @@ import Menu from '../models/Menu';
 import Product from '../models/Product';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
-import cache from '../utils/cache';
+import redisService from '../services/redis.service';
+import { CacheKeys, CACHE_TTL } from '../utils/cache-keys';
+import { invalidateStoreCache, invalidateStoreDomainCache } from '../utils/cache-invalidation';
 
 // Helper to validate domain format
 const isValidDomain = (value: string): boolean => {
@@ -262,14 +264,14 @@ async function getEnrichedMenus(themeConfig: any, storeId: string): Promise<Reco
  */
 export const getStoreByDomain = asyncHandler(async (req: Request, res: Response) => {
     const { domain } = req.params;
-    const cacheKey = `store:domain:${domain}`;
+    const cacheKey = CacheKeys.storeByDomain(domain);
 
     // Check for cache bypass parameters (nocache or purge)
     const bypassCache = req.query.nocache === 'true' || req.query.purge === 'true';
 
     // Try cache first (unless bypassed)
     if (!bypassCache) {
-        const cachedStore = cache.get(cacheKey);
+        const cachedStore = await redisService.get<any>(cacheKey);
         if (cachedStore) {
             // Set cache headers for browser caching
             res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300');
@@ -307,7 +309,7 @@ export const getStoreByDomain = asyncHandler(async (req: Request, res: Response)
 
     // Only cache if not bypassed
     if (!bypassCache) {
-        cache.set(cacheKey, storeWithMenus, 300);
+        await redisService.set(cacheKey, storeWithMenus, CACHE_TTL.STORE);
     }
 
     // Set cache headers for browser caching
@@ -569,7 +571,7 @@ export const getStoreById = asyncHandler(async (req: AuthRequest, res: Response)
     const bypassCache = req.query.nocache === 'true' || req.query.purge === 'true';
 
     if (!bypassCache) {
-        const cachedStore = cache.get(cacheKey);
+        const cachedStore = await redisService.get<any>(cacheKey);
         if (cachedStore) {
             return res.json({ store: cachedStore });
         }
@@ -586,7 +588,7 @@ export const getStoreById = asyncHandler(async (req: AuthRequest, res: Response)
     }
 
     if (!bypassCache) {
-        cache.set(cacheKey, store, 300);
+        await redisService.set(cacheKey, store, CACHE_TTL.STORE);
     }
 
     return res.json({ store });
@@ -623,7 +625,7 @@ export const getStoreBySlug = asyncHandler(async (req: AuthRequest, res: Respons
     const { slug } = req.params;
     const cacheKey = `store:slug:${slug}`;
 
-    const cachedStore = cache.get(cacheKey);
+    const cachedStore = await redisService.get<any>(cacheKey);
     if (cachedStore) {
         return res.json({ store: cachedStore });
     }
@@ -638,7 +640,7 @@ export const getStoreBySlug = asyncHandler(async (req: AuthRequest, res: Respons
         store.settings.aiSettings.openaiKey = '••••••••••••••••••••';
     }
 
-    cache.set(cacheKey, store, 300);
+    await redisService.set(cacheKey, store, CACHE_TTL.STORE);
 
     return res.json({ store });
 });
@@ -801,17 +803,14 @@ export const updateStore = asyncHandler(async (req: AuthRequest, res: Response) 
         throw new AppError('Store not found', 404);
     }
 
-    // Invalidate caches - clear all old domains and new domains
-    cache.delete(`store:id:${id}`);
-    cache.delete(`store:slug:${store.slug}`);
-    // Clear cache for old domains
-    for (const d of oldDomains) {
-        cache.delete(`store:domain:${d}`);
-    }
-    // Clear cache for new domains
-    for (const d of store.domains) {
-        cache.delete(`store:domain:${d}`);
-    }
+    // Invalidate caches using Redis service
+    await Promise.all([
+        invalidateStoreCache(id),
+        invalidateStoreDomainCache(oldDomains),
+        invalidateStoreDomainCache(store.domains),
+        redisService.delete(`store:id:${id}`),
+        redisService.delete(`store:slug:${store.slug}`),
+    ]);
 
     res.json({
         message: 'Store updated successfully',
@@ -906,13 +905,11 @@ export const toggleStoreStatus = asyncHandler(async (req: AuthRequest, res: Resp
     store.isActive = !store.isActive;
     await store.save();
 
-    // Invalidate caches
-    cache.delete(`store:id:${id}`);
-    cache.delete(`store:slug:${store.slug}`);
-    // Clear cache for all domains
-    for (const d of store.domains) {
-        cache.delete(`store:domain:${d}`);
-    }
+    // Invalidate caches using Redis service
+    await Promise.all([
+        invalidateStoreCache(id),
+        invalidateStoreDomainCache(store.domains),
+    ]);
 
     return res.json({
         message: `Store ${store.isActive ? 'activated' : 'deactivated'} successfully`,

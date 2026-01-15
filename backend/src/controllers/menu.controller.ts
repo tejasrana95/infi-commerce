@@ -4,19 +4,21 @@ import Menu from '../models/Menu';
 import Store from '../models/Store';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
-import cache from '../utils/cache';
+import redisService from '../services/redis.service';
+import { CacheKeys, CACHE_TTL } from '../utils/cache-keys';
+import { invalidateMenuCache, invalidateStoreCache, invalidateStoreDomainCache } from '../utils/cache-invalidation';
 
-// Helper function to invalidate store cache
-async function invalidateStoreCache(storeId: string) {
+// Helper function to invalidate store cache (for menu updates that affect store)
+async function invalidateStoreCacheOnMenuChange(storeId: string) {
     try {
         const store = await Store.findById(storeId);
         if (store) {
-            // Invalidate cache for all domains
-            cache.delete(`store:id:${storeId}`);
-            cache.delete(`store:slug:${store.slug}`);
-            for (const domain of store.domains) {
-                cache.delete(`store:domain:${domain}`);
-            }
+            // Invalidate both store and menu caches
+            await Promise.all([
+                invalidateStoreCache(storeId),
+                invalidateStoreDomainCache(store.domains),
+                invalidateMenuCache(storeId),
+            ]);
         }
     } catch (error) {
         console.error('Failed to invalidate store cache:', error);
@@ -94,7 +96,7 @@ export const createMenu = asyncHandler(async (req: AuthRequest, res: Response) =
     });
 
     // Invalidate store cache since menus are now embedded
-    await invalidateStoreCache(storeId);
+    await invalidateStoreCacheOnMenuChange(storeId);
 
     res.status(201).json({
         message: 'Menu created successfully',
@@ -196,9 +198,9 @@ export const getMenus = asyncHandler(async (req: AuthRequest, res: Response) => 
  */
 export const getMenuById = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
-    const cacheKey = `menu:id:${id}`;
+    const cacheKey = CacheKeys.menu(id);
 
-    const cachedMenu = cache.get(cacheKey);
+    const cachedMenu = await redisService.get<any>(cacheKey);
     if (cachedMenu) {
         return res.json({ menu: cachedMenu });
     }
@@ -209,7 +211,7 @@ export const getMenuById = asyncHandler(async (req: AuthRequest, res: Response) 
         throw new AppError('Menu not found', 404);
     }
 
-    cache.set(cacheKey, menu, 300);
+    await redisService.set(cacheKey, menu, CACHE_TTL.MENUS);
 
     return res.json({ menu });
 });
@@ -266,10 +268,10 @@ export const updateMenu = asyncHandler(async (req: AuthRequest, res: Response) =
     await menu.save();
 
     // Invalidate cache
-    cache.delete(`menu:id:${id}`);
+    await redisService.delete(CacheKeys.menu(id));
 
     // Invalidate store cache since menus are now embedded
-    await invalidateStoreCache(menu.storeId.toString());
+    await invalidateStoreCacheOnMenuChange(menu.storeId.toString());
 
     return res.json({
         message: 'Menu updated successfully',
@@ -304,10 +306,10 @@ export const deleteMenu = asyncHandler(async (req: AuthRequest, res: Response) =
     }
 
     // Invalidate cache
-    cache.delete(`menu:id:${id}`);
+    await redisService.delete(CacheKeys.menu(id));
 
     // Invalidate store cache since menus are now embedded
-    await invalidateStoreCache(menu.storeId.toString());
+    await invalidateStoreCacheOnMenuChange(menu.storeId.toString());
 
     return res.json({
         message: 'Menu deleted successfully',

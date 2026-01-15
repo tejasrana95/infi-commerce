@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { body, param } from 'express-validator';
 import TaxRate, { ISubTax } from '../models/TaxRate';
 import { asyncHandler } from '../middleware/validation';
+import { invalidateTaxRateCache } from '../utils/cache-invalidation';
 
 // Validation rules
 export const createTaxRateValidation = [
@@ -170,6 +171,9 @@ export const createTaxRate = asyncHandler(async (req: Request, res: Response) =>
 
     await taxRate.save();
 
+    // Invalidate tax rate cache
+    await invalidateTaxRateCache(taxRate._id.toString());
+
     return res.status(201).json({
         success: true,
         data: taxRate,
@@ -247,6 +251,9 @@ export const updateTaxRate = asyncHandler(async (req: Request, res: Response) =>
 
     await taxRate.save();
 
+    // Invalidate tax rate cache
+    await invalidateTaxRateCache(taxRate._id.toString());
+
     return res.json({
         success: true,
         data: taxRate,
@@ -295,6 +302,9 @@ export const deleteTaxRate = asyncHandler(async (req: Request, res: Response) =>
     }
 
     await TaxRate.findByIdAndDelete(req.params.id);
+
+    // Invalidate tax rate cache
+    await invalidateTaxRateCache(req.params.id);
 
     return res.json({
         success: true,

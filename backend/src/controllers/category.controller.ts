@@ -5,7 +5,9 @@ import Category from '../models/Category';
 import Store from '../models/Store';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
-import cache from '../utils/cache';
+import redisService from '../services/redis.service';
+import { CACHE_TTL } from '../utils/cache-keys';
+import { invalidateCategoryCache } from '../utils/cache-invalidation';
 import { triggerRevalidation } from '../utils/revalidation';
 import { escapeRegExp } from '../utils/search.utils';
 
@@ -171,7 +173,7 @@ export const createCategory = asyncHandler(async (req: AuthRequest, res: Respons
     });
 
     // Invalidate store categories cache
-    cache.clearByPrefix(`categories:store:${storeId}`);
+    await invalidateCategoryCache(storeId);
 });
 
 /**
@@ -301,7 +303,7 @@ export const getCategoryTree = asyncHandler(async (req: AuthRequest, res: Respon
     const { storeId } = req.params;
     const cacheKey = `categories:store:${storeId}:tree`;
 
-    const cachedTree = cache.get(cacheKey);
+    const cachedTree = await redisService.get<any[]>(cacheKey);
     if (cachedTree) {
         return res.json({ storeId, tree: cachedTree });
     }
@@ -338,7 +340,7 @@ export const getCategoryTree = asyncHandler(async (req: AuthRequest, res: Respon
 
     const tree = buildTree();
 
-    cache.set(cacheKey, tree, 600); // 10 minutes for tree
+    await redisService.set(cacheKey, tree, CACHE_TTL.CATEGORIES);
 
     return res.json({
         storeId,
@@ -403,7 +405,7 @@ export const getCategoryBySlug = asyncHandler(async (req: AuthRequest, res: Resp
     const { storeId, slug } = req.params;
     const cacheKey = `categories:store:${storeId}:slug:${slug}`;
 
-    const cachedCategory = cache.get(cacheKey);
+    const cachedCategory = await redisService.get<any>(cacheKey);
     if (cachedCategory) {
         return res.json({ category: cachedCategory });
     }
@@ -416,7 +418,7 @@ export const getCategoryBySlug = asyncHandler(async (req: AuthRequest, res: Resp
         throw new AppError('Category not found', 404);
     }
 
-    cache.set(cacheKey, category, 300);
+    await redisService.set(cacheKey, category, CACHE_TTL.CATEGORIES);
 
     return res.json({ category });
 });
@@ -519,7 +521,7 @@ export const updateCategory = asyncHandler(async (req: AuthRequest, res: Respons
     await category.save();
 
     // Invalidate store categories cache
-    cache.clearByPrefix(`categories:store:${category.storeId}`);
+    await invalidateCategoryCache(category.storeId.toString());
 
     // Trigger frontend cache revalidation
     triggerRevalidation(category.storeId.toString(), 'category', category.slug).catch(err => {
@@ -577,7 +579,7 @@ export const deleteCategory = asyncHandler(async (req: AuthRequest, res: Respons
     await category.deleteOne();
 
     // Invalidate store categories cache
-    cache.clearByPrefix(`categories:store:${category.storeId}`);
+    await invalidateCategoryCache(category.storeId.toString());
 
     return res.json({
         message: 'Category deleted successfully',
