@@ -3,7 +3,6 @@
     position: relative;
     overflow: hidden;
     height: var(--hero-height-mobile, 600px);
-    transition: height 0.3s ease;
 }
 
 /* Tablet: 768px to 1199px - matches admin VIEWPORT_DIMENSIONS */
@@ -26,7 +25,6 @@
     overflow: hidden;
     background-color: #e2e8f0;
     height: var(--hero-height-mobile, 600px);
-    transition: height 0.3s ease;
 }
 
 @media (min-width: 768px) {

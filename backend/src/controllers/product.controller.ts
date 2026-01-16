@@ -746,7 +746,8 @@ export const getProductById = asyncHandler(async (req: AuthRequest, res: Respons
         .populate('attributes.attributeId', 'name slug type values')
         .populate('productOptions.optionId', 'name slug type values')
         .populate('taxClassId', 'name rate isSplit subTaxes')
-        .populate('brand', 'name slug logo');
+        .populate('brand', 'name slug logo')
+        .lean();
 
     if (!product) {
         throw new AppError('Product not found', 404);
@@ -756,7 +757,7 @@ export const getProductById = asyncHandler(async (req: AuthRequest, res: Respons
     await Product.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } });
 
     // Transform productOptions to include proper label/value format for frontend
-    const productObj = product.toObject();
+    const productObj = product as any; // Already a plain object from .lean()
     if (productObj.productOptions && productObj.productOptions.length > 0) {
         productObj.productOptions = productObj.productOptions.map((opt: any) => {
             const optionData = opt.optionId;
@@ -838,7 +839,8 @@ export const getProductBySlug = asyncHandler(async (req: AuthRequest, res: Respo
         .populate('attributes.attributeId', 'name slug type values')
         .populate('productOptions.optionId', 'name slug type values')
         .populate('taxClassId', 'name rate isSplit subTaxes')
-        .populate('brand', 'name slug logo');
+        .populate('brand', 'name slug logo')
+        .lean();
 
     if (!product) {
         throw new AppError('Product not found', 404);
@@ -848,7 +850,7 @@ export const getProductBySlug = asyncHandler(async (req: AuthRequest, res: Respo
     await Product.findByIdAndUpdate(product._id, { $inc: { views: 1 } });
 
     // Transform productOptions to include proper label/value format for frontend
-    const productObj = product.toObject();
+    const productObj = product as any; // Already a plain object from .lean()
     if (productObj.productOptions && productObj.productOptions.length > 0) {
         productObj.productOptions = productObj.productOptions.map((opt: any) => {
             const optionData = opt.optionId;

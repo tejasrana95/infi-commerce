@@ -4,6 +4,7 @@
 
 import { headers } from 'next/headers';
 import { Store } from '@/types';
+import { getCacheOptions } from '@/lib/revalidation';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 const FALLBACK_STORE_ID = process.env.FALLBACK_STORE_ID || '675bd1d5334c9f136d8849b2';
@@ -34,7 +35,7 @@ export async function getServerStore(): Promise<Store | null> {
 async function fetchStoreByDomain(domain: string): Promise<Store | null> {
     try {
         const res = await fetch(`${API_BASE}/stores/domain/${encodeURIComponent(domain)}`, {
-            next: { revalidate: 60 },
+            ...getCacheOptions('storeDomain'),
             headers: { 'Content-Type': 'application/json' },
         });
 
@@ -49,7 +50,7 @@ async function fetchStoreByDomain(domain: string): Promise<Store | null> {
 async function fetchStoreById(storeId: string): Promise<Store | null> {
     try {
         const res = await fetch(`${API_BASE}/stores/${storeId}`, {
-            next: { revalidate: 60 },
+            ...getCacheOptions('store'),
             headers: { 'Content-Type': 'application/json' },
         });
 
@@ -90,7 +91,7 @@ export interface CategoryData {
 export async function fetchCategoryBySlug(storeId: string, slug: string): Promise<CategoryData | null> {
     try {
         const res = await fetch(`${API_BASE}/categories/slug/${storeId}/${slug}`, {
-            next: { revalidate: 60 },
+            ...getCacheOptions('categoryData'),
             headers: { 'Content-Type': 'application/json' },
         });
 
@@ -119,7 +120,7 @@ export async function fetchCategoryProducts(
         }
 
         const res = await fetch(url, {
-            next: { revalidate: 60 },
+            ...getCacheOptions('productList'),
             headers: { 'Content-Type': 'application/json' },
         });
 
@@ -143,7 +144,7 @@ export async function fetchCategoryFilters(storeId: string, categoryId: string):
         const res = await fetch(
             `${API_BASE}/categories/${categoryId}/filters?storeId=${storeId}`,
             {
-                next: { revalidate: 0 },
+                ...getCacheOptions('filters'),
                 headers: { 'Content-Type': 'application/json' },
             }
         );
@@ -172,7 +173,7 @@ export async function fetchLayout(storeId: string, type: string, slug?: string):
         }
 
         const res = await fetch(url, {
-            next: { revalidate: 60 },
+            ...getCacheOptions('layout'),
             headers: { 'Content-Type': 'application/json' },
         });
 
@@ -259,7 +260,7 @@ export async function fetchSearchProducts(
         const url = `${API_BASE}/products?storeId=${storeId}&limit=${limit}&sort=${sort}&search=${encodeURIComponent(searchQuery)}`;
 
         const res = await fetch(url, {
-            next: { revalidate: 0 }, // Don't cache search results
+            ...getCacheOptions('search'),
             headers: { 'Content-Type': 'application/json' },
         });
 
@@ -285,7 +286,7 @@ export async function fetchSearchFilters(storeId: string, searchQuery: string): 
         const res = await fetch(
             `${API_BASE}/products/search/filters?storeId=${storeId}&search=${encodeURIComponent(searchQuery)}`,
             {
-                next: { revalidate: 0 }, // Don't cache search-specific filters
+                ...getCacheOptions('filters'),
                 headers: { 'Content-Type': 'application/json' },
             }
         );
@@ -338,7 +339,7 @@ export async function fetchSearchPageData(
 export async function fetchProductBySlug(storeId: string, slug: string): Promise<any | null> {
     try {
         const res = await fetch(`${API_BASE}/products/slug/${storeId}/${slug}`, {
-            next: { revalidate: 60 },
+            ...getCacheOptions('productData'),
             headers: { 'Content-Type': 'application/json' },
         });
 
@@ -357,7 +358,7 @@ export async function fetchBlogPostBySlug(storeId: string, slug: string): Promis
 
         const [postsRes, layout] = await Promise.all([
             fetch(`${API_BASE}/blog/posts/slug/${slug}`, {
-                next: { revalidate: 60 },
+                ...getCacheOptions('blogPosts'),
                 headers: { 'Content-Type': 'application/json' },
             }),
             fetchLayout(storeId, 'blog-post', slug),  // Pass slug for slug-specific layout
@@ -396,15 +397,15 @@ export async function fetchBlogPageData(
         // Fetch posts, categories, tags, and layout in parallel
         const [postsRes, categoriesRes, tagsRes, layout] = await Promise.all([
             fetch(postsUrl, {
-                next: { revalidate: 60 },
+                ...getCacheOptions('blogPosts'),
                 headers: { 'Content-Type': 'application/json' },
             }),
             fetch(`${API_BASE}/blog/categories?storeId=${storeId}`, {
-                next: { revalidate: 60 },
+                ...getCacheOptions('blogMeta'),
                 headers: { 'Content-Type': 'application/json' },
             }),
             fetch(`${API_BASE}/blog/tags?storeId=${storeId}`, {
-                next: { revalidate: 60 },
+                ...getCacheOptions('blogMeta'),
                 headers: { 'Content-Type': 'application/json' },
             }),
             fetchLayout(storeId, 'blog-list'),
@@ -442,7 +443,7 @@ export async function fetchPageBySlug(storeId: string, slug: string): Promise<an
     try {
         const [pageRes, layout] = await Promise.all([
             fetch(`${API_BASE}/pages/slug/${slug}?storeId=${storeId}`, {
-                next: { revalidate: 60 },
+                ...getCacheOptions('page'),
                 headers: { 'Content-Type': 'application/json' },
             }),
             fetchLayout(storeId, 'page', slug),  // Pass slug for slug-specific layout

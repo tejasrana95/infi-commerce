@@ -263,8 +263,8 @@ export default function OrderPaymentPage() {
                     handlePayPalPayment();
                     break;
                 case 'stripe':
-                    // Stripe payment will be handled by Stripe Elements
-                    toast.info('Stripe integration coming soon');
+                    // Stripe payment is handled by Stripe Elements form, not this button
+                    // This case should never be reached as the button is hidden for Stripe
                     break;
                 default:
                     toast.error('Unknown payment method');

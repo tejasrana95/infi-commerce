@@ -7,9 +7,10 @@ interface HomePageProps {
     layout: Layout | null;
     store?: any;
     templateId: string;
+    moduleData?: Record<string, any>;
 }
 
-export default function HomePage({ layout, store, templateId }: HomePageProps) {
+export default function HomePage({ layout, store, templateId, moduleData }: HomePageProps) {
     // Get template-specific HomePage template (not container, to avoid circular reference)
     const HomePageTemplate = getComponent('HomePageTemplate', templateId);
 
@@ -19,6 +20,7 @@ export default function HomePage({ layout, store, templateId }: HomePageProps) {
             layout={layout}
             store={store}
             templateId={templateId}
+            moduleData={moduleData}
         />
     );
 }

@@ -75,10 +75,18 @@ export default function OrderConfirmationPage() {
     useEffect(() => {
         if (order && order.paymentStatus === 'paid' && !trackedRef.current) {
             trackedRef.current = true;
-            const products = order.items.map(item => ({
-                productId: (item as any).productId || (item as any)._id || '',
-                categoryIds: (item as any).categoryIds || [],
-            })).filter(p => p.productId);
+            const products = order.items.map(item => {
+                const itemAny = item as any;
+                // productId can be a string ID or a populated object
+                const productId = itemAny.productId?._id || itemAny.productId || itemAny._id || '';
+                // categoryIds might be available if productId was populated
+                const categoryIds = itemAny.productId?.categoryIds || itemAny.categoryIds || [];
+
+                return {
+                    productId: typeof productId === 'string' ? productId : productId.toString(),
+                    categoryIds: categoryIds.map((id: any) => typeof id === 'string' ? id : id.toString()),
+                };
+            }).filter(p => p.productId);
 
             if (products.length > 0) {
                 trackPurchase(products);

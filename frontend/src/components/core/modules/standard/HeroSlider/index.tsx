@@ -611,22 +611,35 @@ const Layer: React.FC<LayerProps> = ({ layer, isActive, viewport, allLayers }) =
     );
 };
 
-const HeroSliderModule: React.FC<ModuleProps> = ({ config }) => {
+const HeroSliderModule: React.FC<ModuleProps> = ({ config, initialData }) => {
     const { store } = useStore();
-    const [sliderData, setSliderData] = useState<HeroSliderData | null>(null);
-    const [loading, setLoading] = useState(true);
+    // Unwrap pre-fetched data if needed (some API responses wrap it in { slider: ... })
+    const unwrappedInitialData = initialData?.slider || initialData;
+
+    // Check if we truly have valid data (slider must have ID and slides)
+    const hasValidInitialData = !!(unwrappedInitialData?._id && Array.isArray(unwrappedInitialData?.slides));
+
+    const [sliderData, setSliderData] = useState<HeroSliderData | null>(hasValidInitialData ? unwrappedInitialData as HeroSliderData : null);
+    const [loading, setLoading] = useState(!hasValidInitialData);
     const [activeIndex, setActiveIndex] = useState(0);
     const viewport = useViewport();
 
     useEffect(() => {
+        // Only skip fetch if we have valid initial data
+        if (hasValidInitialData) return;
+
         if (store?._id && config.sliderId) {
             setLoading(true);
             fetchHeroSlider(store._id, config.sliderId).then((data: any) => {
-                if (data) setSliderData(data as HeroSliderData);
+                // Handle both wrapped and unwrapped API responses
+                const finalData = data?.slider || data;
+                if (finalData?._id && Array.isArray(finalData?.slides)) {
+                    setSliderData(finalData as HeroSliderData);
+                }
                 setLoading(false);
             });
         }
-    }, [store?._id, config.sliderId]);
+    }, [store?._id, config.sliderId, hasValidInitialData]);
 
     // Extract and dynamically load fonts from all Hero Slider layers
     const fontsToLoad = useMemo(() => {
@@ -651,57 +664,29 @@ const HeroSliderModule: React.FC<ModuleProps> = ({ config }) => {
     // Use the hook to load fonts dynamically
     useDynamicFonts(fontsToLoad);
 
-    // Calculate height based on viewport and settings
-    const containerHeight = useMemo(() => {
-        if (!sliderData) return 600;
-
-        const heightSettings = sliderData.settings?.height;
-
-        if (typeof heightSettings === 'number') {
-            return heightSettings;
-        } else if (heightSettings && typeof heightSettings === 'object') {
-            return heightSettings[viewport] || heightSettings.desktop || 600;
-        }
-
-        return 600;
-    }, [sliderData, viewport]);
-
-    // CSS Variables for responsive heights
+    // CSS Variables for responsive heights and other dynamic styles
     const containerStyle = useMemo(() => {
-        if (!sliderData) {
-            return {
-                '--hero-height-mobile': '600px',
-                '--hero-height-tablet': '600px',
-                '--hero-height-desktop': '600px'
-            } as React.CSSProperties;
-        }
-
-        const heightSettings = sliderData.settings?.height;
+        const heightSettings = sliderData?.settings?.height;
+        let desktopH = 600;
+        let tabletH = 600;
+        let mobileH = 600;
 
         if (typeof heightSettings === 'number') {
-            return {
-                '--hero-height-mobile': `${heightSettings}px`,
-                '--hero-height-tablet': `${heightSettings}px`,
-                '--hero-height-desktop': `${heightSettings}px`,
-                '--swiper-navigation-color': sliderData.settings.arrowColor || '#ffffff',
-                '--swiper-pagination-color': sliderData.settings.bulletColor || '#ffffff'
-            } as React.CSSProperties;
+            desktopH = tabletH = mobileH = heightSettings;
         } else if (heightSettings && typeof heightSettings === 'object') {
-            return {
-                '--hero-height-mobile': `${heightSettings.mobile || 600}px`,
-                '--hero-height-tablet': `${heightSettings.tablet || 600}px`,
-                '--hero-height-desktop': `${heightSettings.desktop || 600}px`,
-                '--swiper-navigation-color': sliderData.settings.arrowColor || '#ffffff',
-                '--swiper-pagination-color': sliderData.settings.bulletColor || '#ffffff'
-            } as React.CSSProperties;
+            desktopH = heightSettings.desktop || 600;
+            tabletH = heightSettings.tablet || desktopH;
+            mobileH = heightSettings.mobile || tabletH;
         }
 
         return {
-            '--hero-height-mobile': '600px',
-            '--hero-height-tablet': '600px',
-            '--hero-height-desktop': '600px',
-            '--swiper-navigation-color': sliderData.settings.arrowColor || '#ffffff',
-            '--swiper-pagination-color': sliderData.settings.bulletColor || '#ffffff'
+            '--hero-height-mobile': `${mobileH}px`,
+            '--hero-height-tablet': `${tabletH}px`,
+            '--hero-height-desktop': `${desktopH}px`,
+            '--swiper-navigation-color': sliderData?.settings?.arrowColor || '#ffffff',
+            '--swiper-pagination-color': sliderData?.settings?.bulletColor || '#ffffff',
+            '--slider-bg-color': (sliderData?.slides?.[0]?.background?.type === 'color' ? sliderData.slides[0].background?.value : 'transparent'),
+            'minHeight': 'var(--hero-height-desktop)' // Help browser preserve space
         } as React.CSSProperties;
     }, [sliderData]);
 
@@ -717,6 +702,8 @@ const HeroSliderModule: React.FC<ModuleProps> = ({ config }) => {
             style={{
                 ...containerStyle,
                 width: '100%',
+                height: 'var(--hero-height-desktop)', // Use desktop as initial base height
+                minHeight: 'var(--hero-height-mobile)', // Mobile minimum
             }}
         >
             <Swiper

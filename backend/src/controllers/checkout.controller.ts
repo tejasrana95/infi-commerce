@@ -363,7 +363,6 @@ export const getShippingMethods = asyncHandler(async (req: AuthRequest, res: Res
                 name: rule.name,
                 description: rule.description,
                 cost: parseFloat(cost.toFixed(2)),
-                currency: rule.currency,
                 estimatedDays: rule.estimatedDays || '3-7 business days',
             });
         }

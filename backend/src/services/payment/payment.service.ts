@@ -126,7 +126,16 @@ export class PaymentService {
             throw new Error(`Payment gateway ${params.gatewayType} not configured`);
         }
 
-        return config;
+        // Decrypt credentials before returning
+        const decryptedCredentials = typeof config.credentials === 'string'
+            ? decrypt(config.credentials)
+            : config.credentials;
+
+        // Return config with decrypted credentials
+        return {
+            ...config.toObject(),
+            credentials: decryptedCredentials,
+        };
     }
 
     /**

@@ -10,7 +10,6 @@ import styles from './style.module.scss';
 
 interface HeaderClientProps {
     isSticky?: boolean;
-    isTransparent?: boolean;
     cartCount: number;
     labels: {
         cart: string;
@@ -31,7 +30,6 @@ interface HeaderClientProps {
  */
 export default function HeaderClient({
     isSticky,
-    isTransparent,
     cartCount,
     labels,
     themeColors,
@@ -47,9 +45,12 @@ export default function HeaderClient({
     const searchRef = useRef<HTMLDivElement>(null);
     useClickOutside(searchRef, () => setSearchOpen(false));
 
-    // Handle scroll for sticky/transparent behavior
+    // Handle scroll for sticky behavior
     useEffect(() => {
-        if (!isSticky && !isTransparent) return;
+        if (!isSticky) {
+            setIsScrolled(false);
+            return;
+        }
 
         const handleScroll = () => {
             setIsScrolled(window.scrollY > 10);
@@ -59,12 +60,11 @@ export default function HeaderClient({
         handleScroll();
 
         return () => window.removeEventListener('scroll', handleScroll);
-    }, [isSticky, isTransparent]);
+    }, [isSticky]);
 
     const headerClasses = [
         styles.header,
         isSticky ? styles.sticky : '',
-        isTransparent ? styles.transparent : '',
         isScrolled ? styles.scrolled : '',
     ].filter(Boolean).join(' ');
 

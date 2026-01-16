@@ -583,7 +583,7 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
                                 display: 'flex',
                                 alignItems: 'center',
                                 px: 3,
-                                borderBottom: headerConfig.main.transparent ? 'none' : '1px solid',
+                                borderBottom: '1px solid',
                                 borderColor: 'divider',
                             }}
                         >
@@ -700,16 +700,6 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
                                         />
                                     }
                                     label="Sticky"
-                                />
-                                <FormControlLabel
-                                    control={
-                                        <Switch
-                                            checked={headerConfig.main.transparent || false}
-                                            onChange={(e) => handleUpdateMainHeader({ transparent: e.target.checked })}
-                                            size="small"
-                                        />
-                                    }
-                                    label="Transparent"
                                 />
                             </Box>
 

@@ -30,9 +30,9 @@ interface LocalInterestData {
 }
 
 interface InterestContextValue {
-    trackProductView: (productId: string, categoryIds: string[], tags: string[]) => void;
+    trackProductView: (productId: any, categoryIds: any[], tags: string[]) => void;
     trackSearch: (query: string) => void;
-    trackPurchase: (products: Array<{ productId: string; categoryIds: string[] }>) => void;
+    trackPurchase: (products: Array<{ productId: any; categoryIds: any[] }>) => void;
     getLocalData: () => LocalInterestData;
     clearData: () => void;
 }
@@ -88,18 +88,23 @@ export function InterestProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     // Track product view
-    const trackProductView = useCallback((productId: string, categoryIds: string[], tags: string[]) => {
+    const trackProductView = useCallback((productId: any, categoryIds: any[], tags: string[]) => {
         const data = getLocalData();
         const now = new Date().toISOString();
 
+        // Ensure we only store string IDs
+        const pid = typeof productId === 'string' ? productId : (productId as any)._id || productId.toString();
+        const cids = Array.isArray(categoryIds) ? categoryIds.map(id => typeof id === 'string' ? id : (id as any)._id || id.toString()) : [];
+        const tgs = Array.isArray(tags) ? tags : [];
+
         // Avoid duplicate views within 5 minutes
         const recentView = data.viewedProducts.find(
-            v => v.productId === productId &&
+            v => v.productId === pid &&
                 (Date.now() - new Date(v.viewedAt).getTime()) < 5 * 60 * 1000
         );
 
         if (!recentView) {
-            data.viewedProducts.unshift({ productId, categoryIds, tags, viewedAt: now });
+            data.viewedProducts.unshift({ productId: pid, categoryIds: cids, tags: tgs, viewedAt: now });
             // Keep only last MAX_VIEWS
             data.viewedProducts = data.viewedProducts.slice(0, MAX_VIEWS);
             saveLocalData(cleanOldData(data));
@@ -109,7 +114,7 @@ export function InterestProvider({ children }: { children: React.ReactNode }) {
                 api.post('interests/track', {
                     storeId: store._id,
                     eventType: 'view',
-                    data: { productId, categoryIds, tags },
+                    data: { productId: pid, categoryIds: cids, tags: tgs },
                 }).catch(console.error);
             }
         }
@@ -138,14 +143,17 @@ export function InterestProvider({ children }: { children: React.ReactNode }) {
     }, [getLocalData, saveLocalData, cleanOldData, isAuthenticated, store]);
 
     // Track purchase
-    const trackPurchase = useCallback((products: Array<{ productId: string; categoryIds: string[] }>) => {
+    const trackPurchase = useCallback((products: Array<{ productId: any; categoryIds: any[] }>) => {
         const data = getLocalData();
         const now = new Date().toISOString();
 
         for (const product of products) {
+            const pid = typeof product.productId === 'string' ? product.productId : (product.productId as any)._id || product.productId.toString();
+            const cids = Array.isArray(product.categoryIds) ? product.categoryIds.map(id => typeof id === 'string' ? id : (id as any)._id || id.toString()) : [];
+
             data.purchasedProducts.unshift({
-                productId: product.productId,
-                categoryIds: product.categoryIds,
+                productId: pid,
+                categoryIds: cids,
                 purchasedAt: now,
             });
         }

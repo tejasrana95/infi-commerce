@@ -185,7 +185,6 @@ async function processHeaderConfig(
             categories: [], // Will come from categories API
         },
         isSticky: config?.main?.sticky,
-        isTransparent: config?.main?.transparent,
         backgroundColor: config?.main?.backgroundColor,
         // State values - would come from context in real app
         cartCount: 0,

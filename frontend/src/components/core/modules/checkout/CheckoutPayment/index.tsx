@@ -19,12 +19,6 @@ export default function CheckoutPayment({ config: propsConfig }: CheckoutPayment
         handlePaymentSelect
     } = useCheckout();
 
-    const currency = useCurrency();
-    const formatPrice = (price: number) => {
-        if (typeof currency === 'string') return `${currency} ${price.toFixed(2)}`;
-        return `${currency?.symbol || '$'}${price.toFixed(2)}`;
-    };
-
     const config = propsConfig || globalConfig?.payment || {};
     const {
         showIcons = true,
@@ -41,7 +35,7 @@ export default function CheckoutPayment({ config: propsConfig }: CheckoutPayment
                     No payment methods available for your region.
                 </div>
             ) : (
-                <div className={`${styles.methodsContainer} ${layout === 'grid' ? styles.gridLayout : styles.listLayout}`}>
+                <div className={`${styles.methodsContainer} ${layout === 'grid' ? styles.gridLayout : ''}`}>
                     {paymentMethods.map((method) => (
                         <div
                             key={method.id}

@@ -3,7 +3,7 @@
 // Components call their own endpoints using this library
 
 import { Store } from '@/types';
-import { getRevalidateTime } from '@/lib/revalidation';
+import { getRevalidateTime, getCacheOptions } from '@/lib/revalidation';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -406,7 +406,7 @@ export { ApiClient };
 
 export async function fetchStoreByDomain(domain: string, nocache: boolean = false): Promise<Store | null> {
     try {
-        const cacheOptions = nocache ? { cache: 'no-store' as RequestCache } : { next: { revalidate: getRevalidateTime('store') } };
+        const cacheOptions = getCacheOptions('storeDomain', nocache);
         const res = await fetch(`${API_BASE_URL}/stores/domain/${encodeURIComponent(domain)}`, {
             ...cacheOptions,
             headers: {
@@ -434,7 +434,7 @@ export async function fetchStoreByDomain(domain: string, nocache: boolean = fals
 
 export async function fetchStoreById(storeId: string, nocache: boolean = false): Promise<Store | null> {
     try {
-        const cacheOptions = nocache ? { cache: 'no-store' as RequestCache } : { next: { revalidate: getRevalidateTime('store') } };
+        const cacheOptions = getCacheOptions('store', nocache);
         const res = await fetch(`${API_BASE_URL}/stores/${storeId}`, {
             ...cacheOptions,
             headers: {
@@ -470,7 +470,7 @@ export async function getStore(domain: string, nocache: boolean = false): Promis
 export async function fetchCurrencies(storeId: string): Promise<import('@/types').Currency[]> {
     try {
         const res = await fetch(`${API_BASE_URL}/currencies?storeId=${storeId}&isActive=true`, {
-            next: { revalidate: 3600 }, // Cache for 1 hour
+            ...getCacheOptions('currencies'),
             headers: { 'Content-Type': 'application/json' },
         });
 
@@ -506,7 +506,7 @@ export async function fetchBlogPosts(storeId: string, params?: {
         if (params?.search) queryParams.append('search', params.search);
 
         const res = await fetch(`${API_BASE_URL}/blog/posts?${queryParams.toString()}`, {
-            next: { revalidate: 600 }, // Cache for 10 minutes
+            ...getCacheOptions('blogPosts'),
             headers: {
                 'Content-Type': 'application/json',
                 'X-Store-ID': storeId,
@@ -524,7 +524,7 @@ export async function fetchBlogPosts(storeId: string, params?: {
 export async function fetchBlogPostBySlug(storeId: string, slug: string) {
     try {
         const res = await fetch(`${API_BASE_URL}/blog/posts/slug/${slug}`, {
-            next: { revalidate: 300 },
+            ...getCacheOptions('blogPosts'),
             headers: {
                 'Content-Type': 'application/json',
                 'X-Store-ID': storeId,
@@ -543,7 +543,7 @@ export async function fetchBlogPostBySlug(storeId: string, slug: string) {
 export async function fetchBlogCategories(storeId: string) {
     try {
         const res = await fetch(`${API_BASE_URL}/blog/categories`, {
-            next: { revalidate: 3600 }, // Cache for 1 hour
+            ...getCacheOptions('blogMeta'),
             headers: {
                 'Content-Type': 'application/json',
                 'X-Store-ID': storeId,
@@ -562,7 +562,7 @@ export async function fetchBlogCategories(storeId: string) {
 export async function fetchBlogTags(storeId: string, limit: number = 20) {
     try {
         const res = await fetch(`${API_BASE_URL}/blog/posts/tags?limit=${limit}`, {
-            next: { revalidate: 3600 },
+            ...getCacheOptions('blogMeta'),
             headers: {
                 'Content-Type': 'application/json',
                 'X-Store-ID': storeId,
@@ -581,7 +581,7 @@ export async function fetchBlogTags(storeId: string, limit: number = 20) {
 export async function fetchPageBySlug(storeId: string, slug: string) {
     try {
         const res = await fetch(`${API_BASE_URL}/pages/slug/${slug}`, {
-            next: { revalidate: 300 },
+            ...getCacheOptions('page'),
             headers: {
                 'Content-Type': 'application/json',
                 'X-Store-ID': storeId,
@@ -600,7 +600,7 @@ export async function fetchPageBySlug(storeId: string, slug: string) {
 export async function fetchHeroSlider(storeId: string, id: string) {
     try {
         const res = await fetch(`${API_BASE_URL}/hero-sliders/${id}`, {
-            next: { revalidate: 300 },
+            ...getCacheOptions('heroSlider'),
             headers: {
                 'Content-Type': 'application/json',
                 'X-Store-ID': storeId,

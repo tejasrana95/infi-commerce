@@ -19,6 +19,10 @@ Role	super_admin
 Name	Super Admin
 ### Prerequisites
 
+## customer
+Email customer@demo.com
+password: Customer@123
+
 // Run daily via cron job
 await UserInterest.cleanupStaleData(30); // Clean data older than 30 days
 // Get stats for monitoring

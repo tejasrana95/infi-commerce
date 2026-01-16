@@ -15,7 +15,6 @@ export const createShippingRuleValidation = [
     body('storeId').isMongoId().withMessage('Valid store ID is required'),
     body('rateType').isIn(['flat', 'per_kg', 'free', 'percentage']).withMessage('Invalid rate type'),
     body('rate').isFloat({ min: 0 }).withMessage('Rate must be a positive number'),
-    body('currency').isLength({ min: 3, max: 3 }).withMessage('Currency must be 3 characters'),
 ];
 
 export const updateShippingRuleValidation = [
@@ -347,7 +346,6 @@ export const calculateShipping = asyncHandler(async (req: AuthRequest, res: Resp
                 name: rule.name,
                 description: rule.description,
                 cost: parseFloat(cost.toFixed(2)),
-                currency: rule.currency,
                 rateType: rule.rateType,
                 rate: rule.rate,
             });
@@ -506,7 +504,7 @@ export const calculateSmartShippingValidation = [
  */
 export const calculateSmartShipping = asyncHandler(async (req: AuthRequest, res: Response) => {
     // storeId is now guaranteed to be in body (injected from header if needed)
-    const { country, storeId, items, currency = 'INR' } = req.body;
+    const { country, storeId, items } = req.body;
     if (!items || !Array.isArray(items) || items.length === 0) {
         throw new AppError('Items are required', 400);
     }
@@ -792,7 +790,6 @@ export const calculateSmartShipping = asyncHandler(async (req: AuthRequest, res:
     res.json({
         success: true,
         shippingCost: parseFloat(totalShippingCost.toFixed(2)),
-        currency,
         name: methodName,
         description: methodDescription,
         breakdown,

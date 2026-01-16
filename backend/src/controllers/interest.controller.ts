@@ -51,9 +51,17 @@ export const trackInterest = asyncHandler(async (req: AuthRequest, res: Response
                     (now.getTime() - v.viewedAt.getTime()) < 5 * 60 * 1000
             );
             if (!recentView) {
+                const pid = typeof data.productId === 'string' ? data.productId : data.productId?._id;
+                if (!pid || !mongoose.Types.ObjectId.isValid(pid)) {
+                    break; // Skip invalid IDs
+                }
+
                 interest.viewedProducts.push({
-                    productId: new mongoose.Types.ObjectId(data.productId),
-                    categoryIds: (data.categoryIds || []).map((id: string) => new mongoose.Types.ObjectId(id)),
+                    productId: new mongoose.Types.ObjectId(pid),
+                    categoryIds: (data.categoryIds || []).filter((id: any) => {
+                        const cid = typeof id === 'string' ? id : id?._id;
+                        return cid && mongoose.Types.ObjectId.isValid(cid);
+                    }).map((id: any) => new mongoose.Types.ObjectId(typeof id === 'string' ? id : id._id)),
                     tags: data.tags || [],
                     viewedAt: now,
                 });
@@ -83,9 +91,17 @@ export const trackInterest = asyncHandler(async (req: AuthRequest, res: Response
                 throw new AppError('products array is required for purchase events', 400);
             }
             for (const product of data.products) {
+                const pid = typeof product.productId === 'string' ? product.productId : product.productId?._id;
+                if (!pid || !mongoose.Types.ObjectId.isValid(pid)) {
+                    continue; // Skip invalid IDs
+                }
+
                 interest.purchasedProducts.push({
-                    productId: new mongoose.Types.ObjectId(product.productId),
-                    categoryIds: (product.categoryIds || []).map((id: string) => new mongoose.Types.ObjectId(id)),
+                    productId: new mongoose.Types.ObjectId(pid),
+                    categoryIds: (product.categoryIds || []).filter((id: any) => {
+                        const cid = typeof id === 'string' ? id : id?._id;
+                        return cid && mongoose.Types.ObjectId.isValid(cid);
+                    }).map((id: any) => new mongoose.Types.ObjectId(typeof id === 'string' ? id : id._id)),
                     purchasedAt: now,
                 });
             }
@@ -355,12 +371,18 @@ export const syncInterests = asyncHandler(async (req: AuthRequest, res: Response
                 v => v.productId.toString() === view.productId
             );
             if (!exists) {
-                interest.viewedProducts.push({
-                    productId: new mongoose.Types.ObjectId(view.productId),
-                    categoryIds: (view.categoryIds || []).map((id: string) => new mongoose.Types.ObjectId(id)),
-                    tags: view.tags || [],
-                    viewedAt: new Date(view.viewedAt),
-                });
+                const pid = typeof view.productId === 'string' ? view.productId : view.productId?._id;
+                if (pid && mongoose.Types.ObjectId.isValid(pid)) {
+                    interest.viewedProducts.push({
+                        productId: new mongoose.Types.ObjectId(pid),
+                        categoryIds: (view.categoryIds || []).filter((id: any) => {
+                            const cid = typeof id === 'string' ? id : id?._id;
+                            return cid && mongoose.Types.ObjectId.isValid(cid);
+                        }).map((id: any) => new mongoose.Types.ObjectId(typeof id === 'string' ? id : id._id)),
+                        tags: view.tags || [],
+                        viewedAt: new Date(view.viewedAt),
+                    });
+                }
             }
         }
     }
@@ -380,11 +402,17 @@ export const syncInterests = asyncHandler(async (req: AuthRequest, res: Response
                 p => p.productId.toString() === purchase.productId
             );
             if (!exists) {
-                interest.purchasedProducts.push({
-                    productId: new mongoose.Types.ObjectId(purchase.productId),
-                    categoryIds: (purchase.categoryIds || []).map((id: string) => new mongoose.Types.ObjectId(id)),
-                    purchasedAt: new Date(purchase.purchasedAt),
-                });
+                const pid = typeof purchase.productId === 'string' ? purchase.productId : purchase.productId?._id;
+                if (pid && mongoose.Types.ObjectId.isValid(pid)) {
+                    interest.purchasedProducts.push({
+                        productId: new mongoose.Types.ObjectId(pid),
+                        categoryIds: (purchase.categoryIds || []).filter((id: any) => {
+                            const cid = typeof id === 'string' ? id : id?._id;
+                            return cid && mongoose.Types.ObjectId.isValid(cid);
+                        }).map((id: any) => new mongoose.Types.ObjectId(typeof id === 'string' ? id : id._id)),
+                        purchasedAt: new Date(purchase.purchasedAt),
+                    });
+                }
             }
         }
     }

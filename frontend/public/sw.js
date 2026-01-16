@@ -57,8 +57,17 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Skip chrome extensions
-    if (url.protocol === 'chrome-extension:') {
+    // Skip chrome extensions and other non-http protocols
+    if (!url.protocol.startsWith('http')) {
+        return;
+    }
+
+    // Skip Next.js HMR and development-only requests
+    if (
+        url.pathname.includes('_next/webpack-hmr') ||
+        url.pathname.includes('__nextjs_launcher_debug') ||
+        url.search.includes('_rsc=') // Skip RSC prefetching to avoid issues with dynamic content
+    ) {
         return;
     }
 

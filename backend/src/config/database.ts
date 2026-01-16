@@ -3,7 +3,12 @@ import { config } from './index';
 
 export const connectDatabase = async (): Promise<void> => {
     try {
-        await mongoose.connect(config.database.mongoUri);
+        await mongoose.connect(config.database.mongoUri, {
+            maxPoolSize: 20,        // Increase from default 10
+            minPoolSize: 5,         // Keep minimum connections ready
+            serverSelectionTimeoutMS: 5000,
+            socketTimeoutMS: 45000,
+        });
         console.log('✅ MongoDB connection established successfully');
 
         mongoose.connection.on('error', (error) => {

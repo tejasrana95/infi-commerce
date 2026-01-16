@@ -71,7 +71,6 @@ export interface HeaderTemplateProps {
 
     // Main header config
     isSticky?: boolean;
-    isTransparent?: boolean;
     backgroundColor?: string;
 
     // User/Cart state

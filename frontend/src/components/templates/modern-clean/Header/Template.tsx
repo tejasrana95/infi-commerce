@@ -21,7 +21,6 @@ export default function ModernCleanHeaderTemplate({
     topBar,
     search,
     isSticky,
-    isTransparent,
     cartCount,
     wishlistCount,
     labels,
@@ -38,6 +37,8 @@ export default function ModernCleanHeaderTemplate({
     const { isAuthenticated, customer, logout } = useAuth();
     const { store } = useStore();
     const [isScrolled, setIsScrolled] = useState(false);
+    const [headerHeight, setHeaderHeight] = useState<number | undefined>(undefined);
+    const headerRef = useRef<HTMLElement>(null);
 
     // Get mobile menu ID from store config
     const mobileMenuId = store?.theme?.header?.mobileMenu?.menuId;
@@ -114,9 +115,12 @@ export default function ModernCleanHeaderTemplate({
         };
     }, [mobileMenuOpen]);
 
-    // Handle scroll for sticky/transparent behavior
+    // Handle scroll for sticky behavior
     useEffect(() => {
-        if (!isSticky && !isTransparent) return;
+        if (!isSticky) {
+            setIsScrolled(false);
+            return;
+        }
 
         const handleScroll = () => {
             setIsScrolled(window.scrollY > 10);
@@ -127,7 +131,20 @@ export default function ModernCleanHeaderTemplate({
         handleScroll();
 
         return () => window.removeEventListener('scroll', handleScroll);
-    }, [isSticky, isTransparent]);
+    }, [isSticky]);
+
+    // Measure header height to prevent layout shift when it becomes fixed
+    useEffect(() => {
+        const updateHeight = () => {
+            if (headerRef.current && !isScrolled) {
+                setHeaderHeight(headerRef.current.offsetHeight);
+            }
+        };
+
+        updateHeight();
+        window.addEventListener('resize', updateHeight);
+        return () => window.removeEventListener('resize', updateHeight);
+    }, [isScrolled]);
 
     // Find sections
     const leftSection = headerElements.sections.find((s: any) => s.position === 'left');
@@ -307,135 +324,139 @@ export default function ModernCleanHeaderTemplate({
     const headerClasses = [
         styles.header,
         isSticky ? styles.sticky : '',
-        isTransparent ? styles.transparent : '',
         isScrolled ? styles.scrolled : '',
     ].filter(Boolean).join(' ');
 
     return (
-        <header className={headerClasses}>
-            <style>{dynamicStyles}</style>
-            {/* ... */}
-            {/* ========== TOP BAR ========== */}
-            {topBar.enabled && (
-                <div
-                    className={styles.topBar}
-                    style={{
-                        backgroundColor: topBar.backgroundColor || themeColors.primary,
-                        color: topBar.textColor || '#fff'
-                    }}
-                >
-                    <div className={styles.topBarContainer}>
-                        {/* Left - Social */}
-                        <div className={styles.topBarLeft}>
-                            {topBar.socialLinks.map((social, index) => (
-                                <a
-                                    key={index}
-                                    href={social.url}
-                                    className={styles.socialIcon}
-                                    aria-label={social.platform}
-                                >
-                                    <SocialIcon platform={social.platform} />
-                                </a>
-                            ))}
-                        </div>
+        <div
+            className={styles.headerWrapper}
+            style={{ minHeight: isScrolled ? `${headerHeight}px` : 'auto' }}
+        >
+            <header className={headerClasses} ref={headerRef}>
+                <style>{dynamicStyles}</style>
+                {/* ... */}
+                {/* ========== TOP BAR ========== */}
+                {topBar.enabled && (
+                    <div
+                        className={styles.topBar}
+                        style={{
+                            backgroundColor: topBar.backgroundColor || themeColors.primary,
+                            color: topBar.textColor || '#fff'
+                        }}
+                    >
+                        <div className={styles.topBarContainer}>
+                            {/* Left - Social */}
+                            <div className={styles.topBarLeft}>
+                                {topBar.socialLinks.map((social, index) => (
+                                    <a
+                                        key={index}
+                                        href={social.url}
+                                        className={styles.socialIcon}
+                                        aria-label={social.platform}
+                                    >
+                                        <SocialIcon platform={social.platform} />
+                                    </a>
+                                ))}
+                            </div>
 
-                        {/* Center - Message */}
-                        <div className={styles.topBarCenter}>
-                            {topBar.items.center.map((item) => (
-                                <span key={item.id} className={styles.topBarText}>
-                                    {item.content}
-                                </span>
-                            ))}
-                        </div>
+                            {/* Center - Message */}
+                            <div className={styles.topBarCenter}>
+                                {topBar.items.center.map((item) => (
+                                    <span key={item.id} className={styles.topBarText}>
+                                        {item.content}
+                                    </span>
+                                ))}
+                            </div>
 
-                        {/* Right - Contact */}
-                        <div className={styles.topBarRight}>
-                            {topBar.items.right.map((item) => (
-                                <span key={item.id} className={styles.topBarText}>
-                                    {item.content}
-                                </span>
-                            ))}
+                            {/* Right - Contact */}
+                            <div className={styles.topBarRight}>
+                                {topBar.items.right.map((item) => (
+                                    <span key={item.id} className={styles.topBarText}>
+                                        {item.content}
+                                    </span>
+                                ))}
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* ========== MAIN HEADER (Fully Dynamic Sections) ========== */}
-            <div className={styles.mainHeader}>
-                <div className={styles.container}>
-                    <div className={styles.headerContent}>
-                        {/* Mobile Menu Toggle */}
-                        <button
-                            ref={mobileMenuBtnRef}
-                            className={styles.mobileMenuBtn}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setMobileMenuOpen(!mobileMenuOpen);
-                            }}
-                            aria-label="Toggle menu"
-                        >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                            </svg>
-                        </button>
+                {/* ========== MAIN HEADER (Fully Dynamic Sections) ========== */}
+                <div className={styles.mainHeader}>
+                    <div className={styles.container}>
+                        <div className={styles.headerContent}>
+                            {/* Mobile Menu Toggle */}
+                            <button
+                                ref={mobileMenuBtnRef}
+                                className={styles.mobileMenuBtn}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setMobileMenuOpen(!mobileMenuOpen);
+                                }}
+                                aria-label="Toggle menu"
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                                </svg>
+                            </button>
 
-                        {/* LEFT SECTION - Render all items dynamically */}
-                        {leftSection && leftSection.items.length > 0 && (
-                            <div className={styles.sectionLeft}>
-                                {leftSection.items
-                                    .sort((a: any, b: any) => a.order - b.order)
-                                    .map((item: any) => renderElement(item))}
-                            </div>
-                        )}
+                            {/* LEFT SECTION - Render all items dynamically */}
+                            {leftSection && leftSection.items.length > 0 && (
+                                <div className={styles.sectionLeft}>
+                                    {leftSection.items
+                                        .sort((a: any, b: any) => a.order - b.order)
+                                        .map((item: any) => renderElement(item))}
+                                </div>
+                            )}
 
-                        {/* CENTER SECTION - Render all items dynamically */}
-                        {centerSection && centerSection.items.length > 0 && (
-                            <div className={styles.sectionCenter}>
-                                {centerSection.items
-                                    .sort((a: any, b: any) => a.order - b.order)
-                                    .map((item: any) => renderElement(item))}
-                            </div>
-                        )}
+                            {/* CENTER SECTION - Render all items dynamically */}
+                            {centerSection && centerSection.items.length > 0 && (
+                                <div className={styles.sectionCenter}>
+                                    {centerSection.items
+                                        .sort((a: any, b: any) => a.order - b.order)
+                                        .map((item: any) => renderElement(item))}
+                                </div>
+                            )}
 
-                        {/* RIGHT SECTION - Render all items dynamically */}
-                        {rightSection && rightSection.items.length > 0 && (
-                            <div className={styles.sectionRight}>
-                                {rightSection.items
-                                    .sort((a: any, b: any) => a.order - b.order)
-                                    .map((item: any) => renderElement(item))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Search Bar - Expanded with Autocomplete */}
-                    {searchOpen && (
-                        <div className={styles.searchBar} ref={searchRef}>
-                            <SearchAutocomplete
-                                placeholder={search.placeholder}
-                                onClose={() => setSearchOpen(false)}
-                                autoFocus
-                            />
+                            {/* RIGHT SECTION - Render all items dynamically */}
+                            {rightSection && rightSection.items.length > 0 && (
+                                <div className={styles.sectionRight}>
+                                    {rightSection.items
+                                        .sort((a: any, b: any) => a.order - b.order)
+                                        .map((item: any) => renderElement(item))}
+                                </div>
+                            )}
                         </div>
-                    )}
-                </div>
-            </div>
 
-            {/* ========== MOBILE MENU ========== */}
-            {mobileMenuOpen && (
-                <div className={styles.mobileMenu}>
-                    <div className={styles.mobileMenuContent} ref={mobileMenuRef}>
-                        {/* Mobile Menu Builder */}
-                        {mobileMenuId && (
-                            <MenuBuilder
-                                menuId={mobileMenuId}
-                                themeColors={themeColors}
-                                className={styles.mobileNav}
-                            />
+                        {/* Search Bar - Expanded with Autocomplete */}
+                        {searchOpen && (
+                            <div className={styles.searchBar} ref={searchRef}>
+                                <SearchAutocomplete
+                                    placeholder={search.placeholder}
+                                    onClose={() => setSearchOpen(false)}
+                                    autoFocus
+                                />
+                            </div>
                         )}
                     </div>
                 </div>
-            )}
-        </header>
+
+                {/* ========== MOBILE MENU ========== */}
+                {mobileMenuOpen && (
+                    <div className={styles.mobileMenu}>
+                        <div className={styles.mobileMenuContent} ref={mobileMenuRef}>
+                            {/* Mobile Menu Builder */}
+                            {mobileMenuId && (
+                                <MenuBuilder
+                                    menuId={mobileMenuId}
+                                    themeColors={themeColors}
+                                    className={styles.mobileNav}
+                                />
+                            )}
+                        </div>
+                    </div>
+                )}
+            </header>
+        </div>
     );
 }
 

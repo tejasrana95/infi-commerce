@@ -11,6 +11,10 @@
     // Fixed min-height to prevent CLS
     min-height: 70px;
 
+    .headerWrapper {
+        width: 100%;
+    }
+
     // Sticky State
     &.sticky {
         position: sticky;

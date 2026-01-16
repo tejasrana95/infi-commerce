@@ -102,6 +102,29 @@ export async function fetchBannerSliderData(
 }
 
 /**
+ * Fetch hero slider data
+ */
+export async function fetchHeroSliderData(
+    sliderId: string,
+    storeId: string
+): Promise<any> {
+    try {
+        const response = await fetch(`${API_BASE}/hero-sliders/${sliderId}`, {
+            headers: { 'x-store-id': storeId },
+            next: { revalidate: 300 } // Cache for 5 minutes
+        });
+
+        if (!response.ok) return null;
+
+        const data = await response.json();
+        return data.slider || data;
+    } catch (error) {
+        console.error('Error fetching hero slider:', error);
+        return null;
+    }
+}
+
+/**
  * Fetch testimonials data
  */
 export async function fetchTestimonialsData(
@@ -187,6 +210,11 @@ export async function prefetchModuleData(
                     case 'banner-slider':
                         if (module.config.sliderId) {
                             moduleData[module.id] = await fetchBannerSliderData(module.config.sliderId, storeId);
+                        }
+                        break;
+                    case 'hero-slider':
+                        if (module.config.sliderId) {
+                            moduleData[module.id] = await fetchHeroSliderData(module.config.sliderId, storeId);
                         }
                         break;
                     case 'testimonials':
