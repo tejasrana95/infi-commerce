@@ -1257,6 +1257,12 @@
 // ============================================
 // Product Grid
 // ============================================
+// Product Grid Wrapper - for loading overlay positioning
+.productGridWrapper {
+    position: relative;
+    min-height: 200px; // Ensure space for loading indicator
+}
+
 .productGrid {
     display: grid;
     grid-template-columns: repeat(var(--cols-desktop, 4), 1fr);
@@ -1299,6 +1305,46 @@
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+// Loading Overlay - shows over products during filter/sort/page changes
+.loadingOverlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(248, 250, 252, 0.8);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    animation: fadeIn 0.2s ease;
+}
+
+.loadingContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 2rem;
+    background: var(--category-sidebar-bg);
+    border-radius: 16px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+
+    span {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--category-text-primary);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
     }
 }
 

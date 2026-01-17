@@ -599,8 +599,9 @@ export default function CategoryFilters({
         );
     };
 
-    // Loading State - show skeleton when loading OR when filters data is not available yet
-    if (isLoading || !availableFilters) {
+    // Show skeleton only when filters data is not available yet (initial load)
+    // Don't show skeleton during filter/sort/pagination changes - filters remain usable
+    if (!availableFilters) {
         if (config.filters?.position === 'top') {
             return (
                 <div className={styles.topFilters}>

@@ -389,38 +389,50 @@ export default function ModernCleanCategoryPageTemplate({
                             )}
                         </div>
 
-                        {/* Product grid */}
-                        <div
-                            className={styles.productGrid}
-                            style={{
-                                '--cols-desktop': gridColumns.desktop,
-                                '--cols-tablet': gridColumns.tablet,
-                                '--cols-mobile': gridColumns.mobile,
-                            } as React.CSSProperties}
-                        >
-                            {products.map((product, index) => (
-                                <div
-                                    key={product._id}
-                                    className={styles.productItem}
-                                    style={{ '--index': index } as React.CSSProperties}
-                                >
-                                    <ProductCard
-                                        product={product}
-                                        cardConfig={{
-                                            cardStyle: config.grid?.cardStyle || 'default'
-                                        }}
-                                    />
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Loading state */}
-                        {isLoading && (
-                            <div className={styles.loading}>
-                                <div className={styles.spinner} />
-                                <span>Loading products...</span>
+                        {/* Product grid with loading overlay */}
+                        <div className={styles.productGridWrapper}>
+                            <div
+                                className={styles.productGrid}
+                                style={{
+                                    '--cols-desktop': gridColumns.desktop,
+                                    '--cols-tablet': gridColumns.tablet,
+                                    '--cols-mobile': gridColumns.mobile,
+                                } as React.CSSProperties}
+                            >
+                                {products.map((product, index) => (
+                                    <div
+                                        key={product._id}
+                                        className={styles.productItem}
+                                        style={{ '--index': index } as React.CSSProperties}
+                                    >
+                                        <ProductCard
+                                            product={product}
+                                            cardConfig={{
+                                                cardStyle: config.grid?.cardStyle || 'default'
+                                            }}
+                                        />
+                                    </div>
+                                ))}
                             </div>
-                        )}
+
+                            {/* Loading overlay - shows over products during filter/sort/page changes */}
+                            {isLoading && products.length > 0 && (
+                                <div className={styles.loadingOverlay}>
+                                    <div className={styles.loadingContent}>
+                                        <div className={styles.spinner} />
+                                        <span>Loading products...</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Loading state for initial load (no products yet) */}
+                            {isLoading && products.length === 0 && (
+                                <div className={styles.loading}>
+                                    <div className={styles.spinner} />
+                                    <span>Loading products...</span>
+                                </div>
+                            )}
+                        </div>
 
                         {/* Empty state */}
                         {!isLoading && products.length === 0 && (

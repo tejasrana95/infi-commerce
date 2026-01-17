@@ -84,6 +84,8 @@ function CategoryPageInner({
 
     // Ref to track if we've done initial fetch
     const hasInitialFetchRef = useRef(false);
+    // Ref to track previous search params for optimistic loading
+    const prevSearchParamsRef = useRef(searchParams.toString());
 
     // Pagination state
     const [pagination, setPagination] = useState<PaginationState>({
@@ -238,6 +240,21 @@ function CategoryPageInner({
         fetchFilters();
     }, [fetchFilters]);
 
+    // Optimistic loading - set loading true immediately when search params change
+    // This provides instant visual feedback before the actual fetch begins
+    useEffect(() => {
+        const currentParams = searchParams.toString();
+        const prevParams = prevSearchParamsRef.current;
+
+        // Check if params actually changed (excluding initial mount)
+        if (hasInitialFetchRef.current && currentParams !== prevParams) {
+            console.log('[CategoryPage] URL params changed - setting loading state');
+            setIsLoading(true);
+        }
+
+        prevSearchParamsRef.current = currentParams;
+    }, [searchParams]);
+
     useEffect(() => {
         // Skip if we already have initial products and this is the first render
         if (!hasInitialFetchRef.current) {
@@ -257,6 +274,8 @@ function CategoryPageInner({
 
     // Handler: Page change
     const handlePageChange = useCallback((page: number) => {
+        // Set loading immediately for instant feedback
+        setIsLoading(true);
         const params = new URLSearchParams(searchParams.toString());
         params.set('page', page.toString());
         router.push(`?${params.toString()}`, { scroll: false });
@@ -275,6 +294,8 @@ function CategoryPageInner({
 
     // Handler: Sort change
     const handleSortChange = useCallback((sort: string) => {
+        // Set loading immediately for instant feedback
+        setIsLoading(true);
         const params = new URLSearchParams(searchParams.toString());
         params.set('sort', sort);
         params.delete('page');
