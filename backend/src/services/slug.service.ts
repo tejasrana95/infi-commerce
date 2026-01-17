@@ -1,13 +1,24 @@
 import mongoose from 'mongoose';
 import SlugRegistry from '../models/SlugRegistry';
 import Redirection from '../models/Redirection';
+import { isReservedSlug, generateAlternativeSlug } from '../constants/reservedSlugs';
+
+/**
+ * Result of slug availability check
+ */
+export interface SlugAvailabilityResult {
+    isAvailable: boolean;
+    isReserved: boolean;
+    suggestedSlug?: string;
+    message?: string;
+}
 
 /**
  * Service to handle global slug uniqueness and redirection
  */
 class SlugService {
     /**
-     * Check if a slug is available for a specific entity
+     * Check if a slug is available for a specific entity (simple boolean check)
      * @param storeId Store ID
      * @param slug Slug to check
      * @param entityType Type of entity requesting the slug
@@ -19,6 +30,11 @@ class SlugService {
         entityType: 'product' | 'category' | 'page',
         entityId?: mongoose.Types.ObjectId | string
     ): Promise<boolean> {
+        // Check if reserved slug
+        if (isReservedSlug(slug)) {
+            return false;
+        }
+
         const query: any = {
             storeId,
             slug,
@@ -36,6 +52,61 @@ class SlugService {
         }
 
         return false;
+    }
+
+    /**
+     * Check slug availability with detailed result
+     * @param storeId Store ID
+     * @param slug Slug to check
+     * @param entityType Type of entity requesting the slug
+     * @param entityId ID of entity requesting the slug (to allow self-match)
+     */
+    async checkSlugAvailability(
+        storeId: mongoose.Types.ObjectId | string,
+        slug: string,
+        entityType: 'product' | 'category' | 'page',
+        entityId?: mongoose.Types.ObjectId | string
+    ): Promise<SlugAvailabilityResult> {
+        const normalizedSlug = slug.toLowerCase().trim();
+
+        // Check if reserved slug
+        if (isReservedSlug(normalizedSlug)) {
+            return {
+                isAvailable: false,
+                isReserved: true,
+                suggestedSlug: generateAlternativeSlug(normalizedSlug),
+                message: 'This is a reserved URL and cannot be used'
+            };
+        }
+
+        const query: any = {
+            storeId,
+            slug: normalizedSlug,
+        };
+
+        const existing = await SlugRegistry.findOne(query);
+
+        if (!existing) {
+            return {
+                isAvailable: true,
+                isReserved: false
+            };
+        }
+
+        // If entityId is provided, check if it's the same entity
+        if (entityId && existing.entityId.toString() === entityId.toString() && existing.entityType === entityType) {
+            return {
+                isAvailable: true,
+                isReserved: false
+            };
+        }
+
+        return {
+            isAvailable: false,
+            isReserved: false,
+            suggestedSlug: generateAlternativeSlug(normalizedSlug),
+            message: 'Slug is already taken by another entity'
+        };
     }
 
     /**

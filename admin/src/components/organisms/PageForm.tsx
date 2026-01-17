@@ -16,6 +16,7 @@ import {
     Typography,
     Button,
     CircularProgress,
+    Chip,
 } from '@mui/material';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import AdminAIAssistant from '../organisms/AdminAIAssistant/AdminAIAssistant';
@@ -83,7 +84,7 @@ export default function PageForm({ initialData, onSubmit, isSubmitting = false }
     const [activeTab, setActiveTab] = useState(0);
     const [isCalculatingSeo, setIsCalculatingSeo] = useState(false);
     const [seoSuggestions, setSeoSuggestions] = useState<string[]>([]);
-    const [slugCheck, setSlugCheck] = useState<{ loading: boolean; available: boolean | null; message: string }>({ loading: false, available: null, message: '' });
+    const [slugCheck, setSlugCheck] = useState<{ loading: boolean; available: boolean | null; message: string; isReserved?: boolean; suggestedSlug?: string }>({ loading: false, available: null, message: '' });
     const watchedTitle = watch('title');
     const watchedSlug = watch('slug');
     const watchedStoreId = watch('storeId');
@@ -153,10 +154,23 @@ export default function PageForm({ initialData, onSubmit, isSubmitting = false }
                 });
 
                 if (response.data.success) {
-                    if (response.data.isAvailable) {
+                    if (response.data.isReserved) {
+                        setSlugCheck({
+                            loading: false,
+                            available: false,
+                            message: response.data.message || 'This is a reserved URL and cannot be used',
+                            isReserved: true,
+                            suggestedSlug: response.data.suggestedSlug
+                        });
+                    } else if (response.data.isAvailable) {
                         setSlugCheck({ loading: false, available: true, message: 'Slug is available' });
                     } else {
-                        setSlugCheck({ loading: false, available: false, message: 'Slug is already taken by another entity' });
+                        setSlugCheck({
+                            loading: false,
+                            available: false,
+                            message: response.data.message || 'Slug is already taken by another entity',
+                            suggestedSlug: response.data.suggestedSlug
+                        });
                     }
                 }
             } catch (error) {
@@ -261,27 +275,37 @@ export default function PageForm({ initialData, onSubmit, isSubmitting = false }
                                 name="slug"
                                 control={control}
                                 render={({ field }) => (
-                                    <TextField
-                                        {...field}
-                                        label="Slug"
-                                        fullWidth
-                                        required
-                                        error={!!errors.slug || (slugCheck.available === false)}
-                                        helperText={
-                                            (errors.slug?.message) ||
-                                            (slugCheck.available === false ? slugCheck.message : null) ||
-                                            (slugCheck.loading ? 'Checking availability...' : 'URL path: /your-slug (Must be unique across all content)')
-                                        }
-                                        color={slugCheck.available === true ? 'success' : undefined}
-                                        disabled={!!initialData} // If slugs are immutable after creation? Usually editable. User requirement implies redirects needed if changed. Form says disabled check existing code.
-                                    // Existing code said disabled={!!initialData}. So pages cannot change slug? 
-                                    // If so, validation only needed for new pages.
-                                    // But if user wants to refactor URL structure, existing pages might need slug updates? 
-                                    // The form disables it. I will keep it disabled if that's the current policy, but user wants flat URLs. 
-                                    // "Refactor URL structure": existing slugs like "about-us" are fine. 
-                                    // If I can't edit slug, I can't fix collisions if any? 
-                                    // I'll keep logic as is for disabled, but validation is useful for new pages.
-                                    />
+                                    <Box>
+                                        <TextField
+                                            {...field}
+                                            label="Slug"
+                                            fullWidth
+                                            required
+                                            error={!!errors.slug || (slugCheck.available === false)}
+                                            helperText={
+                                                (errors.slug?.message) ||
+                                                (slugCheck.available === false ? slugCheck.message : null) ||
+                                                (slugCheck.loading ? 'Checking availability...' : 'URL path: /your-slug (Must be unique across all content)')
+                                            }
+                                            color={slugCheck.available === true ? 'success' : undefined}
+                                            disabled={!!initialData}
+                                        />
+                                        {slugCheck.suggestedSlug && slugCheck.available === false && !initialData && (
+                                            <Box sx={{ mt: 1 }}>
+                                                <Typography variant="caption" color="text.secondary">
+                                                    Suggested:
+                                                </Typography>
+                                                <Chip
+                                                    label={slugCheck.suggestedSlug}
+                                                    size="small"
+                                                    color="primary"
+                                                    variant="outlined"
+                                                    onClick={() => setValue('slug', slugCheck.suggestedSlug!, { shouldValidate: true })}
+                                                    sx={{ ml: 1, cursor: 'pointer' }}
+                                                />
+                                            </Box>
+                                        )}
+                                    </Box>
                                 )}
                             />
 

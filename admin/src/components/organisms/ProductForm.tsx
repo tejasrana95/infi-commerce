@@ -264,7 +264,7 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
     const seoScore = watch('seo.score') || 0;
 
     // Slug validation state
-    const [slugCheck, setSlugCheck] = useState<{ loading: boolean; available: boolean | null; message: string }>({ loading: false, available: null, message: '' });
+    const [slugCheck, setSlugCheck] = useState<{ loading: boolean; available: boolean | null; message: string; isReserved?: boolean; suggestedSlug?: string }>({ loading: false, available: null, message: '' });
 
 
     // Auto-generate slug from name
@@ -303,10 +303,23 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
                 });
 
                 if (response.data.success) {
-                    if (response.data.isAvailable) {
+                    if (response.data.isReserved) {
+                        setSlugCheck({
+                            loading: false,
+                            available: false,
+                            message: response.data.message || 'This is a reserved URL and cannot be used',
+                            isReserved: true,
+                            suggestedSlug: response.data.suggestedSlug
+                        });
+                    } else if (response.data.isAvailable) {
                         setSlugCheck({ loading: false, available: true, message: 'Slug is available' });
                     } else {
-                        setSlugCheck({ loading: false, available: false, message: 'Slug is already taken by another entity' });
+                        setSlugCheck({
+                            loading: false,
+                            available: false,
+                            message: response.data.message || 'Slug is already taken by another entity',
+                            suggestedSlug: response.data.suggestedSlug
+                        });
                     }
                 }
             } catch (error) {
@@ -501,19 +514,36 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
                                 name="slug"
                                 control={control}
                                 render={({ field }) => (
-                                    <TextField
-                                        {...field}
-                                        label="Slug"
-                                        fullWidth
-                                        required
-                                        error={!!errors.slug || (slugCheck.available === false)}
-                                        helperText={
-                                            (errors.slug?.message) ||
-                                            (slugCheck.available === false ? slugCheck.message : null) ||
-                                            (slugCheck.loading ? 'Checking availability...' : 'Auto-generated from name (Must be unique)')
-                                        }
-                                        color={slugCheck.available === true ? 'success' : undefined}
-                                    />
+                                    <Box>
+                                        <TextField
+                                            {...field}
+                                            label="Slug"
+                                            fullWidth
+                                            required
+                                            error={!!errors.slug || (slugCheck.available === false)}
+                                            helperText={
+                                                (errors.slug?.message) ||
+                                                (slugCheck.available === false ? slugCheck.message : null) ||
+                                                (slugCheck.loading ? 'Checking availability...' : 'Auto-generated from name (Must be unique)')
+                                            }
+                                            color={slugCheck.available === true ? 'success' : undefined}
+                                        />
+                                        {slugCheck.suggestedSlug && slugCheck.available === false && !initialData && (
+                                            <Box sx={{ mt: 1 }}>
+                                                <Typography variant="caption" color="text.secondary">
+                                                    Suggested:
+                                                </Typography>
+                                                <Chip
+                                                    label={slugCheck.suggestedSlug}
+                                                    size="small"
+                                                    color="primary"
+                                                    variant="outlined"
+                                                    onClick={() => setValue('slug', slugCheck.suggestedSlug!, { shouldValidate: true })}
+                                                    sx={{ ml: 1, cursor: 'pointer' }}
+                                                />
+                                            </Box>
+                                        )}
+                                    </Box>
                                 )}
                             />
                         </Grid>

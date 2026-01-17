@@ -86,16 +86,19 @@ export const checkSlugAvailability = async (req: AuthRequest, res: Response): Pr
             return;
         }
 
-        const isAvailable = await slugService.isSlugAvailable(
+        const result = await slugService.checkSlugAvailability(
             storeId,
             slug,
-            entityType || 'page', // Default to page if not provided for generic check, but mostly matters if id is provided
+            entityType || 'page',
             id as string
         );
 
         res.status(200).json({
             success: true,
-            isAvailable
+            isAvailable: result.isAvailable,
+            isReserved: result.isReserved,
+            suggestedSlug: result.suggestedSlug,
+            message: result.message || ''
         });
     } catch (error: any) {
         console.error('Check slug availability error:', error);
