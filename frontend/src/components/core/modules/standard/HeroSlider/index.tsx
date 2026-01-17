@@ -665,8 +665,11 @@ const HeroSliderModule: React.FC<ModuleProps> = ({ config, initialData }) => {
     useDynamicFonts(fontsToLoad);
 
     // CSS Variables for responsive heights and other dynamic styles
+    // Use initialData or sliderData to prevent layout shift during loading
     const containerStyle = useMemo(() => {
-        const heightSettings = sliderData?.settings?.height;
+        // Prioritize sliderData, but fall back to unwrappedInitialData for height settings
+        const dataSource = sliderData || unwrappedInitialData;
+        const heightSettings = dataSource?.settings?.height;
         let desktopH = 600;
         let tabletH = 600;
         let mobileH = 600;
@@ -683,12 +686,11 @@ const HeroSliderModule: React.FC<ModuleProps> = ({ config, initialData }) => {
             '--hero-height-mobile': `${mobileH}px`,
             '--hero-height-tablet': `${tabletH}px`,
             '--hero-height-desktop': `${desktopH}px`,
-            '--swiper-navigation-color': sliderData?.settings?.arrowColor || '#ffffff',
-            '--swiper-pagination-color': sliderData?.settings?.bulletColor || '#ffffff',
-            '--slider-bg-color': (sliderData?.slides?.[0]?.background?.type === 'color' ? sliderData.slides[0].background?.value : 'transparent'),
-            'minHeight': 'var(--hero-height-desktop)' // Help browser preserve space
+            '--swiper-navigation-color': dataSource?.settings?.arrowColor || '#ffffff',
+            '--swiper-pagination-color': dataSource?.settings?.bulletColor || '#ffffff',
+            '--slider-bg-color': (dataSource?.slides?.[0]?.background?.type === 'color' ? dataSource.slides[0].background?.value : 'transparent'),
         } as React.CSSProperties;
-    }, [sliderData]);
+    }, [sliderData, unwrappedInitialData]);
 
     if (loading) {
         return <div className={styles.skeletonContainer} style={containerStyle} />;
@@ -699,12 +701,7 @@ const HeroSliderModule: React.FC<ModuleProps> = ({ config, initialData }) => {
     return (
         <div
             className={styles.heroSliderContainer}
-            style={{
-                ...containerStyle,
-                width: '100%',
-                height: 'var(--hero-height-desktop)', // Use desktop as initial base height
-                minHeight: 'var(--hero-height-mobile)', // Mobile minimum
-            }}
+            style={containerStyle}
         >
             <Swiper
                 modules={[Autoplay, EffectFade, Navigation, Pagination]}

@@ -2,20 +2,24 @@
     width: 100%;
     position: relative;
     overflow: hidden;
+    /* Mobile first: default to mobile height */
     height: var(--hero-height-mobile, 600px);
+    min-height: var(--hero-height-mobile, 600px);
 }
 
-/* Tablet: 768px to 1199px - matches admin VIEWPORT_DIMENSIONS */
+/* Tablet: 768px and above */
 @media (min-width: 768px) {
     .heroSliderContainer {
         height: var(--hero-height-tablet, 600px);
+        min-height: var(--hero-height-tablet, 600px);
     }
 }
 
-/* Desktop: 1200px and above - matches admin VIEWPORT_DIMENSIONS */
-@media (min-width: 1200px) {
+/* Desktop: 1024px and above - using standard breakpoint */
+@media (min-width: 1024px) {
     .heroSliderContainer {
-        height: var(--hero-height-desktop, 600px);
+        height: var(--hero-height-desktop, 400px);
+        min-height: var(--hero-height-desktop, 400px);
     }
 }
 
@@ -24,18 +28,24 @@
     position: relative;
     overflow: hidden;
     background-color: #e2e8f0;
+    /* Mobile first: default to mobile height */
     height: var(--hero-height-mobile, 600px);
+    min-height: var(--hero-height-mobile, 600px);
 }
 
+/* Tablet: 768px and above */
 @media (min-width: 768px) {
     .skeletonContainer {
         height: var(--hero-height-tablet, 600px);
+        min-height: var(--hero-height-tablet, 600px);
     }
 }
 
-@media (min-width: 1200px) {
+/* Desktop: 1024px and above - using standard breakpoint */
+@media (min-width: 1024px) {
     .skeletonContainer {
-        height: var(--hero-height-desktop, 600px);
+        height: var(--hero-height-desktop, 400px);
+        min-height: var(--hero-height-desktop, 400px);
     }
 }
 
