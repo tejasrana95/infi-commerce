@@ -178,7 +178,7 @@ export default function AccountOrdersModule({ config = {} }: ModuleProps) {
                                             <Link href={`/account/orders/${order._id}`} className={styles.detailsBtn}>
                                                 View Details
                                             </Link>
-                                            {['shipped', 'processing'].includes(order.status) && (
+                                            {order.status === 'shipped' && (
                                                 <Link href={`/track/${order.orderNumber}`} className={styles.trackBtn}>
                                                     Track Order
                                                 </Link>

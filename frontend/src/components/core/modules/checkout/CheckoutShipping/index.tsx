@@ -21,7 +21,6 @@ export default function CheckoutShipping({ config: propsConfig }: CheckoutShippi
         storeConfig,
         restrictedItems
     } = useCheckout();
-    console.log('shippingDetails', shippingDetails);
     // Re-check context... I did not expose storeConfig or shippingMethods list.
     // In CheckoutContent, I have `getShippingMethods` which returns `shippingCost`.
     // It seems simple shipping for now.

@@ -255,6 +255,7 @@ export default function ModernCleanProductCardTemplate({
                             className={styles.compactAddBtn}
                             onClick={(e) => {
                                 e.preventDefault();
+                                e.stopPropagation();
                                 onAddToCart?.();
                             }}
                             aria-label="Add to Cart"
@@ -276,6 +277,7 @@ export default function ModernCleanProductCardTemplate({
                                 className={styles.iconBtn}
                                 onClick={(e) => {
                                     e.preventDefault();
+                                    e.stopPropagation();
                                     onQuickView?.();
                                 }}
                                 aria-label="Quick view"
@@ -292,6 +294,7 @@ export default function ModernCleanProductCardTemplate({
                                 className={`${styles.iconBtn} ${isInCompare ? styles.inCompare : ''} ${compareDisabled ? styles.disabled : ''}`}
                                 onClick={(e) => {
                                     e.preventDefault();
+                                    e.stopPropagation();
                                     if (!compareDisabled) {
                                         onCompare?.();
                                     }
@@ -310,6 +313,7 @@ export default function ModernCleanProductCardTemplate({
                                 className={`${styles.iconBtn} ${isWishlisted ? styles.wishlisted : ''}`}
                                 onClick={(e) => {
                                     e.preventDefault();
+                                    e.stopPropagation();
                                     onToggleWishlist?.();
                                 }}
                                 aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
@@ -328,6 +332,7 @@ export default function ModernCleanProductCardTemplate({
                             className={`${styles.wishlistBtn} ${styles[wishlistPosition]} ${isWishlisted ? styles.wishlisted : ''}`}
                             onClick={(e) => {
                                 e.preventDefault();
+                                e.stopPropagation();
                                 onToggleWishlist?.();
                             }}
                             aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
@@ -349,6 +354,7 @@ export default function ModernCleanProductCardTemplate({
                                             className={addToCartBtnClasses}
                                             onClick={(e) => {
                                                 e.preventDefault();
+                                                e.stopPropagation();
                                                 onAddToCart?.();
                                             }}
                                             title="Add to Cart"
@@ -372,6 +378,7 @@ export default function ModernCleanProductCardTemplate({
                                             className={buyNowBtnClasses}
                                             onClick={(e) => {
                                                 e.preventDefault();
+                                                e.stopPropagation();
                                                 onBuyNow?.();
                                             }}
                                             title="Buy Now"
@@ -397,6 +404,7 @@ export default function ModernCleanProductCardTemplate({
                                     className={styles.quickViewBtn}
                                     onClick={(e) => {
                                         e.preventDefault();
+                                        e.stopPropagation();
                                         onQuickView?.();
                                     }}
                                     aria-label="Quick view"

@@ -36,7 +36,6 @@ function CategoryPageInner({
     initialLayout = null,
     initialPagination = null,
 }: CategoryPageContainerProps) {
-    console.log('[CategoryPage] Component render - category:', category._id, category.title);
     const router = useRouter();
     const searchParams = useSearchParams();
     const { store, currentCurrency } = useStore();
@@ -248,7 +247,6 @@ function CategoryPageInner({
 
         // Check if params actually changed (excluding initial mount)
         if (hasInitialFetchRef.current && currentParams !== prevParams) {
-            console.log('[CategoryPage] URL params changed - setting loading state');
             setIsLoading(true);
         }
 
@@ -260,12 +258,9 @@ function CategoryPageInner({
         if (!hasInitialFetchRef.current) {
             hasInitialFetchRef.current = true;
             if (initialProducts.length > 0) {
-                console.log('[CategoryPage] Skipping initial fetch - using SSR data');
                 return;
             }
         }
-
-        console.log('[CategoryPage] Fetching products - filters changed');
         // Fetch products when filters change (via URL)
         const currentPage = parseInt(searchParams.get('page') || '1');
         fetchProducts({ page: currentPage });

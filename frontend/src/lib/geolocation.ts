@@ -256,7 +256,6 @@ export async function detectCurrency(
             const response = await fetch('https://ipapi.co/json/', {
                 signal: AbortSignal.timeout(3000), // 3 second timeout
             });
-            console.log('No stored currency found, detecting...', response);
             if (response.ok) {
                 const data: GeolocationData = await response.json();
                 countryCode = data.country_code || null;

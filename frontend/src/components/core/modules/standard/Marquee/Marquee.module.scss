@@ -8,13 +8,6 @@
 .marqueeContent {
     display: flex;
     gap: 48px;
-    will-change: transform;
-}
-
-.marqueeGroup {
-    display: flex;
-    gap: 48px;
-    flex-shrink: 0;
 }
 
 .marqueeItem {
@@ -23,6 +16,7 @@
     gap: 12px;
     white-space: nowrap;
     flex-shrink: 0;
+    margin-right: 48px; // Gap between items
 }
 
 .marqueeText {

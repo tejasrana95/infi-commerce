@@ -10,6 +10,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useCart } from '@/providers/CartProvider';
 import { useToast } from '@/providers/ToastProvider';
 import { useStore } from '@/providers/StoreProvider';
+import { useWishlist } from '@/providers/WishlistProvider';
 
 interface WishlistProduct {
     _id: string;
@@ -25,6 +26,7 @@ export default function WishlistPage() {
     const { isAuthenticated } = useAuth();
     const { addToCart } = useCart();
     const { store } = useStore();
+    const { removeFromWishlist } = useWishlist();
     const { success, error } = useToast();
     const [wishlist, setWishlist] = useState<WishlistProduct[]>([]);
     const [loading, setLoading] = useState(true);
@@ -54,9 +56,15 @@ export default function WishlistPage() {
     const handleRemove = async (productId: string) => {
         setRemoving(productId);
         try {
-            await api.delete(`wishlist/${productId}`);
-            setWishlist(prev => prev.filter(item => item._id !== productId));
-            success('Item removed from wishlist');
+            // Use WishlistProvider's removeFromWishlist to update context
+            const result = await removeFromWishlist(productId);
+            if (result) {
+                // Update local state
+                setWishlist(prev => prev.filter(item => item._id !== productId));
+                success('Item removed from wishlist');
+            } else {
+                error('Failed to remove item');
+            }
         } catch (err) {
             console.error('Failed to remove from wishlist:', err);
             error('Failed to remove item');

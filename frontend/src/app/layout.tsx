@@ -22,7 +22,7 @@ import { Currency, DEFAULT_TEMPLATE_ID } from "@/types";
 import { AnalyticsProvider } from "@/providers/AnalyticsProvider";
 import { InterestProvider } from "@/providers/InterestProvider";
 import AutoAnalytics from "@/components/analytics/AutoAnalytics";
-import NextTopLoader from "nextjs-toploader";
+import NavigationProgress from '@/components/ui/NavigationProgress';
 import ClientOnlyWidgets from "@/components/core/ClientOnlyWidgets";
 import { formatFontFamily } from "@/lib/fonts";
 import OfflineIndicator from "@/components/pwa/OfflineIndicator";
@@ -246,7 +246,7 @@ export default async function RootLayout({
         */}
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <NextTopLoader showSpinner={false} color="#29D" />
+        <NavigationProgress />
         {store && (
           <script
             type="application/ld+json"

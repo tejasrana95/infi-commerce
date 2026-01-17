@@ -60,8 +60,6 @@ export async function generateStaticParams() {
                 console.error(`Failed to fetch blog posts for store ${store._id}:`, error);
             }
         }
-
-        console.log(`Generated ${paths.length} static blog post pages`);
         return paths;
     } catch (error) {
         console.error('Failed to generate static params for blog posts:', error);

@@ -114,14 +114,15 @@ $bg-light: #f9fafb;
     overflow: hidden;
     min-height: 0;
     padding: 0 20px; // Remove bottom padding by default
-    transition: padding-bottom 0.3s ease-out; // Animate padding
+    transition: padding 0.3s ease-out; // Animate padding
 
     // Add padding only when expanded (via parent class selector if possible, or we need to target it)
 }
 
 // We need to target innerContent based on expanded state of parent
 .accordionContent.expanded .innerContent {
-    padding-bottom: 20px;
+    padding-bottom: 10px;
+    padding-top: 20px;
 }
 
 // Sections Layout

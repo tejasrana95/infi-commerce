@@ -10,8 +10,6 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
                 scope: '/',
             });
 
-            console.log('Service Worker registered successfully:', registration);
-
             // Check for updates periodically
             setInterval(() => {
                 registration.update();

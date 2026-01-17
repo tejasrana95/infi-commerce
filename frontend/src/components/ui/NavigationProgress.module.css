@@ -1,0 +1,16 @@
+.progressBar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+.progressFill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent) 0%, var(--accent) 100%);
+    box-shadow: 0 0 10px var(--accent), 0 0 5px var(--accent);
+    transition: width 200ms ease;
+}
