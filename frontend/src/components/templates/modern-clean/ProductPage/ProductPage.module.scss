@@ -1,4 +1,5 @@
 @use "sass:color";
+@use '@/styles/breakpoints' as *;
 // Modern Clean ProductPage Styles - Premium presentation
 
 // ============================================
@@ -34,11 +35,11 @@ $star-color: #fbbf24;
     width: 100%;
     padding: 40px 24px;
 
-    @media (min-width: 768px) {
+    @include tablet {
         padding: 40px 32px;
     }
 
-    @media (min-width: 1024px) {
+    @include desktop {
         padding: 40px 48px;
     }
 }
@@ -55,7 +56,7 @@ $star-color: #fbbf24;
     display: flex;
     gap: 40px;
 
-    @media (max-width: 768px) {
+    @include mobile {
         flex-direction: column;
     }
 }
@@ -73,7 +74,7 @@ $star-color: #fbbf24;
     gap: 60px;
     margin-bottom: 60px;
 
-    @media (max-width: 1024px) {
+    @include tablet-down {
         grid-template-columns: 1fr;
         gap: 40px;
     }
@@ -90,7 +91,7 @@ $star-color: #fbbf24;
     height: fit-content;
     z-index: 100;
 
-    @media (max-width: 768px) {
+    @include mobile {
         flex-direction: column-reverse;
         position: static;
         width: 100%;
@@ -106,7 +107,7 @@ $star-color: #fbbf24;
     flex-direction: column;
     gap: 8px;
 
-    @media (max-width: 768px) {
+    @include mobile {
         width: 100%;
         display: flex;
         flex-direction: row;
@@ -509,7 +510,7 @@ $star-color: #fbbf24;
     display: flex;
     gap: 12px;
 
-    @media (max-width: 480px) {
+    @include small-mobile {
         flex-direction: column;
     }
 }
@@ -745,7 +746,7 @@ $star-color: #fbbf24;
     border-radius: 12px;
     margin-bottom: 24px;
 
-    @media (max-width: 640px) {
+    @include mobile {
         flex-direction: column;
         gap: 24px;
     }
@@ -851,7 +852,7 @@ $star-color: #fbbf24;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
 
-    @media (max-width: 480px) {
+    @include small-mobile {
         grid-template-columns: 1fr;
     }
 }
@@ -977,6 +978,7 @@ $star-color: #fbbf24;
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
 }
 
 .reviewerName {
@@ -1113,15 +1115,15 @@ $star-color: #fbbf24;
     grid-template-columns: repeat(4, 1fr);
     gap: 24px;
 
-    @media (max-width: 1024px) {
+    @include tablet-down {
         grid-template-columns: repeat(3, 1fr);
     }
 
-    @media (max-width: 768px) {
+    @include mobile {
         grid-template-columns: repeat(2, 1fr);
     }
 
-    @media (max-width: 480px) {
+    @include small-mobile {
         grid-template-columns: 1fr;
     }
 }

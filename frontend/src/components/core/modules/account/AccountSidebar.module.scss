@@ -1,3 +1,5 @@
+@use '@/styles/breakpoints' as *;
+
 .sidebar {
     width: 100%;
     background: white;
@@ -10,7 +12,7 @@
     padding: 24px;
     border-bottom-right-radius: 8px;
 
-    @media (max-width: 768px) {
+    @include mobile {
         display: none; // For now hide on mobile, handled by separate mobile drawer or top nav
     }
 }

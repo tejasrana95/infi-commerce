@@ -1,3 +1,5 @@
+@use '@/styles/breakpoints' as *;
+
 .container {
     margin-top: 28px;
     width: 100%;
@@ -35,7 +37,7 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
 
-    @media (max-width: 360px) {
+    @include small-mobile {
         grid-template-columns: 1fr;
     }
 }

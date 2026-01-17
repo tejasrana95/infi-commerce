@@ -1,4 +1,5 @@
 // CheckoutPayment Module Styles
+@use '@/styles/breakpoints' as *;
 
 .paymentModule {
     // Parent handles container
@@ -128,7 +129,7 @@
     }
 }
 
-@media (max-width: 640px) {
+@include mobile {
     .methodsContainer.gridLayout {
         grid-template-columns: 1fr;
     }

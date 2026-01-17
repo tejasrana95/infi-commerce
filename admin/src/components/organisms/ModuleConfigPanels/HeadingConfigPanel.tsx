@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Box, TextField, FormControl, InputLabel, Select, MenuItem, Typography, Divider, Tabs, Tab, Grid, Slider, Switch, FormControlLabel } from '@mui/material';
+import { ColorPicker } from '@/components/atoms';
 
 interface HeadingConfigPanelProps {
     config: {
@@ -173,14 +174,10 @@ const HeadingConfigPanel: React.FC<HeadingConfigPanelProps> = ({ config, onChang
                         </FormControl>
                     </Box>
 
-                    <TextField
+                    <ColorPicker
                         label="Heading Color"
-                        type="color"
                         value={config.styles?.color || '#000000'}
-                        onChange={(e) => handleStyleChange('color', e.target.value)}
-                        fullWidth
-                        size="small"
-                        InputLabelProps={{ shrink: true }}
+                        onChange={(color) => handleStyleChange('color', color)}
                     />
 
                     <Divider sx={{ my: 1 }} />
@@ -227,14 +224,10 @@ const HeadingConfigPanel: React.FC<HeadingConfigPanelProps> = ({ config, onChang
                         </FormControl>
                     </Box>
 
-                    <TextField
+                    <ColorPicker
                         label="Subheading Color"
-                        type="color"
                         value={config.styles?.subColor || '#666666'}
-                        onChange={(e) => handleStyleChange('subColor', e.target.value)}
-                        fullWidth
-                        size="small"
-                        InputLabelProps={{ shrink: true }}
+                        onChange={(color) => handleStyleChange('subColor', color)}
                     />
                 </Box>
             )}
@@ -283,13 +276,10 @@ const HeadingConfigPanel: React.FC<HeadingConfigPanelProps> = ({ config, onChang
                     </Box>
 
                     <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2 }}>
-                        <TextField
+                        <ColorPicker
                             label="Color"
-                            type="color"
                             value={config.styles?.borderColor || '#e0e0e0'}
-                            onChange={(e) => handleStyleChange('borderColor', e.target.value)}
-                            fullWidth
-                            size="small"
+                            onChange={(color) => handleStyleChange('borderColor', color)}
                         />
                         <TextField
                             label="Width (px)"

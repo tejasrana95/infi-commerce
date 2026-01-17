@@ -1,4 +1,5 @@
 // Compare Floating Widget Styles
+@use '@/styles/breakpoints' as *;
 
 .widget {
     position: fixed;
@@ -341,7 +342,7 @@
 // Mobile Responsiveness
 // ============================================
 
-@media (max-width: 640px) {
+@include mobile {
     .widget {
         left: 1rem !important;
         right: 1rem !important;

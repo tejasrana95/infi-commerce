@@ -1,4 +1,5 @@
 // ProductVideoGallery Styles
+@use '@/styles/breakpoints' as *;
 
 $primary-color: var(--color-primary, #111827);
 $text-primary: #111827;
@@ -22,7 +23,7 @@ $bg-light: #f9fafb;
     grid-template-columns: repeat(2, 1fr);
     gap: 16px;
 
-    @media (min-width: 768px) {
+    @include tablet {
         grid-template-columns: repeat(3, 1fr);
     }
 }

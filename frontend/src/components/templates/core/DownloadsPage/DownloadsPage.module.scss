@@ -1,3 +1,5 @@
+@use '@/styles/breakpoints' as *;
+
 .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -217,7 +219,7 @@
     }
 }
 
-@media (max-width: 768px) {
+@include mobile {
     .container {
         padding: 1rem;
     }

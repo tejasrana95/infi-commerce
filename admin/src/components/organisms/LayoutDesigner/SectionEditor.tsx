@@ -17,6 +17,7 @@ import {
     InputAdornment,
     Tooltip,
 } from '@mui/material';
+import { ColorPicker } from '@/components/atoms';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import ContentPasteIcon from '@mui/icons-material/ContentPaste';
@@ -269,11 +270,9 @@ export default function SectionEditor({ section, onChange, onDelete, copiedStyle
                     <Box sx={{ display: 'flex', gap: 1 }}>
                         <Box flex={1}>
                             <Typography variant="caption" color="text.secondary">Color</Typography>
-                            <input
-                                type="color"
+                            <ColorPicker
                                 value={section.settings.backgroundColor || '#ffffff'}
-                                onChange={(e) => updateSettings('backgroundColor', e.target.value)}
-                                style={{ width: '100%', height: 40, border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }}
+                                onChange={(color) => updateSettings('backgroundColor', color)}
                             />
                         </Box>
                         <Box flex={2}>
@@ -355,11 +354,9 @@ export default function SectionEditor({ section, onChange, onDelete, copiedStyle
                     <Box sx={{ display: 'flex', gap: 1 }}>
                         <Box flex={1}>
                             <Typography variant="caption" color="text.secondary">Color</Typography>
-                            <input
-                                type="color"
+                            <ColorPicker
                                 value={section.settings.borderColor || '#e0e0e0'}
-                                onChange={(e) => updateSettings('borderColor', e.target.value)}
-                                style={{ width: '100%', height: 40, border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }}
+                                onChange={(color) => updateSettings('borderColor', color)}
                             />
                         </Box>
                         <TextField

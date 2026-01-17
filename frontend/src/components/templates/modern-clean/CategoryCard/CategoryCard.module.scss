@@ -6,7 +6,8 @@
 
 .card {
     position: relative;
-    display: block;
+    display: flex;
+    flex-direction: column;
     text-decoration: none;
     color: inherit;
     border-radius: 16px;
@@ -195,6 +196,9 @@
     padding: 1.25rem;
     position: relative;
     z-index: 2;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .name {
@@ -218,6 +222,7 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    /* Ensure description takes up space but doesn't push too hard if empty (though it is conditional) */
 }
 
 .productCount {
@@ -234,7 +239,8 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    margin-top: 1rem;
+    margin-top: auto; // Push to bottom
+    padding-top: 1rem; // Ensure some spacing from content above
     font-size: 0.875rem;
     font-weight: 600;
     color: #374151;

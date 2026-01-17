@@ -1,19 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-    Box,
-    TextField,
-    Typography,
-    Button,
-    FormControlLabel,
-    Checkbox,
-    MenuItem,
-    Accordion,
-    AccordionSummary,
-    AccordionDetails,
-    Divider,
-} from '@mui/material';
+import { Box, TextField, FormControl, InputLabel, Select, MenuItem, Typography, Divider, Switch, FormControlLabel, IconButton, Button, AccordionDetails, Accordion, AccordionSummary, Checkbox } from '@mui/material';
+import { ColorPicker } from '@/components/atoms';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import EditIcon from '@mui/icons-material/Edit';
 import { LayoutModule } from '@/types';
@@ -91,27 +80,23 @@ export default function TableConfigPanel({ module, onChange }: TableConfigPanelP
                     <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Header Styling</Typography>
                 </AccordionSummary>
                 <AccordionDetails>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <Box sx={{ display: 'flex', gap: 2 }}>
-                            <Box flex={1}>
-                                <Typography variant="caption">Background Color</Typography>
-                                <input
-                                    type="color"
-                                    value={config.headerBgColor || '#f3f4f6'}
-                                    onChange={(e) => updateConfig('headerBgColor', e.target.value)}
-                                    style={{ width: '100%', height: 40, border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }}
-                                />
-                            </Box>
-                            <Box flex={1}>
-                                <Typography variant="caption">Text Color</Typography>
-                                <input
-                                    type="color"
-                                    value={config.headerTextColor || '#1f2937'}
-                                    onChange={(e) => updateConfig('headerTextColor', e.target.value)}
-                                    style={{ width: '100%', height: 40, border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }}
-                                />
-                            </Box>
-                        </Box>
+
+                    <Box sx={{ display: 'flex', gap: 2, flexDirection: 'column' }}>
+
+
+                        <ColorPicker
+                            label="Background Color"
+                            value={config.headerBgColor || '#f3f4f6'}
+                            onChange={(color) => updateConfig('headerBgColor', color)}
+                        />
+
+                        <ColorPicker
+                            label="Text Color"
+                            value={config.headerTextColor || '#1f2937'}
+                            onChange={(color) => updateConfig('headerTextColor', color)}
+                        />
+
+
                         <TextField
                             select
                             label="Header Alignment"
@@ -135,14 +120,10 @@ export default function TableConfigPanel({ module, onChange }: TableConfigPanelP
                 </AccordionSummary>
                 <AccordionDetails>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    checked={config.stripedRows || false}
-                                    onChange={(e) => updateConfig('stripedRows', e.target.checked)}
-                                />
-                            }
-                            label="Striped Rows"
+                        <ColorPicker
+                            label="Striped Row Color"
+                            value={config.styles?.stripedRowColor || config.stripedRowColor || '#fafafa'}
+                            onChange={(color) => updateConfig('stripedRowColor', color)}
                         />
                         <FormControlLabel
                             control={
@@ -164,38 +145,34 @@ export default function TableConfigPanel({ module, onChange }: TableConfigPanelP
                 </AccordionSummary>
                 <AccordionDetails>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <Box sx={{ display: 'flex', gap: 2 }}>
-                            <TextField
-                                label="Border Width"
-                                type="number"
-                                size="small"
-                                value={config.borderWidth || 1}
-                                onChange={(e) => updateConfig('borderWidth', parseInt(e.target.value))}
-                                InputProps={{ endAdornment: 'px' }}
-                                sx={{ flex: 1 }}
-                            />
-                            <TextField
-                                select
-                                label="Border Style"
-                                size="small"
-                                value={config.borderStyle || 'solid'}
-                                onChange={(e) => updateConfig('borderStyle', e.target.value)}
-                                sx={{ flex: 1 }}
-                            >
-                                <MenuItem value="solid">Solid</MenuItem>
-                                <MenuItem value="dashed">Dashed</MenuItem>
-                                <MenuItem value="dotted">Dotted</MenuItem>
-                            </TextField>
-                        </Box>
-                        <Box>
-                            <Typography variant="caption">Border Color</Typography>
-                            <input
-                                type="color"
-                                value={config.borderColor || '#e5e7eb'}
-                                onChange={(e) => updateConfig('borderColor', e.target.value)}
-                                style={{ width: '100%', height: 40, border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }}
-                            />
-                        </Box>
+
+                        <TextField
+                            label="Border Width"
+                            type="number"
+                            size="small"
+                            value={config.borderWidth || 1}
+                            onChange={(e) => updateConfig('borderWidth', parseInt(e.target.value))}
+                            InputProps={{ endAdornment: 'px' }}
+                            sx={{ flex: 1 }}
+                        />
+                        <TextField
+                            select
+                            label="Border Style"
+                            size="small"
+                            value={config.borderStyle || 'solid'}
+                            onChange={(e) => updateConfig('borderStyle', e.target.value)}
+                            sx={{ flex: 1 }}
+                        >
+                            <MenuItem value="solid">Solid</MenuItem>
+                            <MenuItem value="dashed">Dashed</MenuItem>
+                            <MenuItem value="dotted">Dotted</MenuItem>
+                        </TextField>
+
+                        <ColorPicker
+                            label="Border Color"
+                            value={config.borderColor || '#e5e7eb'}
+                            onChange={(color) => updateConfig('borderColor', color)}
+                        />
                         <TextField
                             label="Border Radius"
                             type="number"
@@ -227,6 +204,7 @@ export default function TableConfigPanel({ module, onChange }: TableConfigPanelP
                             <MenuItem value="right">Right</MenuItem>
                         </TextField>
                     </Box>
+
                 </AccordionDetails>
             </Accordion>
 
@@ -258,6 +236,6 @@ export default function TableConfigPanel({ module, onChange }: TableConfigPanelP
                 rows={config.rows}
                 onSave={handleSaveTableData}
             />
-        </Box>
+        </Box >
     );
 }

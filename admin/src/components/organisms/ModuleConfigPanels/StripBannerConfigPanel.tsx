@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Box, TextField, FormControl, InputLabel, Select, MenuItem, Typography, Divider, Tabs, Tab } from '@mui/material';
+import { Box, TextField, FormControl, InputLabel, Select, MenuItem, Typography, Divider, Switch, FormControlLabel, Tabs, Tab } from '@mui/material';
+import { ColorPicker } from '@/components/atoms';
 import FileManagerButton from '@/components/molecules/FileManagerButton';
 import RichTextEditor from '@/components/molecules/RichTextEditor';
 
@@ -159,14 +160,10 @@ export const StripBannerConfigPanel: React.FC<StripBannerConfigPanelProps> = ({ 
                             </Select>
                         </FormControl>
                     </Box>
-                    <TextField
-                        label="Title Color"
-                        type="color"
-                        value={config.titleStyles?.color || config.textColor || '#000000'}
-                        onChange={(e) => handleStyleChange('titleStyles', 'color', e.target.value)}
-                        fullWidth
-                        size="small"
-                        InputLabelProps={{ shrink: true }}
+                    <ColorPicker
+                        label="Text Color"
+                        value={config.textColor || '#333333'}
+                        onChange={(color) => handleChange('textColor', color)}
                     />
 
                     <Divider sx={{ my: 1 }} />
@@ -207,14 +204,10 @@ export const StripBannerConfigPanel: React.FC<StripBannerConfigPanelProps> = ({ 
                             </Select>
                         </FormControl>
                     </Box>
-                    <TextField
+                    <ColorPicker
                         label="Description Color"
-                        type="color"
                         value={config.descriptionStyles?.color || config.textColor || '#000000'}
-                        onChange={(e) => handleStyleChange('descriptionStyles', 'color', e.target.value)}
-                        fullWidth
-                        size="small"
-                        InputLabelProps={{ shrink: true }}
+                        onChange={(color) => handleStyleChange('descriptionStyles', 'color', color)}
                     />
                 </Box>
             )}
@@ -244,14 +237,10 @@ export const StripBannerConfigPanel: React.FC<StripBannerConfigPanelProps> = ({ 
                     </Box>
 
                     <Box sx={{ display: 'flex', gap: 2 }}>
-                        <TextField
-                            label="Bg Color"
-                            type="color"
+                        <ColorPicker
+                            label="Background Color"
                             value={config.backgroundColor || '#f5f5f5'}
-                            onChange={(e) => handleChange('backgroundColor', e.target.value)}
-                            fullWidth
-                            sx={{ '& input': { height: 40 } }}
-                            InputLabelProps={{ shrink: true }}
+                            onChange={(color) => handleChange('backgroundColor', color)}
                         />
                         <TextField
                             label="Height (px)"
@@ -265,14 +254,10 @@ export const StripBannerConfigPanel: React.FC<StripBannerConfigPanelProps> = ({ 
                     <Divider />
                     <Typography variant="subtitle2">Overlay</Typography>
                     <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-                        <TextField
+                        <ColorPicker
                             label="Overlay Color"
-                            type="color"
                             value={config.overlayColor || '#000000'}
-                            onChange={(e) => handleChange('overlayColor', e.target.value)}
-                            fullWidth
-                            sx={{ '& input': { height: 40 } }}
-                            InputLabelProps={{ shrink: true }}
+                            onChange={(color) => handleChange('overlayColor', color)}
                         />
                         <TextField
                             label="Opacity (0-1)"
@@ -290,23 +275,15 @@ export const StripBannerConfigPanel: React.FC<StripBannerConfigPanelProps> = ({ 
                     <Divider />
                     <Typography variant="subtitle2">CTA Buttons</Typography>
                     <Box sx={{ display: 'flex', gap: 2 }}>
-                        <TextField
-                            label="CTA Baground"
-                            type="color"
+                        <ColorPicker
+                            label="CTA Background"
                             value={config.ctaBackgroundColor || '#000000'}
-                            onChange={(e) => handleChange('ctaBackgroundColor', e.target.value)}
-                            fullWidth
-                            sx={{ '& input': { height: 40 } }}
-                            InputLabelProps={{ shrink: true }}
+                            onChange={(color) => handleChange('ctaBackgroundColor', color)}
                         />
-                        <TextField
+                        <ColorPicker
                             label="CTA Text Color"
-                            type="color"
                             value={config.ctaTextColor || '#ffffff'}
-                            onChange={(e) => handleChange('ctaTextColor', e.target.value)}
-                            fullWidth
-                            sx={{ '& input': { height: 40 } }}
-                            InputLabelProps={{ shrink: true }}
+                            onChange={(color) => handleChange('ctaTextColor', color)}
                         />
                     </Box>
                 </Box>

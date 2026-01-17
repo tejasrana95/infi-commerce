@@ -1,3 +1,5 @@
+@use '@/styles/breakpoints' as *;
+
 .checkoutContainer {
     max-width: 1400px;
     margin: 0 auto;
@@ -12,7 +14,7 @@
     align-items: start;
     margin-top: 2rem;
 
-    @media (max-width: 1024px) {
+    @include tablet-down {
         grid-template-columns: 1fr;
     }
 }
@@ -33,7 +35,7 @@
     top: 2rem;
     order: 2;
 
-    @media (max-width: 1024px) {
+    @include tablet-down {
         display: none; // Handled by mobile summary toggler inside CheckoutSummary
     }
 }

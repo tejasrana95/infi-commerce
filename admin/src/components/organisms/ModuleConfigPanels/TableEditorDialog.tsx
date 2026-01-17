@@ -30,6 +30,7 @@ import FormatUnderlinedIcon from '@mui/icons-material/FormatUnderlined';
 import StrikethroughSIcon from '@mui/icons-material/StrikethroughS';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import IconPicker from '@/components/atoms/IconPicker';
+import { ColorPicker } from '@/components/atoms';
 
 interface TableEditorDialogProps {
     open: boolean;
@@ -43,6 +44,7 @@ export default function TableEditorDialog({ open, onClose, headers: initialHeade
     const [headers, setHeaders] = useState<string[]>(initialHeaders);
     const [rows, setRows] = useState<any[][]>(initialRows);
     const [iconPickerAnchor, setIconPickerAnchor] = useState<{ anchor: HTMLElement; row: number; col: number; type: 'prefix' | 'suffix' } | null>(null);
+    const [colorPickerAnchor, setColorPickerAnchor] = useState<{ anchor: HTMLElement; row: number; col: number; type: 'text' | 'bg' } | null>(null);
     const editorRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
     React.useEffect(() => {
@@ -228,34 +230,39 @@ export default function TableEditorDialog({ open, onClose, headers: initialHeade
                                             {/* Color and Icon management buttons - compact inline */}
                                             <Box sx={{ display: 'flex', gap: 0.5, mt: 1, alignItems: 'center' }}>
                                                 <Tooltip title="Text color">
-                                                    <input
-                                                        type="color"
-                                                        value={cell.textColor || '#000000'}
-                                                        onChange={(e) => updateCellColor(rowIndex, colIndex, 'text', e.target.value)}
-                                                        style={{
+                                                    <Box
+                                                        onClick={(e) => setColorPickerAnchor({ anchor: e.currentTarget, row: rowIndex, col: colIndex, type: 'text' })}
+                                                        sx={{
                                                             width: 24,
                                                             height: 24,
+                                                            bgcolor: cell.textColor || '#000000',
                                                             border: '1px solid #ddd',
-                                                            borderRadius: 4,
+                                                            borderRadius: 1,
                                                             cursor: 'pointer',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            position: 'relative'
                                                         }}
-                                                        title="Text Color"
-                                                    />
+                                                    >
+                                                        <Typography variant="caption" sx={{ color: '#fff', fontSize: '10px', textShadow: '0 0 2px #000', fontWeight: 'bold' }}>T</Typography>
+                                                    </Box>
                                                 </Tooltip>
 
                                                 <Tooltip title="Background color">
-                                                    <input
-                                                        type="color"
-                                                        value={cell.bgColor || '#ffffff'}
-                                                        onChange={(e) => updateCellColor(rowIndex, colIndex, 'bg', e.target.value)}
-                                                        style={{
+                                                    <Box
+                                                        onClick={(e) => setColorPickerAnchor({ anchor: e.currentTarget, row: rowIndex, col: colIndex, type: 'bg' })}
+                                                        sx={{
                                                             width: 24,
                                                             height: 24,
+                                                            bgcolor: cell.bgColor || '#ffffff',
+                                                            backgroundImage: !cell.bgColor ? 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)' : 'none',
+                                                            backgroundSize: '8px 8px',
+                                                            backgroundPosition: '0 0, 0 4px, 4px -4px, -4px 0px',
                                                             border: '1px solid #ddd',
-                                                            borderRadius: 4,
-                                                            cursor: 'pointer',
+                                                            borderRadius: 1,
+                                                            cursor: 'pointer'
                                                         }}
-                                                        title="Background Color"
                                                     />
                                                 </Tooltip>
 
@@ -359,6 +366,36 @@ export default function TableEditorDialog({ open, onClose, headers: initialHeade
                                 Remove Icon
                             </Button>
                         )}
+                    </Box>
+                </Popover>
+
+                {/* Color Picker Popover */}
+                <Popover
+                    open={Boolean(colorPickerAnchor)}
+                    anchorEl={colorPickerAnchor?.anchor}
+                    onClose={() => setColorPickerAnchor(null)}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                    transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                >
+                    <Box sx={{ p: 2, width: 250 }}>
+                        <Typography variant="subtitle2" gutterBottom>
+                            Select {colorPickerAnchor?.type === 'text' ? 'Text' : 'Background'} Color
+                        </Typography>
+                        <ColorPicker
+                            value={colorPickerAnchor ? (colorPickerAnchor.type === 'text' ? rows[colorPickerAnchor.row][colorPickerAnchor.col].textColor : rows[colorPickerAnchor.row][colorPickerAnchor.col].bgColor) : ''}
+                            onChange={(color) => colorPickerAnchor && updateCellColor(colorPickerAnchor.row, colorPickerAnchor.col, colorPickerAnchor.type, color)}
+                            fullWidth
+                        />
+                        <Button
+                            size="small"
+                            onClick={() => colorPickerAnchor && updateCellColor(colorPickerAnchor.row, colorPickerAnchor.col, colorPickerAnchor.type, '')}
+                            sx={{ mt: 1 }}
+                            fullWidth
+                            variant="outlined"
+                            color="error"
+                        >
+                            Clear Color
+                        </Button>
                     </Box>
                 </Popover>
             </DialogContent>

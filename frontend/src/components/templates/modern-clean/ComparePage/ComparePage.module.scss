@@ -1,4 +1,5 @@
 // ComparePage Styles - Modern Clean Template
+@use '@/styles/breakpoints' as *;
 
 .comparePage {
     min-height: 60vh;
@@ -23,7 +24,7 @@
     margin-bottom: 2rem;
     gap: 1rem;
 
-    @media (max-width: 640px) {
+    @include mobile {
         flex-direction: column;
     }
 }
@@ -471,7 +472,7 @@
 // Mobile Responsiveness
 // ============================================
 
-@media (max-width: 768px) {
+@include mobile {
     .comparePage {
         padding: 1rem 0 2rem;
     }

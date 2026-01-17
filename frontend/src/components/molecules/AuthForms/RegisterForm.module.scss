@@ -1,3 +1,5 @@
+@use '@/styles/breakpoints' as *;
+
 .container {
     width: 100%;
 }
@@ -126,7 +128,7 @@
     grid-template-columns: 1fr 1fr;
     gap: 12px;
 
-    @media (max-width: 400px) {
+    @include small-mobile {
         grid-template-columns: 1fr;
     }
 }

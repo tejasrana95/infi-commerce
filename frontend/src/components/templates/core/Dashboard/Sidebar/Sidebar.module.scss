@@ -1,3 +1,5 @@
+@use '@/styles/breakpoints' as *;
+
 .sidebar {
     width: 280px;
     background: white;
@@ -8,7 +10,7 @@
     flex-direction: column;
     padding: 24px;
 
-    @media (max-width: 768px) {
+    @include mobile {
         display: none; // For now hide on mobile, handled by separate mobile drawer or top nav
     }
 }

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, TextField, FormControl, InputLabel, Select, MenuItem, Typography, Divider, FormControlLabel, Switch } from '@mui/material';
+import { Box, TextField, FormControl, InputLabel, Select, MenuItem, Typography, Divider, Tabs, Tab, Grid, Switch, FormControlLabel } from '@mui/material';
+import { ColorPicker } from '@/components/atoms';
 
 interface CTAConfigPanelProps {
     config: {
@@ -74,31 +75,22 @@ export const CTAConfigPanel: React.FC<CTAConfigPanelProps> = ({ config, onChange
             </Box>
 
             <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2 }}>
-                <TextField
-                    label="Background"
-                    type="color"
+                <ColorPicker
+                    label="Button Color"
                     value={config.backgroundColor || '#000000'}
-                    onChange={(e) => handleChange('backgroundColor', e.target.value)}
-                    fullWidth
-                    sx={{ '& input': { height: 40 } }}
+                    onChange={(color) => handleChange('backgroundColor', color)}
                     helperText="BG / Glow Color"
                 />
-                <TextField
-                    label="Border"
-                    type="color"
-                    value={config.borderColor || '#000000'}
-                    onChange={(e) => handleChange('borderColor', e.target.value)}
-                    fullWidth
-                    sx={{ '& input': { height: 40 } }}
+                <ColorPicker
+                    label="Border Color"
+                    value={config.borderColor || 'transparent'}
+                    onChange={(color) => handleChange('borderColor', color)}
                     helperText="Outline Color"
                 />
-                <TextField
-                    label="Text"
-                    type="color"
+                <ColorPicker
+                    label="Text Color"
                     value={config.textColor || '#ffffff'}
-                    onChange={(e) => handleChange('textColor', e.target.value)}
-                    fullWidth
-                    sx={{ '& input': { height: 40 } }}
+                    onChange={(color) => handleChange('textColor', color)}
                     helperText="Label Color"
                 />
             </Box>

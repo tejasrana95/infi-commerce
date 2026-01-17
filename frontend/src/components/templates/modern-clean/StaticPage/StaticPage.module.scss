@@ -1,7 +1,10 @@
+@use '@/styles/breakpoints' as *;
+
 .staticPage {
     min-height: 100vh;
     background: var(--background);
 }
+
 
 // Breadcrumbs
 .breadcrumbs {
@@ -52,7 +55,7 @@
     padding: 60px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
 
-    @media (max-width: 768px) {
+    @include mobile {
         padding: 32px 24px;
     }
 }
@@ -167,7 +170,7 @@
         grid-template-columns: 1fr 300px;
         gap: 40px;
 
-        @media (max-width: 1024px) {
+        @include tablet-down {
             grid-template-columns: 1fr;
         }
     }

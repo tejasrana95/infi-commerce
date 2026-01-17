@@ -18,6 +18,7 @@ import * as z from 'zod';
 import { Banner } from '@/types';
 import StoreAutocomplete from '@/components/molecules/StoreAutocomplete';
 import FileManagerButton from '@/components/molecules/FileManagerButton';
+import { ColorPicker } from '@/components/atoms';
 import { FileItem } from '@/types/file';
 
 // Validation Schema
@@ -316,20 +317,11 @@ export default function BannerForm({ initialData, onSubmit, isSubmitting = false
                                             control={control}
                                             render={({ field }) => (
                                                 <Box>
-                                                    <Typography variant="subtitle2" gutterBottom>
-                                                        Overlay Color
-                                                    </Typography>
-                                                    <input
-                                                        type="color"
+
+                                                    <ColorPicker
+                                                        label="Overlay Color"
                                                         value={field.value}
                                                         onChange={field.onChange}
-                                                        style={{
-                                                            width: '100%',
-                                                            height: 40,
-                                                            border: '1px solid #ddd',
-                                                            borderRadius: 4,
-                                                            cursor: 'pointer',
-                                                        }}
                                                     />
                                                 </Box>
                                             )}
@@ -403,20 +395,11 @@ export default function BannerForm({ initialData, onSubmit, isSubmitting = false
                             control={control}
                             render={({ field }) => (
                                 <Box>
-                                    <Typography variant="subtitle2" gutterBottom>
-                                        Text Color
-                                    </Typography>
-                                    <input
-                                        type="color"
+
+                                    <ColorPicker
+                                        label="Text Color"
                                         value={field.value || '#ffffff'}
                                         onChange={field.onChange}
-                                        style={{
-                                            width: '100%',
-                                            height: 40,
-                                            border: '1px solid #ddd',
-                                            borderRadius: 4,
-                                            cursor: 'pointer',
-                                        }}
                                     />
                                 </Box>
                             )}

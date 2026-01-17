@@ -1,3 +1,5 @@
+@use '@/styles/breakpoints' as *;
+
 .container {
     position: fixed;
     top: 1rem;
@@ -9,7 +11,7 @@
     max-width: 400px;
     pointer-events: none;
 
-    @media (max-width: 640px) {
+    @include mobile {
         left: 1rem;
         right: 1rem;
         max-width: none;
@@ -28,7 +30,7 @@
     animation: slideIn 0.3s ease-out;
     min-width: 300px;
 
-    @media (max-width: 640px) {
+    @include mobile {
         min-width: auto;
     }
 

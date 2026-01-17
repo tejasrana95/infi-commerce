@@ -1,25 +1,26 @@
 // =============================================================================
 // MODULE RENDERER STYLES
+@use '@/styles/breakpoints' as *;
 // CSS-based visibility for SSR compatibility
 // =============================================================================
 
 // Hide on desktop (>1024px)
 .hideDesktop {
-    @media (min-width: 1025px) {
+    @include desktop {
         display: none !important;
     }
 }
 
 // Hide on tablet (768px - 1024px)
 .hideTablet {
-    @media (min-width: 768px) and (max-width: 1024px) {
+    @include tablet-only {
         display: none !important;
     }
 }
 
 // Hide on mobile (<768px)
 .hideMobile {
-    @media (max-width: 767px) {
+    @include mobile {
         display: none !important;
     }
 }

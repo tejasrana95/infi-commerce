@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Box, TextField, FormControl, InputLabel, Select, MenuItem, Typography, Divider, Button, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import { Box, TextField, FormControl, InputLabel, Select, MenuItem, Typography, Divider, IconButton, Button, Switch, FormControlLabel, AccordionSummary, Accordion, AccordionDetails } from '@mui/material';
+import { ColorPicker } from '@/components/atoms';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -119,14 +120,10 @@ const AccordionConfigPanel: React.FC<AccordionConfigPanelProps> = ({ config, onC
             </Box>
 
             {config.iconType === 'icon' && (
-                <TextField
-                    label="Icon Color"
-                    type="color"
-                    value={config.iconColor || '#d112ad'}
-                    onChange={(e) => handleChange('iconColor', e.target.value)}
-                    size="small"
-                    fullWidth
-                    helperText="Choose the color for icons"
+                <ColorPicker
+                    label="Heading Color"
+                    value={config.iconColor || '#d112ad'} // Assuming this ColorPicker is still for the global iconColor
+                    onChange={(color) => handleChange('iconColor', color)} // Update global iconColor
                 />
             )}
 
@@ -150,7 +147,7 @@ const AccordionConfigPanel: React.FC<AccordionConfigPanelProps> = ({ config, onC
                     >
                         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                             <Typography variant="body2" noWrap sx={{ maxWidth: '200px' }}>
-                                {item.title || `Question ${index + 1}`}
+                                {item.title || `Question ${index + 1} `}
                             </Typography>
                         </AccordionSummary>
                         <AccordionDetails>

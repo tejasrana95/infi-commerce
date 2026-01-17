@@ -1,4 +1,5 @@
 // CategoryFilters Styles
+@use '@/styles/breakpoints' as *;
 // Extracted from CategoryPage for reusability
 
 // ============================================
@@ -512,7 +513,7 @@
     border: 1px solid var(--category-border-color);
     align-items: center;
 
-    @media (max-width: 1024px) {
+    @include tablet-down {
         display: none;
     }
 }

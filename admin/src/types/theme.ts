@@ -140,6 +140,17 @@ export interface ThemeConfig {
         header?: string;
         footer?: string;
     };
+    scrollToTop?: {
+        enabled: boolean;
+        position: 'bottom-left' | 'bottom-center' | 'bottom-right';
+        xAxis: number;
+        yAxis: number;
+        colors: {
+            icon: string;
+            background: string;
+        };
+        borderRadius: number;
+    };
 }
 
 export interface Theme {

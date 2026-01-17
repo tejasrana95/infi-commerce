@@ -1,6 +1,7 @@
 'use client';
 
-import { Box, TextField, MenuItem, Typography, FormControlLabel, Switch } from '@mui/material';
+import { Box, TextField, FormControl, InputLabel, Select, MenuItem, Typography, Divider, Tabs, Tab, FormControlLabel, Switch } from '@mui/material';
+import { ColorPicker } from '@/components/atoms';
 import RichTextEditor from '@/components/molecules/RichTextEditor';
 
 export interface TextBlockConfig {
@@ -75,38 +76,18 @@ export default function TextBlockConfigPanel({ config, onChange }: TextBlockConf
 
             <Box sx={{ display: 'flex', gap: 2 }}>
                 <Box flex={1}>
-                    <Typography variant="caption" color="text.secondary">
-                        Text Color
-                    </Typography>
-                    <input
-                        type="color"
+                    <ColorPicker
+                        label="Text Color"
                         value={config.textColor || '#000000'}
-                        onChange={(e) => handleChange('textColor', e.target.value)}
-                        style={{
-                            width: '100%',
-                            height: 36,
-                            border: '1px solid #ddd',
-                            borderRadius: 4,
-                            cursor: 'pointer',
-                        }}
+                        onChange={(color) => handleChange('textColor', color)}
                     />
                 </Box>
 
                 <Box flex={1}>
-                    <Typography variant="caption" color="text.secondary">
-                        Background
-                    </Typography>
-                    <input
-                        type="color"
+                    <ColorPicker
+                        label="Background"
                         value={config.backgroundColor || '#ffffff'}
-                        onChange={(e) => handleChange('backgroundColor', e.target.value)}
-                        style={{
-                            width: '100%',
-                            height: 36,
-                            border: '1px solid #ddd',
-                            borderRadius: 4,
-                            cursor: 'pointer',
-                        }}
+                        onChange={(color) => handleChange('backgroundColor', color)}
                     />
                 </Box>
             </Box>

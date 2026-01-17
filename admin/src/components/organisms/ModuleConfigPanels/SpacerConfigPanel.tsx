@@ -6,6 +6,7 @@ import {
     Slider,
     Typography,
 } from '@mui/material';
+import { ColorPicker } from '@/components/atoms';
 
 export interface SpacerConfig {
     height: number;
@@ -64,17 +65,9 @@ export default function SpacerConfigPanel({ config, onChange }: SpacerConfigPane
                 <Typography variant="caption" color="text.secondary">
                     Background Color
                 </Typography>
-                <input
-                    type="color"
+                <ColorPicker
                     value={config.backgroundColor || '#ffffff'}
-                    onChange={(e) => handleChange('backgroundColor', e.target.value)}
-                    style={{
-                        width: '100%',
-                        height: 36,
-                        border: '1px solid #ddd',
-                        borderRadius: 4,
-                        cursor: 'pointer',
-                    }}
+                    onChange={(color) => handleChange('backgroundColor', color)}
                 />
             </Box>
 

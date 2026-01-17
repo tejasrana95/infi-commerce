@@ -18,6 +18,7 @@ import {
     ListItemIcon,
     ListItemText,
 } from '@mui/material';
+import { ColorPicker } from '@/components/atoms';
 import {
     Add as AddIcon,
     Delete as DeleteIcon,
@@ -642,21 +643,19 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
                                 />
                                 {topBar.enabled && (
                                     <Box sx={{ display: 'flex', gap: 2, mt: 2, flexWrap: 'wrap' }}>
-                                        <TextField
+                                        <ColorPicker
                                             label="Background"
-                                            type="color"
                                             value={topBar.backgroundColor}
-                                            onChange={(e) => handleUpdateTopBar({ backgroundColor: e.target.value })}
-                                            size="small"
-                                            sx={{ width: 110 }}
+                                            onChange={(color) => handleUpdateTopBar({ backgroundColor: color })}
+                                            fullWidth={false}
+                                        // sx={{ width: 150 }}
                                         />
-                                        <TextField
+                                        <ColorPicker
                                             label="Text"
-                                            type="color"
                                             value={topBar.textColor}
-                                            onChange={(e) => handleUpdateTopBar({ textColor: e.target.value })}
-                                            size="small"
-                                            sx={{ width: 110 }}
+                                            onChange={(color) => handleUpdateTopBar({ textColor: color })}
+                                            fullWidth={false}
+                                        // sx={{ width: 150 }}
                                         />
                                         <TextField
                                             label="Height"
@@ -675,13 +674,12 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
                             {/* Main Header Settings */}
                             <Typography variant="subtitle2" gutterBottom>Main Header</Typography>
                             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                                <TextField
+                                <ColorPicker
                                     label="Background"
-                                    type="color"
                                     value={headerConfig.main.backgroundColor || config.colors?.background || '#ffffff'}
-                                    onChange={(e) => handleUpdateMainHeader({ backgroundColor: e.target.value })}
-                                    size="small"
-                                    sx={{ width: 110 }}
+                                    onChange={(color) => handleUpdateMainHeader({ backgroundColor: color })}
+                                    fullWidth={false}
+                                // sx={{ width: 150 }}
                                 />
                                 <TextField
                                     label="Height"

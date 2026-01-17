@@ -10,7 +10,7 @@ export interface ProductCardConfig {
     showQuickView: boolean;
     showCompare: boolean;
     addToCartStyle: 'filled' | 'outlined' | 'text' | 'icon-only';
-    buyNowStyle: 'filled' | 'outlined' | 'text';
+    buyNowStyle: 'filled' | 'outlined' | 'text' | 'icon-only';
     wishlistPosition: 'top-right' | 'top-left' | 'bottom';
     quickViewPosition: 'overlay' | 'top-right';
     titleLines: 1 | 2 | 3;

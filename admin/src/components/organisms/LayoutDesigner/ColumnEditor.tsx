@@ -14,6 +14,7 @@ import {
     FormControlLabel,
     Checkbox,
 } from '@mui/material';
+import { ColorPicker } from '@/components/atoms';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import ContentPasteIcon from '@mui/icons-material/ContentPaste';
@@ -113,11 +114,9 @@ export default function ColumnEditor({ column, onChange, onDelete, copiedStyle, 
                     <Box sx={{ display: 'flex', gap: 1 }}>
                         <Box flex={1}>
                             <Typography variant="caption" color="text.secondary">Color</Typography>
-                            <input
-                                type="color"
+                            <ColorPicker
                                 value={settings.backgroundColor || '#ffffff'}
-                                onChange={(e) => updateSettings('backgroundColor', e.target.value)}
-                                style={{ width: '100%', height: 40, border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }}
+                                onChange={(color) => updateSettings('backgroundColor', color)}
                             />
                         </Box>
                         <Box flex={2}>
@@ -169,11 +168,10 @@ export default function ColumnEditor({ column, onChange, onDelete, copiedStyle, 
                     <Box>
                         <Typography variant="caption" color="text.secondary">Text Color</Typography>
                         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                            <input
-                                type="color"
+                            <ColorPicker
                                 value={settings.textColor || '#000000'}
-                                onChange={(e) => updateSettings('textColor', e.target.value)}
-                                style={{ width: 40, height: 40, border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }}
+                                onChange={(color) => updateSettings('textColor', color)}
+                                size="small"
                             />
                             {settings.textColor && (
                                 <IconButton size="small" onClick={() => updateSettings('textColor', '')} title="Clear color">
@@ -215,11 +213,9 @@ export default function ColumnEditor({ column, onChange, onDelete, copiedStyle, 
                     <Box sx={{ display: 'flex', gap: 1 }}>
                         <Box flex={1}>
                             <Typography variant="caption" color="text.secondary">Color</Typography>
-                            <input
-                                type="color"
+                            <ColorPicker
                                 value={settings.borderColor || '#e0e0e0'}
-                                onChange={(e) => updateSettings('borderColor', e.target.value)}
-                                style={{ width: '100%', height: 40, border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }}
+                                onChange={(color) => updateSettings('borderColor', color)}
                             />
                         </Box>
                         <TextField

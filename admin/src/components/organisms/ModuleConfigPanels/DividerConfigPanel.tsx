@@ -1,12 +1,7 @@
 'use client';
 
-import {
-    Box,
-    TextField,
-    MenuItem,
-    Typography,
-    Slider,
-} from '@mui/material';
+import { Box, TextField, FormControl, InputLabel, Select, MenuItem, Typography, Slider } from '@mui/material';
+import { ColorPicker } from '@/components/atoms';
 
 export interface DividerConfig {
     style: 'solid' | 'dashed' | 'dotted' | 'double';
@@ -74,17 +69,9 @@ export default function DividerConfigPanel({ config, onChange }: DividerConfigPa
                 <Typography variant="caption" color="text.secondary">
                     Color
                 </Typography>
-                <input
-                    type="color"
+                <ColorPicker
                     value={config.color}
-                    onChange={(e) => handleChange('color', e.target.value)}
-                    style={{
-                        width: '100%',
-                        height: 36,
-                        border: '1px solid #ddd',
-                        borderRadius: 4,
-                        cursor: 'pointer',
-                    }}
+                    onChange={(color) => handleChange('color', color)}
                 />
             </Box>
 

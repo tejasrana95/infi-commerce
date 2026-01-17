@@ -1,4 +1,5 @@
 // CheckoutPage Styles - Modern, clean checkout design
+@use '@/styles/breakpoints' as *;
 
 .checkoutPage {
 
@@ -557,7 +558,7 @@
 }
 
 // Responsive Design
-@media (max-width: 1024px) {
+@include tablet-down {
     .checkoutContent {
         grid-template-columns: 1fr;
     }
@@ -572,7 +573,7 @@
     }
 }
 
-@media (max-width: 640px) {
+@include mobile {
     .checkoutPage {
         padding: 1rem 0;
     }

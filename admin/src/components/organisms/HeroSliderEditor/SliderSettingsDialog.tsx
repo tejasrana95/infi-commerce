@@ -14,6 +14,7 @@ import {
     Tabs,
     Tab
 } from '@mui/material';
+import { ColorPicker } from '@/components/atoms';
 import { HeroSlider } from '@/services/heroSlider.service';
 
 interface SliderSettingsDialogProps {
@@ -165,15 +166,13 @@ export default function SliderSettingsDialog({ open, onClose, settings, onSave }
                                 }
                                 label="Show Bullets"
                             />
-                            <Box display="flex" alignItems="center" gap={1}>
-                                <Typography variant="caption">Color:</Typography>
-                                <input
-                                    type="color"
-                                    value={localSettings.bulletColor || '#ffffff'}
-                                    onChange={(e) => handleChange('bulletColor', e.target.value)}
-                                    style={{ border: 'none', padding: 0, width: 30, height: 30, cursor: 'pointer' }}
-                                />
-                            </Box>
+                            <ColorPicker
+                                label="Bullet Color"
+                                value={localSettings.bulletColor || '#ffffff'}
+                                onChange={(color) => handleChange('bulletColor', color)}
+                                fullWidth={false}
+                            // sx={{ width: 150 }}
+                            />
                         </Box>
 
                         <Divider />
@@ -189,15 +188,13 @@ export default function SliderSettingsDialog({ open, onClose, settings, onSave }
                                 }
                                 label="Show Arrows"
                             />
-                            <Box display="flex" alignItems="center" gap={1}>
-                                <Typography variant="caption">Color:</Typography>
-                                <input
-                                    type="color"
-                                    value={localSettings.arrowColor || '#ffffff'}
-                                    onChange={(e) => handleChange('arrowColor', e.target.value)}
-                                    style={{ border: 'none', padding: 0, width: 30, height: 30, cursor: 'pointer' }}
-                                />
-                            </Box>
+                            <ColorPicker
+                                label="Arrow Color"
+                                value={localSettings.arrowColor || '#ffffff'}
+                                onChange={(color) => handleChange('arrowColor', color)}
+                                fullWidth={false}
+                            // sx={{ width: 150 }}
+                            />
                         </Box>
 
                         <Divider />

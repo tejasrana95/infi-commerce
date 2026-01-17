@@ -15,6 +15,7 @@ import {
     AccordionSummary,
     AccordionDetails,
 } from '@mui/material';
+import { ColorPicker } from '@/components/atoms';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -339,17 +340,11 @@ export default function FlipBoxConfigPanel({ config, onChange }: FlipBoxConfigPa
                             </Select>
                         </FormControl>
                     </Box>
-                    <Box>
-                        <Typography variant="caption" display="block" sx={{ mb: 0.5 }}>
-                            Front Title Color
-                        </Typography>
-                        <input
-                            type="color"
-                            value={typography?.frontTitleColor || '#ffffff'}
-                            onChange={(e) => handleTypographyChange('frontTitleColor', e.target.value)}
-                            style={{ width: '100%', height: 32, border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }}
-                        />
-                    </Box>
+                    <ColorPicker
+                        label="Front Title Color"
+                        value={typography?.frontTitleColor || '#ffffff'}
+                        onChange={(color) => handleTypographyChange('frontTitleColor', color)}
+                    />
 
                     <Divider sx={{ my: 1 }} />
 
@@ -365,17 +360,11 @@ export default function FlipBoxConfigPanel({ config, onChange }: FlipBoxConfigPa
                         size="small"
                         fullWidth
                     />
-                    <Box>
-                        <Typography variant="caption" display="block" sx={{ mb: 0.5 }}>
-                            Front Subtitle Color
-                        </Typography>
-                        <input
-                            type="color"
-                            value={typography?.frontSubtitleColor || '#e0e0e0'}
-                            onChange={(e) => handleTypographyChange('frontSubtitleColor', e.target.value)}
-                            style={{ width: '100%', height: 32, border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }}
-                        />
-                    </Box>
+                    <ColorPicker
+                        label="Front Subtitle Color"
+                        value={typography?.frontSubtitleColor || '#e0e0e0'}
+                        onChange={(color) => handleTypographyChange('frontSubtitleColor', color)}
+                    />
 
                     <Divider sx={{ my: 1 }} />
 
@@ -391,17 +380,11 @@ export default function FlipBoxConfigPanel({ config, onChange }: FlipBoxConfigPa
                         size="small"
                         fullWidth
                     />
-                    <Box>
-                        <Typography variant="caption" display="block" sx={{ mb: 0.5 }}>
-                            Back Description Color
-                        </Typography>
-                        <input
-                            type="color"
-                            value={typography?.backDescriptionColor || '#333333'}
-                            onChange={(e) => handleTypographyChange('backDescriptionColor', e.target.value)}
-                            style={{ width: '100%', height: 32, border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }}
-                        />
-                    </Box>
+                    <ColorPicker
+                        label="Back Description Color"
+                        value={typography?.backDescriptionColor || '#333333'}
+                        onChange={(color) => handleTypographyChange('backDescriptionColor', color)}
+                    />
                 </Box>
             </Box>
         </Box>

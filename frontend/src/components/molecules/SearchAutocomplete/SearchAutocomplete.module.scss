@@ -1,4 +1,5 @@
 // Search Autocomplete Styles
+@use '@/styles/breakpoints' as *;
 
 .container {
     position: relative;
@@ -313,7 +314,7 @@
 // Responsive
 // ============================================
 
-@media (max-width: 640px) {
+@include mobile {
     .dropdown {
         max-height: 60vh;
     }

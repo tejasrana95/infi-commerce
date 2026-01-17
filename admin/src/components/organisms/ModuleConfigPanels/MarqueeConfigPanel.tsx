@@ -19,6 +19,7 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import IconPicker from '@/components/atoms/IconPicker';
+import { ColorPicker } from '@/components/atoms';
 
 export interface MarqueeItem {
     icon: string;
@@ -213,14 +214,10 @@ export default function MarqueeConfigPanel({ config, onChange }: MarqueeConfigPa
                 </Typography>
 
                 <Box>
-                    <Typography variant="caption" display="block" sx={{ mb: 0.5 }}>
-                        Background Color
-                    </Typography>
-                    <input
-                        type="color"
+                    <ColorPicker
+                        label="Background Color"
                         value={config.backgroundColor || '#f8f9fa'}
-                        onChange={(e) => onChange({ ...config, backgroundColor: e.target.value })}
-                        style={{ width: '100%', height: 32, border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }}
+                        onChange={(color) => onChange({ ...config, backgroundColor: color })}
                     />
                 </Box>
             </Box>
@@ -244,14 +241,10 @@ export default function MarqueeConfigPanel({ config, onChange }: MarqueeConfigPa
                     />
 
                     <Box>
-                        <Typography variant="caption" display="block" sx={{ mb: 0.5 }}>
-                            Icon Color
-                        </Typography>
-                        <input
-                            type="color"
+                        <ColorPicker
+                            label="Icon Color"
                             value={config.iconColor || '#1976d2'}
-                            onChange={(e) => onChange({ ...config, iconColor: e.target.value })}
-                            style={{ width: '100%', height: 32, border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }}
+                            onChange={(color) => onChange({ ...config, iconColor: color })}
                         />
                     </Box>
                 </Box>
@@ -289,14 +282,10 @@ export default function MarqueeConfigPanel({ config, onChange }: MarqueeConfigPa
                         </FormControl>
                     </Box>
                     <Box>
-                        <Typography variant="caption" display="block" sx={{ mb: 0.5 }}>
-                            Text Color
-                        </Typography>
-                        <input
-                            type="color"
+                        <ColorPicker
+                            label="Text Color"
                             value={typography?.textColor || '#000000'}
-                            onChange={(e) => handleTypographyChange('textColor', e.target.value)}
-                            style={{ width: '100%', height: 32, border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }}
+                            onChange={(color) => handleTypographyChange('textColor', color)}
                         />
                     </Box>
                 </Box>

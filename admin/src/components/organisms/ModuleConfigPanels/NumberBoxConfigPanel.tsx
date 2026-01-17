@@ -16,6 +16,7 @@ import {
     AccordionSummary,
     AccordionDetails,
 } from '@mui/material';
+import { ColorPicker } from '@/components/atoms';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -281,17 +282,11 @@ export default function NumberBoxConfigPanel({ config, onChange }: NumberBoxConf
                             </Select>
                         </FormControl>
                     </Box>
-                    <Box>
-                        <Typography variant="caption" display="block" sx={{ mb: 0.5 }}>
-                            Number Color
-                        </Typography>
-                        <input
-                            type="color"
-                            value={typography?.numberColor || '#1976d2'}
-                            onChange={(e) => handleTypographyChange('numberColor', e.target.value)}
-                            style={{ width: '100%', height: 32, border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }}
-                        />
-                    </Box>
+                    <ColorPicker
+                        label="Number Color"
+                        value={typography?.numberColor || '#1976d2'}
+                        onChange={(color) => handleTypographyChange('numberColor', color)}
+                    />
 
                     <Divider sx={{ my: 1 }} />
 
@@ -320,17 +315,11 @@ export default function NumberBoxConfigPanel({ config, onChange }: NumberBoxConf
                             </Select>
                         </FormControl>
                     </Box>
-                    <Box>
-                        <Typography variant="caption" display="block" sx={{ mb: 0.5 }}>
-                            Title Color
-                        </Typography>
-                        <input
-                            type="color"
-                            value={typography?.titleColor || '#000000'}
-                            onChange={(e) => handleTypographyChange('titleColor', e.target.value)}
-                            style={{ width: '100%', height: 32, border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }}
-                        />
-                    </Box>
+                    <ColorPicker
+                        label="Title Color"
+                        value={typography?.titleColor || '#000000'}
+                        onChange={(color) => handleTypographyChange('titleColor', color)}
+                    />
 
                     <Divider sx={{ my: 1 }} />
 
@@ -346,17 +335,11 @@ export default function NumberBoxConfigPanel({ config, onChange }: NumberBoxConf
                         size="small"
                         fullWidth
                     />
-                    <Box>
-                        <Typography variant="caption" display="block" sx={{ mb: 0.5 }}>
-                            Description Color
-                        </Typography>
-                        <input
-                            type="color"
-                            value={typography?.descriptionColor || '#666666'}
-                            onChange={(e) => handleTypographyChange('descriptionColor', e.target.value)}
-                            style={{ width: '100%', height: 32, border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }}
-                        />
-                    </Box>
+                    <ColorPicker
+                        label="Description Color"
+                        value={typography?.descriptionColor || '#666666'}
+                        onChange={(color) => handleTypographyChange('descriptionColor', color)}
+                    />
                 </Box>
             </Box>
         </Box>

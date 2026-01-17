@@ -28,6 +28,7 @@ import {
     Info,
 } from '@mui/icons-material';
 import FileManagerButton from '@/components/molecules/FileManagerButton';
+import { ColorPicker } from '@/components/atoms';
 import { FileItem } from '@/types/file';
 
 interface PWASettings {
@@ -140,88 +141,24 @@ export default function PWASettings({ storeId, initialSettings, onSave, saving =
 
                                 {/* Theme Color */}
                                 <Grid size={{ xs: 12, md: 6 }}>
-                                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Theme Color</Typography>
-                                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                                        <Box
-                                            sx={{
-                                                width: 48,
-                                                height: 48,
-                                                borderRadius: 1,
-                                                border: '2px solid',
-                                                borderColor: 'divider',
-                                                backgroundColor: settings.themeColor || '#000000',
-                                                cursor: 'pointer',
-                                                position: 'relative',
-                                                overflow: 'hidden',
-                                                flexShrink: 0,
-                                            }}
-                                        >
-                                            <input
-                                                type="color"
-                                                value={settings.themeColor || '#000000'}
-                                                onChange={(e) => setSettings({ ...settings, themeColor: e.target.value })}
-                                                style={{
-                                                    position: 'absolute',
-                                                    top: 0,
-                                                    left: 0,
-                                                    width: '100%',
-                                                    height: '100%',
-                                                    opacity: 0,
-                                                    cursor: 'pointer',
-                                                }}
-                                            />
-                                        </Box>
-                                        <TextField
-                                            size="small"
-                                            value={settings.themeColor || '#000000'}
-                                            onChange={(e) => setSettings({ ...settings, themeColor: e.target.value })}
-                                            sx={{ flex: 1 }}
-                                            helperText="Browser toolbar color when app is open"
-                                        />
-                                    </Box>
+
+                                    <ColorPicker
+                                        label="Theme Color"
+                                        value={settings.themeColor || '#000000'}
+                                        onChange={(color) => setSettings({ ...settings, themeColor: color })}
+                                        helperText="Browser toolbar color when app is open"
+                                    />
                                 </Grid>
 
                                 {/* Background Color */}
                                 <Grid size={{ xs: 12, md: 6 }}>
-                                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Background Color</Typography>
-                                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                                        <Box
-                                            sx={{
-                                                width: 48,
-                                                height: 48,
-                                                borderRadius: 1,
-                                                border: '2px solid',
-                                                borderColor: 'divider',
-                                                backgroundColor: settings.backgroundColor || '#ffffff',
-                                                cursor: 'pointer',
-                                                position: 'relative',
-                                                overflow: 'hidden',
-                                                flexShrink: 0,
-                                            }}
-                                        >
-                                            <input
-                                                type="color"
-                                                value={settings.backgroundColor || '#ffffff'}
-                                                onChange={(e) => setSettings({ ...settings, backgroundColor: e.target.value })}
-                                                style={{
-                                                    position: 'absolute',
-                                                    top: 0,
-                                                    left: 0,
-                                                    width: '100%',
-                                                    height: '100%',
-                                                    opacity: 0,
-                                                    cursor: 'pointer',
-                                                }}
-                                            />
-                                        </Box>
-                                        <TextField
-                                            size="small"
-                                            value={settings.backgroundColor || '#ffffff'}
-                                            onChange={(e) => setSettings({ ...settings, backgroundColor: e.target.value })}
-                                            sx={{ flex: 1 }}
-                                            helperText="Splash screen background color"
-                                        />
-                                    </Box>
+
+                                    <ColorPicker
+                                        label="Background Color"
+                                        value={settings.backgroundColor || '#ffffff'}
+                                        onChange={(color) => setSettings({ ...settings, backgroundColor: color })}
+                                        helperText="Splash screen background color"
+                                    />
                                 </Grid>
 
                                 {/* Install Prompt Style */}

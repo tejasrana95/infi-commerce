@@ -1,3 +1,5 @@
+@use '@/styles/breakpoints' as *;
+
 .container {
     min-height: 100vh;
     display: flex;
@@ -52,7 +54,7 @@
         0 10px 40px rgba(0, 0, 0, 0.08);
     border: 1px solid rgba(0, 0, 0, 0.04);
 
-    @media (max-width: 480px) {
+    @include small-mobile {
         padding: 1.75rem;
         border-radius: 16px;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
@@ -71,7 +73,7 @@
     margin: 0 0 0.5rem 0;
     letter-spacing: -0.02em;
 
-    @media (max-width: 480px) {
+    @include small-mobile {
         font-size: 1.5rem;
     }
 }

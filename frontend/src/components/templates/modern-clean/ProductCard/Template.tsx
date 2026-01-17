@@ -159,7 +159,7 @@ export default function ModernCleanProductCardTemplate({
 
     const buyNowBtnClasses = [
         styles.buyNowBtn,
-        styles[`btn${buyNowStyle.charAt(0).toUpperCase() + buyNowStyle.slice(1)}`],
+        styles[`btn${buyNowStyle.charAt(0).toUpperCase() + buyNowStyle.slice(1).replace('-', '')}`],
     ].filter(Boolean).join(' ');
 
     // Get aspect ratio class
@@ -381,7 +381,13 @@ export default function ModernCleanProductCardTemplate({
                                             data-price={price}
                                             data-currency={currency}
                                         >
-                                            Buy Now
+                                            {buyNowStyle === 'icon-only' ? (
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                                </svg>
+                                            ) : (
+                                                'Buy Now'
+                                            )}
                                         </button>
                                     )}
                                 </div>
@@ -443,10 +449,10 @@ export default function ModernCleanProductCardTemplate({
 
                 {/* Action Buttons - For non-overlay card styles */}
                 {cardStyle !== 'overlay' && (cardStyle as any) !== 'detailed' && (showAddToCart || showBuyNow) && inStock && (
-                    <div className={styles.contentActions}>
+                    <div className={`${styles.contentActions} ${(addToCartStyle === 'icon-only' && buyNowStyle === 'icon-only') ? styles.centeredActions : ''}`}>
                         {showAddToCart && (
                             <button
-                                className={`${styles.contentBtn} ${styles[`contentBtn${addToCartStyle.charAt(0).toUpperCase() + addToCartStyle.slice(1).replace('-', '')}`]}`}
+                                className={`${styles.contentBtn} ${styles.addToCart} ${styles[`contentBtn${addToCartStyle.charAt(0).toUpperCase() + addToCartStyle.slice(1).replace('-', '')}`]}`}
                                 onClick={(e) => {
                                     e.preventDefault();
                                     onAddToCart?.();
@@ -456,6 +462,7 @@ export default function ModernCleanProductCardTemplate({
                                 data-item-name={name}
                                 data-price={price}
                                 data-currency={currency}
+                                title={addToCartStyle === 'icon-only' ? 'Add to Cart' : undefined}
                             >
                                 {addToCartStyle === 'icon-only' ? (
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
@@ -468,7 +475,7 @@ export default function ModernCleanProductCardTemplate({
                         )}
                         {showBuyNow && (
                             <button
-                                className={`${styles.contentBtn} ${styles[`contentBtn${buyNowStyle.charAt(0).toUpperCase() + buyNowStyle.slice(1)}`]}`}
+                                className={`${styles.contentBtn} ${styles.buyNow} ${styles[`contentBtn${buyNowStyle.charAt(0).toUpperCase() + buyNowStyle.slice(1).replace('-', '')}`]}`}
                                 onClick={(e) => {
                                     e.preventDefault();
                                     onBuyNow?.();
@@ -478,8 +485,15 @@ export default function ModernCleanProductCardTemplate({
                                 data-item-name={name}
                                 data-price={price}
                                 data-currency={currency}
+                                title={buyNowStyle === 'icon-only' ? 'Buy Now' : undefined}
                             >
-                                Buy Now
+                                {buyNowStyle === 'icon-only' ? (
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                ) : (
+                                    'Buy Now'
+                                )}
                             </button>
                         )}
                     </div>

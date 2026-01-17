@@ -1,4 +1,5 @@
 // Addresses Page Styles
+@use '@/styles/breakpoints' as *;
 // Card grid with modal form
 
 .loadingContainer {
@@ -21,7 +22,7 @@
     margin-bottom: 2rem;
     gap: 1rem;
 
-    @media (max-width: 640px) {
+    @include mobile {
         flex-direction: column;
     }
 }
@@ -70,7 +71,7 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 1.5rem;
 
-    @media (max-width: 768px) {
+    @include mobile {
         grid-template-columns: 1fr;
     }
 }
@@ -313,7 +314,7 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
 
-    @media (max-width: 480px) {
+    @include small-mobile {
         grid-template-columns: 1fr;
     }
 }

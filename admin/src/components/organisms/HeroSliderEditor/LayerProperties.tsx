@@ -4,6 +4,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { HeroSliderLayer, HeroSliderSlide, SectionLayout } from '@/services/heroSlider.service';
 import FileManagerButton from '@/components/molecules/FileManagerButton';
 import IconPicker from '@/components/atoms/IconPicker';
+import { ColorPicker } from '@/components/atoms';
 
 // Theme colors
 const colors = {
@@ -166,31 +167,7 @@ const StyledSelect = (props: any) => (
     />
 );
 
-const ColorInput = ({ value, onChange, label }: { value: string; onChange: (val: string) => void; label: string }) => (
-    <Box>
-        <Typography variant="caption" sx={{ color: colors.textSecondary, fontSize: 11, display: 'block', mb: 0.5 }}>
-            {label}
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            <input
-                type="color"
-                value={value || '#000000'}
-                onChange={(e) => onChange(e.target.value)}
-                style={{
-                    width: 32,
-                    height: 32,
-                    border: 'none',
-                    borderRadius: 4,
-                    cursor: 'pointer',
-                    backgroundColor: 'transparent'
-                }}
-            />
-            <Typography variant="caption" sx={{ color: colors.text, fontSize: 11, fontFamily: 'monospace' }}>
-                {value || '#000000'}
-            </Typography>
-        </Box>
-    </Box>
-);
+
 
 interface LayerPropertiesProps {
     layer?: HeroSliderLayer;
@@ -326,7 +303,7 @@ export default function LayerProperties({ layer, slide, onUpdateLayer, onUpdateS
                     </FormControl>
 
                     {slide.background?.type === 'color' && (
-                        <ColorInput
+                        <ColorPicker
                             label="Background Color"
                             value={slide.background?.value || '#1a1a2e'}
                             onChange={(val) => onUpdateSlide({ background: { ...slide.background, value: val } })}
@@ -356,7 +333,7 @@ export default function LayerProperties({ layer, slide, onUpdateLayer, onUpdateS
                         </Box>
                     )}
 
-                    <ColorInput
+                    <ColorPicker
                         label="Overlay Color"
                         value={slide.background?.overlay || 'rgba(0,0,0,0)'}
                         onChange={(val) => onUpdateSlide({ background: { ...slide.background, overlay: val } })}
@@ -496,32 +473,11 @@ export default function LayerProperties({ layer, slide, onUpdateLayer, onUpdateS
                                     </Box>
                                     {/* Icon Color */}
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        <Typography variant="caption" sx={{ color: colors.textSecondary, minWidth: 60 }}>
-                                            Color
-                                        </Typography>
-                                        <input
-                                            type="color"
+                                        <ColorPicker
+                                            label="Color"
                                             value={effectiveStyle?.color || '#000000'}
-                                            onChange={(e) => updateStyle({ color: e.target.value })}
-                                            style={{
-                                                width: 32,
-                                                height: 32,
-                                                border: `1px solid ${colors.border}`,
-                                                borderRadius: 4,
-                                                cursor: 'pointer',
-                                                backgroundColor: 'transparent'
-                                            }}
-                                        />
-                                        <TextField
-                                            size="small"
-                                            value={effectiveStyle?.color || '#000000'}
-                                            onChange={(e) => updateStyle({ color: e.target.value })}
-                                            sx={{ flex: 1 }}
-                                            slotProps={{
-                                                input: {
-                                                    sx: { fontSize: 12, height: 32 }
-                                                }
-                                            }}
+                                            onChange={(val) => updateStyle({ color: val })}
+                                            fullWidth
                                         />
                                     </Box>
                                 </Box>
@@ -774,13 +730,13 @@ export default function LayerProperties({ layer, slide, onUpdateLayer, onUpdateS
                                     </StyledSelect>
                                 </FormControl>
 
-                                <ColorInput
+                                <ColorPicker
                                     label="Text Color"
                                     value={effectiveStyle?.color || '#ffffff'}
                                     onChange={(val) => updateStyle({ color: val })}
                                 />
 
-                                <ColorInput
+                                <ColorPicker
                                     label="Background Color"
                                     value={effectiveStyle?.backgroundColor || 'transparent'}
                                     onChange={(val) => updateStyle({ backgroundColor: val })}
@@ -843,7 +799,7 @@ export default function LayerProperties({ layer, slide, onUpdateLayer, onUpdateS
 
                             {layer.border?.style !== 'none' && (
                                 <>
-                                    <ColorInput
+                                    <ColorPicker
                                         label="Border Color"
                                         value={layer.border?.color || '#000000'}
                                         onChange={(val) => onUpdateLayer(layer.id, { border: { ...layer.border, color: val } })}
@@ -873,7 +829,7 @@ export default function LayerProperties({ layer, slide, onUpdateLayer, onUpdateS
                     </AccordionSummary>
                     <AccordionDetails>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <ColorInput
+                            <ColorPicker
                                 label="Shadow Color"
                                 value={layer.shadow?.color || 'rgba(0,0,0,0.5)'}
                                 onChange={(val) => onUpdateLayer(layer.id, { shadow: { ...layer.shadow, color: val } })}

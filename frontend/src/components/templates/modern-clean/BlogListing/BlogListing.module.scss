@@ -1,7 +1,10 @@
+@use '@/styles/breakpoints' as *;
+
 .blogListing {
     min-height: 100vh;
     background: var(--background);
 }
+
 
 // Hero Section
 .hero {
@@ -134,14 +137,14 @@
     grid-template-columns: 280px 1fr;
     gap: 40px;
 
-    @media (max-width: 1024px) {
+    @include tablet-down {
         grid-template-columns: 1fr;
     }
 }
 
 // Sidebar
 .sidebar {
-    @media (max-width: 1024px) {
+    @include tablet-down {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
         gap: 20px;
@@ -355,7 +358,7 @@
             grid-template-columns: 300px 1fr;
             gap: 24px;
 
-            @media (max-width: 768px) {
+            @include mobile {
                 grid-template-columns: 1fr;
             }
         }

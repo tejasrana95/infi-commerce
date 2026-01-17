@@ -1,16 +1,18 @@
+@use '@/styles/breakpoints' as *;
+
 .tableContainer {
     width: 100%;
     overflow-x: auto;
 
     &.scroll {
-        @media (max-width: 768px) {
+        @include mobile {
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
         }
     }
 
     &.stack {
-        @media (max-width: 768px) {
+        @include mobile {
             table {
                 display: block;
             }

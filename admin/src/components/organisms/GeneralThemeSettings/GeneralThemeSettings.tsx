@@ -20,6 +20,8 @@ import {
     AccordionDetails,
     Chip,
     Stack,
+    FormLabel,
+    Switch,
 } from '@mui/material';
 import {
     ExpandMore as ExpandMoreIcon,
@@ -27,8 +29,10 @@ import {
     TextFields as TextFieldsIcon,
     Refresh as RefreshIcon,
     ContentCopy as CopyIcon,
+    VerticalAlignTop as ScrollTopIcon,
 } from '@mui/icons-material';
 import { ThemeConfig } from '@/types';
+import { ColorPicker } from '@/components/atoms';
 
 // Popular Google Fonts
 const GOOGLE_FONTS = [
@@ -148,6 +152,25 @@ export default function GeneralThemeSettings({ config, onChange }: GeneralThemeS
         });
     };
 
+    const updateScrollToTop = (updates: Partial<NonNullable<ThemeConfig['scrollToTop']>>) => {
+        const current = config.scrollToTop || {
+            enabled: false,
+            position: 'bottom-right',
+            xAxis: 20,
+            yAxis: 20,
+            colors: {
+                icon: '#ffffff',
+                background: '#000000',
+            },
+            borderRadius: 50,
+        };
+
+        onChange({
+            ...config,
+            scrollToTop: { ...current, ...updates },
+        });
+    };
+
     const applyPalette = (palette: typeof COLOR_PALETTES[0]) => {
         onChange({
             ...config,
@@ -161,74 +184,7 @@ export default function GeneralThemeSettings({ config, onChange }: GeneralThemeS
         setTimeout(() => setCopiedColor(null), 2000);
     };
 
-    const ColorInput = ({
-        label,
-        value,
-        onChange: onChangeColor,
-        helperText,
-    }: {
-        label: string;
-        value: string;
-        onChange: (color: string) => void;
-        helperText?: string;
-    }) => (
-        <Box>
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>{label}</Typography>
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <Box
-                    sx={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 1,
-                        border: '2px solid',
-                        borderColor: 'divider',
-                        backgroundColor: value,
-                        cursor: 'pointer',
-                        position: 'relative',
-                        overflow: 'hidden',
-                        flexShrink: 0,
-                    }}
-                >
-                    <input
-                        type="color"
-                        value={value}
-                        onChange={(e) => onChangeColor(e.target.value)}
-                        style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            height: '100%',
-                            opacity: 0,
-                            cursor: 'pointer',
-                        }}
-                    />
-                </Box>
-                <TextField
-                    size="small"
-                    value={value}
-                    onChange={(e) => onChangeColor(e.target.value)}
-                    sx={{ flex: 1 }}
-                    InputProps={{
-                        endAdornment: (
-                            <InputAdornment position="end">
-                                <Tooltip title={copiedColor === value ? 'Copied!' : 'Copy'}>
-                                    <IconButton size="small" onClick={() => copyColor(value)}>
-                                        <CopyIcon fontSize="small" />
-                                    </IconButton>
-                                </Tooltip>
-                            </InputAdornment>
-                        ),
-                    }}
-                />
-            </Box>
-            {helperText && (
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                    {helperText}
-                </Typography>
-            )}
-        </Box>
-    );
+
 
     return (
         <Box>
@@ -290,7 +246,7 @@ export default function GeneralThemeSettings({ config, onChange }: GeneralThemeS
                     {/* Custom Colors */}
                     <Grid container spacing={3}>
                         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                            <ColorInput
+                            <ColorPicker
                                 label="Primary Color"
                                 value={colors.primary || '#2563eb'}
                                 onChange={(color) => updateColors({ primary: color })}
@@ -298,7 +254,7 @@ export default function GeneralThemeSettings({ config, onChange }: GeneralThemeS
                             />
                         </Grid>
                         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                            <ColorInput
+                            <ColorPicker
                                 label="Secondary Color"
                                 value={colors.secondary || '#64748b'}
                                 onChange={(color) => updateColors({ secondary: color })}
@@ -306,7 +262,7 @@ export default function GeneralThemeSettings({ config, onChange }: GeneralThemeS
                             />
                         </Grid>
                         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                            <ColorInput
+                            <ColorPicker
                                 label="Accent Color"
                                 value={colors.accent || '#f59e0b'}
                                 onChange={(color) => updateColors({ accent: color })}
@@ -314,7 +270,7 @@ export default function GeneralThemeSettings({ config, onChange }: GeneralThemeS
                             />
                         </Grid>
                         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                            <ColorInput
+                            <ColorPicker
                                 label="Background Color"
                                 value={colors.background || '#ffffff'}
                                 onChange={(color) => updateColors({ background: color })}
@@ -322,7 +278,7 @@ export default function GeneralThemeSettings({ config, onChange }: GeneralThemeS
                             />
                         </Grid>
                         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                            <ColorInput
+                            <ColorPicker
                                 label="Text Color"
                                 value={colors.text || '#1e293b'}
                                 onChange={(color) => updateColors({ text: color })}
@@ -497,6 +453,111 @@ export default function GeneralThemeSettings({ config, onChange }: GeneralThemeS
                     </Box>
                 </AccordionDetails>
             </Accordion>
-        </Box>
+
+
+
+            <Accordion defaultExpanded sx={{ mt: 2 }}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <ScrollTopIcon color="primary" />
+                        <Typography variant="h6">Scroll to Top Indicator</Typography>
+                    </Box>
+                </AccordionSummary>
+                <AccordionDetails>
+                    <Grid container spacing={3}>
+                        <Grid size={{ xs: 12 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <FormControl component="fieldset">
+                                    <FormLabel component="legend">Enable Indicator</FormLabel>
+                                    <Switch
+                                        checked={config.scrollToTop?.enabled || false}
+                                        onChange={(e) => updateScrollToTop({ enabled: e.target.checked })}
+                                    />
+                                </FormControl>
+                            </Box>
+                        </Grid>
+
+                        {(config.scrollToTop?.enabled) && (
+                            <>
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <FormControl fullWidth>
+                                        <InputLabel>Position</InputLabel>
+                                        <Select
+                                            value={config.scrollToTop?.position || 'bottom-right'}
+                                            label="Position"
+                                            onChange={(e) => updateScrollToTop({ position: e.target.value as any })}
+                                        >
+                                            <MenuItem value="bottom-left">Bottom Left</MenuItem>
+                                            <MenuItem value="bottom-center">Bottom Center</MenuItem>
+                                            <MenuItem value="bottom-right">Bottom Right</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Border Radius"
+                                        type="number"
+                                        value={config.scrollToTop?.borderRadius ?? 50}
+                                        onChange={(e) => updateScrollToTop({ borderRadius: Number(e.target.value) })}
+                                        InputProps={{
+                                            endAdornment: <InputAdornment position="end">px</InputAdornment>,
+                                        }}
+                                        helperText="For fully rounded, use 50% equivalent (large number)"
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="X Axis Offset"
+                                        type="number"
+                                        value={config.scrollToTop?.xAxis ?? 20}
+                                        onChange={(e) => updateScrollToTop({ xAxis: Number(e.target.value) })}
+                                        InputProps={{
+                                            endAdornment: <InputAdornment position="end">px</InputAdornment>,
+                                        }}
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Y Axis Offset"
+                                        type="number"
+                                        value={config.scrollToTop?.yAxis ?? 20}
+                                        onChange={(e) => updateScrollToTop({ yAxis: Number(e.target.value) })}
+                                        InputProps={{
+                                            endAdornment: <InputAdornment position="end">px</InputAdornment>,
+                                        }}
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <ColorPicker
+                                        label="Icon Color"
+                                        value={config.scrollToTop?.colors?.icon || '#ffffff'}
+                                        onChange={(color) => updateScrollToTop({
+                                            colors: { ...(config.scrollToTop?.colors || { background: '#000000' }), icon: color } as any
+                                        })}
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <ColorPicker
+                                        label="Background Color"
+                                        value={config.scrollToTop?.colors?.background || '#000000'}
+                                        onChange={(color) => updateScrollToTop({
+                                            colors: { ...(config.scrollToTop?.colors || { icon: '#ffffff' }), background: color } as any
+                                        })}
+                                    />
+                                </Grid>
+                            </>
+                        )}
+                    </Grid>
+                </AccordionDetails>
+            </Accordion>
+        </Box >
     );
 }

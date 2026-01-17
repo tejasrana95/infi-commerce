@@ -205,6 +205,19 @@ export interface IStore extends Document {
             widgetStyle?: 'floating' | 'drawer' | 'none';
             widgetPosition?: 'bottom' | 'bottom-right' | 'bottom-left';
         };
+
+        // Scroll to Top Configuration
+        scrollToTop?: {
+            enabled: boolean;
+            position: 'bottom-left' | 'bottom-center' | 'bottom-right';
+            xAxis: number;
+            yAxis: number;
+            colors: {
+                icon: string;
+                background: string;
+            };
+            borderRadius: number;
+        };
     };
 
     // PWA Configuration

@@ -1,3 +1,5 @@
+@use '@/styles/breakpoints' as *;
+
 .title {
     font-size: 1.5rem;
     font-weight: 600;
@@ -134,7 +136,7 @@
     }
 }
 
-@media (max-width: 640px) {
+@include mobile {
     .reviewGrid {
         grid-template-columns: 1fr;
     }
@@ -335,7 +337,7 @@
     }
 }
 
-@media (max-width: 640px) {
+@include mobile {
     .orderItem {
         flex-wrap: wrap;
     }

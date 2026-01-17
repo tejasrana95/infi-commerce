@@ -14,6 +14,7 @@ import {
     FormLabel,
     Divider,
 } from '@mui/material';
+import { ColorPicker } from '@/components/atoms';
 import { LayoutModule } from '@/types';
 import IconPicker from '@/components/atoms/IconPicker';
 
@@ -73,14 +74,12 @@ export default function IconConfigPanel({ module, onChange }: IconConfigPanelPro
 
             {/* Icon Color */}
             <Box>
-                <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
-                    Icon Color
-                </Typography>
-                <input
-                    type="color"
+
+
+                <ColorPicker
+                    label="Icon Color"
                     value={config.iconColor || '#000000'}
-                    onChange={(e) => updateConfig('iconColor', e.target.value)}
-                    style={{ width: '100%', height: 40, border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }}
+                    onChange={(color) => updateConfig('iconColor', color)}
                 />
             </Box>
 
@@ -120,12 +119,12 @@ export default function IconConfigPanel({ module, onChange }: IconConfigPanelPro
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
                         {/* Border Color */}
                         <Box>
-                            <Typography variant="caption" gutterBottom>Border Color</Typography>
-                            <input
-                                type="color"
+
+
+                            <ColorPicker
+                                label="Border Color"
                                 value={config.borderColor || '#000000'}
-                                onChange={(e) => updateConfig('borderColor', e.target.value)}
-                                style={{ width: '100%', height: 40, border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }}
+                                onChange={(color) => updateConfig('borderColor', color)}
                             />
                         </Box>
 

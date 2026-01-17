@@ -43,6 +43,7 @@ import { ThemeConfig, FooterElement, FooterColumn, Menu as MenuType } from '@/ty
 import FooterElementConfig from './FooterElementConfig';
 import PreviewContainer from '@/components/molecules/PreviewContainer';
 import { SortableFooterElement, SortableFooterColumn } from './SortableComponents';
+import { ColorPicker } from '@/components/atoms';
 import api from '@/lib/api';
 import { useConfirm } from '@/contexts/ConfirmContext';
 
@@ -822,22 +823,22 @@ export default function FooterDesigner({ config, onChange, storeId }: FooterDesi
                         <Box sx={{ p: 3 }}>
                             <Typography variant="subtitle2" gutterBottom>Main Footer</Typography>
                             <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
-                                <TextField
-                                    label="Background"
-                                    type="color"
-                                    value={columnsSection.backgroundColor || config.colors?.secondary || '#2a2a2a'}
-                                    onChange={(e) => updateFooter({ columnsSection: { backgroundColor: e.target.value } })}
-                                    size="small"
-                                    sx={{ width: 110 }}
-                                />
-                                <TextField
-                                    label="Text"
-                                    type="color"
-                                    value={columnsSection.textColor || config.colors?.background || '#ffffff'}
-                                    onChange={(e) => updateFooter({ columnsSection: { textColor: e.target.value } })}
-                                    size="small"
-                                    sx={{ width: 110 }}
-                                />
+                                <Box sx={{ width: 250 }}>
+                                    <ColorPicker
+                                        label="Background"
+                                        value={columnsSection.backgroundColor || config.colors?.secondary || '#2a2a2a'}
+                                        onChange={(color) => updateFooter({ columnsSection: { backgroundColor: color } })}
+                                        size="small"
+                                    />
+                                </Box>
+                                <Box sx={{ width: 250 }}>
+                                    <ColorPicker
+                                        label="Text"
+                                        value={columnsSection.textColor || config.colors?.background || '#ffffff'}
+                                        onChange={(color) => updateFooter({ columnsSection: { textColor: color } })}
+                                        size="small"
+                                    />
+                                </Box>
                             </Box>
 
                             <Divider sx={{ my: 2 }} />
@@ -852,22 +853,22 @@ export default function FooterDesigner({ config, onChange, storeId }: FooterDesi
                                 sx={{ mb: 2 }}
                             />
                             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                                <TextField
-                                    label="Background"
-                                    type="color"
-                                    value={bottomBarSection.backgroundColor || '#000000'}
-                                    onChange={(e) => updateFooter({ bottomBar: { backgroundColor: e.target.value } })}
-                                    size="small"
-                                    sx={{ width: 110 }}
-                                />
-                                <TextField
-                                    label="Text"
-                                    type="color"
-                                    value={bottomBarSection.textColor || '#888888'}
-                                    onChange={(e) => updateFooter({ bottomBar: { textColor: e.target.value } })}
-                                    size="small"
-                                    sx={{ width: 110 }}
-                                />
+                                <Box sx={{ width: 250 }}>
+                                    <ColorPicker
+                                        label="Background"
+                                        value={bottomBarSection.backgroundColor || '#000000'}
+                                        onChange={(color) => updateFooter({ bottomBar: { backgroundColor: color } })}
+                                        size="small"
+                                    />
+                                </Box>
+                                <Box sx={{ width: 250 }}>
+                                    <ColorPicker
+                                        label="Text"
+                                        value={bottomBarSection.textColor || '#888888'}
+                                        onChange={(color) => updateFooter({ bottomBar: { textColor: color } })}
+                                        size="small"
+                                    />
+                                </Box>
                             </Box>
                         </Box>
                     </Collapse>

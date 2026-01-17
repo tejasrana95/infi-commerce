@@ -179,7 +179,7 @@
                 text-transform: uppercase;
                 letter-spacing: 0.05em;
 
-                @media (max-width: 480px) {
+                @include small-mobile {
                     font-size: 0.75rem;
                     display: none;
                 }

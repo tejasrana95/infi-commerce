@@ -531,7 +531,7 @@ export default function ModernCleanProductPageTemplate({
             {/* Secondary Actions */}
             <div className={styles.secondaryActions}>
                 <button
-                    className={`${styles.iconBtn} ${isWishlisted ? styles.wishlisted : ''}`}
+                    className={`${styles.iconBtn}`}
                     onClick={onAddToWishlist}
                     data-track="add_to_wishlist"
                     data-item-id={product._id}

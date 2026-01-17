@@ -1,8 +1,10 @@
+@use '@/styles/breakpoints' as *;
+
 .container {
     width: 100%;
 
     // Mobile stacking - always stack on mobile
-    @media (max-width: 768px) {
+    @include mobile {
         display: flex !important;
         flex-direction: column !important;
         gap: 20px !important;

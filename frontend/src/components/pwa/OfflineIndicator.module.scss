@@ -1,3 +1,5 @@
+@use '@/styles/breakpoints' as *;
+
 .offlineIndicator {
     position: fixed;
     top: 0;
@@ -66,7 +68,7 @@
     opacity: 0.95;
 }
 
-@media (max-width: 768px) {
+@include mobile {
     .offlineIndicator {
         padding: 0.75rem;
     }

@@ -57,6 +57,13 @@ $breakpoint-xlarge: 1536px;
 // Use these for graceful degradation from desktop down
 // =============================================================================
 
+// Large and below (1279px-)
+@mixin large-down {
+    @media (max-width: #{$breakpoint-large - 1px}) {
+        @content;
+    }
+}
+
 // Tablet and below (1023px-)
 @mixin tablet-down {
     @media (max-width: #{$breakpoint-desktop - 1px}) {

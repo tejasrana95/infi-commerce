@@ -265,7 +265,7 @@ export default function ProductCardContainer({
                 onToggleWishlist={() => toggleWishlist(product._id)}
                 isInCompare={isInCompare(product._id)}
                 onCompare={handleCompareToggle}
-                showCompare={compareConfig.enabled && compareConfig.showInProductCard}
+                showCompare={compareConfig.enabled && compareConfig.showInProductCard && productCardConfig.showCompare}
                 compareDisabled={!canCompare && !isInCompare(product._id)}
                 compareDisabledReason={compareReason}
                 onAddToCart={handleAddToCart}

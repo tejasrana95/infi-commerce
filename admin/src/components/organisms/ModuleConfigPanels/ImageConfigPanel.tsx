@@ -1,13 +1,7 @@
 'use client';
 
-import {
-    Box,
-    TextField,
-    MenuItem,
-    FormControlLabel,
-    Switch,
-    Typography,
-} from '@mui/material';
+import { Box, TextField, FormControl, InputLabel, Select, MenuItem, Typography, Divider, Switch, FormControlLabel, Slider } from '@mui/material';
+import { ColorPicker } from '@/components/atoms';
 import FileManagerButton from '@/components/molecules/FileManagerButton';
 import { FileItem } from '@/types/file';
 
@@ -278,28 +272,23 @@ export default function ImageConfigPanel({ config, onChange }: ImageConfigPanelP
 
                 {config.overlayEnabled && (
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-                        <TextField
+                        <ColorPicker
                             label="Overlay Color"
-                            type="color"
                             value={config.overlayColor || '#000000'}
-                            onChange={(e) => handleChange('overlayColor', e.target.value)}
+                            onChange={(color) => handleChange('overlayColor', color)}
+                        />
+                        <Typography variant="caption" color="text.secondary" gutterBottom display="block">
+                            Overlay Opacity: {config.overlayOpacity || 50}%
+                        </Typography>
+                        <TextField
+                            type="range"
+                            value={config.overlayOpacity || 50}
+                            onChange={(e) => handleChange('overlayOpacity', parseInt(e.target.value))}
+                            inputProps={{ min: 0, max: 100, step: 5 }}
                             fullWidth
                             size="small"
                         />
 
-                        <Box>
-                            <Typography variant="caption" color="text.secondary" gutterBottom display="block">
-                                Overlay Opacity: {config.overlayOpacity || 50}%
-                            </Typography>
-                            <TextField
-                                type="range"
-                                value={config.overlayOpacity || 50}
-                                onChange={(e) => handleChange('overlayOpacity', parseInt(e.target.value))}
-                                inputProps={{ min: 0, max: 100, step: 5 }}
-                                fullWidth
-                                size="small"
-                            />
-                        </Box>
 
                         <FormControlLabel
                             control={
@@ -358,22 +347,15 @@ export default function ImageConfigPanel({ config, onChange }: ImageConfigPanelP
 
                     {(config.overlayTitle || config.overlaySubtitle) && (
                         <Box sx={{ display: 'flex', gap: 2 }}>
-                            <TextField
+                            <ColorPicker
                                 label="Title Color"
-                                type="color"
                                 value={config.titleColor || '#ffffff'}
-                                onChange={(e) => handleChange('titleColor', e.target.value)}
-                                fullWidth
-                                size="small"
+                                onChange={(color) => handleChange('titleColor', color)}
                             />
-
-                            <TextField
+                            <ColorPicker
                                 label="Subtitle Color"
-                                type="color"
                                 value={config.subtitleColor || '#ffffff'}
-                                onChange={(e) => handleChange('subtitleColor', e.target.value)}
-                                fullWidth
-                                size="small"
+                                onChange={(color) => handleChange('subtitleColor', color)}
                             />
                         </Box>
                     )}
@@ -449,6 +431,6 @@ export default function ImageConfigPanel({ config, onChange }: ImageConfigPanelP
                     )}
                 </Box>
             </Box>
-        </Box>
+        </Box >
     );
 }

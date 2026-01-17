@@ -1,3 +1,5 @@
+@use '@/styles/breakpoints' as *;
+
 .installPrompt {
     z-index: 9999;
 }
@@ -288,7 +290,8 @@
 }
 
 /* Mobile Responsive */
-@media (max-width: 768px) {
+/* Mobile Responsive */
+@include mobile {
     .toast {
         bottom: 10px;
         right: 10px;

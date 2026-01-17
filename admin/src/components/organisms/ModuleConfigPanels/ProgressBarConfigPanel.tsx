@@ -16,6 +16,7 @@ import {
     Select,
     MenuItem,
 } from '@mui/material';
+import { ColorPicker } from '@/components/atoms';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -164,17 +165,11 @@ export default function ProgressBarConfigPanel({ config, onChange }: ProgressBar
                                     />
                                 </Box>
 
-                                <Box>
-                                    <Typography variant="caption" sx={{ mb: 0.5, display: 'block' }}>
-                                        Bar Color
-                                    </Typography>
-                                    <input
-                                        type="color"
-                                        value={item.barColor || '#2563eb'}
-                                        onChange={(e) => handleItemChange(index, 'barColor', e.target.value)}
-                                        style={{ width: '100%', height: 32, border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }}
-                                    />
-                                </Box>
+                                <ColorPicker
+                                    label="Bar Color"
+                                    value={item.barColor || '#2563eb'}
+                                    onChange={(color) => handleItemChange(index, 'barColor', color)}
+                                />
 
                                 {items.length > 1 && (
                                     <Button
@@ -271,17 +266,11 @@ export default function ProgressBarConfigPanel({ config, onChange }: ProgressBar
                             </Select>
                         </FormControl>
                     </Box>
-                    <Box>
-                        <Typography variant="caption" display="block" sx={{ mb: 0.5 }}>
-                            Label Color
-                        </Typography>
-                        <input
-                            type="color"
-                            value={typography?.labelColor || '#000000'}
-                            onChange={(e) => handleTypographyChange('labelColor', e.target.value)}
-                            style={{ width: '100%', height: 32, border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }}
-                        />
-                    </Box>
+                    <ColorPicker
+                        label="Label Color"
+                        value={typography?.labelColor || '#000000'}
+                        onChange={(color) => handleTypographyChange('labelColor', color)}
+                    />
 
                     <Divider sx={{ my: 1 }} />
 
@@ -297,17 +286,11 @@ export default function ProgressBarConfigPanel({ config, onChange }: ProgressBar
                         size="small"
                         fullWidth
                     />
-                    <Box>
-                        <Typography variant="caption" display="block" sx={{ mb: 0.5 }}>
-                            Percentage Color
-                        </Typography>
-                        <input
-                            type="color"
-                            value={typography?.percentageColor || '#666666'}
-                            onChange={(e) => handleTypographyChange('percentageColor', e.target.value)}
-                            style={{ width: '100%', height: 32, border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }}
-                        />
-                    </Box>
+                    <ColorPicker
+                        label="Percentage Color"
+                        value={typography?.percentageColor || '#666666'}
+                        onChange={(color) => handleTypographyChange('percentageColor', color)}
+                    />
                 </Box>
             </Box>
         </Box>

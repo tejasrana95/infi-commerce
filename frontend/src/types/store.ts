@@ -162,7 +162,7 @@ export interface ProductCardConfig {
 
     // Button Styles
     addToCartStyle: 'filled' | 'outlined' | 'text' | 'icon-only';
-    buyNowStyle: 'filled' | 'outlined' | 'text';
+    buyNowStyle: 'filled' | 'outlined' | 'text' | 'icon-only';
     wishlistPosition: 'top-right' | 'top-left' | 'bottom';
     quickViewPosition: 'overlay' | 'top-right';
 
@@ -482,9 +482,22 @@ export interface ThemeConfig {
     product?: ProductPageConfig;
     compare?: CompareConfig;
     blog?: BlogConfig;
+    scrollToTop?: ScrollToTopConfig;
     customScripts?: {
         header?: string;
         footer?: string;
+    };
+}
+
+export interface ScrollToTopConfig {
+    enabled: boolean;
+    position: 'bottom-left' | 'bottom-center' | 'bottom-right';
+    xAxis?: number;
+    yAxis?: number;
+    borderRadius?: number;
+    colors?: {
+        background?: string;
+        icon?: string;
     };
 }
 

@@ -326,6 +326,7 @@ export default function ProductCardSettings({ config, onChange }: ProductCardSet
                                 <MenuItem value="filled">Filled</MenuItem>
                                 <MenuItem value="outlined">Outlined</MenuItem>
                                 <MenuItem value="text">Text</MenuItem>
+                                <MenuItem value="icon-only">Icon Only</MenuItem>
                             </TextField>
                         )}
 

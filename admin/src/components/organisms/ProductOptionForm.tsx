@@ -25,6 +25,7 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import StoreAutocomplete from '../molecules/StoreAutocomplete';
 import FileManagerButton from '../molecules/FileManagerButton';
+import { ColorPicker } from '../atoms';
 
 // Validation schema
 const productOptionValueSchema = z.object({
@@ -319,7 +320,7 @@ export default function ProductOptionForm({ initialData, onSubmit, isSubmitting 
                                                 required
                                                 size="small"
                                                 error={!!errors.values?.[index]?.value}
-                                                helperText={errors.values?.[index]?.value?.message || 'Auto-generated'}
+                                                helperText={errors.values?.[index]?.value?.message}
                                             />
                                         )}
                                     />
@@ -331,11 +332,10 @@ export default function ProductOptionForm({ initialData, onSubmit, isSubmitting 
                                             name={`values.${index}.colorCode`}
                                             control={control}
                                             render={({ field }) => (
-                                                <TextField
-                                                    {...field}
+                                                <ColorPicker
+                                                    value={field.value}
+                                                    onChange={field.onChange}
                                                     label="Color Code"
-                                                    type="color"
-                                                    fullWidth
                                                     size="small"
                                                     error={!!errors.values?.[index]?.colorCode}
                                                     helperText={errors.values?.[index]?.colorCode?.message}

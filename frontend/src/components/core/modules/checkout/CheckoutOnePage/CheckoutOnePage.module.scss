@@ -1,4 +1,5 @@
 // CheckoutOnePage Module Styles
+@use '@/styles/breakpoints' as *;
 
 .onePageCheckout {
     display: flex;
@@ -203,7 +204,8 @@
 }
 
 // Responsive
-@media (max-width: 640px) {
+// Responsive
+@include mobile {
     .sectionHeader {
         padding: 1rem 1.25rem;
     }

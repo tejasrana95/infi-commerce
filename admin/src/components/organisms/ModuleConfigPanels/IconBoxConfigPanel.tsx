@@ -6,6 +6,7 @@ import AddIcon from '@mui/icons-material/Add';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useState } from 'react';
 import IconPicker from '@/components/atoms/IconPicker';
+import { ColorPicker } from '@/components/atoms';
 import FileManagerButton from '@/components/molecules/FileManagerButton';
 
 interface IconBoxConfigPanelProps {
@@ -169,32 +170,32 @@ export default function IconBoxConfigPanel({ config, onChange }: IconBoxConfigPa
                                     />
 
                                     {config.iconType === 'image' ? (
-                                        <Box>
-                                            <FileManagerButton
-                                                fullWidth
-                                                label={item.image ? "Change Image" : "Select Image"}
-                                                onSelect={(files) => {
-                                                    if (files.length > 0) {
-                                                        handleItemChange(index, 'image', files[0].url);
-                                                    }
-                                                }}
-                                                trigger={
-                                                    <TextField
-                                                        label="Image URL"
-                                                        size="small"
-                                                        fullWidth
-                                                        value={item.image || ''}
-                                                        onChange={(e) => handleItemChange(index, 'image', e.target.value)}
-                                                        helperText="Select from File Manager or enter URL"
-                                                        InputProps={{
-                                                            endAdornment: (
-                                                                <Button size="small">Select</Button>
-                                                            )
-                                                        }}
-                                                    />
+
+                                        <FileManagerButton
+
+                                            label={item.image ? "Change Image" : "Select Image"}
+                                            onSelect={(files) => {
+                                                if (files.length > 0) {
+                                                    handleItemChange(index, 'image', files[0].url);
                                                 }
-                                            />
-                                        </Box>
+                                            }}
+                                            trigger={
+                                                <TextField
+                                                    label="Image URL"
+                                                    size="small"
+                                                    fullWidth
+                                                    value={item.image || ''}
+                                                    onChange={(e) => handleItemChange(index, 'image', e.target.value)}
+                                                    helperText="Select from File Manager or enter URL"
+                                                    InputProps={{
+                                                        endAdornment: (
+                                                            <Button size="small">Select</Button>
+                                                        )
+                                                    }}
+                                                />
+                                            }
+                                        />
+
                                     ) : (
                                         <IconPicker
                                             label="Select Icon"
@@ -213,92 +214,59 @@ export default function IconBoxConfigPanel({ config, onChange }: IconBoxConfigPa
                                     />
 
                                     {/* Color Options */}
-                                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1 }}>
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                         <Box>
-                                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                                                Icon Color
-                                            </Typography>
-                                            <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-                                                <input
-                                                    type="color"
-                                                    value={item.iconColor || '#000000'}
-                                                    onChange={(e) => handleItemChange(index, 'iconColor', e.target.value)}
-                                                    style={{
-                                                        width: '100%',
-                                                        height: 36,
-                                                        border: '1px solid #ddd',
-                                                        borderRadius: 4,
-                                                        cursor: 'pointer',
-                                                    }}
-                                                />
-                                                {item.iconColor && (
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={() => handleItemChange(index, 'iconColor', '')}
-                                                        sx={{ p: 0.5 }}
-                                                    >
-                                                        <DeleteIcon sx={{ fontSize: 16 }} />
-                                                    </IconButton>
-                                                )}
-                                            </Box>
+                                            <ColorPicker
+                                                label="Icon Color"
+                                                value={item.iconColor || '#000000'}
+                                                onChange={(color) => handleItemChange(index, 'iconColor', color)}
+                                                size="small"
+                                            />
+                                            {item.iconColor && (
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => handleItemChange(index, 'iconColor', '')}
+                                                    sx={{ p: 0.5 }}
+                                                >
+                                                    <DeleteIcon sx={{ fontSize: 16 }} />
+                                                </IconButton>
+                                            )}
                                         </Box>
 
                                         <Box>
-                                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                                                CTA Color
-                                            </Typography>
-                                            <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-                                                <input
-                                                    type="color"
-                                                    value={item.ctaColor || '#3b82f6'}
-                                                    onChange={(e) => handleItemChange(index, 'ctaColor', e.target.value)}
-                                                    style={{
-                                                        width: '100%',
-                                                        height: 36,
-                                                        border: '1px solid #ddd',
-                                                        borderRadius: 4,
-                                                        cursor: 'pointer',
-                                                    }}
-                                                />
-                                                {item.ctaColor && (
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={() => handleItemChange(index, 'ctaColor', '')}
-                                                        sx={{ p: 0.5 }}
-                                                    >
-                                                        <DeleteIcon sx={{ fontSize: 16 }} />
-                                                    </IconButton>
-                                                )}
-                                            </Box>
+                                            <ColorPicker
+                                                label="CTA Color"
+                                                value={item.ctaColor || '#3b82f6'}
+                                                onChange={(color) => handleItemChange(index, 'ctaColor', color)}
+                                                size="small"
+                                            />
+                                            {item.ctaColor && (
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => handleItemChange(index, 'ctaColor', '')}
+                                                    sx={{ p: 0.5 }}
+                                                >
+                                                    <DeleteIcon sx={{ fontSize: 16 }} />
+                                                </IconButton>
+                                            )}
                                         </Box>
 
                                         <Box>
-                                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                                                Background
-                                            </Typography>
-                                            <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-                                                <input
-                                                    type="color"
-                                                    value={item.bgColor || '#ffffff'}
-                                                    onChange={(e) => handleItemChange(index, 'bgColor', e.target.value)}
-                                                    style={{
-                                                        width: '100%',
-                                                        height: 36,
-                                                        border: '1px solid #ddd',
-                                                        borderRadius: 4,
-                                                        cursor: 'pointer',
-                                                    }}
-                                                />
-                                                {item.bgColor && (
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={() => handleItemChange(index, 'bgColor', '')}
-                                                        sx={{ p: 0.5 }}
-                                                    >
-                                                        <DeleteIcon sx={{ fontSize: 16 }} />
-                                                    </IconButton>
-                                                )}
-                                            </Box>
+                                            <ColorPicker
+                                                label="Background"
+                                                value={item.bgColor || '#ffffff'}
+                                                onChange={(color) => handleItemChange(index, 'bgColor', color)}
+                                                size="small"
+                                            />
+                                            {item.bgColor && (
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => handleItemChange(index, 'bgColor', '')}
+                                                    sx={{ p: 0.5 }}
+                                                >
+                                                    <DeleteIcon sx={{ fontSize: 16 }} />
+                                                </IconButton>
+                                            )}
                                         </Box>
                                     </Box>
 
@@ -321,9 +289,10 @@ export default function IconBoxConfigPanel({ config, onChange }: IconBoxConfigPa
                                 </Box>
                             </AccordionDetails>
                         </Accordion>
-                    ))}
-                </Box>
-            </Box>
+                    ))
+                    }
+                </Box >
+            </Box >
         </Box >
     );
 }

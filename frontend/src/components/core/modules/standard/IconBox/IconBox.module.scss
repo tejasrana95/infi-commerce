@@ -9,11 +9,11 @@
     gap: 2rem;
     grid-template-columns: repeat(var(--desktop-columns, 3), 1fr);
 
-    @media (max-width: 1024px) {
+    @include tablet-down {
         grid-template-columns: repeat(2, 1fr);
     }
 
-    @media (max-width: 768px) {
+    @include mobile {
         grid-template-columns: 1fr;
     }
 }
@@ -37,11 +37,11 @@
     // CSS-driven responsive values
     --visible-count: var(--desktop-columns, 3);
 
-    @media (max-width: 1024px) {
+    @include tablet-down {
         --visible-count: 2;
     }
 
-    @media (max-width: 640px) {
+    @include mobile {
         --visible-count: 1;
     }
 
