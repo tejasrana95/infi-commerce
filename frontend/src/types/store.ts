@@ -78,43 +78,45 @@ export interface HeaderConfig {
 // Footer Configuration Types
 // ============================================
 
+export interface FooterElementSettings {
+    // Newsletter settings
+    newsletterTitle?: string;
+    newsletterPlaceholder?: string;
+    newsletterButtonText?: string;
+    newsletterDescription?: string;
+    // Social settings
+    socialLinks?: Array<{
+        id: string;
+        platform: 'facebook' | 'twitter' | 'instagram' | 'linkedin' | 'youtube' | 'pinterest' | 'tiktok';
+        url: string;
+    }>;
+    // Contact settings
+    contactInfo?: {
+        title?: string;
+        address?: string;
+        phone?: string;
+        email?: string;
+        workingHours?: string;
+    };
+    // Payment methods
+    paymentMethods?: Array<{
+        id: string;
+        name: string;
+        icon: string;
+    }>;
+    // Menu links (for inline footer links)
+    links?: Array<{
+        label: string;
+        url: string;
+    }>;
+}
+
 export interface FooterElement {
     id: string;
     type: 'menu' | 'text' | 'html' | 'newsletter' | 'social' | 'contact' | 'payment-methods';
     menuId?: string;
     content?: string;
-    settings?: {
-        // Newsletter settings
-        newsletterTitle?: string;
-        newsletterPlaceholder?: string;
-        newsletterButtonText?: string;
-        newsletterDescription?: string;
-        // Social settings
-        socialLinks?: Array<{
-            id: string;
-            platform: 'facebook' | 'twitter' | 'instagram' | 'linkedin' | 'youtube' | 'pinterest' | 'tiktok';
-            url: string;
-        }>;
-        // Contact settings
-        contactInfo?: {
-            title?: string;
-            address?: string;
-            phone?: string;
-            email?: string;
-            workingHours?: string;
-        };
-        // Payment methods
-        paymentMethods?: Array<{
-            id: string;
-            name: string;
-            icon: string;
-        }>;
-        // Menu links (for inline footer links)
-        links?: Array<{
-            label: string;
-            url: string;
-        }>;
-    };
+    settings?: FooterElementSettings;
 }
 
 export interface FooterColumn {

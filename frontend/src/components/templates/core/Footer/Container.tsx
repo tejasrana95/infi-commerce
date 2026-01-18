@@ -95,6 +95,6 @@ export default function FooterContainer({ config, store, templateId = 'modern-cl
     // Get the template-specific presenter component
     const FooterTemplate = getComponent('FooterTemplate', templateId);
 
-    // Render the template with processed data
-    return <FooterTemplate {...templateProps} />;
+    // Render the template with processed data AND raw config for templates that need it
+    return <FooterTemplate {...templateProps} config={config} store={store} />;
 }

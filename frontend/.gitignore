@@ -27,3 +27,7 @@ coverage/
 # Misc
 .DS_Store
 .vercel
+
+
+# Store config cache (generated at build time)
+.next/cache/store-config.json

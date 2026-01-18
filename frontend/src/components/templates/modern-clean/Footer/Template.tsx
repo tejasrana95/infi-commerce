@@ -1,20 +1,50 @@
-'use client';
+
 
 // Modern Clean Footer Template - Dynamic rendering based on admin configuration
 // Supports multiple rows, columns, and various element types
 
 import React from 'react';
-import { useStore } from '@/providers/StoreProvider';
+// import { useStore } from '@/providers/StoreProvider';
 import { FooterElementRenderer } from './FooterElements';
 import { FooterSection, FooterColumn, FooterElement } from '@/types/store';
 import styles from './Footer.module.scss';
 
 import { Menu } from '@/types/menu';
 
-export default function ModernCleanFooterTemplate() {
-    const { themeConfig } = useStore();
-    const footerConfig = themeConfig?.footer;
-    const colors = themeConfig?.colors;
+export default function ModernCleanFooterTemplate(props: any) {
+    // START: Legacy prop support (in case coming from Container.tsx which processes data differently)
+    // The Container.tsx passes flattened props (columns, socialLinks, etc.)
+    // But the Template.tsx was written to expect raw config from useStore().
+    // We should prefer the raw config passed via props if available, or fall back to processed props.
+
+    // Check if we received the raw store/config via props (from layout.tsx -> FooterContainer)
+    // Note: FooterContainer currently passes processed data, but we might need the raw structure 
+    // for this specific template which does its own grid rendering.
+
+    // Let's rely on the store/config passed from parent if possible, otherwise use context only if needed.
+    // Ideally, we shouldn't use useStore() at all if we want SSR.
+
+    // Update: The current FooterContainer passes `config` and `store` raw props? 
+    // No, FooterContainer passes `templateProps` which are processed.
+    // This template expects `footerConfig.sections`. 
+    // We need to inspect what FooterContainer actually passes.
+
+    // Looking at FooterContainer.tsx:
+    // It passes: { storeName, columns, socialLinks, contact, newsletter, copyrightText, ... }
+    // BUT ModernCleanFooterTemplate expects `footerConfig.sections` (the raw structure).
+
+    // FIX: We need to update FooterContainer to pass the raw `config` as well, or update this template to use the processed data.
+    // Given the complex grid logic in this template (rows/columns), it relies on the raw `sections` structure.
+    // So we should pass `config` and `store` explicitly from the Container.
+
+    const { config, store } = props;
+
+    // Fallback to useStore only if props are missing (for backward compatibility)
+    // const { themeConfig } = useStore(); 
+    // We will assume props are passed correctly now to fix CLS.
+
+    const footerConfig = config || store?.theme?.footer;
+    const colors = store?.theme?.colors;
 
     if (!footerConfig || !footerConfig.sections) {
         return null;

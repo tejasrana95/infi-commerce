@@ -1,12 +1,11 @@
-'use client';
-
 // Footer Element Renderers
 // Individual components for each footer element type
 
-import React, { useState } from 'react';
+import React from 'react';
 import { FooterElement } from '@/types/store';
 import MenuBuilder from '@/components/core/MenuBuilder';
 import styles from './Footer.module.scss';
+import NewsletterForm from './NewsletterForm';
 
 // Social Media Icon Components
 const FacebookIcon = ({ className }: { className?: string }) => (
@@ -99,59 +98,16 @@ export function FooterHtmlElement({ element }: FooterHtmlElementProps) {
 // ============================================
 // Newsletter Element
 // ============================================
+
+
 interface FooterNewsletterElementProps {
     element: FooterElement;
 }
 
 export function FooterNewsletterElement({ element }: FooterNewsletterElementProps) {
-    const [email, setEmail] = useState('');
-    const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setStatus('loading');
-
-        try {
-            // TODO: Implement newsletter subscription API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            setStatus('success');
-            setEmail('');
-            setTimeout(() => setStatus('idle'), 3000);
-        } catch (error) {
-            setStatus('error');
-            setTimeout(() => setStatus('idle'), 3000);
-        }
-    };
-
-    const settings = element.settings || {};
-
     return (
         <div className={styles.elementNewsletter}>
-            {settings.newsletterTitle && (
-                <h4>{settings.newsletterTitle}</h4>
-            )}
-            {settings.newsletterDescription && (
-                <p>{settings.newsletterDescription}</p>
-            )}
-            <form onSubmit={handleSubmit}>
-                <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={settings.newsletterPlaceholder || 'Enter your email'}
-                    required
-                    disabled={status === 'loading'}
-                />
-                <button type="submit" disabled={status === 'loading'}>
-                    {status === 'loading' ? 'Sending...' : (settings.newsletterButtonText || 'Subscribe')}
-                </button>
-            </form>
-            {status === 'success' && (
-                <p className={`${styles.status} ${styles.statusSuccess}`}>Thanks for subscribing!</p>
-            )}
-            {status === 'error' && (
-                <p className={`${styles.status} ${styles.statusError}`}>Something went wrong. Please try again.</p>
-            )}
+            <NewsletterForm settings={element.settings} />
         </div>
     );
 }

@@ -13,6 +13,8 @@ const FALLBACK_STORE_ID = process.env.FALLBACK_STORE_ID || '675bd1d5334c9f136d88
 // Core Store Fetching
 // ============================================
 
+import { resolveStoreByDomain, getStoreDomainMap } from '@/lib/store-cache';
+
 /**
  * Get store from request headers (for SSR pages)
  * This is the main entry point - caches the result
@@ -20,6 +22,23 @@ const FALLBACK_STORE_ID = process.env.FALLBACK_STORE_ID || '675bd1d5334c9f136d88
 export async function getServerStore(): Promise<Store | null> {
     const headersList = await headers();
     const domain = headersList.get('host') || 'localhost:3000';
+
+    // Check if domain is in configured map
+    const domainMap = getStoreDomainMap();
+
+    if (domainMap) {
+        // Use caching layer (memory → file → API)
+        const result = await resolveStoreByDomain(domain, async (d) => {
+            // First try domain lookup
+            let store = await fetchStoreByDomain(d);
+            // Localhost fallback
+            if (!store && d.includes('localhost')) {
+                store = await fetchStoreById(FALLBACK_STORE_ID);
+            }
+            return store;
+        });
+        return result.store;
+    }
 
     // Try to get store by domain
     let store = await fetchStoreByDomain(domain);

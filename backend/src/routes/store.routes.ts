@@ -21,6 +21,7 @@ import {
     updateSmsSettingsValidation,
     updateWhatsappSettingsValidation,
     testEmailSettingsValidation,
+    getStoreMeta,
 } from '../controllers/store.controller';
 import { authenticate, authorize } from '../middleware/auth';
 import { validate } from '../middleware/validation';
@@ -28,6 +29,7 @@ import { validate } from '../middleware/validation';
 const router = Router();
 
 // Public routes (anyone can view stores)
+router.get('/:id/meta', getStoreMeta);
 router.get('/', getStores);
 router.get('/domain/:domain', getStoreByDomain);
 router.get('/slug/:slug', getStoreBySlug);

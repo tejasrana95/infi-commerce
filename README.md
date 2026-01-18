@@ -28,6 +28,19 @@ await UserInterest.cleanupStaleData(30); // Clean data older than 30 days
 // Get stats for monitoring
 await UserInterest.getStats(); // Returns avg array sizes, guest/user counts
 
+## Env Setup
+We support two formats:
+
+Option A: Simple (One-to-One)
+
+STORE_DOMAIN_MAP='{"example.com":"store_id_1"}'
+Option B: Grouped (Multi-Domain Support)
+
+STORE_DOMAIN_MAP='{"store_id_1": ["example.com", "www.example.com"], "store_id_2": ["shop.other.com"]}'
+This grouped format is recommended for multi-tenant setups.
+
+
+
 
 - Node.js 20+
 - MongoDB

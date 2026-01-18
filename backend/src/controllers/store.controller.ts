@@ -1375,3 +1375,39 @@ export const testEmailSettingsValidation = [
     param('id').isMongoId().withMessage('Invalid store ID'),
     body('testEmail').isEmail().withMessage('Valid test email is required'),
 ];
+
+
+/**
+ * @swagger
+ * /api/stores/{id}/meta:
+ *   get:
+ *     summary: Get store metadata
+ *     tags: [Stores]
+ *     description: Retrieve minimal store metadata for cache validation
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Store ID
+ *     responses:
+ *       200:
+ *         description: Store metadata retrieved successfully
+ *       404:
+ *         description: Store not found
+ */
+export const getStoreMeta = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const store = await Store.findById(id).select('updatedAt name').lean();
+    
+    if (!store) {
+        throw new AppError('Store not found', 404);
+    }
+    
+    res.json({
+        _id: id,
+        name: store.name,
+        updatedAt: store.updatedAt
+    });
+});
