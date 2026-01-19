@@ -42,6 +42,11 @@ interface PWASettings {
         icon512?: string;
         appleTouchIcon?: string;
     };
+    splashScreen?: {
+        image?: string;
+        spinnerType?: 'circular' | 'dots' | 'pulse' | 'bars';
+        spinnerColor?: string;
+    };
     installPromptStyle?: 'toast' | 'banner' | 'modal';
 }
 
@@ -64,6 +69,11 @@ export default function PWASettings({ storeId, initialSettings, onSave, saving =
             icon512: '',
             appleTouchIcon: '',
         },
+        splashScreen: {
+            image: '',
+            spinnerType: 'circular',
+            spinnerColor: '#000000',
+        },
         installPromptStyle: 'toast',
     });
 
@@ -74,6 +84,18 @@ export default function PWASettings({ storeId, initialSettings, onSave, saving =
                 icons: {
                     ...settings.icons,
                     [iconType]: files[0].url,
+                },
+            });
+        }
+    };
+
+    const handleSplashImageSelect = (files: FileItem[]) => {
+        if (files.length > 0) {
+            setSettings({
+                ...settings,
+                splashScreen: {
+                    ...settings.splashScreen,
+                    image: files[0].url,
                 },
             });
         }
@@ -358,6 +380,120 @@ export default function PWASettings({ storeId, initialSettings, onSave, saving =
                                 <li>Apple Touch Icon (180x180) is optional but recommended for iOS</li>
                                 <li>Maximum file size: 2MB per icon</li>
                             </ul>
+                        </Alert>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Splash Screen Configuration */}
+            {settings.enabled && (
+                <Card sx={{ mb: 3 }}>
+                    <CardContent>
+                        <Box display="flex" alignItems="center" gap={1} mb={3}>
+                            <Typography variant="h6">Splash Screen</Typography>
+                            <Tooltip title="Customize the splash screen shown when the PWA is loading">
+                                <IconButton size="small">
+                                    <Info fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                        </Box>
+
+                        <Grid container spacing={3}>
+                            {/* Splash Screen Image */}
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
+                                    <Typography variant="subtitle2" gutterBottom>
+                                        Splash Screen Background
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary" display="block" mb={2}>
+                                        Recommended: 2732x2732px
+                                    </Typography>
+
+                                    {settings.splashScreen?.image ? (
+                                        <Box display="flex" alignItems="center" flexDirection="column">
+                                            <Box
+                                                component="img"
+                                                src={settings.splashScreen.image}
+                                                alt="Splash screen"
+                                                sx={{
+                                                    width: 150,
+                                                    height: 150,
+                                                    objectFit: 'cover',
+                                                    border: '1px solid',
+                                                    borderColor: 'divider',
+                                                    borderRadius: 2,
+                                                    mb: 2,
+                                                }}
+                                            />
+                                            <Button
+                                                size="small"
+                                                color="error"
+                                                startIcon={<Delete />}
+                                                onClick={() => setSettings({
+                                                    ...settings,
+                                                    splashScreen: { ...settings.splashScreen, image: '' }
+                                                })}
+                                            >
+                                                Remove
+                                            </Button>
+                                        </Box>
+                                    ) : (
+                                        <FileManagerButton
+                                            label="Upload Image"
+                                            variant="outlined"
+                                            accept="image/*"
+                                            category="images"
+                                            initialFolder="/pwa-icons"
+                                            onSelect={handleSplashImageSelect}
+                                        />
+                                    )}
+                                </Paper>
+                            </Grid>
+
+                            {/* Spinner Configuration */}
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                    {/* Spinner Type */}
+                                    <FormControl fullWidth>
+                                        <InputLabel>Loading Spinner Style</InputLabel>
+                                        <Select
+                                            value={settings.splashScreen?.spinnerType || 'circular'}
+                                            label="Loading Spinner Style"
+                                            onChange={(e) => setSettings({
+                                                ...settings,
+                                                splashScreen: {
+                                                    ...settings.splashScreen,
+                                                    spinnerType: e.target.value as 'circular' | 'dots' | 'pulse' | 'bars',
+                                                },
+                                            })}
+                                        >
+                                            <MenuItem value="circular">Circular Spinner</MenuItem>
+                                            <MenuItem value="dots">Bouncing Dots</MenuItem>
+                                            <MenuItem value="pulse">Pulsing Circle</MenuItem>
+                                            <MenuItem value="bars">Loading Bars</MenuItem>
+                                        </Select>
+                                    </FormControl>
+
+                                    {/* Spinner Color */}
+                                    <ColorPicker
+                                        label="Spinner Color"
+                                        value={settings.splashScreen?.spinnerColor || '#000000'}
+                                        onChange={(color) => setSettings({
+                                            ...settings,
+                                            splashScreen: {
+                                                ...settings.splashScreen,
+                                                spinnerColor: color,
+                                            },
+                                        })}
+                                        helperText="Color of the loading spinner"
+                                    />
+                                </Box>
+                            </Grid>
+                        </Grid>
+
+                        <Alert severity="info" sx={{ mt: 3 }}>
+                            <strong>Tip:</strong> If no splash screen image is set, the background color will be used instead.
+                            The loading spinner helps users know the app is loading.
                         </Alert>
                     </CardContent>
                 </Card>

@@ -232,6 +232,11 @@ export interface IStore extends Document {
             icon512?: string;  // 512x512 icon
             appleTouchIcon?: string;  // 180x180 Apple touch icon
         };
+        splashScreen?: {
+            image?: string;  // Custom splash screen background image
+            spinnerType?: 'circular' | 'dots' | 'pulse' | 'bars';
+            spinnerColor?: string;
+        };
         installPromptStyle?: 'toast' | 'banner' | 'modal';
     };
 
@@ -377,6 +382,15 @@ const StoreSchema = new Schema<IStore>(
                 icon192: { type: String },
                 icon512: { type: String },
                 appleTouchIcon: { type: String },
+            },
+            splashScreen: {
+                image: { type: String },
+                spinnerType: {
+                    type: String,
+                    enum: ['circular', 'dots', 'pulse', 'bars'],
+                    default: 'circular',
+                },
+                spinnerColor: { type: String, trim: true },
             },
             installPromptStyle: {
                 type: String,

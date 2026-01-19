@@ -21,6 +21,37 @@ export async function GET(request: NextRequest) {
 
         const { pwaSettings } = store;
 
+        // Build icons array
+        const icons = [
+            ...(pwaSettings.icons?.icon192
+                ? [{
+                    src: pwaSettings.icons.icon192,
+                    sizes: '192x192',
+                    type: 'image/png',
+                    purpose: 'any maskable',
+                }]
+                : []),
+            ...(pwaSettings.icons?.icon512
+                ? [{
+                    src: pwaSettings.icons.icon512,
+                    sizes: '512x512',
+                    type: 'image/png',
+                    purpose: 'any maskable',
+                }]
+                : []),
+        ];
+
+        // Build screenshots array for richer install experience
+        const screenshots = pwaSettings.splashScreen?.image
+            ? [{
+                src: pwaSettings.splashScreen.image,
+                sizes: '2732x2732',
+                type: 'image/png',
+                form_factor: 'wide',
+                label: `${pwaSettings.appName || store.name} - Welcome`,
+            }]
+            : [];
+
         // Build manifest
         const manifest = {
             name: pwaSettings.appName || store.name,
@@ -32,24 +63,8 @@ export async function GET(request: NextRequest) {
             background_color: pwaSettings.backgroundColor || '#ffffff',
             theme_color: pwaSettings.themeColor || store.theme?.colors?.primary || '#000000',
             orientation: 'portrait-primary',
-            icons: [
-                ...(pwaSettings.icons?.icon192
-                    ? [{
-                        src: pwaSettings.icons.icon192,
-                        sizes: '192x192',
-                        type: 'image/png',
-                        purpose: 'any maskable',
-                    }]
-                    : []),
-                ...(pwaSettings.icons?.icon512
-                    ? [{
-                        src: pwaSettings.icons.icon512,
-                        sizes: '512x512',
-                        type: 'image/png',
-                        purpose: 'any maskable',
-                    }]
-                    : []),
-            ],
+            icons,
+            ...(screenshots.length > 0 && { screenshots }),
             categories: ['shopping', 'lifestyle'],
             shortcuts: [
                 {
@@ -90,3 +105,4 @@ export async function GET(request: NextRequest) {
         });
     }
 }
+
