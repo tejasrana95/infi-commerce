@@ -6,8 +6,11 @@ export const connectDatabase = async (): Promise<void> => {
         await mongoose.connect(config.database.mongoUri, {
             maxPoolSize: 20,        // Increase from default 10
             minPoolSize: 5,         // Keep minimum connections ready
-            serverSelectionTimeoutMS: 5000,
-            socketTimeoutMS: 45000,
+            serverSelectionTimeoutMS: 10000,  // Increased from 5s to 10s
+            socketTimeoutMS: 60000,  // Increased from 45s to 60s
+            connectTimeoutMS: 10000, // Add explicit connection timeout
+            retryWrites: true,      // Enable retry writes for better reliability
+            retryReads: true,       // Enable retry reads
         });
         console.log('✅ MongoDB connection established successfully');
 

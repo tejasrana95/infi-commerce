@@ -77,6 +77,9 @@ export interface Menu {
     };
 
     isActive: boolean;
+
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 // Props for MenuBuilder component

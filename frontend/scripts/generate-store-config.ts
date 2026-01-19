@@ -49,14 +49,16 @@ function removeSensitiveFields(obj: any): any {
     return clone;
 }
 
-async function fetchStore(storeId: string): Promise<any | null> {
+/**
+ * Fetch store by domain - this returns the full store with embedded menus
+ */
+async function fetchStoreByDomain(domain: string): Promise<any | null> {
     try {
-        const res = await fetch(`${API_BASE}/stores/${storeId}`);
+        const res = await fetch(`${API_BASE}/stores/domain/${encodeURIComponent(domain)}`);
         if (!res.ok) return null;
-        const data = await res.json();
-        return data.store || data;
+        return await res.json();
     } catch (error) {
-        console.error(`Failed to fetch store ${storeId}:`, error);
+        console.error(`Failed to fetch store for domain ${domain}:`, error);
         return null;
     }
 }
@@ -89,27 +91,21 @@ async function main() {
 
     const generatedAt = new Date().toISOString();
     const configs: Record<string, StoreConfig> = {};
-    // Cache fetched stores to avoid duplicate requests
-    const uniqueStoreIds = new Set(Object.values(domainToStoreId));
-    const storeCache: Record<string, any> = {};
-    // Fetch unique stores first
-    for (const storeId of uniqueStoreIds) {
-        const store = await fetchStore(storeId);
-        if (store) {
-            storeCache[storeId] = removeSensitiveFields(store);
-        }
-    }
 
-    // Build the domain map
+    // Fetch store for each domain directly (this includes embedded menus)
     for (const [domain, storeId] of Object.entries(domainToStoreId)) {
-        const storeData = storeCache[storeId];
+        console.log(`Fetching store for domain: ${domain}...`);
+        const store = await fetchStoreByDomain(domain);
 
-        if (storeData) {
+        if (store) {
             configs[domain] = {
                 storeId,
                 generatedAt,
-                storeData,
+                storeData: removeSensitiveFields(store),
             };
+            console.log(`  Cached store: ${store.name || store._id} (with ${Object.keys(store.menus || {}).length} menus)`);
+        } else {
+            console.warn(`  Failed to fetch store for domain: ${domain}`);
         }
     }
 
@@ -120,7 +116,9 @@ async function main() {
     }
 
     fs.writeFileSync(OUTPUT_PATH, JSON.stringify(configs, null, 2));
-    console.log(`Store configs written to ${OUTPUT_PATH}`);
+    console.log(`\n✓ Store configs written to ${OUTPUT_PATH}`);
+    console.log(`  Total domains cached: ${Object.keys(configs).length}`);
 }
 
 main();
+

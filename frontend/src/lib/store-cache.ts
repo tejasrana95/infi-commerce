@@ -4,11 +4,8 @@
  */
 
 import { Store } from '@/types';
-import fs from 'fs';
-import path from 'path';
 
-const CACHE_FILE_PATH = path.join(process.cwd(), '.next/cache/store-config.json');
-const MEMORY_CACHE_TTL = 60 * 1000; // 1 minute
+const MEMORY_CACHE_TTL = 3600; // 1 hour
 
 interface CachedStoreConfig {
     storeId: string;
@@ -28,13 +25,21 @@ const memoryCache = new Map<string, MemoryCacheEntry>();
 let fileCache: Record<string, CachedStoreConfig> | null = null;
 let fileCacheLoaded = false;
 
-function loadFileCache(): Record<string, CachedStoreConfig> | null {
+async function loadFileCache(): Promise<Record<string, CachedStoreConfig> | null> {
     if (fileCacheLoaded) return fileCache;
 
     try {
-        if (fs.existsSync(CACHE_FILE_PATH)) {
-            const content = fs.readFileSync(CACHE_FILE_PATH, 'utf-8');
-            fileCache = JSON.parse(content);
+        // Dynamically import Node.js modules only on server
+        if (typeof window === 'undefined') {
+            const fsModule = await import('fs');
+            const pathModule = await import('path');
+            const fs = fsModule.default || fsModule;
+            const path = pathModule.default || pathModule;
+            const CACHE_FILE_PATH = path.join(process.cwd(), '.next/cache/store-config.json');
+            if (fs.existsSync(CACHE_FILE_PATH)) {
+                const content = fs.readFileSync(CACHE_FILE_PATH, 'utf-8');
+                fileCache = JSON.parse(content);
+            }
         }
     } catch (error) {
         console.error('Failed to load store config cache:', error);
@@ -89,7 +94,7 @@ export async function resolveStoreByDomain(
         return { store: memoryStore, source: 'memory', fresh: true };
     }
     // Layer 2: File cache
-    const cache = loadFileCache();
+    const cache = await loadFileCache();
     if (cache && cache[domain]) {
         const config = cache[domain];
 

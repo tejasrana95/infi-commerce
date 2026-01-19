@@ -116,7 +116,9 @@ async function enrichMenuItem(item: any, storeId: string): Promise<any> {
             })
                 .select('_id name slug price salePrice images')
                 .limit(newItem.productLimit)
-                .lean();
+                .lean()
+                .maxTimeMS(5000);  // 5 second timeout for product queries
+
 
             // Store enriched products in the item
             newItem.products = products.map((p: any) => ({
@@ -209,20 +211,33 @@ async function getEnrichedMenus(themeConfig: any, storeId: string): Promise<Reco
     const menus: Record<string, any> = {};
     const menuIds = new Set<string>();
 
-
     // Recursively extract ALL menu IDs from the entire theme config
     // This will find menus in header, footer, mobile menu, or anywhere else
     extractMenuIds(themeConfig, menuIds);
 
-    // Fetch all menus in parallel
-
-    // 2. Fetch all menus in parallel
+    // Fetch all menus in parallel with aggressive caching
     const menuPromises = Array.from(menuIds).map(async (id) => {
         try {
-            const menu = await Menu.findById(id).lean();
+            // Check Redis cache first for enriched menu
+            const enrichedCacheKey = `menu:enriched:${id}`;
+            const cachedEnrichedMenu = await redisService.get<any>(enrichedCacheKey);
+
+            if (cachedEnrichedMenu) {
+                return { id, menu: cachedEnrichedMenu };
+            }
+
+            // Fetch from database with optimizations
+            const menu = await Menu.findById(id)
+                .lean()  // 5x faster than mongoose documents
+                .maxTimeMS(10000);  // 10 second query timeout
+
             if (menu) {
                 // Enrich the menu with dynamic data (products)
                 const enrichedMenu = await enrichMenu(menu, storeId);
+
+                // Cache enriched menu aggressively (1 hour TTL)
+                await redisService.set(enrichedCacheKey, enrichedMenu, 3600);
+
                 return { id, menu: enrichedMenu };
             }
         } catch (error) {
@@ -233,7 +248,7 @@ async function getEnrichedMenus(themeConfig: any, storeId: string): Promise<Reco
 
     const results = await Promise.all(menuPromises);
 
-    // 3. Map results
+    // Map results
     results.forEach((result) => {
         if (result) {
             menus[result.id] = result.menu;
@@ -1400,11 +1415,11 @@ export const testEmailSettingsValidation = [
 export const getStoreMeta = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const store = await Store.findById(id).select('updatedAt name').lean();
-    
+
     if (!store) {
         throw new AppError('Store not found', 404);
     }
-    
+
     res.json({
         _id: id,
         name: store.name,

@@ -46,6 +46,16 @@ const nextConfig: NextConfig = {
   // Added turbopack config to silence Next.js 16 build error
   turbopack: {},
   webpack: (config, { isServer, dev }) => {
+    // Externalize Node.js built-in modules for client-side bundles
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+        crypto: false,
+      };
+    }
+
     // Optimization: Only apply heavy splitting for production client builds to avoid worker crashes
     if (!isServer && !dev) {
       config.optimization = {

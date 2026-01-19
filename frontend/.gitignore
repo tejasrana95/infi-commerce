@@ -31,3 +31,4 @@ coverage/
 
 # Store config cache (generated at build time)
 .next/cache/store-config.json
+.next/cache/menu-config.json

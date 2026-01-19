@@ -5,7 +5,7 @@ import { HeaderConfig, Store, HeaderSection, HeaderElement } from '@/types';
 import { Menu } from '@/types/menu';
 import { getComponent } from '@/components/templates/registry';
 import ClientHeaderWrapper from './ClientWrapper';
-import api from '@/lib/api';
+import { fetchMenuById } from '@/lib/api/server-menu';
 import {
     HeaderTemplateProps,
     NavLink,
@@ -19,28 +19,6 @@ interface HeaderContainerProps {
     config?: HeaderConfig;
     store?: Store | null;
     templateId?: string;
-}
-
-// Fetch menu by ID
-async function fetchMenuById(menuId: string): Promise<Menu | null> {
-    try {
-        const data = await api.get<{ menu: Menu }>(`menus/${menuId}`);
-        return data.menu;
-    } catch (error) {
-        console.error('Failed to fetch menu:', error);
-        return null;
-    }
-}
-
-// Fetch menus for store (by location)
-async function fetchMenus(storeId: string): Promise<Menu[]> {
-    try {
-        const menus = await api.get<{ menus: Menu[] }>(`menus?storeId=${storeId}&isActive=true`);
-        return menus.menus;
-    } catch (error) {
-        console.error('Failed to fetch menus:', error);
-        return [];
-    }
 }
 
 // Process header config into template-ready data

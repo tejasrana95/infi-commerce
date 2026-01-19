@@ -200,18 +200,28 @@ export const getMenuById = asyncHandler(async (req: AuthRequest, res: Response) 
     const { id } = req.params;
     const cacheKey = CacheKeys.menu(id);
 
+    // Try cache first with longer TTL
     const cachedMenu = await redisService.get<any>(cacheKey);
     if (cachedMenu) {
+        // Set browser cache headers for CDN caching
+        res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400');
         return res.json({ menu: cachedMenu });
     }
 
-    const menu = await Menu.findById(id);
+    // Fetch from database with optimizations
+    const menu = await Menu.findById(id)
+        .lean()  // 5x faster than mongoose documents
+        .maxTimeMS(10000);  // 10 second query timeout
 
     if (!menu) {
         throw new AppError('Menu not found', 404);
     }
 
+    // Cache aggressively - menus rarely change
     await redisService.set(cacheKey, menu, CACHE_TTL.MENUS);
+
+    // Set browser cache headers for CDN caching
+    res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400');
 
     return res.json({ menu });
 });

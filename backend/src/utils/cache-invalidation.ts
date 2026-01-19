@@ -96,7 +96,10 @@ export const invalidateSingleMenu = async (
     menuId: string,
     storeId?: string
 ): Promise<void> => {
-    await redisService.delete(CacheKeys.menu(menuId));
+    await Promise.all([
+        redisService.delete(CacheKeys.menu(menuId)),
+        redisService.delete(`menu:enriched:${menuId}`),  // Clear enriched menu cache
+    ]);
     if (storeId) {
         await invalidateMenuCache(storeId);
     }

@@ -15,8 +15,8 @@ export const CACHE_TTL = {
     STORE_SETTINGS: 3600,
     /** Category tree/list - 1 hour */
     CATEGORIES: 3600,
-    /** Menu configurations - 1 hour */
-    MENUS: 3600,
+    /** Menu configurations - 2 hours (rarely change) */
+    MENUS: 864000,
     /** Brand list - 1 hour */
     BRANDS: 3600,
     /** Tax rate lookups - 1 hour */

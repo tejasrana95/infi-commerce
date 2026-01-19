@@ -11,6 +11,7 @@ interface ApiConfig {
     headers?: Record<string, string>;
     sessionId?: string;
     token?: string;
+    timeout?: number;
 }
 
 class ApiClient {
@@ -132,17 +133,25 @@ class ApiClient {
         config?: ApiConfig
     ): Promise<T> {
         const url = `${this.baseUrl}/${endpoint}`;
+        const timeoutMs = config?.timeout || 30000; // 30 second default
+
+        // Create abort controller for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
         const headers = this.buildHeaders(config?.headers);
 
         try {
             const response = await fetch(url, {
                 ...options,
+                signal: controller.signal,
                 headers: {
                     ...headers,
                     ...options.headers,
                 },
             });
+
+            clearTimeout(timeoutId);
 
             // Handle non-JSON responses
             const contentType = response.headers.get('content-type');
@@ -176,6 +185,14 @@ class ApiClient {
 
             return isJson ? await response.json() : (await response.text()) as T;
         } catch (error: any) {
+            clearTimeout(timeoutId);
+
+            // Handle timeout errors
+            if (error.name === 'AbortError') {
+                console.error(`Request timeout: ${endpoint} exceeded ${timeoutMs}ms`);
+                throw new Error('Request timeout - server took too long to respond');
+            }
+
             // Check if error is 401 and we haven't already retried
             if (error.message.includes('401') || (error.response && error.response.status === 401)) {
 
@@ -404,32 +421,64 @@ export { ApiClient };
 // Server-Side Store Fetch Functions (SSR)
 // ============================================
 
+import { resolveStoreByDomain } from '@/lib/store-cache';
+
+/**
+ * Fetch store by domain with three-layer caching (memory → file → API)
+ * Use this function in Server Components for optimal performance
+ */
 export async function fetchStoreByDomain(domain: string, nocache: boolean = false): Promise<Store | null> {
-    try {
-        const cacheOptions = getCacheOptions('storeDomain', nocache);
-        const res = await fetch(`${API_BASE_URL}/stores/domain/${encodeURIComponent(domain)}`, {
-            ...cacheOptions,
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
+    // If nocache is true, bypass the cache and fetch directly from API
+    if (nocache) {
+        try {
+            const cacheOptions = getCacheOptions('storeDomain', nocache);
+            const res = await fetch(`${API_BASE_URL}/stores/domain/${encodeURIComponent(domain)}`, {
+                ...cacheOptions,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
 
-        if (!res.ok) {
-            if (res.status === 404) {
-                console.warn(`Store not found for domain: ${domain}`);
-                return null;
+            if (!res.ok) {
+                if (res.status === 404) {
+                    console.warn(`Store not found for domain: ${domain}`);
+                    return null;
+                }
+                throw new Error(`Failed to fetch store: ${res.status} ${res.statusText}`);
             }
-            // For other errors (500, etc), throw so we can handle server down
-            throw new Error(`Failed to fetch store: ${res.status} ${res.statusText}`);
-        }
 
-        return await res.json();
-    } catch (error: any) {
-        console.error('Error fetching store by domain:', error);
-        // Rethrow if it's not a 404 (which we handled above) to let error boundary catch it
-        // If it's a network error (fetch failed), this catch block catches it
-        throw error;
+            return await res.json();
+        } catch (error: any) {
+            console.error('Error fetching store by domain:', error);
+            throw error;
+        }
     }
+
+    // Use three-layer cache system
+    const result = await resolveStoreByDomain(domain, async (d) => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/stores/domain/${encodeURIComponent(d)}`, {
+                ...getCacheOptions('storeDomain'),
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!res.ok) {
+                if (res.status === 404) {
+                    return null;
+                }
+                throw new Error(`Failed to fetch store: ${res.status} ${res.statusText}`);
+            }
+
+            return await res.json();
+        } catch (error: any) {
+            console.error('Error fetching store by domain:', error);
+            throw error;
+        }
+    });
+
+    return result.store;
 }
 
 export async function fetchStoreById(storeId: string, nocache: boolean = false): Promise<Store | null> {
@@ -455,8 +504,12 @@ export async function fetchStoreById(storeId: string, nocache: boolean = false):
 
 const FALLBACK_STORE_ID = process.env.FALLBACK_STORE_ID || '675bd1d5334c9f136d8849b2';
 
+/**
+ * Get store by domain with automatic localhost fallback
+ * Uses three-layer caching (memory → file → API) for optimal performance
+ */
 export async function getStore(domain: string, nocache: boolean = false): Promise<Store | null> {
-    // First try to get store by domain
+    // First try to get store by domain (uses cache unless nocache=true)
     let store = await fetchStoreByDomain(domain, nocache);
 
     // Fallback for localhost development
