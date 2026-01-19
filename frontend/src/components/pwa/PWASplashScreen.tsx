@@ -27,16 +27,13 @@ export default function PWASplashScreen({ pwaSettings, storeLogo, storeName }: P
         >
             <div className={styles.content}>
                 {/* Logo/Icon */}
-                {(storeLogo || icons?.icon512) && (
+                {(icons?.icon512 || storeLogo) && (
                     <img
-                        src={storeLogo || icons?.icon512}
+                        src={icons?.icon512 || storeLogo}
                         alt={storeName || 'Loading'}
                         className={styles.logo}
                     />
                 )}
-
-                {/* Store Name */}
-                {storeName && <h1 className={styles.storeName}>{storeName}</h1>}
 
                 {/* Spinner */}
                 <div className={styles.spinnerContainer}>
