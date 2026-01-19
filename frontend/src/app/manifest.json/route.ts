@@ -41,17 +41,6 @@ export async function GET(request: NextRequest) {
                 : []),
         ];
 
-        // Build screenshots array for richer install experience
-        const screenshots = pwaSettings.splashScreen?.image
-            ? [{
-                src: pwaSettings.splashScreen.image,
-                sizes: '2732x2732',
-                type: 'image/png',
-                form_factor: 'wide',
-                label: `${pwaSettings.appName || store.name} - Welcome`,
-            }]
-            : [];
-
         // Build manifest
         const manifest = {
             name: pwaSettings.appName || store.name,
@@ -64,7 +53,6 @@ export async function GET(request: NextRequest) {
             theme_color: pwaSettings.themeColor || store.theme?.colors?.primary || '#000000',
             orientation: 'portrait-primary',
             icons,
-            ...(screenshots.length > 0 && { screenshots }),
             categories: ['shopping', 'lifestyle'],
             shortcuts: [
                 {

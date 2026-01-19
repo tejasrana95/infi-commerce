@@ -595,11 +595,6 @@ export interface PWASettings {
         icon512?: string;  // 512x512 icon
         appleTouchIcon?: string;  // 180x180 Apple touch icon
     };
-    splashScreen?: {
-        image?: string;  // Custom splash screen background image
-        spinnerType?: 'circular' | 'dots' | 'pulse' | 'bars';
-        spinnerColor?: string;
-    };
     installPromptStyle?: 'toast' | 'banner' | 'modal';
 }
 

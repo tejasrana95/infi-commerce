@@ -97,11 +97,6 @@ interface PWASettings {
         icon512?: string;
         appleTouchIcon?: string;
     };
-    splashScreen?: {
-        image?: string;
-        spinnerType?: 'circular' | 'dots' | 'pulse' | 'bars';
-        spinnerColor?: string;
-    };
     installPromptStyle?: 'toast' | 'banner' | 'modal';
 }
 
@@ -263,11 +258,6 @@ export default function EditStorePage() {
                     themeColor: currentStore.pwaSettings.themeColor || '#000000',
                     backgroundColor: currentStore.pwaSettings.backgroundColor || '#ffffff',
                     icons: currentStore.pwaSettings.icons || {},
-                    splashScreen: currentStore.pwaSettings.splashScreen || {
-                        image: '',
-                        spinnerType: 'circular',
-                        spinnerColor: '#000000',
-                    },
                     installPromptStyle: currentStore.pwaSettings.installPromptStyle || 'toast',
                 });
             }

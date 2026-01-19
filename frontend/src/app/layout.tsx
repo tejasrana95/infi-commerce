@@ -28,7 +28,6 @@ import { formatFontFamily } from "@/lib/fonts";
 import OfflineIndicator from "@/components/pwa/OfflineIndicator";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
 import PWARegistration from "@/components/pwa/PWARegistration";
-import PWASplashWrapper from "@/components/pwa/PWASplashWrapper";
 
 
 // Optimized font loading with display: swap to prevent FOIT
@@ -306,7 +305,6 @@ export default async function RootLayout({
                             {/* PWA Components */}
                             {store?.pwaSettings?.enabled && (
                               <>
-                                <PWASplashWrapper />
                                 <OfflineIndicator />
                                 <InstallPrompt />
                                 <PWARegistration />
