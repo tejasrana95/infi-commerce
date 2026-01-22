@@ -84,6 +84,7 @@ export interface IProduct extends Document {
         stock: number;
         images: string[]; // Multiple images per variant
         weight?: number;
+        costPrice?: number;
         dimensions?: {
             length?: number;
             width?: number;
@@ -333,6 +334,7 @@ const ProductSchema = new Schema<IProduct>(
                     default: [],
                 },
                 weight: Number,
+                costPrice: Number,
                 dimensions: {
                     length: Number,
                     width: Number,

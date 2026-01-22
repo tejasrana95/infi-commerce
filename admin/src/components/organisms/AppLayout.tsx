@@ -67,6 +67,7 @@ import PanoramaWideAngleIcon from '@mui/icons-material/PanoramaWideAngle';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import DescriptionIcon from '@mui/icons-material/Description';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import api from '@/lib/api';
 import Image from 'next/image';
 const drawerWidth = 260;
@@ -82,6 +83,7 @@ interface NavItem {
 const navigationItems: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: <DashboardIcon /> },
   { name: 'Orders', href: '/orders', icon: <ShoppingCartIcon /> },
+  { name: 'Accounting', href: '/accounting', icon: <AccountBalanceIcon /> },
   { name: 'Customers', href: '/customers', icon: <PeopleIcon /> },
   {
     name: 'Catalog',
@@ -101,7 +103,6 @@ const navigationItems: NavItem[] = [
     children: [
       { name: 'Sales', href: '/sales', icon: <LocalOfferIcon /> },
       { name: 'Coupons', href: '/coupons', icon: <DiscountIcon /> },
-      { name: 'Stores', href: '/stores', icon: <StoreIcon /> },
     ],
   },
   {
@@ -151,6 +152,7 @@ const navigationItems: NavItem[] = [
       { name: 'Files', href: '/files', icon: <FolderIcon /> },
       { name: 'Notifications Queue', href: '/notifications', icon: <NotificationsOutlinedIcon /> },
       { name: 'Notification Templates', href: '/notification-templates', icon: <DescriptionIcon /> },
+      { name: 'Stores', href: '/stores', icon: <StoreIcon /> },
       { name: 'Settings', href: '/settings', icon: <SettingsOutlinedIcon /> },
     ],
   },
@@ -734,6 +736,8 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
           flexGrow: 1,
           p: { xs: 2, sm: 3 },
           width: { md: `calc(100% - ${drawerWidth}px)` },
+          maxWidth: '100vw',
+          overflowX: 'hidden',
           mt: { xs: 7, sm: 8 },
           bgcolor: 'background.default',
           minHeight: '100vh',

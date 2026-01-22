@@ -274,4 +274,48 @@ export class PayPalService extends BasePaymentGateway {
             };
         }
     }
+
+    /**
+     * Get transaction details for accounting
+     * Retrieves fee information from captured payment
+     */
+    async getTransactionDetails(captureId: string): Promise<{
+        netAmount: number;
+        fee: number;
+        currency: string;
+    } | null> {
+        try {
+            const accessToken = await this.getAccessToken();
+
+            // Get capture details which includes seller_receivable_breakdown
+            const response = await axios.get(
+                `${this.baseUrl}/v2/payments/captures/${captureId}`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                    },
+                }
+            );
+
+            const capture = response.data;
+            const breakdown = capture.seller_receivable_breakdown;
+
+            if (!breakdown) {
+                return null;
+            }
+
+            const grossAmount = parseFloat(breakdown.gross_amount?.value || '0');
+            const paypalFee = parseFloat(breakdown.paypal_fee?.value || '0');
+            const netAmount = parseFloat(breakdown.net_amount?.value || '0');
+
+            return {
+                netAmount,
+                fee: paypalFee,
+                currency: breakdown.gross_amount?.currency_code || 'USD',
+            };
+        } catch (error) {
+            console.error('Error fetching PayPal transaction details:', error);
+            return null;
+        }
+    }
 }

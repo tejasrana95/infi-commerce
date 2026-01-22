@@ -86,6 +86,7 @@
 
         .actions {
             display: flex;
+            flex-wrap: wrap;
             gap: 1rem;
         }
     }
@@ -251,9 +252,15 @@
 
     .item {
         display: flex;
+        flex-wrap: wrap;
+        flex-direction: row;
         gap: 1.5rem;
         padding-bottom: 2rem;
         border-bottom: 1px solid #e5e7eb;
+
+        @include tablet {
+            align-items: flex-start;
+        }
 
         &:last-child {
             border-bottom: none;

@@ -21,6 +21,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import api from '@/lib/api';
 import { useNotification } from '@/contexts/NotificationContext';
 import { LoadingSpinner } from '@/components/atoms';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface StoreOption {
     _id: string;
@@ -34,7 +35,7 @@ export default function EditAdminPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [stores, setStores] = useState<StoreOption[]>([]);
-
+    const { user } = useAuth();
     const [formData, setFormData] = useState({
         email: '',
         password: '',
@@ -45,7 +46,7 @@ export default function EditAdminPage() {
         storeId: '',
         isActive: true,
     });
-
+    console.log('user', user);
     useEffect(() => {
         fetchStores();
         if (id) fetchAdmin();
@@ -104,7 +105,7 @@ export default function EditAdminPage() {
         }
     };
 
-    const isSuperAdmin = formData.role === 'super_admin';
+    const isSuperAdmin = formData.role === 'super_admin' || user?.role === 'super_admin';
 
     return (
         <Box>
@@ -183,7 +184,7 @@ export default function EditAdminPage() {
                             />
                         </Grid>
                         <Grid size={{ xs: 12, md: 6 }}>
-                            <FormControl fullWidth disabled={isSuperAdmin}>
+                            <FormControl fullWidth>
                                 <InputLabel>Role</InputLabel>
                                 <Select
                                     value={formData.role}

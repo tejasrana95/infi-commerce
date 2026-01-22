@@ -68,6 +68,7 @@ export default function VariantManager({ control, watch }: VariantManagerProps) 
                                 {
                                     sku: '',
                                     price: 0,
+                                    costPrice: 0,
                                     stock: 0,
                                     weight: 0,
                                     images: [],
@@ -111,6 +112,7 @@ export default function VariantManager({ control, watch }: VariantManagerProps) 
                                                 ))}
                                                 <TableCell width={150}>SKU</TableCell>
                                                 <TableCell width={120}>Price</TableCell>
+                                                <TableCell width={120}>Cost Price</TableCell>
                                                 <TableCell width={100}>Stock</TableCell>
                                                 <TableCell width={100}>Weight</TableCell>
                                                 <TableCell width={50}></TableCell>
@@ -203,6 +205,15 @@ export default function VariantManager({ control, watch }: VariantManagerProps) 
                                                         <TextField
                                                             value={variant.price}
                                                             onChange={(e) => handleVariantChange(index, 'price', parseFloat(e.target.value) || 0)}
+                                                            type="number"
+                                                            size="small"
+                                                            fullWidth
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <TextField
+                                                            value={variant.costPrice || 0}
+                                                            onChange={(e) => handleVariantChange(index, 'costPrice', parseFloat(e.target.value) || 0)}
                                                             type="number"
                                                             size="small"
                                                             fullWidth

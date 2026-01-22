@@ -193,4 +193,37 @@ export class RazorpayService extends BasePaymentGateway {
             };
         }
     }
+
+    /**
+     * Get settlement details for accounting
+     * Retrieves fee information from captured payment
+     */
+    async getSettlementDetails(paymentId: string): Promise<{
+        settledAmount: number;
+        fee: number;
+        tax: number;
+        currency: string;
+    } | null> {
+        try {
+            const payment = await this.razorpay.payments.fetch(paymentId);
+
+            // Razorpay includes fee info directly in the payment object
+            const amount = Number(payment.amount);
+            const fee = Number(payment.fee || 0);
+            const tax = Number(payment.tax || 0);
+
+            // Settled amount = amount - fee - tax
+            const settledAmount = this.parseAmount(amount - fee - tax, payment.currency);
+
+            return {
+                settledAmount,
+                fee: this.parseAmount(fee, payment.currency),
+                tax: this.parseAmount(tax, payment.currency),
+                currency: payment.currency.toUpperCase(),
+            };
+        } catch (error) {
+            console.error('Error fetching Razorpay settlement details:', error);
+            return null;
+        }
+    }
 }

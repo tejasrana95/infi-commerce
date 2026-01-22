@@ -7,6 +7,7 @@ import Product from '../models/Product';
 import Coupon from '../models/Coupon';
 import TaxRate from '../models/TaxRate';
 import ProductOption from '../models/ProductOption';
+import Currency from '../models/Currency';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import shippingCalculatorService from '../services/shipping-calculator.service';
@@ -120,6 +121,7 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
 
         // Get variant if specified
         let price = product.salePrice || product.price;
+        let costPrice = product.costPrice || 0;
         let sku = product.sku;
         let variantAttributes: Record<string, string> = {};
         let itemImage = product.images?.[0] || '';
@@ -128,6 +130,7 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
             const variant = product.variants.find((v: any) => v._id?.toString() === item.variantId);
             if (variant) {
                 price = variant.salePrice || variant.price || price;
+                costPrice = variant.costPrice || costPrice;
                 sku = variant.sku || sku;
                 if (variant.attributes) {
                     Object.entries(variant.attributes).forEach(([key, value]) => {
@@ -152,6 +155,7 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
             name: product.name,
             sku,
             price,
+            costPrice,
             quantity: item.quantity,
             image: itemImage,
             attributes: variantAttributes,
@@ -160,6 +164,10 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
     }
 
     const total = subtotal + shippingCost + tax - discount;
+
+    // Get exchange rate for the order currency
+    const currencyDoc = await Currency.findOne({ code: currency.toUpperCase(), isActive: true });
+    const exchangeRate = currencyDoc ? currencyDoc.exchangeRate : 1;
 
     // Generate order number
     const orderNumber = await generateOrderNumber();
@@ -176,7 +184,8 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
         tax,
         discount,
         total,
-        currency,
+        currency: currency.toUpperCase(),
+        exchangeRate,
         shippingAddress,
         billingAddress,
         paymentMethod,
@@ -241,6 +250,7 @@ export const adminUpdateOrder = asyncHandler(async (req: AuthRequest, res: Respo
         trackingNumber,
         courierName,
         trackingUrl,
+        notifyCustomer,
     } = req.body;
 
     const order = await Order.findById(id).populate('storeId customerId');
@@ -278,6 +288,7 @@ export const adminUpdateOrder = asyncHandler(async (req: AuthRequest, res: Respo
             if (!product) continue;
 
             let price = product.salePrice || product.price;
+            let costPrice = product.costPrice || 0;
             let sku = product.sku;
             let name = product.name;
             let attributes: Record<string, string> = {};
@@ -287,6 +298,7 @@ export const adminUpdateOrder = asyncHandler(async (req: AuthRequest, res: Respo
                 const variant = product.variants.find((v: any) => v._id.toString() === item.variantId);
                 if (variant) {
                     price = variant.salePrice || variant.price || price;
+                    costPrice = variant.costPrice || costPrice;
                     sku = variant.sku || sku;
                     if (variant.attributes) {
                         Object.entries(variant.attributes).forEach(([key, value]) => {
@@ -311,6 +323,7 @@ export const adminUpdateOrder = asyncHandler(async (req: AuthRequest, res: Respo
                 name,
                 sku,
                 price,
+                costPrice,
                 quantity: item.quantity,
                 attributes,
                 image: itemImage,
@@ -360,22 +373,24 @@ export const adminUpdateOrder = asyncHandler(async (req: AuthRequest, res: Respo
     emitOrderEvent('orderUpdate', order, order.storeId._id.toString(), order._id.toString(), order.customerId?.toString());
 
     // Send notifications if status or tracking number changed
-    if (status && status !== oldStatus) {
-        await transactionalNotificationService.sendOrderStatusUpdate(
-            order.storeId._id.toString(),
-            (order.storeId as any).name,
-            order,
-            status
-        );
-    } else if (trackingNumber && trackingNumber !== oldTrackingNumber) {
-        // If only tracking changed but status is already shipped, send shipped update again
-        if (order.status === 'shipped') {
+    if (notifyCustomer !== false) {
+        if (status && status !== oldStatus) {
             await transactionalNotificationService.sendOrderStatusUpdate(
                 order.storeId._id.toString(),
                 (order.storeId as any).name,
                 order,
-                'shipped'
+                status
             );
+        } else if (trackingNumber && trackingNumber !== oldTrackingNumber) {
+            // If only tracking changed but status is already shipped, send shipped update again
+            if (order.status === 'shipped') {
+                await transactionalNotificationService.sendOrderStatusUpdate(
+                    order.storeId._id.toString(),
+                    (order.storeId as any).name,
+                    order,
+                    'shipped'
+                );
+            }
         }
     }
 
@@ -584,10 +599,9 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
             }
         }
     }
-
-    const subtotal = cart.subtotal;
-    const shippingCost = shippingResult.cost;
-    const total = subtotal + shippingCost + tax - discount;
+    // Get exchange rate for the order currency
+    const currencyDoc = await Currency.findOne({ code: currency.toUpperCase(), isActive: true });
+    const exchangeRate = currencyDoc ? currencyDoc.exchangeRate : 1;
 
     // Generate order number
     const orderNumber = await generateOrderNumber();
@@ -605,6 +619,9 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
         if (item.variantId && product.variants) {
             const variant = product.variants.find((v: any) => v._id?.toString() === item.variantId);
             if (variant) {
+                const variantCostPrice = variant.costPrice || product.costPrice || 0;
+                (item as any).costPrice = variantCostPrice;
+
                 if (variant.images && variant.images.length > 0) {
                     itemImage = variant.images[0];
                 }
@@ -627,12 +644,17 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
             name: item.name,
             sku: item.sku,
             price: item.price,
+            costPrice: (item as any).costPrice || product.costPrice || 0,
             quantity: item.quantity,
             image: itemImage,
             attributes: item.attributes,
             weight: product.weight,
         };
     });
+
+    const subtotal = cart.subtotal;
+    const shippingCost = shippingResult.cost;
+    const total = subtotal + shippingCost + tax - discount;
 
     const order = await Order.create({
         storeId,
@@ -641,6 +663,7 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
         orderNumber,
         items: orderItems,
         subtotal,
+        exchangeRate, // Storing the exchange rate at time of order
         shippingCost,
         tax,
         discount,
@@ -1085,7 +1108,7 @@ export const getAllOrders = asyncHandler(async (req: AuthRequest, res: Response)
  */
 export const updateOrderStatus = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
-    const { status, trackingNumber, courierName, trackingUrl, adminNote } = req.body;
+    const { status, trackingNumber, courierName, trackingUrl, adminNote, notifyCustomer } = req.body;
 
     const order = await Order.findById(id).populate('storeId customerId');
 
@@ -1122,12 +1145,14 @@ export const updateOrderStatus = asyncHandler(async (req: AuthRequest, res: Resp
     }
 
     // Trigger notification
-    await transactionalNotificationService.sendOrderStatusUpdate(
-        order.storeId._id.toString(),
-        (order.storeId as any).name,
-        order,
-        status
-    );
+    if (notifyCustomer !== false) {
+        await transactionalNotificationService.sendOrderStatusUpdate(
+            order.storeId._id.toString(),
+            (order.storeId as any).name,
+            order,
+            status
+        );
+    }
 
     // Notify Admin
     await notificationService.createAdminNotification({
@@ -1155,7 +1180,7 @@ export const updateOrderStatus = asyncHandler(async (req: AuthRequest, res: Resp
  */
 export const processRefund = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
-    const { adminNote } = req.body; // Assuming refund details might come from req.body
+    const { adminNote, notifyCustomer } = req.body; // Assuming refund details might come from req.body
 
     const order = await Order.findById(id).populate('storeId customerId');
 
@@ -1184,12 +1209,14 @@ export const processRefund = asyncHandler(async (req: AuthRequest, res: Response
     await InventoryService.restoreStock(order.items);
 
     // Trigger notification for refunded
-    await transactionalNotificationService.sendOrderStatusUpdate(
-        order.storeId._id.toString(),
-        (order.storeId as any).name,
-        order,
-        'refunded'
-    );
+    if (notifyCustomer !== false) {
+        await transactionalNotificationService.sendOrderStatusUpdate(
+            order.storeId._id.toString(),
+            (order.storeId as any).name,
+            order,
+            'refunded'
+        );
+    }
 
     // Notify Admin
     await notificationService.createAdminNotification({
@@ -1251,12 +1278,14 @@ export const cancelOrder = asyncHandler(async (req: AuthRequest, res: Response) 
     emitOrderEvent('orderCancel', order, order.storeId._id.toString(), order._id.toString(), order.customerId?.toString());
 
     // Send notification
-    await transactionalNotificationService.sendOrderStatusUpdate(
-        order.storeId._id.toString(),
-        (order.storeId as any).name,
-        order,
-        'cancelled'
-    );
+    if (req.body.notifyCustomer !== false) {
+        await transactionalNotificationService.sendOrderStatusUpdate(
+            order.storeId._id.toString(),
+            (order.storeId as any).name,
+            order,
+            'cancelled'
+        );
+    }
 
     // Notify Admin
     await notificationService.createAdminNotification({
@@ -1519,7 +1548,7 @@ export const updateTrackingValidation = [
  */
 export const updateTracking = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
-    const { trackingNumber, courierName, trackingUrl } = req.body;
+    const { trackingNumber, courierName, trackingUrl, notifyCustomer } = req.body;
 
     const order = await Order.findById(id).populate('storeId customerId');
     if (!order) {
@@ -1548,7 +1577,7 @@ export const updateTracking = asyncHandler(async (req: AuthRequest, res: Respons
     }
 
     // Send notification if status changed to shipped OR if tracking number changed and it's already shipped
-    if (statusToNotify === 'shipped') {
+    if (statusToNotify === 'shipped' && notifyCustomer !== false) {
         await transactionalNotificationService.sendOrderStatusUpdate(
             order.storeId._id.toString(),
             (order.storeId as any).name,
@@ -1638,7 +1667,7 @@ export const requestReturn = asyncHandler(async (req: AuthRequest, res: Response
  */
 export const updateReturnStatus = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, notifyCustomer } = req.body;
 
     if (!['returned', 'return_requested'].includes(status)) {
         throw new AppError('Invalid return status', 400);
@@ -1653,12 +1682,14 @@ export const updateReturnStatus = asyncHandler(async (req: AuthRequest, res: Res
     await order.save();
 
     // Send notification
-    await transactionalNotificationService.sendOrderStatusUpdate(
-        order.storeId._id.toString(),
-        (order.storeId as any).name,
-        order,
-        status
-    );
+    if (notifyCustomer !== false) {
+        await transactionalNotificationService.sendOrderStatusUpdate(
+            order.storeId._id.toString(),
+            (order.storeId as any).name,
+            order,
+            status
+        );
+    }
 
     res.json({
         success: true,
@@ -1694,12 +1725,14 @@ export const markOrderAsRefunded = asyncHandler(async (req: AuthRequest, res: Re
     emitOrderEvent('orderRefund', order, order.storeId._id.toString(), order._id.toString(), order.customerId?.toString());
 
     // Trigger notification for refunded
-    await transactionalNotificationService.sendOrderStatusUpdate(
-        order.storeId._id.toString(),
-        (order.storeId as any).name,
-        order,
-        'refunded'
-    );
+    if (req.body.notifyCustomer !== false) {
+        await transactionalNotificationService.sendOrderStatusUpdate(
+            order.storeId._id.toString(),
+            (order.storeId as any).name,
+            order,
+            'refunded'
+        );
+    }
 
     // Notify Admin
     await notificationService.createAdminNotification({

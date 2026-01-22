@@ -27,6 +27,8 @@ import {
     DialogContent,
     DialogActions,
     TextField,
+    Checkbox,
+    FormControlLabel,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
@@ -44,6 +46,7 @@ import LoadingSpinner from '@/components/atoms/LoadingSpinner';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { useNotification } from '@/contexts/NotificationContext';
+import OrderAccountingSection from '@/components/organisms/OrderAccountingSection';
 
 export default function OrderDetailPage() {
     const { id } = useParams();
@@ -69,6 +72,15 @@ export default function OrderDetailPage() {
     const [refundAction, setRefundAction] = useState<'approved' | 'rejected' | 'processed'>('approved');
     const [adminNote, setAdminNote] = useState('');
 
+    // Notification choice state
+    const [notifyCustomer, setNotifyCustomer] = useState(true);
+    const [confirmDialogState, setConfirmDialogState] = useState<{
+        open: boolean;
+        title: string;
+        message: string;
+        action: (notify: boolean) => Promise<void>;
+    } | null>(null);
+
     useEffect(() => {
         if (id) fetchOrder();
     }, [id]);
@@ -86,10 +98,10 @@ export default function OrderDetailPage() {
         }
     };
 
-    const handleStatusUpdate = async (newStatus: OrderStatus, extraData: any = {}) => {
+    const handleStatusUpdate = async (newStatus: OrderStatus, extraData: any = {}, notify: boolean = true) => {
         setActionLoading(true);
         try {
-            await api.put(`/orders/${id}/status`, { status: newStatus, ...extraData });
+            await api.put(`/orders/${id}/status`, { status: newStatus, notifyCustomer: notify, ...extraData });
             await fetchOrder(); // Refresh
             setShipDialogOpen(false);
         } catch (err: any) {
@@ -97,13 +109,25 @@ export default function OrderDetailPage() {
         } finally {
             setActionLoading(false);
             setAnchorEl(null);
+            setConfirmDialogState(null);
         }
+    };
+
+    const openStatusConfirm = (status: OrderStatus, title: string) => {
+        setAnchorEl(null);
+        setNotifyCustomer(true);
+        setConfirmDialogState({
+            open: true,
+            title,
+            message: `Are you sure you want to mark this order as ${status}?`,
+            action: async (notify) => handleStatusUpdate(status, {}, notify)
+        });
     };
 
     const handleCancelOrder = async () => {
         setActionLoading(true);
         try {
-            await api.post(`/orders/${id}/cancel`, { reason: cancelReason });
+            await api.post(`/orders/${id}/cancel`, { reason: cancelReason, notifyCustomer });
             await fetchOrder();
             setCancelDialogOpen(false);
         } catch (err: any) {
@@ -114,30 +138,45 @@ export default function OrderDetailPage() {
     };
 
     const handleProcessRefund = async () => {
-        if (!await confirm({ title: 'Process Refund', message: 'Are you sure you want to mark this order as refunded?', severity: 'warning' })) return;
-        setActionLoading(true);
-        try {
-            await api.patch(`/orders/${id}/refund`);
-            await fetchOrder();
-        } catch (err: any) {
-            showNotification(err.response?.data?.message || 'Failed to refund', 'error');
-        } finally {
-            setActionLoading(false);
-            setAnchorEl(null);
-        }
+        setAnchorEl(null);
+        setNotifyCustomer(true);
+        setConfirmDialogState({
+            open: true,
+            title: 'Process Refund',
+            message: 'Are you sure you want to mark this order as refunded? This action cannot be undone.',
+            action: async (notify) => {
+                setActionLoading(true);
+                try {
+                    await api.patch(`/orders/${id}/refund`, { notifyCustomer: notify });
+                    await fetchOrder();
+                } catch (err: any) {
+                    showNotification(err.response?.data?.message || 'Failed to refund', 'error');
+                } finally {
+                    setActionLoading(false);
+                }
+            }
+        });
     };
 
     const handleReturnUpdate = async (status: string) => {
-        setActionLoading(true);
-        try {
-            await api.patch(`/orders/${id}/return-status`, { status });
-            await fetchOrder();
-        } catch (err: any) {
-            showNotification(err.response?.data?.message || 'Failed to update return status', 'error');
-        } finally {
-            setActionLoading(false);
-            setAnchorEl(null);
-        }
+        setAnchorEl(null);
+        setNotifyCustomer(true);
+        setConfirmDialogState({
+            open: true,
+            title: status === 'return_requested' ? 'Initiate Return' : 'Complete Return',
+            message: `Are you sure you want to update the return status to ${status.replace('_', ' ')}?`,
+            action: async (notify) => {
+                setActionLoading(true);
+                try {
+                    await api.patch(`/orders/${id}/return-status`, { status, notifyCustomer: notify });
+                    await fetchOrder();
+                } catch (err: any) {
+                    showNotification(err.response?.data?.message || 'Failed to update return status', 'error');
+                } finally {
+                    setActionLoading(false);
+                }
+            }
+        });
     };
 
     const handleRefundUpdate = async () => {
@@ -145,7 +184,8 @@ export default function OrderDetailPage() {
         try {
             await api.patch(`/orders/${id}/refund-status`, {
                 status: refundAction,
-                adminNote: adminNote
+                adminNote: adminNote,
+                notifyCustomer
             });
             await fetchOrder();
             setRefundDialogOpen(false);
@@ -256,14 +296,16 @@ export default function OrderDetailPage() {
                     >
                         Edit Order
                     </Button>
-                    <Button
-                        variant="contained"
-                        endIcon={<MoreVertIcon />}
-                        onClick={(e) => setAnchorEl(e.currentTarget)}
-                        disabled={!order || actionLoading || ['cancelled', 'refunded'].includes(order.status) && order.paymentStatus === 'refunded'}
-                    >
-                        Update Status
-                    </Button>
+                    {order && !['cancelled', 'refunded'].includes(order.status) && (
+                        <Button
+                            variant="contained"
+                            endIcon={<MoreVertIcon />}
+                            onClick={(e) => setAnchorEl(e.currentTarget)}
+                            disabled={!order || actionLoading || ['cancelled', 'refunded'].includes(order.status) && order.paymentStatus === 'refunded'}
+                        >
+                            Update Status
+                        </Button>
+                    )}
                 </Box>
                 {order && (
                     <Menu
@@ -272,13 +314,17 @@ export default function OrderDetailPage() {
                         onClose={() => setAnchorEl(null)}
                     >
                         {order.status === 'pending' && (
-                            <MenuItem onClick={() => handleStatusUpdate('processing')}>Mark as Processing</MenuItem>
+                            <MenuItem onClick={() => openStatusConfirm('processing', 'Mark as Processing')}>Mark as Processing</MenuItem>
                         )}
                         {['pending', 'processing'].includes(order.status) && (
-                            <MenuItem onClick={() => setShipDialogOpen(true)}>Mark as Shipped</MenuItem>
+                            <MenuItem onClick={() => {
+                                setNotifyCustomer(true);
+                                setShipDialogOpen(true);
+                                setAnchorEl(null);
+                            }}>Mark as Shipped</MenuItem>
                         )}
                         {order.status === 'shipped' && (
-                            <MenuItem onClick={() => handleStatusUpdate('delivered')}>Mark as Delivered</MenuItem>
+                            <MenuItem onClick={() => openStatusConfirm('delivered', 'Mark as Delivered')}>Mark as Delivered</MenuItem>
                         )}
 
                         {/* Return Workflow */}
@@ -307,7 +353,11 @@ export default function OrderDetailPage() {
                             <Divider key="cancel-divider" />,
                             <MenuItem
                                 key="cancel"
-                                onClick={() => setCancelDialogOpen(true)}
+                                onClick={() => {
+                                    setNotifyCustomer(true);
+                                    setCancelDialogOpen(true);
+                                    setAnchorEl(null);
+                                }}
                                 sx={{ color: 'error.main' }}
                             >
                                 Cancel Order
@@ -465,6 +515,7 @@ export default function OrderDetailPage() {
                                                     sx={{ mt: 1, display: 'block' }}
                                                     onClick={() => {
                                                         setRefundAction('approved');
+                                                        setNotifyCustomer(true);
                                                         setRefundDialogOpen(true);
                                                     }}
                                                 >
@@ -498,6 +549,7 @@ export default function OrderDetailPage() {
                                                         setCourierName(order.courierName || '');
                                                         setTrackingNumber(order.trackingNumber || '');
                                                         setTrackingUrl(order.trackingUrl || '');
+                                                        setNotifyCustomer(true);
                                                         setShipDialogOpen(true);
                                                     }}
                                                 >
@@ -584,6 +636,14 @@ export default function OrderDetailPage() {
                 ) : !loading && (
                     <Alert severity="warning">Order details could not be loaded.</Alert>
                 )}
+                {order && order.paymentStatus === 'paid' && (
+                    <OrderAccountingSection
+                        orderId={order._id}
+                        orderTotal={order.total}
+                        orderCurrency={order.currency}
+                    />
+                )}
+
             </Box>
 
             {/* Ship Dialog */}
@@ -622,6 +682,15 @@ export default function OrderDetailPage() {
                         placeholder="https://..."
                         helperText="Provide full URL including https://"
                     />
+                    <FormControlLabel
+                        control={
+                            <Checkbox
+                                checked={notifyCustomer}
+                                onChange={(e) => setNotifyCustomer(e.target.checked)}
+                            />
+                        }
+                        label="Notify Customer"
+                    />
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => {
@@ -629,7 +698,7 @@ export default function OrderDetailPage() {
                         setIsEditingTracking(false);
                     }}>Cancel</Button>
                     <Button
-                        onClick={() => handleStatusUpdate('shipped', { trackingNumber, courierName, trackingUrl })}
+                        onClick={() => handleStatusUpdate('shipped', { trackingNumber, courierName, trackingUrl }, notifyCustomer)}
                         variant="contained"
                         disabled={!trackingNumber || !courierName}
                     >
@@ -656,6 +725,15 @@ export default function OrderDetailPage() {
                     <Alert severity="warning" sx={{ mt: 2 }}>
                         This action cannot be undone. Stock will be restored.
                     </Alert>
+                    <FormControlLabel
+                        control={
+                            <Checkbox
+                                checked={notifyCustomer}
+                                onChange={(e) => setNotifyCustomer(e.target.checked)}
+                            />
+                        }
+                        label="Notify Customer"
+                    />
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setCancelDialogOpen(false)}>Back</Button>
@@ -704,6 +782,16 @@ export default function OrderDetailPage() {
                             placeholder={refundAction === 'rejected' ? 'Explain why the refund was rejected...' : 'Add a note for the customer...'}
                             helperText="This note will be visible to the customer."
                         />
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={notifyCustomer}
+                                    onChange={(e) => setNotifyCustomer(e.target.checked)}
+                                />
+                            }
+                            label="Notify Customer"
+                            sx={{ mt: 2 }}
+                        />
                     </Box>
                 </DialogContent>
                 <DialogActions>
@@ -717,6 +805,40 @@ export default function OrderDetailPage() {
                     </Button>
                 </DialogActions>
             </Dialog>
+            {ConfirmStateDialog()}
         </Box>
     );
+
+    function ConfirmStateDialog() {
+        if (!confirmDialogState) return null;
+        return (
+            <Dialog open={confirmDialogState.open} onClose={() => setConfirmDialogState(null)}>
+                <DialogTitle>{confirmDialogState.title}</DialogTitle>
+                <DialogContent>
+                    <Typography>{confirmDialogState.message}</Typography>
+                    <Box mt={2}>
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={notifyCustomer}
+                                    onChange={(e) => setNotifyCustomer(e.target.checked)}
+                                />
+                            }
+                            label="Notify Customer"
+                        />
+                    </Box>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setConfirmDialogState(null)}>Cancel</Button>
+                    <Button
+                        onClick={() => confirmDialogState.action(notifyCustomer)}
+                        variant="contained"
+                        autoFocus
+                    >
+                        Confirm
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        );
+    }
 }

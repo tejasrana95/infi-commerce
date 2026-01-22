@@ -6,6 +6,7 @@ import { PaymentService } from '../services/payment/payment.service';
 import InventoryService from '../services/inventory.service';
 import { transactionalNotificationService } from '../services/transactional-notification.service';
 import Store from '../models/Store';
+import { AccountingService } from '../services/accounting.service';
 
 /**
  * @route   POST /api/webhooks/razorpay
@@ -230,6 +231,14 @@ async function processSuccessfulPayment(order: any, paymentId: string, paymentDa
         }
     } catch (error) {
         console.error('Failed to send order confirmation email:', error);
+    }
+
+    // Create accounting record for the order
+    try {
+        await AccountingService.createAccountingRecord(order._id.toString());
+        console.log(`Accounting record created for order ${order.orderNumber}`);
+    } catch (error) {
+        console.error('Failed to create accounting record:', error);
     }
 
 }

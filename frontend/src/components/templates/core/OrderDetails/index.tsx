@@ -261,7 +261,6 @@ export default function OrderDetailsTemplate({ order, loading, onRefresh }: Orde
                                     <button
                                         className={styles.btnSecondary}
                                         onClick={() => setShowReturnModal(true)}
-                                        style={{ marginLeft: '1rem' }}
                                     >
                                         Request Return
                                     </button>
@@ -272,7 +271,7 @@ export default function OrderDetailsTemplate({ order, loading, onRefresh }: Orde
                                         className={styles.btnSecondary}
                                         onClick={handleCancelOrder}
                                         disabled={cancellingOrder}
-                                        style={{ marginLeft: '1rem', color: 'var(--color-error, #dc3545)' }}
+                                        style={{ color: 'var(--color-error, #dc3545)' }}
                                     >
                                         {cancellingOrder ? 'Cancelling...' : 'Cancel Order'}
                                     </button>
@@ -282,7 +281,6 @@ export default function OrderDetailsTemplate({ order, loading, onRefresh }: Orde
                                     <button
                                         className={styles.btnSecondary}
                                         onClick={() => setShowRefundModal(true)}
-                                        style={{ marginLeft: '1rem' }}
                                     >
                                         {order.refundStatus === 'rejected' ? 'Re-request Refund' : 'Request Refund'}
                                     </button>
@@ -303,7 +301,6 @@ export default function OrderDetailsTemplate({ order, loading, onRefresh }: Orde
                                             borderRadius: '8px',
                                             fontWeight: 600,
                                             textDecoration: 'none',
-                                            marginLeft: '1rem'
                                         }}
                                     >
                                         Track Order
@@ -346,7 +343,7 @@ export default function OrderDetailsTemplate({ order, loading, onRefresh }: Orde
                         {/* Main Column */}
                         <div className={styles.main}>
                             {/* Order Items */}
-                            <section className={`${styles.section} ${styles.card}`}>
+                            <section className={`${styles.card}`}>
                                 <h2>Items ({order.items.length})</h2>
                                 <div className={styles.itemsList}>
                                     {order.items.map((item, index) => (

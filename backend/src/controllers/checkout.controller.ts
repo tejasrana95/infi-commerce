@@ -766,6 +766,7 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
             name: product.name,
             sku: itemSku,
             price: itemPrice,
+            costPrice: product.costPrice || 0, // Snapshot for accounting COGS
             quantity: item.quantity,
             image: itemImage,
             attributes: itemAttributes,

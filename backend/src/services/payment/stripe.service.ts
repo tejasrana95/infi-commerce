@@ -210,4 +210,44 @@ export class StripeService extends BasePaymentGateway {
             };
         }
     }
+
+    /**
+     * Get payout/settlement details for accounting
+     * Retrieves the balance transaction to get fee information
+     */
+    async getPayoutDetails(paymentIntentId: string): Promise<{
+        netAmount: number;
+        fee: number;
+        currency: string;
+        exchangeRate?: number;
+    } | null> {
+        try {
+            // Get the payment intent with expanded charges
+            const paymentIntent = await this.stripe.paymentIntents.retrieve(paymentIntentId, {
+                expand: ['latest_charge.balance_transaction'],
+            });
+
+            // Get the charge and balance transaction
+            const charge = paymentIntent.latest_charge as Stripe.Charge | null;
+            if (!charge) {
+                return null;
+            }
+
+            const balanceTransaction = charge.balance_transaction as Stripe.BalanceTransaction | null;
+            if (!balanceTransaction) {
+                return null;
+            }
+
+            // Balance transaction contains fee and net amount
+            return {
+                netAmount: this.parseAmount(balanceTransaction.net, balanceTransaction.currency),
+                fee: this.parseAmount(balanceTransaction.fee, balanceTransaction.currency),
+                currency: balanceTransaction.currency.toUpperCase(),
+                exchangeRate: balanceTransaction.exchange_rate || undefined,
+            };
+        } catch (error) {
+            console.error('Error fetching Stripe payout details:', error);
+            return null;
+        }
+    }
 }

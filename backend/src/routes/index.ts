@@ -209,4 +209,8 @@ router.use('/slug', slugRoutes);
 import redirectionRoutes from './redirection.routes';
 router.use('/redirections', redirectionRoutes);
 
+// Mount accounting routes
+import accountingRoutes from './accounting.routes';
+router.use('/accounting', accountingRoutes);
+
 export default router;

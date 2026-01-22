@@ -162,7 +162,8 @@ export default function OrdersPage() {
         {
             field: 'orderNumber',
             headerName: 'Order #',
-            width: 180,
+            minWidth: 150,
+            flex: 1,
             renderCell: (params: GridRenderCellParams) => (
                 <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
                     <Typography variant="body2" fontWeight={600}>
@@ -174,7 +175,8 @@ export default function OrdersPage() {
         {
             field: 'createdAt',
             headerName: 'Date',
-            width: 160,
+            minWidth: 140,
+            flex: 1,
             renderCell: (params: GridRenderCellParams) => (
                 <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
                     <Typography variant="body2">
@@ -206,7 +208,8 @@ export default function OrdersPage() {
         {
             field: 'total',
             headerName: 'Total',
-            width: 120,
+            minWidth: 100,
+            flex: 1,
             renderCell: (params: GridRenderCellParams) => (
                 <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
                     <Typography variant="body2" fontWeight={600}>
@@ -402,7 +405,7 @@ export default function OrdersPage() {
                 </Stack>
             </Box>
 
-            <Box sx={{ width: '100%' }}>
+            <Box sx={{ width: '100%', maxWidth: '100%', overflowX: 'auto' }}>
                 <DataGrid
                     rows={orders}
                     columns={columns}
@@ -417,7 +420,12 @@ export default function OrdersPage() {
                     onSortModelChange={setSortModel}
                     pageSizeOptions={[10, 25, 50, 100]}
                     onRowClick={(params) => handleView(params.row._id)}
-                    sx={dataGridStyles}
+                    sx={{
+                        ...dataGridStyles,
+                        '& .MuiDataGrid-main': {
+                            overflowX: 'auto',
+                        },
+                    }}
                     rowHeight={70}
                 />
             </Box>

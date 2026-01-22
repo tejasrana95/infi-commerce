@@ -13,6 +13,7 @@ export interface IOrder extends Document {
         name: string;
         sku: string;
         price: number;
+        costPrice?: number; // Cost price snapshot for accounting
         quantity: number;
         image?: string;
         attributes?: Record<string, string>;
@@ -104,6 +105,9 @@ export interface IOrder extends Document {
     customerNote?: string;
     adminNote?: string;
 
+    // Accounting reference
+    accountingId?: mongoose.Types.ObjectId;
+
     createdAt: Date;
     updatedAt: Date;
 }
@@ -142,6 +146,7 @@ const OrderSchema = new Schema<IOrder>(
                 name: { type: String, required: true },
                 sku: { type: String, required: true },
                 price: { type: Number, required: true, min: 0 },
+                costPrice: { type: Number, min: 0 }, // Cost price snapshot for accounting
                 quantity: { type: Number, required: true, min: 1 },
                 image: String,
                 attributes: Schema.Types.Mixed,
@@ -277,6 +282,10 @@ const OrderSchema = new Schema<IOrder>(
         customerNote: String,
         adminNote: String,
         refundedAt: Date,
+        accountingId: {
+            type: Schema.Types.ObjectId,
+            ref: 'OrderAccounting',
+        },
     },
     {
         timestamps: true,
