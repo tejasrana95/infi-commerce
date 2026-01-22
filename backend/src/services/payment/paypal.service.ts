@@ -304,7 +304,7 @@ export class PayPalService extends BasePaymentGateway {
                 return null;
             }
 
-            const grossAmount = parseFloat(breakdown.gross_amount?.value || '0');
+
             const paypalFee = parseFloat(breakdown.paypal_fee?.value || '0');
             const netAmount = parseFloat(breakdown.net_amount?.value || '0');
 

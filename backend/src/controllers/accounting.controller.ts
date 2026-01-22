@@ -32,13 +32,13 @@ export const getOrderAccounting = async (req: Request, res: Response) => {
             accounting = await AccountingService.createAccountingRecord(orderId);
         }
 
-        res.json({
+        return res.json({
             success: true,
             data: accounting,
         });
     } catch (error: any) {
         console.error('Error getting order accounting:', error);
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: error.message || 'Failed to get accounting data',
         });
@@ -72,14 +72,14 @@ export const updateOrderAccounting = async (req: Request, res: Response) => {
             lastUpdatedBy: adminId,
         });
 
-        res.json({
+        return res.json({
             success: true,
             data: accounting,
             message: 'Accounting data updated successfully',
         });
     } catch (error: any) {
         console.error('Error updating order accounting:', error);
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: error.message || 'Failed to update accounting data',
         });
@@ -105,14 +105,14 @@ export const regenerateOrderAccounting = async (req: Request, res: Response) => 
 
         const accounting = await AccountingService.regenerateAccountingRecord(orderId);
 
-        res.json({
+        return res.json({
             success: true,
             data: accounting,
             message: 'Accounting data regenerated successfully',
         });
     } catch (error: any) {
         console.error('Error regenerating order accounting:', error);
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: error.message || 'Failed to regenerate accounting data',
         });
@@ -174,14 +174,14 @@ export const fetchGatewayData = async (req: Request, res: Response) => {
             currency: gatewayData.currency,
         });
 
-        res.json({
+        return res.json({
             success: true,
             data: accounting,
             message: 'Gateway data fetched and applied successfully',
         });
     } catch (error: any) {
         console.error('Error fetching gateway data:', error);
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: error.message || 'Failed to fetch gateway data',
         });
@@ -216,13 +216,13 @@ export const getReportSummary = async (req: Request, res: Response) => {
             end
         );
 
-        res.json({
+        return res.json({
             success: true,
             data: report,
         });
     } catch (error: any) {
         console.error('Error generating report summary:', error);
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: error.message || 'Failed to generate report',
         });
@@ -258,13 +258,13 @@ export const getReportOrders = async (req: Request, res: Response) => {
             parseInt(limit as string, 10)
         );
 
-        res.json({
+        return res.json({
             success: true,
             data: result,
         });
     } catch (error: any) {
         console.error('Error getting report orders:', error);
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: error.message || 'Failed to get orders',
         });
@@ -302,10 +302,10 @@ export const exportReport = async (req: Request, res: Response) => {
 
         res.setHeader('Content-Type', 'text/csv');
         res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-        res.send(csv);
+        return res.send(csv);
     } catch (error: any) {
         console.error('Error exporting report:', error);
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: error.message || 'Failed to export report',
         });
