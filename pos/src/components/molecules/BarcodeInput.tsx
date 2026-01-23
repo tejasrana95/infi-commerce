@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Barcode, CheckCircle, AlertCircle } from 'lucide-react';
 
 import { barcodeService } from '@/services/barcode.service';
+import { sounds } from '@/utils/sounds';
 import Input from '../atoms/Input';
 import Spinner from '../atoms/Spinner';
 
@@ -98,6 +99,7 @@ export function BarcodeInput({ onScan, placeholder = 'Scan or type SKU/barcode..
         // For SKU/barcode lookup, we allow alphanumeric and common barcode characters
         if (!barcodeService.isValidBarcode(trimmedBarcode)) {
             setError('Invalid SKU/barcode format');
+           sounds.error()
             if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
             errorTimeoutRef.current = setTimeout(() => {
                 setError(null);
@@ -128,6 +130,7 @@ export function BarcodeInput({ onScan, placeholder = 'Scan or type SKU/barcode..
             // More specific error message for SKU lookup
             const errorMessage = err instanceof Error ? err.message : 'No product found with this SKU/barcode';
             setError(errorMessage);
+            sounds.error();
             if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
             errorTimeoutRef.current = setTimeout(() => {
                 setError(null);

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Camera, AlertCircle, RefreshCw, CheckCircle, Package } from 'lucide-react';
 import { barcodeService } from '@/services/barcode.service';
+import { sounds } from '@/utils/sounds';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../atoms/Button';
 
@@ -110,6 +111,9 @@ export function BarcodeScannerModal({ isOpen, onClose, onScan }: BarcodeScannerM
         } catch (err) {
             scannedItem.success = false;
             scannedItem.error = err instanceof Error ? err.message : 'Product not found';
+            
+            // Play error sound
+           sounds.error();
             
             setLastScanned(scannedItem);
             setScannedHistory(prev => [scannedItem, ...prev].slice(0, 10));
