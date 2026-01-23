@@ -1,0 +1,71 @@
+# Point of Checkout (POC) System Tasks
+
+## Phase 1: Backend Foundation
+- [ ] **Database Schema Updates**
+  - [ ] Update [Store](file:///Volumes/Drive/Projects/BitBucket/infi-commerce/.DS_Store) model with `pocSettings` (enabled, checkout config, receipt, barcode)
+  - [ ] Create `POCSession` model (storeId, userId, cash tracking, sales stats)
+  - [ ] Update [Order](file:///Volumes/Drive/Projects/BitBucket/infi-commerce/backend/src/models/Order.ts#3-114) model with POC fields (isPOCOrder, sessionId, paymentMethod)
+  - [ ] Update [Product](file:///Volumes/Drive/Projects/BitBucket/infi-commerce/backend/src/models/Product.ts#9-141) model with `barcode` and `barcodeGenerated` fields
+- [ ] **POC Service & Logic**
+  - [ ] Create `POCService` for session management (start/end, cash drawer)
+  - [ ] Implement quick checkout logic (bypassing complex checkout steps, minimal validation)
+  - [ ] **Constraint**: Ensure all POC orders strictly use store's base currency (force exchange rate 1.0)
+- [ ] **Barcode Service**
+  - [ ] Implement `BarcodeService` using `bwip-js` or similar
+  - [ ] Create logic for bulk barcode generation (PDF output)
+- [ ] **API Endpoints**
+  - [ ] `POCController`: Session endpoints (start, end, current, history)
+  - [ ] `POCController`: Product search (optimized for scan/SKU)
+  - [ ] `POCController`: Quick order creation
+  - [ ] `BarcodeController`: Generate, print, download barcodes
+  - [ ] Define routes in `poc.routes.ts` and `barcode.routes.ts`
+- [ ] **Authentication**
+  - [ ] Update auth middleware to support POC store_admin access logic
+
+## Phase 2: Admin Panel Enhancements
+- [ ] **Store Management**
+  - [ ] Create POC Settings page (`/stores/[id]/poc`)
+  - [ ] Implement toggle for "Enable POC"
+  - [ ] Add receipt configuration form (header, footer, logo)
+- [ ] **Sessions View**
+  - [ ] Create `POC Sessions` list view for store admins
+  - [ ] Build session detail view (opening/closing cash, discrepancy)
+- [ ] **Barcode Tools**
+  - [ ] Add "Generate Barcode" button to Product Edit form
+  - [ ] Create Bulk Barcode Generator page (`/products/barcode`)
+  - [ ] Implement PDF preview/download for barcode formatting
+
+## Phase 3: POC Application (New App)
+- [ ] **Setup**
+  - [ ] Initialize new Next.js app in `/poc` directory
+  - [ ] Configure shared types/utils with main project
+  - [ ] Setup authentication (Store Admin login)
+- [ ] **Core UI**
+  - [ ] Create touch-optimized Layout (navigation, responsive grid)
+  - [ ] Build `ProductGrid` with large touch targets and category tabs
+  - [ ] **Interaction**: Implement **VariantSelectionModal** for variable products
+  - [ ] Build `CartPanel` (floating/sidebar) with quick edit controls
+  - [ ] **Shortcuts**: Implement `useKeyboardShortcuts` hook (Search `/`, Print `Ctrl+P`, Fast Finish `Ctrl+Enter`)
+- [ ] **Checkout Flow**
+  - [ ] Implement `QuickCheckout` modal suitable for touch
+  - [ ] Create `PaymentSelection` (Cash, Card, UPI)
+  - [ ] Add "Customer" selection/creation (optional field)
+- [ ] **Session UI**
+  - [ ] Create "Start Shift" screen (enter opening cash)
+  - [ ] Create "End Shift" screen (enter closing cash, view summary)
+
+## Phase 4: Hardware Integration
+- [ ] **Scanning**
+  - [ ] Integrate `html5-qrcode` for camera scanning
+  - [ ] Implement global key listener for USB barcode scanners which act as keyboards
+- [ ] **Printing**
+  - [ ] Implement standard browser print style for receipts
+  - [ ] (Optional) Prototype WebUSB/thermal printer integration
+
+## Phase 5: Polish & Deployment
+- [ ] **Refinement**
+  - [ ] Test offline/network resilience
+  - [ ] Optimize search performance for instant scan results
+  - [ ] Verify currency handling (Strictly base currency)
+- [ ] **Documentation**
+  - [ ] Write user guide for Store Admins (how to use POC)

@@ -5,8 +5,12 @@ export interface User {
     name?: string;
     email: string;
     phone?: string;
-    role: 'admin' | 'manager' | 'staff' | 'super_admin' | 'store_admin';
+    role: 'admin' | 'manager' | 'staff' | 'super_admin' | 'store_admin' | 'pos_user';
     storeIds?: string[];
     permissions?: string[];
+    posPermissions?: {
+        canOverridePrice: boolean;
+        canApplyDiscount: boolean;
+    };
     twoFactorEnabled?: boolean;
 }

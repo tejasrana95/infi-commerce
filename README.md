@@ -1,8 +1,12 @@
-# Infi-Commerce - Multi-Store Ecommerce Platform
+# Infi Commerce POS
 
-A comprehensive multi-store ecommerce platform with Express.js backend API, Next.js customer frontend, and Next.js admin panel.
+Point of Sale System for Infi Commerce.
 
 ## Project Structure
+
+- `/pos` - Point of Sale frontend application
+- `/admin` - Admin dashboard
+- `/backend` - Backend API server
 
 ```
 infi-commerce/

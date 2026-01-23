@@ -83,7 +83,7 @@ export interface IOrder extends Document {
     };
 
     // Payment
-    paymentMethod: 'razorpay' | 'stripe' | 'paypal' | 'cod';
+    paymentMethod: 'razorpay' | 'stripe' | 'paypal' | 'cod' | 'cash' | 'card' | 'upi';
     paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
     paymentId?: string;
     paymentDetails?: Record<string, any>;
@@ -107,6 +107,31 @@ export interface IOrder extends Document {
 
     // Accounting reference
     accountingId?: mongoose.Types.ObjectId;
+
+    // POS (Point of Sale) fields
+    isPOSOrder?: boolean;
+    posSessionId?: mongoose.Types.ObjectId;
+    posUserId?: mongoose.Types.ObjectId;
+    roundOffAmount?: number;        // Amount added/subtracted for rounding (if enabled)
+
+    // Audit logging for price overrides and discounts
+    priceOverrides?: Array<{
+        itemId: string;
+        originalPrice: number;
+        overriddenPrice: number;
+        userId: mongoose.Types.ObjectId;
+        timestamp: Date;
+        reason?: string;
+    }>;
+    discountsApplied?: Array<{
+        type: 'percentage' | 'fixed';
+        value: number;
+        appliedTo: 'cart' | 'item';
+        itemId?: string;
+        userId: mongoose.Types.ObjectId;
+        timestamp: Date;
+        reason?: string;
+    }>;
 
     createdAt: Date;
     updatedAt: Date;
@@ -252,7 +277,7 @@ const OrderSchema = new Schema<IOrder>(
         },
         paymentMethod: {
             type: String,
-            enum: ['razorpay', 'stripe', 'paypal', 'cod'],
+            enum: ['razorpay', 'stripe', 'paypal', 'cod', 'cash', 'card', 'upi'],
             required: true,
         },
         paymentStatus: {
@@ -286,6 +311,54 @@ const OrderSchema = new Schema<IOrder>(
             type: Schema.Types.ObjectId,
             ref: 'OrderAccounting',
         },
+        // POS fields
+        isPOSOrder: {
+            type: Boolean,
+            default: false,
+            index: true,
+        },
+        posSessionId: {
+            type: Schema.Types.ObjectId,
+            ref: 'POSSession',
+        },
+        posUserId: {
+            type: Schema.Types.ObjectId,
+            ref: 'User',
+        },
+        roundOffAmount: {
+            type: Number,
+            default: 0,
+        },
+        // Audit logging arrays
+        priceOverrides: [
+            {
+                itemId: { type: String, required: true },
+                originalPrice: { type: Number, required: true },
+                overriddenPrice: { type: Number, required: true },
+                userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+                timestamp: { type: Date, default: Date.now },
+                reason: String,
+            },
+        ],
+        discountsApplied: [
+            {
+                type: {
+                    type: String,
+                    enum: ['percentage', 'fixed'],
+                    required: true,
+                },
+                value: { type: Number, required: true },
+                appliedTo: {
+                    type: String,
+                    enum: ['cart', 'item'],
+                    required: true,
+                },
+                itemId: String,
+                userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+                timestamp: { type: Date, default: Date.now },
+                reason: String,
+            },
+        ],
     },
     {
         timestamps: true,

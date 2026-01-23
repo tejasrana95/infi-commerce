@@ -199,7 +199,7 @@ export const registerAdmin = asyncHandler(async (req: AuthRequest, res: Response
  *     responses:
  *       200:
  *         description: Login successful
- *       401:
+ *       400:
  *         description: Invalid credentials
  *       403:
  *         description: Account deactivated

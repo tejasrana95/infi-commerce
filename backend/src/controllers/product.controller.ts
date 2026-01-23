@@ -486,7 +486,9 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
                     { description: pattern },
                     { shortDescription: pattern },
                     { sku: pattern },
+                    { barcode: pattern },
                     { 'variants.sku': pattern },
+                    { 'variants.barcode': pattern },
                     { tags: { $in: words } },
                     { 'seo.metaTitle': pattern },
                     { 'seo.metaDescription': pattern },
@@ -506,7 +508,9 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
                 filter.$or = [
                     { name: searchRegex },
                     { sku: searchRegex },
+                    { barcode: searchRegex },
                     { 'variants.sku': searchRegex },
+                    { 'variants.barcode': searchRegex },
                 ];
             }
         }

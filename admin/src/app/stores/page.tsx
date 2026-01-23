@@ -6,6 +6,7 @@ import { Box, Button, Tooltip, IconButton, Typography, useTheme } from '@mui/mat
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import PointOfSaleIcon from '@mui/icons-material/PointOfSale';
 import api from '@/lib/api';
 import { Store } from '@/types';
 import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules';
@@ -14,6 +15,7 @@ import { useNotification } from '@/contexts/NotificationContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { createDataGridStyles } from '@/utils/styles';
 import FormatPaintIcon from '@mui/icons-material/FormatPaint';
+import AnalyticsIcon from '@mui/icons-material/Analytics';
 
 export default function StoresPage() {
   const router = useRouter();
@@ -76,14 +78,6 @@ export default function StoresPage() {
     } catch (err: any) {
       showNotification(err.response?.data?.message || 'Failed to delete', 'error');
     }
-  };
-
-  const handleEdit = (id: string) => {
-    router.push(`/stores/${id}/edit`);
-  };
-
-  const handleThemeEdit = (id: string) => {
-    router.push(`/stores/${id}/theme`);
   };
 
   const handleCreate = () => {
@@ -161,17 +155,27 @@ export default function StoresPage() {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 120,
+      width: 180,
       sortable: false,
       renderCell: (params: GridRenderCellParams) => (
         <Box display="flex" flexDirection="row" gap={1} alignItems="start" justifyContent="center" height="100%">
+          <Tooltip title="POS Settings">
+            <IconButton href={`/stores/${params.row._id}/pos`} size="small" color="primary">
+              <PointOfSaleIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="POS Sessions">
+            <IconButton href={`/stores/${params.row._id}/pos-sessions`} size="small" color="primary">
+              <AnalyticsIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
           <Tooltip title="Edit Theme">
-            <IconButton onClick={() => handleThemeEdit(params.row._id)} size="small" color="primary">
+            <IconButton href={`/stores/${params.row._id}/theme`} size="small" color="primary">
               <FormatPaintIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Edit">
-            <IconButton onClick={() => handleEdit(params.row._id)} size="small" color="primary">
+            <IconButton href={`/stores/${params.row._id}/edit`} size="small" color="primary">
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>

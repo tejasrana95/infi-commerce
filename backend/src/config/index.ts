@@ -7,6 +7,7 @@ export const config = {
     port: parseInt(process.env.PORT || '3001', 10),
     apiUrl: process.env.API_URL || 'http://localhost:3001',
     staticUrl: process.env.STATIC_URL || 'http://localhost:3003',
+    posUrl: process.env.POS_URL || 'http://localhost:3004',
     mfaIssuer: process.env.MFA_ISSUER || 'InfiCommerce',
 
     database: {
@@ -23,6 +24,7 @@ export const config = {
     cors: {
         frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
         adminUrl: process.env.ADMIN_URL || 'http://localhost:3002',
+        posUrl: process.env.POS_URL || 'http://localhost:3004',
     },
 
     aws: {
@@ -66,4 +68,6 @@ export const config = {
         db: parseInt(process.env.REDIS_DB || '0', 10),
         keyPrefix: process.env.REDIS_KEY_PREFIX || 'infi:',
     },
+
+    appName: 'Infi Commerce POS',
 };

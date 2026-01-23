@@ -199,6 +199,7 @@ export const optionalApiKeyAuth = async (
         const allowedOrigins = [
             config.cors.frontendUrl,
             config.cors.adminUrl,
+            config.cors.posUrl,
         ].filter(Boolean);
 
         // Check if request is from an allowed CORS domain

@@ -1,0 +1,589 @@
+# Point of Checkout (pos) System - Implementation Plan
+
+> **A dedicated touch-optimized Point-of-Sale application for in-store retail operations**
+
+---
+
+## Overview
+
+This plan outlines the implementation of a comprehensive **Point of Checkout (pos)** system for Infi Commerce. The pos will be a **separate Next.js application** built specifically for in-store sales, featuring touch optimization, barcode scanning, quick checkout, and receipt printing capabilities.
+
+---
+
+## Architecture Decision
+
+```mermaid
+graph TB
+    subgraph "🏪 Store Environment"
+        pos[pos App - Touch Optimized]
+        Scanner[Barcode Scanner]
+        Printer[Receipt Printer]
+    end
+    
+    subgraph "⚡ Backend API"
+        API[Express.js Backend]
+        Auth[Store Admin Auth]
+    end
+    
+    subgraph "🖥️ Admin Panel"
+        Admin[Next.js Admin]
+        BarcodeGen[Barcode Generator]
+        posSettings[pos Settings]
+    end
+    
+    subgraph "🗄️ Database"
+        DB[(MongoDB)]
+    end
+    
+    pos <--> API
+    Scanner --> pos
+    pos --> Printer
+    Admin <--> API
+    API <--> DB
+```
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Separate Application vs Embedded in Admin**
+> - The pos will be a **standalone Next.js application** in `/pos` directory
+> - This provides touch-optimized UI, dedicated UX, and isolation from admin panel
+> - Alternative: Could be a route inside admin panel, but touch optimization would be harder
+
+> [!CAUTION]
+> **Receipt Printer Selection**
+> - Thermal printer support requires selection of printer SDK (e.g., ESC/POS, Star WebPRNT, EPSON ePOS)
+> - Default: Web-based receipt printing via browser print API
+> - Hardware: Need user confirmation on printer model/SDK preference
+
+> [!WARNING]
+> **Barcode Format**
+> - Proposed: Use SKU-based **Code 128** or **EAN-13** format
+> - Confirm preferred barcode format and label specifications
+
+---
+
+## Proposed Changes
+
+### Component 1: Database Schema Updates
+
+#### [MODIFY] [Store.ts](file:///Volumes/Drive/Projects/BitBucket/infi-commerce/backend/src/models/Store.ts)
+
+Add pos settings to the Store model:
+```typescript
+posSettings: {
+    enabled: boolean;
+    allowQuickCheckout: boolean;
+    requireCustomerDetails: boolean;
+    defaultPaymentMethod: 'cash' | 'card' | 'upi';
+    enableRoundOff: boolean;        // Round total to nearest whole number for easy cash handling
+    receiptSettings: {
+        headerText?: string;
+        footerText?: string;
+        showLogo: boolean;
+        paperWidth: '58mm' | '80mm';
+    };
+    barcodeSettings: {
+        format: 'CODE128' | 'EAN13' | 'QR';
+        printWidth: number;
+        printHeight: number;
+    };
+}
+```
+
+---
+
+#### [NEW] [posSession.ts](file:///Volumes/Drive/Projects/BitBucket/infi-commerce/backend/src/models/posSession.ts)
+
+Track pos sessions and shift data:
+```typescript
+interface IposSession {
+    storeId: ObjectId;
+    userId: ObjectId;          // store_admin user
+    sessionNumber: string;
+    startedAt: Date;
+    endedAt?: Date;
+    openingCash: number;
+    closingCash?: number;
+    totalSales: number;
+    totalOrders: number;
+    status: 'active' | 'closed';
+}
+```
+
+---
+
+#### [MODIFY] [Order.ts](file:///Volumes/Drive/Projects/BitBucket/infi-commerce/backend/src/models/Order.ts)
+
+Add pos-specific fields:
+```typescript
+// Add to IOrder interface
+isposOrder: boolean;
+posSessionId?: ObjectId;
+posUserId?: ObjectId;
+paymentMethod: 'cash' | 'card' | 'upi' | 'online';
+currency: string;               // MUST be store base currency
+exchangeRate: number;           // Always 1.0 for pos orders
+roundOffAmount?: number;        // Amount added/subtracted for rounding (if enabled)
+
+// Audit logging for price overrides and discounts
+priceOverrides?: Array<{
+    itemId: string;
+    originalPrice: number;
+    overriddenPrice: number;
+    userId: ObjectId;
+    timestamp: Date;
+    reason?: string;
+}>;
+discountsApplied?: Array<{
+    type: 'percentage' | 'fixed';
+    value: number;
+    appliedTo: 'cart' | 'item';
+    itemId?: string;
+    userId: ObjectId;
+    timestamp: Date;
+    reason?: string;
+}>;
+```
+
+---
+
+#### [MODIFY] [Product.ts](file:///Volumes/Drive/Projects/BitBucket/infi-commerce/backend/src/models/Product.ts)
+
+Add barcode field (existing SKU can be used, or add explicit barcode):
+```typescript
+// Add to IProduct interface
+barcode?: string;              // Custom barcode if different from SKU
+barcodeGenerated?: boolean;    // Tracks if barcode label was generated
+```
+
+---
+
+### Component 2: Backend API Endpoints
+
+#### [NEW] [pos.controller.ts](file:///Volumes/Drive/Projects/BitBucket/infi-commerce/backend/src/controllers/pos.controller.ts)
+
+pos-specific API endpoints:
+- `POST /api/pos/session/start` - Start a new pos session
+- `POST /api/pos/session/end` - End pos session with cash count
+- `GET /api/pos/session/current` - Get current active session
+- `GET /api/pos/session/history` - Get session history for store
+- `POST /api/pos/order` - Quick order creation (minimal customer data)
+- `GET /api/pos/products/search` - Fast product search (barcode, SKU, name)
+- `GET /api/pos/products/barcode/:code` - Lookup product by barcode/SKU
+- `GET /api/pos/categories` - Get categories for store
+- `GET /api/pos/dashboard` - pos dashboard data (today's sales, orders)
+- `POST /api/pos/receipt/:orderId` - Generate receipt data
+- `POST /api/pos/verify-password` - Verify user password for sensitive actions (price override, discounts)
+
+---
+
+#### [NEW] [barcode.controller.ts](file:///Volumes/Drive/Projects/BitBucket/infi-commerce/backend/src/controllers/barcode.controller.ts)
+
+Barcode management endpoints:
+- `POST /api/admin/barcode/generate` - Generate barcode image from SKU
+- `POST /api/admin/barcode/bulk-generate` - Bulk generate barcodes
+- `GET /api/admin/barcode/download/:productId` - Download barcode PDF
+- `POST /api/admin/barcode/print-batch` - Generate printable barcode sheet
+
+---
+
+#### [NEW] [pos.routes.ts](file:///Volumes/Drive/Projects/BitBucket/infi-commerce/backend/src/routes/pos.routes.ts)
+
+Route definitions for pos endpoints with store_admin authentication.
+
+---
+
+#### [NEW] [barcode.routes.ts](file:///Volumes/Drive/Projects/BitBucket/infi-commerce/backend/src/routes/barcode.routes.ts)
+
+Route definitions for barcode management.
+
+---
+
+#### [NEW] [pos.service.ts](file:///Volumes/Drive/Projects/BitBucket/infi-commerce/backend/src/services/pos.service.ts)
+
+Business logic for pos operations:
+- Session management
+- Quick checkout flow
+- Receipt generation
+- Cash drawer tracking
+
+---
+
+#### [NEW] [barcode.service.ts](file:///Volumes/Drive/Projects/BitBucket/infi-commerce/backend/src/services/barcode.service.ts)
+
+Barcode generation using libraries like `bwip-js` or `jsbarcode`:
+- Generate CODE128/EAN13 barcodes
+- Generate QR codes
+- PDF generation for print labels
+
+---
+
+#### [MODIFY] [auth.middleware.ts](file:///Volumes/Drive/Projects/BitBucket/infi-commerce/backend/src/middleware/auth.middleware.ts)
+
+Add pos-specific authentication middleware:
+- Verify store_admin role
+- Verify pos is enabled for their assigned store
+- Return store details (logo, name, settings)
+
+---
+
+### Component 3: Admin Panel Updates
+
+#### [NEW] [pos/page.tsx](file:///Volumes/Drive/Projects/BitBucket/infi-commerce/admin/src/app/stores/[id]/pos/page.tsx)
+
+pos Settings page in store management:
+- Enable/Disable pos toggle
+- Quick checkout settings
+- Customer details requirement toggle
+- **Round-off toggle**: Enable/disable automatic rounding of totals for easier cash handling
+- Receipt configuration (header, footer, logo)
+- Barcode format settings
+- Default payment method
+
+---
+
+#### [NEW] [pos-sessions/page.tsx](file:///Volumes/Drive/Projects/BitBucket/infi-commerce/admin/src/app/stores/[id]/pos-sessions/page.tsx)
+
+pos Sessions management:
+- View all pos sessions for store
+- Session details (sales, orders, cash variance)
+- Export session reports
+
+---
+
+#### [NEW] [BarcodeGenerator.tsx](file:///Volumes/Drive/Projects/BitBucket/infi-commerce/admin/src/components/BarcodeGenerator.tsx)
+
+Barcode generation component:
+- Generate barcode for single product
+- Preview barcode
+- Download as image/PDF
+- Print directly
+
+---
+
+#### [MODIFY] [ProductForm.tsx](file:///Volumes/Drive/Projects/BitBucket/infi-commerce/admin/src/components/products/ProductForm.tsx)
+
+Add barcode generation section:
+- Generate Barcode button
+- Barcode preview
+- Download/Print options
+- Custom barcode input (if different from SKU)
+
+---
+
+#### [NEW] [BulkBarcodeGenerator.tsx](file:///Volumes/Drive/Projects/BitBucket/infi-commerce/admin/src/app/products/barcode/page.tsx)
+
+Bulk barcode generation page:
+- Select multiple products
+- Choose label format (2x3, 3x4 grid)
+- Generate printable PDF sheet
+- Download all barcodes
+
+---
+
+#### [MODIFY] [AppLayout.tsx](file:///Volumes/Drive/Projects/BitBucket/infi-commerce/admin/src/components/AppLayout.tsx)
+
+Add navigation items:
+- "pos Sessions" under store management (if user has store_admin role)
+- "Barcode Generator" under Products menu
+
+---
+
+### Component 4: pos Application (New Separate App)
+
+#### [NEW] `/pos` - Complete pos Application
+
+Create a new Next.js application at `/pos` with the following structure:
+
+```
+pos/
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx           # Root layout with touch optimization
+│   │   ├── login/page.tsx       # Store admin login
+│   │   ├── dashboard/page.tsx   # Main pos dashboard
+│   │   ├── checkout/page.tsx    # Quick checkout screen
+│   │   ├── orders/page.tsx      # Today's orders
+│   │   ├── history/page.tsx     # Order history
+│   │   └── settings/page.tsx    # pos settings
+│   ├── components/
+│   │   ├── ProductGrid.tsx      # Touch-friendly product grid
+│   │   ├── CategoryTabs.tsx     # Swipeable category tabs
+│   │   ├── Cart.tsx             # Side cart panel
+│   │   ├── QuickCheckout.tsx    # One-tap checkout modal
+│   │   ├── BarcodeScanner.tsx   # Camera/USB scanner integration
+│   │   ├── ReceiptPreview.tsx   # Receipt preview component
+│   │   ├── NumPad.tsx           # Touch numpad for quantities
+│   │   ├── PaymentModal.tsx     # Payment method selection
+│   │   ├── PasswordAuthModal.tsx # Password re-authentication for sensitive actions
+│   │   ├── PriceOverrideModal.tsx # Edit product price with password
+│   │   ├── DiscountModal.tsx    # Apply discount with password
+│   │   ├── CustomerSearch.tsx   # Optional customer lookup
+│   │   ├── SessionManager.tsx   # Start/End session component
+│   │   ├── VariantSelector.tsx  # Variant selection for variable products
+│   │   └── CashDrawer.tsx       # Cash management
+│   ├── hooks/
+│   │   ├── useBarcode.ts        # Barcode scanner hook
+│   │   ├── useReceipt.ts        # Receipt printing hook
+│   │   └── useCart.ts           # Cart management hook
+│   ├── services/
+│   │   └── api.ts               # API client
+│   ├── contexts/
+│   │   ├── CartContext.tsx      # Cart state
+│   │   ├── SessionContext.tsx   # pos session state
+│   │   └── StoreContext.tsx     # Store data context
+│   └── types/
+│       └── pos.ts               # pos-specific types
+├── package.json
+└── next.config.js
+```
+
+---
+
+### pos App - Key Features
+
+#### 1. Touch-Optimized Product Browser
+- Large touch targets (min 48x48px)
+- Category tabs with swipe navigation
+- Product cards with one-tap add to cart
+- **Variant Selection**: Modal opens for variable products to select attributes
+- Grid view with 3-4 products per row
+- Image-first design with large product photos
+- Quick quantity modifier (+/- buttons)
+
+#### 2. Barcode Scanner Integration
+- **Camera Scanner**: Use device camera via `html5-qrcode` library
+- **USB Scanner**: Capture USB barcode scanner input (keyboard wedge)
+- **Bluetooth Scanner**: Optional Bluetooth scanner support
+- **Auto-add to cart logic**:
+  - For **non-variable products**: Automatically add to cart with quantity 1 (no modal, instant add)
+  - For **variable products**: Open variant selection modal to choose attributes
+  - This enables seamless barcode scanning workflow without manual clicks
+- Visual/audio feedback on scan
+
+#### 3. Quick Checkout Flow
+```mermaid
+graph LR
+    A[Scan/Select Products] --> B[Review Cart]
+    B --> C[Select Payment]
+    C --> D{Customer Optional}
+    D -->|Skip| E[Complete Sale]
+    D -->|Add| F[Enter Details]
+    F --> E
+    E --> G[Print Receipt]
+```
+
+#### 4. Cart Management
+- Floating cart panel (right side)
+- Swipe to remove items
+- Quantity editing
+- **Price Override** (requires password re-authentication)
+  - Click "Edit Price" button on cart item
+  - Enter new price in modal
+  - Requires user password confirmation
+  - Logs override action with user ID and timestamp
+- **Apply Discount** (requires password re-authentication)
+  - Percentage or fixed amount discount
+  - Can apply to individual items or entire cart
+  - Requires user password confirmation before applying
+  - Logs discount action with user ID and reason
+- Apply coupon codes (automatic validation)
+- Split payment support
+
+#### 5. Payment Options
+- Cash (with change calculator)
+  - **Round-off support**: If enabled in settings, round total to nearest whole number
+  - Display round-off amount separately on receipt (e.g., "Round-off: +₹0.50")
+  - Automatically calculate exact change based on rounded total
+- Card (integrated or manual)
+- UPI (QR code display)
+- Split payment (multiple methods)
+
+#### 6. Receipt Printing
+- **Browser Print**: Default via `window.print()`
+- **Thermal Printer**: ESC/POS commands via WebUSB
+- **Star Printer**: Star WebPRNT SDK
+- **Network Printer**: IP-based printing
+- Receipt customization (header, footer, logo)
+
+#### 7. Session Management
+- Start shift with opening cash
+- End shift with closing cash count
+- Cash variance calculation
+- Daily sales summary
+- Order history export
+
+#### 8. Store Branding
+- Store logo display
+- Store name in header
+- Branded receipt
+- Color theme from store settings
+
+---
+
+### Additional Features (Feature-Rich Enhancements)
+
+#### 1. Hold Orders
+- Save order for later
+- Recall held orders
+- Maximum 10 held orders
+
+#### 2. Customer Loyalty
+- Quick customer lookup by phone
+- View customer purchase history
+- Apply loyalty discounts
+
+#### 3. Returns & Exchanges
+- Process returns from pos
+- Refund via **Cash**, **Bank Transfer**, or **UPI** (No store credit)
+- Exchange items logic
+
+#### 4. Product Quick Actions
+- View product details modal
+- Check stock levels
+- View recent price changes
+
+#### 5. Offline Mode
+- Cache products for offline use
+- Queue orders when offline
+- Sync when back online
+
+#### 6. Keyboard Shortcuts
+- **"/" (Forward Slash)**: Focus search bar
+- **F1-F10**: Quick functions (defined by admin)
+- **Cmd/Ctrl + P**: Print receipt
+- **Cmd/Ctrl + Enter**: Complete payment & Print receipt (Fast Finish)
+- **Esc**: Cancel / Close modal
+- **Numpad**: Quantity entry
+
+#### 7. Reports
+- Real-time sales dashboard
+- Hourly sales chart
+- Top selling products (today)
+- Payment method breakdown
+
+#### 8. Staff Permissions
+- Override price (requires password re-authentication)
+- Void order (requires password re-authentication)
+- Apply discounts (requires password re-authentication)
+- View reports
+
+---
+
+## Implementation Phases
+
+### Phase 1: Backend Foundation
+1. Update Store model with pos settings
+2. Create pos Session model
+3. Update Order model for pos orders
+4. Implement pos API endpoints
+5. Implement Barcode generation service
+
+### Phase 2: Admin Panel Updates
+1. Add pos settings page to store management
+2. Add barcode generation to product form
+3. Create bulk barcode generator page
+4. Add pos sessions viewing
+
+### Phase 3: pos Application Core
+1. Create pos Next.js application
+2. Implement login and authentication
+3. Build touch-optimized product grid
+4. Create cart management
+5. Implement quick checkout flow
+
+### Phase 4: Barcode & Receipt
+1. Integrate barcode scanner (camera + USB)
+2. Implement receipt generation
+3. Add printer integration
+4. Test with actual hardware
+
+### Phase 5: Advanced Features
+1. Session management (start/end shift)
+2. Hold orders functionality
+3. Returns processing
+4. Offline mode
+5. Reporting dashboard
+
+---
+
+## File Summary
+
+| Area | New Files | Modified Files |
+|------|-----------|----------------|
+| Backend Models | 1 | 3 |
+| Backend Controllers | 2 | 1 |
+| Backend Routes | 2 | 0 |
+| Backend Services | 2 | 0 |
+| Backend Middleware | 0 | 1 |
+| Admin Components | 3 | 2 |
+| Admin Pages | 3 | 0 |
+| pos App | ~25+ | N/A |
+| **Total** | **~38+** | **7** |
+
+---
+
+## Dependencies Required
+
+### Backend
+- `bwip-js` - Barcode generation
+- `pdfkit` - PDF generation for barcode labels
+- `qrcode` - QR code generation
+
+### pos App
+- `next` - Framework
+- `html5-qrcode` - Camera barcode scanning
+- `react-thermal-printer` - Thermal printer ESC/POS
+- `@mui/material` - UI components (touch-optimized)
+- `framer-motion` - Smooth animations
+- `zustand` or Context API - State management
+- `swr` - Data fetching
+
+---
+
+## Verification Plan
+
+### Automated Tests
+
+Since this is a new feature, focus on:
+
+1. **Backend API Tests**
+   - Test pos session creation/ending
+   - Test quick order creation
+   - Test barcode generation
+   - Test product lookup by barcode
+
+2. **Integration Tests**
+   - Test store_admin authentication for pos
+   - Test pos enabled/disabled access control
+
+### Manual Verification
+
+1. **Admin Panel**
+   - Enable pos for a store
+   - Configure receipt settings
+   - Generate barcode for a product
+   - Download/print barcode label
+
+2. **pos Application**
+   - Login as store_admin
+   - Verify store branding displays
+   - Browse products by category
+   - Add products to cart via touch
+   - Scan barcode (using phone camera or USB scanner)
+   - Complete quick checkout
+   - Print receipt
+   - Start/end session
+
+---
+
+## Questions for User
+
+1. **Printer Model**: What thermal printer model will be used? (Star, Epson, Generic ESC/POS)
+2. **Barcode Format**: Preferred barcode format? (CODE128 recommended for SKUs, EAN-13 for retail)
+3. **Label Size**: Standard label size for printing? (Common: 30x20mm, 40x30mm, 50x25mm)
+4. **Offline Requirement**: Is offline mode critical for Phase 1?
+5. **Hardware Scanners**: Will USB/Bluetooth scanners be used, or camera-only?

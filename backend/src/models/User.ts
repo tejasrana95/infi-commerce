@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 /**
- * User Model - For Admin and Store Admin accounts only
+ * User Model - For Admin, Store Admin, and POS User accounts
  * For customer accounts, use the Customer model
  */
 export interface IUser extends Document {
@@ -11,11 +11,16 @@ export interface IUser extends Document {
     firstName: string;
     lastName: string;
     phone?: string;
-    role: 'admin' | 'store_admin' | 'super_admin';
+    role: 'admin' | 'store_admin' | 'super_admin' | 'pos_user';
     storeIds?: mongoose.Types.ObjectId[];
     isActive: boolean;
     emailVerified: boolean;
     permissions?: string[]; // For granular permissions
+    // POS-specific permissions
+    posPermissions?: {
+        canOverridePrice: boolean;
+        canApplyDiscount: boolean;
+    };
     twoFactorEnabled: boolean;
     twoFactorSecret?: string;
     twoFactorBackupCodes?: string[];
@@ -56,7 +61,7 @@ const UserSchema = new Schema<IUser>(
         },
         role: {
             type: String,
-            enum: ['admin', 'store_admin', 'super_admin'],
+            enum: ['admin', 'store_admin', 'super_admin', 'pos_user'],
             default: 'admin',
             required: true,
         },
@@ -76,6 +81,17 @@ const UserSchema = new Schema<IUser>(
         permissions: {
             type: [String],
             default: [],
+        },
+        // POS-specific permissions
+        posPermissions: {
+            canOverridePrice: {
+                type: Boolean,
+                default: false,
+            },
+            canApplyDiscount: {
+                type: Boolean,
+                default: false,
+            },
         },
         twoFactorEnabled: {
             type: Boolean,

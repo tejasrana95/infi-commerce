@@ -12,11 +12,13 @@ export const createAdminValidation = [
     body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
     body('firstName').trim().notEmpty().withMessage('First name is required'),
     body('lastName').trim().notEmpty().withMessage('Last name is required'),
-    body('role').isIn(['admin', 'store_admin', 'super_admin']).withMessage('Valid role is required'),
+    body('role').isIn(['admin', 'store_admin', 'super_admin', 'pos_user']).withMessage('Valid role is required'),
     body('storeId').optional().isMongoId().withMessage('Valid store ID is required'),
     body('storeIds').optional().isArray().withMessage('storeIds must be an array'),
     body('storeIds.*').optional().isMongoId().withMessage('Invalid store ID in storeIds array'),
     body('phone').optional().trim(),
+    body('posPermissions.canOverridePrice').optional().isBoolean(),
+    body('posPermissions.canApplyDiscount').optional().isBoolean(),
 ];
 
 export const updateAdminValidation = [
@@ -25,12 +27,14 @@ export const updateAdminValidation = [
     body('password').optional().isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
     body('firstName').optional().trim().notEmpty().withMessage('First name is required'),
     body('lastName').optional().trim().notEmpty().withMessage('Last name is required'),
-    body('role').optional().isIn(['admin', 'store_admin', 'super_admin']).withMessage('Valid role is required'),
+    body('role').optional().isIn(['admin', 'store_admin', 'super_admin', 'pos_user']).withMessage('Valid role is required'),
     body('storeId').optional().isMongoId().withMessage('Valid store ID is required'),
     body('storeIds').optional().isArray().withMessage('storeIds must be an array'),
     body('storeIds.*').optional().isMongoId().withMessage('Invalid store ID in storeIds array'),
     body('phone').optional().trim(),
     body('isActive').optional().isBoolean(),
+    body('posPermissions.canOverridePrice').optional().isBoolean(),
+    body('posPermissions.canApplyDiscount').optional().isBoolean(),
 ];
 
 /**
@@ -133,6 +137,7 @@ export const createAdmin = asyncHandler(async (req: AuthRequest, res: Response) 
         role,
         storeIds: finalStoreIds,
         isActive,
+        posPermissions: req.body.posPermissions,
     });
 
     // Remove password from response
@@ -190,6 +195,7 @@ export const updateAdmin = asyncHandler(async (req: AuthRequest, res: Response) 
 
     if (isActive !== undefined) admin.isActive = isActive;
     if (permissions !== undefined) admin.permissions = permissions;
+    if (req.body.posPermissions !== undefined) admin.posPermissions = req.body.posPermissions;
 
     await admin.save();
 

@@ -213,4 +213,12 @@ router.use('/redirections', redirectionRoutes);
 import accountingRoutes from './accounting.routes';
 router.use('/accounting', accountingRoutes);
 
+// Mount POS (Point of Sale) routes
+import posRoutes from './pos.routes';
+router.use('/pos', posRoutes);
+
+// Mount barcode routes
+import barcodeRoutes from './barcode.routes';
+router.use('/barcode', barcodeRoutes);
+
 export default router;

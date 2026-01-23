@@ -401,7 +401,7 @@ export default function LoginPage() {
           {!mfaRequired && (
             <Box sx={{ mt: 4, textAlign: 'center' }}>
               <Typography variant="body2" color="text.secondary">
-                Don't have an account?{' '}
+                Don&apos;t have an account?{' '}
                 <MuiLink
                   onClick={handleClickOpen}
                   sx={{

@@ -21,11 +21,12 @@ interface CurrencyContextType {
     baseCurrency: Currency | null;
     currencies: Currency[];
     loading: boolean;
-    formatPrice: (amount: number, currencyCode?: string) => string;
+    formatPrice: (amount: number, currencyCode?: string, storeId?: string) => string;
     convertPrice: (amount: number, toCurrency: string, exchangeRate?: number) => number;
     convertAndFormat: (amount: number, toCurrency?: string, exchangeRate?: number) => string;
     getCurrencyByCode: (code: string) => Currency | undefined;
     refetch: () => Promise<void>;
+    loadStoreCurrency: (storeId: string) => Promise<void>;
 }
 
 const defaultContext: CurrencyContextType = {
@@ -37,6 +38,7 @@ const defaultContext: CurrencyContextType = {
     convertAndFormat: (amount) => `$${amount.toFixed(2)}`,
     getCurrencyByCode: () => undefined,
     refetch: async () => { },
+    loadStoreCurrency: async () => { },
 };
 
 const CurrencyContext = createContext<CurrencyContextType>(defaultContext);
@@ -45,6 +47,8 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     const [baseCurrency, setBaseCurrency] = useState<Currency | null>(null);
     const [currencies, setCurrencies] = useState<Currency[]>([]);
     const [loading, setLoading] = useState(true);
+    const [storeCurrencies, setStoreCurrencies] = useState<Record<string, string>>({});
+    const [fetchingStores, setFetchingStores] = useState<Set<string>>(new Set());
 
     const fetchCurrencies = useCallback(async () => {
         try {
@@ -82,12 +86,48 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
         [currencies]
     );
 
+    const fetchStoreCurrency = useCallback(async (storeId: string) => {
+        if (fetchingStores.has(storeId)) return;
+
+        setFetchingStores(prev => {
+            const next = new Set(prev);
+            next.add(storeId);
+            return next;
+        });
+
+        try {
+            const response = await api.get(`/stores/${storeId}`);
+            const storeCurrency = response.data.store?.currency;
+            if (storeCurrency) {
+                setStoreCurrencies(prev => ({ ...prev, [storeId]: storeCurrency }));
+            }
+        } catch (err) {
+            console.error(`Failed to fetch currency for store ${storeId}`, err);
+        } finally {
+            setFetchingStores(prev => {
+                const next = new Set(prev);
+                next.delete(storeId);
+                return next;
+            });
+        }
+    }, [fetchingStores]);
+
     const formatPrice = useCallback(
-        (amount: number, currencyCode?: string): string => {
-            // Use specified currency or fall back to base currency
-            const currency = currencyCode
-                ? getCurrencyByCode(currencyCode)
+        (amount: number, currencyCode?: string, storeId?: string): string => {
+            let targetCurrencyCode = currencyCode;
+
+            // If no explicit code but storeId provided, try to find store currency
+            if (!targetCurrencyCode && storeId) {
+                if (storeCurrencies[storeId]) {
+                    targetCurrencyCode = storeCurrencies[storeId];
+                }
+            }
+
+            // Use specified/found currency or fall back to base currency
+            const currency = targetCurrencyCode
+                ? getCurrencyByCode(targetCurrencyCode)
                 : baseCurrency;
+
             if (!currency) {
                 // Fallback formatting if no currency data
                 return `$${amount.toFixed(2)}`;
@@ -114,7 +154,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
             }
             return `${currency.symbol}${formattedNumber}`;
         },
-        [baseCurrency, getCurrencyByCode]
+        [baseCurrency, getCurrencyByCode, storeCurrencies]
     );
 
     const convertPrice = useCallback(
@@ -163,10 +203,11 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
                 convertAndFormat,
                 getCurrencyByCode,
                 refetch: fetchCurrencies,
+                loadStoreCurrency: fetchStoreCurrency,
             }}
         >
             {children}
-        </CurrencyContext.Provider>
+        </CurrencyContext.Provider >
     );
 }
 

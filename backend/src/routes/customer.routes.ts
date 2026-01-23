@@ -50,7 +50,7 @@ const router = Router();
  *       200:
  *         description: List of customers
  */
-router.get('/', authenticate, authorize('admin', 'store_admin', 'super_admin'), getAllCustomers);
+router.get('/', authenticate, authorize('admin', 'store_admin', 'super_admin', 'pos_user'), getAllCustomers);
 
 /**
  * @swagger
@@ -72,7 +72,7 @@ router.get('/', authenticate, authorize('admin', 'store_admin', 'super_admin'), 
  *       404:
  *         description: Customer not found
  */
-router.get('/:id', authenticate, authorize('admin', 'store_admin', 'super_admin'), getCustomerById);
+router.get('/:id', authenticate, authorize('admin', 'store_admin', 'super_admin', 'pos_user'), getCustomerById);
 
 /**
  * @swagger
@@ -113,7 +113,7 @@ router.get('/:id', authenticate, authorize('admin', 'store_admin', 'super_admin'
 router.post(
     '/',
     authenticate,
-    authorize('admin', 'store_admin', 'super_admin'),
+    authorize('admin', 'store_admin', 'super_admin', 'pos_user'),
     validate(createCustomerValidation),
     createCustomer
 );

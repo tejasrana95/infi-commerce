@@ -131,6 +131,10 @@ export interface IProduct extends Document {
     averageRating?: number;
     reviewCount: number;
 
+    // POS Barcode
+    barcode?: string;              // Custom barcode if different from SKU
+    barcodeGenerated?: boolean;    // Tracks if barcode label was generated
+
     createdAt: Date;
     updatedAt: Date;
 
@@ -437,6 +441,17 @@ const ProductSchema = new Schema<IProduct>(
         reviewCount: {
             type: Number,
             default: 0,
+        },
+
+        // POS Barcode
+        barcode: {
+            type: String,
+            uppercase: true,
+            trim: true,
+        },
+        barcodeGenerated: {
+            type: Boolean,
+            default: false,
         },
     },
     {

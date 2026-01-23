@@ -235,6 +235,26 @@ export interface IStore extends Document {
         installPromptStyle?: 'toast' | 'banner' | 'modal';
     };
 
+    // POS (Point of Sale) Configuration
+    posSettings?: {
+        enabled: boolean;
+        allowQuickCheckout: boolean;
+        requireCustomerDetails: boolean;
+        defaultPaymentMethod: 'cash' | 'card' | 'upi';
+        enableRoundOff: boolean;        // Round total to nearest whole number for easy cash handling
+        receiptSettings: {
+            headerText?: string;
+            footerText?: string;
+            showLogo: boolean;
+            paperWidth: '58mm' | '80mm';
+        };
+        barcodeSettings: {
+            format: 'CODE128' | 'EAN13' | 'QR';
+            printWidth: number;
+            printHeight: number;
+        };
+    };
+
     createdAt: Date;
     updatedAt: Date;
 }
@@ -382,6 +402,37 @@ const StoreSchema = new Schema<IStore>(
                 type: String,
                 enum: ['toast', 'banner', 'modal'],
                 default: 'toast',
+            },
+        },
+        // POS configuration
+        posSettings: {
+            enabled: { type: Boolean, default: false },
+            allowQuickCheckout: { type: Boolean, default: true },
+            requireCustomerDetails: { type: Boolean, default: false },
+            defaultPaymentMethod: {
+                type: String,
+                enum: ['cash', 'card', 'upi'],
+                default: 'cash',
+            },
+            enableRoundOff: { type: Boolean, default: false },
+            receiptSettings: {
+                headerText: { type: String, trim: true },
+                footerText: { type: String, trim: true },
+                showLogo: { type: Boolean, default: true },
+                paperWidth: {
+                    type: String,
+                    enum: ['58mm', '80mm'],
+                    default: '80mm',
+                },
+            },
+            barcodeSettings: {
+                format: {
+                    type: String,
+                    enum: ['CODE128', 'EAN13', 'QR'],
+                    default: 'CODE128',
+                },
+                printWidth: { type: Number, default: 40 },
+                printHeight: { type: Number, default: 30 },
             },
         },
     },
