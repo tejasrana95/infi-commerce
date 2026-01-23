@@ -52,7 +52,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
     // Load store ID from localStorage on mount
     useEffect(() => {
-        const storedId = localStorage.getItem('poc_store_id');
+        const storedId = localStorage.getItem('pos_store_id');
         if (storedId) {
             setStoreIdState(storedId);
             fetchStoreData(storedId);
@@ -63,14 +63,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
     const setStoreId = (id: string) => {
         setStoreIdState(id);
-        localStorage.setItem('poc_store_id', id);
+        localStorage.setItem('pos_store_id', id);
         fetchStoreData(id);
     };
 
     const clearStore = () => {
         setStoreIdState(null);
         setStore(null);
-        localStorage.removeItem('poc_store_id');
+        localStorage.removeItem('pos_store_id');
     };
 
     const refreshStore = async () => {

@@ -9,7 +9,7 @@ class POCApiService {
      */
     setStoreId(storeId: string) {
         this.storeId = storeId;
-        localStorage.setItem('poc_store_id', storeId);
+        localStorage.setItem('pos_store_id', storeId);
     }
 
     /**
@@ -17,7 +17,7 @@ class POCApiService {
      */
     getStoreId(): string {
         if (!this.storeId) {
-            this.storeId = localStorage.getItem('poc_store_id') || '';
+            this.storeId = localStorage.getItem('pos_store_id') || '';
         }
         return this.storeId;
     }
@@ -70,7 +70,7 @@ class POCApiService {
         try {
             // Using main products API with barcode search (which I just added)
             // We search for exact code
-            const response = await apiClient.get(`/products?search=${encodeURIComponent(code)}&limit=1`);
+            const response = await apiClient.get(`/products?sku=${encodeURIComponent(code)}&limit=1`);
             const productsList = response.data.products || [];
 
             if (productsList.length > 0) {

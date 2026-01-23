@@ -1,0 +1,48 @@
+'use client';
+
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+interface AuthContextType {
+    user: User | null;
+    isLoading: boolean;
+    // ...other auth methods
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+    const [user, setUser] = useState<User | null>(null);
+    const [isLoading, setIsLoading] = useState(true); // Start with loading true
+
+    // Restore session from local storage on mount
+    useEffect(() => {
+        const restoreSession = () => {
+            try {
+                const storedUser = localStorage.getItem('pos_user');
+                const storedSession = localStorage.getItem('pos_session');
+                
+                if (storedUser && storedSession) {
+                    setUser(JSON.parse(storedUser));
+                    // Optionally validate the session with your backend here
+                }
+            } catch (error) {
+                console.error('Failed to restore session:', error);
+                localStorage.removeItem('pos_user');
+                localStorage.removeItem('pos_session');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        restoreSession();
+    }, []);
+
+    // Don't render children until session is checked
+    if (isLoading) {
+        return <LoadingSpinner />; // Your loading component
+    }
+
+    return (
+        <AuthContext.Provider value={{ user, isLoading, /* ...other values */ }}>
+            {children}
+        </AuthContext.Provider>
+    );
+}

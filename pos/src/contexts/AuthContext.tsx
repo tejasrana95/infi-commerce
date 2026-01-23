@@ -26,7 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Load token on mount
     useEffect(() => {
-        const storedToken = localStorage.getItem('poc_auth_token');
+        const storedToken = localStorage.getItem('pos_auth_token');
         if (storedToken) {
             setToken(storedToken);
         }

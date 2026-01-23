@@ -1,350 +1,552 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
-    Box,
-    Button,
-    Card,
-    CardContent,
-    Typography,
-    Checkbox,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Paper,
-    Alert,
-    FormControl,
-    InputLabel,
-    Select,
-    MenuItem,
-    CircularProgress,
-    Chip,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Stack,
+  Typography,
+  useTheme,
+  Chip,
+  Avatar,
+  TextField,
+  FormControlLabel,
+  Switch,
+  Checkbox,
+  RadioGroup,
+  Radio,
+  Divider,
 } from '@mui/material';
-import { Download, Print, QrCode2, CheckCircle, Error } from '@mui/icons-material';
-import { useSearchParams } from 'next/navigation';
-import { useEffect } from 'react';
+import { DataGrid, GridColDef, GridRenderCellParams, GridRowSelectionModel } from '@mui/x-data-grid';
+import { Download, Printer, QrCode, Ticket, FileText } from 'lucide-react';
 import api from '@/lib/api';
+import { Product } from '@/types';
+import { PageHeader, SearchFilterBar } from '@/components/molecules';
+import { useNotification } from '@/contexts/NotificationContext';
+import { createDataGridStyles } from '@/utils/styles';
 
-interface Product {
-    _id: string;
-    name: string;
-    sku: string;
-    barcode?: string;
-    barcodeGenerated?: boolean;
+type BarcodeFormat = 'CODE128' | 'EAN13' | 'QR';
+type PrinterType = 'regular' | 'label';
+
+interface PrintOptions {
+  labelSizes: Array<{ key: string; name: string }>;
+  pageSizes: Array<{ key: string; name: string }>;
+  gridLayouts: Array<{ key: string; name: string; cols: number; rows: number }>;
+  barcodeFormats: string[];
 }
 
 export default function BulkBarcodeGeneratorPage() {
-    const searchParams = useSearchParams();
-    const storeId = searchParams.get('storeId');
+  const theme = useTheme();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [selectedRows, setSelectedRows] = useState<GridRowSelectionModel>({
+    type: 'include',
+    ids: new Set(),
+  });
 
-    const [products, setProducts] = useState<Product[]>([]);
-    const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [generating, setGenerating] = useState(false);
-    const [layout, setLayout] = useState<'2x3' | '3x4' | '4x5'>('3x4');
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
-    const [generationResults, setGenerationResults] = useState<any[]>([]);
+  // Settings
+  const [printerType, setPrinterType] = useState<PrinterType>('regular');
+  const [labelSize, setLabelSize] = useState('standard');
+  const [pageSize, setPageSize] = useState('letter');
+  const [layout, setLayout] = useState('3x4');
+  const [barcodeFormat, setBarcodeFormat] = useState<BarcodeFormat>('CODE128');
 
-    useEffect(() => {
-        if (storeId) {
-            fetchProducts();
+  // Advanced Options
+  const [repeatToFill, setRepeatToFill] = useState(false);
+  const [includeName, setIncludeName] = useState(true);
+  const [includePrice, setIncludePrice] = useState(false);
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+
+  const [generating, setGenerating] = useState(false);
+  const [printOptions, setPrintOptions] = useState<PrintOptions>({
+    labelSizes: [],
+    pageSizes: [],
+    gridLayouts: [],
+    barcodeFormats: [],
+  });
+
+  const { showNotification } = useNotification();
+  const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
+
+  // Fetch print options on mount
+  useEffect(() => {
+    fetchPrintOptions();
+  }, []);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Fetch products when search changes
+  useEffect(() => {
+    if (debouncedSearch) {
+      fetchProducts();
+    } else {
+      setProducts([]);
+    }
+  }, [debouncedSearch]);
+
+  const fetchPrintOptions = async () => {
+    try {
+      const response = await api.get('/barcode/print-options');
+      setPrintOptions(response.data.data);
+    } catch (error) {
+      console.error('Failed to load print options:', error);
+    }
+  };
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (debouncedSearch) params.append('search', debouncedSearch);
+      params.append('limit', '100');
+      params.append('isActive', 'all');
+
+      const response = await api.get(`/products?${params.toString()}`);
+      setProducts(response.data.products || []);
+
+      // Initialize quantities for new products
+      const newQuantities = { ...quantities };
+      response.data.products.forEach((p: Product) => {
+        if (!newQuantities[p._id]) {
+          newQuantities[p._id] = 1;
         }
-    }, [storeId]);
+      });
+      setQuantities(newQuantities);
+    } catch (error) {
+      showNotification('Failed to load products', 'error');
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const fetchProducts = async () => {
-        try {
-            setLoading(true);
-            const response = await api.get(`/products?storeId=${storeId}&limit=100`);
-            setProducts(response.data.data.products || []);
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to load products');
-        } finally {
-            setLoading(false);
-        }
-    };
+  const handleQuantityChange = (id: string, value: string) => {
+    const qty = parseInt(value) || 1;
+    setQuantities(prev => ({
+      ...prev,
+      [id]: Math.max(1, qty)
+    }));
+  };
 
-    const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target.checked) {
-            setSelectedProducts(products.map((p) => p._id));
-        } else {
-            setSelectedProducts([]);
-        }
-    };
-
-    const handleSelectProduct = (productId: string) => {
-        setSelectedProducts((prev) =>
-            prev.includes(productId)
-                ? prev.filter((id) => id !== productId)
-                : [...prev, productId]
-        );
-    };
-
-    const handleBulkGenerate = async () => {
-        if (selectedProducts.length === 0) {
-            setError('Please select at least one product');
-            return;
-        }
-
-        try {
-            setGenerating(true);
-            setError('');
-            setSuccess('');
-
-            const response = await api.post('/admin/barcode/bulk-generate', {
-                productIds: selectedProducts,
-            });
-
-            setGenerationResults(response.data.data);
-            setSuccess(`Successfully generated barcodes for ${selectedProducts.length} products!`);
-
-            // Refresh products to show updated barcode status
-            fetchProducts();
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to generate barcodes');
-        } finally {
-            setGenerating(false);
-        }
-    };
-
-    const handleGenerateSheet = async () => {
-        if (selectedProducts.length === 0) {
-            setError('Please select at least one product');
-            return;
-        }
-
-        try {
-            setGenerating(true);
-            setError('');
-
-            const response = await api.post('/admin/barcode/print-batch', {
-                productIds: selectedProducts,
-                layout,
-            });
-
-            // Create printable HTML with the barcode sheet
-            const printWindow = window.open('', '_blank');
-            if (printWindow) {
-                const barcodes = response.data.data.barcodes;
-                const cols = layout === '2x3' ? 2 : layout === '3x4' ? 3 : 4;
-
-                let html = `
-                    <html>
-                        <head>
-                            <title>Barcode Sheet - ${layout}</title>
-                            <style>
-                                body {
-                                    margin: 0;
-                                    padding: 20px;
-                                    font-family: Arial, sans-serif;
-                                }
-                                .grid {
-                                    display: grid;
-                                    grid-template-columns: repeat(${cols}, 1fr);
-                                    gap: 10px;
-                                }
-                                .barcode-cell {
-                                    border: 1px solid #ddd;
-                                    padding: 10px;
-                                    text-align: center;
-                                    page-break-inside: avoid;
-                                }
-                                .product-name {
-                                    font-size: 12px;
-                                    font-weight: bold;
-                                    margin-bottom: 5px;
-                                }
-                                .sku {
-                                    font-size: 10px;
-                                    color: #666;
-                                    margin-bottom: 5px;
-                                }
-                                img {
-                                    max-width: 100%;
-                                }
-                                @media print {
-                                    body { padding: 0; }
-                                    @page { margin: 10mm; }
-                                }
-                            </style>
-                        </head>
-                        <body>
-                            <div class="grid">
-                `;
-
-                barcodes.forEach((item: any) => {
-                    html += `
-                        <div class="barcode-cell">
-                            <div class="product-name">${item.name}</div>
-                            <div class="sku">SKU: ${item.sku}</div>
-                            <img src="data:image/png;base64,${item.image}" alt="${item.barcode}" />
-                        </div>
-                    `;
-                });
-
-                html += `
-                            </div>
-                        </body>
-                    </html>
-                `;
-
-                printWindow.document.write(html);
-                printWindow.document.close();
-                printWindow.focus();
-                setTimeout(() => {
-                    printWindow.print();
-                }, 500);
-            }
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to generate barcode sheet');
-        } finally {
-            setGenerating(false);
-        }
-    };
-
-    if (!storeId) {
-        return (
-            <Box sx={{ p: 3 }}>
-                <Alert severity="error">Store ID is required</Alert>
-            </Box>
-        );
+  const handleGeneratePDF = async () => {
+    if (selectedRows.ids.size === 0) {
+      showNotification('Please select at least one product', 'warning');
+      return;
     }
 
-    return (
-        <Box sx={{ p: 3 }}>
-            <Box sx={{ mb: 3 }}>
-                <Typography variant="h4" gutterBottom>
-                    <QrCode2 sx={{ mr: 1, verticalAlign: 'middle' }} />
-                    Bulk Barcode Generator
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                    Generate barcodes for multiple products at once
-                </Typography>
-            </Box>
+    try {
+      setGenerating(true);
+      const selectedIds = Array.from(selectedRows.ids) as string[];
 
-            {error && (
-                <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
-                    {error}
-                </Alert>
-            )}
+      // Prepare quantities array
+      const quantityList = selectedIds.map(id => ({
+        productId: id,
+        quantity: quantities[id] || 1
+      }));
 
-            {success && (
-                <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
-                    {success}
-                </Alert>
-            )}
+      const response = await api.post(
+        '/barcode/print-batch',
+        {
+          productIds: selectedIds,
+          printerType,
+          labelSize: printerType === 'label' ? labelSize : undefined,
+          pageSize: printerType === 'regular' ? pageSize : undefined,
+          layout: printerType === 'regular' ? layout : undefined,
+          format: barcodeFormat,
+          quantities: quantityList,
+          repeatToFill,
+          includeName,
+          includePrice,
+        },
+        { responseType: 'blob' }
+      );
 
-            <Card sx={{ mb: 3 }}>
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = printerType === 'label'
+        ? `labels-${labelSize}-${new Date().toISOString().split('T')[0]}.pdf`
+        : `barcodes-${layout}-${new Date().toISOString().split('T')[0]}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+
+      showNotification('Barcode PDF generated successfully', 'success');
+    } catch (error: any) {
+      showNotification(
+        error.response?.data?.message || 'Failed to generate PDF',
+        'error'
+      );
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const columns: GridColDef[] = [
+    {
+      field: 'image',
+      headerName: '',
+      width: 60,
+      sortable: false,
+      renderCell: (params: GridRenderCellParams) => (
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+          <Avatar
+            src={params.row.featuredImage || params.row.images?.[0]}
+            alt={params.row.name}
+            variant="rounded"
+            sx={{ width: 40, height: 40 }}
+          />
+        </Box>
+      ),
+    },
+    {
+      field: 'name',
+      headerName: 'Product',
+      flex: 1,
+      minWidth: 200,
+      renderCell: (params: GridRenderCellParams) => (
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+          <Typography variant="body2" fontWeight={600}>
+            {params.row.name}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            SKU: {params.row.sku}
+          </Typography>
+        </Box>
+      ),
+    },
+    {
+      field: 'sku',
+      headerName: 'Barcode',
+      width: 120,
+      renderCell: (params: GridRenderCellParams) => (
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+          <Typography variant="body2" fontFamily="monospace">
+            {params.row.barcode || params.value}
+          </Typography>
+        </Box>
+      ),
+    },
+    {
+      field: 'quantity',
+      headerName: 'Print Qty',
+      width: 100,
+      renderCell: (params: GridRenderCellParams) => (
+        <Box display="flex" alignItems="center" height="100%" onClick={(e) => e.stopPropagation()}>
+          <TextField
+            size="small"
+            type="number"
+            value={quantities[params.row._id] || 1}
+            onChange={(e) => handleQuantityChange(params.row._id, e.target.value)}
+            inputProps={{ min: 1, style: { padding: '4px 8px' } }}
+            sx={{ width: 80 }}
+          />
+        </Box>
+      ),
+    },
+  ];
+
+  const totalLabels = Array.from(selectedRows.ids).reduce((sum, id) => {
+    return sum + (quantities[id as string] || 1);
+  }, 0);
+
+  const labelsPerPage = useMemo(() => {
+    if (printerType === 'label') return 1;
+    const currentLayout = printOptions.gridLayouts.find(l => l.key === layout);
+    return currentLayout ? currentLayout.cols * currentLayout.rows : 12;
+  }, [printerType, layout, printOptions.gridLayouts]);
+
+  const sheetsNeeded = Math.ceil(totalLabels / labelsPerPage);
+
+  return (
+    <Box>
+      <PageHeader
+        title="Barcode Generator"
+        subtitle="Generate barcode labels for products"
+      />
+
+      <SearchFilterBar
+        searchPlaceholder="Search products by name or SKU..."
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        filters={[]}
+        activeFilters={{}}
+        onFilterChange={() => { }}
+      />
+
+      <Box sx={{ mt: 3 }}>
+        <Stack direction={{ xs: 'column', lg: 'row' }} spacing={3}>
+          {/* Settings Panel */}
+          <Box sx={{ width: { xs: '100%', lg: 350 } }}>
+            <Stack spacing={3}>
+              {/* Printer Type */}
+              <Card>
+                <CardHeader title="Printer Settings" />
                 <CardContent>
-                    <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
-                        <Button
-                            variant="contained"
-                            onClick={handleBulkGenerate}
-                            disabled={generating || selectedProducts.length === 0}
-                            startIcon={generating ? <CircularProgress size={20} /> : <QrCode2 />}
-                        >
-                            {generating ? 'Generating...' : `Generate (${selectedProducts.length})`}
-                        </Button>
+                  <Stack spacing={2}>
+                    <FormControl component="fieldset">
+                      <RadioGroup
+                        value={printerType}
+                        onChange={(e) => setPrinterType(e.target.value as PrinterType)}
+                      >
+                        <Stack direction="row" spacing={2}>
+                          <FormControlLabel
+                            value="regular"
+                            control={<Radio size="small" />}
+                            label={
+                              <Box display="flex" alignItems="center" gap={1}>
+                                <Printer size={16} />
+                                <Typography variant="body2">Regular Printer</Typography>
+                              </Box>
+                            }
+                          />
+                          <FormControlLabel
+                            value="label"
+                            control={<Radio size="small" />}
+                            label={
+                              <Box display="flex" alignItems="center" gap={1}>
+                                <Ticket size={16} />
+                                <Typography variant="body2">Label Printer</Typography>
+                              </Box>
+                            }
+                          />
+                        </Stack>
+                      </RadioGroup>
+                    </FormControl>
 
-                        <FormControl sx={{ minWidth: 120 }}>
-                            <InputLabel>Layout</InputLabel>
-                            <Select
-                                value={layout}
-                                label="Layout"
-                                onChange={(e) => setLayout(e.target.value as any)}
-                            >
-                                <MenuItem value="2x3">2 x 3</MenuItem>
-                                <MenuItem value="3x4">3 x 4</MenuItem>
-                                <MenuItem value="4x5">4 x 5</MenuItem>
-                            </Select>
+                    <Divider />
+
+                    {printerType === 'label' ? (
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Label Size</InputLabel>
+                        <Select
+                          value={labelSize}
+                          onChange={(e) => setLabelSize(e.target.value)}
+                          label="Label Size"
+                        >
+                          {printOptions.labelSizes.map((opt) => (
+                            <MenuItem key={opt.key} value={opt.key}>
+                              {opt.name}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    ) : (
+                      <>
+                        <FormControl fullWidth size="small">
+                          <InputLabel>Page Size</InputLabel>
+                          <Select
+                            value={pageSize}
+                            onChange={(e) => setPageSize(e.target.value)}
+                            label="Page Size"
+                          >
+                            {printOptions.pageSizes.map((opt) => (
+                              <MenuItem key={opt.key} value={opt.key}>
+                                {opt.name}
+                              </MenuItem>
+                            ))}
+                          </Select>
                         </FormControl>
 
-                        <Button
-                            variant="outlined"
-                            onClick={handleGenerateSheet}
-                            disabled={generating || selectedProducts.length === 0}
-                            startIcon={<Print />}
-                        >
-                            Print Sheet
-                        </Button>
+                        <FormControl fullWidth size="small">
+                          <InputLabel>Grid Layout</InputLabel>
+                          <Select
+                            value={layout}
+                            onChange={(e) => setLayout(e.target.value)}
+                            label="Grid Layout"
+                          >
+                            {printOptions.gridLayouts.map((opt) => (
+                              <MenuItem key={opt.key} value={opt.key}>
+                                {opt.name}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={repeatToFill}
+                              onChange={(e) => setRepeatToFill(e.target.checked)}
+                              size="small"
+                            />
+                          }
+                          label={
+                            <Typography variant="body2">
+                              Repeat to fill page
+                              <Typography component="span" variant="caption" display="block" color="text.secondary">
+                                Fill empty slots with repeated codes
+                              </Typography>
+                            </Typography>
+                          }
+                        />
+                      </>
+                    )}
+                  </Stack>
+                </CardContent>
+              </Card>
+
+              {/* Content Options */}
+              <Card>
+                <CardHeader title="Label Content" />
+                <CardContent>
+                  <Stack spacing={2}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Barcode Format</InputLabel>
+                      <Select
+                        value={barcodeFormat}
+                        onChange={(e) => setBarcodeFormat(e.target.value as BarcodeFormat)}
+                        label="Barcode Format"
+                      >
+                        <MenuItem value="CODE128">CODE 128</MenuItem>
+                        <MenuItem value="EAN13">EAN-13</MenuItem>
+                        <MenuItem value="QR">QR Code</MenuItem>
+                      </Select>
+                    </FormControl>
+
+                    <Box>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            size="small"
+                            checked={includeName}
+                            onChange={(e) => setIncludeName(e.target.checked)}
+                          />
+                        }
+                        label="Show Product Name"
+                      />
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            size="small"
+                            checked={includePrice}
+                            onChange={(e) => setIncludePrice(e.target.checked)}
+                          />
+                        }
+                        label="Show Price"
+                      />
+                    </Box>
+                  </Stack>
+                </CardContent>
+              </Card>
+
+              {/* Summary & Actions */}
+              <Card>
+                <CardHeader title="Summary" />
+                <CardContent>
+                  <Stack spacing={2}>
+                    <Box display="flex" justifyContent="space-between">
+                      <Typography variant="body2" color="text.secondary">Total Labels:</Typography>
+                      <Typography variant="body2" fontWeight={600}>{totalLabels}</Typography>
                     </Box>
 
-                    <Typography variant="body2" color="text.secondary">
-                        Select products to generate barcodes. Use "Print Sheet" to create a printable
-                        page with multiple barcodes.
-                    </Typography>
-                </CardContent>
-            </Card>
+                    {printerType === 'regular' && (
+                      <>
+                        <Box display="flex" justifyContent="space-between">
+                          <Typography variant="body2" color="text.secondary">Labels per Sheet:</Typography>
+                          <Typography variant="body2" fontWeight={600}>{labelsPerPage}</Typography>
+                        </Box>
+                        <Box display="flex" justifyContent="space-between">
+                          <Typography variant="body2" color="text.secondary">Sheets Needed:</Typography>
+                          <Typography variant="body2" fontWeight={600}>
+                            {repeatToFill ? Math.ceil(totalLabels / labelsPerPage) || 1 : sheetsNeeded}
+                          </Typography>
+                        </Box>
+                      </>
+                    )}
 
-            <TableContainer component={Paper}>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell padding="checkbox">
-                                <Checkbox
-                                    checked={
-                                        products.length > 0 &&
-                                        selectedProducts.length === products.length
-                                    }
-                                    indeterminate={
-                                        selectedProducts.length > 0 &&
-                                        selectedProducts.length < products.length
-                                    }
-                                    onChange={handleSelectAll}
-                                />
-                            </TableCell>
-                            <TableCell>Product Name</TableCell>
-                            <TableCell>SKU</TableCell>
-                            <TableCell>Barcode</TableCell>
-                            <TableCell>Status</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {loading ? (
-                            <TableRow>
-                                <TableCell colSpan={5} align="center">
-                                    <CircularProgress />
-                                </TableCell>
-                            </TableRow>
-                        ) : products.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={5} align="center">
-                                    No products found
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            products.map((product) => (
-                                <TableRow key={product._id}>
-                                    <TableCell padding="checkbox">
-                                        <Checkbox
-                                            checked={selectedProducts.includes(product._id)}
-                                            onChange={() => handleSelectProduct(product._id)}
-                                        />
-                                    </TableCell>
-                                    <TableCell>{product.name}</TableCell>
-                                    <TableCell>{product.sku}</TableCell>
-                                    <TableCell>{product.barcode || product.sku}</TableCell>
-                                    <TableCell>
-                                        {product.barcodeGenerated ? (
-                                            <Chip
-                                                icon={<CheckCircle />}
-                                                label="Generated"
-                                                color="success"
-                                                size="small"
-                                            />
-                                        ) : (
-                                            <Chip label="Not Generated" size="small" />
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </TableContainer>
-        </Box>
-    );
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      onClick={handleGeneratePDF}
+                      disabled={selectedRows.ids.size === 0 || generating}
+                      startIcon={generating ? null : <Download size={18} />}
+                    >
+                      {generating ? 'Generating...' : 'Download PDF'}
+                    </Button>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Stack>
+          </Box>
+
+          {/* Products Table */}
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Card>
+              <CardHeader
+                title="Select Products"
+                subheader={
+                  selectedRows.ids.size > 0
+                    ? `${selectedRows.ids.size} product${selectedRows.ids.size !== 1 ? 's' : ''} selected`
+                    : 'Search and select products to print'
+                }
+              />
+              <CardContent sx={{ p: 0 }}>
+                <Box sx={{ height: 600, width: '100%' }}>
+                  <DataGrid
+                    rows={products}
+                    columns={columns}
+                    getRowId={(row) => row._id}
+                    loading={loading}
+                    checkboxSelection
+                    disableRowSelectionOnClick
+                    rowSelectionModel={selectedRows}
+                    onRowSelectionModelChange={setSelectedRows}
+                    pageSizeOptions={[25, 50, 100]}
+                    initialState={{
+                      pagination: { paginationModel: { pageSize: 25 } },
+                    }}
+                    sx={{
+                      ...dataGridStyles,
+                      border: 'none',
+                      '& .MuiDataGrid-main': {
+                        border: 'none',
+                      },
+                    }}
+                    rowHeight={60}
+                    slots={{
+                      noRowsOverlay: () => (
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            height: '100%',
+                            gap: 2,
+                          }}
+                        >
+                          <QrCode size={48} style={{ color: '#9ca3af' }} />
+                          <Typography variant="body2" color="text.secondary">
+                            {searchQuery
+                              ? 'No products found. Try a different search.'
+                              : 'Search for products to generate barcodes'}
+                          </Typography>
+                        </Box>
+                      ),
+                    }}
+                  />
+                </Box>
+              </CardContent>
+            </Card>
+          </Box>
+        </Stack>
+      </Box>
+    </Box>
+  );
 }

@@ -516,6 +516,14 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         }
     }
 
+    if(req.query.sku) {
+        const sku = (req.query.sku as string).trim();
+        filter.$or = [
+            { sku: sku },
+            { 'variants.sku': sku }
+        ];
+    }
+
     // Attribute filters - support multiple formats:
     // 1. attr_color=red (legacy)
     // 2. color=red,blue (SEO-friendly by attribute slug)

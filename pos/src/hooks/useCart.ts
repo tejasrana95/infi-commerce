@@ -31,28 +31,22 @@ export function BarcodeInput({ onScan, placeholder = 'Scan or type SKU/barcode..
         }
     }, [autoFocus]);
 
-    // Keep focus when clicking on empty areas (not on interactive elements)
+    // Keep focus when clicking anywhere in the POS area
     useEffect(() => {
         const handleClick = (e: MouseEvent) => {
             const target = e.target as HTMLElement;
-            // Check if clicking on an interactive element or inside one
-            const isInteractive = target.closest('input, button, select, textarea, [role="button"], [tabindex], a, label');
+            const isInteractive = target.closest('input, button, select, textarea, [role="button"], [tabindex]');
             
-            // Only refocus if clicking on a truly empty area (like the background)
-            if (!isInteractive && inputRef.current && !loading) {
-                // Check if the click target is a container/wrapper element
-                const isEmptyArea = target.tagName === 'DIV' || target.tagName === 'MAIN' || target.tagName === 'SECTION';
-                if (isEmptyArea) {
-                    setTimeout(() => {
-                        inputRef.current?.focus();
-                    }, 10);
-                }
+            if (!isInteractive && inputRef.current) {
+                setTimeout(() => {
+                    inputRef.current?.focus();
+                }, 10);
             }
         };
 
         document.addEventListener('click', handleClick);
         return () => document.removeEventListener('click', handleClick);
-    }, [loading]);
+    }, []);
 
     // Register global keyboard shortcut (F2 or /) to focus input
     useEffect(() => {
@@ -195,14 +189,16 @@ export function BarcodeInput({ onScan, placeholder = 'Scan or type SKU/barcode..
                     value={barcode}
                     onChange={(e) => handleChange(e.target.value)}
                     onKeyDown={handleKeyDown}
+                    onBlur={refocusInput}
                     placeholder={placeholder}
-                    className={`pl-10 pr-10 text-sm  ${
+                    className={`pl-10 pr-10 text-sm font-mono uppercase ${
                         error ? 'border-red-500 focus:ring-red-500' : 
                         success ? 'border-green-500 focus:ring-green-500' : ''
                     }`}
                     disabled={loading}
                     autoComplete="off"
                     autoCorrect="off"
+                    autoCapitalize="characters"
                     spellCheck={false}
                 />
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">

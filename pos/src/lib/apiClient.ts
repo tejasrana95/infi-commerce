@@ -17,7 +17,7 @@ apiClient.interceptors.request.use(
         }
 
         // Add store ID header for all requests
-        const storeId = localStorage.getItem('poc_store_id');
+        const storeId = localStorage.getItem('pos_store_id');
         if (storeId) {
             config.headers['x-store-id'] = storeId;
         }

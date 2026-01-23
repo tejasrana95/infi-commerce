@@ -8,6 +8,7 @@ import api from '@/lib/api';
 import { PageHeader } from '@/components/molecules';
 import { LoadingSpinner } from '@/components/atoms';
 import ProductForm from '@/components/organisms/ProductForm';
+import BarcodeSection from '@/components/products/BarcodeSection';
 import { useNotification } from '@/contexts/NotificationContext';
 
 export default function EditProductPage() {
@@ -92,6 +93,17 @@ export default function EditProductPage() {
                 onSubmit={handleSubmit}
                 isSubmitting={isSubmitting}
             />
+
+            {/* Barcode Section */}
+            {product && (
+                <Box sx={{ mt: 3 }}>
+                    <BarcodeSection
+                        productId={product._id}
+                        productName={product.name}
+                        sku={product.sku}
+                    />
+                </Box>
+            )}
 
             <Paper sx={{ p: 2, mt: 3, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
                 <Button
