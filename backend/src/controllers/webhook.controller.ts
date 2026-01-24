@@ -203,6 +203,12 @@ async function processSuccessfulPayment(order: any, paymentId: string, paymentDa
         paidAt: new Date(),
     };
 
+    // If POS Order with QR details, update that too
+    if (order.posPaymentDetails?.qrDetails?.gatewayDetails) {
+        order.posPaymentDetails.qrDetails.gatewayDetails.status = 'completed';
+        order.posPaymentDetails.qrDetails.gatewayDetails.gatewayPaymentId = paymentId;
+    }
+
     await order.save();
 
     // Reduce product stock

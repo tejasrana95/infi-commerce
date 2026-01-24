@@ -28,7 +28,7 @@ export function ReportingDashboard({ isOpen, onClose }: ReportingDashboardProps)
     const paymentMethodData = [
         { name: 'Cash', value: 1200, percentage: 49 },
         { name: 'Card', value: 850, percentage: 35 },
-        { name: 'UPI', value: 400.75, percentage: 16 },
+        { name: 'QR', value: 400.75, percentage: 16 },
     ];
 
     const topProducts = [

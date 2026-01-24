@@ -5,13 +5,15 @@ import {
     RefundResponse,
     WebhookVerification,
 } from './payment-gateway.interface';
+import { IPosQRService, QRGenerationParams, QRGenerationResult, QRPaymentStatus } from './pos-payment.interface';
 
 /**
  * Stripe Payment Gateway Service
  */
-export class StripeService extends BasePaymentGateway {
+export class StripeService extends BasePaymentGateway implements IPosQRService {
     private stripe: Stripe;
 
+    // ... implementation details ...
     constructor(credentials: any, isTestMode: boolean = false) {
         super(credentials, isTestMode);
 
@@ -20,9 +22,6 @@ export class StripeService extends BasePaymentGateway {
         });
     }
 
-    /**
-     * Create Stripe Payment Intent
-     */
     async createPayment(params: {
         orderId: string;
         amount: number;
@@ -45,7 +44,6 @@ export class StripeService extends BasePaymentGateway {
     }): Promise<PaymentResponse> {
         try {
             const amountInCents = Math.round(params.amount * 100);
-
 
             const paymentIntent = await this.stripe.paymentIntents.create({
                 amount: amountInCents,
@@ -94,9 +92,7 @@ export class StripeService extends BasePaymentGateway {
         }
     }
 
-    /**
-     * Verify Stripe webhook signature
-     */
+    // ... existing verifyWebhook ...
     async verifyWebhook(params: {
         signature: string;
         payload: any;
@@ -138,9 +134,7 @@ export class StripeService extends BasePaymentGateway {
         }
     }
 
-    /**
-     * Process refund
-     */
+    // ... existing processRefund ...
     async processRefund(params: {
         paymentId: string;
         amount: number;
@@ -173,8 +167,9 @@ export class StripeService extends BasePaymentGateway {
         }
     }
 
+    // ... existing getPaymentStatus ...
     /**
-     * Get payment status
+     * Get Payment Status (Base Implementation)
      */
     async getPaymentStatus(paymentId: string): Promise<{
         status: 'pending' | 'success' | 'failed' | 'refunded';
@@ -185,25 +180,61 @@ export class StripeService extends BasePaymentGateway {
             const paymentIntent = await this.stripe.paymentIntents.retrieve(paymentId);
 
             let status: 'pending' | 'success' | 'failed' | 'refunded' = 'pending';
-
-            if (paymentIntent.status === 'succeeded') {
-                status = 'success';
-            } else if (paymentIntent.status === 'canceled') {
-                status = 'failed';
-            } else if (paymentIntent.status === 'requires_payment_method') {
-                status = 'pending';
-            }
-
-            // Check if refunded
-            if (paymentIntent.amount_received > 0 && paymentIntent.amount_received < paymentIntent.amount) {
-                status = 'refunded';
-            }
+            if (paymentIntent.status === 'succeeded') status = 'success';
+            else if (paymentIntent.status === 'canceled') status = 'failed';
+            else if (paymentIntent.status === 'requires_payment_method') status = 'failed';
 
             return {
                 status,
                 amount: this.parseAmount(paymentIntent.amount, paymentIntent.currency),
-                currency: paymentIntent.currency,
+                currency: paymentIntent.currency
             };
+        } catch (error) {
+            return { status: 'failed' };
+        }
+    }
+
+    /**
+     * Get QR Payment Status (IPosQRService Implementation)
+     */
+    async getQRPaymentStatus(qrId: string): Promise<QRPaymentStatus> {
+        try {
+            // Check if it's a Checkout Session (cs_...) or Payment Intent (pi_...)
+            if (qrId.startsWith('cs_')) {
+                const session = await this.stripe.checkout.sessions.retrieve(qrId);
+
+                let status: QRPaymentStatus['status'] = 'pending';
+                if (session.payment_status === 'paid') status = 'completed';
+                if (session.status === 'expired') status = 'expired';
+
+                return {
+                    status,
+                    amount: session.amount_total ? this.parseAmount(session.amount_total, session.currency || 'usd') : undefined,
+                    currency: session.currency || 'usd',
+                    paymentId: session.payment_intent as string,
+                    gatewayResponse: session
+                };
+            } else {
+                // Assume Payment Intent
+                const paymentIntent = await this.stripe.paymentIntents.retrieve(qrId);
+
+                let status: QRPaymentStatus['status'] = 'pending';
+                if (paymentIntent.status === 'succeeded') status = 'completed';
+                else if (paymentIntent.status === 'canceled') status = 'failed';
+
+                // Check if refunded
+                if (paymentIntent.amount_received > 0 && paymentIntent.amount_received < paymentIntent.amount) {
+                    status = 'completed';
+                }
+
+                return {
+                    status,
+                    amount: this.parseAmount(paymentIntent.amount, paymentIntent.currency),
+                    currency: paymentIntent.currency,
+                    paymentId: paymentIntent.id,
+                    gatewayResponse: paymentIntent
+                };
+            }
         } catch (error) {
             return {
                 status: 'failed',
@@ -211,10 +242,7 @@ export class StripeService extends BasePaymentGateway {
         }
     }
 
-    /**
-     * Get payout/settlement details for accounting
-     * Retrieves the balance transaction to get fee information
-     */
+    // ... existing getPayoutDetails ...
     async getPayoutDetails(paymentIntentId: string): Promise<{
         netAmount: number;
         fee: number;
@@ -248,6 +276,72 @@ export class StripeService extends BasePaymentGateway {
         } catch (error) {
             console.error('Error fetching Stripe payout details:', error);
             return null;
+        }
+    }
+
+    /**
+     * Generate Stripe QR (using Payment Link or simple checkout session URL to be encoded)
+     * Real Stripe QR is mostly Terminal based. For pure online->QR flow, we can use Payment Links.
+     */
+    async generateQR(params: QRGenerationParams): Promise<QRGenerationResult> {
+        try {
+            const session = await this.stripe.checkout.sessions.create({
+                payment_method_types: ['card'], // Add others if needed
+                customer_email: params.customerDetails?.email || undefined,
+                line_items: [{
+                    price_data: {
+                        currency: params.currency.toLowerCase(),
+                        product_data: {
+                            name: params.description || 'Order Payment',
+                        },
+                        unit_amount: Math.round(params.amount * 100),
+                    },
+                    quantity: 1,
+                }],
+                mode: 'payment',
+                success_url: `https://${params.storeDomain || process.env.FRONTEND_URL}/orders/${params.orderId}/confirmation`,
+                cancel_url: `https://${params.storeDomain || process.env.FRONTEND_URL}/checkout?orderId=${params.orderId}&status=cancelled`,
+                client_reference_id: params.orderId,
+                payment_intent_data: {
+                    description: params.description || `Order ${params.orderId}`,
+                    shipping: params.customerDetails?.address ? {
+                        name: params.customerDetails.name || 'Customer',
+                        address: {
+                            line1: params.customerDetails.address.line1,
+                            line2: params.customerDetails.address.line2 || undefined,
+                            city: params.customerDetails.address.city,
+                            state: params.customerDetails.address.state,
+                            postal_code: params.customerDetails.address.postalCode,
+                            country: params.customerDetails.address.country,
+                        }
+                    } : undefined,
+                },
+                metadata: JSON.parse(JSON.stringify({
+                    orderId: params.orderId,
+                    storeId: params.storeId,
+                    customerName: params.customerDetails?.name,
+                    ...params.metadata
+                }))
+            });
+
+            return {
+                qrCodeId: session.id, // We use session ID as QR ID for tracking
+                qrCodeData: session.url || '', // This URL becomes the QR code
+                gatewayReferenceId: session.payment_intent as string
+            };
+
+        } catch (error: any) {
+            console.error('Stripe QR Generation Error:', error);
+            throw new Error('Stripe QR generation failed');
+        }
+    }
+
+    async cancelQR(qrId: string): Promise<boolean> {
+        try {
+            await this.stripe.checkout.sessions.expire(qrId);
+            return true;
+        } catch (error) {
+            return false;
         }
     }
 }

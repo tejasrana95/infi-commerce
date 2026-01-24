@@ -23,8 +23,8 @@ export const mockProducts: Product[] = [
         categoryIds: ['cat_2'],
         image: 'https://placehold.co/300x300?text=T-Shirt',
         attributes: [
-            { name: 'Color', options: ['Red', 'Blue', 'Black'] },
-            { name: 'Size', options: ['S', 'M', 'L', 'XL'] },
+            { id: 'attr_1', name: 'Color', options: ['Red', 'Blue', 'Black'] },
+            { id: 'attr_2', name: 'Size', options: ['S', 'M', 'L', 'XL'] },
         ],
         variants: [
             { id: 'var_2_1', sku: 'TS-001-R-M', attributes: { Color: 'Red', Size: 'M' }, price: 14.99, stock: 10 },
@@ -62,7 +62,7 @@ export const mockProducts: Product[] = [
         categoryIds: ['cat_2'],
         image: 'https://placehold.co/300x300?text=Jeans',
         attributes: [
-            { name: 'Size', options: ['30', '32', '34'] },
+            { id: 'attr_3', name: 'Size', options: ['30', '32', '34'] },
         ],
         variants: [
             { id: 'var_5_1', sku: 'JN-001-30', attributes: { Size: '30' }, price: 49.99, stock: 20 },

@@ -4,8 +4,7 @@ export interface POSSettings {
   enabled: boolean;
   allowQuickCheckout: boolean;
   requireCustomerDetails: boolean;
-  defaultPaymentMethod: 'cash' | 'card' | 'upi';
-  enableRoundOff: boolean;
+  defaultPaymentMethod: 'cash' | 'card' | 'qr';
   receiptSettings: {
     headerText?: string;
     footerText?: string;
@@ -16,6 +15,45 @@ export interface POSSettings {
     format: 'CODE128' | 'EAN13' | 'QR';
     printWidth: number;
     printHeight: number;
+  };
+  paymentSettings?: PosPaymentSettings;
+}
+
+export interface PosPaymentSettings {
+  enabledMethods: {
+    cash: boolean;
+    card: boolean;
+    qr: boolean;
+  };
+  cashSettings?: {
+    enableRoundOff: boolean;
+    roundOffTo: 'nearest1' | 'nearest5' | 'nearest10';
+    requireExactAmount: boolean;
+  };
+  cardSettings?: {
+    terminalType: 'manual' | 'integrated';
+    terminalId?: string;
+  };
+  qrSettings?: PosQrSettings;
+}
+
+export interface PosQrSettings {
+  mode: 'gateway' | 'custom';
+  gatewayConfig?: {
+    gatewayId: string; // PaymentGatewayConfig ID
+    gatewayType: 'razorpay' | 'stripe' | 'paypal';
+  };
+  customConfig?: {
+    qrCodeImage: string;
+    upiId?: string;
+  };
+  verification: {
+    mode: 'manual' | 'auto';
+    autoVerifyProvider?: string;
+  };
+  displaySettings: {
+    showAmount: boolean;
+    instructions: string;
   };
 }
 

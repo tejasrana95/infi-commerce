@@ -240,7 +240,7 @@ export interface IStore extends Document {
         enabled: boolean;
         allowQuickCheckout: boolean;
         requireCustomerDetails: boolean;
-        defaultPaymentMethod: 'cash' | 'card' | 'upi';
+        defaultPaymentMethod: 'cash' | 'card' | 'qr';
         enableRoundOff: boolean;        // Round total to nearest whole number for easy cash handling
         receiptSettings: {
             headerText?: string;
@@ -252,6 +252,69 @@ export interface IStore extends Document {
             format: 'CODE128' | 'EAN13' | 'QR';
             printWidth: number;
             printHeight: number;
+        };
+    };
+
+    // POS Payment Configuration
+    posPaymentSettings?: {
+        enabledMethods: {
+            cash: boolean;      // Default: true
+            card: boolean;      // Default: true  
+            qr: boolean;        // Default: false
+        };
+        cashSettings: {
+            enableRoundOff: boolean;
+            roundOffTo: 'nearest1' | 'nearest5' | 'nearest10';
+            requireExactAmount: boolean;
+        };
+        cardSettings: {
+            terminalType: 'manual' | 'integrated';
+            terminalId?: string;
+            gatewayId?: Schema.Types.ObjectId;
+        };
+        qrSettings: {
+            mode: 'gateway' | 'custom';
+
+            // Gateway-based QR
+            gatewayConfig?: {
+                gatewayId: Schema.Types.ObjectId;
+                gatewayType: 'razorpay' | 'stripe' | 'paypal';
+
+                razorpayOptions?: {
+                    qrType: 'upi_qr' | 'bharat_qr';
+                };
+                stripeOptions?: {
+                    method: 'terminal' | 'payment_link';
+                };
+                paypalOptions?: {
+                    method: 'paypal_qr' | 'venmo_qr';
+                };
+            };
+
+            // Custom static QR code
+            customConfig?: {
+                qrCodeImage: string;
+                paymentIdentifier?: string;
+                paymentType?: string;
+                merchantName?: string;
+                description?: string;
+            };
+
+            // Verification settings
+            verification: {
+                mode: 'manual' | 'auto' | 'webhook';
+                pollingInterval?: number;
+                timeout?: number;
+            };
+
+            // Display settings
+            displaySettings: {
+                showAmount: boolean;
+                showMerchantName: boolean;
+                showPaymentId: boolean;
+                instructions?: string;
+                qrLabel?: string;
+            };
         };
     };
 
@@ -411,10 +474,10 @@ const StoreSchema = new Schema<IStore>(
             requireCustomerDetails: { type: Boolean, default: false },
             defaultPaymentMethod: {
                 type: String,
-                enum: ['cash', 'card', 'upi'],
+                enum: ['cash', 'card', 'qr'],
                 default: 'cash',
             },
-            enableRoundOff: { type: Boolean, default: false },
+
             receiptSettings: {
                 headerText: { type: String, trim: true },
                 footerText: { type: String, trim: true },
@@ -433,6 +496,78 @@ const StoreSchema = new Schema<IStore>(
                 },
                 printWidth: { type: Number, default: 40 },
                 printHeight: { type: Number, default: 30 },
+            },
+        },
+        // POS Payment Settings
+        posPaymentSettings: {
+            enabledMethods: {
+                cash: { type: Boolean, default: true },
+                card: { type: Boolean, default: true },
+                qr: { type: Boolean, default: false },
+            },
+            cashSettings: {
+                enableRoundOff: { type: Boolean, default: false },
+                roundOffTo: {
+                    type: String,
+                    enum: ['nearest1', 'nearest5', 'nearest10'],
+                    default: 'nearest10',
+                },
+                requireExactAmount: { type: Boolean, default: false },
+            },
+            cardSettings: {
+                terminalType: {
+                    type: String,
+                    enum: ['manual', 'integrated'],
+                    default: 'manual',
+                },
+                terminalId: String,
+                gatewayId: { type: Schema.Types.ObjectId, ref: 'PaymentGatewayConfig' },
+            },
+            qrSettings: {
+                mode: {
+                    type: String,
+                    enum: ['gateway', 'custom'],
+                    default: 'custom',
+                },
+                gatewayConfig: {
+                    gatewayId: { type: Schema.Types.ObjectId, ref: 'PaymentGatewayConfig' },
+                    gatewayType: {
+                        type: String,
+                        enum: ['razorpay', 'stripe', 'paypal'],
+                    },
+                    razorpayOptions: {
+                        qrType: { type: String, enum: ['upi_qr', 'bharat_qr'] },
+                    },
+                    stripeOptions: {
+                        method: { type: String, enum: ['terminal', 'payment_link'] },
+                    },
+                    paypalOptions: {
+                        method: { type: String, enum: ['paypal_qr', 'venmo_qr'] },
+                    },
+                },
+                customConfig: {
+                    qrCodeImage: String,
+                    paymentIdentifier: String,
+                    paymentType: String,
+                    merchantName: String,
+                    description: String,
+                },
+                verification: {
+                    mode: {
+                        type: String,
+                        enum: ['manual', 'auto', 'webhook'],
+                        default: 'manual',
+                    },
+                    pollingInterval: { type: Number, default: 3000 },
+                    timeout: { type: Number, default: 600 }, // 10 minutes
+                },
+                displaySettings: {
+                    showAmount: { type: Boolean, default: true },
+                    showMerchantName: { type: Boolean, default: true },
+                    showPaymentId: { type: Boolean, default: true },
+                    instructions: String,
+                    qrLabel: { type: String, default: 'Scan to Pay' },
+                },
             },
         },
     },

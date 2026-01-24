@@ -9,7 +9,7 @@ export interface ReceiptData {
     subtotal: number;
     tax: number;
     total: number;
-    paymentMethod: 'cash' | 'card' | 'upi';
+    paymentMethod: 'cash' | 'card' | 'qr';
     cashReceived?: number;
     change?: number;
     roundOffAmount?: number;

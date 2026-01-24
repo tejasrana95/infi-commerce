@@ -19,6 +19,23 @@ interface FormErrors {
     email?: string;
     phone?: string;
     password?: string;
+    address1?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    postalCode?: string;
+}
+
+interface Country {
+    _id: string;
+    name: string;
+    code: string;
+}
+
+interface State {
+    _id: string;
+    name: string;
+    code: string;
 }
 
 // Validation helpers
@@ -49,8 +66,18 @@ export default function CustomerSelectionModal({ isOpen, onClose, onSelect }: Cu
         firstName: '',
         lastName: '',
         phone: '',
-        email: ''
+        email: '',
+        address1: '',
+        city: '',
+        state: '',
+        country: '',
+        postalCode: '',
+        type: 'shipping'
     });
+
+    const [countries, setCountries] = useState<Country[]>([]);
+    const [states, setStates] = useState<State[]>([]);
+    const [loadingGeo, setLoadingGeo] = useState(false);
 
     const fetchCustomers = useCallback(async (query?: string) => {
         setLoading(true);
@@ -74,6 +101,44 @@ export default function CustomerSelectionModal({ isOpen, onClose, onSelect }: Cu
 
         return () => clearTimeout(timer);
     }, [search, fetchCustomers, isOpen]);
+
+    // Fetch countries on mount
+    useEffect(() => {
+        const fetchCountries = async () => {
+            try {
+                const data = await api.getCountries();
+                setCountries(data);
+            } catch (error) {
+                console.error('Failed to fetch countries:', error);
+            }
+        };
+        if (isOpen && activeTab === 'create') {
+            fetchCountries();
+        }
+    }, [isOpen, activeTab]);
+
+    // Fetch states when country changes
+    useEffect(() => {
+        const fetchStates = async () => {
+            if (!newCustomer.country) {
+                setStates([]);
+                return;
+            }
+            setLoadingGeo(true);
+            try {
+                const countryObj = countries.find(c => c.code === newCustomer.country || c.name === newCustomer.country);
+                if (countryObj) {
+                    const states = await api.getStates(countryObj?._id);
+                    setStates(states);
+                }
+            } catch (error) {
+                console.error('Failed to fetch states:', error);
+            } finally {
+                setLoadingGeo(false);
+            }
+        };
+        fetchStates();
+    }, [newCustomer.country]);
 
     const validateForm = (): boolean => {
         const newErrors: FormErrors = {};
@@ -104,6 +169,14 @@ export default function CustomerSelectionModal({ isOpen, onClose, onSelect }: Cu
             newErrors.phone = 'Please enter a valid phone number (at least 10 digits)';
         }
 
+        // Address validation (basic checks if any address field is provided)
+        if (newCustomer.address1 || newCustomer.city || newCustomer.state || newCustomer.country || newCustomer.postalCode) {
+            if (!newCustomer.address1) newErrors.address1 = 'Address line 1 is required';
+            if (!newCustomer.city) newErrors.city = 'City is required';
+            if (!newCustomer.country) newErrors.country = 'Country is required';
+            if (!newCustomer.postalCode) newErrors.postalCode = 'Postal code is required';
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -123,6 +196,14 @@ export default function CustomerSelectionModal({ isOpen, onClose, onSelect }: Cu
                 lastName: newCustomer.lastName.trim(),
                 email: newCustomer.email.trim().toLowerCase(),
                 phone: newCustomer.phone.trim() || undefined,
+                address: newCustomer.address1 ? {
+                    address1: newCustomer.address1,
+                    city: newCustomer.city,
+                    state: newCustomer.state,
+                    country: newCustomer.country,
+                    postalCode: newCustomer.postalCode,
+                    type: 'shipping'
+                } : undefined
             });
             onSelect(created);
             onClose();
@@ -147,7 +228,18 @@ export default function CustomerSelectionModal({ isOpen, onClose, onSelect }: Cu
         if (isOpen) {
             setSearch('');
             setActiveTab('search');
-            setNewCustomer({ firstName: '', lastName: '', phone: '', email: '' });
+            setNewCustomer({
+                firstName: '',
+                lastName: '',
+                phone: '',
+                email: '',
+                address1: '',
+                city: '',
+                state: '',
+                country: '',
+                postalCode: '',
+                type: 'shipping'
+            });
             setErrors({});
             setApiError(null);
         }
@@ -344,6 +436,119 @@ export default function CustomerSelectionModal({ isOpen, onClose, onSelect }: Cu
                                         <p className="text-xs text-red-500 mt-1">{errors.phone}</p>
                                     )}
                                 </div>
+
+                                {/* Address Section */}
+                                <div className="pt-2 border-t">
+                                    <h4 className="text-sm font-bold text-slate-900 mb-3">Shipping Address (Optional)</h4>
+
+                                    <div className="space-y-3">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">Address Line 1</label>
+                                            <input
+                                                type="text"
+                                                className={cn(
+                                                    "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 text-sm",
+                                                    errors.address1 && "border-red-400 focus:ring-red-500"
+                                                )}
+                                                value={newCustomer.address1}
+                                                onChange={e => handleFieldChange('address1', e.target.value)}
+                                                disabled={creating}
+                                                placeholder="Street address, P.O. box"
+                                            />
+                                            {errors.address1 && (
+                                                <p className="text-[10px] text-red-500 mt-1">{errors.address1}</p>
+                                            )}
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">City</label>
+                                                <input
+                                                    type="text"
+                                                    className={cn(
+                                                        "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 text-sm",
+                                                        errors.city && "border-red-400 focus:ring-red-500"
+                                                    )}
+                                                    value={newCustomer.city}
+                                                    onChange={e => handleFieldChange('city', e.target.value)}
+                                                    disabled={creating}
+                                                    placeholder="City"
+                                                />
+                                                {errors.city && (
+                                                    <p className="text-[10px] text-red-500 mt-1">{errors.city}</p>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">Postal Code</label>
+                                                <input
+                                                    type="text"
+                                                    className={cn(
+                                                        "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 text-sm",
+                                                        errors.postalCode && "border-red-400 focus:ring-red-500"
+                                                    )}
+                                                    value={newCustomer.postalCode}
+                                                    onChange={e => handleFieldChange('postalCode', e.target.value)}
+                                                    disabled={creating}
+                                                    placeholder="ZIP/Postal Code"
+                                                />
+                                                {errors.postalCode && (
+                                                    <p className="text-[10px] text-red-500 mt-1">{errors.postalCode}</p>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">Country</label>
+                                                <select
+                                                    className={cn(
+                                                        "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 text-sm appearance-none bg-white",
+                                                        errors.country && "border-red-400 focus:ring-red-500"
+                                                    )}
+                                                    value={newCustomer.country}
+                                                    onChange={e => handleFieldChange('country', e.target.value)}
+                                                    disabled={creating}
+                                                >
+                                                    <option value="">Select Country</option>
+                                                    {countries.map(c => (
+                                                        <option key={c._id} value={c._id}>{c.name}</option>
+                                                    ))}
+                                                </select>
+                                                {errors.country && (
+                                                    <p className="text-[10px] text-red-500 mt-1">{errors.country}</p>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">State / Province</label>
+                                                <div className="relative">
+                                                    <select
+                                                        className={cn(
+                                                            "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 text-sm appearance-none bg-white",
+                                                            errors.state && "border-red-400 focus:ring-red-500"
+                                                        )}
+                                                        value={newCustomer.state}
+                                                        onChange={e => handleFieldChange('state', e.target.value)}
+                                                        disabled={creating || !newCustomer.country || loadingGeo}
+                                                    >
+                                                        <option value="">Select State</option>
+                                                        {states.map(s => (
+                                                            <option key={s._id} value={s._id}>{s.name}</option>
+                                                        ))}
+                                                    </select>
+                                                    {loadingGeo && (
+                                                        <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                                                            <Loader2 className="w-3 h-3 text-blue-500 animate-spin" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {errors.state && (
+                                                    <p className="text-[10px] text-red-500 mt-1">{errors.state}</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <button
                                     type="submit"
                                     disabled={creating}

@@ -217,6 +217,10 @@ router.use('/accounting', accountingRoutes);
 import posRoutes from './pos.routes';
 router.use('/pos', posRoutes);
 
+// Mount POS Payment routes (QR)
+import posPaymentRoutes from './pos-payment.routes';
+router.use('/pos-payment', posPaymentRoutes);
+
 // Mount barcode routes
 import barcodeRoutes from './barcode.routes';
 router.use('/barcode', barcodeRoutes);

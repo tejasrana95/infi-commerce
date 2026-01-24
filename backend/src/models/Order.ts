@@ -83,7 +83,7 @@ export interface IOrder extends Document {
     };
 
     // Payment
-    paymentMethod: 'razorpay' | 'stripe' | 'paypal' | 'cod' | 'cash' | 'card' | 'upi';
+    paymentMethod: 'razorpay' | 'stripe' | 'paypal' | 'cod' | 'cash' | 'card' | 'upi' | 'qr';
     paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
     paymentId?: string;
     paymentDetails?: Record<string, any>;
@@ -113,6 +113,54 @@ export interface IOrder extends Document {
     posSessionId?: mongoose.Types.ObjectId;
     posUserId?: mongoose.Types.ObjectId;
     roundOffAmount?: number;        // Amount added/subtracted for rounding (if enabled)
+
+    // POS Payment Details
+    posPaymentDetails?: {
+        method: 'cash' | 'card' | 'qr';
+
+        // Cash payment details
+        cashDetails?: {
+            amountReceived: number;
+            changeGiven: number;
+            roundOffAmount: number;
+        };
+
+        // Card payment details
+        cardDetails?: {
+            terminalId?: string;
+            transactionId?: string;
+            authCode?: string;
+            cardLast4?: string;
+            cardNetwork?: string;
+        };
+
+        // QR payment details
+        qrDetails?: {
+            mode: 'gateway' | 'custom';
+            paymentType: string;
+
+            // Gateway payment tracking
+            gatewayDetails?: {
+                gatewayType: string;
+                gatewayOrderId: string;
+                gatewayPaymentId: string;
+                qrCodeId?: string;
+                transactionRef?: string;
+                payerIdentifier?: string;
+                status: 'pending' | 'completed' | 'failed' | 'refunded';
+            };
+
+            // Manual entry for custom QR
+            manualEntry?: {
+                referenceNumber: string;
+                payerName?: string;
+                payerIdentifier?: string;
+                verifiedBy: mongoose.Types.ObjectId;
+                verifiedAt: Date;
+                notes?: string;
+            };
+        };
+    };
 
     // Audit logging for price overrides and discounts
     priceOverrides?: Array<{
@@ -277,7 +325,7 @@ const OrderSchema = new Schema<IOrder>(
         },
         paymentMethod: {
             type: String,
-            enum: ['razorpay', 'stripe', 'paypal', 'cod', 'cash', 'card', 'upi'],
+            enum: ['razorpay', 'stripe', 'paypal', 'cod', 'cash', 'card', 'upi', 'qr'],
             required: true,
         },
         paymentStatus: {
@@ -328,6 +376,52 @@ const OrderSchema = new Schema<IOrder>(
         roundOffAmount: {
             type: Number,
             default: 0,
+        },
+        // POS Payment Details
+        posPaymentDetails: {
+            method: {
+                type: String,
+                enum: ['cash', 'card', 'qr'],
+            },
+            cashDetails: {
+                amountReceived: Number,
+                changeGiven: Number,
+                roundOffAmount: Number,
+            },
+            cardDetails: {
+                terminalId: String,
+                transactionId: String,
+                authCode: String,
+                cardLast4: String,
+                cardNetwork: String,
+            },
+            qrDetails: {
+                mode: {
+                    type: String,
+                    enum: ['gateway', 'custom'],
+                },
+                paymentType: String,
+                gatewayDetails: {
+                    gatewayType: String,
+                    gatewayOrderId: String,
+                    gatewayPaymentId: String,
+                    qrCodeId: String,
+                    transactionRef: String,
+                    payerIdentifier: String,
+                    status: {
+                        type: String,
+                        enum: ['pending', 'completed', 'failed', 'refunded'],
+                    },
+                },
+                manualEntry: {
+                    referenceNumber: String,
+                    payerName: String,
+                    payerIdentifier: String,
+                    verifiedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+                    verifiedAt: Date,
+                    notes: String,
+                },
+            },
         },
         // Audit logging arrays
         priceOverrides: [

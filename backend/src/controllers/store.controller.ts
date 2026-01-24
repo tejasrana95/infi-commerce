@@ -54,6 +54,12 @@ export const createStoreValidation = [
         .isLength({ min: 3, max: 3 })
         .withMessage('Currency must be a 3-letter code'),
     body('timezone').optional().trim(),
+    body('posPaymentSettings').optional().isObject().withMessage('POS Payment Settings must be an object'),
+    body('posPaymentSettings.enabledMethods').optional().isObject(),
+    body('posPaymentSettings.enabledMethods.cash').optional().isBoolean(),
+    body('posPaymentSettings.enabledMethods.card').optional().isBoolean(),
+    body('posPaymentSettings.enabledMethods.qr').optional().isBoolean(),
+    body('posPaymentSettings.qrSettings.mode').optional().isIn(['gateway', 'custom']),
 ];
 
 export const updateStoreValidation = [
@@ -94,6 +100,12 @@ export const updateStoreValidation = [
         .withMessage('Currency must be a 3-letter code'),
     body('timezone').optional().trim(),
     body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
+    body('posPaymentSettings').optional().isObject().withMessage('POS Payment Settings must be an object'),
+    body('posPaymentSettings.enabledMethods').optional().isObject(),
+    body('posPaymentSettings.enabledMethods.cash').optional().isBoolean(),
+    body('posPaymentSettings.enabledMethods.card').optional().isBoolean(),
+    body('posPaymentSettings.enabledMethods.qr').optional().isBoolean(),
+    body('posPaymentSettings.qrSettings.mode').optional().isIn(['gateway', 'custom']),
 ];
 
 // ============================================
@@ -438,7 +450,10 @@ export const createStore = asyncHandler(async (req: AuthRequest, res: Response) 
         logo,
         currency: currency || 'USD',
         timezone: timezone || 'UTC',
+        currency: currency || 'USD',
+        timezone: timezone || 'UTC',
         settings: settings || {},
+        posPaymentSettings: req.body.posPaymentSettings,
     });
 
     res.status(201).json({
@@ -1424,5 +1439,101 @@ export const getStoreMeta = asyncHandler(async (req: Request, res: Response) => 
         _id: id,
         name: store.name,
         updatedAt: store.updatedAt
+    });
+});
+
+/**
+ * @swagger
+ * /api/stores/{id}/pos-payment-settings:
+ *   get:
+ *     summary: Get POS payment settings
+ *     tags: [Stores]
+ *     description: Retrieve POS payment settings for a store
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Store ID
+ *     responses:
+ *       200:
+ *         description: Settings retrieved successfully
+ *       404:
+ *         description: Store not found
+ */
+export const getPosPaymentSettings = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+
+    const store = await Store.findById(id).select('posPaymentSettings');
+    if (!store) {
+        throw new AppError('Store not found', 404);
+    }
+
+    // Return default settings if not set
+    const settings = store.posPaymentSettings || {
+        enabledMethods: { cash: true, card: true, qr: false },
+        cashSettings: { enableRoundOff: false, roundOffTo: 'nearest10', requireExactAmount: false },
+        cardSettings: { terminalType: 'manual' },
+        qrSettings: { mode: 'custom', verification: { mode: 'manual' }, displaySettings: { showAmount: true } }
+    };
+
+    res.json(settings);
+});
+
+/**
+ * @swagger
+ * /api/stores/{id}/pos-payment-settings:
+ *   put:
+ *     summary: Update POS payment settings
+ *     tags: [Stores]
+ *     description: Update POS payment settings for a store
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Store ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Settings updated successfully
+ *       404:
+ *         description: Store not found
+ */
+export const updatePosPaymentSettings = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    const settings = req.body;
+
+    // RBAC Check: Store Admin only for assigned stores
+    if (req.user?.role === 'store_admin') {
+        const assignedStoreIds = req.user.storeIds?.map(id => id.toString()) || [];
+        if (!assignedStoreIds.includes(id)) {
+            throw new AppError('Unauthorized: You can only update your assigned stores', 403);
+        }
+    }
+
+    const store = await Store.findByIdAndUpdate(
+        id,
+        { $set: { posPaymentSettings: settings } },
+        { new: true, runValidators: true }
+    );
+
+    if (!store) {
+        throw new AppError('Store not found', 404);
+    }
+
+    // Invalidate cache
+    await invalidateStoreCache(store._id.toString(), store.slug, store.domains);
+
+    res.json({
+        message: 'POS payment settings updated successfully',
+        posPaymentSettings: store.posPaymentSettings
     });
 });

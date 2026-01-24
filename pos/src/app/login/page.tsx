@@ -87,7 +87,9 @@ const LoginPage = memo(() => {
             // Normalize user object to our User context shape
             const normalizedUser = {
                 id: user.id || user._id,
+                _id: user._id || user.id, // Ensure both exist
                 email: user.email,
+                name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'User',
                 firstName: user.firstName || user.name?.split(' ')[0] || 'POC',
                 lastName: user.lastName || user.name?.split(' ')[1] || 'User',
                 role: user.role,

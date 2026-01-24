@@ -42,6 +42,7 @@ class POSService {
                 cash: 0,
                 card: 0,
                 upi: 0,
+                qr: 0,
             },
         });
 
@@ -66,9 +67,50 @@ class POSService {
             throw new Error('Session is not active');
         }
 
+        // Aggregate actual sales from orders to ensure accuracy
+        const aggregation = await Order.aggregate([
+            {
+                $match: {
+                    posSessionId: session._id,
+                    paymentStatus: 'paid' // Only count paid orders
+                }
+            },
+            {
+                $group: {
+                    _id: '$paymentMethod',
+                    total: { $sum: '$total' },
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        // Reset and populate from aggregation
+        let totalSales = 0;
+        let totalOrders = 0;
+        const breakdown = {
+            cash: 0,
+            card: 0,
+            upi: 0,
+            qr: 0
+        };
+
+        for (const stat of aggregation) {
+            totalSales += stat.total;
+            totalOrders += stat.count;
+
+            const method = stat._id;
+            if (method === 'cash') breakdown.cash += stat.total;
+            else if (method === 'card') breakdown.card += stat.total;
+            else if (method === 'upi' || method === 'qr') breakdown.qr += stat.total;
+        }
+
         session.status = 'closed';
         session.endedAt = new Date();
         session.closingCash = closingCash;
+        session.totalSales = totalSales;
+        session.totalOrders = totalOrders;
+        session.paymentBreakdown = breakdown; // Update with aggregated values
+
         if (notes) {
             session.notes = notes;
         }
@@ -168,7 +210,7 @@ class POSService {
     async updateSessionTotals(
         sessionId: mongoose.Types.ObjectId,
         orderTotal: number,
-        paymentMethod: 'cash' | 'card' | 'upi'
+        paymentMethod: 'cash' | 'card' | 'upi' | 'qr'
     ): Promise<void> {
         const session = await POSSession.findById(sessionId);
 
@@ -182,7 +224,18 @@ class POSService {
 
         // Update payment breakdown
         if (session.paymentBreakdown) {
-            session.paymentBreakdown[paymentMethod] += orderTotal;
+            // Normalize upi/qr
+            const method = paymentMethod === 'upi' ? 'qr' : paymentMethod;
+
+            if (method === 'qr') {
+                session.paymentBreakdown.qr = (session.paymentBreakdown.qr || 0) + orderTotal;
+            } else {
+                // Safe access
+                const key = method as keyof typeof session.paymentBreakdown;
+                if (session.paymentBreakdown[key] !== undefined) {
+                    session.paymentBreakdown[key] += orderTotal;
+                }
+            }
         }
 
         await session.save();

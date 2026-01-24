@@ -16,6 +16,7 @@ export interface IPOSSession extends Document {
         cash: number;
         card: number;
         upi: number;
+        qr: number;
     };
     notes?: string;
     createdAt: Date;
@@ -84,6 +85,7 @@ const POSSessionSchema = new Schema<IPOSSession>(
             cash: { type: Number, default: 0 },
             card: { type: Number, default: 0 },
             upi: { type: Number, default: 0 },
+            qr: { type: Number, default: 0 },
         },
         notes: {
             type: String,

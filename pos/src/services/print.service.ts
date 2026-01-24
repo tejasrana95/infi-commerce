@@ -1,5 +1,12 @@
 import { ReceiptData } from '@/types/receipt';
 
+// Basic Web Serial API type definitions
+interface SerialPort {
+    open(options: { baudRate: number }): Promise<void>;
+    writable: WritableStream<Uint8Array>;
+    close(): Promise<void>;
+}
+
 class PrintService {
     /**
      * Print receipt using browser print dialog

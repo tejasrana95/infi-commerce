@@ -134,7 +134,7 @@ class POCApiService {
         subtotal: number;
         tax: number;
         total: number;
-        paymentMethod: 'cash' | 'card' | 'upi';
+        paymentMethod: 'cash' | 'card' | 'upi' | 'qr';
         cashReceived?: number;
         roundOffAmount?: number;
         customer?: any;
@@ -143,6 +143,7 @@ class POCApiService {
         discountsApplied?: any[];
         currency?: string;
         discount?: number;
+        paymentId?: string;
     }): Promise<{ success: boolean; orderId: string; orderNumber: string }> {
         const sessionId = await this.getCurrentSession().then(s => s?._id);
         const storeId = this.getStoreId();
@@ -159,6 +160,8 @@ class POCApiService {
             image: item.image,
             attributes: item.attributes,
         }));
+
+        console.log('API Checkout - Payment Method:', orderData.paymentMethod, 'Full Order Data:', orderData);
 
         const response = await apiClient.post('/orders/admin/create', {
             storeId,
@@ -179,6 +182,10 @@ class POCApiService {
             priceOverrides: orderData.priceOverrides,
             discountsApplied: orderData.discountsApplied,
             customerNote: orderData.notes,
+            paymentId: orderData.paymentId,
+            paymentDetails: {
+                transactionId: orderData.paymentId // Redundant but good for backward compat
+            },
             // Minimal shipping/billing for POS orders
             shippingAddress: {
                 firstName: orderData.customer?.name?.split(' ')[0] || 'Walk-in',
@@ -224,7 +231,7 @@ class POCApiService {
     }) {
         const queryParams = new URLSearchParams();
         queryParams.append('isPOSOrder', 'true');
-        
+
         if (params?.page) queryParams.append('page', String(params.page));
         if (params?.limit) queryParams.append('limit', String(params.limit));
         if (params?.status) queryParams.append('status', params.status);
@@ -283,20 +290,42 @@ class POCApiService {
     /**
      * Create a new customer
      */
-    async createCustomer(data: { 
-        firstName: string; 
-        lastName: string; 
-        email: string; 
+    async createCustomer(data: {
+        firstName: string;
+        lastName: string;
+        email: string;
         phone?: string;
+        address?: {
+            address1: string;
+            address2?: string;
+            city: string;
+            state: string;
+            country: string;
+            postalCode: string;
+            type?: string;
+        };
     }): Promise<any> {
-        const response = await apiClient.post('/customers', {
+        const payload: any = {
             firstName: data.firstName.trim(),
             lastName: data.lastName.trim(),
             email: data.email.trim().toLowerCase(),
             password: `PocCustomer_${Date.now()}`, // Auto-generate password
             phone: data.phone || undefined,
             isActive: true,
-        });
+        };
+
+        if (data.address) {
+            payload.addresses = [{
+                ...data.address,
+                type: 'billing',
+                firstName: data.firstName,
+                lastName: data.lastName,
+                phone: data.phone || '0000000000',
+                isDefault: true
+            }];
+        }
+
+        const response = await apiClient.post('/customers', payload);
 
         return this.transformCustomer(response.data.data);
     }
@@ -323,6 +352,7 @@ class POCApiService {
             name: `${c.firstName} ${c.lastName}`.trim(),
             email: c.email,
             phone: c.phone,
+            addresses: c.addresses,
             // These might not be directly in the customer object, mapping defaults
             totalOrders: c.totalOrders || 0,
             totalSpent: c.totalSpent || 0,
@@ -393,7 +423,7 @@ class POCApiService {
     /**
      * Held Orders Management
      */
-    
+
     /**
      * Create a held order
      */
@@ -450,6 +480,79 @@ class POCApiService {
      */
     async getPOSUsers() {
         const response = await apiClient.get('/pos/users');
+        return response.data.data || [];
+    }
+
+    /**
+     * Generate QR Code for payment
+     */
+    async generateQR(data: {
+        amount: number;
+        currency?: string;
+        orderId?: string; // Optional, if we want to link unrelated to an order yet
+        description?: string;
+        customerDetails?: {
+            name?: string;
+            email?: string;
+            phone?: string;
+            address?: {
+                line1: string;
+                line2?: string;
+                city: string;
+                state: string;
+                country: string;
+                postalCode: string;
+            };
+        };
+    }) {
+        const response = await apiClient.post('/pos-payment/qr', data);
+        return response.data.data;
+    }
+
+    /**
+     * Check QR Payment Status
+     */
+    async getQRPaymentStatus(qrId: string, params?: { gateway?: string; configId?: string }) {
+        let url = `/pos-payment/qr/${qrId}/status`;
+        const query: string[] = [];
+        if (params?.gateway) query.push(`gateway=${params.gateway}`);
+        if (params?.configId) query.push(`configId=${params.configId}`);
+        if (query.length > 0) url += `?${query.join('&')}`;
+
+        const response = await apiClient.get(url);
+        return response.data.data;
+    }
+
+    /**
+     * Manually verify a QR payment (admin override)
+     */
+    async manualVerifyQR(orderId: string) {
+        // Matches router.post('/qr/:orderId/verify', verifyManual)
+        const response = await apiClient.post(`/pos-payment/qr/${orderId}/verify`);
+        return response.data;
+    }
+
+    /**
+     * Cancel a QR code
+     */
+    async cancelQR(qrId: string) {
+        // Matches router.post('/qr/:id/cancel', cancelQR)
+        const response = await apiClient.post(`/pos-payment/qr/${qrId}/cancel`);
+        return response.data;
+    }
+    /**
+     * Get countries list
+     */
+    async getCountries(): Promise<any[]> {
+        const response = await apiClient.get('/geo?type=country&isActive=true');
+        return response.data.data || [];
+    }
+
+    /**
+     * Get states for a country
+     */
+    async getStates(countryId: string): Promise<any[]> {
+        const response = await apiClient.get(`/geo/countries/${countryId}/states`);
         return response.data.data || [];
     }
 }

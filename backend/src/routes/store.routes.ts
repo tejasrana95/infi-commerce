@@ -22,6 +22,8 @@ import {
     updateWhatsappSettingsValidation,
     testEmailSettingsValidation,
     getStoreMeta,
+    getPosPaymentSettings,
+    updatePosPaymentSettings,
 } from '../controllers/store.controller';
 import { authenticate, authorize } from '../middleware/auth';
 import { validate } from '../middleware/validation';
@@ -121,6 +123,21 @@ router.post(
     authorize('admin', 'store_admin', 'super_admin'),
     validate(testEmailSettingsValidation),
     testEmailSettings
+);
+
+// POS Payment Settings routes
+router.get(
+    '/:id/pos-payment-settings',
+    authenticate,
+    authorize('admin', 'store_admin', 'super_admin'),
+    getPosPaymentSettings
+);
+
+router.put(
+    '/:id/pos-payment-settings',
+    authenticate,
+    authorize('admin', 'store_admin', 'super_admin'),
+    updatePosPaymentSettings
 );
 
 export default router;

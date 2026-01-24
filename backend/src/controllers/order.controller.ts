@@ -17,6 +17,7 @@ import { notificationService } from '../services/notification.service';
 import InventoryService from '../services/inventory.service';
 import { emitOrderEvent } from '../events';
 import posService from '../services/pos.service';
+import Store from '../models/Store';
 
 /**
  * Validation rules
@@ -63,7 +64,7 @@ export const adminCreateOrderValidation = [
     body('shippingAddress.phone').trim().notEmpty(),
     body('billingAddress').isObject().withMessage('Billing address is required'),
     body('paymentMethod')
-        .isIn(['razorpay', 'stripe', 'paypal', 'cod', 'cash', 'card', 'upi'])
+        .isIn(['razorpay', 'stripe', 'paypal', 'cod', 'cash', 'card', 'upi', 'qr'])
         .withMessage('Valid payment method is required'),
     body('paymentStatus')
         .optional()
@@ -109,6 +110,8 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
         roundOffAmount = 0,
         priceOverrides,
         discountsApplied,
+        paymentId,
+        paymentDetails,
     } = req.body;
 
     // Fetch products and validate
@@ -214,6 +217,8 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
         paymentMethod,
         paymentStatus,
         status,
+        paymentId,
+        paymentDetails,
         customerNote,
         adminNote,
         // POS specific fields
@@ -233,10 +238,16 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
     // Update POS session totals if this is a POS order
     if (isPOSOrder && posSessionId) {
         try {
+            // Map payment gateways back to 'qr' for session breakdown if they are QR payments
+            let methodForSession: 'cash' | 'card' | 'upi' | 'qr' = 'qr';
+            if (paymentMethod === 'cash') methodForSession = 'cash';
+            else if (paymentMethod === 'card') methodForSession = 'card';
+            else if (['stripe', 'razorpay', 'paypal', 'qr', 'upi'].includes(paymentMethod)) methodForSession = 'qr';
+
             await posService.updateSessionTotals(
                 new mongoose.Types.ObjectId(posSessionId),
                 total,
-                paymentMethod as 'cash' | 'card' | 'upi'
+                methodForSession
             );
         } catch (err) {
             console.error('Failed to update POS session totals:', err);

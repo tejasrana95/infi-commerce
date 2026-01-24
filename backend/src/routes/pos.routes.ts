@@ -1,12 +1,17 @@
 import { Router } from 'express';
 import posController from '../controllers/pos.controller';
 import { authenticate, authorize } from '../middleware/auth';
+import Product from '../models/Product';
+import posPaymentRoutes from './pos-payment.routes';
 
 const router = Router();
 
 // All POS routes require authentication and pos_user/store_admin/super_admin role
 router.use(authenticate);
 router.use(authorize('pos_user', 'store_admin', 'super_admin'));
+
+// Mount POS Payment Routes (e.g. /api/pos/payment/qr)
+router.use('/payment', posPaymentRoutes);
 
 // Session Management
 router.post('/session/start', posController.startSession);
@@ -35,9 +40,9 @@ router.delete('/held-orders/:id', posController.deleteHeldOrder);
 router.get('/users', posController.getPOSUsers);
 
 // GET /api/pos/products/by-sku - Lookup product by exact SKU or barcode
-router.get('/products/by-sku', authenticate, async (req, res) => {
+router.get('/products/by-sku', authenticate, async (req: any, res: any) => {
   const { sku } = req.query;
-  
+
   if (!sku) {
     return res.status(400).json({ success: false, message: 'SKU is required' });
   }
@@ -52,9 +57,9 @@ router.get('/products/by-sku', authenticate, async (req, res) => {
   }).populate('categoryIds brand');
 
   if (!product) {
-    return res.status(404).json({ 
-      success: false, 
-      message: `No product found with SKU/barcode: ${sku}` 
+    return res.status(404).json({
+      success: false,
+      message: `No product found with SKU/barcode: ${sku}`
     });
   }
 

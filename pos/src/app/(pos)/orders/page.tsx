@@ -6,7 +6,7 @@ import OrderDetailModal from '@/components/organisms/OrderDetailModal';
 import EmptyState from '@/components/molecules/EmptyState';
 import { Order, OrderStatus } from '@/types';
 import { Search, Receipt, Filter, RefreshCw, Loader2 } from 'lucide-react';
-import  posApi  from '@/services/api';
+import posApi from '@/services/api';
 
 export default function OrdersPage() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -46,7 +46,7 @@ export default function OrdersPage() {
                 subtotal: order.subtotal,
                 tax: order.tax || 0,
                 total: order.total,
-                paymentMethod: order.paymentMethod as 'cash' | 'card' | 'upi',
+                paymentMethod: order.paymentMethod as 'cash' | 'card' | 'qr',
                 notes: order.notes,
             }));
             setOrders(transformedOrders);

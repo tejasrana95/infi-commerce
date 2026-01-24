@@ -16,15 +16,33 @@ import {
     Select,
     MenuItem,
     Alert,
-    Divider,
     Grid,
-    Container,
-    Paper,
+    FormGroup,
+    Checkbox,
+    Autocomplete,
+    Stack,
+    InputAdornment,
+    IconButton,
 } from '@mui/material';
-import { Save as SaveIcon } from '@mui/icons-material';
+import { Save as SaveIcon, CloudUpload } from '@mui/icons-material';
 import PageHeader from '@/components/molecules/PageHeader';
-import { POSSettings } from '@/types/pos';
+import FileManagerButton from '@/components/molecules/FileManagerButton';
+import { POSSettings, PosPaymentSettings } from '@/types/pos';
+import { FileItem } from '@/types/file';
 import api from '@/lib/api';
+import GeneralSettings from '@/components/organisms/pos/GeneralSettings';
+import PaymentSettings from '@/components/organisms/pos/PaymentSettings';
+import ReceiptSettings from '@/components/organisms/pos/ReceiptSettings';
+import BarcodeSettings from '@/components/organisms/pos/BarcodeSettings';
+
+interface GatewayConfig {
+    _id: string;
+    provider: string;
+    alias?: string;
+    isTestMode: boolean;
+    gatewayName?: string;
+    gatewayType?: string;
+}
 
 export default function POSSettingsPage() {
     const params = useParams();
@@ -35,13 +53,13 @@ export default function POSSettingsPage() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [gatewayConfigs, setGatewayConfigs] = useState<GatewayConfig[]>([]);
 
     const [settings, setSettings] = useState<POSSettings>({
         enabled: false,
         allowQuickCheckout: true,
         requireCustomerDetails: false,
         defaultPaymentMethod: 'cash',
-        enableRoundOff: false,
         receiptSettings: {
             headerText: '',
             footerText: '',
@@ -53,21 +71,109 @@ export default function POSSettingsPage() {
             printWidth: 40,
             printHeight: 30,
         },
+        paymentSettings: {
+            enabledMethods: { cash: true, card: false, qr: false },
+            qrSettings: {
+                mode: 'custom',
+                verification: { mode: 'manual' },
+                displaySettings: { showAmount: true, instructions: '' },
+                customConfig: { qrCodeImage: '' }
+            }
+        }
     });
 
     useEffect(() => {
-        fetchPOSSettings();
+        fetchData();
     }, [storeId]);
 
-    const fetchPOSSettings = async () => {
+    const fetchData = async () => {
         try {
             setLoading(true);
-            const response = await api.get(`/stores/${storeId}`);
-            if (response.data.store && response.data.store.posSettings) {
-                setSettings(response.data.store.posSettings);
+            const [storeRes, gatewaysRes] = await Promise.all([
+                api.get(`/stores/${storeId}`),
+                api.get(`/payment-gateways?storeId=${storeId}`)
+            ]);
+
+            if (storeRes.data.store && storeRes.data.store.posSettings) {
+                const fetchedPosSettings = storeRes.data.store.posSettings || {};
+                const fetchedPaymentSettings = storeRes.data.store.posPaymentSettings;
+
+                const defaultSettings: POSSettings = {
+                    enabled: false,
+                    allowQuickCheckout: true,
+                    requireCustomerDetails: false,
+                    defaultPaymentMethod: 'cash',
+                    receiptSettings: {
+                        headerText: '',
+                        footerText: '',
+                        showLogo: true,
+                        paperWidth: '80mm',
+                    },
+                    barcodeSettings: {
+                        format: 'CODE128',
+                        printWidth: 40,
+                        printHeight: 30,
+                    },
+                    paymentSettings: {
+                        enabledMethods: { cash: true, card: false, qr: false },
+                        qrSettings: {
+                            mode: 'custom',
+                            verification: { mode: 'manual' },
+                            displaySettings: { showAmount: true, instructions: '' },
+                            customConfig: { qrCodeImage: '' }
+                        }
+                    }
+                };
+
+                const mergedSettings: POSSettings = {
+                    ...defaultSettings,
+                    ...fetchedPosSettings,
+                    receiptSettings: {
+                        ...defaultSettings.receiptSettings,
+                        ...(fetchedPosSettings.receiptSettings || {})
+                    },
+                    barcodeSettings: {
+                        ...defaultSettings.barcodeSettings,
+                        ...(fetchedPosSettings.barcodeSettings || {})
+                    }
+                };
+
+                // Merge payment settings (handle sibling structure from backend)
+                if (fetchedPaymentSettings) {
+                    mergedSettings.paymentSettings = {
+                        ...defaultSettings.paymentSettings!,
+                        ...fetchedPaymentSettings,
+                        enabledMethods: {
+                            ...defaultSettings.paymentSettings!.enabledMethods,
+                            ...(fetchedPaymentSettings.enabledMethods || {})
+                        },
+                        qrSettings: {
+                            ...defaultSettings.paymentSettings!.qrSettings!,
+                            ...(fetchedPaymentSettings.qrSettings || {})
+                        }
+                    };
+                } else if (fetchedPosSettings.paymentSettings) {
+                    // Fallback for older structure if necessary
+                    mergedSettings.paymentSettings = {
+                        ...defaultSettings.paymentSettings!,
+                        ...fetchedPosSettings.paymentSettings,
+                        enabledMethods: {
+                            ...defaultSettings.paymentSettings!.enabledMethods,
+                            ...(fetchedPosSettings.paymentSettings.enabledMethods || {})
+                        },
+                    }
+                }
+
+                setSettings(mergedSettings);
+            }
+
+            if (gatewaysRes && gatewaysRes?.data?.data && Array.isArray(gatewaysRes.data.data)) {
+                setGatewayConfigs(gatewaysRes.data.data);
+            } else if (Array.isArray(gatewaysRes.data)) {
+                setGatewayConfigs(gatewaysRes.data);
             }
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to load POS settings');
+            setError(err.response?.data?.message || 'Failed to load settings');
         } finally {
             setLoading(false);
         }
@@ -82,6 +188,20 @@ export default function POSSettingsPage() {
             await api.put(`/stores/${storeId}`, {
                 posSettings: settings,
             });
+
+            const payload = {
+                posSettings: {
+                    enabled: settings.enabled,
+                    allowQuickCheckout: settings.allowQuickCheckout,
+                    requireCustomerDetails: settings.requireCustomerDetails,
+                    defaultPaymentMethod: settings.defaultPaymentMethod,
+                    receiptSettings: settings.receiptSettings,
+                    barcodeSettings: settings.barcodeSettings
+                },
+                posPaymentSettings: settings.paymentSettings
+            };
+
+            await api.put(`/stores/${storeId}`, payload);
 
             setSuccess('POS settings saved successfully!');
             setTimeout(() => setSuccess(''), 3000);
@@ -131,251 +251,20 @@ export default function POSSettingsPage() {
             )}
 
             <Grid container spacing={3}>
-                {/* General Settings */}
                 <Grid size={{ xs: 12 }}>
-                    <Card>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom>
-                                General Settings
-                            </Typography>
-
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        checked={settings.enabled}
-                                        onChange={(e) =>
-                                            setSettings({ ...settings, enabled: e.target.checked })
-                                        }
-                                    />
-                                }
-                                label="Enable POS System"
-                            />
-
-                            <Box sx={{ mt: 2 }}>
-                                <FormControlLabel
-                                    control={
-                                        <Switch
-                                            checked={settings.allowQuickCheckout}
-                                            onChange={(e) =>
-                                                setSettings({
-                                                    ...settings,
-                                                    allowQuickCheckout: e.target.checked,
-                                                })
-                                            }
-                                        />
-                                    }
-                                    label="Allow Quick Checkout"
-                                />
-                            </Box>
-
-                            <Box sx={{ mt: 2 }}>
-                                <FormControlLabel
-                                    control={
-                                        <Switch
-                                            checked={settings.requireCustomerDetails}
-                                            onChange={(e) =>
-                                                setSettings({
-                                                    ...settings,
-                                                    requireCustomerDetails: e.target.checked,
-                                                })
-                                            }
-                                        />
-                                    }
-                                    label="Require Customer Details"
-                                />
-                            </Box>
-
-                            <Box sx={{ mt: 2 }}>
-                                <FormControlLabel
-                                    control={
-                                        <Switch
-                                            checked={settings.enableRoundOff}
-                                            onChange={(e) =>
-                                                setSettings({
-                                                    ...settings,
-                                                    enableRoundOff: e.target.checked,
-                                                })
-                                            }
-                                        />
-                                    }
-                                    label="Enable Round-off (for easier cash handling)"
-                                />
-                                <Typography variant="caption" color="text.secondary" display="block">
-                                    Round totals to nearest whole number for easy cash transactions
-                                </Typography>
-                            </Box>
-
-                            <Box sx={{ mt: 3 }}>
-                                <FormControl fullWidth>
-                                    <InputLabel>Default Payment Method</InputLabel>
-                                    <Select
-                                        value={settings.defaultPaymentMethod}
-                                        label="Default Payment Method"
-                                        onChange={(e) =>
-                                            setSettings({
-                                                ...settings,
-                                                defaultPaymentMethod: e.target.value as any,
-                                            })
-                                        }
-                                    >
-                                        <MenuItem value="cash">Cash</MenuItem>
-                                        <MenuItem value="card">Card</MenuItem>
-                                        <MenuItem value="upi">UPI</MenuItem>
-                                    </Select>
-                                </FormControl>
-                            </Box>
-                        </CardContent>
-                    </Card>
+                    <GeneralSettings settings={settings} onChange={setSettings} />
                 </Grid>
 
-                {/* Receipt Settings */}
-                <Grid size={{ xs: 12, md: 6 }}>
-                    <Card sx={{ height: '100%' }}>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom>
-                                Receipt Settings
-                            </Typography>
-
-                            <TextField
-                                fullWidth
-                                label="Header Text"
-                                value={settings.receiptSettings.headerText || ''}
-                                onChange={(e) =>
-                                    setSettings({
-                                        ...settings,
-                                        receiptSettings: {
-                                            ...settings.receiptSettings,
-                                            headerText: e.target.value,
-                                        },
-                                    })
-                                }
-                                placeholder="Thank you for shopping with us!"
-                                sx={{ mb: 2, mt: 1 }}
-                            />
-
-                            <TextField
-                                fullWidth
-                                label="Footer Text"
-                                value={settings.receiptSettings.footerText || ''}
-                                onChange={(e) =>
-                                    setSettings({
-                                        ...settings,
-                                        receiptSettings: {
-                                            ...settings.receiptSettings,
-                                            footerText: e.target.value,
-                                        },
-                                    })
-                                }
-                                placeholder="Visit us again!"
-                                sx={{ mb: 2 }}
-                            />
-
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        checked={settings.receiptSettings.showLogo}
-                                        onChange={(e) =>
-                                            setSettings({
-                                                ...settings,
-                                                receiptSettings: {
-                                                    ...settings.receiptSettings,
-                                                    showLogo: e.target.checked,
-                                                },
-                                            })
-                                        }
-                                    />
-                                }
-                                label="Show Logo on Receipt"
-                            />
-
-                            <Box sx={{ mt: 2 }}>
-                                <FormControl fullWidth>
-                                    <InputLabel>Paper Width</InputLabel>
-                                    <Select
-                                        value={settings.receiptSettings.paperWidth}
-                                        label="Paper Width"
-                                        onChange={(e) =>
-                                            setSettings({
-                                                ...settings,
-                                                receiptSettings: {
-                                                    ...settings.receiptSettings,
-                                                    paperWidth: e.target.value as any,
-                                                },
-                                            })
-                                        }
-                                    >
-                                        <MenuItem value="58mm">58mm</MenuItem>
-                                        <MenuItem value="80mm">80mm (Standard)</MenuItem>
-                                    </Select>
-                                </FormControl>
-                            </Box>
-                        </CardContent>
-                    </Card>
+                <Grid size={{ xs: 12 }}>
+                    <PaymentSettings settings={settings} gatewayConfigs={gatewayConfigs} onChange={setSettings} />
                 </Grid>
 
-                {/* Barcode Settings */}
                 <Grid size={{ xs: 12, md: 6 }}>
-                    <Card sx={{ height: '100%' }}>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom>
-                                Barcode Settings
-                            </Typography>
+                    <ReceiptSettings settings={settings} onChange={setSettings} />
+                </Grid>
 
-                            <FormControl fullWidth sx={{ mb: 2, mt: 1 }}>
-                                <InputLabel>Barcode Format</InputLabel>
-                                <Select
-                                    value={settings.barcodeSettings.format}
-                                    label="Barcode Format"
-                                    onChange={(e) =>
-                                        setSettings({
-                                            ...settings,
-                                            barcodeSettings: {
-                                                ...settings.barcodeSettings,
-                                                format: e.target.value as any,
-                                            },
-                                        })
-                                    }
-                                >
-                                    <MenuItem value="CODE128">CODE128 (Recommended)</MenuItem>
-                                    <MenuItem value="EAN13">EAN-13</MenuItem>
-                                    <MenuItem value="QR">QR Code</MenuItem>
-                                </Select>
-                            </FormControl>
-
-                            <TextField
-                                fullWidth
-                                type="number"
-                                label="Print Width (mm)"
-                                value={settings.barcodeSettings.printWidth}
-                                onChange={(e) =>
-                                    setSettings({
-                                        ...settings,
-                                        barcodeSettings: {
-                                            ...settings.barcodeSettings,
-                                            printWidth: parseInt(e.target.value) || 40,
-                                        },
-                                    })
-                                }
-                                sx={{ mb: 2 }}
-                            />
-
-                            <TextField
-                                fullWidth
-                                type="number"
-                                label="Print Height (mm)"
-                                value={settings.barcodeSettings.printHeight}
-                                onChange={(e) =>
-                                    setSettings({
-                                        ...settings,
-                                        barcodeSettings: {
-                                            ...settings.barcodeSettings,
-                                            printHeight: parseInt(e.target.value) || 30,
-                                        },
-                                    })
-                                }
-                            />
-                        </CardContent>
-                    </Card>
+                <Grid size={{ xs: 12, md: 6 }}>
+                    <BarcodeSettings settings={settings} onChange={setSettings} />
                 </Grid>
             </Grid>
         </Box>

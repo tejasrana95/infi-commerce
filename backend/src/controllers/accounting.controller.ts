@@ -142,21 +142,27 @@ export const fetchGatewayData = async (req: Request, res: Response) => {
             });
         }
 
+        // Resolve actual gateway for QR payments
+        let gatewayType = order.paymentMethod;
+        if (gatewayType === 'qr' && (order as any).posPaymentDetails?.qrDetails?.gatewayDetails?.gatewayType) {
+            gatewayType = (order as any).posPaymentDetails.qrDetails.gatewayDetails.gatewayType;
+        }
+
         // Get payment gateway instance
         const gateway = await PaymentService.getGatewayInstance({
             storeId: order.storeId.toString(),
-            gatewayType: order.paymentMethod,
+            gatewayType: gatewayType,
         });
 
         // Try to get payout/settlement details
         let gatewayData = null;
 
-        // Each gateway has different methods for getting fee/settlement data
-        if (order.paymentMethod === 'stripe' && 'getPayoutDetails' in gateway) {
+        // Match the specific gateway for data retrieval
+        if (gatewayType === 'stripe' && 'getPayoutDetails' in gateway) {
             gatewayData = await (gateway as any).getPayoutDetails(order.paymentId);
-        } else if (order.paymentMethod === 'paypal' && 'getTransactionDetails' in gateway) {
+        } else if (gatewayType === 'paypal' && 'getTransactionDetails' in gateway) {
             gatewayData = await (gateway as any).getTransactionDetails(order.paymentId);
-        } else if (order.paymentMethod === 'razorpay' && 'getSettlementDetails' in gateway) {
+        } else if (gatewayType === 'razorpay' && 'getSettlementDetails' in gateway) {
             gatewayData = await (gateway as any).getSettlementDetails(order.paymentId);
         }
 

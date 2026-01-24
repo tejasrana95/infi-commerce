@@ -11,12 +11,59 @@ interface Store {
     currency: string;
     timezone: string;
     settings?: any;
+
     posSettings?: {
-        requireCustomerDetails: boolean;
-        allowQuickCheckout: boolean;
-        defaultPaymentMethod: string;
-        enableRoundOff: boolean;
-    }
+        receiptSettings: {
+            showLogo: boolean,
+            paperWidth: string
+        },
+        barcodeSettings: {
+            format: string,
+            printWidth: number,
+            printHeight: number
+        },
+        enabled: boolean,
+        allowQuickCheckout: boolean,
+        requireCustomerDetails: boolean,
+        defaultPaymentMethod: string
+    };
+    posPaymentSettings?: {
+        enabledMethods: {
+            cash: boolean,
+            card: boolean,
+            qr: boolean
+        },
+        cashSettings: {
+            enableRoundOff: boolean,
+            roundOffTo: string,
+            requireExactAmount: boolean
+        },
+        cardSettings: {
+            terminalType: string
+        },
+        qrSettings: {
+            gatewayConfig: {
+                gatewayId: string,
+                gatewayType: string
+            },
+            customConfig: {
+                qrCodeImage: string
+            },
+            verification: {
+                pollingInterval: number,
+                timeout: number,
+                mode: string
+            },
+            displaySettings: {
+                showMerchantName: boolean,
+                showPaymentId: boolean,
+                qrLabel: string,
+                showAmount: boolean,
+                instructions: string
+            },
+            mode: string
+        }
+    };
 }
 
 interface StoreContextType {

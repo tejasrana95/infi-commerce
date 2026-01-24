@@ -11,7 +11,7 @@ export function memoize<T extends AnyFunction>(
 
   return ((...args: Parameters<T>): ReturnType<T> => {
     const key = JSON.stringify(args);
-    
+
     if (cache.has(key)) {
       const value = cache.get(key)!;
       // Move to end (most recently used)
@@ -21,13 +21,15 @@ export function memoize<T extends AnyFunction>(
     }
 
     const result = fn(...args) as ReturnType<T>;
-    
+
     if (cache.size >= maxSize) {
       // Delete oldest entry
       const firstKey = cache.keys().next().value;
-      cache.delete(firstKey);
+      if (typeof firstKey === 'string') {
+        cache.delete(firstKey);
+      }
     }
-    
+
     cache.set(key, result);
     return result;
   }) as T;
@@ -53,12 +55,14 @@ export function memoizeAsync<T extends AnyFunction>(
     }
 
     const result = await fn(...args);
-    
+
     if (cache.size >= maxSize) {
       const firstKey = cache.keys().next().value;
-      cache.delete(firstKey);
+      if (typeof firstKey === 'string') {
+        cache.delete(firstKey);
+      }
     }
-    
+
     cache.set(key, { value: result as ReturnType<T>, timestamp: now });
     return result as Awaited<ReturnType<T>>;
   }) as T;

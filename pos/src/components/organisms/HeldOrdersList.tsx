@@ -47,7 +47,7 @@ export function HeldOrdersList({ isOpen, onClose }: HeldOrdersListProps) {
     // Fetch POS users when modal opens
     useEffect(() => {
         if (!isOpen) return;
-        
+
         (async () => {
             try {
                 const users = await api.getPOSUsers();
@@ -71,18 +71,18 @@ export function HeldOrdersList({ isOpen, onClose }: HeldOrdersListProps) {
             const order = await resumeOrder(orderId);
             if (order) {
                 clearCart();
-                
+
                 // Restore customer if available
                 if (order.customerId) {
                     // Convert ObjectId to string if necessary
-                    const customerId = typeof order.customerId === 'object' 
+                    const customerId = typeof order.customerId === 'object'
                         ? order.customerId?._id
                         : String((order.customerId as unknown as { toString(): string }).toString?.() ?? order.customerId);
                     // Try to fetch full customer details
                     try {
                         let customerDetails
-                        if(customerId) customerDetails = await api.getCustomerById(customerId);
-                        
+                        if (customerId) customerDetails = await api.getCustomerById(customerId);
+
                         if (customerDetails) {
                             setCustomer(customerDetails);
                         } else {
@@ -104,7 +104,7 @@ export function HeldOrdersList({ isOpen, onClose }: HeldOrdersListProps) {
                         // Fallback: parse name into first and last
                         const nameParts = order.customerIdentifier?.split(' ') || ['Customer', ''];
                         setCustomer({
-                            id: customerId,
+                            id: customerId || '',
                             name: order.customerIdentifier,
                             firstName: nameParts[0],
                             lastName: nameParts.slice(1).join(' ') || 'Customer',
@@ -197,11 +197,10 @@ export function HeldOrdersList({ isOpen, onClose }: HeldOrdersListProps) {
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() => setShowAllOrders(!showAllOrders)}
-                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                                    showAllOrders
+                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${showAllOrders
                                         ? 'bg-blue-100 text-blue-700'
                                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                }`}
+                                    }`}
                             >
                                 <Users className="w-4 h-4" />
                                 {showAllOrders ? 'All Orders' : 'My Orders'}
@@ -302,7 +301,7 @@ export function HeldOrdersList({ isOpen, onClose }: HeldOrdersListProps) {
                                                 <Play className="w-4 h-4 mr-2" />
                                                 Resume Order
                                             </Button>
-                                            
+
                                             {/* Transfer Button */}
                                             {transferOrderId === order.id ? (
                                                 <div className="flex-1 flex gap-2">
@@ -341,7 +340,7 @@ export function HeldOrdersList({ isOpen, onClose }: HeldOrdersListProps) {
                                                     <ArrowRightLeft className="w-4 h-4" />
                                                 </Button>
                                             )}
-                                            
+
                                             <Button
                                                 onClick={() => handleDelete(order.id)}
                                                 variant="secondary"
@@ -373,11 +372,10 @@ export function HeldOrdersList({ isOpen, onClose }: HeldOrdersListProps) {
                         className={`fixed inset-0 z-[60] flex items-center justify-center pointer-events-none`}
                     >
                         <motion.div
-                            className={`relative p-6 rounded-lg shadow-xl max-w-sm mx-4 pointer-events-auto ${
-                                dialogMessage.type === 'success'
+                            className={`relative p-6 rounded-lg shadow-xl max-w-sm mx-4 pointer-events-auto ${dialogMessage.type === 'success'
                                     ? 'bg-green-50 border border-green-200'
                                     : 'bg-red-50 border border-red-200'
-                            }`}
+                                }`}
                             layout
                         >
                             <div className="flex items-start gap-4">
@@ -387,9 +385,8 @@ export function HeldOrdersList({ isOpen, onClose }: HeldOrdersListProps) {
                                     <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
                                 )}
                                 <p
-                                    className={`text-lg font-semibold ${
-                                        dialogMessage.type === 'success' ? 'text-green-800' : 'text-red-800'
-                                    }`}
+                                    className={`text-lg font-semibold ${dialogMessage.type === 'success' ? 'text-green-800' : 'text-red-800'
+                                        }`}
                                 >
                                     {dialogMessage.message}
                                 </p>

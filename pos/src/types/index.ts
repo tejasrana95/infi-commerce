@@ -63,6 +63,19 @@ export interface Customer {
     lastName: string;
     email?: string;
     phone?: string;
+    addresses?: Array<{
+        type: 'billing' | 'shipping';
+        firstName: string;
+        lastName: string;
+        address1: string;
+        address2?: string;
+        city: string;
+        state: string;
+        country: string;
+        postalCode: string;
+        phone: string;
+        isDefault: boolean;
+    }>;
     totalOrders: number;
     totalSpent: number;
 }
@@ -114,7 +127,7 @@ export interface Order {
     subtotal: number;
     tax: number;
     total: number;
-    paymentMethod: 'cash' | 'card' | 'upi';
+    paymentMethod: 'cash' | 'card' | 'upi' | 'qr';
     cashReceived?: number;
     change?: number;
     notes?: string;

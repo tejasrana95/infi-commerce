@@ -12,12 +12,17 @@ interface OrderCardProps {
 const paymentIcons = {
     cash: Banknote,
     card: CreditCard,
-    upi: QrCode
+    upi: QrCode,
+    qr: QrCode,
+    // Gateway-specific icons for QR payments
+    stripe: CreditCard,
+    razorpay: QrCode,
+    paypal: QrCode,
 };
 
 export default function OrderCard({ order, onClick }: OrderCardProps) {
     const { formatPrice } = useCurrency();
-    const PaymentIcon = paymentIcons[order.paymentMethod];
+    const PaymentIcon = paymentIcons[order.paymentMethod] || CreditCard; // Fallback to CreditCard
     return (
         <button
             onClick={onClick}
@@ -38,7 +43,7 @@ export default function OrderCard({ order, onClick }: OrderCardProps) {
             {/* Customer */}
             <div className="flex items-center gap-2 text-sm text-slate-700 mb-3">
                 <User className="w-4 h-4 text-slate-400" />
-                <span>{order.customerId ? order.customerId?.firstName + ' ' + order.customerId?.lastName : 'Walk-in Customer'}</span>
+                <span>{typeof order.customerId === 'object' && order.customerId ? `${order.customerId.firstName} ${order.customerId.lastName}` : 'Walk-in Customer'}</span>
             </div>
 
             {/* Footer */}

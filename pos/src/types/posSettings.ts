@@ -15,6 +15,5 @@ export interface POSSettings {
     enabled: boolean;
     allowQuickCheckout: boolean;
     requireCustomerDetails: boolean;
-    defaultPaymentMethod: 'cash' | 'card' | 'upi';
-    enableRoundOff: boolean;
+    defaultPaymentMethod: 'cash' | 'card' | 'qr';
 }

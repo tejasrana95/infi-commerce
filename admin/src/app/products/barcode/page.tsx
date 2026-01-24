@@ -261,7 +261,7 @@ export default function BulkBarcodeGeneratorPage() {
     },
   ];
 
-  const totalLabels = Array.from(selectedRows.ids).reduce((sum, id) => {
+  const totalLabels = Array.from(selectedRows.ids).reduce((sum: number, id) => {
     return sum + (quantities[id as string] || 1);
   }, 0);
 

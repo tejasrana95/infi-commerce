@@ -8,7 +8,9 @@ import { cn } from '@/lib/utils';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import api from '@/services/api';
+
 import { useStore } from '@/contexts/StoreContext';
+import QRPaymentModal from './QRPaymentModal';
 
 interface CheckoutModalProps {
     isOpen: boolean;
@@ -16,33 +18,54 @@ interface CheckoutModalProps {
     onSuccess: () => void;
 }
 
-type PaymentMethod = 'cash' | 'card' | 'upi';
+type PaymentMethod = 'cash' | 'card' | 'qr';
 export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps) {
     const { items, getTotal, getSubtotal, getTaxTotal, clearCart, customer } = useCartStore();
     const { formatPrice, baseCurrency } = useCurrency();
     const total = getTotal();
     const subtotal = getSubtotal();
     const tax = getTaxTotal();
-    const { store } = useStore();
-    const {requireCustomerDetails, allowQuickCheckout, defaultPaymentMethod, enableRoundOff } = store?.posSettings || {};
-    const grandTotal = enableRoundOff ? Math.ceil(total) : total;
-    const [customerError, setCustomerError] = useState('');
+    const [showQRModal, setShowQRModal] = useState(false);
 
-    console.log('defaultPaymentMethod', defaultPaymentMethod);
-    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(defaultPaymentMethod || 'cash');
+    const [cashGiven, setCashGiven] = useState('');
     const [processing, setProcessing] = useState(false);
     const [completed, setCompleted] = useState(false);
-    const [cashGiven, setCashGiven] = useState<string>('');
-    const mountTime = useRef<number | null>(null);
+    const [customerError, setCustomerError] = useState('');
+    const mountTime = useRef<number>(Date.now());
+    const grandTotal = total;
+    const { store } = useStore();
+    const { requireCustomerDetails, allowQuickCheckout, defaultPaymentMethod } = store?.posSettings || {};
+    const { posPaymentSettings } = store || {};
+    const { enabledMethods, qrSettings, cashSettings } = posPaymentSettings || {};
+    // Check available methods
+    const isCashEnabled = enabledMethods?.cash !== false;
+    const isCardEnabled = enabledMethods?.card !== false;
+    const isQrEnabled = enabledMethods?.qr === true;
 
-    // Reset mount time when modal opens
-    useEffect(() => {
-        if (isOpen) {
-            mountTime.current = Date.now();
-        } else {
-            mountTime.current = null;
+    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>((defaultPaymentMethod as PaymentMethod) || 'cash');
+
+    // Rounding Logic
+    const getRoundedTotal = () => {
+        if (paymentMethod === 'cash' && cashSettings?.enableRoundOff) {
+            const factor = cashSettings.roundOffTo === 'nearest5' ? 5 : (cashSettings.roundOffTo === 'nearest10' ? 10 : 1);
+            return Math.ceil(grandTotal / factor) * factor;
         }
-    }, [isOpen]);
+        return grandTotal;
+    };
+
+    const payableTotal = getRoundedTotal();
+    const isRounded = payableTotal !== grandTotal;
+
+    const change = paymentMethod === 'cash' && cashGiven
+        ? parseFloat(cashGiven) - payableTotal
+        : 0;
+
+    // Validate exact amount if required
+    const isExactAmountRequired = cashSettings?.requireExactAmount || false;
+    const isValidCashAmount = paymentMethod === 'cash'
+        ? (parseFloat(cashGiven || '0') >= payableTotal) && (!isExactAmountRequired || parseFloat(cashGiven || '0') === payableTotal)
+        : true;
+
 
     const handlePayment = async () => {
         setCustomerError('');
@@ -50,11 +73,37 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
             setCustomerError('Customer details are required for checkout.');
             return;
         }
+
+        if (paymentMethod === 'cash' && !isValidCashAmount) {
+            if (isExactAmountRequired && parseFloat(cashGiven || '0') !== payableTotal) {
+                // Error is handled in UI below
+                return;
+            }
+            if (parseFloat(cashGiven || '0') < payableTotal) {
+                return;
+            }
+        }
+
         // Debounce: prevent triggering immediately upon open if keys are held
         if (mountTime.current && Date.now() - mountTime.current < 400) return;
 
+        // If QR payment, open modal first
+        if (paymentMethod === 'qr') {
+            if (!isQrEnabled) {
+                return;
+            }
+            setShowQRModal(true);
+            return;
+        }
+
+        processCheckout({ paymentMethod });
+    };
+
+    const processCheckout = async (data: { paymentMethod: string, paymentStatus?: string, transactionId?: string }) => {
         setProcessing(true);
         try {
+            console.log('Processing checkout with payment method:', data.paymentMethod, 'Transaction ID:', data.transactionId);
+            
             await api.checkout({
                 items: items.map(item => ({
                     productId: item.productId,
@@ -68,18 +117,52 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
                 })),
                 subtotal: subtotal,
                 tax: tax,
-                total: enableRoundOff ? Math.round(total) : total,
-                paymentMethod,
+                total: payableTotal, // Use the rounded total if applicable
+                paymentMethod: data.paymentMethod as any,
                 customer: customer || undefined,
-                currency: baseCurrency?.code || 'INR', // Use store's base currency
+                currency: baseCurrency?.code || 'INR',
+                paymentId: data.transactionId,
             });
             setProcessing(false);
             setCompleted(true);
         } catch (error) {
             console.error('Checkout failed:', error);
             setProcessing(false);
-            // Handle error UI if needed
         }
+    };
+
+    const handleQRPaymentSuccess = (paymentData: any) => {
+        setShowQRModal(false);
+        // Use the actual payment gateway from settings, not 'qr'
+        // QR is just the payment interface, the actual payment method is the configured gateway
+        let actualPaymentMethod: string = 'qr'; // fallback
+        
+        // Try to get gateway type from settings first
+        if (qrSettings?.mode === 'gateway' && qrSettings?.gatewayConfig?.gatewayType) {
+            actualPaymentMethod = qrSettings.gatewayConfig.gatewayType;
+        }
+        // Fallback to paymentData if available (for backward compatibility)
+        else if (paymentData?.gatewayType) {
+            actualPaymentMethod = paymentData.gatewayType;
+        }
+        // Last resort: try to infer from payment ID format
+        else if (paymentData?.paymentId) {
+            if (paymentData.paymentId.startsWith('pi_') || paymentData.paymentId.startsWith('ch_')) {
+                actualPaymentMethod = 'stripe';
+            } else if (paymentData.paymentId.startsWith('pay_')) {
+                actualPaymentMethod = 'razorpay';
+            } else if (paymentData.paymentId.includes('PAYID-')) {
+                actualPaymentMethod = 'paypal';
+            }
+        }
+        
+        console.log('QR Payment Success - Payment Method:', actualPaymentMethod, 'Settings:', qrSettings, 'Payment Data:', paymentData);
+        
+        processCheckout({
+            paymentMethod: actualPaymentMethod,
+            paymentStatus: 'paid',
+            transactionId: paymentData.paymentId
+        });
     };
 
     const handlePrintAndClose = () => {
@@ -92,9 +175,6 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
         onClose();
     };
 
-    const change = paymentMethod === 'cash' && cashGiven
-        ? parseFloat(cashGiven) - grandTotal
-        : 0;
 
     // Shortcuts within Modal
     useKeyboardShortcuts([
@@ -130,6 +210,17 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
 
     return (
         <AnimatePresence>
+            {showQRModal && (
+                <QRPaymentModal
+                    isOpen={showQRModal}
+                    onClose={() => setShowQRModal(false)}
+                    onSuccess={handleQRPaymentSuccess}
+                    amount={payableTotal} // Use payable total
+                    currency={baseCurrency?.code || 'INR'}
+                    settings={qrSettings || { mode: 'custom' }} // Fallback
+                    customer={customer || undefined}
+                />
+            )}
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                 <motion.div
                     initial={{ scale: 0.95, opacity: 0 }}
@@ -179,9 +270,15 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
                                 <span>Tax</span>
                                 <span>{formatPrice(tax)}</span>
                             </div>
+                            {isRounded && (
+                                <div className="flex justify-between text-slate-600 text-sm">
+                                    <span>Rounding</span>
+                                    <span>{formatPrice(payableTotal - grandTotal)}</span>
+                                </div>
+                            )}
                             <div className="flex justify-between text-3xl font-bold text-blue-600 pt-2">
                                 <span>Total</span>
-                                <span>{formatPrice(grandTotal)}</span>
+                                <span>{formatPrice(payableTotal)}</span>
                             </div>
                         </div>
                     </div>
@@ -197,36 +294,47 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
                                 <h2 className="text-2xl font-bold mb-8 text-slate-900">Select Payment Method</h2>
 
                                 <div className="grid grid-cols-3 gap-4 mb-8">
-                                    <PaymentMethodCard
-                                        icon={<Banknote size={32} />}
-                                        label="Cash"
-                                        selected={paymentMethod === 'cash'}
-                                        onClick={() => setPaymentMethod('cash')}
-                                    />
-                                    <PaymentMethodCard
-                                        icon={<CreditCard size={32} />}
-                                        label="Card"
-                                        selected={paymentMethod === 'card'}
-                                        onClick={() => setPaymentMethod('card')}
-                                    />
-                                    <PaymentMethodCard
-                                        icon={<QrCode size={32} />}
-                                        label="UPI"
-                                        selected={paymentMethod === 'upi'}
-                                        onClick={() => setPaymentMethod('upi')}
-                                    />
+                                    {isCashEnabled && (
+                                        <PaymentMethodCard
+                                            icon={<Banknote size={32} />}
+                                            label="Cash"
+                                            selected={paymentMethod === 'cash'}
+                                            onClick={() => setPaymentMethod('cash')}
+                                        />
+                                    )}
+                                    {isCardEnabled && (
+                                        <PaymentMethodCard
+                                            icon={<CreditCard size={32} />}
+                                            label="Card"
+                                            selected={paymentMethod === 'card'}
+                                            onClick={() => setPaymentMethod('card')}
+                                        />
+                                    )}
+                                    {isQrEnabled && (
+                                        <PaymentMethodCard
+                                            icon={<QrCode size={32} />}
+                                            label="QR"
+                                            selected={paymentMethod === 'qr'}
+                                            onClick={() => setPaymentMethod('qr')}
+                                        />
+                                    )}
                                 </div>
 
                                 <div className="flex-1">
                                     {paymentMethod === 'cash' && (
                                         <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
-                                            <label className="block text-sm font-bold text-slate-800 mb-2">Cash Received</label>
+                                            <div className="flex justify-between items-center mb-2">
+                                                <label className="block text-sm font-bold text-slate-800">Cash Received</label>
+                                                {isExactAmountRequired && (
+                                                    <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded font-medium">Exact Amount Required</span>
+                                                )}
+                                            </div>
                                             <div className="flex gap-4 items-center">
                                                 <span className="text-2xl font-bold text-slate-500">{baseCurrency?.symbol || '$'}</span>
                                                 <input
                                                     type="number"
                                                     className="w-full bg-transparent text-4xl font-bold outline-none placeholder:text-slate-300 text-slate-900"
-                                                    placeholder="0.00"
+                                                    placeholder={payableTotal.toFixed(2)}
                                                     value={cashGiven}
                                                     onChange={(e) => setCashGiven(e.target.value)}
                                                     autoFocus
@@ -247,10 +355,10 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
                                 )}
                                 <button
                                     onClick={handlePayment}
-                                    disabled={processing || (requireCustomerDetails && !customer)}
+                                    disabled={processing || (requireCustomerDetails && !customer) || (paymentMethod === 'cash' && !isValidCashAmount)}
                                     className="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xl shadow-lg shadow-blue-900/20 active:translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
                                 >
-                                    {processing ? "Processing..." : `Complete ${paymentMethod === 'cash' ? 'Cash' : ''} Payment`}
+                                    {processing ? "Processing..." : `Complete ${(paymentMethod === 'cash' ? 'Cash' : (paymentMethod === 'qr' ? 'QR' : 'Card'))} Payment`}
                                     {allowQuickCheckout && <span className="text-xs bg-black/20 px-2 py-1 rounded font-mono font-normal opacity-80 border border-white/10">Ctrl+Enter</span>}
                                 </button>
                             </>
@@ -260,7 +368,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
                                     <CheckCircle size={48} />
                                 </div>
                                 <h2 className="text-3xl font-bold text-slate-800">Payment Successful!</h2>
-                                <p className="text-slate-500">Order #{Math.floor(Math.random() * 10000) + 80000} completed successfully.</p>
+                                <p className="text-slate-500">Order completed successfully.</p>
 
                                 <div className="grid grid-cols-2 gap-4 w-full max-w-md mt-8">
                                     <button

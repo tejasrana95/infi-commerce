@@ -14,7 +14,8 @@ interface OrderDetailModalProps {
 const paymentIcons = {
     cash: Banknote,
     card: CreditCard,
-    upi: QrCode
+    upi: QrCode,
+    qr: QrCode
 };
 
 export default function OrderDetailModal({ order, isOpen, onClose }: OrderDetailModalProps) {
@@ -68,7 +69,7 @@ export default function OrderDetailModal({ order, isOpen, onClose }: OrderDetail
                                 <User className="w-4 h-4" />
                                 Customer Information
                             </h3>
-                            {order.customerId ? (
+                            {typeof order.customerId === 'object' && order.customerId ? (
                                 <div className="space-y-1">
                                     <p className="text-slate-900 font-medium">{order.customerId.firstName} {order.customerId.lastName}</p>
                                     <p className="text-sm text-slate-600">{order.customerId.email}</p>
@@ -76,9 +77,9 @@ export default function OrderDetailModal({ order, isOpen, onClose }: OrderDetail
                                 </div>
                             ) : (
                                 <>
-                                <div className="space-y-1">
-                                    <p className="text-slate-900 font-medium">Walk-in Customer</p>
-                                </div>
+                                    <div className="space-y-1">
+                                        <p className="text-slate-900 font-medium">Walk-in Customer</p>
+                                    </div>
                                 </>
                             )}
                         </div>

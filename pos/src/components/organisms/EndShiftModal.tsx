@@ -28,7 +28,7 @@ export function EndShiftModal({ isOpen, onClose, session: initialSession, onSucc
     const { formatPrice, baseCurrency } = useCurrency();
     const { logout } = useAuth();
     const { store } = useStore();
-    const { enableRoundOff } = store?.posSettings || {};
+    const enableRoundOff = store?.posPaymentSettings?.cashSettings?.enableRoundOff || false;
 
     // Fetch latest session data when modal opens
     useEffect(() => {
@@ -163,8 +163,11 @@ export function EndShiftModal({ isOpen, onClose, session: initialSession, onSucc
                                                 <span className="font-semibold text-gray-500">{formatPrice(enableRoundOff ? Math.ceil(shiftSummary.paymentBreakdown.card || 0) : shiftSummary.paymentBreakdown.card || 0)}</span>
                                             </div>
                                             <div className="flex justify-between pl-4">
-                                                <span className="text-gray-600">UPI:</span>
                                                 <span className="font-semibold text-gray-500">{formatPrice(enableRoundOff ? Math.ceil(shiftSummary.paymentBreakdown.upi || 0) : shiftSummary.paymentBreakdown.upi || 0)}</span>
+                                            </div>
+                                            <div className="flex justify-between pl-4">
+                                                <span className="text-gray-600">QR / UPI:</span>
+                                                <span className="font-semibold text-gray-500">{formatPrice(enableRoundOff ? Math.ceil((shiftSummary.paymentBreakdown.qr || 0) + (shiftSummary.paymentBreakdown.upi || 0)) : ((shiftSummary.paymentBreakdown.qr || 0) + (shiftSummary.paymentBreakdown.upi || 0)))}</span>
                                             </div>
                                         </>
                                     )}
@@ -237,6 +240,10 @@ export function EndShiftModal({ isOpen, onClose, session: initialSession, onSucc
                                 <div>
                                     <p className="text-gray-600">Cash Sales:</p>
                                     <p className="font-semibold text-gray-600">{formatPrice(enableRoundOff ? Math.ceil(session?.paymentBreakdown?.cash || 0) : session?.paymentBreakdown?.cash || 0)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-gray-600">QR Sales:</p>
+                                    <p className="font-semibold text-gray-600">{formatPrice(enableRoundOff ? Math.ceil((session?.paymentBreakdown?.qr || 0) + (session?.paymentBreakdown?.upi || 0)) : (session?.paymentBreakdown?.qr || 0) + (session?.paymentBreakdown?.upi || 0))}</p>
                                 </div>
                                 <div>
                                     <p className="text-gray-600">Expected Cash:</p>

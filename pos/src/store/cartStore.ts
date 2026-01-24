@@ -42,8 +42,8 @@ export const useCartStore = create<CartState>((set, get) => ({
 
             // Determine price and tax info
             const price = Number(variant ? variant.price : (product.salePrice || product.price)) || 0;
-            const taxRate = Number(variant?.taxRate ?? product.taxRate ?? 0);
-            let unitTaxAmount = Number(variant?.taxAmount ?? product.taxAmount ?? 0);
+            const taxRate = Number(product.taxRate ?? 0);
+            let unitTaxAmount = Number(product.taxAmount ?? 0);
 
             // Fallback calculation if taxAmount is 0 but rate is present
             if (unitTaxAmount === 0 && taxRate > 0) {

@@ -4,7 +4,7 @@ import { useCallback, useMemo, useRef, useEffect } from 'react';
  * Deep comparison memo hook - prevents unnecessary re-renders
  */
 export function useDeepMemo<T>(factory: () => T, deps: unknown[]): T {
-  const ref = useRef<{ deps: unknown[]; value: T }>();
+  const ref = useRef<{ deps: unknown[]; value: T } | undefined>(undefined);
 
   if (!ref.current || !shallowEqual(ref.current.deps, deps)) {
     ref.current = { deps, value: factory() };
@@ -20,7 +20,7 @@ export function useStableCallback<T extends (...args: unknown[]) => unknown>(
   callback: T
 ): T {
   const callbackRef = useRef(callback);
-  
+
   useEffect(() => {
     callbackRef.current = callback;
   }, [callback]);
