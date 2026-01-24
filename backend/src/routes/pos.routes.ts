@@ -24,6 +24,16 @@ router.get('/receipt/:orderId', posController.getReceiptData);
 // Password Verification
 router.post('/verify-password', posController.verifyPassword);
 
+// Held Orders Management
+router.post('/held-orders', posController.createHeldOrder);
+router.get('/held-orders', posController.getHeldOrders);
+router.put('/held-orders/:id/transfer', posController.transferHeldOrder);
+router.put('/held-orders/:id/resume', posController.resumeHeldOrder);
+router.delete('/held-orders/:id', posController.deleteHeldOrder);
+
+// Get POS Users (for transfer functionality)
+router.get('/users', posController.getPOSUsers);
+
 // GET /api/pos/products/by-sku - Lookup product by exact SKU or barcode
 router.get('/products/by-sku', authenticate, async (req, res) => {
   const { sku } = req.query;

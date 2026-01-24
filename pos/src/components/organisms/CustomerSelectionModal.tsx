@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { User, Search, Plus, X, Check, Loader2 } from 'lucide-react';
+import { User, Search, Plus, X, Check, Loader2, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Customer } from '@/types';
 import { cn } from '@/lib/utils';
@@ -13,6 +13,27 @@ interface CustomerSelectionModalProps {
     onSelect: (customer: Customer | null) => void;
 }
 
+interface FormErrors {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
+    password?: string;
+}
+
+// Validation helpers
+const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+};
+
+const validatePhone = (phone: string): boolean => {
+    // Allow empty or valid phone (10+ digits, can have spaces, dashes, parentheses)
+    if (!phone) return true;
+    const digitsOnly = phone.replace(/\D/g, '');
+    return digitsOnly.length >= 10;
+};
+
 export default function CustomerSelectionModal({ isOpen, onClose, onSelect }: CustomerSelectionModalProps) {
     const { formatPrice } = useCurrency();
     const [search, setSearch] = useState('');
@@ -20,10 +41,13 @@ export default function CustomerSelectionModal({ isOpen, onClose, onSelect }: Cu
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [loading, setLoading] = useState(false);
     const [creating, setCreating] = useState(false);
+    const [errors, setErrors] = useState<FormErrors>({});
+    const [apiError, setApiError] = useState<string | null>(null);
 
     // New Customer Form State
     const [newCustomer, setNewCustomer] = useState({
-        name: '',
+        firstName: '',
+        lastName: '',
         phone: '',
         email: ''
     });
@@ -51,15 +75,60 @@ export default function CustomerSelectionModal({ isOpen, onClose, onSelect }: Cu
         return () => clearTimeout(timer);
     }, [search, fetchCustomers, isOpen]);
 
+    const validateForm = (): boolean => {
+        const newErrors: FormErrors = {};
+
+        // First name validation
+        if (!newCustomer.firstName.trim()) {
+            newErrors.firstName = 'First name is required';
+        } else if (newCustomer.firstName.trim().length < 2) {
+            newErrors.firstName = 'First name must be at least 2 characters';
+        }
+
+        // Last name validation
+        if (!newCustomer.lastName.trim()) {
+            newErrors.lastName = 'Last name is required';
+        } else if (newCustomer.lastName.trim().length < 2) {
+            newErrors.lastName = 'Last name must be at least 2 characters';
+        }
+
+        // Email validation (required)
+        if (!newCustomer.email.trim()) {
+            newErrors.email = 'Email is required';
+        } else if (!validateEmail(newCustomer.email)) {
+            newErrors.email = 'Please enter a valid email address';
+        }
+
+        // Phone validation (optional but must be valid if provided)
+        if (newCustomer.phone && !validatePhone(newCustomer.phone)) {
+            newErrors.phone = 'Please enter a valid phone number (at least 10 digits)';
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
+        setApiError(null);
+
+        if (!validateForm()) {
+            return;
+        }
+
         setCreating(true);
         try {
-            const created = await api.createCustomer(newCustomer);
+            const created = await api.createCustomer({
+                firstName: newCustomer.firstName.trim(),
+                lastName: newCustomer.lastName.trim(),
+                email: newCustomer.email.trim().toLowerCase(),
+                phone: newCustomer.phone.trim() || undefined,
+            });
             onSelect(created);
             onClose();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to create customer:', error);
+            setApiError(error.response?.data?.message || error.message || 'Failed to create customer');
         } finally {
             setCreating(false);
         }
@@ -78,9 +147,19 @@ export default function CustomerSelectionModal({ isOpen, onClose, onSelect }: Cu
         if (isOpen) {
             setSearch('');
             setActiveTab('search');
-            setNewCustomer({ name: '', phone: '', email: '' });
+            setNewCustomer({ firstName: '', lastName: '', phone: '', email: '' });
+            setErrors({});
+            setApiError(null);
         }
     }, [isOpen]);
+
+    // Clear field error when user types
+    const handleFieldChange = (field: keyof typeof newCustomer, value: string) => {
+        setNewCustomer({ ...newCustomer, [field]: value });
+        if (errors[field as keyof FormErrors]) {
+            setErrors({ ...errors, [field]: undefined });
+        }
+    };
 
     if (!isOpen) return null;
 
@@ -175,52 +254,95 @@ export default function CustomerSelectionModal({ isOpen, onClose, onSelect }: Cu
                                                     {customer.email && <span>• {customer.email}</span>}
                                                 </div>
                                             </div>
-                                            <div className="text-right">
-                                                <div className="text-xs font-bold text-slate-700">{customer.totalOrders} Orders</div>
-                                                <div className="text-xs text-slate-600">{formatPrice(customer.totalSpent)}</div>
-                                            </div>
                                         </button>
                                     ))}
 
                                     {!loading && customers.length === 0 && search && (
                                         <div className="text-center py-8 text-slate-500">
-                                            No customers found matching "{search}"
+                                            No customers found matching &quot;{search}&quot;
                                         </div>
                                     )}
                                 </div>
                             </div>
                         ) : (
                             <form onSubmit={handleCreate} className="space-y-4">
+                                {/* API Error Alert */}
+                                {apiError && (
+                                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+                                        <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                                        <span className="text-sm text-red-700">{apiError}</span>
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-800 mb-1">First Name *</label>
+                                        <input
+                                            type="text"
+                                            className={cn(
+                                                "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900",
+                                                errors.firstName && "border-red-400 focus:ring-red-500"
+                                            )}
+                                            value={newCustomer.firstName}
+                                            onChange={e => handleFieldChange('firstName', e.target.value)}
+                                            disabled={creating}
+                                            placeholder="John"
+                                        />
+                                        {errors.firstName && (
+                                            <p className="text-xs text-red-500 mt-1">{errors.firstName}</p>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-800 mb-1">Last Name *</label>
+                                        <input
+                                            type="text"
+                                            className={cn(
+                                                "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900",
+                                                errors.lastName && "border-red-400 focus:ring-red-500"
+                                            )}
+                                            value={newCustomer.lastName}
+                                            onChange={e => handleFieldChange('lastName', e.target.value)}
+                                            disabled={creating}
+                                            placeholder="Doe"
+                                        />
+                                        {errors.lastName && (
+                                            <p className="text-xs text-red-500 mt-1">{errors.lastName}</p>
+                                        )}
+                                    </div>
+                                </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-800 mb-1">Full Name *</label>
+                                    <label className="block text-sm font-bold text-slate-800 mb-1">Email Address *</label>
                                     <input
-                                        required
-                                        type="text"
-                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900"
-                                        value={newCustomer.name}
-                                        onChange={e => setNewCustomer({ ...newCustomer, name: e.target.value })}
+                                        type="email"
+                                        className={cn(
+                                            "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900",
+                                            errors.email && "border-red-400 focus:ring-red-500"
+                                        )}
+                                        value={newCustomer.email}
+                                        onChange={e => handleFieldChange('email', e.target.value)}
                                         disabled={creating}
+                                        placeholder="john.doe@example.com"
                                     />
+                                    {errors.email && (
+                                        <p className="text-xs text-red-500 mt-1">{errors.email}</p>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-bold text-slate-800 mb-1">Phone Number</label>
                                     <input
                                         type="tel"
-                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900"
+                                        className={cn(
+                                            "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900",
+                                            errors.phone && "border-red-400 focus:ring-red-500"
+                                        )}
                                         value={newCustomer.phone}
-                                        onChange={e => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                                        onChange={e => handleFieldChange('phone', e.target.value)}
                                         disabled={creating}
+                                        placeholder="+91 9876543210"
                                     />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-800 mb-1">Email Address</label>
-                                    <input
-                                        type="email"
-                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900"
-                                        value={newCustomer.email}
-                                        onChange={e => setNewCustomer({ ...newCustomer, email: e.target.value })}
-                                        disabled={creating}
-                                    />
+                                    {errors.phone && (
+                                        <p className="text-xs text-red-500 mt-1">{errors.phone}</p>
+                                    )}
                                 </div>
                                 <button
                                     type="submit"

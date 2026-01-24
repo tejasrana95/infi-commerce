@@ -3,6 +3,7 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 import StatusBadge from '../atoms/StatusBadge';
 import { X, Calendar, User, CreditCard, Banknote, QrCode, Printer, Package } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 
 interface OrderDetailModalProps {
     order: Order | null;
@@ -19,7 +20,6 @@ const paymentIcons = {
 export default function OrderDetailModal({ order, isOpen, onClose }: OrderDetailModalProps) {
     const { formatPrice } = useCurrency();
     if (!order || !isOpen) return null;
-
     const PaymentIcon = paymentIcons[order.paymentMethod];
 
     const handlePrint = () => {
@@ -68,18 +68,18 @@ export default function OrderDetailModal({ order, isOpen, onClose }: OrderDetail
                                 <User className="w-4 h-4" />
                                 Customer Information
                             </h3>
-                            {order.customer ? (
+                            {order.customerId ? (
                                 <div className="space-y-1">
-                                    <p className="text-slate-900 font-medium">{order.customer.name}</p>
-                                    <p className="text-sm text-slate-600">{order.customer.email}</p>
-                                    <p className="text-sm text-slate-600">{order.customer.phone}</p>
-                                    <div className="flex gap-4 text-xs text-slate-500 mt-2 pt-2 border-t border-slate-200">
-                                        <span>Total Orders: {order.customer.totalOrders}</span>
-                                        <span>Total Spent: {formatPrice(order.customer.totalSpent)}</span>
-                                    </div>
+                                    <p className="text-slate-900 font-medium">{order.customerId.firstName} {order.customerId.lastName}</p>
+                                    <p className="text-sm text-slate-600">{order.customerId.email}</p>
+                                    <p className="text-sm text-slate-600">{order.customerId.phone}</p>
                                 </div>
                             ) : (
-                                <p className="text-slate-600">Walk-in Customer (No details available)</p>
+                                <>
+                                <div className="space-y-1">
+                                    <p className="text-slate-900 font-medium">Walk-in Customer</p>
+                                </div>
+                                </>
                             )}
                         </div>
 
@@ -95,9 +95,11 @@ export default function OrderDetailModal({ order, isOpen, onClose }: OrderDetail
                                         key={index}
                                         className="flex gap-4 bg-white border border-slate-200 rounded-lg p-3"
                                     >
-                                        <img
+                                        <Image
                                             src={item.image}
                                             alt={item.name}
+                                            width={16}
+                                            height={16}
                                             className="w-16 h-16 object-cover rounded-lg bg-slate-100"
                                         />
                                         <div className="flex-1 min-w-0">

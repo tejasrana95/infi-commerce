@@ -12,6 +12,10 @@ const statusConfig: Record<OrderStatus, { label: string; className: string }> = 
         label: 'Completed',
         className: 'bg-green-100 text-green-700 border-green-200'
     },
+    delivered: {
+        label: 'Delivered',
+        className: 'bg-green-100 text-green-700 border-green-200'
+    },
     pending: {
         label: 'Pending',
         className: 'bg-yellow-100 text-yellow-700 border-yellow-200'
@@ -33,11 +37,11 @@ export default function StatusBadge({ status, className }: StatusBadgeProps) {
         <span
             className={cn(
                 'px-2 py-0.5 text-xs font-medium rounded-full border inline-block',
-                config.className,
+                config?.className,
                 className
             )}
         >
-            {config.label}
+            {config?.label}
         </span>
     );
 }

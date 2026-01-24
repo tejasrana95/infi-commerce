@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, History, Settings, LogOut, Maximize, Minimize, Loader2 } from 'lucide-react';
+import { LayoutDashboard, History, Settings, LogOut, Maximize, Minimize, Loader2, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -15,6 +15,9 @@ import { EndShiftModal } from '@/components/organisms/EndShiftModal';
 import api from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import Image from 'next/image';
+import { HoldOrderModal } from '@/components/organisms/HoldOrderModal';
+import { HeldOrdersList } from '@/components/organisms/HeldOrdersList';
+import { useCartStore } from '@/store/cartStore';
 
 interface POCLayoutProps {
     children: React.ReactNode;
@@ -32,6 +35,9 @@ export default function POCLayout({ children }: POCLayoutProps) {
     const [showEndShiftModal, setShowEndShiftModal] = useState(false);
     const [isShiftEnded, setIsShiftEnded] = useState(false);
     const [checkingSession, setCheckingSession] = useState(true);
+    const [showHoldOrderModal, setShowHoldOrderModal] = useState(false);
+    const [showHeldOrdersList, setShowHeldOrdersList] = useState(false);
+    const { items } = useCartStore();
 
 
 
@@ -168,6 +174,16 @@ export default function POCLayout({ children }: POCLayoutProps) {
                 <nav className="flex-1 flex flex-col gap-4 w-full px-2">
                     <NavItem href="/" icon={<LayoutDashboard size={24} />} label="POS" active={pathname === '/'} />
                     <NavItem href="/orders" icon={<History size={24} />} label="Orders" active={pathname === '/orders'} />
+                    <button
+                        onClick={() => setShowHeldOrdersList(true)}
+                        className="p-3 rounded-xl transition-colors flex justify-center group relative text-slate-400 hover:bg-slate-800 hover:text-white"
+                        title="Held Orders"
+                    >
+                        <Package size={24} />
+                        <span className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-xs text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
+                            Held Orders
+                        </span>
+                    </button>
                     <NavItem href="/settings" icon={<Settings size={24} />} label="Settings" active={pathname === '/settings'} />
                 </nav>
 
@@ -218,6 +234,18 @@ export default function POCLayout({ children }: POCLayoutProps) {
 
             {/* Offline Indicator */}
             <OfflineIndicator />
+
+            {/* Hold Order Modal */}
+            <HoldOrderModal
+                isOpen={showHoldOrderModal}
+                onClose={() => setShowHoldOrderModal(false)}
+            />
+
+            {/* Held Orders List */}
+            <HeldOrdersList
+                isOpen={showHeldOrdersList}
+                onClose={() => setShowHeldOrdersList(false)}
+            />
         </div>
     );
 }

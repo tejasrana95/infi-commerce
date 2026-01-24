@@ -95,20 +95,71 @@ class POSService {
      */
     async getSessionHistory(
         storeId: mongoose.Types.ObjectId,
+        search = '',
+        status = 'all',
         limit: number = 20,
         skip: number = 0
-    ): Promise<{ sessions: IPOSSession[]; total: number }> {
-        const sessions = await POSSession.find({ storeId })
-            .populate('userId', 'name email')
+    ): Promise<{ sessions: IPOSSession[]; total: number; stats: { activeSessions: number; totalSales: number } }> {
+        const filter: any = {};
+        if (status && status !== 'all') {
+            filter.status = status;
+        }
+        if (storeId) {
+            filter.storeId = storeId;
+        }
+        if (search) {
+            filter.$or = [
+                { sessionNumber: { $regex: search, $options: 'i' } },
+            ];
+        }
+        const sessions = await POSSession.find(filter)
+            .populate('userId', 'firstName lastName role email')
             .sort({ startedAt: -1 })
             .limit(limit)
             .skip(skip);
 
-
-
         const total = await POSSession.countDocuments({ storeId });
 
-        return { sessions, total };
+        // Calculate stats
+        const statsAggregation = await POSSession.aggregate([
+            {
+                $match: {
+                    storeId,
+                },
+            },
+            {
+                $facet: {
+                    activeSessions: [
+                        {
+                            $match: { status: 'active' },
+                        },
+                        {
+                            $count: 'count',
+                        },
+                    ],
+                    totalSales: [
+                        {
+                            $group: {
+                                _id: null,
+                                total: { $sum: '$totalSales' },
+                            },
+                        },
+                    ],
+                },
+            },
+        ]);
+
+        const activeSessions = statsAggregation[0].activeSessions[0]?.count || 0;
+        const totalSales = statsAggregation[0].totalSales[0]?.total || 0;
+
+        return {
+            sessions,
+            total,
+            stats: {
+                activeSessions,
+                totalSales,
+            },
+        };
     }
 
     /**

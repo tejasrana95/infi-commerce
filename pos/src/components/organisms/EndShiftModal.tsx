@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { X, DollarSign, FileText, Printer } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, DollarSign, FileText, Printer, Loader2 } from 'lucide-react';
 import Button from '../atoms/Button';
 import Input from '../atoms/Input';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useStore } from '@/contexts/StoreContext';
 
 interface EndShiftModalProps {
     isOpen: boolean;
@@ -16,14 +17,39 @@ interface EndShiftModalProps {
     onSuccess: () => void;
 }
 
-export function EndShiftModal({ isOpen, onClose, session, onSuccess }: EndShiftModalProps) {
+export function EndShiftModal({ isOpen, onClose, session: initialSession, onSuccess }: EndShiftModalProps) {
     const [closingCash, setClosingCash] = useState('');
     const [notes, setNotes] = useState('');
     const [loading, setLoading] = useState(false);
+    const [fetchingSession, setFetchingSession] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [shiftSummary, setShiftSummary] = useState<any>(null);
+    const [session, setSession] = useState<any>(initialSession);
     const { formatPrice, baseCurrency } = useCurrency();
-    const {logout} = useAuth();
+    const { logout } = useAuth();
+    const { store } = useStore();
+    const { enableRoundOff } = store?.posSettings || {};
+
+    // Fetch latest session data when modal opens
+    useEffect(() => {
+        if (isOpen && initialSession?._id) {
+            setFetchingSession(true);
+            api.getCurrentSession()
+                .then((freshSession) => {
+                    if (freshSession) {
+                        setSession(freshSession);
+                    }
+                })
+                .catch((err) => {
+                    console.error('Failed to fetch current session:', err);
+                    // Fall back to initial session if fetch fails
+                })
+                .finally(() => {
+                    setFetchingSession(false);
+                });
+        }
+    }, [isOpen, initialSession?._id]);
+
     const closeModal = () => {
         logout();
         onClose();
@@ -52,12 +78,24 @@ export function EndShiftModal({ isOpen, onClose, session, onSuccess }: EndShiftM
     };
 
     const cashDifference = closingCash
-        ? parseFloat(closingCash) - (session?.openingCash || 0) - (session?.totalSales || 0)
+        ? parseFloat(closingCash) - (enableRoundOff ? Math.ceil(session?.openingCash || 0) : session?.openingCash || 0) - (enableRoundOff ? Math.ceil(session?.paymentBreakdown?.cash || 0) : session?.paymentBreakdown?.cash || 0)
         : 0;
 
-    const expectedCash = (session?.openingCash || 0) + ((session?.paymentBreakdown?.cash || 0));
+    const expectedCash = (session?.openingCash || 0) + (enableRoundOff ? Math.ceil(session?.paymentBreakdown?.cash || 0) : session?.paymentBreakdown?.cash || 0);
 
     if (!isOpen) return null;
+
+    // Show loading while fetching session
+    if (fetchingSession) {
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                <div className="bg-white rounded-lg p-8 flex flex-col items-center gap-4">
+                    <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                    <p className="text-gray-600">Loading session data...</p>
+                </div>
+            </div>
+        );
+    }
 
     // Show summary if shift ended successfully
     if (shiftSummary) {
@@ -97,7 +135,7 @@ export function EndShiftModal({ isOpen, onClose, session, onSuccess }: EndShiftM
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-gray-600">Total Sales:</span>
-                                        <span className="font-semibold text-gray-900">{formatPrice(shiftSummary.totalSales || 0)}</span>
+                                        <span className="font-semibold text-gray-900">{formatPrice(enableRoundOff ? Math.ceil(shiftSummary.totalSales || 0) : shiftSummary.totalSales || 0)}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-gray-600">Total Orders:</span>
@@ -105,11 +143,11 @@ export function EndShiftModal({ isOpen, onClose, session, onSuccess }: EndShiftM
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-gray-600">Opening Cash:</span>
-                                        <span className="font-semibold text-gray-900">{formatPrice(shiftSummary.openingCash || 0)}</span>
+                                        <span className="font-semibold text-gray-900">{formatPrice(enableRoundOff ? Math.ceil(shiftSummary.openingCash || 0) : shiftSummary.openingCash || 0)}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-gray-600">Closing Cash:</span>
-                                        <span className="font-semibold text-gray-900">{formatPrice(shiftSummary.closingCash || 0)}</span>
+                                        <span className="font-semibold text-gray-900">{formatPrice(enableRoundOff ? Math.ceil(shiftSummary.closingCash || 0) : shiftSummary.closingCash || 0)}</span>
                                     </div>
                                     {shiftSummary.paymentBreakdown && (
                                         <>
@@ -118,15 +156,15 @@ export function EndShiftModal({ isOpen, onClose, session, onSuccess }: EndShiftM
                                             </div>
                                             <div className="flex justify-between pl-4">
                                                 <span className="text-gray-600">Cash:</span>
-                                                <span className="font-semibold text-gray-500">{formatPrice(shiftSummary.paymentBreakdown.cash || 0)}</span>
+                                                <span className="font-semibold text-gray-500">{formatPrice(enableRoundOff ? Math.ceil(shiftSummary.paymentBreakdown.cash || 0) : shiftSummary.paymentBreakdown.cash || 0)}</span>
                                             </div>
                                             <div className="flex justify-between pl-4">
                                                 <span className="text-gray-600">Card:</span>
-                                                <span className="font-semibold text-gray-500">{formatPrice(shiftSummary.paymentBreakdown.card || 0)}</span>
+                                                <span className="font-semibold text-gray-500">{formatPrice(enableRoundOff ? Math.ceil(shiftSummary.paymentBreakdown.card || 0) : shiftSummary.paymentBreakdown.card || 0)}</span>
                                             </div>
                                             <div className="flex justify-between pl-4">
                                                 <span className="text-gray-600">UPI:</span>
-                                                <span className="font-semibold text-gray-500">{formatPrice(shiftSummary.paymentBreakdown.upi || 0)}</span>
+                                                <span className="font-semibold text-gray-500">{formatPrice(enableRoundOff ? Math.ceil(shiftSummary.paymentBreakdown.upi || 0) : shiftSummary.paymentBreakdown.upi || 0)}</span>
                                             </div>
                                         </>
                                     )}
@@ -190,19 +228,19 @@ export function EndShiftModal({ isOpen, onClose, session, onSuccess }: EndShiftM
                             <div className="grid grid-cols-2 gap-3 text-sm">
                                 <div>
                                     <p className="text-gray-600">Opening Cash:</p>
-                                    <p className="font-semibold text-gray-600">{formatPrice(session?.openingCash || 0)}</p>
+                                    <p className="font-semibold text-gray-600">{formatPrice(enableRoundOff ? Math.ceil(session?.openingCash || 0) : session?.openingCash || 0)}</p>
                                 </div>
                                 <div>
                                     <p className="text-gray-600">Total Sales:</p>
-                                    <p className="font-semibold text-gray-600">{formatPrice(session?.totalSales || 0)}</p>
+                                    <p className="font-semibold text-gray-600">{formatPrice(enableRoundOff ? Math.ceil(session?.totalSales || 0) : session?.totalSales || 0)}</p>
                                 </div>
                                 <div>
                                     <p className="text-gray-600">Cash Sales:</p>
-                                    <p className="font-semibold text-gray-600">{formatPrice(session?.paymentBreakdown?.cash || 0)}</p>
+                                    <p className="font-semibold text-gray-600">{formatPrice(enableRoundOff ? Math.ceil(session?.paymentBreakdown?.cash || 0) : session?.paymentBreakdown?.cash || 0)}</p>
                                 </div>
                                 <div>
                                     <p className="text-gray-600">Expected Cash:</p>
-                                    <p className="font-semibold text-green-600">{formatPrice(expectedCash)}</p>
+                                    <p className="font-semibold text-green-600">{formatPrice(enableRoundOff ? Math.ceil(expectedCash) : expectedCash)}</p>
                                 </div>
                             </div>
                         </div>
@@ -226,7 +264,7 @@ export function EndShiftModal({ isOpen, onClose, session, onSuccess }: EndShiftM
                                 <p className={`text-sm mt-1 ${cashDifference === 0 ? 'text-green-600' : 'text-orange-600'}`}>
                                     {cashDifference === 0
                                         ? '✓ Cash matches expected amount'
-                                        : `${cashDifference > 0 ? 'Overage' : 'Shortage'}: $${Math.abs(cashDifference).toFixed(2)}`
+                                        : `${cashDifference > 0 ? 'Overage' : 'Shortage'}: ${formatPrice(enableRoundOff ? Math.ceil(Math.abs(cashDifference)) : Math.abs(cashDifference))}`
                                     }
                                 </p>
                             )}

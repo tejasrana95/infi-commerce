@@ -34,7 +34,7 @@ export interface Order {
     guestEmail?: string;
     orderNumber: string;
     items: OrderItem[];
-
+    isPOSOrder?: boolean;
     // Pricing
     subtotal: number;
     shippingCost: number;

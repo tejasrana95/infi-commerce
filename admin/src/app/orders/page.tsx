@@ -57,6 +57,7 @@ export default function OrdersPage() {
     const [dateRange, setDateRange] = useState<string>('');
     const [startDate, setStartDate] = useState<string>('');
     const [endDate, setEndDate] = useState<string>('');
+    const [filterChannel, setFilterChannel] = useState<string>('');
 
     // Debounce search
     useEffect(() => {
@@ -82,6 +83,7 @@ export default function OrdersPage() {
                 if (startDate) params.append('startDate', startDate);
                 if (endDate) params.append('endDate', endDate);
             }
+            if (filterChannel) params.append('channel', filterChannel);
             if (sortModel.length > 0) {
                 params.append('sortBy', sortModel[0].field);
                 params.append('sortOrder', sortModel[0].sort || 'desc');
@@ -97,7 +99,7 @@ export default function OrdersPage() {
         } finally {
             setLoading(false);
         }
-    }, [paginationModel, debouncedSearch, filterStatus, filterPaymentStatus, dateRange, startDate, endDate, sortModel, showNotification]);
+    }, [paginationModel, debouncedSearch, filterStatus, filterPaymentStatus, dateRange, startDate, endDate, filterChannel, sortModel, showNotification]);
 
     useEffect(() => {
         fetchOrders();
@@ -147,7 +149,7 @@ export default function OrdersPage() {
             const customer = order.customerId as { firstName: string; lastName: string };
             return `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'Unknown';
         }
-        return order.guestEmail ? 'Guest' : 'Unknown';
+        return order.guestEmail ? 'Guest' : order.isPOSOrder ? 'Walk-in Customer' : 'Unknown';
     };
 
     const getCustomerEmail = (order: Order): string => {
@@ -184,6 +186,20 @@ export default function OrdersPage() {
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                         {new Date(params.value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </Typography>
+                </Box>
+            ),
+        },
+         {
+            field: 'channel',
+            headerName: 'Channel',
+            
+            minWidth: 100,
+            sortable: false,
+            renderCell: (params: GridRenderCellParams) => (
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+                    <Typography variant="body2" fontWeight={500}>
+                        {params.row?.isPOSOrder ? 'POS' : 'Web'}
                     </Typography>
                 </Box>
             ),
@@ -350,6 +366,20 @@ export default function OrdersPage() {
                             <MenuItem value="paid">Paid</MenuItem>
                             <MenuItem value="failed">Failed</MenuItem>
                             <MenuItem value="refunded">Refunded</MenuItem>
+                        </Select>
+                    </FormControl>
+
+                      {/* Payment Status */}
+                    <FormControl size="small" sx={{ minWidth: 140 }}>
+                        <InputLabel>Channel</InputLabel>
+                        <Select
+                            value={filterChannel}
+                            label="Channel"
+                            onChange={(e) => setFilterChannel(e.target.value)}
+                        >
+                            <MenuItem value="">All</MenuItem>
+                            <MenuItem value="web">Web</MenuItem>
+                            <MenuItem value="pos">POS</MenuItem>
                         </Select>
                     </FormControl>
 

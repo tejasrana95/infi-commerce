@@ -18,7 +18,6 @@ const paymentIcons = {
 export default function OrderCard({ order, onClick }: OrderCardProps) {
     const { formatPrice } = useCurrency();
     const PaymentIcon = paymentIcons[order.paymentMethod];
-
     return (
         <button
             onClick={onClick}
@@ -39,7 +38,7 @@ export default function OrderCard({ order, onClick }: OrderCardProps) {
             {/* Customer */}
             <div className="flex items-center gap-2 text-sm text-slate-700 mb-3">
                 <User className="w-4 h-4 text-slate-400" />
-                <span>{order.customer ? order.customer.name : 'Walk-in Customer'}</span>
+                <span>{order.customerId ? order.customerId?.firstName + ' ' + order.customerId?.lastName : 'Walk-in Customer'}</span>
             </div>
 
             {/* Footer */}

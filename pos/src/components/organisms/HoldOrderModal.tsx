@@ -7,6 +7,7 @@ import Input from '../atoms/Input';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useHoldStore } from '@/store/holdStore';
 import { useCartStore } from '@/store/cartStore';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 interface HoldOrderModalProps {
     isOpen: boolean;
@@ -16,13 +17,18 @@ interface HoldOrderModalProps {
 export function HoldOrderModal({ isOpen, onClose }: HoldOrderModalProps) {
     const [customerIdentifier, setCustomerIdentifier] = useState('');
     const [notes, setNotes] = useState('');
-    const { items, getSubtotal, getTaxTotal, getTotal, clearCart } = useCartStore();
+    const { items, getSubtotal, getTaxTotal, getTotal, clearCart, customer } = useCartStore();
     const { holdOrder } = useHoldStore();
-
+    const { formatPrice } = useCurrency();
     const handleHold = (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!customerIdentifier.trim()) {
+        // Use customer name if customer is selected, otherwise use manual identifier
+        const finalCustomerIdentifier = customer 
+            ? customer.name 
+            : customerIdentifier.trim();
+
+        if (!finalCustomerIdentifier) {
             return;
         }
 
@@ -31,12 +37,13 @@ export function HoldOrderModal({ isOpen, onClose }: HoldOrderModalProps) {
         }
 
         holdOrder(
-            customerIdentifier.trim(),
+            finalCustomerIdentifier,
             items,
             getSubtotal(),
             getTaxTotal(),
             getTotal(),
-            notes.trim() || undefined
+            notes.trim() || undefined,
+            customer
         );
 
         clearCart();
@@ -75,22 +82,47 @@ export function HoldOrderModal({ isOpen, onClose }: HoldOrderModalProps) {
                     {/* Body */}
                     <form onSubmit={handleHold} className="p-6">
                         <p className="text-gray-600 mb-4 text-sm">
-                            Save this order to retrieve later. Enter customer name or phone number.
+                            {customer 
+                                ? `Holding order for ${customer.name}. Add optional notes below.`
+                                : 'Save this order to retrieve later. Enter customer name or phone number.'
+                            }
                         </p>
 
-                        <div className="mb-4">
-                            <label className="block text-sm font-semibold mb-2">
-                                Customer Name / Phone *
-                            </label>
-                            <Input
-                                type="text"
-                                value={customerIdentifier}
-                                onChange={(e) => setCustomerIdentifier(e.target.value)}
-                                placeholder="Enter customer name or phone"
-                                required
-                                autoFocus
-                            />
-                        </div>
+                        {/* Only show customer identifier input if no customer is selected */}
+                        {!customer && (
+                            <div className="mb-4">
+                                <label className="block text-sm font-semibold mb-2">
+                                    Customer Name / Phone *
+                                </label>
+                                <Input
+                                    type="text"
+                                    value={customerIdentifier}
+                                    onChange={(e) => setCustomerIdentifier(e.target.value)}
+                                    placeholder="Enter customer name or phone"
+                                    required
+                                    autoFocus
+                                />
+                            </div>
+                        )}
+
+                        {/* Show customer info if selected */}
+                        {customer && (
+                            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-sm">
+                                        {customer.name.charAt(0)}
+                                    </div>
+                                    <div>
+                                        <div className="font-semibold text-sm">{customer.name}</div>
+                                        {(customer.phone || customer.email) && (
+                                            <div className="text-xs text-gray-600">
+                                                {customer.phone || customer.email}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="mb-6">
                             <label className="block text-sm font-semibold mb-2">
@@ -102,7 +134,9 @@ export function HoldOrderModal({ isOpen, onClose }: HoldOrderModalProps) {
                                 placeholder="Any special notes..."
                                 className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 rows={2}
+                                autoFocus={!!customer}
                             />
+                        
                         </div>
 
                         <div className="bg-gray-50 rounded-lg p-3 mb-4">
@@ -112,7 +146,7 @@ export function HoldOrderModal({ isOpen, onClose }: HoldOrderModalProps) {
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-gray-600">Total:</span>
-                                <span className="font-semibold">${getTotal().toFixed(2)}</span>
+                                <span className="font-semibold">{formatPrice(getTotal())}</span>
                             </div>
                         </div>
 

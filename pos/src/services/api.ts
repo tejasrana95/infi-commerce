@@ -127,7 +127,7 @@ class POCApiService {
     }
 
     /**
-     * Create POC order (checkout)
+     * Create POS order (checkout)
      */
     async checkout(orderData: {
         items: any[];
@@ -141,56 +141,66 @@ class POCApiService {
         notes?: string;
         priceOverrides?: any[];
         discountsApplied?: any[];
+        currency?: string;
+        discount?: number;
     }): Promise<{ success: boolean; orderId: string; orderNumber: string }> {
         const sessionId = await this.getCurrentSession().then(s => s?._id);
+        const storeId = this.getStoreId();
 
-        const response = await apiClient.post('/orders', {
-            isPOCOrder: true,
-            pocSessionId: sessionId,
+        // Build items with full details for order consistency
+        const orderItems = orderData.items.map(item => ({
+            productId: item.productId,
+            variantId: item.variantId,
+            quantity: item.quantity,
+            // Include item details for reference (backend will validate/override from product)
+            name: item.name,
+            sku: item.sku,
+            price: item.price,
+            image: item.image,
+            attributes: item.attributes,
+        }));
+
+        const response = await apiClient.post('/orders/admin/create', {
+            storeId,
+            isPOSOrder: true,
+            posSessionId: sessionId,
             customerId: orderData.customer?.id,
-            items: orderData.items.map(item => ({
-                productId: item.productId,
-                variantId: item.variantId,
-                name: item.name,
-                sku: item.sku,
-                price: item.price,
-                quantity: item.quantity,
-                image: item.image,
-                attributes: item.attributes,
-            })),
+            items: orderItems,
             subtotal: orderData.subtotal,
             shippingCost: 0,
             tax: orderData.tax,
-            total: orderData.total,
+            discount: orderData.discount || 0,
+            total: orderData.total, // Include the calculated total
             roundOffAmount: orderData.roundOffAmount || 0,
             paymentMethod: orderData.paymentMethod,
             paymentStatus: 'paid',
-            status: 'processing',
-            currency: 'USD', // Should come from store settings
-            exchangeRate: 1,
+            status: 'delivered', // POS orders are delivered immediately
+            currency: orderData.currency || 'USD', // Use provided currency or default
             priceOverrides: orderData.priceOverrides,
             discountsApplied: orderData.discountsApplied,
             customerNote: orderData.notes,
-            // Minimal shipping/billing for POC orders
+            // Minimal shipping/billing for POS orders
             shippingAddress: {
-                firstName: orderData.customer?.name || 'Walk-in',
-                lastName: 'Customer',
+                firstName: orderData.customer?.name?.split(' ')[0] || 'Walk-in',
+                lastName: orderData.customer?.name?.split(' ').slice(1).join(' ') || 'Customer',
                 address1: 'In-store purchase',
                 city: 'N/A',
                 state: 'N/A',
-                country: 'US',
-                postalCode: '00000',
+                country: 'IN',
+                postalCode: '000000',
                 phone: orderData.customer?.phone || '0000000000',
+                email: orderData.customer?.email || '',
             },
             billingAddress: {
-                firstName: orderData.customer?.name || 'Walk-in',
-                lastName: 'Customer',
+                firstName: orderData.customer?.name?.split(' ')[0] || 'Walk-in',
+                lastName: orderData.customer?.name?.split(' ').slice(1).join(' ') || 'Customer',
                 address1: 'In-store purchase',
                 city: 'N/A',
                 state: 'N/A',
-                country: 'US',
-                postalCode: '00000',
+                country: 'IN',
+                postalCode: '000000',
                 phone: orderData.customer?.phone || '0000000000',
+                email: orderData.customer?.email || '',
             },
         });
 
@@ -199,6 +209,31 @@ class POCApiService {
             orderId: response.data.data._id,
             orderNumber: response.data.data.orderNumber,
         };
+    }
+
+    /**
+     * Get POS orders with optional filters
+     */
+    async getOrders(params?: {
+        page?: number;
+        limit?: number;
+        status?: string;
+        search?: string;
+        dateRange?: string;
+        posUserId?: string;
+    }) {
+        const queryParams = new URLSearchParams();
+        queryParams.append('isPOSOrder', 'true');
+        
+        if (params?.page) queryParams.append('page', String(params.page));
+        if (params?.limit) queryParams.append('limit', String(params.limit));
+        if (params?.status) queryParams.append('status', params.status);
+        if (params?.search) queryParams.append('search', params.search);
+        if (params?.dateRange) queryParams.append('dateRange', params.dateRange);
+        if (params?.posUserId) queryParams.append('posUserId', params.posUserId);
+
+        const response = await apiClient.get(`/orders?${queryParams.toString()}`);
+        return response.data;
     }
 
     /**
@@ -248,22 +283,35 @@ class POCApiService {
     /**
      * Create a new customer
      */
-    async createCustomer(data: { name: string; email?: string; phone?: string }): Promise<any> {
-        // Split name into first and last for backend
-        const names = data.name.trim().split(/\s+/);
-        const firstName = names[0];
-        const lastName = names.slice(1).join(' ') || 'Customer';
-
+    async createCustomer(data: { 
+        firstName: string; 
+        lastName: string; 
+        email: string; 
+        phone?: string;
+    }): Promise<any> {
         const response = await apiClient.post('/customers', {
-            firstName,
-            lastName,
-            email: data.email || `walkin_${Date.now()}@infitechnology.local`,
-            password: 'PocCustomer123!', // Default password for POC-created customers
-            phone: data.phone,
+            firstName: data.firstName.trim(),
+            lastName: data.lastName.trim(),
+            email: data.email.trim().toLowerCase(),
+            password: `PocCustomer_${Date.now()}`, // Auto-generate password
+            phone: data.phone || undefined,
             isActive: true,
         });
 
         return this.transformCustomer(response.data.data);
+    }
+
+    /**
+     * Get customer by ID
+     */
+    async getCustomerById(customerId: string): Promise<any> {
+        try {
+            const response = await apiClient.get(`/customers/${customerId}`);
+            return this.transformCustomer(response.data.data);
+        } catch (error) {
+            console.error('Failed to fetch customer:', error);
+            return null;
+        }
     }
 
     /**
@@ -340,6 +388,69 @@ class POCApiService {
                 }),
             };
         });
+    }
+
+    /**
+     * Held Orders Management
+     */
+    
+    /**
+     * Create a held order
+     */
+    async createHeldOrder(data: {
+        customerIdentifier: string;
+        customerId?: string;
+        items: any[];
+        subtotal: number;
+        tax: number;
+        total: number;
+        notes?: string;
+    }) {
+        const response = await apiClient.post('/pos/held-orders', data);
+        return response.data.data;
+    }
+
+    /**
+     * Get all held orders (optionally filter by assignedToMe)
+     */
+    async getHeldOrders(assignedToMe: boolean = false) {
+        const params = assignedToMe ? '?assignedToMe=true' : '';
+        const response = await apiClient.get(`/pos/held-orders${params}`);
+        return response.data.data || [];
+    }
+
+    /**
+     * Transfer held order to another user
+     */
+    async transferHeldOrder(orderId: string, targetUserId: string) {
+        const response = await apiClient.put(`/pos/held-orders/${orderId}/transfer`, {
+            targetUserId,
+        });
+        return response.data.data;
+    }
+
+    /**
+     * Mark held order as resumed
+     */
+    async resumeHeldOrder(orderId: string) {
+        const response = await apiClient.put(`/pos/held-orders/${orderId}/resume`);
+        return response.data.data;
+    }
+
+    /**
+     * Delete held order
+     */
+    async deleteHeldOrder(orderId: string) {
+        const response = await apiClient.delete(`/pos/held-orders/${orderId}`);
+        return response.data;
+    }
+
+    /**
+     * Get all POS users (for transfer functionality)
+     */
+    async getPOSUsers() {
+        const response = await apiClient.get('/pos/users');
+        return response.data.data || [];
     }
 }
 

@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import api from '@/services/api';
+import { useStore } from '@/contexts/StoreContext';
 
 interface CheckoutModalProps {
     isOpen: boolean;
@@ -16,31 +17,41 @@ interface CheckoutModalProps {
 }
 
 type PaymentMethod = 'cash' | 'card' | 'upi';
-
 export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps) {
-    const { items, getTotal, getSubtotal, getTaxTotal, clearCart, customer } = useCartStore(); // Added customer
+    const { items, getTotal, getSubtotal, getTaxTotal, clearCart, customer } = useCartStore();
     const { formatPrice, baseCurrency } = useCurrency();
     const total = getTotal();
     const subtotal = getSubtotal();
     const tax = getTaxTotal();
-    const grandTotal = total;
+    const { store } = useStore();
+    const {requireCustomerDetails, allowQuickCheckout, defaultPaymentMethod, enableRoundOff } = store?.posSettings || {};
+    const grandTotal = enableRoundOff ? Math.ceil(total) : total;
+    const [customerError, setCustomerError] = useState('');
 
-    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
+    console.log('defaultPaymentMethod', defaultPaymentMethod);
+    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(defaultPaymentMethod || 'cash');
     const [processing, setProcessing] = useState(false);
     const [completed, setCompleted] = useState(false);
     const [cashGiven, setCashGiven] = useState<string>('');
-    const mountTime = useRef(Date.now());
+    const mountTime = useRef<number | null>(null);
 
     // Reset mount time when modal opens
     useEffect(() => {
         if (isOpen) {
             mountTime.current = Date.now();
+        } else {
+            mountTime.current = null;
         }
     }, [isOpen]);
 
     const handlePayment = async () => {
+        setCustomerError('');
+        if (requireCustomerDetails && !customer) {
+            setCustomerError('Customer details are required for checkout.');
+            return;
+        }
         // Debounce: prevent triggering immediately upon open if keys are held
-        if (Date.now() - mountTime.current < 400) return;
+        if (mountTime.current && Date.now() - mountTime.current < 400) return;
 
         setProcessing(true);
         try {
@@ -57,9 +68,10 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
                 })),
                 subtotal: subtotal,
                 tax: tax,
-                total: grandTotal,
+                total: enableRoundOff ? Math.round(total) : total,
                 paymentMethod,
-                customer: customer || undefined
+                customer: customer || undefined,
+                currency: baseCurrency?.code || 'INR', // Use store's base currency
             });
             setProcessing(false);
             setCompleted(true);
@@ -86,12 +98,12 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
 
     // Shortcuts within Modal
     useKeyboardShortcuts([
-        // Fast Finish in Modal (Pay)
+        // Fast Finish in Modal (Pay) - only if allowQuickCheckout is enabled
         {
             key: 'Enter',
             ctrlKey: true,
             action: () => {
-                if (!completed && !processing && isOpen) handlePayment();
+                if (!completed && !processing && isOpen && allowQuickCheckout) handlePayment();
             }
         },
         // Print in Success State
@@ -230,13 +242,16 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
                                     )}
                                 </div>
 
+                                {customerError && (
+                                    <div className="text-red-600 font-semibold mb-2 text-center">{customerError}</div>
+                                )}
                                 <button
                                     onClick={handlePayment}
-                                    disabled={processing}
+                                    disabled={processing || (requireCustomerDetails && !customer)}
                                     className="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xl shadow-lg shadow-blue-900/20 active:translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
                                 >
                                     {processing ? "Processing..." : `Complete ${paymentMethod === 'cash' ? 'Cash' : ''} Payment`}
-                                    <span className="text-xs bg-black/20 px-2 py-1 rounded font-mono font-normal opacity-80 border border-white/10">Ctrl+Enter</span>
+                                    {allowQuickCheckout && <span className="text-xs bg-black/20 px-2 py-1 rounded font-mono font-normal opacity-80 border border-white/10">Ctrl+Enter</span>}
                                 </button>
                             </>
                         ) : (

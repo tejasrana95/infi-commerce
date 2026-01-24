@@ -9,6 +9,7 @@ import CustomerSelectionModal from './CustomerSelectionModal';
 import { HoldOrderModal } from './HoldOrderModal';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { useStore } from '@/contexts/StoreContext';
 import CartItem from '../molecules/CartItem';
 import Badge from '../atoms/Badge';
 import Button from '../atoms/Button';
@@ -17,6 +18,8 @@ import Avatar from '../atoms/Avatar';
 export default function CartPanel() {
     const { items, getTotal, removeFromCart, updateQuantity, clearCart, customer, setCustomer } = useCartStore();
     const { formatPrice } = useCurrency();
+    const { store } = useStore();
+    const allowQuickCheckout = store?.posSettings?.allowQuickCheckout ?? true;
     const total = getTotal();
 
     // Calculate subtotal and tax locally to ensure reactivity and handle edge cases
@@ -33,7 +36,7 @@ export default function CartPanel() {
             key: 'Enter',
             ctrlKey: true,
             action: () => {
-                if (items.length > 0) setIsCheckoutOpen(true);
+                if (items.length > 0 && allowQuickCheckout) setIsCheckoutOpen(true);
             }
         },
         {
@@ -126,26 +129,25 @@ export default function CartPanel() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-4 gap-2 h-14">
-                    <Button
-                        variant="outline"
-                        className="col-span-1 flex flex-col items-center justify-center gap-1 text-xs"
-                        onClick={() => setIsHoldOrderOpen(true)}
-                        disabled={items.length === 0}
-                        title="Hold Order (F3)"
-                    >
-                        <Package className="w-5 h-5" />
-                    </Button>
-                    <Button
-                        variant="primary"
-                        className="col-span-3 text-lg flex items-center justify-center gap-2"
-                        disabled={items.length === 0}
-                        onClick={() => setIsCheckoutOpen(true)}
-                    >
-                        Pay {formatPrice(total)}
-                        <span className="text-xs bg-black/20 px-2 py-0.5 rounded font-mono font-normal">Ctrl+Enter</span>
-                    </Button>
-                </div>
+                <Button
+                    variant="primary"
+                    className="w-full h-14 text-lg flex items-center justify-center gap-2"
+                    disabled={items.length === 0}
+                    onClick={() => setIsCheckoutOpen(true)}
+                >
+                    Pay {formatPrice(total)}
+                    {allowQuickCheckout && <span className="text-xs bg-black/20 px-2 py-0.5 rounded font-mono font-normal">Ctrl+Enter</span>}
+                </Button>
+                <Button
+                    variant="outline"
+                    className="w-full h-12 flex items-center justify-center gap-2 text-sm mt-2"
+                    disabled={items.length === 0}
+                    onClick={() => setIsHoldOrderOpen(true)}
+                    title="Hold Current Order (F3)"
+                >
+                    <Package className="w-4 h-4" />
+                    Hold Order
+                </Button>
             </div>
 
             {/* Checkout Modal */}

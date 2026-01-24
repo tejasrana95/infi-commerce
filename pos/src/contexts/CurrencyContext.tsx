@@ -88,7 +88,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     );
 
     const formatPrice = useCallback(
-        (amount: number, currencyCode?: string): string => {
+        (amount: number = 0, currencyCode?: string): string => {
             // Use specified currency or fall back to base currency
             const currency = currencyCode
                 ? getCurrencyByCode(currencyCode)
@@ -100,7 +100,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
 
             // Format the number
             const decimalPlaces = currency.decimalPlaces ?? 2;
-            const parts = amount.toFixed(decimalPlaces).split('.');
+            const parts = amount?.toFixed(decimalPlaces).split('.');
 
             // Add thousands separator
             const integerPart = parts[0].replace(

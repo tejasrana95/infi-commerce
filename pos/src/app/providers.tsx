@@ -9,7 +9,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             <UserProvider>
                 <AuthProvider>
                     <CurrencyProvider>
-                        {children}
+                            {children}
                     </CurrencyProvider>
                 </AuthProvider>
             </UserProvider>

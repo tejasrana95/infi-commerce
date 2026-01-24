@@ -155,7 +155,7 @@ router.post('/create', optionalAuth, validate(createOrderValidation), createOrde
 router.post(
     '/admin/create',
     authenticate,
-    authorize('admin', 'store_admin', 'super_admin'),
+    authorize('admin', 'store_admin', 'super_admin', 'pos_user'),
     validate(adminCreateOrderValidation),
     adminCreateOrder
 );
@@ -337,7 +337,7 @@ router.get('/user/me', authenticate, getUserOrders);
  *       403:
  *         description: Forbidden
  */
-router.get('/', authenticate, authorize('admin', 'store_admin', 'super_admin'), getAllOrders);
+router.get('/', authenticate, authorize('admin', 'store_admin', 'super_admin', 'pos_user'), getAllOrders);
 
 /**
  * @swagger

@@ -39,7 +39,6 @@ const LoginPage = memo(() => {
         e.preventDefault();
         setError('');
         setLoading(true);
-
         try {
             // Call backend admin authentication endpoint
             const response = await apiClient.post('/auth/admin/login', {
@@ -61,11 +60,17 @@ const LoginPage = memo(() => {
             // Set store ID if user has store
             if (user.storeIds && user.storeIds.length > 0) {
                 storeId = user.storeIds[0];
+
                 setStoreId(storeId);
 
                 // Fetch store name
                 try {
                     const storeData = await api.getStoreData(storeId);
+                    if (storeData && storeData?.posSettings?.enabled === false) {
+                        setError('The Point of Sale is disabled for this store. Please contact your system administrator.');
+                        setLoading(false);
+                        return;
+                    }
                     storeName = storeData.name;
                 } catch (storeErr) {
                     console.error('Failed to fetch store name:', storeErr);

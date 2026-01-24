@@ -11,6 +11,12 @@ interface Store {
     currency: string;
     timezone: string;
     settings?: any;
+    posSettings?: {
+        requireCustomerDetails: boolean;
+        allowQuickCheckout: boolean;
+        defaultPaymentMethod: string;
+        enableRoundOff: boolean;
+    }
 }
 
 interface StoreContextType {

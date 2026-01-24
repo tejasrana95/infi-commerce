@@ -16,6 +16,7 @@ import { transactionalNotificationService } from '../services/transactional-noti
 import { notificationService } from '../services/notification.service';
 import InventoryService from '../services/inventory.service';
 import { emitOrderEvent } from '../events';
+import posService from '../services/pos.service';
 
 /**
  * Validation rules
@@ -62,12 +63,18 @@ export const adminCreateOrderValidation = [
     body('shippingAddress.phone').trim().notEmpty(),
     body('billingAddress').isObject().withMessage('Billing address is required'),
     body('paymentMethod')
-        .isIn(['razorpay', 'stripe', 'paypal', 'cod'])
+        .isIn(['razorpay', 'stripe', 'paypal', 'cod', 'cash', 'card', 'upi'])
         .withMessage('Valid payment method is required'),
     body('paymentStatus')
         .optional()
         .isIn(['pending', 'paid', 'failed', 'refunded'])
         .withMessage('Valid payment status is required'),
+    // POS specific fields
+    body('isPOSOrder').optional().isBoolean(),
+    body('posSessionId').optional().isMongoId(),
+    body('roundOffAmount').optional().isNumeric(),
+    body('priceOverrides').optional().isArray(),
+    body('discountsApplied').optional().isArray(),
     body('status')
         .optional()
         .isIn(['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'])
@@ -76,8 +83,8 @@ export const adminCreateOrderValidation = [
 
 /**
  * @route   POST /api/orders/admin/create
- * @desc    Admin creates order directly (no cart required)
- * @access  Private (Admin/Store Admin only)
+ * @desc    Admin creates order directly (no cart required). Also used for POS orders.
+ * @access  Private (Admin/Store Admin/POS User only)
  */
 export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Response) => {
     const {
@@ -96,6 +103,12 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
         tax = 0,
         discount = 0,
         currency = 'USD',
+        // POS specific fields
+        isPOSOrder = false,
+        posSessionId,
+        roundOffAmount = 0,
+        priceOverrides,
+        discountsApplied,
     } = req.body;
 
     // Fetch products and validate
@@ -163,7 +176,7 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
         });
     }
 
-    const total = subtotal + shippingCost + tax - discount;
+    const total = subtotal + shippingCost + tax - discount + roundOffAmount;
 
     // Get exchange rate for the order currency
     const currencyDoc = await Currency.findOne({ code: currency.toUpperCase(), isActive: true });
@@ -172,11 +185,21 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
     // Generate order number
     const orderNumber = await generateOrderNumber();
 
+    // Ensure customerId is a string if it exists
+    let customerIdToUse: mongoose.Types.ObjectId | undefined;
+    if (customerId) {
+        // Handle both string and ObjectId inputs
+        const idString = typeof customerId === 'string' ? customerId : customerId.toString();
+        if (mongoose.Types.ObjectId.isValid(idString)) {
+            customerIdToUse = new mongoose.Types.ObjectId(idString);
+        }
+    }
+
     // Create order
     const order = await Order.create({
         storeId: new mongoose.Types.ObjectId(storeId),
-        customerId: customerId ? new mongoose.Types.ObjectId(customerId) : undefined, // Link to customer if provided
-        guestEmail: customerId ? undefined : guestEmail?.toLowerCase(), // Only for guest orders
+        customerId: customerIdToUse,
+        guestEmail: customerIdToUse ? undefined : guestEmail?.toLowerCase(), // Only for guest orders
         orderNumber,
         items: orderItems,
         subtotal,
@@ -193,11 +216,32 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
         status,
         customerNote,
         adminNote,
+        // POS specific fields
+        isPOSOrder: isPOSOrder || false,
+        posSessionId: posSessionId ? new mongoose.Types.ObjectId(posSessionId) : undefined,
+        posUserId: isPOSOrder ? new mongoose.Types.ObjectId(req.user!.id) : undefined,
+        roundOffAmount: roundOffAmount || 0,
+        priceOverrides,
+        discountsApplied,
     });
 
     // Reduce stock if payment is marked as paid
     if (paymentStatus === 'paid') {
         await InventoryService.reduceStock(orderItems);
+    }
+
+    // Update POS session totals if this is a POS order
+    if (isPOSOrder && posSessionId) {
+        try {
+            await posService.updateSessionTotals(
+                new mongoose.Types.ObjectId(posSessionId),
+                total,
+                paymentMethod as 'cash' | 'card' | 'upi'
+            );
+        } catch (err) {
+            console.error('Failed to update POS session totals:', err);
+            // Don't fail the order creation if session update fails
+        }
     }
 
     // Emit order creation event
@@ -969,12 +1013,28 @@ export const getAllOrders = asyncHandler(async (req: AuthRequest, res: Response)
         startDate,
         endDate,
         sortBy = 'createdAt',
-        sortOrder = 'desc'
+        sortOrder = 'desc',
+        channel = '',
+        // POS filters
+        isPOSOrder,
+        posUserId,
     } = req.query;
 
     const filter: any = {};
     if (status) filter.status = status;
     if (paymentStatus) filter.paymentStatus = paymentStatus;
+
+    // POS filters
+    if (isPOSOrder === 'true' || channel === 'pos') {
+        filter.isPOSOrder = true;
+    } else if (isPOSOrder === 'false') {
+        filter.isPOSOrder = { $ne: true };
+    } else if (channel === 'web') {
+        filter.isPOSOrder = { $ne: true };
+    }
+    if (posUserId) {
+        filter.posUserId = new mongoose.Types.ObjectId(String(posUserId));
+    }
 
     const isStoreAdmin = req.user?.role === 'store_admin';
     const assignedStoreIds = req.user?.storeIds || [];

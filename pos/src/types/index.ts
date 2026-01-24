@@ -56,8 +56,11 @@ export interface CartItem {
 }
 
 export interface Customer {
+    _id?: string;
     id: string;
     name: string;
+    firstName: string;
+    lastName: string;
     email?: string;
     phone?: string;
     totalOrders: number;
@@ -65,8 +68,10 @@ export interface Customer {
 }
 
 export interface User {
+    _id: string;
     id: string;
     email: string;
+    name: string;
     firstName: string;
     lastName: string;
     role: string;
@@ -84,7 +89,7 @@ export interface POCSession {
     status: 'active' | 'closed';
 }
 
-export type OrderStatus = 'completed' | 'pending' | 'cancelled' | 'refunded';
+export type OrderStatus = 'completed' | 'pending' | 'cancelled' | 'refunded' | 'delivered';
 
 export interface OrderItem {
     productId: string;
@@ -104,7 +109,7 @@ export interface Order {
     orderNumber: string;
     date: string;
     status: OrderStatus;
-    customer: Customer | null;
+    customerId: string | Customer | null;
     items: OrderItem[];
     subtotal: number;
     tax: number;
