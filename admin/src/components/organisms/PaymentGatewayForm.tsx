@@ -31,6 +31,7 @@ const schema = z.object({
     gatewayName: z.string().min(1, 'Gateway name is required'),
     geoGroupId: z.string().optional(),
     description: z.string().optional(),
+    channels: z.array(z.string()).optional(),
     isActive: z.boolean(),
     isTestMode: z.boolean(),
     priority: z.number().min(0),
@@ -90,6 +91,7 @@ export default function PaymentGatewayForm({ initialData, onSubmit, isSubmitting
             gatewayName: '',
             geoGroupId: '',
             description: '',
+            channels: [],
             isActive: true,
             isTestMode: true,
             priority: 0,
@@ -155,6 +157,7 @@ export default function PaymentGatewayForm({ initialData, onSubmit, isSubmitting
             setValue('gatewayName', initialData.gatewayName || '');
             setValue('geoGroupId', typeof initialData.geoGroupId === 'object' ? initialData.geoGroupId._id : initialData.geoGroupId || '');
             setValue('description', initialData.description || '');
+            setValue('channels', initialData.channels || []);
             setValue('isActive', initialData.isActive !== undefined ? initialData.isActive : true);
             setValue('isTestMode', initialData.isTestMode !== undefined ? initialData.isTestMode : true);
             setValue('priority', initialData.priority || 0);
@@ -296,6 +299,40 @@ export default function PaymentGatewayForm({ initialData, onSubmit, isSubmitting
                                     helperText="Optional description for this gateway configuration"
                                 />
                             )}
+                        />
+                    </Grid>
+
+                    <Grid size={{ xs: 12 }}>
+                        <Controller
+                            name="channels"
+                            control={control}
+                            render={({ field }) => {
+                                const availableChannels = (process.env.NEXT_PUBLIC_AVAILABLE_CHANNELS || 'WEB,POS,MOB').split(',').map(c => c.trim());
+                                return (
+                                    <FormControl fullWidth>
+                                        <InputLabel>Channels</InputLabel>
+                                        <Select
+                                            {...field}
+                                            multiple
+                                            label="Channels"
+                                            value={field.value || []}
+                                            renderValue={(selected) => (
+                                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                                    {(selected as string[]).map((value) => (
+                                                        <Chip key={value} label={value} size="small" />
+                                                    ))}
+                                                </Box>
+                                            )}
+                                        >
+                                            {availableChannels.map((channel) => (
+                                                <MenuItem key={channel} value={channel}>
+                                                    {channel}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                );
+                            }}
                         />
                     </Grid>
 

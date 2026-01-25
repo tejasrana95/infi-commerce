@@ -106,6 +106,25 @@ export const getGatewayConfigs = asyncHandler(async (req: AuthRequest, res: Resp
         ];
     }
 
+    // Channel filter
+    if (req.channel) {
+        const channelFilter = {
+            $or: [
+                { channels: req.channel },
+                { channels: { $exists: false } },
+                { channels: { $size: 0 } }
+            ]
+        };
+
+        if (filter.$or) {
+            filter.$and = filter.$and || [];
+            filter.$and.push(channelFilter);
+        } else {
+            filter.$and = filter.$and || [];
+            filter.$and.push(channelFilter);
+        }
+    }
+
     const [configs, total] = await Promise.all([
         PaymentGatewayConfig.find(filter)
             .populate('storeId', 'name') // Add store name
@@ -239,11 +258,24 @@ export const getAvailableGateways = asyncHandler(async (req: AuthRequest, res: R
         throw new AppError('Store ID and country are required', 400);
     }
 
+    // We can't directly filter by channel in getAvailableGateways service method effectively 
+    // unless we update the service signature.
+    // However, PaymentService.getAvailableGateways uses PaymentGatewayConfig.find().
+    // Ideally we should pass the channel down.
+
+    // For now, let's just make sure we are not calling this yet before updating the service
+    // Wait, the service call is next. I need to check PaymentService.
+
+    // Let's defer this specific replacement until I check PaymentService.
+    // Actually, I can update the controller to fetch configs first or update the service.
+    // Let's assume for now I will update the service too.
+
     const gateways = await PaymentService.getAvailableGateways({
         storeId,
         country,
         currency,
         amount,
+        channel: req.channel
     });
 
     res.json({

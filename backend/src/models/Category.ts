@@ -34,6 +34,9 @@ export interface ICategory extends Document {
     sortOrder: number;
     isVisible: boolean;
 
+    // Channel Integration
+    channels?: string[];
+
     createdAt: Date;
     updatedAt: Date;
 }
@@ -146,6 +149,13 @@ const CategorySchema = new Schema<ICategory>(
         isVisible: {
             type: Boolean,
             default: true,
+        },
+
+        // Channel Integration
+        channels: {
+            type: [String],
+            index: true,
+            default: [],
         },
     },
     {

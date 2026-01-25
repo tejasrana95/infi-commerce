@@ -15,7 +15,11 @@ export async function getLayoutByType(type: string, storeId: string): Promise<La
         });
 
         const response = await fetch(`${API_BASE}/layouts?${params}`, {
-            next: { revalidate: 300 } // Cache for 5 minutes
+            next: { revalidate: 300 },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB',
+            }
         });
 
         if (!response.ok) return null;
@@ -35,7 +39,11 @@ export async function getLayoutByType(type: string, storeId: string): Promise<La
 export async function getLayoutById(id: string): Promise<Layout | null> {
     try {
         const response = await fetch(`${API_BASE}/layouts/${id}`, {
-            next: { revalidate: 300 }
+            next: { revalidate: 300 },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB',
+            }
         });
 
         if (!response.ok) return null;
@@ -61,7 +69,11 @@ export async function getDefaultLayout(type: string, storeId: string): Promise<L
         });
 
         const response = await fetch(`${API_BASE}/layouts?${params}`, {
-            next: { revalidate: 300 }
+            next: { revalidate: 300 },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB',
+            }
         });
 
         if (!response.ok) return null;

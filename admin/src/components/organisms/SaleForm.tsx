@@ -107,7 +107,10 @@ export default function SaleForm({ initialData, onSubmit, isSubmitting = false }
             setValue('applyTo', initialData.applyTo || 'all');
             setValue('categoryIds', initialData.categoryIds?.map((c: any) => typeof c === 'object' ? c._id : c) || []);
             setValue('productIds', initialData.productIds?.map((p: any) => typeof p === 'object' ? p._id : p) || []);
-
+            setValue('isActive', initialData.isActive !== undefined ? initialData.isActive : true);
+            setValue('priority', initialData.priority || 0);
+            setValue('minPurchaseAmount', initialData.minPurchaseAmount);
+            setValue('maxDiscountAmount', initialData.maxDiscountAmount);
             // Format dates for datetime-local input
             if (initialData.startDate) {
                 const startDate = new Date(initialData.startDate);
@@ -118,30 +121,27 @@ export default function SaleForm({ initialData, onSubmit, isSubmitting = false }
                 setValue('endDate', endDate.toISOString().slice(0, 16));
             }
 
-            setValue('isActive', initialData.isActive !== undefined ? initialData.isActive : true);
-            setValue('priority', initialData.priority || 0);
-            setValue('minPurchaseAmount', initialData.minPurchaseAmount);
-            setValue('maxDiscountAmount', initialData.maxDiscountAmount);
+        }
 
-            // Build name maps from populated data
-            if (initialData.categoryIds) {
-                const catMap: Record<string, string> = {};
-                initialData.categoryIds.forEach((c: any) => {
-                    if (typeof c === 'object' && c._id) {
-                        catMap[c._id] = c.title || c.name;
-                    }
-                });
-                setCategoryNames(catMap);
-            }
-            if (initialData.productIds) {
-                const prodMap: Record<string, string> = {};
-                initialData.productIds.forEach((p: any) => {
-                    if (typeof p === 'object' && p._id) {
-                        prodMap[p._id] = p.name;
-                    }
-                });
-                setProductNames(prodMap);
-            }
+
+        // Build name maps from populated data
+        if (initialData && initialData.categoryIds) {
+            const catMap: Record<string, string> = {};
+            initialData.categoryIds.forEach((c: any) => {
+                if (typeof c === 'object' && c._id) {
+                    catMap[c._id] = c.title || c.name;
+                }
+            });
+            setCategoryNames(catMap);
+        }
+        if (initialData && initialData.productIds) {
+            const prodMap: Record<string, string> = {};
+            initialData.productIds.forEach((p: any) => {
+                if (typeof p === 'object' && p._id) {
+                    prodMap[p._id] = p.name;
+                }
+            });
+            setProductNames(prodMap);
         }
     }, [initialData, setValue]);
 
@@ -492,6 +492,6 @@ export default function SaleForm({ initialData, onSubmit, isSubmitting = false }
                     </Grid>
                 </Grid>
             </Paper>
-        </Box>
+        </Box >
     );
 }

@@ -32,6 +32,7 @@ export interface ICoupon extends Document {
 
     // Status
     isActive: boolean;
+    channels?: string[]; // Channels where this coupon is applicable
 
     createdAt: Date;
     updatedAt: Date;
@@ -133,8 +134,12 @@ const CouponSchema = new Schema<ICoupon>(
         // Status
         isActive: {
             type: Boolean,
-            default: true,
             index: true,
+        },
+        channels: {
+            type: [String],
+            index: true,
+            default: [],
         },
     },
     {

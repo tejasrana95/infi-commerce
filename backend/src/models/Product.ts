@@ -135,6 +135,10 @@ export interface IProduct extends Document {
     barcode?: string;              // Custom barcode if different from SKU
     barcodeGenerated?: boolean;    // Tracks if barcode label was generated
 
+    // Channel Integration
+    channels?: string[]; // Codes of channels where this product is available
+
+
     createdAt: Date;
     updatedAt: Date;
 
@@ -452,6 +456,13 @@ const ProductSchema = new Schema<IProduct>(
         barcodeGenerated: {
             type: Boolean,
             default: false,
+        },
+
+        // Channel Integration
+        channels: {
+            type: [String],
+            index: true,
+            default: [],
         },
     },
     {

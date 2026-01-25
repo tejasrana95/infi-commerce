@@ -44,6 +44,7 @@ const schema = z.object({
     perCustomerLimit: z.number().min(1).optional(),
     startDate: z.string().min(1, 'Start date is required'),
     endDate: z.string().min(1, 'End date is required'),
+    channels: z.array(z.string()).optional(),
     isActive: z.boolean(),
 });
 
@@ -80,6 +81,7 @@ export default function CouponForm({ initialData, onSubmit, isSubmitting = false
             perCustomerLimit: undefined,
             startDate: '',
             endDate: '',
+            channels: [],
             isActive: true,
         },
     });
@@ -115,18 +117,19 @@ export default function CouponForm({ initialData, onSubmit, isSubmitting = false
                 const endDate = new Date(initialData.endDate);
                 setValue('endDate', endDate.toISOString().slice(0, 16));
             }
-
+            setValue('channels', initialData.channels || []);
             setValue('isActive', initialData.isActive !== undefined ? initialData.isActive : true);
-            // Build name maps from populated data
-            if (initialData.categoryIds) {
-                const catMap: Record<string, string> = {};
-                initialData.categoryIds.forEach((c: any) => {
-                    if (typeof c === 'object' && c._id) {
-                        catMap[c._id] = c.name || c.title || c._id;
-                    }
-                });
-                setCategoryNames(catMap);
-            }
+        }
+
+        // Build name maps from populated data
+        if (initialData && initialData.categoryIds) {
+            const catMap: Record<string, string> = {};
+            initialData.categoryIds.forEach((c: any) => {
+                if (typeof c === 'object' && c._id) {
+                    catMap[c._id] = c.name || c.title || c._id;
+                }
+            });
+            setCategoryNames(catMap);
         }
     }, [initialData, setValue]);
 
@@ -233,6 +236,41 @@ export default function CouponForm({ initialData, onSubmit, isSubmitting = false
                                     helperText="Optional: Displayed to customers"
                                 />
                             )}
+                        />
+                    </Grid>
+
+
+                    <Grid size={{ xs: 12 }}>
+                        <Controller
+                            name="channels"
+                            control={control}
+                            render={({ field }) => {
+                                const availableChannels = (process.env.NEXT_PUBLIC_AVAILABLE_CHANNELS || 'WEB,POS,MOB').split(',').map(c => c.trim());
+                                return (
+                                    <FormControl fullWidth>
+                                        <InputLabel>Channels</InputLabel>
+                                        <Select
+                                            {...field}
+                                            multiple
+                                            label="Channels"
+                                            value={field.value || []}
+                                            renderValue={(selected) => (
+                                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                                    {(selected as string[]).map((value) => (
+                                                        <Chip key={value} label={value} size="small" />
+                                                    ))}
+                                                </Box>
+                                            )}
+                                        >
+                                            {availableChannels.map((channel) => (
+                                                <MenuItem key={channel} value={channel}>
+                                                    {channel}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                );
+                            }}
                         />
                     </Grid>
                 </Grid>
@@ -498,6 +536,6 @@ export default function CouponForm({ initialData, onSubmit, isSubmitting = false
                     </Grid>
                 </Grid>
             </Paper>
-        </Box>
+        </Box >
     );
 }

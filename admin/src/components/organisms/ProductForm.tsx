@@ -55,6 +55,7 @@ const schema = z.object({
     brand: z.string().optional(),
     categoryIds: z.array(z.string()).optional(),
     tags: z.array(z.string()).optional(),
+    channels: z.array(z.string()).optional(),
 
     // Pricing
     price: z.number().min(0, 'Price must be positive'),
@@ -203,6 +204,7 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
             brand: '',
             categoryIds: [],
             tags: [],
+            channels: [],
             price: 0,
             salePrice: undefined,
             salePriceStartDate: '',
@@ -356,6 +358,7 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
             setValue('brand', brandId || '');
             setValue('categoryIds', initialData.categoryIds?.map((c: any) => typeof c === 'object' ? c._id : c) || []);
             setValue('tags', initialData.tags || []);
+            setValue('channels', initialData.channels || []);
             setValue('price', initialData.price || 0);
             setValue('salePrice', initialData.salePrice);
             // Convert dates to datetime-local format
@@ -765,6 +768,40 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
                                     ))}
                                 </Box>
                             </Box>
+                        </Grid>
+
+                        <Grid size={{ xs: 12 }}>
+                            <Controller
+                                name="channels"
+                                control={control}
+                                render={({ field }) => {
+                                    const availableChannels = (process.env.NEXT_PUBLIC_AVAILABLE_CHANNELS || 'WEB,POS,MOB').split(',').map(c => c.trim());
+                                    return (
+                                        <FormControl fullWidth>
+                                            <InputLabel>Channels</InputLabel>
+                                            <Select
+                                                {...field}
+                                                multiple
+                                                label="Channels"
+                                                value={field.value || []}
+                                                renderValue={(selected) => (
+                                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                                        {(selected as string[]).map((value) => (
+                                                            <Chip key={value} label={value} size="small" />
+                                                        ))}
+                                                    </Box>
+                                                )}
+                                            >
+                                                {availableChannels.map((channel) => (
+                                                    <MenuItem key={channel} value={channel}>
+                                                        {channel}
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                    );
+                                }}
+                            />
                         </Grid>
                     </Grid>
                 </Paper>

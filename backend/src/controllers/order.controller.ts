@@ -176,7 +176,7 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
         // Apply discount if provided (only for POS orders)
         if (isPOSOrder && item.discountAmount && item.discountType) {
             let discountedBasePrice = basePrice;
-            
+
             if (item.discountType === 'percentage') {
                 // Validate percentage discount is reasonable (0-100)
                 if (item.discountAmount < 0 || item.discountAmount > 100) {
@@ -679,7 +679,7 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
             );
         }
 
-        discount = coupon.calculateDiscount(cart.subtotal, applicableAmount);
+        discount = coupon.calculateDiscount(applicableAmount);
         couponId = coupon._id;
     }
 

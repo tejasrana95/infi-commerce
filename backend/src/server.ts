@@ -9,7 +9,8 @@ import { connectDatabase } from './config/database';
 import { swaggerSpec } from './config/swagger';
 import apiRoutes from './routes';
 import { registerEventHandlers } from './events/handlers';
-
+import { channelMiddleware } from './middleware/channel.middleware';
+import { optionalApiKeyAuth } from './middleware/apiKeyAuth';
 const app: Express = express();
 
 // Middleware
@@ -94,8 +95,11 @@ if (config.env !== 'production') {
 }
 
 // Global API key authentication middleware - validates key if provided, allows if not
-import { optionalApiKeyAuth } from './middleware/apiKeyAuth';
+
 app.use('/api', optionalApiKeyAuth);
+
+// Global Channel Middleware
+app.use('/api', channelMiddleware);
 
 // Mount API routes
 app.use('/api', apiRoutes);

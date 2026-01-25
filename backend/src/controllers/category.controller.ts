@@ -243,6 +243,37 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
         filter.storeId = effectiveStoreId;
     }
 
+    // Channel filter
+    if (req.channel) {
+        // If channel is specified, category must either:
+        // 1. Have this channel in its channels list
+        // 2. Have no channels set (empty list or undefined) -> Visible everywhere
+        const channelFilter = {
+            $or: [
+                { channels: req.channel },
+                { channels: { $exists: false } },
+                { channels: { $size: 0 } }
+            ]
+        };
+
+        if (filter.$or) {
+            filter.$and = filter.$and || [];
+            filter.$and.push(channelFilter);
+        } else {
+            // Check if filter has $or already (from search)
+            // If so, we must combine
+            if (Object.keys(filter).some(k => k === '$or')) {
+                filter.$and = filter.$and || [];
+                filter.$and.push(channelFilter);
+            } else {
+                // Safe to add to top level if no conflicting $or, but wait, Mongo supports $or at top level only if unique
+                // Safest to use $and if we are unsure
+                filter.$and = filter.$and || [];
+                filter.$and.push(channelFilter);
+            }
+        }
+    }
+
     if (req.query.status) {
         filter.status = req.query.status;
     }
@@ -658,6 +689,15 @@ export const getCategoryFilters = asyncHandler(async (req: AuthRequest, res: Res
         storeId: require('mongoose').Types.ObjectId.createFromHexString(storeId as string),
         isActive: true,
     };
+
+    // Channel filter for products aggregation
+    if (req.channel) {
+        baseMatch.$or = [
+            { channels: req.channel },
+            { channels: { $exists: false } },
+            { channels: { $size: 0 } }
+        ];
+    }
 
     // Add category filter if not "all-products"
     if (categoryIds) {

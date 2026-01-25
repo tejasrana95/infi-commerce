@@ -18,6 +18,7 @@ export interface IBrand extends Document {
         score?: number;
     };
     storeId: mongoose.Types.ObjectId;
+    channels?: string[];
     createdAt: Date;
     updatedAt: Date;
 }
@@ -76,9 +77,13 @@ const BrandSchema = new Schema<IBrand>(
         },
         storeId: {
             type: Schema.Types.ObjectId,
-            ref: 'Store',
             required: true,
             index: true,
+        },
+        channels: {
+            type: [String],
+            index: true,
+            default: [],
         },
     },
     {

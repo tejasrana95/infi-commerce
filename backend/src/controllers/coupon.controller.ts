@@ -174,6 +174,26 @@ export const getCoupons = asyncHandler(async (req: AuthRequest, res: Response) =
         ];
     }
 
+    // Channel filter
+    if (req.channel) {
+        // For Admin: filtering list by channel
+        const channelFilter = {
+            $or: [
+                { channels: req.channel },
+                { channels: { $exists: false } }, // Visible everywhere
+                { channels: { $size: 0 } }
+            ]
+        };
+
+        if (filter.$or) {
+            filter.$and = filter.$and || [];
+            filter.$and.push(channelFilter);
+        } else {
+            filter.$and = filter.$and || [];
+            filter.$and.push(channelFilter);
+        }
+    }
+
     const skip = (Number(page) - 1) * Number(limit);
 
     const [coupons, total] = await Promise.all([
@@ -369,6 +389,16 @@ export const validateCoupon = asyncHandler(async (req: AuthRequest, res: Respons
         throw new AppError('This coupon is no longer valid or has expired', 400);
     }
 
+    // Check channel validity
+    if (req.channel) {
+        // If coupon has specific channels assigned, req.channel must be in it
+        if (coupon.channels && coupon.channels.length > 0) {
+            if (!coupon.channels.includes(req.channel)) {
+                throw new AppError(`This coupon is not valid for ${req.channel} channel`, 400);
+            }
+        }
+    }
+
     // Check if customer can use coupon
     if (userId && !coupon.canCustomerUse(userId)) {
         throw new AppError('You have reached the usage limit for this coupon', 400);
@@ -420,7 +450,7 @@ export const validateCoupon = asyncHandler(async (req: AuthRequest, res: Respons
     }
 
     // Calculate discount
-    const discountAmount = coupon.calculateDiscount(cart.subtotal, applicableAmount);
+    const discountAmount = coupon.calculateDiscount(applicableAmount);
 
     res.json({
         success: true,

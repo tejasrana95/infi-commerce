@@ -17,8 +17,9 @@ export class PaymentService {
         country: string;
         currency?: string;
         amount?: number;
+        channel?: string;
     }): Promise<Array<any>> {
-        const { storeId, country, currency, amount } = params;
+        const { storeId, country, currency, amount, channel } = params;
 
         // Find geo groups that include this country
         const geoGroups = await GeoGroup.find({
@@ -37,6 +38,18 @@ export class PaymentService {
                 { geoGroupId: { $exists: false } }, // Default gateway (no geo restriction)
             ],
         };
+
+        // Channel filter
+        if (channel) {
+            query.$and = query.$and || [];
+            query.$and.push({
+                $or: [
+                    { channels: channel },
+                    { channels: { $exists: false } },
+                    { channels: { $size: 0 } }
+                ]
+            });
+        }
 
         // Filter by currency if provided
         if (currency) {

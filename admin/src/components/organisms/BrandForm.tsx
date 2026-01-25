@@ -10,7 +10,12 @@ import {
     Button,
     Divider,
     Typography,
-    CircularProgress
+    CircularProgress,
+    Select,
+    MenuItem,
+    Chip,
+    InputLabel,
+    FormControl
 } from '@mui/material';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import AdminAIAssistant from '../organisms/AdminAIAssistant/AdminAIAssistant';
@@ -30,6 +35,7 @@ const schema = z.object({
     logo: z.string().url('Must be a valid URL').optional().or(z.literal('')),
     description: z.string().optional(),
     website: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+    channels: z.array(z.string()).optional(),
     isActive: z.boolean(),
     seo: z.object({
         metaTitle: z.string().max(60).optional(),
@@ -64,6 +70,7 @@ export default function BrandForm({ initialData, onSubmit, isSubmitting = false 
             logo: '',
             description: '',
             website: '',
+            channels: [],
             isActive: true,
             seo: {
                 metaTitle: '',
@@ -100,6 +107,7 @@ export default function BrandForm({ initialData, onSubmit, isSubmitting = false 
             setValue('logo', initialData.logo || '');
             setValue('description', initialData.description || '');
             setValue('website', initialData.website || '');
+            setValue('channels', initialData.channels || []);
             setValue('isActive', initialData.isActive !== undefined ? initialData.isActive : true);
             if (initialData.seo) {
                 setValue('seo.metaTitle', initialData.seo.metaTitle || '');
@@ -271,6 +279,39 @@ export default function BrandForm({ initialData, onSubmit, isSubmitting = false 
                                 label="Active"
                             />
                         )}
+                    />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                    <Controller
+                        name="channels"
+                        control={control}
+                        render={({ field }) => {
+                            const availableChannels = (process.env.NEXT_PUBLIC_AVAILABLE_CHANNELS || 'WEB,POS,MOB').split(',').map(c => c.trim());
+                            return (
+                                <FormControl fullWidth>
+                                    <InputLabel>Channels</InputLabel>
+                                    <Select
+                                        {...field}
+                                        multiple
+                                        label="Channels"
+                                        value={field.value || []}
+                                        renderValue={(selected) => (
+                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                                {(selected as string[]).map((value) => (
+                                                    <Chip key={value} label={value} size="small" />
+                                                ))}
+                                            </Box>
+                                        )}
+                                    >
+                                        {availableChannels.map((channel) => (
+                                            <MenuItem key={channel} value={channel}>
+                                                {channel}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            );
+                        }}
                     />
                 </Grid>
                 <Grid size={{ xs: 12 }}>

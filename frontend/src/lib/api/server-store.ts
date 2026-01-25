@@ -41,7 +41,7 @@ async function fetchStoreByDomain(domain: string): Promise<Store | null> {
     try {
         const res = await fetch(`${API_BASE}/stores/domain/${encodeURIComponent(domain)}`, {
             ...getCacheOptions('storeDomain'),
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
         });
 
         if (!res.ok) return null;
@@ -56,7 +56,7 @@ async function fetchStoreById(storeId: string): Promise<Store | null> {
     try {
         const res = await fetch(`${API_BASE}/stores/${storeId}`, {
             ...getCacheOptions('store'),
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
         });
 
         if (!res.ok) return null;
@@ -97,7 +97,7 @@ export async function fetchCategoryBySlug(storeId: string, slug: string): Promis
     try {
         const res = await fetch(`${API_BASE}/categories/slug/${storeId}/${slug}`, {
             ...getCacheOptions('categoryData'),
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
         });
 
         if (!res.ok) return null;
@@ -126,7 +126,7 @@ export async function fetchCategoryProducts(
 
         const res = await fetch(url, {
             ...getCacheOptions('productList'),
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
         });
 
         if (!res.ok) return { products: [], pagination: null };
@@ -150,7 +150,7 @@ export async function fetchCategoryFilters(storeId: string, categoryId: string):
             `${API_BASE}/categories/${categoryId}/filters?storeId=${storeId}`,
             {
                 ...getCacheOptions('filters'),
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
             }
         );
 
@@ -179,7 +179,7 @@ export async function fetchLayout(storeId: string, type: string, slug?: string):
 
         const res = await fetch(url, {
             ...getCacheOptions('layout'),
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
         });
 
         if (!res.ok) return null;
@@ -266,7 +266,7 @@ export async function fetchSearchProducts(
 
         const res = await fetch(url, {
             ...getCacheOptions('search'),
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
         });
 
         if (!res.ok) return { products: [], pagination: null };
@@ -292,7 +292,7 @@ export async function fetchSearchFilters(storeId: string, searchQuery: string): 
             `${API_BASE}/products/search/filters?storeId=${storeId}&search=${encodeURIComponent(searchQuery)}`,
             {
                 ...getCacheOptions('filters'),
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
             }
         );
 
@@ -345,7 +345,7 @@ export async function fetchProductBySlug(storeId: string, slug: string): Promise
     try {
         const res = await fetch(`${API_BASE}/products/slug/${storeId}/${slug}`, {
             ...getCacheOptions('productData'),
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
         });
 
         if (!res.ok) return null;
@@ -364,7 +364,7 @@ export async function fetchBlogPostBySlug(storeId: string, slug: string): Promis
         const [postsRes, layout] = await Promise.all([
             fetch(`${API_BASE}/blog/posts/slug/${slug}`, {
                 ...getCacheOptions('blogPosts'),
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
             }),
             fetchLayout(storeId, 'blog-post', slug),  // Pass slug for slug-specific layout
         ]);
@@ -403,15 +403,15 @@ export async function fetchBlogPageData(
         const [postsRes, categoriesRes, tagsRes, layout] = await Promise.all([
             fetch(postsUrl, {
                 ...getCacheOptions('blogPosts'),
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
             }),
             fetch(`${API_BASE}/blog/categories?storeId=${storeId}`, {
                 ...getCacheOptions('blogMeta'),
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
             }),
             fetch(`${API_BASE}/blog/tags?storeId=${storeId}`, {
                 ...getCacheOptions('blogMeta'),
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
             }),
             fetchLayout(storeId, 'blog-list'),
         ]);
@@ -449,7 +449,7 @@ export async function fetchPageBySlug(storeId: string, slug: string): Promise<an
         const [pageRes, layout] = await Promise.all([
             fetch(`${API_BASE}/pages/slug/${slug}?storeId=${storeId}`, {
                 ...getCacheOptions('page'),
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
             }),
             fetchLayout(storeId, 'page', slug),  // Pass slug for slug-specific layout
         ]);

@@ -341,6 +341,27 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         // Filter by store ID from header, query, or body
         filter.storeId = effectiveStoreId;
     }
+    // Channel filter
+    if (req.channel) {
+        const channelFilter = {
+            $or: [
+                { channels: req.channel },
+                { channels: { $exists: false } },
+                { channels: { $size: 0 } }
+            ]
+        };
+
+        // Combine with existing filter
+        if (filter.$or) {
+            filter.$and = filter.$and || [];
+            filter.$and.push(channelFilter);
+        } else {
+            // Be careful not to overwrite other $or conditions if we add more later
+            // Since we might have channelFilter $or AND search $or
+            filter.$and = filter.$and || [];
+            filter.$and.push(channelFilter);
+        }
+    }
 
     // Category filter - support single or multiple categories (includes subcategories)
     if (req.query.categoryId) {
@@ -539,7 +560,7 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         }
     }
 
-    if(req.query.sku) {
+    if (req.query.sku) {
         const sku = (req.query.sku as string).trim();
         filter.$or = [
             { sku: sku },

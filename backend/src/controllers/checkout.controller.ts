@@ -491,6 +491,7 @@ export const applyCoupon = asyncHandler(async (req: AuthRequest, res: Response) 
     const userId = req.user?.id;
     const sessionId = req.headers['x-session-id'] as string;
     const storeId = req.headers['x-store-id'] as string;
+    const channel = req.headers['x-channel'] as string;
     const { couponCode } = req.body;
 
     if (!storeId) {
@@ -508,11 +509,22 @@ export const applyCoupon = asyncHandler(async (req: AuthRequest, res: Response) 
         throw new AppError('Cart is empty', 400);
     }
 
-    // Find coupon
-    const coupon = await Coupon.findOne({
+    // Find coupon with channel filter
+    const couponFilter: any = {
         code: couponCode.toUpperCase(),
         storeId,
-    });
+    };
+
+    // Apply channel filter: coupon should be applicable to this channel or have no channel restriction
+    if (channel) {
+        couponFilter.$or = [
+            { channels: channel },
+            { channels: { $exists: false } },
+            { channels: { $size: 0 } }
+        ];
+    }
+
+    const coupon = await Coupon.findOne(couponFilter);
 
     if (!coupon) {
         throw new AppError('Invalid coupon code', 400);
@@ -896,10 +908,24 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
     let couponCode = null;
 
     if (cart.appliedCoupon && cart.appliedCoupon.code) {
-        const coupon = await Coupon.findOne({
+        const channel = req.headers['x-channel'] as string;
+        
+        // Build coupon filter with channel consideration
+        const couponFilter: any = {
             code: cart.appliedCoupon.code.toUpperCase(),
             storeId,
-        });
+        };
+
+        // Apply channel filter: coupon should be applicable to this channel or have no channel restriction
+        if (channel) {
+            couponFilter.$or = [
+                { channels: channel },
+                { channels: { $exists: false } },
+                { channels: { $size: 0 } }
+            ];
+        }
+
+        const coupon = await Coupon.findOne(couponFilter);
 
         if (coupon && coupon.isCurrentlyValid()) {
             const customerIdentifier = userId || guestEmail;

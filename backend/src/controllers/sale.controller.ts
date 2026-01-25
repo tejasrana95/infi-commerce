@@ -167,6 +167,25 @@ export const getSales = asyncHandler(async (req: AuthRequest, res: Response) => 
         ];
     }
 
+    // Channel filter
+    if (req.channel) {
+        const channelFilter = {
+            $or: [
+                { channels: req.channel },
+                { channels: { $exists: false } },
+                { channels: { $size: 0 } }
+            ]
+        };
+
+        if (filter.$or) {
+            filter.$and = filter.$and || [];
+            filter.$and.push(channelFilter);
+        } else {
+            filter.$and = filter.$and || [];
+            filter.$and.push(channelFilter);
+        }
+    }
+
     const [sales, total] = await Promise.all([
         Sale.find(filter)
             .populate('storeId', 'name slug')
@@ -214,6 +233,15 @@ export const getActiveSales = asyncHandler(async (req: AuthRequest, res: Respons
 
     if (req.query.storeId) {
         filter.storeId = req.query.storeId;
+    }
+
+    // Channel filter
+    if (req.channel) {
+        filter.$or = [
+            { channels: req.channel },
+            { channels: { $exists: false } }, // Visible everywhere
+            { channels: { $size: 0 } }
+        ];
     }
 
     const sales = await Sale.find(filter)
@@ -412,6 +440,12 @@ async function removeSaleFromProducts(sale: any): Promise<number> {
         filter.categoryIds = { $in: sale.categoryIds };
     } else if (sale.applyTo === 'products') {
         filter._id = { $in: sale.productIds };
+    }
+
+    // Add channel filter to products based on sale's channel constraints
+    // If sale has specific channels, ONLY remove from products in those channels
+    if (sale.channels && sale.channels.length > 0) {
+        filter.channels = { $in: sale.channels };
     }
 
     const result = await Product.updateMany(filter, {

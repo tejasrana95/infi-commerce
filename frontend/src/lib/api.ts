@@ -123,6 +123,12 @@ class ApiClient {
             headers['Authorization'] = `Bearer ${this.token}`;
         }
 
+        // Add channel header
+        const channelCode = process.env.NEXT_PUBLIC_CHANNEL_CODE;
+        if (channelCode) {
+            headers['x-channel'] = channelCode;
+        }
+
         return headers;
     }
 
@@ -436,6 +442,7 @@ export async function fetchStoreByDomain(domain: string, nocache: boolean = fals
                 ...cacheOptions,
                 headers: {
                     'Content-Type': 'application/json',
+                    'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB',
                 },
             });
 
@@ -461,6 +468,7 @@ export async function fetchStoreByDomain(domain: string, nocache: boolean = fals
                 ...getCacheOptions('storeDomain'),
                 headers: {
                     'Content-Type': 'application/json',
+                    'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB',
                 },
             });
 
@@ -488,6 +496,7 @@ export async function fetchStoreById(storeId: string, nocache: boolean = false):
             ...cacheOptions,
             headers: {
                 'Content-Type': 'application/json',
+                'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB',
             },
         });
         if (!res.ok) {
@@ -524,7 +533,7 @@ export async function fetchCurrencies(storeId: string): Promise<import('@/types'
     try {
         const res = await fetch(`${API_BASE_URL}/currencies?storeId=${storeId}&isActive=true`, {
             ...getCacheOptions('currencies'),
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
         });
 
         if (!res.ok) return [];
@@ -562,6 +571,7 @@ export async function fetchBlogPosts(storeId: string, params?: {
             ...getCacheOptions('blogPosts'),
             headers: {
                 'Content-Type': 'application/json',
+                'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB',
                 'X-Store-ID': storeId,
             },
         });
@@ -580,6 +590,7 @@ export async function fetchBlogPostBySlug(storeId: string, slug: string) {
             ...getCacheOptions('blogPosts'),
             headers: {
                 'Content-Type': 'application/json',
+                'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB',
                 'X-Store-ID': storeId,
             },
         });
@@ -599,6 +610,7 @@ export async function fetchBlogCategories(storeId: string) {
             ...getCacheOptions('blogMeta'),
             headers: {
                 'Content-Type': 'application/json',
+                'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB',
                 'X-Store-ID': storeId,
             },
         });
@@ -618,6 +630,7 @@ export async function fetchBlogTags(storeId: string, limit: number = 20) {
             ...getCacheOptions('blogMeta'),
             headers: {
                 'Content-Type': 'application/json',
+                'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB',
                 'X-Store-ID': storeId,
             },
         });
@@ -637,6 +650,7 @@ export async function fetchPageBySlug(storeId: string, slug: string) {
             ...getCacheOptions('page'),
             headers: {
                 'Content-Type': 'application/json',
+                'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB',
                 'X-Store-ID': storeId,
             },
         });
@@ -656,6 +670,7 @@ export async function fetchHeroSlider(storeId: string, id: string) {
             ...getCacheOptions('heroSlider'),
             headers: {
                 'Content-Type': 'application/json',
+                'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB',
                 'X-Store-ID': storeId,
             },
         });

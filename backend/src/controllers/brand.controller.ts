@@ -138,6 +138,34 @@ export const getBrands = asyncHandler(async (req: AuthRequest, res: Response) =>
         filter.isActive = req.query.isActive === 'true';
     }
 
+    // Channel filter
+    if (req.channel) {
+        // If channel is specified, brand must either:
+        // 1. Have this channel in its channels list
+        // 2. Have no channels set (empty list or undefined) -> Visible everywhere
+        const channelFilter = {
+            $or: [
+                { channels: req.channel },
+                { channels: { $exists: false } },
+                { channels: { $size: 0 } }
+            ]
+        };
+
+        if (filter.$or) {
+            filter.$and = filter.$and || [];
+            filter.$and.push(channelFilter);
+        } else {
+            // Check if filter has $or already (from search)
+            if (Object.keys(filter).some(k => k === '$or')) {
+                filter.$and = filter.$and || [];
+                filter.$and.push(channelFilter);
+            } else {
+                filter.$and = filter.$and || [];
+                filter.$and.push(channelFilter);
+            }
+        }
+    }
+
     if (req.query.search) {
         const searchRegex = { $regex: req.query.search as string, $options: 'i' };
         filter.$or = [

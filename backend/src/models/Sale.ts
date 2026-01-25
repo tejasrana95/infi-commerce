@@ -148,7 +148,7 @@ SaleSchema.statics.getActiveSalesForProduct = async function (
 ) {
     const now = new Date();
 
-    const sales = await this.find({
+    const baseFilter: any = {
         isActive: true,
         startDate: { $lte: now },
         endDate: { $gte: now },
@@ -157,7 +157,9 @@ SaleSchema.statics.getActiveSalesForProduct = async function (
             { applyTo: 'products', productIds: productId },
             { applyTo: 'categories', categoryIds: { $in: categoryIds } },
         ],
-    }).sort({ priority: -1 });
+    };
+
+    const sales = await this.find(baseFilter).sort({ priority: -1 });
 
     return sales;
 };

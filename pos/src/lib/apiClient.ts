@@ -5,6 +5,7 @@ const apiClient = axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
     headers: {
         'Content-Type': 'application/json',
+        'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'POS',
     },
 });
 

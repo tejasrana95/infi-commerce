@@ -56,6 +56,7 @@ export interface IPaymentGatewayConfig extends Document {
 
     // Metadata
     description?: string;
+    channels?: string[]; // Channels where this gateway is available
     createdAt: Date;
     updatedAt: Date;
 }
@@ -154,6 +155,11 @@ const PaymentGatewayConfigSchema = new Schema<IPaymentGatewayConfig>(
         description: {
             type: String,
             trim: true,
+        },
+        channels: {
+            type: [String],
+            index: true,
+            default: [],
         },
     },
     {

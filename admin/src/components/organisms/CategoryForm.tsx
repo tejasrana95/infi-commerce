@@ -18,7 +18,10 @@ import {
     InputAdornment,
     CircularProgress,
     Autocomplete,
-    Button
+    Button,
+    Select,
+    InputLabel,
+    FormControl
 } from '@mui/material';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import AdminAIAssistant from '../organisms/AdminAIAssistant/AdminAIAssistant';
@@ -42,6 +45,7 @@ const schema = z.object({
     status: z.enum(['active', 'inactive', 'draft']),
     sortOrder: z.number().min(0).optional(),
     isVisible: z.boolean(),
+    channels: z.array(z.string()).optional(),
 
     // SEO Fields
     seo: z.object({
@@ -74,6 +78,7 @@ const defaultValues: FormData = {
     status: 'active',
     sortOrder: 0,
     isVisible: true,
+    channels: [],
     seo: {
         metaTitle: '',
         metaDescription: '',
@@ -122,6 +127,7 @@ export default function CategoryForm({ initialData, onSubmit, isSubmitting = fal
                 status: initialData.status || 'active',
                 sortOrder: initialData.sortOrder ?? 0,
                 isVisible: initialData.isVisible ?? true,
+                channels: initialData.channels || [],
                 seo: {
                     metaTitle: initialData.seo?.metaTitle || '',
                     metaDescription: initialData.seo?.metaDescription || '',
@@ -437,6 +443,40 @@ export default function CategoryForm({ initialData, onSubmit, isSubmitting = fal
                                     label="Visible"
                                 />
                             )}
+                        />
+                    </Grid>
+
+                    <Grid size={{ xs: 12 }}>
+                        <Controller
+                            name="channels"
+                            control={control}
+                            render={({ field }) => {
+                                const availableChannels = (process.env.NEXT_PUBLIC_AVAILABLE_CHANNELS || 'WEB,POS,MOB').split(',').map(c => c.trim());
+                                return (
+                                    <FormControl fullWidth>
+                                        <InputLabel>Channels</InputLabel>
+                                        <Select
+                                            {...field}
+                                            multiple
+                                            label="Channels"
+                                            value={field.value || []}
+                                            renderValue={(selected) => (
+                                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                                    {(selected as string[]).map((value) => (
+                                                        <Chip key={value} label={value} size="small" />
+                                                    ))}
+                                                </Box>
+                                            )}
+                                        >
+                                            {availableChannels.map((channel) => (
+                                                <MenuItem key={channel} value={channel}>
+                                                    {channel}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                );
+                            }}
                         />
                     </Grid>
                 </Grid>

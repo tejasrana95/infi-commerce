@@ -26,7 +26,7 @@ export interface Category {
     path: string;
     sortOrder: number;
     isVisible: boolean;
-
+    channels?: string[];
     createdAt: string;
     updatedAt: string;
 }
