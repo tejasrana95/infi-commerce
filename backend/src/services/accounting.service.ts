@@ -21,6 +21,8 @@ export interface PLSummary {
     completedAccounting: number;
     pendingAccounting: number;
     totalRevenue: number;
+    totalReturns: number;
+    totalAdjustedRevenue: number;
     totalCogs: number;
     grossProfit: number;
     totalExpenses: number;
@@ -361,6 +363,8 @@ export class AccountingService {
 
         // Calculate summary using either existing accounting or defaults from order
         let totalRevenue = 0;
+        let totalReturns = 0;
+        let totalAdjustedRevenue = 0;
         let totalCogs = 0;
         let totalExpenses = 0;
         let completedAccounting = 0;
@@ -369,13 +373,17 @@ export class AccountingService {
             const acc = accountingRecords.find(a => a.orderId.toString() === order._id.toString());
 
             const revenue = acc?.convertedOrderTotal || order.total;
+            const returns = order.returns ? order.returns.reduce((sum, r) => sum + (r.totalRefundAmount || r.refundAmount || 0), 0) : 0;
+            const adjustedRevenue = revenue - returns;
             const tax = acc?.tax || order.tax || 0;
             const cogs = acc?.cogs?.totalCogs || 0;
             const expenses = acc?.expenses?.totalExpenses || 0;
-            const netProfit = acc?.profitMetrics?.netProfit || (revenue - tax - cogs - expenses);
-            const profitMargin = acc?.profitMetrics?.profitMargin || (revenue - tax > 0 ? (netProfit / (revenue - tax)) * 100 : 0);
+            const netProfit = adjustedRevenue - tax - cogs - expenses;
+            const profitMargin = adjustedRevenue - tax > 0 ? (netProfit / (adjustedRevenue - tax)) * 100 : 0;
 
             totalRevenue += revenue;
+            totalReturns += returns;
+            totalAdjustedRevenue += adjustedRevenue;
             totalCogs += cogs;
             totalExpenses += expenses;
             if (acc?.isComplete) completedAccounting++;
@@ -383,12 +391,14 @@ export class AccountingService {
             return {
                 orderId: order._id,
                 revenue,
+                returns,
+                adjustedRevenue,
                 profit: netProfit,
                 margin: profitMargin
             };
         });
 
-        const grossProfit = totalRevenue - totalCogs;
+        const grossProfit = totalAdjustedRevenue - totalCogs;
         const netProfit = grossProfit - totalExpenses;
 
         const summary: PLSummary = {
@@ -396,11 +406,13 @@ export class AccountingService {
             completedAccounting,
             pendingAccounting: orders.length - completedAccounting,
             totalRevenue,
+            totalReturns,
+            totalAdjustedRevenue,
             totalCogs,
             grossProfit,
             totalExpenses,
             netProfit,
-            averageProfitMargin: totalRevenue > 0 ? Math.round((netProfit / totalRevenue) * 10000) / 100 : 0,
+            averageProfitMargin: totalAdjustedRevenue > 0 ? Math.round((netProfit / totalAdjustedRevenue) * 10000) / 100 : 0,
             currency: baseCurrency,
         };
 
@@ -540,11 +552,13 @@ export class AccountingService {
 
             // Default values if accounting record doesn't exist
             const revenue = accounting?.convertedOrderTotal || order.total;
+            const returns = order.returns ? order.returns.reduce((sum, r) => sum + (r.totalRefundAmount || r.refundAmount || 0), 0) : 0;
+            const adjustedRevenue = revenue - returns;
             const tax = accounting?.tax || order.tax || 0;
             const cogs = accounting?.cogs?.totalCogs || 0;
             const expenses = accounting?.expenses?.totalExpenses || 0;
-            const netProfit = accounting?.profitMetrics?.netProfit || (revenue - tax - cogs - expenses);
-            const profitMargin = accounting?.profitMetrics?.profitMargin || (revenue - tax > 0 ? (netProfit / (revenue - tax)) * 100 : 0);
+            const netProfit = adjustedRevenue - tax - cogs - expenses;
+            const profitMargin = adjustedRevenue - tax > 0 ? (netProfit / (adjustedRevenue - tax)) * 100 : 0;
 
             return {
                 _id: accounting?._id || `temp-${order._id}`,
@@ -557,6 +571,8 @@ export class AccountingService {
                     status: order.status,
                 },
                 revenue,
+                returns,
+                adjustedRevenue,
                 cogs,
                 expenses,
                 netProfit,
@@ -603,6 +619,8 @@ export class AccountingService {
             'Order Number',
             'Date',
             'Order Total',
+            'Returns',
+            'Adjusted Revenue',
             'Order Currency',
             'Converted Total',
             'Base Currency',
@@ -625,14 +643,18 @@ export class AccountingService {
                 (r) => r.orderId.toString() === order._id.toString()
             );
 
+            // Calculate returns
+            const returns = order.returns ? order.returns.reduce((sum, r) => sum + (r.totalRefundAmount || r.refundAmount || 0), 0) : 0;
+
             // Calculate derived values for orders without a record
             const revenue = acc?.convertedOrderTotal || order.total;
+            const adjustedRevenue = revenue - returns;
             const tax = acc?.tax || order.tax || 0;
             const cogs = acc?.cogs?.totalCogs || 0;
             const expenses = acc?.expenses?.totalExpenses || 0;
-            const netProfit = acc?.profitMetrics?.netProfit || (revenue - tax - cogs - expenses);
-            const grossProfit = acc?.profitMetrics?.grossProfit || (revenue - tax - cogs);
-            const profitMargin = acc?.profitMetrics?.profitMargin || (revenue - tax > 0 ? (netProfit / (revenue - tax)) * 100 : 0);
+            const netProfit = adjustedRevenue - tax - cogs - expenses;
+            const grossProfit = adjustedRevenue - tax - cogs;
+            const profitMargin = adjustedRevenue - tax > 0 ? (netProfit / (adjustedRevenue - tax)) * 100 : 0;
 
             const miscTotal = (acc?.expenses?.miscellaneous || []).reduce(
                 (sum, m) => sum + m.amount,
@@ -643,6 +665,8 @@ export class AccountingService {
                 order.orderNumber || '',
                 order.createdAt.toISOString().split('T')[0],
                 order.total,
+                returns,
+                adjustedRevenue,
                 order.currency,
                 revenue,
                 acc?.baseCurrency || 'USD',

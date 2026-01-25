@@ -11,6 +11,7 @@ export interface IPOSSession extends Document {
     totalSales: number;
     totalTransactions: number;
     totalOrders: number;
+    totalRefunds: number;
     status: 'active' | 'closed';
     paymentBreakdown?: {
         cash: number;
@@ -70,6 +71,11 @@ const POSSessionSchema = new Schema<IPOSSession>(
             default: 0,
         },
         totalOrders: {
+            type: Number,
+            required: true,
+            default: 0,
+        },
+        totalRefunds: {
             type: Number,
             required: true,
             default: 0,

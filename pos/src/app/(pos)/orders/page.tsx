@@ -7,6 +7,7 @@ import EmptyState from '@/components/molecules/EmptyState';
 import { Order, OrderStatus } from '@/types';
 import { Search, Receipt, Filter, RefreshCw, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import posApi from '@/services/api';
+import { ReturnOrderModal } from '@/components/organisms/ReturnOrderModal';
 
 const ITEMS_PER_PAGE = 12;
 
@@ -55,6 +56,17 @@ export default function OrdersPage() {
                 total: order.total,
                 paymentMethod: order.paymentMethod as 'cash' | 'card' | 'qr',
                 notes: order.notes,
+                discount: order.discount || 0,
+                couponCode: order.couponCode,
+                returns: order.returns,
+                discountsApplied: ((order.discountsApplied as Array<Record<string, unknown>>) || []).map((discount: Record<string, unknown>) => ({
+                    productId: discount.productId,
+                    variantId: discount.variantId,
+                    discountAmount: discount.discountAmount,
+                    discountType: discount.discountType,
+                    originalPrice: discount.originalPrice,
+                    quantity: discount.quantity,
+                })),
             }));
             setOrders(transformedOrders);
             // Set pagination info from server response
@@ -82,6 +94,19 @@ export default function OrdersPage() {
     const handleCloseModal = () => {
         setIsModalOpen(false);
         setTimeout(() => setSelectedOrder(null), 300);
+    };
+
+    const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+    const [returnOrder, setReturnOrder] = useState<Order | null>(null);
+
+    const handleReturnOrder = (order: Order) => {
+        setIsModalOpen(false);
+        // We'll pass this order to the ReturnOrderModal if it supports pre-filling
+        // For now, if ReturnOrderModal is generic, we can just open it.
+        // But the modal is designed to search or accept an initial order.
+        // Let's assume we can modify ReturnOrderModal to accept an initialOrder prop.
+        setReturnOrder(order);
+        setIsReturnModalOpen(true);
     };
 
     const handleNextPage = () => {
@@ -211,6 +236,18 @@ export default function OrdersPage() {
                 order={selectedOrder}
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}
+                onReturn={handleReturnOrder}
+            />
+
+            {/* Return Modal (Reusing the one from Header, but instantiated here) */}
+            {/* We need to update ReturnOrderModal to accept 'initialOrder' prop to skip search step */}
+            <ReturnOrderModal
+                isOpen={isReturnModalOpen}
+                onClose={() => {
+                    setIsReturnModalOpen(false);
+                    setReturnOrder(null);
+                }}
+                initialOrder={returnOrder}
             />
         </div>
     );

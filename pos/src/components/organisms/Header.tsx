@@ -9,6 +9,7 @@ import Image from 'next/image';
 import { BarcodeInput } from '../molecules/BarcodeInput';
 import { BarcodeScannerModal } from './BarcodeScannerModal';
 import { EndShiftModal } from './EndShiftModal';
+import { ReturnOrderModal } from './ReturnOrderModal';
 import { useCartStore } from '@/store/cartStore';
 import { useSessionStore } from '@/store/sessionStore';
 
@@ -21,6 +22,7 @@ export default function Header() {
     const { activeSession, endSession, startSession } = useSessionStore();
     const { addToCart } = useCartStore();
     const [showEndShiftModal, setShowEndShiftModal] = useState(false);
+    const [showReturnModal, setShowReturnModal] = useState(false);
     const [showCameraScanner, setShowCameraScanner] = useState(false);
     const handleBarcodeScan = async (barcode: string) => {
         const product = await api.getProductByBarcode(barcode);
@@ -90,7 +92,7 @@ export default function Header() {
                     <div className="flex items-center gap-2 border-l pl-4">
                         <IconButton
                             icon={<RotateCcw className="w-5 h-5" />}
-                            onClick={() => {/* TODO: Open returns modal */ }}
+                            onClick={() => setShowReturnModal(true)}
                             variant="outline"
                             title="Returns"
                         />
@@ -143,6 +145,12 @@ export default function Header() {
                     onSuccess={handleEndShiftSuccess}
                 />
             )}
+
+            {/* Return Order Modal */}
+            <ReturnOrderModal
+                isOpen={showReturnModal}
+                onClose={() => setShowReturnModal(false)}
+            />
         </>
     );
 }

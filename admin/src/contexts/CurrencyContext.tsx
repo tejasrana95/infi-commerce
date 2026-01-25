@@ -33,9 +33,9 @@ const defaultContext: CurrencyContextType = {
     baseCurrency: null,
     currencies: [],
     loading: true,
-    formatPrice: (amount) => `$${amount.toFixed(2)}`,
+    formatPrice: (amount) => `$${amount?.toFixed(2)}`,
     convertPrice: (amount) => amount,
-    convertAndFormat: (amount) => `$${amount.toFixed(2)}`,
+    convertAndFormat: (amount) => `$${amount?.toFixed(2)}`,
     getCurrencyByCode: () => undefined,
     refetch: async () => { },
     loadStoreCurrency: async () => { },
@@ -113,7 +113,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     }, [fetchingStores]);
 
     const formatPrice = useCallback(
-        (amount: number, currencyCode?: string, storeId?: string): string => {
+        (amount: number = 0, currencyCode?: string, storeId?: string): string => {
             let targetCurrencyCode = currencyCode;
 
             // If no explicit code but storeId provided, try to find store currency
@@ -130,7 +130,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
 
             if (!currency) {
                 // Fallback formatting if no currency data
-                return `$${amount.toFixed(2)}`;
+                return `$${amount?.toFixed(2)}`;
             }
 
             // Format the number
@@ -173,7 +173,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
             // Convert: amount * target exchangeRate
             const convertedAmount = amount * (exchangeRate || to.exchangeRate);
 
-            return parseFloat(convertedAmount.toFixed(to.decimalPlaces || 2));
+            return parseFloat(convertedAmount?.toFixed(to.decimalPlaces || 2));
         },
         [baseCurrency, getCurrencyByCode]
     );

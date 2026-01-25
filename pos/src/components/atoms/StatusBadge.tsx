@@ -27,6 +27,14 @@ const statusConfig: Record<OrderStatus, { label: string; className: string }> = 
     refunded: {
         label: 'Refunded',
         className: 'bg-blue-100 text-blue-700 border-blue-200'
+    },
+    returned: {
+        label: 'Returned',
+        className: 'bg-blue-100 text-blue-700 border-blue-200'
+    },
+    partially_returned: {
+        label: 'Partially Returned',
+        className: 'bg-yellow-100 text-yellow-700 border-yellow-200'
     }
 };
 

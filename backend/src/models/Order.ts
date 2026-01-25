@@ -38,6 +38,28 @@ export interface IOrder extends Document {
         downloadLimit?: number;
         downloadCount?: number;
         downloadExpiresAt?: Date;
+        downloadLimit?: number;
+        downloadCount?: number;
+        downloadExpiresAt?: Date;
+        returnedQuantity?: number;
+        refundedAmount?: number;
+    }>;
+
+    // Returns history
+    returns?: Array<{
+        returnedAt: Date;
+        items: Array<{
+            productId: mongoose.Types.ObjectId;
+            variantId?: string;
+            quantity: number;
+            reason: string;
+            refundAmount: number;
+        }>;
+        totalRefundAmount: number;
+        refundMethod: string;
+        refundReference?: string;
+        processedBy?: mongoose.Types.ObjectId;
+        note?: string;
     }>;
 
     // Pricing
@@ -100,7 +122,7 @@ export interface IOrder extends Document {
     refundRequestedAt?: Date;
     refundedAt?: Date;
     // Order status
-    status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'return_requested' | 'returned';
+    status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'return_requested' | 'returned' | 'partially_returned';
 
     // Tracking
     trackingNumber?: string;
@@ -248,6 +270,9 @@ const OrderSchema = new Schema<IOrder>(
                 downloadLimit: Number,
                 downloadCount: { type: Number, default: 0 },
                 downloadExpiresAt: Date,
+                // Return tracking
+                returnedQuantity: { type: Number, default: 0 },
+                refundedAmount: { type: Number, default: 0 },
             },
         ],
         subtotal: {
@@ -354,7 +379,7 @@ const OrderSchema = new Schema<IOrder>(
         refundRequestedAt: Date,
         status: {
             type: String,
-            enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded', 'return_requested', 'returned'],
+            enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded', 'return_requested', 'returned', 'partially_returned'],
             default: 'pending',
         },
         trackingNumber: String,
@@ -447,6 +472,26 @@ const OrderSchema = new Schema<IOrder>(
                 originalPrice: { type: Number, required: true },
                 quantity: { type: Number, required: true },
             },
+        ],
+        // Returns history
+        returns: [
+            {
+                returnedAt: { type: Date, default: Date.now },
+                items: [
+                    {
+                        productId: { type: Schema.Types.ObjectId, ref: 'Product' },
+                        variantId: String,
+                        quantity: Number,
+                        reason: String,
+                        refundAmount: Number,
+                    }
+                ],
+                totalRefundAmount: Number,
+                refundMethod: String,
+                refundReference: String,
+                processedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+                note: String,
+            }
         ],
     },
     {

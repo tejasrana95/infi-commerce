@@ -39,6 +39,11 @@ router.delete('/held-orders/:id', posController.deleteHeldOrder);
 // Get POS Users (for transfer functionality)
 router.get('/users', posController.getPOSUsers);
 
+// Order Return Management
+router.get('/orders/search', posController.searchOrders);
+router.post('/orders/calculate-refund', posController.calculateRefund);
+router.post('/orders/return', posController.processReturn);
+
 // GET /api/pos/products/by-sku - Lookup product by exact SKU or barcode
 router.get('/products/by-sku', authenticate, async (req: any, res: any) => {
   const { sku } = req.query;

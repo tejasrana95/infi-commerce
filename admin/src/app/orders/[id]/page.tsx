@@ -228,6 +228,7 @@ export default function OrderDetailPage() {
             case 'cancelled': return 'error';
             case 'refunded': return 'default';
             case 'return_requested': return 'warning';
+            case 'partially_returned': return 'warning';
             case 'returned': return 'info';
             default: return 'default';
         }
@@ -246,7 +247,7 @@ export default function OrderDetailPage() {
                         {order && (
                             <>
                                 <Chip
-                                    label={order.status}
+                                    label={order?.status?.replace(/_/g, ' ')}
                                     color={getStatusColor(order.status)}
                                     sx={{ textTransform: 'capitalize', fontWeight: 'bold' }}
                                 />
@@ -450,6 +451,88 @@ export default function OrderDetailPage() {
                                 </TableContainer>
                             </Paper>
 
+                            {/* Returns Section */}
+                            {order.returns && order.returns.length > 0 && (
+                                <Paper sx={{ mb: 3, overflow: 'hidden' }}>
+                                    <Box p={2} bgcolor="grey.50" borderBottom={1} borderColor="divider">
+                                        <Typography variant="h6">Returns History</Typography>
+                                    </Box>
+                                    <Box sx={{ p: 2 }}>
+                                        {order.returns.map((returnRecord: any, idx: number) => (
+                                            <Box key={idx} sx={{ mb: 3, p: 2, bgcolor: 'warning.50', borderRadius: 1, border: '1px solid', borderColor: 'warning.200' }}>
+                                                {/* Return Header */}
+                                                <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+                                                    <Box>
+                                                        <Typography variant="subtitle2" fontWeight={600}>
+                                                            {new Date(returnRecord.returnedAt).toLocaleString()}
+                                                        </Typography>
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            Ref: {returnRecord.refundReference}
+                                                        </Typography>
+                                                    </Box>
+                                                    <Box textAlign="right">
+                                                        <Typography variant="subtitle2" fontWeight={600} color="success.main">
+                                                            {convertAndFormat(returnRecord.totalRefundAmount || 0, order.currency)}
+                                                        </Typography>
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            {returnRecord.refundMethod}
+                                                        </Typography>
+                                                    </Box>
+                                                </Box>
+
+                                                {/* Returned Items */}
+                                                <Typography variant="caption" fontWeight={600} display="block" mb={1}>
+                                                    Returned Items:
+                                                </Typography>
+                                                <TableContainer>
+                                                    <Table size="small">
+                                                        <TableHead>
+                                                            <TableRow>
+                                                                <TableCell>Product</TableCell>
+                                                                <TableCell align="center">Qty</TableCell>
+                                                                <TableCell align="right">Reason</TableCell>
+                                                                <TableCell align="right">Refund Amount</TableCell>
+                                                            </TableRow>
+                                                        </TableHead>
+                                                        <TableBody>
+                                                            {returnRecord.items.map((item: any, itemIdx: number) => {
+                                                                const originalItem = order.items.find((oi: any) => {
+                                                                    const pid = typeof oi.productId === 'object' ? oi.productId._id : oi.productId;
+                                                                    const iid = typeof item.productId === 'object' ? item.productId._id : item.productId;
+                                                                    return pid === iid;
+                                                                });
+                                                                return (
+                                                                    <TableRow key={itemIdx}>
+                                                                        <TableCell variant="head">{originalItem?.name || 'Unknown Product'}</TableCell>
+                                                                        <TableCell align="center">{item.quantity}</TableCell>
+                                                                        <TableCell align="right">
+                                                                            <Typography variant="caption">{item.reason}</Typography>
+                                                                        </TableCell>
+                                                                        <TableCell align="right">
+                                                                            <Typography variant="caption" fontWeight={500}>
+                                                                                {convertAndFormat(item.refundAmount || 0, order.currency)}
+                                                                            </Typography>
+                                                                        </TableCell>
+                                                                    </TableRow>
+                                                                );
+                                                            })}
+                                                        </TableBody>
+                                                    </Table>
+                                                </TableContainer>
+
+                                                {/* Return Note */}
+                                                {returnRecord.note && (
+                                                    <Alert severity="info" sx={{ mt: 2 }}>
+                                                        <Typography variant="caption" fontWeight={600} display="block">Note:</Typography>
+                                                        {returnRecord.note}
+                                                    </Alert>
+                                                )}
+                                            </Box>
+                                        ))}
+                                    </Box>
+                                </Paper>
+                            )}
+
                             {/* Order Summary */}
                             <Box display="flex" justifyContent="flex-end">
                                 <Paper sx={{ width: '100%', maxWidth: 400, p: 2 }}>
@@ -649,6 +732,7 @@ export default function OrderDetailPage() {
                         orderId={order._id}
                         orderTotal={order.total}
                         orderCurrency={order.currency}
+                        orderReturns={order.returns}
                     />
                 )}
 

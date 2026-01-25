@@ -3,8 +3,10 @@ import Order from '../models/Order';
 import Product from '../models/Product';
 import Store from '../models/Store';
 import User from '../models/User';
+import Coupon from '../models/Coupon';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import ReturnCalculationService from './return-calculation.service';
 
 class POSService {
     /**
@@ -397,6 +399,245 @@ class POSService {
         const sequenceNumber = (count + 1).toString().padStart(3, '0');
 
         return `POS-${dateStr}-${sequenceNumber}`;
+    }
+
+    /**
+     * Calculate refund amount for return items (without processing the return)
+     */
+    async calculateRefund(
+        orderId: mongoose.Types.ObjectId,
+        storeId: mongoose.Types.ObjectId,
+        items: Array<{
+            productId: string;
+            variantId?: string;
+            quantity: number;
+        }>
+    ): Promise<any> {
+        const order = await Order.findOne({ _id: orderId, storeId });
+        if (!order) {
+            throw new Error('Order not found');
+        }
+
+        // Fetch coupon details if coupon was applied
+        let couponDetails = null;
+        if (order.couponId) {
+            couponDetails = await Coupon.findById(order.couponId);
+        }
+
+        // Prepare order details for calculation service
+        const orderDetails = {
+            items: order.items.map((item: any) => ({
+                productId: item.productId.toString(),
+                variantId: item.variantId,
+                name: item.name,
+                sku: item.sku,
+                price: item.price,
+                quantity: item.quantity,
+                taxRate: item.taxRate || 0,
+                taxAmount: item.taxAmount || 0,
+                discount: item.discount,
+                returnedQuantity: item.returnedQuantity || 0,
+                refundedAmount: item.refundedAmount || 0,
+            })),
+            subtotal: order.subtotal,
+            tax: order.tax,
+            total: order.total,
+            discount: order.discount || 0,
+            couponId: order.couponId?.toString(),
+            couponCode: order.couponCode,
+            couponType: couponDetails?.discountType,
+            couponValue: couponDetails?.discountValue,
+            couponMaxCap: couponDetails?.maxDiscountAmount,
+            couponAppliesTo: couponDetails?.applyTo,
+            couponCategoryIds: couponDetails?.categoryIds?.map((id: any) => id.toString()),
+        };
+
+        // Prepare return items for calculation service
+        const returnItems = items.map(item => ({
+            productId: item.productId,
+            variantId: item.variantId,
+            quantity: item.quantity,
+        }));
+
+        // Validate return request
+        const validation = ReturnCalculationService.validateReturn(orderDetails, returnItems);
+        if (!validation.valid) {
+            throw new Error(`Return validation failed: ${validation.errors.join(', ')}`);
+        }
+
+        // Calculate refund using the service
+        const refundCalculation = ReturnCalculationService.calculateRefund(orderDetails, returnItems);
+
+        return refundCalculation;
+    }
+
+    /**
+     * Process order return
+     */
+    async processReturn(
+        orderId: mongoose.Types.ObjectId,
+        storeId: mongoose.Types.ObjectId,
+        userId: mongoose.Types.ObjectId,
+        sessionId: mongoose.Types.ObjectId,
+        items: Array<{
+            productId: string;
+            variantId?: string;
+            quantity: number;
+            reason?: string;
+        }>,
+        refundAmount: number,
+        refundMethod: string,
+        reason: string,
+        notes?: string
+    ): Promise<any> {
+        const order = await Order.findOne({ _id: orderId, storeId });
+        if (!order) {
+            throw new Error('Order not found');
+        }
+
+        // Fetch coupon details if coupon was applied
+        let couponDetails = null;
+        if (order.couponId) {
+            couponDetails = await Coupon.findById(order.couponId);
+        }
+
+        // Prepare order details for calculation service
+        const orderDetails = {
+            items: order.items.map((item: any) => ({
+                productId: item.productId.toString(),
+                variantId: item.variantId,
+                name: item.name,
+                sku: item.sku,
+                price: item.price,
+                quantity: item.quantity,
+                taxRate: item.taxRate || 0,
+                taxAmount: item.taxAmount || 0,
+                discount: item.discount,
+                returnedQuantity: item.returnedQuantity || 0,
+                refundedAmount: item.refundedAmount || 0,
+            })),
+            subtotal: order.subtotal,
+            tax: order.tax,
+            total: order.total,
+            discount: order.discount || 0,
+            couponId: order.couponId?.toString(),
+            couponCode: order.couponCode,
+            couponType: couponDetails?.discountType,
+            couponValue: couponDetails?.discountValue,
+            couponMaxCap: couponDetails?.maxDiscountAmount,
+            couponAppliesTo: couponDetails?.applyTo,
+            couponCategoryIds: couponDetails?.categoryIds?.map((id: any) => id.toString()),
+        };
+
+        // Prepare return items for calculation service
+        const returnItems = items.map(item => ({
+            productId: item.productId,
+            variantId: item.variantId,
+            quantity: item.quantity,
+            reason: item.reason,
+        }));
+
+        // Validate return request
+        const validation = ReturnCalculationService.validateReturn(orderDetails, returnItems);
+        if (!validation.valid) {
+            throw new Error(`Return validation failed: ${validation.errors.join(', ')}`);
+        }
+
+        // Calculate refund using the service
+        const refundCalculation = ReturnCalculationService.calculateRefund(orderDetails, returnItems);
+
+        // Validate that frontend calculation matches backend calculation (within small tolerance)
+        const tolerance = 0.01; // $0.01 tolerance for rounding differences
+        if (Math.abs(refundCalculation.refundAmount - refundAmount) > tolerance) {
+            throw new Error(
+                `Refund amount mismatch. Calculated: ${refundCalculation.refundAmount.toFixed(2)}, Provided: ${refundAmount.toFixed(2)}`
+            );
+        }
+
+        // Update order items with returned quantities and refunded amounts
+        for (const itemRefund of refundCalculation.itemRefunds) {
+            const orderItem = order.items.find(
+                (i: any) =>
+                    i.productId.toString() === itemRefund.productId &&
+                    (i.variantId === itemRefund.variantId || (!i.variantId && !itemRefund.variantId))
+            );
+
+            if (orderItem) {
+                orderItem.returnedQuantity = (orderItem.returnedQuantity || 0) + itemRefund.quantity;
+                orderItem.refundedAmount = (orderItem.refundedAmount || 0) + itemRefund.totalRefund;
+            }
+        }
+
+        // Add return record to order
+        if (!order.returns) order.returns = [];
+        order.returns.push({
+            returnedAt: new Date(),
+            items: refundCalculation.itemRefunds.map(item => ({
+                productId: new mongoose.Types.ObjectId(item.productId),
+                variantId: item.variantId,
+                quantity: item.quantity,
+                reason: items.find(i => i.productId === item.productId)?.reason || reason,
+                refundAmount: item.totalRefund,
+            })),
+            totalRefundAmount: refundCalculation.refundAmount,
+            refundMethod,
+            processedBy: userId,
+            note: notes,
+            refundReference: `REF-${Date.now()}`,
+        });
+
+        // Update Order Status if fully returned
+        const allItemsReturned = order.items.every((i: any) => (i.returnedQuantity || 0) === i.quantity);
+        if (allItemsReturned) {
+            order.status = 'returned';
+            order.paymentStatus = 'refunded';
+            order.refundStatus = 'processed';
+            order.refundedAt = new Date();
+        } else {
+            order.status = 'partially_returned';
+            order.refundStatus = 'processed';
+        }
+
+        await order.save();
+
+        // Restore Inventory
+        const inventoryItems = items.map(i => ({
+            productId: i.productId,
+            variantId: i.variantId,
+            quantity: i.quantity,
+        }));
+
+        // Dynamic import to avoid circular dependency
+        const { default: InventoryService } = await import('./inventory.service');
+        await InventoryService.restoreStock(inventoryItems);
+
+        // Update POS Session with Refund
+        await this.recordSessionRefund(sessionId, refundCalculation.refundAmount);
+
+        return {
+            order,
+            refundCalculation,
+        };
+    }
+
+    /**
+     * Record refund in POS session
+     */
+    async recordSessionRefund(
+        sessionId: mongoose.Types.ObjectId,
+        amount: number
+    ): Promise<void> {
+        const session = await POSSession.findById(sessionId);
+        if (!session) return;
+
+        session.totalRefunds = (session.totalRefunds || 0) + amount;
+        // Optionally update cash drawer if refund method is cash
+        // But typically refunds are tracked separately from 'closingCash' reconciliation
+        // However, if cash is given out, the drawer has less cash.
+        // We should explicitly decide if we want to track 'cash given out' vs 'cash taken in'.
+        // For simplicity, we just track 'totalRefunds' now.
+
+        await session.save();
     }
 }
 

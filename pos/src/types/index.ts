@@ -1,3 +1,4 @@
+
 export interface Product {
     id: string;
     name: string;
@@ -107,7 +108,7 @@ export interface POCSession {
     status: 'active' | 'closed';
 }
 
-export type OrderStatus = 'completed' | 'pending' | 'cancelled' | 'refunded' | 'delivered';
+export type OrderStatus = 'completed' | 'pending' | 'cancelled' | 'refunded' | 'delivered' | 'returned' | 'partially_returned';
 
 export interface OrderItem {
     productId: string;
@@ -122,6 +123,25 @@ export interface OrderItem {
     taxAmount?: number;
 }
 
+export interface ReturnItem {
+    productId?: string;
+    quantity?: number;
+    variantId?: string;
+    refundAmount?: number;  
+    reason?: string;
+    _id?: string;
+}
+
+export interface Return {
+    items: ReturnItem[];
+    notes?: string;
+    processedBy?: string;
+    refundMethod?: 'cash' | 'card' | 'original';
+    refundReference?: string;
+    returnedAt?: string;
+    totalRefundAmount?: number;
+    _id?: string;
+}
 export interface Order {
     id: string;
     orderNumber: string;
@@ -136,6 +156,9 @@ export interface Order {
     cashReceived?: number;
     change?: number;
     notes?: string;
+    discount?: number;
+    couponCode?: string;
+    returns?: Return[];
     discountsApplied?: Array<{
         productId: string;
         variantId?: string;

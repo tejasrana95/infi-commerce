@@ -75,6 +75,8 @@ export interface PLSummary {
     completedAccounting: number;
     pendingAccounting: number;
     totalRevenue: number;
+    totalReturns: number;
+    totalAdjustedRevenue: number;
     totalCogs: number;
     grossProfit: number;
     totalExpenses: number;

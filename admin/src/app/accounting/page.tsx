@@ -306,7 +306,34 @@ function AccountingDashboardContent() {
             align: 'right',
             headerAlign: 'right',
             renderCell: (params: GridRenderCellParams) =>
-                <Box display="flex" flexDirection="column" justifyContent="center" height="100%"> <Typography variant="body2">{formatPrice(params.row.revenue, currencyCode)}</Typography></Box>,
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%"> <Typography variant="body2">{formatPrice(params.row?.revenue, currencyCode)}</Typography></Box>,
+        },
+        {
+            field: 'returns',
+            headerName: 'Returns',
+            width: 120,
+            align: 'right',
+            headerAlign: 'right',
+            renderCell: (params: GridRenderCellParams) => (
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%"> 
+                    {params.row.returns > 0 ? (
+                        <Typography variant="body2" color="warning.main">
+                            -{formatPrice(params.row?.returns, currencyCode)}
+                        </Typography>
+                    ) : (
+                        <Typography variant="body2" color="text.secondary">-</Typography>
+                    )}
+                </Box>
+            ),
+        },
+        {
+            field: 'adjustedRevenue',
+            headerName: 'Adj. Revenue',
+            width: 120,
+            align: 'right',
+            headerAlign: 'right',
+            renderCell: (params: GridRenderCellParams) =>
+                <Box display="flex" flexDirection="column" justifyContent="center" height="100%"> <Typography variant="body2" fontWeight={600}>{formatPrice(params.row?.adjustedRevenue, currencyCode)}</Typography></Box>,
         },
         {
             field: 'cogs',
@@ -316,7 +343,7 @@ function AccountingDashboardContent() {
             headerAlign: 'right',
             renderCell: (params: GridRenderCellParams) => (
                 <Box display="flex" flexDirection="column" justifyContent="center" height="100%">  <Typography variant="body2" color="warning.main">
-                    {formatPrice(params.row.cogs, currencyCode)}
+                    {formatPrice(params.row?.cogs, currencyCode)}
                 </Typography></Box>
             ),
         },
@@ -328,7 +355,7 @@ function AccountingDashboardContent() {
             headerAlign: 'right',
             renderCell: (params: GridRenderCellParams) => (
                 <Box display="flex" flexDirection="column" justifyContent="center" height="100%"> <Typography variant="body2" color="error.main">
-                    {formatPrice(params.row.expenses, currencyCode)}
+                    {formatPrice(params.row?.expenses, currencyCode)}
                 </Typography></Box>
             ),
         },
@@ -346,7 +373,7 @@ function AccountingDashboardContent() {
                         params.row.netProfit >= 0 ? 'success.main' : 'error.main'
                     }
                 >
-                    {formatPrice(params.row.netProfit, currencyCode)}
+                    {formatPrice(params.row?.netProfit, currencyCode)}
                 </Typography></Box>
             ),
         },
@@ -410,12 +437,56 @@ function AccountingDashboardContent() {
 
     const [tempStartDate, setTempStartDate] = useState(customStartDate);
     const [tempEndDate, setTempEndDate] = useState(customEndDate);
+    const [regenerating, setRegenerating] = useState(false);
 
     // Sync temp state with url state
     useEffect(() => {
         setTempStartDate(customStartDate);
         setTempEndDate(customEndDate);
     }, [customStartDate, customEndDate]);
+
+    const handleRegenerateAccountingData = async () => {
+        if (!selectedStore || orders.length === 0) {
+            showNotification('No orders to regenerate', 'warning');
+            return;
+        }
+
+        try {
+            setRegenerating(true);
+            
+            // Regenerate accounting data for all visible orders
+            const results = await Promise.all(
+                orders.map(order =>
+                    api.post(`/accounting/${order.orderId._id}/regenerate`)
+                )
+            );
+
+            // Check if all succeeded
+            const allSuccess = results.every(r => r.data.success);
+            
+            if (allSuccess) {
+                showNotification(
+                    `Regenerated accounting data for ${results.length} order(s)`,
+                    'success'
+                );
+                // Refresh both report and orders to get updated calculations
+                await fetchReport();
+                await fetchOrders();
+            } else {
+                showNotification(
+                    'Some orders failed to regenerate. Please check the details.',
+                    'warning'
+                );
+            }
+        } catch (error: any) {
+            showNotification(
+                error.response?.data?.message || 'Failed to regenerate accounting data',
+                'error'
+            );
+        } finally {
+            setRegenerating(false);
+        }
+    };
 
     return (
         <Box>
@@ -437,6 +508,14 @@ function AccountingDashboardContent() {
                     </Typography>
                 </Box>
                 <Box display="flex" gap={2}>
+                    <Button
+                        variant="outlined"
+                        startIcon={<RefreshIcon />}
+                        onClick={handleRegenerateAccountingData}
+                        disabled={loading || regenerating || !selectedStore}
+                    >
+                        {regenerating ? 'Regenerating...' : 'Regenerate'}
+                    </Button>
                     <Button
                         variant="outlined"
                         startIcon={<RefreshIcon />}
@@ -585,7 +664,95 @@ function AccountingDashboardContent() {
                                         color="primary.main"
                                     >
                                         {formatPrice(
-                                            report.summary.totalRevenue,
+                                            report.summary?.totalRevenue,
+                                            currencyCode
+                                        )}
+                                    </Typography>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+                        <Grid size={{ xs: 6, sm: 4, md: 2 }} >
+                            <Card variant="outlined" sx={{ height: 1, borderColor: report.summary.totalReturns > 0 ? 'warning.main' : 'divider', borderWidth: report.summary.totalReturns > 0 ? 2 : 1 }}>
+                                <CardContent>
+                                    <Typography
+                                        variant="caption"
+                                        color="text.secondary"
+                                    >
+                                        Returns
+                                    </Typography>
+                                    <Typography
+                                        variant="h5"
+                                        fontWeight="bold"
+                                        color={report.summary.totalReturns > 0 ? 'warning.main' : 'text.secondary'}
+                                    >
+                                        -{formatPrice(
+                                            report.summary?.totalReturns,
+                                            currencyCode
+                                        )}
+                                    </Typography>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+                        <Grid size={{ xs: 6, sm: 4, md: 2 }} >
+                            <Card variant="outlined" sx={{ height: 1, bgcolor: report.summary.totalAdjustedRevenue < report.summary.totalRevenue ? 'warning.50' : 'transparent' }}>
+                                <CardContent>
+                                    <Typography
+                                        variant="caption"
+                                        color="text.secondary"
+                                    >
+                                        Adjusted Revenue
+                                    </Typography>
+                                    <Typography
+                                        variant="h5"
+                                        fontWeight="bold"
+                                        color="success.main"
+                                    >
+                                        {formatPrice(
+                                            report.summary?.totalAdjustedRevenue,
+                                            currencyCode
+                                        )}
+                                    </Typography>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+                        <Grid size={{ xs: 6, sm: 4, md: 2 }} >
+                            <Card variant="outlined" sx={{ height: 1, borderColor: report.summary.totalReturns > 0 ? 'warning.main' : 'divider', borderWidth: report.summary.totalReturns > 0 ? 2 : 1 }}>
+                                <CardContent>
+                                    <Typography
+                                        variant="caption"
+                                        color="text.secondary"
+                                    >
+                                        Returns
+                                    </Typography>
+                                    <Typography
+                                        variant="h5"
+                                        fontWeight="bold"
+                                        color={report.summary.totalReturns > 0 ? 'warning.main' : 'text.secondary'}
+                                    >
+                                        -{formatPrice(
+                                            report.summary?.totalReturns,
+                                            currencyCode
+                                        )}
+                                    </Typography>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+                        <Grid size={{ xs: 6, sm: 4, md: 2 }} >
+                            <Card variant="outlined" sx={{ height: 1, bgcolor: report.summary.totalAdjustedRevenue < report.summary.totalRevenue ? 'warning.50' : 'transparent' }}>
+                                <CardContent>
+                                    <Typography
+                                        variant="caption"
+                                        color="text.secondary"
+                                    >
+                                        Adjusted Revenue
+                                    </Typography>
+                                    <Typography
+                                        variant="h5"
+                                        fontWeight="bold"
+                                        color="success.main"
+                                    >
+                                        {formatPrice(
+                                            report.summary?.totalAdjustedRevenue,
                                             currencyCode
                                         )}
                                     </Typography>
@@ -607,7 +774,7 @@ function AccountingDashboardContent() {
                                         color="warning.main"
                                     >
                                         {formatPrice(
-                                            report.summary.totalCogs,
+                                            report.summary?.totalCogs,
                                             currencyCode
                                         )}
                                     </Typography>
@@ -629,7 +796,7 @@ function AccountingDashboardContent() {
                                         color="error.main"
                                     >
                                         {formatPrice(
-                                            report.summary.totalExpenses,
+                                            report.summary?.totalExpenses,
                                             currencyCode
                                         )}
                                     </Typography>
@@ -686,7 +853,7 @@ function AccountingDashboardContent() {
                                             }}
                                         >
                                             {formatPrice(
-                                                report.summary.netProfit,
+                                                report.summary?.netProfit,
                                                 currencyCode
                                             )}
                                         </Typography>

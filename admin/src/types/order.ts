@@ -1,4 +1,4 @@
-export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'return_requested' | 'returned';
+export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'return_requested' | 'returned' | 'partially_returned';
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
 export type PaymentMethod = 'razorpay' | 'stripe' | 'paypal' | 'cod';
 
@@ -76,6 +76,25 @@ export interface Order {
     // Notes
     customerNote?: string;
     adminNote?: string;
+
+    // Returns history
+    returns?: Array<{
+        _id?: string;
+        returnedAt: string;
+        items: Array<{
+            productId: string | { _id: string };
+            variantId?: string;
+            quantity: number;
+            reason: string;
+            refundAmount: number;
+        }>;
+        totalRefundAmount?: number;
+        refundAmount?: number;
+        refundMethod?: string;
+        refundReference?: string;
+        processedBy?: string;
+        note?: string;
+    }>;
 
     createdAt: string; // ISO date string
     updatedAt: string; // ISO date string

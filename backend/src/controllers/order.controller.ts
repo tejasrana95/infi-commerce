@@ -208,6 +208,19 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
 
         subtotal += finalPrice * item.quantity;
 
+        // Calculate tax for this item
+        let itemTaxRate = 0;
+        let itemTaxAmount = 0;
+
+        if (product.taxClassId) {
+            const taxRateDoc = await TaxRate.findById(product.taxClassId);
+            if (taxRateDoc) {
+                itemTaxRate = taxRateDoc.rate;
+                // Calculate tax amount based on final price (after discount)
+                itemTaxAmount = (finalPrice * item.quantity * itemTaxRate) / 100;
+            }
+        }
+
         orderItems.push({
             productId: product._id,
             variantId: item.variantId,
@@ -219,14 +232,17 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
             image: itemImage,
             attributes: variantAttributes,
             weight: product.weight || 0,
-            taxRate: 0, // Tax rate is calculated at order level, not item level
-            taxAmount: 0, // Tax amount is calculated at order level
+            taxRate: itemTaxRate,
+            taxAmount: parseFloat((itemTaxAmount / item.quantity).toFixed(4)), // Tax per unit
             // Store discount info for audit trail
             ...(appliedDiscount && { discount: appliedDiscount }),
         });
     }
 
-    const total = subtotal + shippingCost + tax - discount + roundOffAmount;
+    // Recalculate total tax from items
+    const calculatedTax = orderItems.reduce((sum, item) => sum + (item.taxAmount * item.quantity), 0);
+
+    const total = subtotal + shippingCost + calculatedTax - discount + roundOffAmount;
 
     // Get exchange rate for the order currency
     const currencyDoc = await Currency.findOne({ code: currency.toUpperCase(), isActive: true });
@@ -254,7 +270,7 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
         items: orderItems,
         subtotal,
         shippingCost,
-        tax,
+        tax: parseFloat(calculatedTax.toFixed(2)), // Use calculated tax from items
         discount,
         total,
         currency: currency.toUpperCase(),
@@ -998,7 +1014,7 @@ export const getOrderById = asyncHandler(async (req: AuthRequest, res: Response)
     }
 
     // Check authorization - user can only view their own orders unless admin
-    const isAdmin = userRole && (userRole === 'admin' || userRole === 'store_admin' || userRole === 'super_admin');
+    const isAdmin = userRole && (userRole === 'admin' || userRole === 'store_admin' || userRole === 'super_admin' || userRole === 'pos_user');
 
     // Handle populated customerId
     const customerId = (order.customerId as any)?._id || order.customerId;

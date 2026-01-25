@@ -28,6 +28,10 @@ export function formatDate(date: Date): string {
     });
 }
 
+export function formatDateTime(date: string): string {
+    return `${formatDate(new Date(date))} ${formatTime(new Date(date))}`;
+}
+
 /**
  * Format duration in seconds to human readable format
  * e.g., 3665 seconds -> "1h 1m"

@@ -5,6 +5,7 @@ import Category from '../models/Category';
 import posService from '../services/pos.service';
 import POSHeldOrder from '../models/POSHeldOrder';
 import User from '../models/User';
+import Order from '../models/Order';
 
 // Helper to get store ID from header or query
 const getStoreIdFromRequest = (req: Request): mongoose.Types.ObjectId | null => {
@@ -433,7 +434,7 @@ class POSController {
 
             const heldOrder = await POSHeldOrder.findOneAndUpdate(
                 { _id: id, storeId, status: 'held' },
-                { 
+                {
                     status: 'resumed',
                     resumedAt: new Date(),
                     resumedByUserId: userId,
@@ -535,6 +536,158 @@ class POSController {
             });
         }
     }
-}
 
+    /**
+     * GET /api/pos/orders/search
+     * Search orders for return
+     */
+    async searchOrders(req: Request, res: Response) {
+        try {
+            const { query } = req.query;
+            const storeId = getStoreIdFromRequest(req);
+
+            if (!storeId) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Store ID is required',
+                });
+            }
+
+            if (!query || typeof query !== 'string' || query.length < 3) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Search query must be at least 3 characters',
+                });
+            }
+
+            // Search by order number, customer phone, email, or name
+            const orders = await Order.find({
+                storeId,
+                $or: [
+                    { orderNumber: { $regex: query, $options: 'i' } },
+                    { 'shippingAddress.phone': { $regex: query, $options: 'i' } },
+                    { 'shippingAddress.email': { $regex: query, $options: 'i' } },
+                    { 'shippingAddress.firstName': { $regex: query, $options: 'i' } },
+                    { 'shippingAddress.lastName': { $regex: query, $options: 'i' } },
+                    { guestEmail: { $regex: query, $options: 'i' } },
+                ],
+                status: { $in: ['delivered', 'completed'] }, // Only completed/delivered orders can be returned
+                paymentStatus: 'paid',
+            })
+                .sort({ createdAt: -1 })
+                .limit(10)
+                .populate('customerId', 'firstName lastName email phone');
+
+            res.status(200).json({
+                success: true,
+                data: orders,
+            });
+        } catch (error: any) {
+            console.error('Search orders error:', error);
+            res.status(500).json({
+                success: false,
+                message: error.message || 'Failed to search orders',
+            });
+        }
+    }
+
+    /**
+     * POST /api/pos/orders/calculate-refund
+     * Calculate refund amount for return items
+     */
+    async calculateRefund(req: Request, res: Response) {
+        try {
+            const { orderId, items } = req.body;
+            const storeId = getStoreIdFromRequest(req);
+
+            if (!storeId) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Store ID is required',
+                });
+            }
+
+            if (!orderId || !items || !Array.isArray(items) || items.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Order ID and items are required',
+                });
+            }
+
+            const result = await posService.calculateRefund(
+                new mongoose.Types.ObjectId(orderId),
+                storeId,
+                items
+            );
+
+            res.status(200).json({
+                success: true,
+                data: result,
+            });
+        } catch (error: any) {
+            res.status(500).json({
+                success: false,
+                message: error.message || 'Failed to calculate refund',
+            });
+        }
+    }
+
+    /**
+     * POST /api/pos/orders/return
+     * Process order return
+     */
+    async processReturn(req: Request, res: Response) {
+        try {
+            const { orderId, items, refundAmount, refundMethod, reason, notes } = req.body;
+            const userId = new mongoose.Types.ObjectId((req as any).user.id);
+            const storeId = getStoreIdFromRequest(req);
+
+            if (!storeId) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Store ID is required',
+                });
+            }
+
+            if (!orderId || !items || !Array.isArray(items) || items.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Order ID and items are required',
+                });
+            }
+
+            // Get current session for tracking refund
+            const currentSession = await posService.getCurrentSession(storeId);
+            if (!currentSession) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'No active POS session found. Please start a session to process returns.',
+                });
+            }
+
+            const result = await posService.processReturn(
+                new mongoose.Types.ObjectId(orderId),
+                storeId,
+                userId,
+                currentSession._id,
+                items,
+                refundAmount,
+                refundMethod,
+                reason,
+                notes
+            );
+
+            res.status(200).json({
+                success: true,
+                data: result,
+            });
+        } catch (error: any) {
+            console.error('Process return error:', error);
+            res.status(500).json({
+                success: false,
+                message: error.message || 'Failed to process return',
+            });
+        }
+    }
+}
 export default new POSController();

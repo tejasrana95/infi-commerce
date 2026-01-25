@@ -1,28 +1,34 @@
-import { Order } from '@/types';
+import { Order, ReturnItem } from '@/types';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import StatusBadge from '../atoms/StatusBadge';
-import { X, Calendar, User, CreditCard, Banknote, QrCode, Printer, Package } from 'lucide-react';
+import { X, Calendar, User, CreditCard, Banknote, QrCode, Printer, Package, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
+import { formatDateTime } from '@/utils/formatters';
 
 interface OrderDetailModalProps {
     order: Order | null;
     isOpen: boolean;
     onClose: () => void;
+    onReturn?: (order: Order) => void;
 }
 
 const paymentIcons = {
     cash: Banknote,
     card: CreditCard,
     upi: QrCode,
-    qr: QrCode
+    qr: QrCode,
+    stripe: CreditCard,
+    razorpay: CreditCard,
+    paypal: CreditCard
 };
 
-export default function OrderDetailModal({ order, isOpen, onClose }: OrderDetailModalProps) {
+export default function OrderDetailModal({ order, isOpen, onClose, onReturn }: OrderDetailModalProps) {
     const { formatPrice } = useCurrency();
     if (!order || !isOpen) return null;
     const PaymentIcon = paymentIcons[order.paymentMethod];
 
+    console.log('order', order);
     const handlePrint = () => {
         console.log('Printing receipt for order:', order.orderNumber);
         // In real app: window.print() or WebUSB printing
@@ -98,18 +104,10 @@ export default function OrderDetailModal({ order, isOpen, onClose }: OrderDetail
                                     );
 
                                     const originalTotal = item.price * item.quantity;
-                                    let basePrice = item.basePrice || item.price - (item.taxAmount || 0);
-                                    
-                                    if (discount) {
-                                        if (discount.discountType === 'percentage') {
-                                            basePrice -= (basePrice * discount.discountAmount) / 100;
-                                        } else {
-                                            basePrice -= discount.discountAmount;
-                                        }
-                                    }
-                                    const taxAmount = basePrice * ((item.taxRate || 0) / 100);
+                                    const basePrice = item.price; // Use the item price as base
+                                    const taxAmount = item.taxAmount || 0;
                                     const finalTotal = (basePrice + taxAmount) * item.quantity;
-                                    const hasDiscount = discount;
+                                    const hasDiscount = false; // Simplified for now
 
                                     return (
                                         <div
@@ -138,6 +136,24 @@ export default function OrderDetailModal({ order, isOpen, onClose }: OrderDetail
                                                         ))}
                                                     </div>
                                                 )}
+                                                <div>
+                                                    {order.returns && order.returns.length > 0 &&
+                                                        order.returns.map((ret, retIndex) =>
+                                                            ret.items.map((retItem, retItemIndex) => {
+                                                                if (retItem.productId === item.productId && retItem.variantId === item.variantId) {
+                                                                    return (
+                                                                        <div key={`${retIndex}-${retItemIndex}`} className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
+                                                                            <p className="text-xs text-red-700">
+                                                                                Returned Qty: {retItem.quantity || 0} | Refund Amount: {formatPrice(retItem.refundAmount || 0)} {retItem.reason ? `| Reason: ${retItem.reason}` : ''} {`| Processed At: ${ret.returnedAt ? formatDateTime(ret.returnedAt) : 'N/A'}`}
+                                                                            </p>
+                                                                        </div>
+                                                                    );
+                                                                }
+                                                                return null;
+                                                            })
+                                                        )
+                                                    }
+                                                </div>
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-sm text-slate-600">Qty: {item.quantity}</p>
@@ -146,7 +162,7 @@ export default function OrderDetailModal({ order, isOpen, onClose }: OrderDetail
                                                         <p className="text-xs line-through text-slate-400">{formatPrice(originalTotal)}</p>
                                                         <p className="font-bold text-amber-600">{formatPrice(finalTotal)}</p>
                                                         <p className="text-xs text-amber-600">
-                                                            {discount.discountType === 'percentage' ? `${discount.discountAmount}% off` : `${formatPrice(discount.discountAmount)} off`}
+                                                            {discount?.discountType === 'percentage' ? `${discount.discountAmount}% off` : `${formatPrice(discount?.discountAmount || 0)} off`}
                                                         </p>
                                                     </div>
                                                 ) : (
@@ -174,10 +190,26 @@ export default function OrderDetailModal({ order, isOpen, onClose }: OrderDetail
                                     <span>Tax</span>
                                     <span>{formatPrice(order.tax)}</span>
                                 </div>
+                                {order?.discount && order?.discount > 0 && (
+                                    <div className="flex justify-between text-slate-700">
+                                        <span>Discount {order.couponCode ? `(${order.couponCode})` : ''}</span>
+                                        <span>{formatPrice(order?.discount || 0)}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between text-xl font-bold text-blue-600 pt-2 border-t border-blue-200">
                                     <span>Total</span>
                                     <span>{formatPrice(order.total)}</span>
                                 </div>
+                                {order.returns && order.returns.length > 0 && order.returns.some(r => r.totalRefundAmount && r.totalRefundAmount > 0) && (
+                                    <div className="flex justify-between text-red-600 font-medium">
+                                        <span>Total Refunded</span>
+                                        <span>
+                                            {formatPrice(
+                                                order.returns.reduce((acc, ret) => acc + (ret.totalRefundAmount || 0), 0)
+                                            )}
+                                        </span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between text-sm text-slate-600 pt-2">
                                     <span>Payment Method</span>
                                     <span className="font-medium capitalize">{order.paymentMethod}</span>
@@ -216,6 +248,15 @@ export default function OrderDetailModal({ order, isOpen, onClose }: OrderDetail
                         >
                             Close
                         </button>
+                        {onReturn && (order.status === 'delivered' || order.status === 'completed' || order.status === 'partially_returned') && (
+                            <button
+                                onClick={() => onReturn(order)}
+                                className="px-5 py-2 border border-orange-200 text-orange-700 bg-orange-50 rounded-lg font-medium hover:bg-orange-100 transition-colors flex items-center gap-2"
+                            >
+                                <RotateCcw className="w-4 h-4" />
+                                Return
+                            </button>
+                        )}
                         <button
                             onClick={handlePrint}
                             className="px-5 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"

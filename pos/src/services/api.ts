@@ -244,6 +244,11 @@ class POCApiService {
         return response.data;
     }
 
+    async getOrderById(orderId: string) {
+        const response = await apiClient.get(`/orders/${orderId}`);
+        return response.data.data;
+    }
+
     /**
      * Verify password for sensitive actions
      */
@@ -572,10 +577,10 @@ class POCApiService {
     }> {
         const storeId = this.getStoreId();
         const cart = await this.getCurrentSession().then(s => ({ storeId })).catch(() => ({ storeId }));
-        
+
         // Get current cart items from local state or send minimal cart info
         // For POS, we'll send an empty items array since we're just validating
-        const response = await apiClient.post('/checkout/validate-coupon-pos', { 
+        const response = await apiClient.post('/checkout/validate-coupon-pos', {
             couponCode,
             items: [],
             subtotal: 0
@@ -615,6 +620,49 @@ class POCApiService {
     async removeCoupon(): Promise<{ success: boolean; message: string }> {
         const response = await apiClient.delete('/checkout/remove-coupon');
         return response.data;
+    }
+
+    /**
+     * Search orders for return
+     */
+    async searchOrders(query: string) {
+        const response = await apiClient.get(`/pos/orders/search?query=${encodeURIComponent(query)}`);
+        return response.data.data;
+    }
+
+    /**
+     * Calculate refund for return items
+     */
+    async calculateRefund(orderId: string, items: Array<{
+        productId: string;
+        variantId?: string;
+        quantity: number;
+    }>) {
+        const response = await apiClient.post('/pos/orders/calculate-refund', {
+            orderId,
+            items
+        });
+        return response.data.data;
+    }
+
+    /**
+     * Process return
+     */
+    async processReturn(data: {
+        orderId: string;
+        items: Array<{
+            productId: string;
+            variantId?: string;
+            quantity: number;
+            reason: string;
+        }>;
+        refundAmount: number;
+        refundMethod: string;
+        reason: string;
+        notes?: string;
+    }) {
+        const response = await apiClient.post('/pos/orders/return', data);
+        return response.data.data;
     }
 }
 

@@ -43,12 +43,14 @@ interface OrderAccountingSectionProps {
     orderId: string;
     orderTotal: number;
     orderCurrency: string;
+    orderReturns?: any[];
 }
 
 export default function OrderAccountingSection({
     orderId,
     orderTotal,
     orderCurrency,
+    orderReturns,
 }: OrderAccountingSectionProps) {
     const [accounting, setAccounting] = useState<OrderAccounting | null>(null);
     const [loading, setLoading] = useState(true);
@@ -218,6 +220,19 @@ export default function OrderAccountingSection({
         setHasChanges(true);
     };
 
+    // Calculate returns impact on accounting
+    const returnsImpact = useMemo(() => {
+        if (!orderReturns || orderReturns.length === 0) {
+            return { totalReturns: 0, returnCount: 0, description: 'No returns' };
+        }
+        const totalReturns = orderReturns.reduce((sum, r) => sum + (r.totalRefundAmount || 0), 0);
+        return {
+            totalReturns,
+            returnCount: orderReturns.length,
+            description: `${orderReturns.length} return(s), ${convertAndFormat(totalReturns, orderCurrency)}`
+        };
+    }, [orderReturns, orderCurrency, convertAndFormat]);
+
     // Realtime Calculations
     const realtimeCogs = useMemo(() => {
         if (!accounting) return { items: [], totalCogs: 0 };
@@ -317,6 +332,21 @@ export default function OrderAccountingSection({
             </Box>
 
             <Grid container spacing={3}>
+                {/* Returns Alert */}
+                {orderReturns && orderReturns.length > 0 && (
+                    <Grid size={12}>
+                        <Alert severity="warning" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Box>
+                                <Typography variant="subtitle2" fontWeight={600}>Returns Detected</Typography>
+                                <Typography variant="body2">{returnsImpact.description}</Typography>
+                            </Box>
+                            <Typography variant="h6" fontWeight={700} color="warning.main">
+                                -{convertAndFormat(returnsImpact.totalReturns, orderCurrency)}
+                            </Typography>
+                        </Alert>
+                    </Grid>
+                )}
+
                 {/* Revenue Section */}
                 <Grid size={{ xs: 12, md: 4 }}>
                     <Card variant="outlined" sx={{ height: 1 }}>
@@ -332,6 +362,11 @@ export default function OrderAccountingSection({
                                     Original: {convertAndFormat(accounting.orderTotal, accounting.orderCurrency, accounting.exchangeRateUsed)}
                                     <br />
                                     Rate: {accounting.exchangeRateUsed.toFixed(4)}
+                                </Typography>
+                            )}
+                            {returnsImpact.totalReturns > 0 && (
+                                <Typography variant="caption" display="block" color="error.main" sx={{ mt: 1 }}>
+                                    After Returns: {convertAndFormat(accounting.convertedOrderTotal - returnsImpact.totalReturns, orderCurrency)}
                                 </Typography>
                             )}
                         </CardContent>
