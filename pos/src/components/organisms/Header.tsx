@@ -9,7 +9,6 @@ import Image from 'next/image';
 import { BarcodeInput } from '../molecules/BarcodeInput';
 import { BarcodeScannerModal } from './BarcodeScannerModal';
 import { EndShiftModal } from './EndShiftModal';
-import { OrderHistoryModal } from './OrderHistoryModal';
 import { useCartStore } from '@/store/cartStore';
 import { useSessionStore } from '@/store/sessionStore';
 
@@ -23,7 +22,6 @@ export default function Header() {
     const { addToCart } = useCartStore();
     const [showEndShiftModal, setShowEndShiftModal] = useState(false);
     const [showCameraScanner, setShowCameraScanner] = useState(false);
-    const [showHistoryModal, setShowHistoryModal] = useState(false);
     const handleBarcodeScan = async (barcode: string) => {
         const product = await api.getProductByBarcode(barcode);
 
@@ -103,12 +101,6 @@ export default function Header() {
                             title="Reports"
                         />
                         <IconButton
-                            icon={<History className="w-5 h-5" />}
-                            onClick={() => setShowHistoryModal(true)}
-                            variant="outline"
-                            title="Order History"
-                        />
-                        <IconButton
                             icon={<Package className="w-5 h-5 text-red-600" />}
                             onClick={() => setShowEndShiftModal(true)}
                             variant="outline"
@@ -151,11 +143,6 @@ export default function Header() {
                     onSuccess={handleEndShiftSuccess}
                 />
             )}
-
-            <OrderHistoryModal
-                isOpen={showHistoryModal}
-                onClose={() => setShowHistoryModal(false)}
-            />
         </>
     );
 }

@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import OrderCard from '@/components/molecules/OrderCard';
 import OrderDetailModal from '@/components/organisms/OrderDetailModal';
 import EmptyState from '@/components/molecules/EmptyState';
 import { Order, OrderStatus } from '@/types';
-import { Search, Receipt, Filter, RefreshCw, Loader2 } from 'lucide-react';
+import { Search, Receipt, Filter, RefreshCw, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import posApi from '@/services/api';
+
+const ITEMS_PER_PAGE = 12;
 
 export default function OrdersPage() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -16,23 +18,28 @@ export default function OrdersPage() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalOrders, setTotalOrders] = useState(0);
 
-    const fetchOrders = useCallback(async () => {
+    const fetchOrders = useCallback(async (page: number) => {
         try {
             setLoading(true);
             setError(null);
             const response = await posApi.getOrders({
+                page,
+                limit: ITEMS_PER_PAGE,
                 status: statusFilter !== 'all' ? statusFilter : undefined,
                 search: searchQuery || undefined,
             });
-            const transformedOrders: Order[] = (response.data || []).map((order: any) => ({
+            const transformedOrders: Order[] = (response.data || []).map((order: Record<string, unknown>) => ({
                 id: order._id,
                 orderNumber: order.orderNumber,
                 date: order.createdAt,
                 status: order.status as OrderStatus,
                 customerId: order.customerId,
-                items: (order.items || []).map((item: any) => ({
-                    productId: item.productId?._id || item.productId,
+                items: ((order.items as Array<Record<string, unknown>>) || []).map((item: Record<string, unknown>) => ({
+                    productId: (item.productId as Record<string, unknown>)?._id || item.productId,
                     variantId: item.variantId,
                     name: item.name,
                     sku: item.sku || '',
@@ -50,16 +57,21 @@ export default function OrdersPage() {
                 notes: order.notes,
             }));
             setOrders(transformedOrders);
-        } catch (err: any) {
+            // Set pagination info from server response
+            setTotalOrders(response.pagination?.total || response.data?.length || 0);
+            setTotalPages(response.pagination?.pages || 1);
+            setCurrentPage(page);
+        } catch (err: unknown) {
+            const error = err as Record<string, unknown>;
             console.error('Failed to fetch orders:', err);
-            setError(err.message || 'Failed to fetch orders');
+            setError((error?.message as string) || 'Failed to fetch orders');
         } finally {
             setLoading(false);
         }
     }, [statusFilter, searchQuery]);
 
     useEffect(() => {
-        fetchOrders();
+        fetchOrders(1);
     }, [fetchOrders]);
 
     const handleOrderClick = (order: Order) => {
@@ -72,15 +84,17 @@ export default function OrdersPage() {
         setTimeout(() => setSelectedOrder(null), 300);
     };
 
-    const filteredOrders = useMemo(() => {
-        if (!searchQuery) return orders;
-        return orders.filter(order => {
-            const matchesSearch =
-                order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                '';
-            return matchesSearch;
-        });
-    }, [orders, searchQuery]);
+    const handleNextPage = () => {
+        if (currentPage < totalPages) {
+            fetchOrders(currentPage + 1);
+        }
+    };
+
+    const handlePreviousPage = () => {
+        if (currentPage > 1) {
+            fetchOrders(currentPage - 1);
+        }
+    };
 
     return (
         <div className="h-full flex flex-col bg-gray-50">
@@ -113,14 +127,14 @@ export default function OrdersPage() {
                         </select>
                     </div>
                 </div>
-                <div className="flex gap-4 mt-4 items-center">
+                <div className="flex gap-4 mt-4 items-center justify-between">
                     <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
                         <span className="text-sm text-blue-700">
-                            Showing <span className="font-bold">{filteredOrders.length}</span> of <span className="font-bold">{orders.length}</span> orders
+                            Showing <span className="font-bold">{orders.length}</span> orders (Total: <span className="font-bold">{totalOrders}</span>)
                         </span>
                     </div>
                     <button
-                        onClick={fetchOrders}
+                        onClick={() => fetchOrders(currentPage)}
                         disabled={loading}
                         className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-medium transition-colors disabled:opacity-50"
                     >
@@ -143,9 +157,9 @@ export default function OrdersPage() {
                         title="Error Loading Orders"
                         description={error}
                     />
-                ) : filteredOrders.length > 0 ? (
+                ) : orders.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {filteredOrders.map(order => (
+                        {orders.map(order => (
                             <OrderCard
                                 key={order.id}
                                 order={order}
@@ -165,6 +179,34 @@ export default function OrdersPage() {
                     />
                 )}
             </div>
+
+            {/* Pagination Controls */}
+            {orders.length > 0 && (
+                <div className="bg-white border-t px-6 py-4 flex items-center justify-between">
+                    <button
+                        onClick={handlePreviousPage}
+                        disabled={currentPage === 1}
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <ChevronLeft className="w-4 h-4" />
+                        Previous
+                    </button>
+                    <div className="flex items-center gap-2">
+                        <span className="text-slate-600 font-medium">
+                            Page <span className="text-blue-600 font-bold">{currentPage}</span> of <span className="text-blue-600 font-bold">{totalPages}</span>
+                        </span>
+                    </div>
+                    <button
+                        onClick={handleNextPage}
+                        disabled={currentPage === totalPages}
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Next
+                        <ChevronRight className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
+
             <OrderDetailModal
                 order={selectedOrder}
                 isOpen={isModalOpen}

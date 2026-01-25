@@ -514,7 +514,7 @@ export const applyCoupon = asyncHandler(async (req: AuthRequest, res: Response) 
         code: couponCode.toUpperCase(),
         storeId,
     };
-
+    console.log('Applying coupon with filter:', couponFilter);
     // Apply channel filter: coupon should be applicable to this channel or have no channel restriction
     if (channel) {
         couponFilter.$or = [
@@ -666,7 +666,103 @@ export const removeCoupon = asyncHandler(async (req: AuthRequest, res: Response)
     });
 });
 
+/**
+ * @route   POST /api/checkout/validate-coupon-pos
+ * @desc    Validate coupon for POS (without cart requirement)
+ * @access  Public (optionalAuth)
+ */
+export const validateCouponPOS = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const userId = req.user?.id;
+    const sessionId = req.headers['x-session-id'] as string;
+    const storeId = req.headers['x-store-id'] as string;
+    const channel = req.headers['x-channel'] as string;
+    const { couponCode, items, subtotal } = req.body;
 
+    if (!storeId) {
+        throw new AppError('Store ID is required', 400);
+    }
+
+    if (!couponCode) {
+        throw new AppError('Coupon code is required', 400);
+    }
+
+    // Find coupon with channel filter
+    const couponFilter: any = {
+        code: couponCode.toUpperCase(),
+        storeId,
+    };
+
+    // Apply channel filter: coupon should be applicable to this channel or have no channel restriction
+    if (channel) {
+        couponFilter.$or = [
+            { channels: channel },
+            { channels: { $exists: false } },
+            { channels: { $size: 0 } }
+        ];
+    }
+
+    const coupon = await Coupon.findOne(couponFilter);
+
+    if (!coupon) {
+        throw new AppError('Invalid coupon code', 400);
+    }
+
+    // Validate coupon
+    if (!coupon.isCurrentlyValid()) {
+        throw new AppError('Coupon is no longer valid', 400);
+    }
+
+    // Check customer usage
+    const customerIdentifier = userId || sessionId;
+    if (!coupon.canCustomerUse(customerIdentifier)) {
+        throw new AppError('You have reached the usage limit for this coupon', 400);
+    }
+
+    // Check minimum cart value
+    if (coupon.minCartValue && subtotal < coupon.minCartValue) {
+        throw new AppError(`Minimum cart value of ${coupon.minCartValue} required`, 400);
+    }
+
+    // Calculate applicable amount based on coupon type
+    let applicableAmount = 0;
+
+    if (coupon.applyTo === 'store') {
+        // For store-wide coupons, apply to subtotal
+        applicableAmount = subtotal;
+    } else if (coupon.applyTo === 'categories' && items && items.length > 0) {
+        // For category-specific coupons, only include matching items
+        for (const item of items) {
+            const product = await Product.findById(item.productId);
+            if (product && product.categoryIds) {
+                const hasMatchingCategory = product.categoryIds.some((catId: any) =>
+                    coupon.categoryIds?.some((couponCatId) => couponCatId.equals(catId))
+                );
+                if (hasMatchingCategory) {
+                    applicableAmount += (item.price || 0) * (item.quantity || 1);
+                }
+            }
+        }
+    }
+
+    if (applicableAmount === 0) {
+        throw new AppError('No items in cart are eligible for this coupon', 400);
+    }
+
+    // Calculate discount
+    const discountAmount = coupon.calculateDiscount(applicableAmount);
+
+    res.json({
+        valid: true,
+        coupon: {
+            code: coupon.code,
+            discountType: coupon.discountType,
+            discountValue: coupon.discountValue,
+            discountAmount,
+            description: coupon.description,
+        },
+        newSubtotal: subtotal - discountAmount,
+    });
+});
 
 /**
  * @route   POST /api/checkout/create-order

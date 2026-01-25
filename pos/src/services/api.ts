@@ -143,6 +143,7 @@ class POCApiService {
         currency?: string;
         discount?: number;
         paymentId?: string;
+        couponCode?: string;
     }): Promise<{ success: boolean; orderId: string; orderNumber: string }> {
         const sessionId = await this.getCurrentSession().then(s => s?._id);
         const storeId = this.getStoreId();
@@ -182,6 +183,7 @@ class POCApiService {
             discountsApplied: orderData.discountsApplied,
             customerNote: orderData.notes,
             paymentId: orderData.paymentId,
+            couponCode: orderData.couponCode, // Include coupon code for validation
             paymentDetails: {
                 transactionId: orderData.paymentId // Redundant but good for backward compat
             },
@@ -552,6 +554,67 @@ class POCApiService {
     async getStates(countryId: string): Promise<any[]> {
         const response = await apiClient.get(`/geo/countries/${countryId}/states`);
         return response.data.data || [];
+    }
+
+    /**
+     * Apply coupon code
+     */
+    async applyCoupon(couponCode: string): Promise<{
+        valid: boolean;
+        coupon: {
+            code: string;
+            discountType: 'flat' | 'percentage';
+            discountValue: number;
+            discountAmount: number;
+            description?: string;
+        };
+        newSubtotal: number;
+    }> {
+        const storeId = this.getStoreId();
+        const cart = await this.getCurrentSession().then(s => ({ storeId })).catch(() => ({ storeId }));
+        
+        // Get current cart items from local state or send minimal cart info
+        // For POS, we'll send an empty items array since we're just validating
+        const response = await apiClient.post('/checkout/validate-coupon-pos', { 
+            couponCode,
+            items: [],
+            subtotal: 0
+        });
+        return response.data;
+    }
+
+    /**
+     * Apply coupon code for POS checkout (with cart items)
+     */
+    async applyCouponPOS(
+        couponCode: string,
+        items: Array<{ productId: string; price: number; quantity: number }>,
+        subtotal: number
+    ): Promise<{
+        valid: boolean;
+        coupon: {
+            code: string;
+            discountType: 'flat' | 'percentage';
+            discountValue: number;
+            discountAmount: number;
+            description?: string;
+        };
+        newSubtotal: number;
+    }> {
+        const response = await apiClient.post('/checkout/validate-coupon-pos', {
+            couponCode,
+            items,
+            subtotal
+        });
+        return response.data;
+    }
+
+    /**
+     * Remove applied coupon
+     */
+    async removeCoupon(): Promise<{ success: boolean; message: string }> {
+        const response = await apiClient.delete('/checkout/remove-coupon');
+        return response.data;
     }
 }
 

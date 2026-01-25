@@ -7,6 +7,7 @@ import {
     calculateTax,
     applyCoupon,
     removeCoupon,
+    validateCouponPOS,
 
     createOrder,
     addAddressValidation,
@@ -32,6 +33,7 @@ router.post('/calculate-tax', optionalAuth, calculateTax);
 
 // Coupon management
 router.post('/apply-coupon', optionalAuth, validate(applyCouponValidation), applyCoupon);
+router.post('/validate-coupon-pos', optionalAuth, validateCouponPOS);
 router.delete('/remove-coupon', optionalAuth, removeCoupon);
 
 // Payment methods

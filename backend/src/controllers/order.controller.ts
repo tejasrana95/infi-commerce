@@ -114,6 +114,7 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
         discountsApplied,
         paymentId,
         paymentDetails,
+        couponCode, // Add coupon code extraction
     } = req.body;
 
     // Fetch products and validate
@@ -274,6 +275,7 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
         roundOffAmount: roundOffAmount || 0,
         priceOverrides,
         discountsApplied,
+        couponCode: couponCode ? couponCode.toUpperCase() : undefined, // Store coupon code for audit trail
     });
 
     // Reduce stock if payment is marked as paid

@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useCartStore } from '@/store/cartStore';
-import { X, CreditCard, Banknote, QrCode, Printer, CheckCircle, User } from 'lucide-react';
+import { X, CreditCard, Banknote, QrCode, Printer, CheckCircle, User, Tag, Loader } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
@@ -19,6 +19,15 @@ interface CheckoutModalProps {
 }
 
 type PaymentMethod = 'cash' | 'card' | 'qr';
+
+interface AppliedCoupon {
+    code: string;
+    discountType: 'flat' | 'percentage';
+    discountValue: number;
+    discountAmount: number;
+    description?: string;
+}
+
 export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps) {
     const { items, getTotal, getSubtotal, getTaxTotal, clearCart, customer } = useCartStore();
     const { formatPrice, baseCurrency } = useCurrency();
@@ -32,6 +41,13 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
     const [completed, setCompleted] = useState(false);
     const [customerError, setCustomerError] = useState('');
     const mountTime = useRef<number>(Date.now());
+    
+    // Coupon state
+    const [couponCode, setCouponCode] = useState('');
+    const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
+    const [couponLoading, setCouponLoading] = useState(false);
+    const [couponError, setCouponError] = useState('');
+    
     const grandTotal = total;
     const { store } = useStore();
     const { requireCustomerDetails, allowQuickCheckout, defaultPaymentMethod } = store?.posSettings || {};
@@ -48,13 +64,14 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
     const getRoundedTotal = () => {
         if (paymentMethod === 'cash' && cashSettings?.enableRoundOff) {
             const factor = cashSettings.roundOffTo === 'nearest5' ? 5 : (cashSettings.roundOffTo === 'nearest10' ? 10 : 1);
-            return Math.ceil(grandTotal / factor) * factor;
+            return Math.ceil((grandTotal - (appliedCoupon?.discountAmount || 0)) / factor) * factor;
         }
-        return grandTotal;
+        return grandTotal - (appliedCoupon?.discountAmount || 0);
     };
 
     const payableTotal = getRoundedTotal();
-    const isRounded = payableTotal !== grandTotal;
+    const baseTotal = grandTotal - (appliedCoupon?.discountAmount || 0);
+    const isRounded = payableTotal !== baseTotal;
 
     const change = paymentMethod === 'cash' && cashGiven
         ? parseFloat(cashGiven) - payableTotal
@@ -65,6 +82,45 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
     const isValidCashAmount = paymentMethod === 'cash'
         ? (parseFloat(cashGiven || '0') >= payableTotal) && (!isExactAmountRequired || parseFloat(cashGiven || '0') === payableTotal)
         : true;
+
+    // Coupon handlers
+    const handleApplyCoupon = async () => {
+        setCouponError('');
+        
+        if (!couponCode.trim()) {
+            setCouponError('Please enter a coupon code');
+            return;
+        }
+
+        try {
+            setCouponLoading(true);
+            
+            // Prepare items data for POS coupon validation
+            const couponItems = items.map(item => ({
+                productId: item.productId,
+                price: item.price,
+                quantity: item.quantity
+            }));
+            
+            const result = await api.applyCouponPOS(couponCode.trim(), couponItems, subtotal);
+            setAppliedCoupon(result.coupon);
+            setCouponCode('');
+        } catch (error) {
+            const err = error as Record<string, unknown>;
+            const response = err.response as Record<string, unknown>;
+            const errorMsg = (response?.data as Record<string, unknown>)?.message || (err.message as string) || 'Failed to apply coupon';
+            setCouponError(String(errorMsg));
+        } finally {
+            setCouponLoading(false);
+        }
+    };
+
+    const handleRemoveCoupon = () => {
+        // No backend call needed - POS coupons are stored in local state
+        setAppliedCoupon(null);
+        setCouponError('');
+        setCouponCode('');
+    };
 
 
     const handlePayment = async () => {
@@ -99,7 +155,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
         processCheckout({ paymentMethod });
     };
 
-    const processCheckout = async (data: { paymentMethod: string, paymentStatus?: string, transactionId?: string }) => {
+    const processCheckout = async (data: { paymentMethod: 'cash' | 'card' | 'qr' | 'upi', paymentStatus?: string, transactionId?: string }) => {
         setProcessing(true);
         try {
             // Build items with original prices and send discount info separately
@@ -133,12 +189,14 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
                 items: orderItems,
                 subtotal: subtotal,
                 tax: tax,
-                total: payableTotal,
-                paymentMethod: data.paymentMethod as any,
+                total: subtotal + tax - (appliedCoupon?.discountAmount || 0),
+                paymentMethod: data.paymentMethod,
                 customer: customer || undefined,
                 currency: baseCurrency?.code || 'INR',
                 paymentId: data.transactionId,
                 discountsApplied: discountsApplied.length > 0 ? discountsApplied : undefined,
+                couponCode: appliedCoupon?.code,
+                discount: appliedCoupon?.discountAmount || 0,
             });
             setProcessing(false);
             setCompleted(true);
@@ -148,35 +206,36 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
         }
     };
 
-    const handleQRPaymentSuccess = (paymentData: any) => {
+    const handleQRPaymentSuccess = (paymentData: { gatewayType?: string, paymentId?: string }) => {
         setShowQRModal(false);
         // Use the actual payment gateway from settings, not 'qr'
         // QR is just the payment interface, the actual payment method is the configured gateway
-        let actualPaymentMethod: string = 'qr'; // fallback
+        let actualPaymentMethod: 'cash' | 'card' | 'qr' | 'upi' = 'qr'; // fallback
         
         // Try to get gateway type from settings first
         if (qrSettings?.mode === 'gateway' && qrSettings?.gatewayConfig?.gatewayType) {
-            actualPaymentMethod = qrSettings.gatewayConfig.gatewayType;
+            actualPaymentMethod = qrSettings.gatewayConfig.gatewayType as 'cash' | 'card' | 'qr' | 'upi';
         }
         // Fallback to paymentData if available (for backward compatibility)
         else if (paymentData?.gatewayType) {
-            actualPaymentMethod = paymentData.gatewayType;
+            actualPaymentMethod = paymentData.gatewayType as 'cash' | 'card' | 'qr' | 'upi';
         }
         // Last resort: try to infer from payment ID format
         else if (paymentData?.paymentId) {
-            if (paymentData.paymentId.startsWith('pi_') || paymentData.paymentId.startsWith('ch_')) {
-                actualPaymentMethod = 'stripe';
-            } else if (paymentData.paymentId.startsWith('pay_')) {
-                actualPaymentMethod = 'razorpay';
-            } else if (paymentData.paymentId.includes('PAYID-')) {
-                actualPaymentMethod = 'paypal';
+            const paymentId = paymentData.paymentId;
+            if (paymentId.startsWith('pi_') || paymentId.startsWith('ch_')) {
+                actualPaymentMethod = 'card';
+            } else if (paymentId.startsWith('pay_')) {
+                actualPaymentMethod = 'card';
+            } else if (paymentId.includes('PAYID-')) {
+                actualPaymentMethod = 'card';
             }
         }
         
         processCheckout({
             paymentMethod: actualPaymentMethod,
             paymentStatus: 'paid',
-            transactionId: paymentData.paymentId
+            transactionId: paymentData?.paymentId || undefined
         });
     };
 
@@ -185,6 +244,9 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
         clearCart();
         setCompleted(false);
         setCashGiven('');
+        setCouponCode('');
+        setAppliedCoupon(null);
+        setCouponError('');
         onSuccess(); // Parent notification
         onClose();
     };
@@ -316,10 +378,16 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
                                 <span>Tax</span>
                                 <span>{formatPrice(tax)}</span>
                             </div>
+                            {appliedCoupon && (
+                                <div className="flex justify-between text-amber-600 font-semibold">
+                                    <span>Coupon ({appliedCoupon.code})</span>
+                                    <span>-{formatPrice(appliedCoupon.discountAmount)}</span>
+                                </div>
+                            )}
                             {isRounded && (
                                 <div className="flex justify-between text-slate-600 text-sm">
                                     <span>Rounding</span>
-                                    <span>{formatPrice(payableTotal - grandTotal)}</span>
+                                    <span>{formatPrice(payableTotal - baseTotal)}</span>
                                 </div>
                             )}
                             <div className="flex justify-between text-3xl font-bold text-blue-600 pt-2">
@@ -337,6 +405,75 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
 
                         {!completed ? (
                             <>
+                                {/* Coupon Section */}
+                                <div className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-xl border border-amber-200">
+                                    {appliedCoupon ? (
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+                                                        <Tag className="w-4 h-4 text-amber-600" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs text-amber-600 font-semibold">Applied Coupon</p>
+                                                        <p className="text-sm font-bold text-amber-900">{appliedCoupon.code}</p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={handleRemoveCoupon}
+                                                    className="text-sm text-amber-600 hover:text-amber-700 font-semibold"
+                                                >
+                                                    Remove
+                                                </button>
+                                            </div>
+                                            <div className="bg-white rounded-lg p-2 flex justify-between items-center">
+                                                <span className="text-xs text-slate-600">{appliedCoupon.description || 'Discount applied'}</span>
+                                                <span className="text-sm font-bold text-green-600">-{formatPrice(appliedCoupon.discountAmount)}</span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            <p className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+                                                <Tag className="w-4 h-4" />
+                                                Have a coupon code?
+                                            </p>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Enter coupon code"
+                                                    value={couponCode}
+                                                    onChange={(e) => {
+                                                        setCouponCode(e.target.value.toUpperCase());
+                                                        setCouponError('');
+                                                    }}
+                                                    onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
+                                                    disabled={couponLoading}
+                                                    className="flex-1 px-3 py-2 border border-amber-300 rounded-lg text-sm font-semibold uppercase focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                />
+                                                <button
+                                                    onClick={handleApplyCoupon}
+                                                    disabled={couponLoading || !couponCode.trim()}
+                                                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                                >
+                                                    {couponLoading ? (
+                                                        <>
+                                                            <Loader className="w-4 h-4 animate-spin" />
+                                                            Verifying...
+                                                        </>
+                                                    ) : (
+                                                        'Apply'
+                                                    )}
+                                                </button>
+                                            </div>
+                                            {couponError && (
+                                                <div className="text-xs text-red-600 font-semibold bg-red-50 p-2 rounded border border-red-200">
+                                                    {couponError}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
                                 <h2 className="text-2xl font-bold mb-8 text-slate-900">Select Payment Method</h2>
 
                                 <div className="grid grid-cols-3 gap-4 mb-8">
