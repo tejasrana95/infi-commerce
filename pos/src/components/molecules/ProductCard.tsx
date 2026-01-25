@@ -3,6 +3,7 @@ import { Product } from '@/types';
 import { AlertCircle } from 'lucide-react';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import Badge from '../atoms/Badge';
+import Image from 'next/image';
 
 interface ProductCardProps {
     product: Product;
@@ -11,7 +12,6 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, onClick }: ProductCardProps) {
     const { formatPrice } = useCurrency();
-
     return (
         <div
             onClick={onClick}
@@ -19,9 +19,12 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
         >
             {/* Image */}
             <div className="aspect-square bg-gray-100 rounded-xl mb-3 overflow-hidden relative">
-                <img
+                <Image
                     src={product.image}
                     alt={product.name}
+                    width={300}
+                    height={300}
+                    loading="lazy"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                 />
                 {product.stock <= 5 && (

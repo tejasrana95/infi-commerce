@@ -17,6 +17,7 @@ import { notificationService } from '../services/notification.service';
 import InventoryService from '../services/inventory.service';
 import { emitOrderEvent } from '../events';
 import posService from '../services/pos.service';
+import { addPricingToProduct } from './product.controller';
 
 /**
  * Validation rules
@@ -136,17 +137,20 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
             throw new AppError(`Product not found: ${item.productId}`, 404);
         }
 
-        // Get variant if specified
-        let price = product.salePrice || product.price;
-        let costPrice = product.costPrice || 0;
-        let sku = product.sku;
-        let variantAttributes: Record<string, string> = {};
-        let itemImage = product.images?.[0] || '';
+        // Add pricing information to product (including variant sale prices)
+        const productWithPricing = addPricingToProduct(product.toObject());
 
-        if (item.variantId && product.variants) {
-            const variant = product.variants.find((v: any) => v._id?.toString() === item.variantId);
+        // Get variant if specified
+        let price = productWithPricing.salePrice || productWithPricing.price;
+        let costPrice = productWithPricing.costPrice || 0;
+        let sku = productWithPricing.sku;
+        let variantAttributes: Record<string, string> = {};
+        let itemImage = productWithPricing.images?.[0] || '';
+
+        if (item.variantId && productWithPricing.variants) {
+            const variant = productWithPricing.variants.find((v: any) => v._id?.toString() === item.variantId);
             if (variant) {
-                price = variant.salePrice || variant.price || price;
+                price = variant.pricing?.salePrice || variant.salePrice || variant.price || price;
                 costPrice = variant.costPrice || costPrice;
                 sku = variant.sku || sku;
                 if (variant.attributes) {

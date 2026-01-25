@@ -12,7 +12,7 @@ import { addTimezoneAwareDates } from '../utils/date.utils';
 import { escapeRegExp, getSearchSuggestions } from '../utils/search.utils';
 
 // Helper function to add pricing with tax to a product (including variants)
-function addPricingToProduct(product: any) {
+export function addPricingToProduct(product: any) {
     const taxRate = product.taxClassId?.rate || 0;
     const basePrice = product.salePrice || product.price;
     const pricing = calculatePricing({
@@ -52,7 +52,27 @@ function addPricingToProduct(product: any) {
     if (product.variants && product.variants.length > 0) {
         product.variants = product.variants.map((variant: any) => {
             const variantPrice = variant.price || product.price;
-            const variantSalePrice = variant.salePrice;
+            // If variant has its own sale price, use it
+            // Otherwise, if product is on sale, apply the same discount percentage to variant
+            let variantSalePrice = variant.salePrice;
+            let variantIsOnSale = false;
+            let variantOriginalPrice;
+            let variantDiscountPercent;
+
+            if (variantSalePrice && variantSalePrice < variantPrice) {
+                // Variant has its own sale price
+                variantIsOnSale = true;
+                variantOriginalPrice = Math.round((variantPrice + (variantPrice * taxRate / 100)) * 100) / 100;
+                variantDiscountPercent = Math.round((1 - variantSalePrice / variantPrice) * 100);
+            } else if (!variantSalePrice && product.salePrice && product.salePrice < product.price) {
+                // Apply the same discount percentage from product to variant
+                const discountPercent = (product.price - product.salePrice) / product.price;
+                variantSalePrice = Math.round((variantPrice * (1 - discountPercent)) * 100) / 100;
+                variantIsOnSale = true;
+                variantOriginalPrice = Math.round((variantPrice + (variantPrice * taxRate / 100)) * 100) / 100;
+                variantDiscountPercent = Math.round(discountPercent * 100);
+            }
+
             const variantBasePrice = variantSalePrice || variantPrice;
 
             const variantPricing = calculatePricing({
@@ -73,6 +93,9 @@ function addPricingToProduct(product: any) {
                     taxRate,
                     taxAmount: variantPricing.unitTaxAmount,
                     finalPrice: variantPricing.unitFinalPrice,
+                    originalPrice: variantOriginalPrice,
+                    isOnSale: variantIsOnSale,
+                    discountPercent: variantDiscountPercent,
                     taxBreakdown: product.taxClassId?.isSplit && product.taxClassId?.subTaxes
                         ? calculateTaxBreakdown(variantBasePrice, product.taxClassId.subTaxes)
                         : undefined,

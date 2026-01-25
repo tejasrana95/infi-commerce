@@ -8,6 +8,7 @@ import Store from '../models/Store';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import { invalidateShippingCache } from '../utils/cache-invalidation';
+import { addPricingToProduct } from './product.controller';
 
 // Validation rules
 export const createShippingRuleValidation = [
@@ -536,16 +537,18 @@ export const calculateSmartShipping = asyncHandler(async (req: AuthRequest, res:
             restrictedItems.push(product.name);
         }
 
-        let itemWeight = product.weight || 0;
-        let itemPrice = product.salePrice || product.price;
+        // Add pricing information to product (including variant sale prices)
+        const productWithPricing = addPricingToProduct(product.toObject());
+
+        let itemWeight = productWithPricing.weight || 0;
+        let itemPrice = productWithPricing.salePrice || productWithPricing.price;
 
         // Handle variant-specific values
-        if (item.variantId && product.variants && product.variants.length > 0) {
-            const variant = product.variants.find((v: any) => v._id.toString() === item.variantId);
+        if (item.variantId && productWithPricing.variants && productWithPricing.variants.length > 0) {
+            const variant = productWithPricing.variants.find((v: any) => v._id.toString() === item.variantId);
             if (variant) {
                 if (variant.weight) itemWeight = variant.weight;
-                if (variant.salePrice) itemPrice = variant.salePrice;
-                else if (variant.price) itemPrice = variant.price;
+                itemPrice = variant.pricing?.salePrice || variant.salePrice || variant.price;
             }
         }
 

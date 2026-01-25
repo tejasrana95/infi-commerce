@@ -14,6 +14,7 @@ import { asyncHandler, AppError } from '../middleware/validation';
 import { queueOrderConfirmation } from '../services/notification-queue.service';
 import { notificationService } from '../services/notification.service';
 import InventoryService from '../services/inventory.service';
+import { addPricingToProduct } from './product.controller';
 
 /**
  * Validation rules
@@ -101,18 +102,19 @@ export const validateCheckout = asyncHandler(async (req: AuthRequest, res: Respo
             issues.push(`Only ${product.stock} units available for ${product.name}`);
         }
 
+        // Add pricing information to product (including variant sale prices)
+        const productWithPricing = addPricingToProduct(product.toObject());
+
         // Get price - check for variant pricing first
-        let itemPrice = product.salePrice || product.price;
+        let itemPrice = productWithPricing.salePrice || productWithPricing.price;
 
         // Handle variant pricing
-        if (item.variantId && product.variants && product.variants.length > 0) {
-            const variant = product.variants.find((v: any) => v._id.toString() === item.variantId);
+        if (item.variantId && productWithPricing.variants && productWithPricing.variants.length > 0) {
+            const variant = productWithPricing.variants.find((v: any) => v._id.toString() === item.variantId);
             if (variant) {
-                if (variant.salePrice) itemPrice = variant.salePrice;
-                else if (variant.price) itemPrice = variant.price;
+                itemPrice = variant.pricing?.salePrice || variant.salePrice || variant.price;
             }
         }
-
 
         subtotal += itemPrice * item.quantity;
     }
@@ -411,14 +413,16 @@ export const calculateTax = asyncHandler(async (req: AuthRequest, res: Response)
         const product = await Product.findById(item.productId);
         if (!product) continue;
 
-        let itemPrice = product.salePrice || product.price;
+        // Add pricing information to product (including variant sale prices)
+        const productWithPricing = addPricingToProduct(product.toObject());
+
+        let itemPrice = productWithPricing.salePrice || productWithPricing.price;
 
         // Handle variant pricing
-        if (item.variantId && product.variants && product.variants.length > 0) {
-            const variant = product.variants.find((v: any) => v._id.toString() === item.variantId);
+        if (item.variantId && productWithPricing.variants && productWithPricing.variants.length > 0) {
+            const variant = productWithPricing.variants.find((v: any) => v._id.toString() === item.variantId);
             if (variant) {
-                if (variant.salePrice) itemPrice = variant.salePrice;
-                else if (variant.price) itemPrice = variant.price;
+                itemPrice = variant.pricing?.salePrice || variant.salePrice || variant.price;
             }
         }
 
@@ -695,7 +699,7 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
     });
 
     for (const item of cart.items) {
-        const product = await Product.findById(item.productId);
+        const product = await Product.findById(item.productId).populate('taxClassId');
 
         if (!product) {
             issues.push(`Product ${item.name} not found`);
@@ -719,19 +723,21 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
             continue;
         }
 
+        // Add pricing information to product (including variant sale prices)
+        const productWithPricing = addPricingToProduct(product.toObject());
+
         // Get current price (sale price if applicable)
-        let itemPrice = product.salePrice || product.price;
-        let itemSku = product.sku;
+        let itemPrice = productWithPricing.salePrice || productWithPricing.price;
+        let itemSku = productWithPricing.sku;
         let itemAttributes: Record<string, string> = {};
-        let itemWeight = product.weight || 0;
-        let itemImage = product.images?.[0] || item.image;
+        let itemWeight = productWithPricing.weight || 0;
+        let itemImage = productWithPricing.images?.[0] || item.image;
 
         // Handle variant pricing
-        if (item.variantId && product.variants && product.variants.length > 0) {
-            const variant = product.variants.find((v: any) => v._id.toString() === item.variantId);
+        if (item.variantId && productWithPricing.variants && productWithPricing.variants.length > 0) {
+            const variant = productWithPricing.variants.find((v: any) => v._id.toString() === item.variantId);
             if (variant) {
-                if (variant.salePrice) itemPrice = variant.salePrice;
-                else if (variant.price) itemPrice = variant.price;
+                itemPrice = variant.pricing?.salePrice || variant.salePrice || variant.price;
                 if (variant.sku) itemSku = variant.sku;
                 if (variant.attributes) {
                     // Resolve attribute IDs to names and values to labels
@@ -739,7 +745,7 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
                         const option = optionMap[key];
                         const name = option ? option.name : key;
                         const label = option ? (option.values[value as string] || value) : value;
-                        itemAttributes[name] = label;
+                        itemAttributes[name] = label as string;
                     });
                 }
                 if (variant.weight) itemWeight = variant.weight;

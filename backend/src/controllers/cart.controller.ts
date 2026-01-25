@@ -6,6 +6,7 @@ import ProductOption from '../models/ProductOption';
 import TaxRate from '../models/TaxRate';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
+import { addPricingToProduct } from './product.controller';
 
 /**
  * Helper function to format cart response with variant details and attribute labels
@@ -24,6 +25,9 @@ async function formatCartResponse(cart: any) {
             let product = item.productId;
             if (product && !product.variants && (product._id || typeof product === 'string')) {
                 product = await Product.findById(product._id || product);
+                if (product) {
+                    product = addPricingToProduct(product.toObject());
+                }
             }
 
             // If there's a variantId, get variant details from the product
@@ -215,16 +219,19 @@ export const addToCart = asyncHandler(async (req: AuthRequest, res: Response) =>
         throw new AppError('Product is not available', 400);
     }
 
+    // Add pricing information to product (including variant sale prices)
+    const productWithPricing = addPricingToProduct(product.toObject());
+
     // Check stock
-    let availableStock = product.stock;
-    let itemPrice = (product as any).getEffectivePrice();
-    let itemSku = product.sku;
-    let itemImage = product.featuredImage || product.images[0];
+    let availableStock = productWithPricing.stock;
+    let itemPrice = productWithPricing.salePrice || productWithPricing.price;
+    let itemSku = productWithPricing.sku;
+    let itemImage = productWithPricing.featuredImage || productWithPricing.images[0];
     let itemAttributes: any = {};
 
     // If variant is specified, get variant details
-    if (variantId && product.type === 'variable') {
-        const variant = product.variants?.find((v: any) =>
+    if (variantId && productWithPricing.type === 'variable') {
+        const variant = productWithPricing.variants?.find((v: any) =>
             (v._id && v._id.toString() === variantId) ||
             (v.id && v.id.toString() === variantId)
         );
@@ -233,14 +240,14 @@ export const addToCart = asyncHandler(async (req: AuthRequest, res: Response) =>
             throw new AppError('Variant not found', 404);
         }
         availableStock = variant.stock;
-        itemPrice = variant.salePrice || variant.price;
+        itemPrice = variant.pricing?.salePrice || variant.salePrice || variant.price;
         itemSku = variant.sku;
         itemImage = variant.images?.[0] || itemImage;
         itemAttributes = variant.attributes;
     }
 
     // Check if enough stock
-    if (product.manageStock && availableStock < quantity) {
+    if (productWithPricing.manageStock && availableStock < quantity) {
         throw new AppError(`Only ${availableStock} items available in stock`, 400);
     }
 
@@ -353,21 +360,24 @@ export const updateCartItem = asyncHandler(async (req: AuthRequest, res: Respons
         throw new AppError('Product not found', 404);
     }
 
-    let availableStock = product.stock;
-    let itemPrice = product.salePrice || product.price;
-    if (item.variantId && product.type === 'variable') {
+    // Add pricing information to product (including variant sale prices)
+    const productWithPricing = addPricingToProduct(product.toObject());
+
+    let availableStock = productWithPricing.stock;
+    let itemPrice = productWithPricing.salePrice || productWithPricing.price;
+    if (item.variantId && productWithPricing.type === 'variable') {
         const targetVariantId = String(item.variantId);
-        const variant = product.variants?.find((v: any) =>
+        const variant = productWithPricing.variants?.find((v: any) =>
             (v._id && v._id.toString() === targetVariantId) ||
             (v.id && v.id.toString() === targetVariantId)
         );
         if (variant) {
             availableStock = variant.stock;
-            itemPrice = variant.salePrice || variant.price;
+            itemPrice = variant.pricing?.salePrice || variant.salePrice || variant.price;
         }
     }
 
-    if (product.manageStock && availableStock < quantity) {
+    if (productWithPricing.manageStock && availableStock < quantity) {
         throw new AppError(`Only ${availableStock} items available in stock`, 400);
     }
 

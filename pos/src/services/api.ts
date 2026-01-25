@@ -372,13 +372,12 @@ class POCApiService {
             if (taxAmount === 0 && taxRate > 0) {
                 taxAmount = currentPrice - (currentPrice / (1 + (taxRate / 100)));
             }
-
             return {
                 id: p._id,
                 name: p.name,
                 sku: p.sku,
                 barcode: p.barcode || p.sku,
-                price: currentPrice,
+                price: p?.pricing?.originalPrice || currentPrice,
                 salePrice: (p.pricing?.isOnSale || p.isOnSale) ? currentPrice : undefined,
                 taxRate: taxRate,
                 taxAmount: taxAmount,
