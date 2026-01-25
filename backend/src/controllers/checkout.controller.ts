@@ -529,42 +529,75 @@ export const applyCoupon = asyncHandler(async (req: AuthRequest, res: Response) 
         throw new AppError('You have reached the usage limit for this coupon', 400);
     }
 
-    // Calculate subtotal
+    // Calculate subtotal (base price without tax)
     let subtotal = 0;
+    const itemsWithTax: any[] = [];
+
     for (const item of cart.items) {
-        const product = item.productId as any;
+        // Fetch full product with tax information
+        const product = await Product.findById(item.productId).populate('taxClassId');
         if (!product) continue;
 
-        const itemPrice = product.salePrice || product.price;
-        subtotal += itemPrice * item.quantity;
+        // Add pricing information to product (including variant sale prices)
+        const productWithPricing = addPricingToProduct(product.toObject());
+
+        let itemPrice = productWithPricing.salePrice || productWithPricing.price;
+
+        // Handle variant pricing
+        if (item.variantId && productWithPricing.variants && productWithPricing.variants.length > 0) {
+            const variant = productWithPricing.variants.find((v: any) => v._id.toString() === item.variantId);
+            if (variant) {
+                itemPrice = variant.pricing?.salePrice || variant.salePrice || variant.price;
+            }
+        }
+
+        const itemTotal = itemPrice * item.quantity;
+        subtotal += itemTotal;
+
+        // Calculate tax for this item
+        let itemTax = 0;
+        if (product.taxClassId) {
+            const taxRate = await TaxRate.findById(product.taxClassId);
+            if (taxRate) {
+                itemTax = (itemTotal * taxRate.rate) / 100;
+            }
+        }
+
+        itemsWithTax.push({
+            productId: product._id,
+            categoryIds: product.categoryIds || [],
+            itemPrice,
+            quantity: item.quantity,
+            itemTotal,
+            itemTax,
+            itemWithTax: itemTotal + itemTax,
+        });
     }
 
-    // Check minimum cart value
+    // Check minimum cart value (before discount, before tax)
     if (coupon.minCartValue && subtotal < coupon.minCartValue) {
         throw new AppError(`Minimum cart value of ${coupon.minCartValue} required`, 400);
     }
 
-    // Calculate applicable amount
+    // Calculate applicable amount (including tax)
     let applicableAmount = 0;
     if (coupon.applyTo === 'store') {
-        applicableAmount = subtotal;
+        // For store-wide coupons, include all items with tax
+        applicableAmount = itemsWithTax.reduce((sum, item) => sum + item.itemWithTax, 0);
     } else if (coupon.applyTo === 'categories') {
-        for (const item of cart.items) {
-            const product = item.productId as any;
-            if (product && product.categoryIds) {
-                const hasMatchingCategory = product.categoryIds.some((catId: any) =>
-                    coupon.categoryIds?.some((couponCatId) => couponCatId.equals(catId))
-                );
-                if (hasMatchingCategory) {
-                    const itemPrice = product.salePrice || product.price;
-                    applicableAmount += itemPrice * item.quantity;
-                }
+        // For category-specific coupons, only include matching items with tax
+        for (const item of itemsWithTax) {
+            const hasMatchingCategory = item.categoryIds.some((catId: any) =>
+                coupon.categoryIds?.some((couponCatId) => couponCatId.equals(catId))
+            );
+            if (hasMatchingCategory) {
+                applicableAmount += item.itemWithTax;
             }
         }
     }
 
-    // Calculate discount
-    const discountAmount = coupon.calculateDiscount(subtotal, applicableAmount);
+    // Calculate discount on the applicable amount (which now includes tax)
+    const discountAmount = coupon.calculateDiscount(applicableAmount);
 
     // Store coupon in session/cart (temporary)
     cart.appliedCoupon = {
@@ -871,11 +904,18 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
         if (coupon && coupon.isCurrentlyValid()) {
             const customerIdentifier = userId || guestEmail;
             if (coupon.canCustomerUse(customerIdentifier)) {
-                // Calculate applicable amount
+                // Calculate applicable amount (including tax)
                 let applicableAmount = 0;
+                
                 if (coupon.applyTo === 'store') {
-                    applicableAmount = subtotal;
+                    // For store-wide coupons, include all items with tax
+                    for (const item of orderItems) {
+                        const itemTotal = item.price * item.quantity;
+                        const itemTaxAmount = item.taxAmount || 0;
+                        applicableAmount += itemTotal + itemTaxAmount;
+                    }
                 } else if (coupon.applyTo === 'categories') {
+                    // For category-specific coupons, only include matching items with tax
                     for (const item of orderItems) {
                         const product = await Product.findById(item.productId);
                         if (product && product.categoryIds) {
@@ -883,14 +923,16 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
                                 coupon.categoryIds?.some((couponCatId) => couponCatId.equals(catId))
                             );
                             if (hasMatchingCategory) {
-                                applicableAmount += item.price * item.quantity;
+                                const itemTotal = item.price * item.quantity;
+                                const itemTaxAmount = item.taxAmount || 0;
+                                applicableAmount += itemTotal + itemTaxAmount;
                             }
                         }
                     }
                 }
 
-                if (coupon.minCartValue && subtotal >= coupon.minCartValue) {
-                    discount = coupon.calculateDiscount(subtotal, applicableAmount);
+                if (!coupon.minCartValue || subtotal >= coupon.minCartValue) {
+                    discount = coupon.calculateDiscount(applicableAmount);
                     couponId = coupon._id;
                     couponCode = coupon.code;
                 }

@@ -39,7 +39,7 @@ export interface ICoupon extends Document {
     // Methods
     isCurrentlyValid(): boolean;
     canCustomerUse(customerId: string): boolean;
-    calculateDiscount(cartValue: number, applicableAmount: number): number;
+    calculateDiscount(applicableAmount: number): number;
     incrementUsage(customerId?: string): Promise<void>;
 }
 
