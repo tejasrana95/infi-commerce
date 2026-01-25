@@ -132,7 +132,7 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
     });
 
     for (const item of items) {
-        const product = await Product.findById(item.productId);
+        const product = await Product.findById(item.productId).populate('taxClassId');
         if (!product) {
             throw new AppError(`Product not found: ${item.productId}`, 404);
         }

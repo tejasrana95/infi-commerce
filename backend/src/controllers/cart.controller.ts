@@ -24,7 +24,7 @@ async function formatCartResponse(cart: any) {
             // Resolve product (use populated data or fetch if needed)
             let product = item.productId;
             if (product && !product.variants && (product._id || typeof product === 'string')) {
-                product = await Product.findById(product._id || product);
+                product = await Product.findById(product._id || product).populate('taxClassId');
                 if (product) {
                     product = addPricingToProduct(product.toObject());
                 }
@@ -210,7 +210,7 @@ export const addToCart = asyncHandler(async (req: AuthRequest, res: Response) =>
     }
 
     // Get product details
-    const product = await Product.findById(productId);
+    const product = await Product.findById(productId).populate('taxClassId');
     if (!product) {
         throw new AppError('Product not found', 404);
     }
@@ -355,7 +355,7 @@ export const updateCartItem = asyncHandler(async (req: AuthRequest, res: Respons
     }
 
     // Check stock
-    const product = await Product.findById(item.productId);
+    const product = await Product.findById(item.productId).populate('taxClassId');
     if (!product) {
         throw new AppError('Product not found', 404);
     }

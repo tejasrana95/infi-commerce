@@ -82,7 +82,7 @@ export const validateCheckout = asyncHandler(async (req: AuthRequest, res: Respo
         if (product && (product._id || typeof product === 'string')) {
             const productId = product._id || product;
             // Explicitly fetch product to guarantee we have all fields including variants
-            const freshProduct = await Product.findById(productId);
+            const freshProduct = await Product.findById(productId).populate('taxClassId');
             if (freshProduct) {
                 product = freshProduct;
             }
@@ -410,7 +410,7 @@ export const calculateTax = asyncHandler(async (req: AuthRequest, res: Response)
     const itemsWithTax: any[] = [];
 
     for (const item of cart.items) {
-        const product = await Product.findById(item.productId);
+        const product = await Product.findById(item.productId).populate('taxClassId');
         if (!product) continue;
 
         // Add pricing information to product (including variant sale prices)
