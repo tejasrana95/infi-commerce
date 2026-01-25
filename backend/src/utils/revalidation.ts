@@ -44,7 +44,6 @@ export async function triggerRevalidation(
 
         if (response.ok) {
             const data = await response.json();
-            console.log(`Cache revalidated for ${type}${slug ? `: ${slug}` : ''}`, data);
         } else {
             console.error(`Failed to revalidate cache: ${response.status} ${response.statusText}`);
         }

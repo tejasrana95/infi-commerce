@@ -48,7 +48,6 @@ export const mockApi = {
 
     checkout: async (orderData: unknown): Promise<{ success: boolean; orderId: string }> => {
         await delay(1500);
-        console.log('Processed order:', orderData);
         return { success: true, orderId: `ORD-${Date.now()}` };
     }
 };

@@ -17,7 +17,6 @@ export const invalidateStoreCache = async (storeId: string): Promise<void> => {
         redisService.delete(CacheKeys.store(storeId)),
         redisService.delete(CacheKeys.storeSettings(storeId)),
     ]);
-    console.log(`Cache invalidated: store ${storeId}`);
 };
 
 /**
@@ -30,7 +29,6 @@ export const invalidateStoreDomainCache = async (domains: string[]): Promise<voi
     await Promise.all(
         domains.map(domain => redisService.delete(CacheKeys.storeByDomain(domain)))
     );
-    console.log(`Cache invalidated: ${domains.length} store domains`);
 };
 
 /**
@@ -57,7 +55,6 @@ export const invalidateCategoryCache = async (storeId: string): Promise<void> =>
         redisService.deleteByPattern(InvalidationPatterns.allCategories(storeId)),
         redisService.delete(CacheKeys.categoryTree(storeId)),
     ]);
-    console.log(`Cache invalidated: categories for store ${storeId}`);
 };
 
 /**
@@ -84,7 +81,6 @@ export const invalidateMenuCache = async (storeId: string): Promise<void> => {
         redisService.deleteByPattern(InvalidationPatterns.allMenus(storeId)),
         redisService.delete(CacheKeys.menus(storeId)),
     ]);
-    console.log(`Cache invalidated: menus for store ${storeId}`);
 };
 
 /**
@@ -111,7 +107,6 @@ export const invalidateSingleMenu = async (
  */
 export const invalidateBrandCache = async (storeId: string): Promise<void> => {
     await redisService.deleteByPattern(InvalidationPatterns.allBrands(storeId));
-    console.log(`Cache invalidated: brands for store ${storeId}`);
 };
 
 /**
@@ -123,7 +118,6 @@ export const invalidateTaxRateCache = async (taxRateId?: string): Promise<void> 
     if (taxRateId) {
         await redisService.delete(CacheKeys.taxRate(taxRateId));
     }
-    console.log(`Cache invalidated: tax rates${taxRateId ? ` (${taxRateId})` : ''}`);
 };
 
 /**
@@ -135,7 +129,6 @@ export const invalidateCurrencyCache = async (): Promise<void> => {
         redisService.delete(CacheKeys.currencies()),
         redisService.delete(CacheKeys.baseCurrency()),
     ]);
-    console.log(`Cache invalidated: currencies`);
 };
 
 /**
@@ -144,7 +137,6 @@ export const invalidateCurrencyCache = async (): Promise<void> => {
  */
 export const invalidateShippingCache = async (storeId: string): Promise<void> => {
     await redisService.deleteByPattern(InvalidationPatterns.allShipping(storeId));
-    console.log(`Cache invalidated: shipping for store ${storeId}`);
 };
 
 /**
@@ -153,7 +145,6 @@ export const invalidateShippingCache = async (storeId: string): Promise<void> =>
  */
 export const invalidatePageCache = async (storeId: string): Promise<void> => {
     await redisService.deleteByPattern(InvalidationPatterns.allPages(storeId));
-    console.log(`Cache invalidated: pages for store ${storeId}`);
 };
 
 /**
@@ -182,7 +173,6 @@ export const invalidateLayoutCache = async (storeId: string): Promise<void> => {
         redisService.delete(CacheKeys.header(storeId)),
         redisService.delete(CacheKeys.footer(storeId)),
     ]);
-    console.log(`Cache invalidated: layouts for store ${storeId}`);
 };
 
 /**
@@ -191,7 +181,6 @@ export const invalidateLayoutCache = async (storeId: string): Promise<void> => {
  */
 export const invalidateApiKeyCache = async (keyHash: string): Promise<void> => {
     await redisService.delete(CacheKeys.apiKeyByHash(keyHash));
-    console.log(`Cache invalidated: API key`);
 };
 
 /**
@@ -200,7 +189,6 @@ export const invalidateApiKeyCache = async (keyHash: string): Promise<void> => {
  */
 export const invalidateDomainCache = async (domain: string): Promise<void> => {
     await redisService.delete(CacheKeys.domainAllowed(domain));
-    console.log(`Cache invalidated: domain ${domain}`);
 };
 
 /**
@@ -209,7 +197,6 @@ export const invalidateDomainCache = async (domain: string): Promise<void> => {
  */
 export const invalidateTestimonialCache = async (storeId: string): Promise<void> => {
     await redisService.deleteByPattern(InvalidationPatterns.allTestimonials(storeId));
-    console.log(`Cache invalidated: testimonials for store ${storeId}`);
 };
 
 /**
@@ -222,7 +209,6 @@ export const invalidateBannerCache = async (storeId: string): Promise<void> => {
         redisService.delete(CacheKeys.banners(storeId)),
         redisService.delete(CacheKeys.heroSliders(storeId)),
     ]);
-    console.log(`Cache invalidated: banners for store ${storeId}`);
 };
 
 /**
@@ -242,7 +228,6 @@ export const invalidateAllStoreCache = async (storeId: string): Promise<void> =>
         invalidateTestimonialCache(storeId),
         invalidateBannerCache(storeId),
     ]);
-    console.log(`Cache invalidated: ALL cache for store ${storeId}`);
 };
 
 /**
@@ -251,7 +236,6 @@ export const invalidateAllStoreCache = async (storeId: string): Promise<void> =>
  */
 export const flushAllCache = async (): Promise<void> => {
     await redisService.flushAll();
-    console.log(`Cache invalidated: ENTIRE CACHE FLUSHED`);
 };
 
 /**

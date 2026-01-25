@@ -40,7 +40,6 @@ export default function LoginPage() {
     const fetchBranding = async () => {
       try {
         const response = await api.get('/settings/admin-branding');
-        console.log(response.data);
         if (response.data.success && response.data.branding && (response.data.branding.name || response.data.branding.logo || response.data.branding.favicon)) {
           setBranding(response.data.branding);
         }

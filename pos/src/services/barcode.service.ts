@@ -155,11 +155,6 @@ class BarcodeService {
 
           this.lastScannedCode = decodedText;
           this.lastScanTime = now;
-
-          console.log('Barcode scanned:', decodedText, 'Format:', decodedResult.result.format?.formatName);
-          
-          // Don't stop scanning - just call success callback
-          // The modal will handle pausing/resuming
           onSuccess(decodedText);
         },
         () => {

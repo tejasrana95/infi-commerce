@@ -29,31 +29,15 @@ async function checkNotifications(orderNumber: string) {
             throw new Error('MONGODB_URI is not defined in environment variables');
         }
         await mongoose.connect(mongoUri);
-        console.log('Connected to MongoDB');
 
         const order = await Order.findOne({ orderNumber });
         if (!order) {
-            console.log(`Order ${orderNumber} not found`);
             return;
         }
-
-        console.log(`Checking notifications for Order: ${orderNumber} (${order._id})`);
 
         const notifications = await NotificationQueue.find({
             orderId: order._id
         }).sort({ createdAt: -1 });
-
-        if (notifications.length === 0) {
-            console.log('No notifications found for this order');
-        } else {
-            notifications.forEach(n => {
-                const timestamp = n.createdAt instanceof Date ? n.createdAt.toISOString() : 'N/A';
-                console.log(`[${timestamp}] Channel: ${n.channel}, Status: ${n.status}, Recipient: ${n.recipient}`);
-                if (n.error) {
-                    console.log(`   Error: ${n.error}`);
-                }
-            });
-        }
 
         await mongoose.disconnect();
     } catch (error: any) {

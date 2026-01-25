@@ -157,8 +157,6 @@ export default function QRPaymentModal({
             try {
                 const statusRes = await api.getQRPaymentStatus(qrId, params);
                 const status = statusRes.status;
-                console.log(`QR Polling status for ${qrId}:`, status);
-
                 if (status === 'completed' || status === 'success') {
                     handleSuccess(statusRes);
                 } else if (status === 'failed') {
@@ -174,7 +172,6 @@ export default function QRPaymentModal({
     };
 
     const handleSuccess = (data: any) => {
-        console.log('Payment Successful! Clearing polling.', data);
         setStage('success');
         if (pollInterval.current) clearInterval(pollInterval.current);
         if (timerInterval.current) clearInterval(timerInterval.current);

@@ -101,9 +101,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
 
     const processCheckout = async (data: { paymentMethod: string, paymentStatus?: string, transactionId?: string }) => {
         setProcessing(true);
-        try {
-            console.log('Processing checkout with payment method:', data.paymentMethod, 'Transaction ID:', data.transactionId);
-            
+        try { 
             await api.checkout({
                 items: items.map(item => ({
                     productId: item.productId,
@@ -156,8 +154,6 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
             }
         }
         
-        console.log('QR Payment Success - Payment Method:', actualPaymentMethod, 'Settings:', qrSettings, 'Payment Data:', paymentData);
-        
         processCheckout({
             paymentMethod: actualPaymentMethod,
             paymentStatus: 'paid',
@@ -166,7 +162,6 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
     };
 
     const handlePrintAndClose = () => {
-        console.log('Printing receipt...');
         // Real printing logic here (window.print() or WebUSB)
         clearCart();
         setCompleted(false);

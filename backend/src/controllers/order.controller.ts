@@ -1441,7 +1441,6 @@ export const handlePaymentSuccess = asyncHandler(async (req: AuthRequest, res: R
 
     // Send order confirmation/payment success notification
     try {
-        console.log('Sending payment failed notification...');
         await transactionalNotificationService.sendOrderStatusUpdate(
             order.storeId._id.toString(),
             (order.storeId as any).name,
@@ -1501,7 +1500,6 @@ export const handlePaymentFailed = asyncHandler(async (req: AuthRequest, res: Re
 
     // Send payment failed notification
     try {
-        console.log('Sending payment failed notification...');
         await transactionalNotificationService.sendOrderStatusUpdate(
             order.storeId._id.toString(),
             (order.storeId as any).name,

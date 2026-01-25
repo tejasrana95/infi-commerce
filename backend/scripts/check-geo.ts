@@ -10,14 +10,11 @@ const checkGeo = async () => {
         await mongoose.connect(process.env.MONGODB_URI as string);
         const Geo = mongoose.connection.collection('geos');
         const count = await Geo.countDocuments();
-        console.log(`Total Geo documents: ${count}`);
 
         const countries = await Geo.countDocuments({ type: 'country' });
-        console.log(`Total Countries: ${countries}`);
 
         if (countries > 0) {
             const firstCountry = await Geo.findOne({ type: 'country' });
-            console.log('First country sample:', JSON.stringify(firstCountry, null, 2));
         }
 
         process.exit(0);

@@ -146,15 +146,10 @@ class POSController {
                 });
             }
 
-            if(search) {
-                // Currently search is not implemented in service, so just log it
-                console.log('POS session history search not implemented yet:', search);
-            }
-
             const result = await posService.getSessionHistory(
                 storeId,
-                search,
-                status,
+                search as string,
+                status as string,
                 parseInt(limit as string),
                 parseInt(skip as string)
             );
@@ -278,7 +273,7 @@ class POSController {
             }
 
             // Get current session
-            const currentSession = await posService.getCurrentSession(storeId, userId);
+            const currentSession = await posService.getCurrentSession(storeId);
             if (!currentSession) {
                 return res.status(400).json({
                     success: false,

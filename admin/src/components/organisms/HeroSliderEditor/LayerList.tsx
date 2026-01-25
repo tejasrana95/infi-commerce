@@ -274,7 +274,6 @@ function SortableLayerItem({
                             size="small"
                             onClick={(e) => {
                                 e.stopPropagation();
-                                console.log('Delete clicked for layer:', layer.id, layer.type);
                                 onDelete(layer.id);
                             }}
                             sx={{

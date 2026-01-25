@@ -214,11 +214,7 @@ export class RazorpayService extends BasePaymentGateway implements IPosQRService
                     ...params.metadata
                 }
             };
-
-            console.log('Razorpay SDK Instance Keys:', Object.keys(this.razorpay));
-            console.log('Sending Razorpay QR Request:', JSON.stringify(qrRequest, null, 2));
             const response: any = await (this.razorpay as any).qrCode.create(qrRequest);
-            console.log('Razorpay QR Response:', JSON.stringify(response, null, 2));
 
             return {
                 qrCodeId: response.id,

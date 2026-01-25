@@ -190,7 +190,6 @@ class RedisService {
                         k.replace(config.redis.keyPrefix, '')
                     );
                     await this.client!.del(...keysWithoutPrefix);
-                    console.log(`Redis: Deleted ${keys.length} keys matching "${pattern}"`);
                 }
             }
 
@@ -258,7 +257,6 @@ class RedisService {
             if (this.isAvailable()) {
                 // Only flush keys with our prefix to avoid affecting other apps
                 await this.deleteByPattern('*');
-                console.log('Redis: Flushed all cached data');
             }
             this.memoryFallback.clear();
         } catch (error) {
@@ -292,7 +290,6 @@ class RedisService {
             await this.client.quit();
             this.client = null;
             this.isConnected = false;
-            console.log('Redis: Disconnected');
         }
     }
 }

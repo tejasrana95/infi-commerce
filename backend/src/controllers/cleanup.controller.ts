@@ -31,8 +31,6 @@ export const runCleanup = asyncHandler(async (_req: AuthRequest, res: Response) 
         updatedAt: { $lt: userInterestCutoff }
     });
 
-    console.log(`[Cleanup] Deleted ${chatResult.deletedCount} chat histories and ${interestResult.deletedCount} user interests`);
-
     res.json({
         success: true,
         message: 'Cleanup completed successfully',

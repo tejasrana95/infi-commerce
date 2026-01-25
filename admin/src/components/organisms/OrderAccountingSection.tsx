@@ -236,7 +236,6 @@ export default function OrderAccountingSection({
 
     const realtimeMetrics = useMemo(() => {
         if (!accounting) return null;
-        console.log('accounting', accounting);
         const grossRevenue = accounting.convertedOrderTotal;
         const totalCogs = realtimeCogs.totalCogs;
         const grossProfit = grossRevenue - totalCogs;

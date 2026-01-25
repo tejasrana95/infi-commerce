@@ -28,7 +28,6 @@ export function useKeyboardShortcuts(shortcuts: ShortcutHandler[]) {
 
             if (matchKey && matchCtrl && matchShift) {
                 if (preventDefault) event.preventDefault();
-                console.log(`Shortcut triggered: ${key}`);
                 action();
             }
         });

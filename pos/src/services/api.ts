@@ -161,8 +161,6 @@ class POCApiService {
             attributes: item.attributes,
         }));
 
-        console.log('API Checkout - Payment Method:', orderData.paymentMethod, 'Full Order Data:', orderData);
-
         const response = await apiClient.post('/orders/admin/create', {
             storeId,
             isPOSOrder: true,

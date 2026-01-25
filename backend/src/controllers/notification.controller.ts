@@ -195,8 +195,6 @@ export const processQueueAutomated = asyncHandler(async (req: AuthRequest, res: 
     const totalProcessed = results.reduce((sum, r) => sum + r.processed, 0);
     const totalFailed = results.reduce((sum, r) => sum + r.failed, 0);
 
-    console.log(`[Cron] Processed ${totalProcessed} notifications (${totalFailed} failed)`);
-
     res.json({
         success: true,
         message: 'Notification queue processed',

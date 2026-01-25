@@ -147,7 +147,6 @@ export const createCategory = asyncHandler(async (req: AuthRequest, res: Respons
         if (!parent) {
             throw new AppError('Parent category not found', 404);
         }
-        console.log(parent.storeId.toString(), storeId);
         if (parent.storeId.toString() !== storeId) {
             throw new AppError('Parent category must belong to the same store', 400);
         }
