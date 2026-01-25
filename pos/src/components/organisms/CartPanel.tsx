@@ -16,15 +16,13 @@ import Button from '../atoms/Button';
 import Avatar from '../atoms/Avatar';
 
 export default function CartPanel() {
-    const { items, getTotal, removeFromCart, updateQuantity, clearCart, customer, setCustomer } = useCartStore();
+    const { items, getTotal, getSubtotal, getTaxTotal, removeFromCart, updateQuantity, clearCart, customer, setCustomer } = useCartStore();
     const { formatPrice } = useCurrency();
     const { store } = useStore();
     const allowQuickCheckout = store?.posSettings?.allowQuickCheckout ?? true;
     const total = getTotal();
-
-    // Calculate subtotal and tax locally to ensure reactivity and handle edge cases
-    const subtotal = items.reduce((acc, item) => acc + (item.basePrice || 0) * item.quantity, 0);
-    const taxTotal = items.reduce((acc, item) => acc + (item.taxAmount || 0) * item.quantity, 0);
+    const subtotal = getSubtotal();
+    const taxTotal = getTaxTotal();
 
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);

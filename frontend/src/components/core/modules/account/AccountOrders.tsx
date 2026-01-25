@@ -8,6 +8,7 @@ import { formatDate } from '@/lib/date';
 import { formatPrice } from '@/lib/currency';
 import Loader from '@/components/molecules/Loader';
 import { ModuleProps } from '@/components/core/modules';
+import Chip from '@/components/atoms/Chip';
 
 interface OrderItem {
     name: string;
@@ -34,6 +35,7 @@ interface Order {
         city: string;
         state: string;
     };
+    isPOSOrder?: boolean;
 }
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
@@ -132,15 +134,18 @@ export default function AccountOrdersModule({ config = {} }: ModuleProps) {
                                                 {formatDate(order.createdAt, 'long')}
                                             </span>
                                         </div>
-                                        <span
-                                            className={styles.statusBadge}
-                                            style={{
-                                                backgroundColor: statusStyle.bg,
-                                                color: statusStyle.text
-                                            }}
-                                        >
-                                            {order.status}
-                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <span
+                                                className={styles.statusBadge}
+                                                style={{
+                                                    backgroundColor: statusStyle.bg,
+                                                    color: statusStyle.text
+                                                }}
+                                            >
+                                                {order.status}
+                                            </span>
+                                            {order.isPOSOrder && <Chip variant="info" size="medium">POS Order</Chip>}
+                                        </div>
                                     </div>
 
                                     <div className={styles.orderItems}>

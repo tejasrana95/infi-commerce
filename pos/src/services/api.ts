@@ -139,7 +139,6 @@ class POCApiService {
         roundOffAmount?: number;
         customer?: any;
         notes?: string;
-        priceOverrides?: any[];
         discountsApplied?: any[];
         currency?: string;
         discount?: number;
@@ -159,6 +158,9 @@ class POCApiService {
             price: item.price,
             image: item.image,
             attributes: item.attributes,
+            // Send discount info for backend validation and application
+            discountAmount: item.discountAmount || undefined,
+            discountType: item.discountType || undefined,
         }));
 
         const response = await apiClient.post('/orders/admin/create', {
@@ -177,7 +179,6 @@ class POCApiService {
             paymentStatus: 'paid',
             status: 'delivered', // POS orders are delivered immediately
             currency: orderData.currency || 'USD', // Use provided currency or default
-            priceOverrides: orderData.priceOverrides,
             discountsApplied: orderData.discountsApplied,
             customerNote: orderData.notes,
             paymentId: orderData.paymentId,

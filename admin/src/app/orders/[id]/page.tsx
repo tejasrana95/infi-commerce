@@ -256,6 +256,13 @@ export default function OrderDetailPage() {
                                     color={order.paymentStatus === 'paid' ? 'success' : 'warning'}
                                     sx={{ textTransform: 'capitalize' }}
                                 />
+                                {order.isPOSOrder && (
+                                    <Chip
+                                        label="POS Order"
+                                        variant="filled"
+                                        sx={{ textTransform: 'capitalize' }}
+                                    />
+                                )}
                             </>
                         )}
                     </Box>
@@ -425,6 +432,7 @@ export default function OrderDetailPage() {
                                                                         {Object.entries(item.attributes).map(([k, v]) => `${k}: ${v}`).join(', ')}
                                                                     </Typography>
                                                                 )}
+                                                                {item?.discount?.amount && <Typography variant="caption" color="success">Additional Discount: {item.discount?.amount || 0}{item.discount?.discountType === 'percentage' ? '%' : ''}</Typography>}
                                                             </Box>
                                                         </Box>
                                                     </TableCell>

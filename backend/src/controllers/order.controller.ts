@@ -17,7 +17,6 @@ import { notificationService } from '../services/notification.service';
 import InventoryService from '../services/inventory.service';
 import { emitOrderEvent } from '../events';
 import posService from '../services/pos.service';
-import Store from '../models/Store';
 
 /**
  * Validation rules
@@ -52,6 +51,8 @@ export const adminCreateOrderValidation = [
     body('items').isArray({ min: 1 }).withMessage('At least one item is required'),
     body('items.*.productId').isMongoId().withMessage('Valid product ID is required'),
     body('items.*.quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
+    body('items.*.discountAmount').optional().isNumeric().withMessage('Discount amount must be a number'),
+    body('items.*.discountType').optional().isIn(['fixed', 'percentage']).withMessage('Discount type must be fixed or percentage'),
     body('guestEmail').optional().isEmail().withMessage('Valid email is required'),
     body('shippingAddress').isObject().withMessage('Shipping address is required'),
     body('shippingAddress.firstName').trim().notEmpty(),
@@ -162,20 +163,61 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
             }
         }
 
-        const itemTotal = price * item.quantity;
-        subtotal += itemTotal;
+        // For price calculation: use basePrice (price without tax)
+        // The tax breakdown is passed in as separate request param
+        let basePrice = price;
+        let finalPrice = price;
+        let appliedDiscount = null;
+
+        // Apply discount if provided (only for POS orders)
+        if (isPOSOrder && item.discountAmount && item.discountType) {
+            let discountedBasePrice = basePrice;
+            
+            if (item.discountType === 'percentage') {
+                // Validate percentage discount is reasonable (0-100)
+                if (item.discountAmount < 0 || item.discountAmount > 100) {
+                    throw new AppError(`Invalid discount percentage: ${item.discountAmount}`, 400);
+                }
+                discountedBasePrice = basePrice * (1 - item.discountAmount / 100);
+            } else {
+                // Fixed amount discount
+                if (item.discountAmount < 0) {
+                    throw new AppError(`Discount amount cannot be negative: ${item.discountAmount}`, 400);
+                }
+                discountedBasePrice = Math.max(0, basePrice - item.discountAmount);
+            }
+
+            // Update price to reflect discount
+            finalPrice = discountedBasePrice;
+            basePrice = discountedBasePrice;
+
+            // Store discount info for audit trail
+            appliedDiscount = {
+                discountType: item.discountType,
+                amount: item.discountAmount,
+                originalPrice: price,
+                discountedPrice: finalPrice,
+                appliedAt: new Date(),
+            };
+        }
+
+        subtotal += finalPrice * item.quantity;
 
         orderItems.push({
             productId: product._id,
             variantId: item.variantId,
             name: product.name,
             sku,
-            price,
+            price: finalPrice, // Final price after discount
             costPrice,
             quantity: item.quantity,
             image: itemImage,
             attributes: variantAttributes,
             weight: product.weight || 0,
+            taxRate: 0, // Tax rate is calculated at order level, not item level
+            taxAmount: 0, // Tax amount is calculated at order level
+            // Store discount info for audit trail
+            ...(appliedDiscount && { discount: appliedDiscount }),
         });
     }
 

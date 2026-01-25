@@ -246,7 +246,6 @@ export const loginAdmin = asyncHandler(async (req: AuthRequest, res: Response) =
         user.role,
         user.storeIds?.map(id => id.toString())
     );
-
     res.json({
         message: 'Login successful',
         user: {
@@ -257,6 +256,7 @@ export const loginAdmin = asyncHandler(async (req: AuthRequest, res: Response) =
             role: user.role,
             storeIds: user.storeIds,
             permissions: user.permissions,
+            posPermissions: user.posPermissions,
             twoFactorEnabled: user.twoFactorEnabled,
         },
         accessToken,

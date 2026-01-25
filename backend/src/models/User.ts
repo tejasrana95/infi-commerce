@@ -18,7 +18,6 @@ export interface IUser extends Document {
     permissions?: string[]; // For granular permissions
     // POS-specific permissions
     posPermissions?: {
-        canOverridePrice: boolean;
         canApplyDiscount: boolean;
     };
     twoFactorEnabled: boolean;
@@ -84,10 +83,6 @@ const UserSchema = new Schema<IUser>(
         },
         // POS-specific permissions
         posPermissions: {
-            canOverridePrice: {
-                type: Boolean,
-                default: false,
-            },
             canApplyDiscount: {
                 type: Boolean,
                 default: false,

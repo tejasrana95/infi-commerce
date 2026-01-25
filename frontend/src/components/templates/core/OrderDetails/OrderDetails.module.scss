@@ -362,6 +362,19 @@
                 margin-top: 0.25rem;
             }
         }
+
+        .customDiscount{
+            margin-top: 0.8rem;
+            font-size: 0.70rem;
+            color: #10b981; 
+            font-weight: 500;
+        }
+
+        .discountChip {
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+        }
     }
 }
 

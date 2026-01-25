@@ -247,7 +247,7 @@ class POSService {
      */
     async checkUserPermission(
         userId: mongoose.Types.ObjectId,
-        permission: 'canOverridePrice' | 'canApplyDiscount'
+        permission: 'canApplyDiscount'
     ): Promise<boolean> {
         const user = await User.findById(userId);
 

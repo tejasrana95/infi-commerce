@@ -53,6 +53,8 @@ export interface CartItem {
     taxRate: number;
     taxAmount: number; // Unit tax amount
     basePrice: number; // Unit price without tax
+    discountAmount?: number; // Discount per unit
+    discountType?: 'fixed' | 'percentage'; // Type of discount
 }
 
 export interface Customer {
@@ -90,6 +92,9 @@ export interface User {
     role: string;
     storeIds: string[];
     permissions: string[];
+    posPermissions?: {
+        canApplyDiscount?: boolean;
+    };
     twoFactorEnabled: boolean;
 }
 
@@ -127,10 +132,18 @@ export interface Order {
     subtotal: number;
     tax: number;
     total: number;
-    paymentMethod: 'cash' | 'card' | 'upi' | 'qr';
+    paymentMethod: 'cash' | 'card' | 'upi' | 'qr' | 'stripe' | 'razorpay' | 'paypal';
     cashReceived?: number;
     change?: number;
     notes?: string;
+    discountsApplied?: Array<{
+        productId: string;
+        variantId?: string;
+        discountAmount: number;
+        discountType: 'fixed' | 'percentage';
+        originalPrice: number;
+        quantity: number;
+    }>;
 }
 
 export interface StoreSettings {

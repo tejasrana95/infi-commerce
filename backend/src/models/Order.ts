@@ -20,6 +20,14 @@ export interface IOrder extends Document {
         weight?: number;
         taxRate?: number;
         taxAmount?: number;
+        // Discount info for audit trail
+        discount?: {
+            discountType: 'fixed' | 'percentage';
+            amount: number;
+            originalPrice: number;
+            discountedPrice: number;
+            appliedAt: Date;
+        };
         // Digital product fields
         downloadable?: boolean;
         downloadFiles?: Array<{
@@ -162,23 +170,14 @@ export interface IOrder extends Document {
         };
     };
 
-    // Audit logging for price overrides and discounts
-    priceOverrides?: Array<{
-        itemId: string;
-        originalPrice: number;
-        overriddenPrice: number;
-        userId: mongoose.Types.ObjectId;
-        timestamp: Date;
-        reason?: string;
-    }>;
+    // Audit logging for discounts
     discountsApplied?: Array<{
-        type: 'percentage' | 'fixed';
-        value: number;
-        appliedTo: 'cart' | 'item';
-        itemId?: string;
-        userId: mongoose.Types.ObjectId;
-        timestamp: Date;
-        reason?: string;
+        productId: mongoose.Types.ObjectId;
+        variantId?: string;
+        discountAmount: number;
+        discountType: 'fixed' | 'percentage';
+        originalPrice: number;
+        quantity: number;
     }>;
 
     createdAt: Date;
@@ -226,6 +225,17 @@ const OrderSchema = new Schema<IOrder>(
                 weight: Number,
                 taxRate: { type: Number, default: 0 },
                 taxAmount: { type: Number, default: 0 },
+                // Discount fields (for audit trail)
+                discount: {
+                    discountType: {
+                        type: String,
+                        enum: ['fixed', 'percentage'],
+                    },
+                    amount: Number,
+                    originalPrice: Number,
+                    discountedPrice: Number,
+                    appliedAt: Date,
+                },
                 // Digital product fields
                 downloadable: { type: Boolean, default: false },
                 downloadFiles: [
@@ -423,34 +433,19 @@ const OrderSchema = new Schema<IOrder>(
                 },
             },
         },
-        // Audit logging arrays
-        priceOverrides: [
-            {
-                itemId: { type: String, required: true },
-                originalPrice: { type: Number, required: true },
-                overriddenPrice: { type: Number, required: true },
-                userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-                timestamp: { type: Date, default: Date.now },
-                reason: String,
-            },
-        ],
+        // Audit logging array
         discountsApplied: [
             {
-                type: {
+                productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
+                variantId: String,
+                discountAmount: { type: Number, required: true },
+                discountType: {
                     type: String,
-                    enum: ['percentage', 'fixed'],
+                    enum: ['fixed', 'percentage'],
                     required: true,
                 },
-                value: { type: Number, required: true },
-                appliedTo: {
-                    type: String,
-                    enum: ['cart', 'item'],
-                    required: true,
-                },
-                itemId: String,
-                userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-                timestamp: { type: Date, default: Date.now },
-                reason: String,
+                originalPrice: { type: Number, required: true },
+                quantity: { type: Number, required: true },
             },
         ],
     },

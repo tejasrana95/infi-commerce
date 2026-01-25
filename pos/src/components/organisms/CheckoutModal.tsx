@@ -101,25 +101,44 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
 
     const processCheckout = async (data: { paymentMethod: string, paymentStatus?: string, transactionId?: string }) => {
         setProcessing(true);
-        try { 
-            await api.checkout({
-                items: items.map(item => ({
+        try {
+            // Build items with original prices and send discount info separately
+            const orderItems = items.map(item => ({
+                productId: item.productId,
+                variantId: item.variantId,
+                name: item.name,
+                sku: item.sku,
+                price: item.price, // Original inclusive price from DB
+                quantity: item.quantity,
+                image: item.image,
+                attributes: item.attributes,
+                // Send discount info so backend can validate and apply
+                discountAmount: item.discountAmount || undefined,
+                discountType: item.discountType || undefined,
+            }));
+
+            // Build discountsApplied data for audit trail
+            const discountsApplied = items
+                .filter(item => item.discountAmount)
+                .map(item => ({
                     productId: item.productId,
                     variantId: item.variantId,
-                    name: item.name,
-                    sku: item.sku,
-                    price: item.price,
-                    quantity: item.quantity,
-                    image: item.image,
-                    attributes: item.attributes
-                })),
+                    discountAmount: item.discountAmount,
+                    discountType: item.discountType,
+                    originalPrice: item.basePrice,
+                    quantity: item.quantity
+                }));
+
+            await api.checkout({
+                items: orderItems,
                 subtotal: subtotal,
                 tax: tax,
-                total: payableTotal, // Use the rounded total if applicable
+                total: payableTotal,
                 paymentMethod: data.paymentMethod as any,
                 customer: customer || undefined,
                 currency: baseCurrency?.code || 'INR',
                 paymentId: data.transactionId,
+                discountsApplied: discountsApplied.length > 0 ? discountsApplied : undefined,
             });
             setProcessing(false);
             setCompleted(true);
@@ -245,15 +264,47 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
                         </div>
 
                         <div className="flex-1 overflow-y-auto space-y-4 pr-2">
-                            {items.map(item => (
-                                <div key={item.cartId} className="flex justify-between text-sm">
-                                    <span className="text-slate-700 truncate pr-2 w-2/3">
-                                        {item.quantity}x {item.name}
-                                        {item.variantId && <span className="block text-xs text-slate-500">{item.sku}</span>}
-                                    </span>
-                                    <span className="font-bold text-slate-900">{formatPrice(item.price * item.quantity)}</span>
-                                </div>
-                            ))}
+                            {items.map(item => {
+                                // Calculate effective price with discount
+                                let basePrice = item.basePrice;
+                                if (item.discountAmount) {
+                                    if (item.discountType === 'percentage') {
+                                        basePrice -= (item.basePrice * item.discountAmount) / 100;
+                                    } else {
+                                        basePrice -= item.discountAmount;
+                                    }
+                                }
+                                const taxAmount = basePrice * (item.taxRate / 100);
+                                const itemPrice = basePrice + taxAmount;
+                                
+                                const originalTotal = item.price * item.quantity;
+                                const finalTotal = itemPrice * item.quantity;
+                                const hasDiscount = item.discountAmount;
+
+                                return (
+                                    <div key={item.cartId} className="space-y-1">
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-700 truncate pr-2 w-2/3">
+                                                {item.quantity}x {item.name}
+                                                {item.variantId && <span className="block text-xs text-slate-500">{item.sku}</span>}
+                                            </span>
+                                            {hasDiscount ? (
+                                                <div className="flex flex-col items-end gap-0.5">
+                                                    <span className="text-xs line-through text-slate-500">{formatPrice(originalTotal)}</span>
+                                                    <span className="font-bold text-amber-600">{formatPrice(finalTotal)}</span>
+                                                </div>
+                                            ) : (
+                                                <span className="font-bold text-slate-900">{formatPrice(finalTotal)}</span>
+                                            )}
+                                        </div>
+                                        {item.discountAmount && (
+                                            <div className="text-xs text-amber-600 ml-auto">
+                                                Discount: {item.discountType === 'percentage' ? `${item.discountAmount}%` : formatPrice(item.discountAmount)}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
 
                         <div className="mt-auto space-y-2 pt-6 border-t">

@@ -91,40 +91,71 @@ export default function OrderDetailModal({ order, isOpen, onClose }: OrderDetail
                                 Order Items ({order.items.length})
                             </h3>
                             <div className="space-y-3">
-                                {order.items.map((item, index) => (
-                                    <div
-                                        key={index}
-                                        className="flex gap-4 bg-white border border-slate-200 rounded-lg p-3"
-                                    >
-                                        <Image
-                                            src={item.image}
-                                            alt={item.name}
-                                            width={16}
-                                            height={16}
-                                            className="w-16 h-16 object-cover rounded-lg bg-slate-100"
-                                        />
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className="font-medium text-slate-900 truncate">{item.name}</h4>
-                                            <p className="text-xs text-slate-500">{item.sku}</p>
-                                            {item.attributes && (
-                                                <div className="flex gap-2 mt-1">
-                                                    {Object.entries(item.attributes).map(([key, value]) => (
-                                                        <span
-                                                            key={key}
-                                                            className="text-xs bg-slate-100 px-2 py-0.5 rounded"
-                                                        >
-                                                            {key}: {value}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            )}
+                                {order.items.map((item, index) => {
+                                    // Find if this item has discount
+                                    const discount = order.discountsApplied?.find(
+                                        d => d.productId === item.productId && d.variantId === item.variantId
+                                    );
+
+                                    const originalTotal = item.price * item.quantity;
+                                    let basePrice = item.basePrice || item.price - (item.taxAmount || 0);
+                                    
+                                    if (discount) {
+                                        if (discount.discountType === 'percentage') {
+                                            basePrice -= (basePrice * discount.discountAmount) / 100;
+                                        } else {
+                                            basePrice -= discount.discountAmount;
+                                        }
+                                    }
+                                    const taxAmount = basePrice * ((item.taxRate || 0) / 100);
+                                    const finalTotal = (basePrice + taxAmount) * item.quantity;
+                                    const hasDiscount = discount;
+
+                                    return (
+                                        <div
+                                            key={index}
+                                            className="flex gap-4 bg-white border border-slate-200 rounded-lg p-3"
+                                        >
+                                            <Image
+                                                src={item.image}
+                                                alt={item.name}
+                                                width={16}
+                                                height={16}
+                                                className="w-16 h-16 object-cover rounded-lg bg-slate-100"
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="font-medium text-slate-900 truncate">{item.name}</h4>
+                                                <p className="text-xs text-slate-500">{item.sku}</p>
+                                                {item.attributes && (
+                                                    <div className="flex gap-2 mt-1">
+                                                        {Object.entries(item.attributes).map(([key, value]) => (
+                                                            <span
+                                                                key={key}
+                                                                className="text-xs bg-slate-100 px-2 py-0.5 rounded"
+                                                            >
+                                                                {key}: {value}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-sm text-slate-600">Qty: {item.quantity}</p>
+                                                {hasDiscount ? (
+                                                    <div className="space-y-1">
+                                                        <p className="text-xs line-through text-slate-400">{formatPrice(originalTotal)}</p>
+                                                        <p className="font-bold text-amber-600">{formatPrice(finalTotal)}</p>
+                                                        <p className="text-xs text-amber-600">
+                                                            {discount.discountType === 'percentage' ? `${discount.discountAmount}% off` : `${formatPrice(discount.discountAmount)} off`}
+                                                        </p>
+                                                    </div>
+                                                ) : (
+                                                    <p className="font-bold text-slate-900">{formatPrice(finalTotal)}</p>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="text-sm text-slate-600">Qty: {item.quantity}</p>
-                                            <p className="font-bold text-slate-900">{formatPrice(item.price * item.quantity)}</p>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
 

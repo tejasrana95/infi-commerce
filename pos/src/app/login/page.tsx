@@ -19,7 +19,6 @@ import Link from 'next/link';
 const LoginPage = memo(() => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [remember, setRemember] = useState(true);
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -95,6 +94,7 @@ const LoginPage = memo(() => {
                 role: user.role,
                 storeIds: user.storeIds || [],
                 permissions: user.permissions || [],
+                posPermissions: user.posPermissions || {canApplyDiscount: false},
                 twoFactorEnabled: !!user.twoFactorEnabled
             };
 

@@ -8,12 +8,14 @@ interface CartState {
     addToCart: (product: Product, variant?: ProductVariant, quantity?: number) => void;
     removeFromCart: (cartId: string) => void;
     updateQuantity: (cartId: string, quantity: number) => void;
+    applyDiscount: (cartId: string, discountAmount: number | null, discountType?: 'fixed' | 'percentage') => void;
     clearCart: () => void;
     setCustomer: (customer: Customer | null) => void;
     getTotal: () => number;
     getSubtotal: () => number;
     getTaxTotal: () => number;
     getItemCount: () => number;
+    getCartItemTotal: (item: CartItem) => number;
 }
 
 // Helper to check if sound is enabled
@@ -42,8 +44,8 @@ export const useCartStore = create<CartState>((set, get) => ({
 
             // Determine price and tax info
             const price = Number(variant ? variant.price : (product.salePrice || product.price)) || 0;
-            const taxRate = Number(product.taxRate ?? 0);
-            let unitTaxAmount = Number(product.taxAmount ?? 0);
+            const taxRate = Number(variant?.taxRate ?? product.taxRate ?? 0);
+            let unitTaxAmount = Number(variant?.taxAmount ?? product.taxAmount ?? 0);
 
             // Fallback calculation if taxAmount is 0 but rate is present
             if (unitTaxAmount === 0 && taxRate > 0) {
@@ -125,23 +127,97 @@ export const useCartStore = create<CartState>((set, get) => ({
         });
     },
 
+    applyDiscount: (cartId, discountAmount, discountType = 'fixed') => {
+        set((state) => {
+            return {
+                items: state.items.map((item) =>
+                    item.cartId === cartId 
+                        ? { 
+                            ...item, 
+                            discountAmount: discountAmount || undefined,
+                            discountType: discountAmount ? discountType : undefined
+                          }
+                        : item
+                ),
+            };
+        });
+    },
+
     clearCart: () => set({ items: [], customer: null }),
 
     setCustomer: (customer) => set({ customer }),
 
+    getCartItemTotal: (item: CartItem) => {
+        // Start with base price (excluding tax)
+        let unitPrice = item.basePrice;
+        
+        // Apply discount if any
+        if (item.discountAmount) {
+            if (item.discountType === 'percentage') {
+                // For percentage: discount = price * (discountAmount / 100)
+                unitPrice -= (unitPrice * item.discountAmount) / 100;
+            } else {
+                // For fixed: just subtract the amount
+                unitPrice -= item.discountAmount;
+            }
+        }
+        
+        // Add tax (calculated on discounted price)
+        const tax = unitPrice * (item.taxRate / 100);
+        const finalPrice = unitPrice + tax;
+        
+        return Math.max(0, finalPrice * item.quantity);
+    },
+
     getTotal: () => {
         const { items } = get();
-        return items.reduce((total, item) => total + item.price * item.quantity, 0);
+        return items.reduce((total, item) => {
+            const { getCartItemTotal } = get();
+            return total + getCartItemTotal(item);
+        }, 0);
     },
 
     getSubtotal: () => {
         const { items } = get();
-        return items.reduce((total, item) => total + item.basePrice * item.quantity, 0);
+        return items.reduce((total, item) => {
+            // Start with base price (excluding tax)
+            let unitPrice = item.basePrice;
+            
+            // Apply discount if any
+            if (item.discountAmount) {
+                if (item.discountType === 'percentage') {
+                    unitPrice -= (unitPrice * item.discountAmount) / 100;
+                } else {
+                    unitPrice -= item.discountAmount;
+                }
+            }
+            
+            return total + Math.max(0, unitPrice * item.quantity);
+        }, 0);
     },
 
     getTaxTotal: () => {
         const { items } = get();
-        return items.reduce((total, item) => total + item.taxAmount * item.quantity, 0);
+        
+        // Calculate tax per item considering discounts
+        const totalTax = items.reduce((sum, item) => {
+            let unitPrice = item.basePrice;
+            
+            // Apply discount if any
+            if (item.discountAmount) {
+                if (item.discountType === 'percentage') {
+                    unitPrice -= (unitPrice * item.discountAmount) / 100;
+                } else {
+                    unitPrice -= item.discountAmount;
+                }
+            }
+            
+            // Calculate tax on discounted price
+            const itemTax = unitPrice * (item.taxRate / 100);
+            return sum + (itemTax * item.quantity);
+        }, 0);
+        
+        return Math.max(0, totalTax);
     },
 
     getItemCount: () => {

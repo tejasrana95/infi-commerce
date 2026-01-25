@@ -11,6 +11,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { apiClient } from '@/services/api-client';
 import { useToast } from '@/providers/ToastProvider';
 import { useDialog } from '@/providers/DialogProvider';
+import Chip from '@/components/atoms/Chip';
 
 // Types reuse
 export interface OrderItem {
@@ -20,6 +21,13 @@ export interface OrderItem {
     quantity: number;
     image?: string;
     attributes?: Record<string, string>;
+    discount?: {
+        amount?: number;
+        appliedAt?: string; // ISO date string
+        discountType?: 'fixed' | 'percentage';
+        discountedPrice?: number;
+        originalPrice?: number;
+    }
 }
 
 export interface OrderAddress {
@@ -70,6 +78,7 @@ export interface OrderDetails {
     trackingUrl?: string; // Add trackingUrl
     courierName?: string; // Add courierName
     guestEmail?: string;
+    isPOSOrder?: boolean;
 }
 
 interface OrderDetailsTemplateProps {
@@ -248,65 +257,68 @@ export default function OrderDetailsTemplate({ order, loading, onRefresh }: Orde
                                 <h1>Order #{order.orderNumber}</h1>
                                 <p className={styles.date}>Placed on {formatDate(order.createdAt)}</p>
                             </div>
-                            <div className={styles.actions}>
-                                <button
-                                    className={styles.btnSecondary}
-                                    onClick={handleDownloadInvoice}
-                                    disabled={downloading}
-                                >
-                                    {downloading ? 'Downloading...' : 'Download Invoice'}
-                                </button>
-
-                                {order.status === 'delivered' && (
+                            {order.isPOSOrder && <Chip variant="info" size="medium">POS Order</Chip>}
+                            {!order.isPOSOrder && (
+                                <div className={styles.actions}>
                                     <button
                                         className={styles.btnSecondary}
-                                        onClick={() => setShowReturnModal(true)}
+                                        onClick={handleDownloadInvoice}
+                                        disabled={downloading}
                                     >
-                                        Request Return
+                                        {downloading ? 'Downloading...' : 'Download Invoice'}
                                     </button>
-                                )}
 
-                                {(order.status === 'pending' || order.status === 'processing') && (
-                                    <button
-                                        className={styles.btnSecondary}
-                                        onClick={handleCancelOrder}
-                                        disabled={cancellingOrder}
-                                        style={{ color: 'var(--color-error, #dc3545)' }}
-                                    >
-                                        {cancellingOrder ? 'Cancelling...' : 'Cancel Order'}
-                                    </button>
-                                )}
+                                    {order.status === 'delivered' && (
+                                        <button
+                                            className={styles.btnSecondary}
+                                            onClick={() => setShowReturnModal(true)}
+                                        >
+                                            Request Return
+                                        </button>
+                                    )}
 
-                                {order.paymentStatus === 'paid' && (!order.refundStatus || order.refundStatus === 'none' || order.refundStatus === 'rejected') && order.status !== 'refunded' && (
-                                    <button
-                                        className={styles.btnSecondary}
-                                        onClick={() => setShowRefundModal(true)}
-                                    >
-                                        {order.refundStatus === 'rejected' ? 'Re-request Refund' : 'Request Refund'}
-                                    </button>
-                                )}
+                                    {(order.status === 'pending' || order.status === 'processing') && (
+                                        <button
+                                            className={styles.btnSecondary}
+                                            onClick={handleCancelOrder}
+                                            disabled={cancellingOrder}
+                                            style={{ color: 'var(--color-error, #dc3545)' }}
+                                        >
+                                            {cancellingOrder ? 'Cancelling...' : 'Cancel Order'}
+                                        </button>
+                                    )}
 
-                                {order.trackingNumber && order.trackingUrl && (
-                                    <a
-                                        href={order.trackingUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className={styles.btnPrimary}
-                                        style={{
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            padding: '0.75rem 1.5rem',
-                                            backgroundColor: 'var(--color-primary, #000)',
-                                            color: 'white',
-                                            borderRadius: '8px',
-                                            fontWeight: 600,
-                                            textDecoration: 'none',
-                                        }}
-                                    >
-                                        Track Order
-                                    </a>
-                                )}
-                            </div>
+                                    {order.paymentStatus === 'paid' && (!order.refundStatus || order.refundStatus === 'none' || order.refundStatus === 'rejected') && order.status !== 'refunded' && (
+                                        <button
+                                            className={styles.btnSecondary}
+                                            onClick={() => setShowRefundModal(true)}
+                                        >
+                                            {order.refundStatus === 'rejected' ? 'Re-request Refund' : 'Request Refund'}
+                                        </button>
+                                    )}
+
+                                    {order.trackingNumber && order.trackingUrl && (
+                                        <a
+                                            href={order.trackingUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={styles.btnPrimary}
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                padding: '0.75rem 1.5rem',
+                                                backgroundColor: 'var(--color-primary, #000)',
+                                                color: 'white',
+                                                borderRadius: '8px',
+                                                fontWeight: 600,
+                                                textDecoration: 'none',
+                                            }}
+                                        >
+                                            Track Order
+                                        </a>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         {/* Order Status Timeline */}
@@ -367,6 +379,14 @@ export default function OrderDetailsTemplate({ order, loading, onRefresh }: Orde
                                                         ))}
                                                     </div>
                                                 )}
+                                                {item?.discount?.amount && (
+                                                    <div className={styles.discountChip}>
+                                                        <Chip variant="discount" size="small">
+                                                            -{item.discount.discountType === 'percentage' ? item.discount.amount + '%' : formatPrice(item.discount.amount, { code: order.currency, exchangeRate: order.exchangeRate })} OFF
+                                                        </Chip>
+                                                    </div>
+                                                )}
+
                                             </div>
                                             <div className={styles.itemMeta}>
                                                 <span className={styles.price}>
@@ -473,7 +493,7 @@ export default function OrderDetailsTemplate({ order, loading, onRefresh }: Orde
                             )}
 
                             <div className={styles.help}>
-                                <p>Need help with this order? <a href="/contact">Contact Support</a></p>
+                                <p>Need help with this order? <Link href="/contact">Contact Support</Link></p>
                             </div>
 
                             {isAuthenticated && (
@@ -511,7 +531,7 @@ export default function OrderDetailsTemplate({ order, loading, onRefresh }: Orde
                     )}
                 </div>
 
-                {showReturnModal && (
+                {(showReturnModal && !order.isPOSOrder) && (
                     <div className={styles.modalOverlay}>
                         <div className={styles.modalContent}>
                             <h2>Request Return</h2>
@@ -541,7 +561,7 @@ export default function OrderDetailsTemplate({ order, loading, onRefresh }: Orde
                     </div>
                 )}
 
-                {showRefundModal && (
+                {(showRefundModal && !order.isPOSOrder) && (
                     <div className={styles.modalOverlay}>
                         <div className={styles.modalContent}>
                             <h2>Request Refund</h2>

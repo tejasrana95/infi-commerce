@@ -12,6 +12,13 @@ export interface OrderItem {
     image?: string;
     attributes?: Record<string, string>;
     weight?: number;
+    discount?: {
+        amount?: number;
+        appliedAt?: string; // ISO date string
+        discountType?: 'fixed' | 'percentage';
+        discountedPrice?: number;
+        originalPrice?: number;
+    }
 }
 
 export interface Address {
