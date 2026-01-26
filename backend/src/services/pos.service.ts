@@ -1,9 +1,6 @@
 import POSSession, { IPOSSession } from '../models/POSSession';
 import Order from '../models/Order';
-import Product from '../models/Product';
-import Store from '../models/Store';
 import User from '../models/User';
-import Coupon from '../models/Coupon';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import ReturnCalculationService from './return-calculation.service';
@@ -418,24 +415,25 @@ class POSService {
             throw new Error('Order not found');
         }
 
-        // Fetch coupon details if coupon was applied
-        let couponDetails = null;
-        if (order.couponId) {
-            couponDetails = await Coupon.findById(order.couponId);
-        }
-
         // Prepare order details for calculation service
+        // Since discount is now stored per-item, no need to fetch coupon details
         const orderDetails = {
             items: order.items.map((item: any) => ({
                 productId: item.productId.toString(),
                 variantId: item.variantId,
                 name: item.name,
                 sku: item.sku,
+                originalPrice: item.originalPrice || item.price,
                 price: item.price,
                 quantity: item.quantity,
                 taxRate: item.taxRate || 0,
                 taxAmount: item.taxAmount || 0,
-                discount: item.discount,
+                // New discount fields (per unit)
+                discountAmount: item.discountAmount || 0,
+                couponDiscount: item.couponDiscount || 0,
+                manualDiscount: item.manualDiscount || 0,
+                isCouponEligible: item.isCouponEligible || false,
+                // Return tracking
                 returnedQuantity: item.returnedQuantity || 0,
                 refundedAmount: item.refundedAmount || 0,
             })),
@@ -443,13 +441,7 @@ class POSService {
             tax: order.tax,
             total: order.total,
             discount: order.discount || 0,
-            couponId: order.couponId?.toString(),
             couponCode: order.couponCode,
-            couponType: couponDetails?.discountType,
-            couponValue: couponDetails?.discountValue,
-            couponMaxCap: couponDetails?.maxDiscountAmount,
-            couponAppliesTo: couponDetails?.applyTo,
-            couponCategoryIds: couponDetails?.categoryIds?.map((id: any) => id.toString()),
         };
 
         // Prepare return items for calculation service
@@ -495,24 +487,25 @@ class POSService {
             throw new Error('Order not found');
         }
 
-        // Fetch coupon details if coupon was applied
-        let couponDetails = null;
-        if (order.couponId) {
-            couponDetails = await Coupon.findById(order.couponId);
-        }
-
         // Prepare order details for calculation service
+        // Since discount is now stored per-item, no need to fetch coupon details
         const orderDetails = {
             items: order.items.map((item: any) => ({
                 productId: item.productId.toString(),
                 variantId: item.variantId,
                 name: item.name,
                 sku: item.sku,
+                originalPrice: item.originalPrice || item.price,
                 price: item.price,
                 quantity: item.quantity,
                 taxRate: item.taxRate || 0,
                 taxAmount: item.taxAmount || 0,
-                discount: item.discount,
+                // New discount fields (per unit)
+                discountAmount: item.discountAmount || 0,
+                couponDiscount: item.couponDiscount || 0,
+                manualDiscount: item.manualDiscount || 0,
+                isCouponEligible: item.isCouponEligible || false,
+                // Return tracking
                 returnedQuantity: item.returnedQuantity || 0,
                 refundedAmount: item.refundedAmount || 0,
             })),
@@ -520,13 +513,7 @@ class POSService {
             tax: order.tax,
             total: order.total,
             discount: order.discount || 0,
-            couponId: order.couponId?.toString(),
             couponCode: order.couponCode,
-            couponType: couponDetails?.discountType,
-            couponValue: couponDetails?.discountValue,
-            couponMaxCap: couponDetails?.maxDiscountAmount,
-            couponAppliesTo: couponDetails?.applyTo,
-            couponCategoryIds: couponDetails?.categoryIds?.map((id: any) => id.toString()),
         };
 
         // Prepare return items for calculation service

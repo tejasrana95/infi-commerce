@@ -1,5 +1,5 @@
 import apiClient from '@/lib/apiClient';
-import { Category, Product } from '../types';
+import { Category, Order, Product } from '../types';
 
 class POCApiService {
     private storeId: string = '';
@@ -144,7 +144,7 @@ class POCApiService {
         discount?: number;
         paymentId?: string;
         couponCode?: string;
-    }): Promise<{ success: boolean; orderId: string; orderNumber: string }> {
+    }): Promise<{ success: boolean; orderId: string; orderNumber: string, order: Order }> {
         const sessionId = await this.getCurrentSession().then(s => s?._id);
         const storeId = this.getStoreId();
 
@@ -216,6 +216,7 @@ class POCApiService {
             success: true,
             orderId: response.data.data._id,
             orderNumber: response.data.data.orderNumber,
+            order: response.data.data,
         };
     }
 

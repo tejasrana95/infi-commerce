@@ -571,8 +571,6 @@ class POSController {
                     { 'shippingAddress.lastName': { $regex: query, $options: 'i' } },
                     { guestEmail: { $regex: query, $options: 'i' } },
                 ],
-                status: { $in: ['delivered', 'completed'] }, // Only completed/delivered orders can be returned
-                paymentStatus: 'paid',
             })
                 .sort({ createdAt: -1 })
                 .limit(10)

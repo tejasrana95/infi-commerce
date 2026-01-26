@@ -12,22 +12,23 @@ export interface IOrder extends Document {
         variantId?: string;
         name: string;
         sku: string;
-        price: number;
-        costPrice?: number; // Cost price snapshot for accounting
+        // Pricing
+        originalPrice: number;          // Price before any discount (per unit)
+        price: number;                  // Final price after all discounts (per unit)
+        costPrice?: number;             // Cost price snapshot for accounting
         quantity: number;
         image?: string;
         attributes?: Record<string, string>;
         weight?: number;
+        categoryIds?: mongoose.Types.ObjectId[]; // Product categories for coupon eligibility
+        // Tax (per unit)
         taxRate?: number;
         taxAmount?: number;
-        // Discount info for audit trail
-        discount?: {
-            discountType: 'fixed' | 'percentage';
-            amount: number;
-            originalPrice: number;
-            discountedPrice: number;
-            appliedAt: Date;
-        };
+        // Discount breakdown (per unit)
+        discountAmount?: number;        // Total discount per unit (coupon + manual)
+        couponDiscount?: number;        // Portion from coupon (per unit)
+        manualDiscount?: number;        // Portion from manual/POS discount (per unit)
+        isCouponEligible?: boolean;     // Was this item eligible for coupon?
         // Digital product fields
         downloadable?: boolean;
         downloadFiles?: Array<{
@@ -38,9 +39,7 @@ export interface IOrder extends Document {
         downloadLimit?: number;
         downloadCount?: number;
         downloadExpiresAt?: Date;
-        downloadLimit?: number;
-        downloadCount?: number;
-        downloadExpiresAt?: Date;
+        // Return tracking
         returnedQuantity?: number;
         refundedAmount?: number;
     }>;
@@ -239,25 +238,23 @@ const OrderSchema = new Schema<IOrder>(
                 variantId: String,
                 name: { type: String, required: true },
                 sku: { type: String, required: true },
-                price: { type: Number, required: true, min: 0 },
-                costPrice: { type: Number, min: 0 }, // Cost price snapshot for accounting
+                // Pricing
+                originalPrice: { type: Number, required: true, min: 0 }, // Price before discount
+                price: { type: Number, required: true, min: 0 },         // Final price after discount
+                costPrice: { type: Number, min: 0 },                     // Cost price snapshot
                 quantity: { type: Number, required: true, min: 1 },
                 image: String,
                 attributes: Schema.Types.Mixed,
                 weight: Number,
+                categoryIds: [{ type: Schema.Types.ObjectId, ref: 'Category' }],
+                // Tax (per unit)
                 taxRate: { type: Number, default: 0 },
                 taxAmount: { type: Number, default: 0 },
-                // Discount fields (for audit trail)
-                discount: {
-                    discountType: {
-                        type: String,
-                        enum: ['fixed', 'percentage'],
-                    },
-                    amount: Number,
-                    originalPrice: Number,
-                    discountedPrice: Number,
-                    appliedAt: Date,
-                },
+                // Discount breakdown (per unit)
+                discountAmount: { type: Number, default: 0 },   // Total discount per unit
+                couponDiscount: { type: Number, default: 0 },   // Coupon portion per unit
+                manualDiscount: { type: Number, default: 0 },   // Manual/POS discount per unit
+                isCouponEligible: { type: Boolean, default: false },
                 // Digital product fields
                 downloadable: { type: Boolean, default: false },
                 downloadFiles: [

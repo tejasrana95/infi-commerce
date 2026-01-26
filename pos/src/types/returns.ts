@@ -3,17 +3,19 @@ export interface ReturnItem {
     variantId?: string;
     name: string;
     sku: string;
-    price: number; // Price paid per unit (after all discounts, including tax)
+    price: number; // Final price per unit (after all discounts)
+    originalPrice?: number; // Price before discounts
     quantityPurchased: number;
     quantityToReturn: number;
     reason: string;
     image: string;
     // Refund breakdown
-    basePrice?: number; // Price without tax
     taxAmount?: number; // Tax amount for returned quantity
-    discountAmount?: number; // Item-level discount
-    couponAmount?: number; // Pro-rata coupon discount
+    discountAmount?: number; // Total discount for returned quantity
+    couponDiscount?: number; // Coupon discount for returned quantity
+    manualDiscount?: number; // Manual discount for returned quantity
     totalRefund?: number; // Total refund for this item
+    isCouponEligible?: boolean;
 }
 
 export interface ReturnOrder {
@@ -28,8 +30,10 @@ export interface ReturnOrder {
     // Refund breakdown
     breakdown?: {
         subtotal: number;
-        itemDiscounts: number;
+        originalSubtotal: number;
+        totalDiscount: number;
         couponDiscount: number;
+        manualDiscount: number;
         tax: number;
         total: number;
     };
@@ -43,17 +47,21 @@ export interface RefundCalculation {
         name: string;
         sku: string;
         quantity: number;
+        originalPrice: number;
         unitPrice: number;
-        basePrice: number;
         taxAmount: number;
         discountAmount: number;
-        couponAmount: number;
+        couponDiscount: number;
+        manualDiscount: number;
         totalRefund: number;
+        isCouponEligible: boolean;
     }>;
     breakdown: {
         subtotal: number;
-        itemDiscounts: number;
+        originalSubtotal: number;
+        totalDiscount: number;
         couponDiscount: number;
+        manualDiscount: number;
         tax: number;
         total: number;
     };

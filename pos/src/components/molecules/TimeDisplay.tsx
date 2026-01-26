@@ -21,7 +21,7 @@ export default function TimeDisplay() {
 
     return (
         <div className="flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-2 text-slate-700">
+            <div className="flex items-center gap-2 text-slate-700" style={{ minWidth: '120px' }}>
                 <Clock className="w-4 h-4" />
                 <span className="font-bold">{formatTime(currentTime)}</span>
             </div>
@@ -29,7 +29,7 @@ export default function TimeDisplay() {
                 <Calendar className="w-4 h-4" />
                 <span>{formatDate(currentTime)}</span>
             </div>
-            <div className="px-3 py-1 bg-green-50 text-green-700 rounded-lg font-bold text-xs">
+            <div className="px-3 py-1 bg-green-50 text-green-700 rounded-lg font-bold text-xs" style={{ minWidth: '135px' }}>
                 Session: {formatDuration(sessionDuration)}
             </div>
         </div>

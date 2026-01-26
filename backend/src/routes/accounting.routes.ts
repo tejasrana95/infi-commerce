@@ -3,6 +3,7 @@ import {
     getOrderAccounting,
     updateOrderAccounting,
     regenerateOrderAccounting,
+    syncOrderReturns,
     fetchGatewayData,
     getReportSummary,
     getReportOrders,
@@ -25,6 +26,7 @@ router.get('/reports/export', exportReport);
 router.get('/:orderId', getOrderAccounting);
 router.put('/:orderId', updateOrderAccounting);
 router.post('/:orderId/regenerate', regenerateOrderAccounting);
+router.post('/:orderId/sync-returns', syncOrderReturns);
 router.post('/:orderId/fetch-gateway-data', fetchGatewayData);
 
 export default router;

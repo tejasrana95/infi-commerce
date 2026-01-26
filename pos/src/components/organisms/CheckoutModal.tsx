@@ -11,6 +11,8 @@ import api from '@/services/api';
 
 import { useStore } from '@/contexts/StoreContext';
 import QRPaymentModal from './QRPaymentModal';
+import { printService } from '@/services/print.service';
+import { Order } from '@/types';
 
 interface CheckoutModalProps {
     isOpen: boolean;
@@ -41,13 +43,13 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
     const [completed, setCompleted] = useState(false);
     const [customerError, setCustomerError] = useState('');
     const mountTime = useRef<number>(Date.now());
-    
+
     // Coupon state
     const [couponCode, setCouponCode] = useState('');
     const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
     const [couponLoading, setCouponLoading] = useState(false);
     const [couponError, setCouponError] = useState('');
-    
+    const [order, setOrder] = useState<Order | null>(null); // Store completed order details
     const grandTotal = total;
     const { store } = useStore();
     const { requireCustomerDetails, allowQuickCheckout, defaultPaymentMethod } = store?.posSettings || {};
@@ -86,7 +88,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
     // Coupon handlers
     const handleApplyCoupon = async () => {
         setCouponError('');
-        
+
         if (!couponCode.trim()) {
             setCouponError('Please enter a coupon code');
             return;
@@ -94,14 +96,14 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
 
         try {
             setCouponLoading(true);
-            
+
             // Prepare items data for POS coupon validation
             const couponItems = items.map(item => ({
                 productId: item.productId,
                 price: item.price,
                 quantity: item.quantity
             }));
-            
+
             const result = await api.applyCouponPOS(couponCode.trim(), couponItems, subtotal);
             setAppliedCoupon(result.coupon);
             setCouponCode('');
@@ -185,7 +187,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
                     quantity: item.quantity
                 }));
 
-            await api.checkout({
+           const response = await api.checkout({
                 items: orderItems,
                 subtotal: subtotal,
                 tax: tax,
@@ -198,6 +200,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
                 couponCode: appliedCoupon?.code,
                 discount: appliedCoupon?.discountAmount || 0,
             });
+            setOrder(response.order);
             setProcessing(false);
             setCompleted(true);
         } catch (error) {
@@ -211,7 +214,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
         // Use the actual payment gateway from settings, not 'qr'
         // QR is just the payment interface, the actual payment method is the configured gateway
         let actualPaymentMethod: 'cash' | 'card' | 'qr' | 'upi' = 'qr'; // fallback
-        
+
         // Try to get gateway type from settings first
         if (qrSettings?.mode === 'gateway' && qrSettings?.gatewayConfig?.gatewayType) {
             actualPaymentMethod = qrSettings.gatewayConfig.gatewayType as 'cash' | 'card' | 'qr' | 'upi';
@@ -231,7 +234,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
                 actualPaymentMethod = 'card';
             }
         }
-        
+
         processCheckout({
             paymentMethod: actualPaymentMethod,
             paymentStatus: 'paid',
@@ -239,16 +242,34 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
         });
     };
 
-    const handlePrintAndClose = () => {
-        // Real printing logic here (window.print() or WebUSB)
+    const handlePrintAndClose = async () => {
+        if (!order) return;
+        try {
+            // Generate receipt HTML using the print service with full order data
+            // The order is passed directly - print service handles returns, discounts, etc.
+            const receiptHTML = printService.generateReceiptHTML(order, store);
+
+            // Create temporary element with the generated HTML
+            const receiptContainer = document.createElement('div');
+            receiptContainer.innerHTML = receiptHTML;
+
+            // Print with the configured printer type (defaults to inkjet/laser)
+            await printService.printReceipt(receiptContainer, store, 'inkjet');
+
+            console.log('Receipt printed successfully');
+        } catch (error) {
+            console.error('Failed to print receipt:', error);
+            alert('Failed to print receipt. Please check your printer connection.');
+        }
         clearCart();
         setCompleted(false);
         setCashGiven('');
         setCouponCode('');
         setAppliedCoupon(null);
         setCouponError('');
-        onSuccess(); // Parent notification
+        onSuccess(); 
         onClose();
+        setOrder(null);
     };
 
 
@@ -338,7 +359,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
                                 }
                                 const taxAmount = basePrice * (item.taxRate / 100);
                                 const itemPrice = basePrice + taxAmount;
-                                
+
                                 const originalTotal = item.price * item.quantity;
                                 const finalTotal = itemPrice * item.quantity;
                                 const hasDiscount = item.discountAmount;

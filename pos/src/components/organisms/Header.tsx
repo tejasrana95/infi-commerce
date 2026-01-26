@@ -96,27 +96,15 @@ export default function Header() {
                             variant="outline"
                             title="Returns"
                         />
-                        <IconButton
-                            icon={<BarChart3 className="w-5 h-5" />}
-                            onClick={() => {/* TODO: Open reports modal */ }}
-                            variant="outline"
-                            title="Reports"
-                        />
-                        <IconButton
-                            icon={<Package className="w-5 h-5 text-red-600" />}
-                            onClick={() => setShowEndShiftModal(true)}
-                            variant="outline"
-                            title="End Shift"
-                            className="border-red-200 hover:bg-red-50 hover:border-red-300"
-                        />
                     </div>
                 </div>
 
-                {/* Middle: Time Display */}
-                <TimeDisplay />
+
 
                 {/* Right: User Info */}
                 <div className="flex items-center gap-3">
+                    {/* Middle: Time Display */}
+                    <TimeDisplay />
                     <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-600">
                         <User size={20} />
                     </div>

@@ -19,7 +19,10 @@ export interface OrderAccountingItem {
 
 export interface ProfitMetrics {
     grossRevenue: number;
+    totalReturns: number;
+    netRevenue: number;
     totalCogs: number;
+    adjustedCogs: number;
     grossProfit: number;
     totalExpenses: number;
     netProfit: number;
@@ -42,10 +45,27 @@ export interface OrderAccounting {
     tax: number;
     shippingCollected: number;
 
+    // Returns & Refunds
+    returns: {
+        totalReturnedAmount: number;
+        totalReturnedCogs: number;
+        items: Array<{
+            productId: string;
+            variantId?: string;
+            name: string;
+            quantity: number;
+            unitPrice: number;
+            unitCostPrice: number;
+            refundAmount: number;
+            returnedAt: string;
+        }>;
+    };
+
     // COGS
     cogs: {
         items: OrderAccountingItem[];
         totalCogs: number;
+        adjustedCogs: number;
     };
 
     // Expenses
@@ -78,6 +98,7 @@ export interface PLSummary {
     totalReturns: number;
     totalAdjustedRevenue: number;
     totalCogs: number;
+    totalAdjustedCogs: number;
     grossProfit: number;
     totalExpenses: number;
     netProfit: number;
@@ -109,6 +130,8 @@ export interface OrderWithAccounting {
         status: string;
     };
     revenue: number;
+    returns: number;
+    adjustedRevenue: number;
     cogs: number;
     expenses: number;
     netProfit: number;

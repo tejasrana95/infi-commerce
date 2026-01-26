@@ -459,7 +459,7 @@ export default function OrderDetailPage() {
                                     </Box>
                                     <Box sx={{ p: 2 }}>
                                         {order.returns.map((returnRecord: any, idx: number) => (
-                                            <Box key={idx} sx={{ mb: 3, p: 2, bgcolor: 'warning.50', borderRadius: 1, border: '1px solid', borderColor: 'warning.200' }}>
+                                            <Box key={idx} sx={{ mb: 3, bgcolor: 'warning.50' }}>
                                                 {/* Return Header */}
                                                 <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
                                                     <Box>
@@ -733,6 +733,7 @@ export default function OrderDetailPage() {
                         orderTotal={order.total}
                         orderCurrency={order.currency}
                         orderReturns={order.returns}
+                        order={order}
                     />
                 )}
 

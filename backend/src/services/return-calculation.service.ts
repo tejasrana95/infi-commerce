@@ -1,7 +1,9 @@
 /**
  * Return Calculation Service
- * Handles complex return/refund calculations for POS orders
- * Includes tax, discounts, sales, and pro-rata coupon distribution
+ * Handles return/refund calculations for POS orders
+ * 
+ * Since discount is now stored per-item at order creation time,
+ * the refund calculation is simplified - we just use the stored values.
  */
 
 interface OrderItem {
@@ -9,26 +11,26 @@ interface OrderItem {
     variantId?: string;
     name: string;
     sku: string;
-    price: number; // Price paid per unit (after sale, including tax)
+    originalPrice: number;      // Price before any discount (per unit)
+    price: number;              // Final price after all discounts (per unit)
     quantity: number;
+    categoryIds?: string[];     // Product categories
     taxRate?: number;
-    taxAmount?: number; // Unit tax amount
-    // Discount info for audit trail
-    discount?: {
-        discountType: 'fixed' | 'percentage';
-        amount: number;
-        originalPrice: number;
-        discountedPrice: number;
-        appliedAt: Date;
-    };
-    returnedQuantity?: number; // Already returned quantity
-    refundedAmount?: number; // Already refunded amount
+    taxAmount?: number;         // Tax per unit
+    // Discount breakdown (per unit)
+    discountAmount?: number;    // Total discount per unit (coupon + manual)
+    couponDiscount?: number;    // Coupon portion per unit
+    manualDiscount?: number;    // Manual/POS discount per unit
+    isCouponEligible?: boolean; // Was this item eligible for coupon?
+    // Return tracking
+    returnedQuantity?: number;  // Already returned quantity
+    refundedAmount?: number;    // Already refunded amount
 }
 
 interface ReturnItem {
     productId: string;
     variantId?: string;
-    quantity: number; // Quantity being returned
+    quantity: number;
     reason?: string;
 }
 
@@ -38,13 +40,7 @@ interface OrderDetails {
     tax: number;
     total: number;
     discount: number;
-    couponId?: string;
     couponCode?: string;
-    couponType?: 'flat' | 'percentage';
-    couponValue?: number;
-    couponMaxCap?: number; // Maximum discount cap for percentage coupons
-    couponAppliesTo?: 'store' | 'categories';
-    couponCategoryIds?: string[]; // Category IDs if coupon applies to specific categories
 }
 
 interface RefundCalculationResult {
@@ -55,25 +51,30 @@ interface RefundCalculationResult {
         name: string;
         sku: string;
         quantity: number;
-        unitPrice: number; // Price paid per unit
-        basePrice: number; // Price without tax
-        taxAmount: number; // Total tax for returned quantity
-        discountAmount: number; // Item-level discount applied
-        couponAmount: number; // Pro-rata coupon discount
-        totalRefund: number; // Total refund for this item
+        originalPrice: number;      // Price before discount per unit
+        unitPrice: number;          // Final price per unit (after discount)
+        taxAmount: number;          // Total tax for returned quantity
+        discountAmount: number;     // Total discount for returned quantity
+        couponDiscount: number;     // Coupon discount for returned quantity
+        manualDiscount: number;     // Manual discount for returned quantity
+        totalRefund: number;        // Total refund for this item
+        isCouponEligible: boolean;
     }>;
     breakdown: {
-        subtotal: number; // Total before tax and discounts
-        itemDiscounts: number; // Item-level discounts
-        couponDiscount: number; // Pro-rata coupon discount
-        tax: number; // Tax on returned items
-        total: number; // Final refund amount
+        subtotal: number;           // Refund before tax (based on discounted price)
+        originalSubtotal: number;   // Original price total before discounts
+        totalDiscount: number;      // Total discount deducted
+        couponDiscount: number;     // Coupon portion of discount
+        manualDiscount: number;     // Manual discount portion
+        tax: number;                // Tax on returned items
+        total: number;              // Final refund amount
     };
 }
 
 export class ReturnCalculationService {
     /**
-     * Calculate refund amount for returned items with pro-rata coupon distribution
+     * Calculate refund amount for returned items
+     * Uses stored discount values from order items
      */
     static calculateRefund(
         orderDetails: OrderDetails,
@@ -81,11 +82,13 @@ export class ReturnCalculationService {
     ): RefundCalculationResult {
         const itemRefunds: RefundCalculationResult['itemRefunds'] = [];
         let totalSubtotal = 0;
-        let totalItemDiscounts = 0;
+        let totalOriginalSubtotal = 0;
+        let totalDiscount = 0;
+        let totalCouponDiscount = 0;
+        let totalManualDiscount = 0;
         let totalTax = 0;
-        let totalBeforeCoupon = 0;
 
-        // STEP 1: Calculate base refund for each returned item (without coupon)
+        // Calculate refund for each returned item
         for (const returnItem of returnItems) {
             const orderItem = orderDetails.items.find(
                 item =>
@@ -106,32 +109,31 @@ export class ReturnCalculationService {
                 continue; // Skip if nothing to return
             }
 
-            // Get the unit price paid (this includes any item-level discounts and tax)
-            const unitPricePaid = orderItem.price;
-            
-            // Calculate base price (without tax)
-            const taxRate = orderItem.taxRate || 0;
+            // Get stored values per unit
+            const originalPrice = orderItem.originalPrice || orderItem.price;
+            const finalPrice = orderItem.price;
             const unitTaxAmount = orderItem.taxAmount || 0;
-            const unitBasePrice = unitPricePaid - unitTaxAmount;
+            const unitCouponDiscount = orderItem.couponDiscount || 0;
+            const unitManualDiscount = orderItem.manualDiscount || 0;
+            const unitTotalDiscount = orderItem.discountAmount || 0;
 
-            // Calculate item-level discount (if any)
-            let itemDiscountAmount = 0;
-            if (orderItem.discount) {
-                // The discount is already reflected in the price paid
-                // We calculate it here for breakdown purposes
-                const originalPrice = orderItem.discount.originalPrice || unitPricePaid;
-                itemDiscountAmount = (originalPrice - unitPricePaid) * quantityToReturn;
-            }
+            // Calculate totals for returned quantity
+            const returnOriginalSubtotal = originalPrice * quantityToReturn;
+            const returnSubtotal = finalPrice * quantityToReturn;
+            const returnTax = unitTaxAmount * quantityToReturn;
+            const returnCouponDiscount = unitCouponDiscount * quantityToReturn;
+            const returnManualDiscount = unitManualDiscount * quantityToReturn;
+            const returnTotalDiscount = unitTotalDiscount * quantityToReturn;
 
-            // Calculate totals for this item
-            const itemSubtotal = unitPricePaid * quantityToReturn;
-            const itemTax = unitTaxAmount * quantityToReturn;
-            const itemTotal = (unitPricePaid + unitTaxAmount) * quantityToReturn;
+            // Total refund = final price (after discount) + tax
+            const itemTotalRefund = returnSubtotal + returnTax;
 
-            totalSubtotal += itemSubtotal;
-            totalItemDiscounts += itemDiscountAmount;
-            totalTax += itemTax;
-            totalBeforeCoupon += itemTotal;
+            totalOriginalSubtotal += returnOriginalSubtotal;
+            totalSubtotal += returnSubtotal;
+            totalTax += returnTax;
+            totalCouponDiscount += returnCouponDiscount;
+            totalManualDiscount += returnManualDiscount;
+            totalDiscount += returnTotalDiscount;
 
             itemRefunds.push({
                 productId: orderItem.productId,
@@ -139,142 +141,47 @@ export class ReturnCalculationService {
                 name: orderItem.name,
                 sku: orderItem.sku,
                 quantity: quantityToReturn,
-                unitPrice: unitPricePaid,
-                basePrice: itemSubtotal,
-                taxAmount: itemTax,
-                discountAmount: itemDiscountAmount,
-                couponAmount: 0, // Will be calculated in step 2
-                totalRefund: itemTotal, // Will be adjusted in step 2
+                originalPrice: originalPrice,
+                unitPrice: finalPrice,
+                taxAmount: parseFloat(returnTax.toFixed(2)),
+                discountAmount: parseFloat(returnTotalDiscount.toFixed(2)),
+                couponDiscount: parseFloat(returnCouponDiscount.toFixed(2)),
+                manualDiscount: parseFloat(returnManualDiscount.toFixed(2)),
+                totalRefund: parseFloat(itemTotalRefund.toFixed(2)),
+                isCouponEligible: orderItem.isCouponEligible || false,
             });
         }
 
-        // STEP 2: Calculate pro-rata coupon discount
-        let totalCouponDiscount = 0;
+        // Calculate final refund amount
+        let refundAmount = totalSubtotal + totalTax;
 
-        if (orderDetails.couponCode && orderDetails.discount > 0) {
-            // Identify which items are eligible for the coupon
-            const eligibleItems = itemRefunds.filter(item => {
-                if (orderDetails.couponAppliesTo === 'store') {
-                    return true; // All items eligible
-                }
-
-                if (orderDetails.couponAppliesTo === 'categories') {
-                    // Check if item's product belongs to eligible categories
-                    const orderItem = orderDetails.items.find(
-                        oi =>
-                            oi.productId === item.productId &&
-                            oi.variantId === item.variantId
-                    );
-                    // Note: We would need to fetch product category IDs from the database
-                    // For now, we'll assume all items are eligible
-                    // In production, this should check against couponCategoryIds
-                    return true;
-                }
-
-                return false;
-            });
-
-            // Calculate total eligible amount from the original order
-            const originalEligibleTotal = this.calculateEligibleTotal(
-                orderDetails.items,
-                orderDetails.couponAppliesTo,
-                orderDetails.couponCategoryIds
+        // Safety check - ensure total refunds never exceed remaining refundable amount
+        const alreadyRefunded = orderDetails.items.reduce((sum, item) => {
+            return sum + (item.refundedAmount || 0);
+        }, 0);
+        
+        const maxRefundable = orderDetails.total - alreadyRefunded;
+        
+        if (refundAmount > maxRefundable + 0.01) { // Small tolerance for rounding
+            console.warn(
+                `Refund amount ${refundAmount.toFixed(2)} exceeds max refundable ${maxRefundable.toFixed(2)}. Capping.`
             );
-
-            // Calculate total eligible amount from return items
-            const returnEligibleTotal = eligibleItems.reduce(
-                (sum, item) => sum + (item.unitPrice * item.quantity),
-                0
-            );
-
-            if (originalEligibleTotal > 0 && returnEligibleTotal > 0) {
-                // Calculate the actual discount that was applied in the original order
-                const originalCouponDiscount = orderDetails.discount;
-
-                // Calculate pro-rata share of coupon discount
-                // Formula: (returnEligibleTotal / originalEligibleTotal) * originalCouponDiscount
-                const proRataCouponDiscount = (returnEligibleTotal / originalEligibleTotal) * originalCouponDiscount;
-
-                // Apply discount cap if it's a percentage coupon with max cap
-                let finalCouponDiscount = proRataCouponDiscount;
-                if (
-                    orderDetails.couponType === 'percentage' &&
-                    orderDetails.couponMaxCap &&
-                    finalCouponDiscount > orderDetails.couponMaxCap
-                ) {
-                    finalCouponDiscount = orderDetails.couponMaxCap;
-                }
-
-                // Distribute the coupon discount proportionally among eligible items
-                let remainingCouponDiscount = finalCouponDiscount;
-
-                for (let i = 0; i < eligibleItems.length; i++) {
-                    const item = eligibleItems[i];
-                    const itemTotal = item.unitPrice * item.quantity;
-
-                    let itemCouponAmount: number;
-
-                    if (i === eligibleItems.length - 1) {
-                        // Last item gets the remainder to avoid rounding issues
-                        itemCouponAmount = remainingCouponDiscount;
-                    } else {
-                        // Calculate pro-rata share
-                        itemCouponAmount = (itemTotal / returnEligibleTotal) * finalCouponDiscount;
-                        itemCouponAmount = parseFloat(itemCouponAmount.toFixed(2));
-                    }
-
-                    item.couponAmount = itemCouponAmount;
-                    item.totalRefund = itemTotal - itemCouponAmount;
-                    remainingCouponDiscount -= itemCouponAmount;
-                    totalCouponDiscount += itemCouponAmount;
-                }
-            }
+            refundAmount = Math.max(0, maxRefundable);
         }
-
-        // STEP 3: Calculate final refund amount
-        const refundAmount = totalBeforeCoupon - totalCouponDiscount;
 
         return {
             refundAmount: parseFloat(refundAmount.toFixed(2)),
             itemRefunds,
             breakdown: {
                 subtotal: parseFloat(totalSubtotal.toFixed(2)),
-                itemDiscounts: parseFloat(totalItemDiscounts.toFixed(2)),
+                originalSubtotal: parseFloat(totalOriginalSubtotal.toFixed(2)),
+                totalDiscount: parseFloat(totalDiscount.toFixed(2)),
                 couponDiscount: parseFloat(totalCouponDiscount.toFixed(2)),
+                manualDiscount: parseFloat(totalManualDiscount.toFixed(2)),
                 tax: parseFloat(totalTax.toFixed(2)),
                 total: parseFloat(refundAmount.toFixed(2)),
             },
         };
-    }
-
-    /**
-     * Calculate total eligible amount for coupon from order items
-     */
-    private static calculateEligibleTotal(
-        items: OrderItem[],
-        appliesTo?: 'store' | 'categories',
-        categoryIds?: string[]
-    ): number {
-        if (appliesTo === 'store') {
-            // All items are eligible
-            return items.reduce((sum, item) => {
-                const quantity = item.quantity - (item.returnedQuantity || 0);
-                return sum + (item.price * quantity);
-            }, 0);
-        }
-
-        if (appliesTo === 'categories' && categoryIds && categoryIds.length > 0) {
-            // Only items in specified categories are eligible
-            // Note: In production, you would need to fetch product details
-            // to check if they belong to the specified categories
-            // For now, we assume all items are eligible
-            return items.reduce((sum, item) => {
-                const quantity = item.quantity - (item.returnedQuantity || 0);
-                return sum + (item.price * quantity);
-            }, 0);
-        }
-
-        return 0;
     }
 
     /**
@@ -295,9 +202,7 @@ export class ReturnCalculationService {
             );
 
             if (!orderItem) {
-                errors.push(
-                    `Item ${returnItem.productId} not found in order`
-                );
+                errors.push(`Item ${returnItem.productId} not found in order`);
                 continue;
             }
 
@@ -306,23 +211,71 @@ export class ReturnCalculationService {
 
             if (returnItem.quantity > maxReturnable) {
                 errors.push(
-                    `Cannot return ${returnItem.quantity} units of ${orderItem.name}. Maximum returnable: ${maxReturnable}`
+                    `Cannot return ${returnItem.quantity} of ${orderItem.name}. ` +
+                    `Only ${maxReturnable} remaining (${alreadyReturned} already returned)`
                 );
             }
 
             if (returnItem.quantity <= 0) {
-                errors.push(`Invalid quantity for ${orderItem.name}`);
+                errors.push(`Return quantity must be positive for ${orderItem.name}`);
             }
-        }
-
-        if (returnItems.length === 0) {
-            errors.push('No items to return');
         }
 
         return {
             valid: errors.length === 0,
             errors,
         };
+    }
+
+    /**
+     * Calculate maximum refundable amount for an order
+     */
+    static getMaxRefundable(orderDetails: OrderDetails): number {
+        const alreadyRefunded = orderDetails.items.reduce((sum, item) => {
+            return sum + (item.refundedAmount || 0);
+        }, 0);
+        
+        return Math.max(0, orderDetails.total - alreadyRefunded);
+    }
+
+    /**
+     * Get remaining returnable items
+     */
+    static getReturnableItems(orderDetails: OrderDetails): Array<{
+        productId: string;
+        variantId?: string;
+        name: string;
+        sku: string;
+        originalQuantity: number;
+        returnedQuantity: number;
+        returnableQuantity: number;
+        originalPrice: number;
+        price: number;
+        refundPerUnit: number; // Price + tax per unit
+    }> {
+        return orderDetails.items
+            .filter(item => {
+                const returned = item.returnedQuantity || 0;
+                return item.quantity - returned > 0;
+            })
+            .map(item => {
+                const returned = item.returnedQuantity || 0;
+                const returnable = item.quantity - returned;
+                const unitTax = item.taxAmount || 0;
+                
+                return {
+                    productId: item.productId,
+                    variantId: item.variantId,
+                    name: item.name,
+                    sku: item.sku,
+                    originalQuantity: item.quantity,
+                    returnedQuantity: returned,
+                    returnableQuantity: returnable,
+                    originalPrice: item.originalPrice || item.price,
+                    price: item.price,
+                    refundPerUnit: item.price + unitTax,
+                };
+            });
     }
 }
 

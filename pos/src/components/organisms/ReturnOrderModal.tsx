@@ -11,6 +11,7 @@ import api from '@/services/api';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import Image from 'next/image';
 import Spinner from '../atoms/Spinner';
+import { formatDate, formatDateTime } from '@/utils/formatters';
 
 interface ReturnOrderModalProps {
     isOpen: boolean;
@@ -288,7 +289,7 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
                     <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
                         {/* Step 1: Search Order */}
                         {step === 'search' && (
-                            <div className="max-w-xl mx-auto mt-8">
+                            <div className=" mx-auto">
                                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                                     <h3 className="text-lg font-semibold mb-4 text-slate-800">Find Order</h3>
                                     <p className="text-slate-600 mb-6 text-sm">
@@ -307,7 +308,7 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
                                                     autoFocus
                                                 />
                                             </div>
-                                            <Button type="submit" disabled={loading || searchQuery.length < 3}>
+                                            <Button type="submit" className='flex items-center ' disabled={loading || searchQuery.length < 3}>
                                                 <Search className="w-4 h-4 mr-2" />
                                                 {loading ? 'Searching...' : 'Search'}
                                             </Button>
@@ -324,6 +325,41 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
                             </div>
                         )}
 
+                        {
+                            step === 'results' && (
+                            <div className="mx-auto">
+                                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                                    <h3 className="text-lg font-semibold mb-4 text-slate-800">Select Order</h3>
+                                    {searchResults.length === 0 ? (
+                                        <p className="text-slate-600 text-sm">No orders found.</p>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            {searchResults.map((res) => (
+                                                <button
+                                                    key={res._id || res.id}
+                                                    onClick={() => selectOrder(res)}
+                                                    className="w-full text-left p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <div>
+                                                            <p className="font-medium text-slate-900">Order #{res.orderNumber}</p>
+                                                            <p className="text-sm text-slate-600">
+                                                                {formatDateTime(res.createdAt)} &middot; {typeof res.customerId === 'object' && res.customerId ? `${res.customerId.firstName} ${res.customerId.lastName}` : 'Walk-in Customer'}
+                                                            </p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="font-medium text-blue-600">{formatPrice(res.total)}</p>
+                                                            <p className="text-sm text-slate-600">{res.items.length} item(s)</p>
+                                                        </div>
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            )
+                        }
                         {/* Step 2: Select Items */}
                         {step === 'select' && order && (
                             <div className="space-y-6">
@@ -343,7 +379,7 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
                                             </div>
                                             <div>
                                                 <p className="text-sm text-slate-500">Date</p>
-                                                <p className="font-medium text-slate-900">{new Date(order.createdAt).toLocaleDateString()}</p>
+                                                <p className="font-medium text-slate-900">{formatDateTime(order.createdAt)}</p>
                                             </div>
                                             <div>
                                                 <p className="text-sm text-slate-500">Total Paid</p>
@@ -480,16 +516,22 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
                                                     <span className="text-slate-600">Subtotal (before tax)</span>
                                                     <span className="font-medium text-slate-900">{formatPrice(refundCalculation.breakdown.subtotal)}</span>
                                                 </div>
-                                                {refundCalculation.breakdown.itemDiscounts > 0 && (
+                                                {refundCalculation.breakdown.totalDiscount > 0 && (
                                                     <div className="flex justify-between text-amber-600">
-                                                        <span>Item discounts/sales</span>
-                                                        <span>-{formatPrice(refundCalculation.breakdown.itemDiscounts)}</span>
+                                                        <span>Discount deducted</span>
+                                                        <span>Already applied</span>
                                                     </div>
                                                 )}
                                                 {refundCalculation.breakdown.couponDiscount > 0 && (
-                                                    <div className="flex justify-between text-amber-600">
-                                                        <span>Coupon discount (pro-rata)</span>
-                                                        <span>-{formatPrice(refundCalculation.breakdown.couponDiscount)}</span>
+                                                    <div className="flex justify-between text-slate-500 text-xs pl-3">
+                                                        <span>↳ Coupon discount</span>
+                                                        <span>{formatPrice(refundCalculation.breakdown.couponDiscount)}</span>
+                                                    </div>
+                                                )}
+                                                {refundCalculation.breakdown.manualDiscount > 0 && (
+                                                    <div className="flex justify-between text-slate-500 text-xs pl-3">
+                                                        <span>↳ Manual discount</span>
+                                                        <span>{formatPrice(refundCalculation.breakdown.manualDiscount)}</span>
                                                     </div>
                                                 )}
                                                 <div className="flex justify-between">
@@ -539,7 +581,6 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
                                             >
                                                 <option value="cash">Cash Refund</option>
                                                 <option value="original">Original Payment ({order?.paymentMethod})</option>
-                                                <option value="credit" disabled>Store Credit (Coming Soon)</option>
                                             </select>
                                         </div>
                                     </div>

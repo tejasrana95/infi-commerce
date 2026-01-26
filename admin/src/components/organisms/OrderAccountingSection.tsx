@@ -38,12 +38,14 @@ import {
 } from '@/types/accounting';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { Order } from '@/types';
 
 interface OrderAccountingSectionProps {
     orderId: string;
     orderTotal: number;
     orderCurrency: string;
     orderReturns?: any[];
+    order: Order;
 }
 
 export default function OrderAccountingSection({
@@ -51,6 +53,7 @@ export default function OrderAccountingSection({
     orderTotal,
     orderCurrency,
     orderReturns,
+    order,
 }: OrderAccountingSectionProps) {
     const [accounting, setAccounting] = useState<OrderAccounting | null>(null);
     const [loading, setLoading] = useState(true);
@@ -252,8 +255,12 @@ export default function OrderAccountingSection({
     const realtimeMetrics = useMemo(() => {
         if (!accounting) return null;
         const grossRevenue = accounting.convertedOrderTotal;
+        const totalReturns = accounting.returns?.totalReturnedAmount || 0;
+        const netRevenue = grossRevenue - totalReturns;
+
         const totalCogs = realtimeCogs.totalCogs;
-        const grossProfit = grossRevenue - totalCogs;
+        const returnedCogs = accounting.returns?.totalReturnedCogs || 0;
+        const adjustedCogs = totalCogs - returnedCogs;
 
         const shipping = parseFloat(actualShippingCost) || 0;
         const pgFee = parseFloat(paymentGatewayFee) || 0;
@@ -261,16 +268,22 @@ export default function OrderAccountingSection({
         const totalExpenses = shipping + pgFee + miscTotal;
 
         const tax = accounting.tax || 0;
-        const netRevenue = grossRevenue - tax;
-        const netProfit = netRevenue - totalCogs - totalExpenses;
-        const profitMargin = netRevenue > 0 ? (netProfit / netRevenue) * 100 : 0;
+        // Tax handling: If order is fully cancelled/refunded (netRevenue <= 0), tax is also refunded
+        // Only deduct tax from profit calculation if there's remaining revenue
+        const taxableNetRevenue = netRevenue <= 0 ? 0 : netRevenue - tax;
+        const grossProfit = taxableNetRevenue - adjustedCogs;
+        const netProfit = grossProfit - totalExpenses;
+        const profitMargin = taxableNetRevenue > 0 ? (netProfit / taxableNetRevenue) * 100 : 0;
 
         return {
             grossRevenue,
-            tax,
+            totalReturns,
             netRevenue,
+            tax,
+            taxableNetRevenue,
             totalCogs,
-            grossProfit: netRevenue - totalCogs,
+            adjustedCogs,
+            grossProfit,
             totalExpenses,
             netProfit,
             profitMargin
@@ -332,8 +345,24 @@ export default function OrderAccountingSection({
             </Box>
 
             <Grid container spacing={3}>
+                {/* Cancelled/Refunded Order Alert */}
+                {(order.status === 'cancelled' || order.status === 'refunded' || order.paymentStatus === 'refunded') && (
+                    <Grid size={12}>
+                        <Alert severity="error">
+                            <Typography variant="subtitle2" fontWeight={600}>
+                                {order.status === 'cancelled' ? 'Order Cancelled' : 'Order Refunded'}
+                            </Typography>
+                            <Typography variant="body2">
+                                This entire order has been {order.status === 'cancelled' ? 'cancelled' : 'refunded'}.
+                                All revenue has been returned to the customer. The profit shown below represents the net loss
+                                (COGS + expenses that were not recovered).
+                            </Typography>
+                        </Alert>
+                    </Grid>
+                )}
+
                 {/* Returns Alert */}
-                {orderReturns && orderReturns.length > 0 && (
+                {orderReturns && orderReturns.length > 0 && !(order.status === 'cancelled' || order.status === 'refunded' || order.paymentStatus === 'refunded') && (
                     <Grid size={12}>
                         <Alert severity="warning" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <Box>
@@ -364,9 +393,11 @@ export default function OrderAccountingSection({
                                     Rate: {accounting.exchangeRateUsed.toFixed(4)}
                                 </Typography>
                             )}
-                            {returnsImpact.totalReturns > 0 && (
+                            {realtimeMetrics && realtimeMetrics.totalReturns > 0 && (
                                 <Typography variant="caption" display="block" color="error.main" sx={{ mt: 1 }}>
-                                    After Returns: {convertAndFormat(accounting.convertedOrderTotal - returnsImpact.totalReturns, orderCurrency)}
+                                    Returns: -{convertAndFormat(realtimeMetrics.totalReturns, orderCurrency)}
+                                    <br />
+                                    Net Revenue: {convertAndFormat(realtimeMetrics.netRevenue, orderCurrency)}
                                 </Typography>
                             )}
                         </CardContent>
@@ -381,8 +412,13 @@ export default function OrderAccountingSection({
                                 Cost of Goods Sold
                             </Typography>
                             <Typography variant="h5" fontWeight="bold" color="warning.main">
-                                {convertAndFormat(realtimeMetrics?.totalCogs ?? 0)}
+                                {convertAndFormat(realtimeMetrics?.adjustedCogs ?? 0)}
                             </Typography>
+                            {realtimeMetrics && realtimeMetrics.adjustedCogs !== realtimeMetrics.totalCogs && (
+                                <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 1 }}>
+                                    Before Returns: {convertAndFormat(realtimeMetrics.totalCogs, orderCurrency)}
+                                </Typography>
+                            )}
                         </CardContent>
                     </Card>
                 </Grid>
@@ -613,6 +649,11 @@ export default function OrderAccountingSection({
                             <Typography variant="body1" fontWeight="500" color="warning.main">
                                 -{convertAndFormat(realtimeMetrics?.totalCogs ?? 0)}
                             </Typography>
+                            {realtimeMetrics && realtimeMetrics.adjustedCogs !== realtimeMetrics.totalCogs && (
+                                <Typography variant="caption" display="block" color="text.secondary">
+                                    Adjusted: -{convertAndFormat(realtimeMetrics.adjustedCogs)}
+                                </Typography>
+                            )}
                         </Grid>
                         <Grid size={{ xs: 6, sm: 2 }}>
                             <Typography variant="caption" color="text.secondary">Gross Profit</Typography>

@@ -1,10 +1,12 @@
-import { Order, ReturnItem } from '@/types';
+import { Order } from '@/types';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import StatusBadge from '../atoms/StatusBadge';
 import { X, Calendar, User, CreditCard, Banknote, QrCode, Printer, Package, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { formatDateTime } from '@/utils/formatters';
+import { printService } from '@/services/print.service';
+import { useStore } from '@/contexts/StoreContext';
 
 interface OrderDetailModalProps {
     order: Order | null;
@@ -25,13 +27,30 @@ const paymentIcons = {
 
 export default function OrderDetailModal({ order, isOpen, onClose, onReturn }: OrderDetailModalProps) {
     const { formatPrice } = useCurrency();
+    const { store } = useStore();
     if (!order || !isOpen) return null;
     const PaymentIcon = paymentIcons[order.paymentMethod];
 
-    console.log('order', order);
-    const handlePrint = () => {
-        console.log('Printing receipt for order:', order.orderNumber);
-        // In real app: window.print() or WebUSB printing
+    const handlePrint = async () => {
+        if (!order) return;
+
+        try {
+            // Generate receipt HTML using the print service with full order data
+            // The order is passed directly - print service handles returns, discounts, etc.
+            const receiptHTML = printService.generateReceiptHTML(order, store);
+
+            // Create temporary element with the generated HTML
+            const receiptContainer = document.createElement('div');
+            receiptContainer.innerHTML = receiptHTML;
+
+            // Print with the configured printer type (defaults to inkjet/laser)
+            await printService.printReceipt(receiptContainer, store, 'inkjet');
+
+            console.log('Receipt printed successfully');
+        } catch (error) {
+            console.error('Failed to print receipt:', error);
+            alert('Failed to print receipt. Please check your printer connection.');
+        }
     };
 
     return (

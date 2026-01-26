@@ -115,12 +115,22 @@ export interface OrderItem {
     variantId?: string;
     name: string;
     sku: string;
-    price: number;
+    originalPrice: number;      // Price before any discount (per unit)
+    price: number;              // Final price after all discounts (per unit)
     quantity: number;
     image: string;
     attributes?: Record<string, string>;
+    categoryIds?: string[];     // Product categories for display
     taxRate?: number;
-    taxAmount?: number;
+    taxAmount?: number;         // Tax per unit
+    // Discount breakdown (per unit)
+    discountAmount?: number;    // Total discount per unit
+    couponDiscount?: number;    // Coupon portion per unit
+    manualDiscount?: number;    // Manual/POS discount per unit
+    isCouponEligible?: boolean; // Was this item eligible for coupon?
+    // Return tracking
+    returnedQuantity?: number;
+    refundedAmount?: number;
 }
 
 export interface ReturnItem {

@@ -671,50 +671,7 @@ function AccountingDashboardContent() {
                                 </CardContent>
                             </Card>
                         </Grid>
-                        <Grid size={{ xs: 6, sm: 4, md: 2 }} >
-                            <Card variant="outlined" sx={{ height: 1, borderColor: report.summary.totalReturns > 0 ? 'warning.main' : 'divider', borderWidth: report.summary.totalReturns > 0 ? 2 : 1 }}>
-                                <CardContent>
-                                    <Typography
-                                        variant="caption"
-                                        color="text.secondary"
-                                    >
-                                        Returns
-                                    </Typography>
-                                    <Typography
-                                        variant="h5"
-                                        fontWeight="bold"
-                                        color={report.summary.totalReturns > 0 ? 'warning.main' : 'text.secondary'}
-                                    >
-                                        -{formatPrice(
-                                            report.summary?.totalReturns,
-                                            currencyCode
-                                        )}
-                                    </Typography>
-                                </CardContent>
-                            </Card>
-                        </Grid>
-                        <Grid size={{ xs: 6, sm: 4, md: 2 }} >
-                            <Card variant="outlined" sx={{ height: 1, bgcolor: report.summary.totalAdjustedRevenue < report.summary.totalRevenue ? 'warning.50' : 'transparent' }}>
-                                <CardContent>
-                                    <Typography
-                                        variant="caption"
-                                        color="text.secondary"
-                                    >
-                                        Adjusted Revenue
-                                    </Typography>
-                                    <Typography
-                                        variant="h5"
-                                        fontWeight="bold"
-                                        color="success.main"
-                                    >
-                                        {formatPrice(
-                                            report.summary?.totalAdjustedRevenue,
-                                            currencyCode
-                                        )}
-                                    </Typography>
-                                </CardContent>
-                            </Card>
-                        </Grid>
+                       
                         <Grid size={{ xs: 6, sm: 4, md: 2 }} >
                             <Card variant="outlined" sx={{ height: 1, borderColor: report.summary.totalReturns > 0 ? 'warning.main' : 'divider', borderWidth: report.summary.totalReturns > 0 ? 2 : 1 }}>
                                 <CardContent>

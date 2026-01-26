@@ -912,12 +912,19 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
             variantId: item.variantId,
             name: product.name,
             sku: itemSku,
-            price: itemPrice,
-            costPrice: product.costPrice || 0, // Snapshot for accounting COGS
+            originalPrice: itemPrice,           // Price before discount (per unit)
+            price: itemPrice,                   // Will be adjusted after coupon calculation
+            costPrice: product.costPrice || 0,  // Snapshot for accounting COGS
             quantity: item.quantity,
             image: itemImage,
             attributes: itemAttributes,
             weight: itemWeight,
+            categoryIds: product.categoryIds || [],
+            // Discount fields - will be populated during coupon application
+            discountAmount: 0,
+            couponDiscount: 0,
+            manualDiscount: 0,
+            isCouponEligible: false,
             // Digital product fields
             downloadable: product.downloadable,
             downloadFiles: product.downloadFiles,
@@ -998,7 +1005,7 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
         }
     }
 
-    // ===== STEP 4: APPLY COUPON =====
+    // ===== STEP 4: APPLY COUPON & DISTRIBUTE DISCOUNT TO ITEMS =====
     let discount = 0;
     let couponId = null;
     let couponCode = null;
@@ -1026,40 +1033,78 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
         if (coupon && coupon.isCurrentlyValid()) {
             const customerIdentifier = userId || guestEmail;
             if (coupon.canCustomerUse(customerIdentifier)) {
-                // Calculate applicable amount (including tax)
-                let applicableAmount = 0;
+                // Determine which items are eligible for this coupon
+                const couponCategoryIds = coupon.categoryIds?.map(id => id.toString()) || [];
                 
-                if (coupon.applyTo === 'store') {
-                    // For store-wide coupons, include all items with tax
-                    for (const item of orderItems) {
-                        const itemTotal = item.price * item.quantity;
-                        const itemTaxAmount = item.taxAmount || 0;
-                        applicableAmount += itemTotal + itemTaxAmount;
+                // Mark items as eligible and calculate eligible total
+                let eligibleTotal = 0;
+                for (const item of orderItems) {
+                    const itemCategoryIds = (item.categoryIds || []).map((id: any) => id.toString());
+                    
+                    if (coupon.applyTo === 'store') {
+                        // All items eligible for store-wide coupons
+                        item.isCouponEligible = true;
+                    } else if (coupon.applyTo === 'categories') {
+                        // Only items in matching categories are eligible
+                        item.isCouponEligible = couponCategoryIds.length === 0 || 
+                            itemCategoryIds.some((catId: string) => couponCategoryIds.includes(catId));
+                    } else {
+                        item.isCouponEligible = true; // Default to eligible
                     }
-                } else if (coupon.applyTo === 'categories') {
-                    // For category-specific coupons, only include matching items with tax
-                    for (const item of orderItems) {
-                        const product = await Product.findById(item.productId);
-                        if (product && product.categoryIds) {
-                            const hasMatchingCategory = product.categoryIds.some((catId: any) =>
-                                coupon.categoryIds?.some((couponCatId) => couponCatId.equals(catId))
-                            );
-                            if (hasMatchingCategory) {
-                                const itemTotal = item.price * item.quantity;
-                                const itemTaxAmount = item.taxAmount || 0;
-                                applicableAmount += itemTotal + itemTaxAmount;
-                            }
-                        }
+                    
+                    if (item.isCouponEligible) {
+                        const itemTotal = item.price * item.quantity;
+                        const itemTaxAmount = (item.taxAmount || 0) * item.quantity;
+                        eligibleTotal += itemTotal + itemTaxAmount;
                     }
                 }
 
                 if (!coupon.minCartValue || subtotal >= coupon.minCartValue) {
-                    discount = coupon.calculateDiscount(applicableAmount);
+                    // Calculate total discount
+                    discount = coupon.calculateDiscount(eligibleTotal);
                     couponId = coupon._id;
                     couponCode = coupon.code;
+
+                    // Distribute coupon discount proportionally among eligible items
+                    if (discount > 0 && eligibleTotal > 0) {
+                        let remainingDiscount = discount;
+                        const eligibleItems = orderItems.filter(item => item.isCouponEligible);
+                        
+                        for (let i = 0; i < eligibleItems.length; i++) {
+                            const item = eligibleItems[i];
+                            const itemTotal = item.price * item.quantity;
+                            const itemTaxAmount = (item.taxAmount || 0) * item.quantity;
+                            const itemTotalWithTax = itemTotal + itemTaxAmount;
+                            
+                            let itemCouponDiscount: number;
+                            if (i === eligibleItems.length - 1) {
+                                // Last item gets remainder to avoid rounding issues
+                                itemCouponDiscount = remainingDiscount;
+                            } else {
+                                // Pro-rata share
+                                itemCouponDiscount = (itemTotalWithTax / eligibleTotal) * discount;
+                                itemCouponDiscount = parseFloat(itemCouponDiscount.toFixed(2));
+                            }
+                            
+                            // Store per-unit coupon discount
+                            item.couponDiscount = parseFloat((itemCouponDiscount / item.quantity).toFixed(4));
+                            item.discountAmount = item.couponDiscount; // No manual discount in website checkout
+                            remainingDiscount -= itemCouponDiscount;
+                        }
+                    }
                 }
             }
         }
+    }
+
+    // Finalize originalPrice and price for all items
+    for (const item of orderItems) {
+        // originalPrice is the price before any coupon discount
+        item.originalPrice = item.price;
+        // Final price = originalPrice - couponDiscount (per unit)
+        item.price = parseFloat((item.originalPrice - (item.couponDiscount || 0)).toFixed(2));
+        // Ensure non-negative
+        if (item.price < 0) item.price = 0;
     }
 
     // ===== STEP 5: CALCULATE TOTAL =====

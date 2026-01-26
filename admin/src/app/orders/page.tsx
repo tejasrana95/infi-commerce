@@ -130,6 +130,8 @@ export default function OrdersPage() {
             case 'delivered': return 'success';
             case 'cancelled': return 'error';
             case 'refunded': return 'default';
+            case 'returned': return 'warning';
+            case 'partially_returned': return 'warning';
             default: return 'default';
         }
     };
@@ -190,10 +192,10 @@ export default function OrdersPage() {
                 </Box>
             ),
         },
-         {
+        {
             field: 'channel',
             headerName: 'Channel',
-            
+
             minWidth: 100,
             sortable: false,
             renderCell: (params: GridRenderCellParams) => (
@@ -260,7 +262,7 @@ export default function OrdersPage() {
             renderCell: (params: GridRenderCellParams) => (
                 <Box display="flex" flexDirection="column" gap={0.5}>
                     <Chip
-                        label={params.value}
+                        label={params?.value?.replace('_', ' ')}
                         size="small"
                         color={getStatusColor(params.value)}
                         sx={{ textTransform: 'capitalize' }}
@@ -369,7 +371,7 @@ export default function OrdersPage() {
                         </Select>
                     </FormControl>
 
-                      {/* Payment Status */}
+                    {/* Payment Status */}
                     <FormControl size="small" sx={{ minWidth: 140 }}>
                         <InputLabel>Channel</InputLabel>
                         <Select

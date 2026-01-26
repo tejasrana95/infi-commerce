@@ -24,6 +24,7 @@ export interface PLSummary {
     totalReturns: number;
     totalAdjustedRevenue: number;
     totalCogs: number;
+    totalAdjustedCogs: number;
     grossProfit: number;
     totalExpenses: number;
     netProfit: number;
@@ -123,6 +124,70 @@ export class AccountingService {
 
         const totalCogs = cogsItems.reduce((sum, item) => sum + item.totalCostPrice, 0);
 
+        // Process returns from order (if any exist already)
+        const returnItems = [];
+        let totalReturnedAmount = 0;
+        let totalReturnedCogs = 0;
+        
+        // If order is cancelled or refunded, treat entire order as returned
+        if (order.status === 'cancelled' || order.status === 'refunded' || order.paymentStatus === 'refunded') {
+            // Mark entire order as returned
+            // order.total already includes tax, shipping, and discount applied
+            // So totalReturnedAmount = full amount customer paid and gets refunded
+            totalReturnedAmount = orderTotal;
+            totalReturnedCogs = totalCogs;
+            
+            // Create return entries for all items
+            for (const item of order.items) {
+                const cogsItem = cogsItems.find(
+                    c => c.productId.toString() === item.productId.toString() &&
+                         (c.variantId || '') === (item.variantId || '')
+                );
+                
+                const unitCostPrice = cogsItem?.unitCostPrice || 0;
+                const itemTotal = item.price * item.quantity;
+                
+                returnItems.push({
+                    productId: item.productId,
+                    variantId: item.variantId,
+                    name: item.name,
+                    quantity: item.quantity,
+                    unitPrice: item.price,
+                    unitCostPrice,
+                    refundAmount: itemTotal,
+                    returnedAt: order.refundedAt || (order as any).updatedAt || new Date(),
+                });
+            }
+        } else if (order.returns && order.returns.length > 0) {
+            // Process partial returns
+            for (const returnEntry of order.returns) {
+                for (const returnedItem of returnEntry.items) {
+                    // Find corresponding COGS item to get cost price
+                    const cogsItem = cogsItems.find(
+                        c => c.productId.toString() === returnedItem.productId.toString() &&
+                             (c.variantId || '') === (returnedItem.variantId || '')
+                    );
+                    
+                    const unitCostPrice = cogsItem?.unitCostPrice || 0;
+                    const refundAmount = returnedItem.refundAmount || 0;
+                    
+                    returnItems.push({
+                        productId: returnedItem.productId,
+                        variantId: returnedItem.variantId,
+                        name: cogsItem?.name || 'Unknown Product',
+                        quantity: returnedItem.quantity,
+                        unitPrice: returnedItem.quantity > 0 ? refundAmount / returnedItem.quantity : 0,
+                        unitCostPrice,
+                        refundAmount,
+                        returnedAt: returnEntry.returnedAt,
+                    });
+                    
+                    totalReturnedAmount += refundAmount;
+                    totalReturnedCogs += unitCostPrice * returnedItem.quantity;
+                }
+            }
+        }
+
         const accounting = new OrderAccounting({
             orderId: order._id,
             storeId: order.storeId,
@@ -134,9 +199,15 @@ export class AccountingService {
             exchangeRateUsed,
             tax: order.tax || 0,
             shippingCollected: order.shippingCost || 0,
+            returns: {
+                totalReturnedAmount,
+                totalReturnedCogs,
+                items: returnItems,
+            },
             cogs: {
                 items: cogsItems,
                 totalCogs,
+                adjustedCogs: totalCogs - totalReturnedCogs,
             },
             expenses: {
                 actualShippingCost: order.shippingCost || 0, // Default to collected shipping until actual is entered
@@ -193,6 +264,100 @@ export class AccountingService {
 
         // Create fresh record with correct calculations
         return this.createAccountingRecord(orderId);
+    }
+
+    /**
+     * Sync returns from Order model to Accounting model
+     * Called when returns are processed on an order
+     */
+    static async syncReturnsToAccounting(orderId: string): Promise<IOrderAccounting> {
+        const order = await Order.findById(orderId);
+        if (!order) {
+            throw new Error('Order not found');
+        }
+
+        let accounting = await OrderAccounting.findOne({ orderId });
+        if (!accounting) {
+            // Create accounting record if it doesn't exist
+            accounting = await this.createAccountingRecord(orderId) as any;
+        }
+
+        if (!accounting) {
+            throw new Error('Could not find or create accounting record');
+        }
+
+        // Process returns from order
+        const returnItems = [];
+        let totalReturnedAmount = 0;
+        let totalReturnedCogs = 0;
+        
+        // If order is cancelled or refunded, treat entire order as returned
+        if (order.status === 'cancelled' || order.status === 'refunded' || order.paymentStatus === 'refunded') {
+            // Mark entire order as returned
+            // convertedOrderTotal already includes tax, shipping, and discount
+            // So totalReturnedAmount = full amount customer paid and gets refunded
+            totalReturnedAmount = accounting.convertedOrderTotal;
+            totalReturnedCogs = accounting.cogs.totalCogs;
+            
+            // Create return entries for all items
+            for (const item of accounting.cogs.items) {
+                const orderItem = order.items.find(
+                    oi => oi.productId.toString() === item.productId.toString() &&
+                          (oi.variantId || '') === (item.variantId || '')
+                );
+                
+                const itemTotal = orderItem ? orderItem.price * orderItem.quantity : 0;
+                
+                returnItems.push({
+                    productId: item.productId,
+                    variantId: item.variantId,
+                    name: item.name,
+                    quantity: item.quantity,
+                    unitPrice: orderItem?.price || 0,
+                    unitCostPrice: item.unitCostPrice,
+                    refundAmount: itemTotal,
+                    returnedAt: order.refundedAt || (order as any).updatedAt || new Date(),
+                });
+            }
+        } else if (order.returns && order.returns.length > 0) {
+            // Process partial returns
+            for (const returnEntry of order.returns) {
+                for (const returnedItem of returnEntry.items) {
+                    // Find corresponding COGS item to get cost price
+                    const cogsItem = accounting.cogs.items.find(
+                        c => c.productId.toString() === returnedItem.productId.toString() &&
+                             (c.variantId || '') === (returnedItem.variantId || '')
+                    );
+                    
+                    const unitCostPrice = cogsItem?.unitCostPrice || 0;
+                    const refundAmount = returnedItem.refundAmount || 0;
+                    
+                    returnItems.push({
+                        productId: returnedItem.productId,
+                        variantId: returnedItem.variantId,
+                        name: cogsItem?.name || 'Unknown Product',
+                        quantity: returnedItem.quantity,
+                        unitPrice: returnedItem.quantity > 0 ? refundAmount / returnedItem.quantity : 0,
+                        unitCostPrice,
+                        refundAmount,
+                        returnedAt: returnEntry.returnedAt,
+                    });
+                    
+                    totalReturnedAmount += refundAmount;
+                    totalReturnedCogs += unitCostPrice * returnedItem.quantity;
+                }
+            }
+        }
+
+        // Update returns in accounting
+        accounting.returns = {
+            totalReturnedAmount,
+            totalReturnedCogs,
+            items: returnItems,
+        };
+
+        await accounting.save();
+        return accounting;
     }
 
     /**
@@ -366,6 +531,7 @@ export class AccountingService {
         let totalReturns = 0;
         let totalAdjustedRevenue = 0;
         let totalCogs = 0;
+        let totalAdjustedCogs = 0;
         let totalExpenses = 0;
         let completedAccounting = 0;
 
@@ -373,18 +539,22 @@ export class AccountingService {
             const acc = accountingRecords.find(a => a.orderId.toString() === order._id.toString());
 
             const revenue = acc?.convertedOrderTotal || order.total;
-            const returns = order.returns ? order.returns.reduce((sum, r) => sum + (r.totalRefundAmount || r.refundAmount || 0), 0) : 0;
+            const returns = acc?.returns?.totalReturnedAmount || 0;
             const adjustedRevenue = revenue - returns;
             const tax = acc?.tax || order.tax || 0;
             const cogs = acc?.cogs?.totalCogs || 0;
+            const adjustedCogs = acc?.cogs?.adjustedCogs || cogs;
             const expenses = acc?.expenses?.totalExpenses || 0;
-            const netProfit = adjustedRevenue - tax - cogs - expenses;
+            
+            // Use adjusted values for profit calculation
+            const netProfit = adjustedRevenue - tax - adjustedCogs - expenses;
             const profitMargin = adjustedRevenue - tax > 0 ? (netProfit / (adjustedRevenue - tax)) * 100 : 0;
 
             totalRevenue += revenue;
             totalReturns += returns;
             totalAdjustedRevenue += adjustedRevenue;
             totalCogs += cogs;
+            totalAdjustedCogs += adjustedCogs;
             totalExpenses += expenses;
             if (acc?.isComplete) completedAccounting++;
 
@@ -398,7 +568,7 @@ export class AccountingService {
             };
         });
 
-        const grossProfit = totalAdjustedRevenue - totalCogs;
+        const grossProfit = totalAdjustedRevenue - totalAdjustedCogs;
         const netProfit = grossProfit - totalExpenses;
 
         const summary: PLSummary = {
@@ -409,6 +579,7 @@ export class AccountingService {
             totalReturns,
             totalAdjustedRevenue,
             totalCogs,
+            totalAdjustedCogs,
             grossProfit,
             totalExpenses,
             netProfit,
@@ -552,12 +723,15 @@ export class AccountingService {
 
             // Default values if accounting record doesn't exist
             const revenue = accounting?.convertedOrderTotal || order.total;
-            const returns = order.returns ? order.returns.reduce((sum, r) => sum + (r.totalRefundAmount || r.refundAmount || 0), 0) : 0;
+            const returns = accounting?.returns?.totalReturnedAmount || 0;
             const adjustedRevenue = revenue - returns;
             const tax = accounting?.tax || order.tax || 0;
             const cogs = accounting?.cogs?.totalCogs || 0;
+            const adjustedCogs = accounting?.cogs?.adjustedCogs || cogs;
             const expenses = accounting?.expenses?.totalExpenses || 0;
-            const netProfit = adjustedRevenue - tax - cogs - expenses;
+            
+            // Use adjusted COGS for profit calculation
+            const netProfit = adjustedRevenue - tax - adjustedCogs - expenses;
             const profitMargin = adjustedRevenue - tax > 0 ? (netProfit / (adjustedRevenue - tax)) * 100 : 0;
 
             return {
@@ -573,7 +747,7 @@ export class AccountingService {
                 revenue,
                 returns,
                 adjustedRevenue,
-                cogs,
+                cogs: adjustedCogs, // Use adjusted COGS
                 expenses,
                 netProfit,
                 profitMargin,
@@ -626,6 +800,7 @@ export class AccountingService {
             'Base Currency',
             'Exchange Rate',
             'Total COGS',
+            'Adjusted COGS',
             'Shipping Cost',
             'Gateway Fee',
             'Deposited Amount',
@@ -644,16 +819,17 @@ export class AccountingService {
             );
 
             // Calculate returns
-            const returns = order.returns ? order.returns.reduce((sum, r) => sum + (r.totalRefundAmount || r.refundAmount || 0), 0) : 0;
+            const returns = acc?.returns?.totalReturnedAmount || 0;
 
             // Calculate derived values for orders without a record
             const revenue = acc?.convertedOrderTotal || order.total;
             const adjustedRevenue = revenue - returns;
             const tax = acc?.tax || order.tax || 0;
             const cogs = acc?.cogs?.totalCogs || 0;
+            const adjustedCogs = acc?.cogs?.adjustedCogs || cogs;
             const expenses = acc?.expenses?.totalExpenses || 0;
-            const netProfit = adjustedRevenue - tax - cogs - expenses;
-            const grossProfit = adjustedRevenue - tax - cogs;
+            const netProfit = adjustedRevenue - tax - adjustedCogs - expenses;
+            const grossProfit = adjustedRevenue - tax - adjustedCogs;
             const profitMargin = adjustedRevenue - tax > 0 ? (netProfit / (adjustedRevenue - tax)) * 100 : 0;
 
             const miscTotal = (acc?.expenses?.miscellaneous || []).reduce(
@@ -672,6 +848,7 @@ export class AccountingService {
                 acc?.baseCurrency || 'USD',
                 acc?.exchangeRateUsed || order.exchangeRate || 1,
                 cogs,
+                adjustedCogs,
                 acc?.expenses?.actualShippingCost || 0,
                 acc?.expenses?.paymentGatewayFee || 0,
                 acc?.expenses?.actualDepositedAmount || 0,

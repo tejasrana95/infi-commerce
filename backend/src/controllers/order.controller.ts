@@ -18,6 +18,7 @@ import InventoryService from '../services/inventory.service';
 import { emitOrderEvent } from '../events';
 import posService from '../services/pos.service';
 import { addPricingToProduct } from './product.controller';
+import { AccountingService } from '../services/accounting.service';
 
 /**
  * Validation rules
@@ -118,7 +119,7 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
     } = req.body;
 
     // Fetch products and validate
-    const orderItems = [];
+    const orderItems: any[] = [];
     let subtotal = 0;
 
     // Get attribute names and value labels
@@ -132,6 +133,16 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
         optionMap[opt._id.toString()] = { name: opt.name, values: valueLabels };
     });
 
+    // Fetch coupon details if couponCode is provided
+    let coupon: any = null;
+    let couponCategoryIds: string[] = [];
+    if (couponCode) {
+        coupon = await Coupon.findOne({ code: couponCode.toUpperCase(), storeId });
+        if (coupon && coupon.categoryIds) {
+            couponCategoryIds = coupon.categoryIds.map((id: any) => id.toString());
+        }
+    }
+
     for (const item of items) {
         const product = await Product.findById(item.productId).populate('taxClassId');
         if (!product) {
@@ -142,7 +153,7 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
         const productWithPricing = addPricingToProduct(product.toObject());
 
         // Get variant if specified
-        let price = productWithPricing.salePrice || productWithPricing.price;
+        let originalPrice = productWithPricing.salePrice || productWithPricing.price;
         let costPrice = productWithPricing.costPrice || 0;
         let sku = productWithPricing.sku;
         let variantAttributes: Record<string, string> = {};
@@ -151,7 +162,7 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
         if (item.variantId && productWithPricing.variants) {
             const variant = productWithPricing.variants.find((v: any) => v._id?.toString() === item.variantId);
             if (variant) {
-                price = variant.pricing?.salePrice || variant.salePrice || variant.price || price;
+                originalPrice = variant.pricing?.salePrice || variant.salePrice || variant.price || originalPrice;
                 costPrice = variant.costPrice || costPrice;
                 sku = variant.sku || sku;
                 if (variant.attributes) {
@@ -168,47 +179,39 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
             }
         }
 
-        // For price calculation: use basePrice (price without tax)
-        // The tax breakdown is passed in as separate request param
-        let basePrice = price;
-        let finalPrice = price;
-        let appliedDiscount = null;
-
-        // Apply discount if provided (only for POS orders)
+        // Calculate manual discount (POS per-item discount)
+        let manualDiscount = 0;
         if (isPOSOrder && item.discountAmount && item.discountType) {
-            let discountedBasePrice = basePrice;
-
             if (item.discountType === 'percentage') {
-                // Validate percentage discount is reasonable (0-100)
                 if (item.discountAmount < 0 || item.discountAmount > 100) {
                     throw new AppError(`Invalid discount percentage: ${item.discountAmount}`, 400);
                 }
-                discountedBasePrice = basePrice * (1 - item.discountAmount / 100);
+                manualDiscount = originalPrice * (item.discountAmount / 100);
             } else {
                 // Fixed amount discount
                 if (item.discountAmount < 0) {
                     throw new AppError(`Discount amount cannot be negative: ${item.discountAmount}`, 400);
                 }
-                discountedBasePrice = Math.max(0, basePrice - item.discountAmount);
+                manualDiscount = Math.min(item.discountAmount, originalPrice);
             }
-
-            // Update price to reflect discount
-            finalPrice = discountedBasePrice;
-            basePrice = discountedBasePrice;
-
-            // Store discount info for audit trail
-            appliedDiscount = {
-                discountType: item.discountType,
-                amount: item.discountAmount,
-                originalPrice: price,
-                discountedPrice: finalPrice,
-                appliedAt: new Date(),
-            };
         }
 
-        subtotal += finalPrice * item.quantity;
+        // Determine coupon eligibility
+        const productCategoryIds = (product.categoryIds || []).map((id: any) => id.toString());
+        let isCouponEligible = false;
+        if (coupon) {
+            if (coupon.applyTo === 'store') {
+                isCouponEligible = true;
+            } else if (coupon.applyTo === 'categories') {
+                isCouponEligible = couponCategoryIds.length === 0 || 
+                    productCategoryIds.some(catId => couponCategoryIds.includes(catId));
+            } else {
+                isCouponEligible = true;
+            }
+        }
 
-        // Calculate tax for this item
+        // Calculate tax for this item (on originalPrice - manualDiscount, before coupon)
+        const priceAfterManualDiscount = originalPrice - manualDiscount;
         let itemTaxRate = 0;
         let itemTaxAmount = 0;
 
@@ -216,27 +219,79 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
             const taxRateDoc = await TaxRate.findById(product.taxClassId);
             if (taxRateDoc) {
                 itemTaxRate = taxRateDoc.rate;
-                // Calculate tax amount based on final price (after discount)
-                itemTaxAmount = (finalPrice * item.quantity * itemTaxRate) / 100;
+                // Tax per unit on price after manual discount
+                itemTaxAmount = (priceAfterManualDiscount * itemTaxRate) / 100;
             }
         }
+
+        subtotal += priceAfterManualDiscount * item.quantity;
 
         orderItems.push({
             productId: product._id,
             variantId: item.variantId,
             name: product.name,
             sku,
-            price: finalPrice, // Final price after discount
+            originalPrice: originalPrice,                      // Price before any discount
+            price: priceAfterManualDiscount,                   // Will be adjusted after coupon distribution
             costPrice,
             quantity: item.quantity,
             image: itemImage,
             attributes: variantAttributes,
             weight: product.weight || 0,
+            categoryIds: product.categoryIds || [],
             taxRate: itemTaxRate,
-            taxAmount: parseFloat((itemTaxAmount / item.quantity).toFixed(4)), // Tax per unit
-            // Store discount info for audit trail
-            ...(appliedDiscount && { discount: appliedDiscount }),
+            taxAmount: parseFloat(itemTaxAmount.toFixed(4)),   // Tax per unit
+            // Discount breakdown (per unit)
+            discountAmount: manualDiscount,                    // Will include coupon after distribution
+            couponDiscount: 0,                                 // Will be calculated below
+            manualDiscount: parseFloat(manualDiscount.toFixed(4)),
+            isCouponEligible,
         });
+    }
+
+    // Distribute coupon discount proportionally among eligible items
+    if (discount > 0 && coupon) {
+        // Calculate eligible total (after manual discounts, including tax)
+        let eligibleTotal = 0;
+        for (const item of orderItems) {
+            if (item.isCouponEligible) {
+                const itemTotal = item.price * item.quantity;
+                const itemTaxTotal = item.taxAmount * item.quantity;
+                eligibleTotal += itemTotal + itemTaxTotal;
+            }
+        }
+
+        if (eligibleTotal > 0) {
+            let remainingDiscount = discount;
+            const eligibleItems = orderItems.filter(item => item.isCouponEligible);
+
+            for (let i = 0; i < eligibleItems.length; i++) {
+                const item = eligibleItems[i];
+                const itemTotal = item.price * item.quantity;
+                const itemTaxTotal = item.taxAmount * item.quantity;
+                const itemTotalWithTax = itemTotal + itemTaxTotal;
+
+                let itemCouponDiscount: number;
+                if (i === eligibleItems.length - 1) {
+                    // Last item gets remainder to avoid rounding issues
+                    itemCouponDiscount = remainingDiscount;
+                } else {
+                    // Pro-rata share
+                    itemCouponDiscount = (itemTotalWithTax / eligibleTotal) * discount;
+                    itemCouponDiscount = parseFloat(itemCouponDiscount.toFixed(2));
+                }
+
+                // Store per-unit coupon discount
+                const perUnitCouponDiscount = parseFloat((itemCouponDiscount / item.quantity).toFixed(4));
+                item.couponDiscount = perUnitCouponDiscount;
+                item.discountAmount = parseFloat((item.manualDiscount + perUnitCouponDiscount).toFixed(4));
+                // Update final price
+                item.price = parseFloat((item.originalPrice - item.discountAmount).toFixed(2));
+                if (item.price < 0) item.price = 0;
+                
+                remainingDiscount -= itemCouponDiscount;
+            }
+        }
     }
 
     // Recalculate total tax from items
@@ -441,11 +496,17 @@ export const adminUpdateOrder = asyncHandler(async (req: AuthRequest, res: Respo
                 variantId: item.variantId,
                 name,
                 sku,
+                originalPrice: price,   // In updates, originalPrice = price (no discounts)
                 price,
                 costPrice,
                 quantity: item.quantity,
                 attributes,
                 image: itemImage,
+                // Default discount fields
+                discountAmount: 0,
+                couponDiscount: 0,
+                manualDiscount: 0,
+                isCouponEligible: false,
             });
         }
 
@@ -651,9 +712,11 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
     // Apply coupon if provided
     let discount = 0;
     let couponId = null;
+    let coupon: any = null;
+    let couponCategoryIds: string[] = [];
 
     if (couponCode) {
-        const coupon = await Coupon.findOne({
+        coupon = await Coupon.findOne({
             code: couponCode.toUpperCase(),
             storeId,
         });
@@ -672,22 +735,8 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
             throw new AppError('You have reached the usage limit for this coupon', 400);
         }
 
-        // Calculate applicable amount
-        let applicableAmount = 0;
-        if (coupon.applyTo === 'store') {
-            applicableAmount = cart.subtotal;
-        } else if (coupon.applyTo === 'categories') {
-            for (const item of cart.items) {
-                const product = item.productId as any;
-                if (product && product.categoryIds) {
-                    const hasMatchingCategory = product.categoryIds.some((catId: any) =>
-                        coupon.categoryIds?.some((couponCatId) => couponCatId.equals(catId))
-                    );
-                    if (hasMatchingCategory) {
-                        applicableAmount += item.price * item.quantity;
-                    }
-                }
-            }
+        if (coupon.categoryIds) {
+            couponCategoryIds = coupon.categoryIds.map((id: any) => id.toString());
         }
 
         if (coupon.minCartValue && cart.subtotal < coupon.minCartValue) {
@@ -697,7 +746,6 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
             );
         }
 
-        discount = coupon.calculateDiscount(applicableAmount);
         couponId = coupon._id;
     }
 
@@ -730,16 +778,18 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
         throw new AppError('Currency is required', 400);
     }
 
-    // Create order
-    const orderItems = cart.items.map((item) => {
+    // Create order items with discount breakdown
+    const orderItems: any[] = [];
+    
+    for (const item of cart.items) {
         const product = item.productId as any;
         let itemImage = item.image;
+        let costPrice = product.costPrice || 0;
 
         if (item.variantId && product.variants) {
             const variant = product.variants.find((v: any) => v._id?.toString() === item.variantId);
             if (variant) {
-                const variantCostPrice = variant.costPrice || product.costPrice || 0;
-                (item as any).costPrice = variantCostPrice;
+                costPrice = variant.costPrice || product.costPrice || 0;
 
                 if (variant.images && variant.images.length > 0) {
                     itemImage = variant.images[0];
@@ -757,19 +807,99 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
             }
         }
 
-        return {
+        // Determine coupon eligibility
+        const productCategoryIds = (product.categoryIds || []).map((id: any) => id.toString());
+        let isCouponEligible = false;
+        if (coupon) {
+            if (coupon.applyTo === 'store') {
+                isCouponEligible = true;
+            } else if (coupon.applyTo === 'categories') {
+                isCouponEligible = couponCategoryIds.length === 0 || 
+                    productCategoryIds.some((catId: string) => couponCategoryIds.includes(catId));
+            } else {
+                isCouponEligible = true;
+            }
+        }
+
+        // Calculate tax for this item
+        let itemTaxRate = 0;
+        let itemTaxAmount = 0;
+        if (product.taxClassId) {
+            const taxRate = await TaxRate.findById(product.taxClassId);
+            if (taxRate) {
+                itemTaxRate = taxRate.rate;
+                itemTaxAmount = (item.price * itemTaxRate) / 100; // Per unit
+            }
+        }
+
+        orderItems.push({
             productId: item.productId,
             variantId: item.variantId,
             name: item.name,
             sku: item.sku,
-            price: item.price,
-            costPrice: (item as any).costPrice || product.costPrice || 0,
+            originalPrice: item.price,              // Price before discount
+            price: item.price,                      // Will be adjusted after coupon distribution
+            costPrice,
             quantity: item.quantity,
             image: itemImage,
             attributes: item.attributes,
             weight: product.weight,
-        };
-    });
+            categoryIds: product.categoryIds || [],
+            taxRate: itemTaxRate,
+            taxAmount: parseFloat(itemTaxAmount.toFixed(4)),
+            // Discount fields
+            discountAmount: 0,
+            couponDiscount: 0,
+            manualDiscount: 0,
+            isCouponEligible,
+        });
+    }
+
+    // Calculate and distribute coupon discount among eligible items
+    if (coupon) {
+        // Calculate eligible total (including tax)
+        let eligibleTotal = 0;
+        for (const item of orderItems) {
+            if (item.isCouponEligible) {
+                const itemTotal = item.price * item.quantity;
+                const itemTaxTotal = item.taxAmount * item.quantity;
+                eligibleTotal += itemTotal + itemTaxTotal;
+            }
+        }
+
+        if (eligibleTotal > 0) {
+            // Calculate total discount
+            discount = coupon.calculateDiscount(eligibleTotal);
+
+            // Distribute coupon discount proportionally
+            let remainingDiscount = discount;
+            const eligibleItems = orderItems.filter(item => item.isCouponEligible);
+
+            for (let i = 0; i < eligibleItems.length; i++) {
+                const item = eligibleItems[i];
+                const itemTotal = item.price * item.quantity;
+                const itemTaxTotal = item.taxAmount * item.quantity;
+                const itemTotalWithTax = itemTotal + itemTaxTotal;
+
+                let itemCouponDiscount: number;
+                if (i === eligibleItems.length - 1) {
+                    itemCouponDiscount = remainingDiscount;
+                } else {
+                    itemCouponDiscount = (itemTotalWithTax / eligibleTotal) * discount;
+                    itemCouponDiscount = parseFloat(itemCouponDiscount.toFixed(2));
+                }
+
+                // Store per-unit coupon discount
+                const perUnitCouponDiscount = parseFloat((itemCouponDiscount / item.quantity).toFixed(4));
+                item.couponDiscount = perUnitCouponDiscount;
+                item.discountAmount = perUnitCouponDiscount;
+                item.price = parseFloat((item.originalPrice - perUnitCouponDiscount).toFixed(2));
+                if (item.price < 0) item.price = 0;
+
+                remainingDiscount -= itemCouponDiscount;
+            }
+        }
+    }
 
     const subtotal = cart.subtotal;
     const shippingCost = shippingResult.cost;
@@ -794,6 +924,8 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
         paymentStatus: 'pending',
         status: 'pending',
         customerNote,
+        couponId,
+        couponCode: coupon?.code,
     });
 
     // Clear cart
@@ -1336,6 +1468,14 @@ export const processRefund = asyncHandler(async (req: AuthRequest, res: Response
 
     await order.save();
 
+    // Sync refund to accounting (mark entire order as returned)
+    try {
+        await AccountingService.syncReturnsToAccounting(id);
+    } catch (error) {
+        console.error('Failed to sync refund to accounting:', error);
+        // Don't fail the request if accounting sync fails
+    }
+
     // Emit order refund event
     emitOrderEvent('orderRefund', order, order.storeId._id.toString(), order._id.toString(), order.customerId?.toString());
 
@@ -1408,6 +1548,14 @@ export const cancelOrder = asyncHandler(async (req: AuthRequest, res: Response) 
 
     order.status = 'cancelled';
     await order.save();
+
+    // Sync cancellation to accounting (mark entire order as returned)
+    try {
+        await AccountingService.syncReturnsToAccounting(id);
+    } catch (error) {
+        console.error('Failed to sync cancellation to accounting:', error);
+        // Don't fail the request if accounting sync fails
+    }
 
     // Emit order cancel event
     emitOrderEvent('orderCancel', order, order.storeId._id.toString(), order._id.toString(), order.customerId?.toString());
@@ -1814,6 +1962,16 @@ export const updateReturnStatus = asyncHandler(async (req: AuthRequest, res: Res
     order.status = status;
     await order.save();
 
+    // Sync returns to accounting if order has returns
+    if (order.returns && order.returns.length > 0) {
+        try {
+            await AccountingService.syncReturnsToAccounting(id);
+        } catch (error) {
+            console.error('Failed to sync returns to accounting:', error);
+            // Don't fail the request if accounting sync fails
+        }
+    }
+
     // Send notification
     if (notifyCustomer !== false) {
         await transactionalNotificationService.sendOrderStatusUpdate(
@@ -1846,6 +2004,14 @@ export const markOrderAsRefunded = asyncHandler(async (req: AuthRequest, res: Re
 
     // "If order is cancelled then admin can set flag as refund"
     // Allow refund for cancelled or returned orders
+    //if Sync refund to accounting (mark entire order as returned)
+    try {
+        await AccountingService.syncReturnsToAccounting(id);
+    } catch (error) {
+        console.error('Failed to sync refund to accounting:', error);
+        // Don't fail the request if accounting sync fails
+    }
+
     if (!['cancelled', 'returned'].includes(order.status)) {
         throw new AppError('Refund is only allowed for cancelled or returned orders', 400);
     }
@@ -1968,6 +2134,14 @@ export const updateRefundStatus = asyncHandler(async (req: any, res: Response) =
         order.paymentStatus = 'refunded';
         order.status = 'refunded';
         order.refundedAt = new Date();
+
+        // Sync returns to accounting
+        try {
+            await AccountingService.syncReturnsToAccounting(req.params.id);
+        } catch (error) {
+            console.error('Failed to sync refund to accounting:', error);
+            // Don't fail the request if accounting sync fails
+        }
     }
 
     await order.save();

@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import apiClient from '@/lib/apiClient';
 
-interface Store {
+export interface Store {
     _id: string;
     name: string;
     slug: string;
@@ -12,10 +12,12 @@ interface Store {
     timezone: string;
     settings?: any;
 
-    posSettings?: {
+    posSettings: {
         receiptSettings: {
             showLogo: boolean,
-            paperWidth: string
+            paperWidth: string,
+            footerText: string,
+            headerText: string
         },
         barcodeSettings: {
             format: string,
@@ -68,7 +70,7 @@ interface Store {
 
 interface StoreContextType {
     storeId: string | null;
-    store: Store | null;
+    store: Store;
     loading: boolean;
     error: string | null;
     setStoreId: (id: string) => void;

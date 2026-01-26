@@ -120,6 +120,39 @@ export const regenerateOrderAccounting = async (req: Request, res: Response) => 
 };
 
 /**
+ * Sync returns from order to accounting record
+ * POST /api/accounting/:orderId/sync-returns
+ */
+export const syncOrderReturns = async (req: Request, res: Response) => {
+    try {
+        const { orderId } = req.params;
+
+        // Verify order exists
+        const order = await Order.findById(orderId);
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                message: 'Order not found',
+            });
+        }
+
+        const accounting = await AccountingService.syncReturnsToAccounting(orderId);
+
+        return res.json({
+            success: true,
+            data: accounting,
+            message: 'Returns synced to accounting successfully',
+        });
+    } catch (error: any) {
+        console.error('Error syncing order returns:', error);
+        return res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to sync returns',
+        });
+    }
+};
+
+/**
  * Fetch payment gateway data for an order
  * POST /api/accounting/:orderId/fetch-gateway-data
  */
