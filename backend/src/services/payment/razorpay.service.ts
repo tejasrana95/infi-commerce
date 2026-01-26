@@ -103,10 +103,10 @@ export class RazorpayService extends BasePaymentGateway implements IPosQRService
             // Parse webhook event
             const event = payload.event;
             // QR events payload structure difference might exist
-            let paymentId, orderId, paymentEntity, qrEntity;
+            let paymentId, orderId, paymentEntity;
 
             if (event.startsWith('qrcode.')) {
-                qrEntity = payload.payload?.qr_code?.entity;
+
                 paymentEntity = payload.payload?.payment?.entity;
                 paymentId = paymentEntity?.id;
                 // For QR, order ID logic might differ if not explicitly linked, 

@@ -9,7 +9,7 @@ declare global {
     }
 }
 
-export const channelMiddleware = async (req: AuthRequest, res: Response, next: NextFunction) => {
+export const channelMiddleware = async (req: AuthRequest, _res: Response, next: NextFunction) => {
     const channelCode = req.headers['x-channel'] as string;
     if (channelCode) {
         req.channel = channelCode.toUpperCase();

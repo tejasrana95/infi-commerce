@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { asyncHandler, AppError } from '../middleware/validation';
 import { AuthRequest } from '../middleware/auth';
 import Store from '../models/Store';
@@ -219,5 +219,5 @@ export const cancelQR = asyncHandler(async (req: AuthRequest, res: Response) => 
         console.warn('Failed to cancel upstream QR', e);
     }
 
-    res.json({ success: true });
+    return res.json({ success: true });
 });

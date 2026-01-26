@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 
 import mongoose from 'mongoose';
-import Category from '../models/Category';
+
 import posService from '../services/pos.service';
 import POSHeldOrder from '../models/POSHeldOrder';
 import User from '../models/User';
@@ -54,13 +54,13 @@ class POSController {
 
             const session = await posService.startSession(storeId, userId, openingCash);
 
-            res.status(201).json({
+            return res.status(201).json({
                 success: true,
                 data: session,
             });
         } catch (error: any) {
             console.error('Start session error:', error);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
                 message: error.message || 'Failed to start session',
             });
@@ -88,13 +88,13 @@ class POSController {
                 notes
             );
 
-            res.status(200).json({
+            return res.status(200).json({
                 success: true,
                 data: session,
             });
         } catch (error: any) {
             console.error('End session error:', error);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
                 message: error.message || 'Failed to end session',
             });
@@ -118,13 +118,13 @@ class POSController {
 
             const session = await posService.getCurrentSession(storeId);
 
-            res.status(200).json({
+            return res.status(200).json({
                 success: true,
                 data: session,
             });
         } catch (error: any) {
             console.error('Get current session error:', error);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
                 message: error.message || 'Failed to get current session',
             });
@@ -155,13 +155,13 @@ class POSController {
                 parseInt(skip as string)
             );
 
-            res.status(200).json({
+            return res.status(200).json({
                 success: true,
                 data: result,
             });
         } catch (error: any) {
             console.error('Get session history error:', error);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
                 message: error.message || 'Failed to get session history',
             });
@@ -187,13 +187,13 @@ class POSController {
 
             const dashboardData = await posService.getDashboardData(storeId);
 
-            res.status(200).json({
+            return res.status(200).json({
                 success: true,
                 data: dashboardData,
             });
         } catch (error: any) {
             console.error('Get dashboard error:', error);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
                 message: error.message || 'Failed to get dashboard data',
             });
@@ -243,13 +243,13 @@ class POSController {
 
             const isValid = await posService.verifyPassword(userId, password);
 
-            res.status(200).json({
+            return res.status(200).json({
                 success: true,
                 data: { isValid },
             });
         } catch (error: any) {
             console.error('Verify password error:', error);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
                 message: error.message || 'Failed to verify password',
             });
@@ -298,13 +298,13 @@ class POSController {
 
             await heldOrder.populate('assignedToUserId', 'name email');
 
-            res.status(201).json({
+            return res.status(201).json({
                 success: true,
                 data: heldOrder,
             });
         } catch (error: any) {
             console.error('Create held order error:', error);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
                 message: error.message || 'Failed to create held order',
             });
@@ -343,13 +343,13 @@ class POSController {
                 .populate('customerId', 'firstName lastName phone email')
                 .sort({ heldAt: -1 });
 
-            res.status(200).json({
+            return res.status(200).json({
                 success: true,
                 data: heldOrders,
             });
         } catch (error: any) {
             console.error('Get held orders error:', error);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
                 message: error.message || 'Failed to get held orders',
             });
@@ -402,13 +402,13 @@ class POSController {
                 });
             }
 
-            res.status(200).json({
+            return res.status(200).json({
                 success: true,
                 data: heldOrder,
             });
         } catch (error: any) {
             console.error('Transfer held order error:', error);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
                 message: error.message || 'Failed to transfer held order',
             });
@@ -449,13 +449,13 @@ class POSController {
                 });
             }
 
-            res.status(200).json({
+            return res.status(200).json({
                 success: true,
                 data: heldOrder,
             });
         } catch (error: any) {
             console.error('Resume held order error:', error);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
                 message: error.message || 'Failed to resume held order',
             });
@@ -491,13 +491,13 @@ class POSController {
                 });
             }
 
-            res.status(200).json({
+            return res.status(200).json({
                 success: true,
                 message: 'Held order deleted successfully',
             });
         } catch (error: any) {
             console.error('Delete held order error:', error);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
                 message: error.message || 'Failed to delete held order',
             });
@@ -524,13 +524,13 @@ class POSController {
                 role: { $in: ['pos_user', 'store_admin', 'super_admin'] },
                 isActive: true,
             }).select('_id firstName lastName email role');
-            res.status(200).json({
+            return res.status(200).json({
                 success: true,
                 data: users,
             });
         } catch (error: any) {
             console.error('Get POS users error:', error);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
                 message: error.message || 'Failed to get POS users',
             });
@@ -576,13 +576,13 @@ class POSController {
                 .limit(10)
                 .populate('customerId', 'firstName lastName email phone');
 
-            res.status(200).json({
+            return res.status(200).json({
                 success: true,
                 data: orders,
             });
         } catch (error: any) {
             console.error('Search orders error:', error);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
                 message: error.message || 'Failed to search orders',
             });
@@ -618,12 +618,12 @@ class POSController {
                 items
             );
 
-            res.status(200).json({
+            return res.status(200).json({
                 success: true,
                 data: result,
             });
         } catch (error: any) {
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
                 message: error.message || 'Failed to calculate refund',
             });
@@ -675,13 +675,13 @@ class POSController {
                 notes
             );
 
-            res.status(200).json({
+            return res.status(200).json({
                 success: true,
                 data: result,
             });
         } catch (error: any) {
             console.error('Process return error:', error);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
                 message: error.message || 'Failed to process return',
             });

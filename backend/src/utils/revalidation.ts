@@ -43,7 +43,7 @@ export async function triggerRevalidation(
         );
 
         if (response.ok) {
-            const data = await response.json();
+            await response.json();
         } else {
             console.error(`Failed to revalidate cache: ${response.status} ${response.statusText}`);
         }

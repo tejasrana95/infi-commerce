@@ -187,7 +187,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
                     quantity: item.quantity
                 }));
 
-           const response = await api.checkout({
+            const response = await api.checkout({
                 items: orderItems,
                 subtotal: subtotal,
                 tax: tax,
@@ -247,6 +247,11 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
         try {
             // Generate receipt HTML using the print service with full order data
             // The order is passed directly - print service handles returns, discounts, etc.
+            if (!store) {
+                console.error('Store information missing');
+                alert('Store information missing. Please refresh and try again.');
+                return;
+            }
             const receiptHTML = printService.generateReceiptHTML(order, store);
 
             // Create temporary element with the generated HTML
@@ -267,7 +272,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
         setCouponCode('');
         setAppliedCoupon(null);
         setCouponError('');
-        onSuccess(); 
+        onSuccess();
         onClose();
         setOrder(null);
     };

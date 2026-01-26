@@ -33,7 +33,11 @@ export default function OrderDetailModal({ order, isOpen, onClose, onReturn }: O
 
     const handlePrint = async () => {
         if (!order) return;
-
+        if (!store) {
+            console.error('Store information missing');
+            alert('Store information missing. Please refresh and try again.');
+            return;
+        }
         try {
             // Generate receipt HTML using the print service with full order data
             // The order is passed directly - print service handles returns, discounts, etc.

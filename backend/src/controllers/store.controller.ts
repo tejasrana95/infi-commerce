@@ -7,7 +7,7 @@ import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import redisService from '../services/redis.service';
 import { CacheKeys, CACHE_TTL } from '../utils/cache-keys';
-import { invalidateStoreCache, invalidateStoreDomainCache } from '../utils/cache-invalidation';
+import { invalidateStoreCache, invalidateStoreDomainCache, invalidateFullStoreCache } from '../utils/cache-invalidation';
 
 // Helper to validate domain format
 const isValidDomain = (value: string): boolean => {
@@ -450,8 +450,7 @@ export const createStore = asyncHandler(async (req: AuthRequest, res: Response) 
         logo,
         currency: currency || 'USD',
         timezone: timezone || 'UTC',
-        currency: currency || 'USD',
-        timezone: timezone || 'UTC',
+
         settings: settings || {},
         posPaymentSettings: req.body.posPaymentSettings,
     });
@@ -1530,7 +1529,11 @@ export const updatePosPaymentSettings = asyncHandler(async (req: AuthRequest, re
     }
 
     // Invalidate cache
-    await invalidateStoreCache(store._id.toString(), store.slug, store.domains);
+    // Invalidate cache
+    await Promise.all([
+        invalidateFullStoreCache(store._id.toString(), store.domains),
+        redisService.delete(`store:slug:${store.slug}`),
+    ]);
 
     res.json({
         message: 'POS payment settings updated successfully',

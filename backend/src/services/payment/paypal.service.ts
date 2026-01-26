@@ -381,7 +381,7 @@ export class PayPalService extends BasePaymentGateway implements IPosQRService {
         }
     }
 
-    async cancelQR(qrId: string): Promise<boolean> {
+    async cancelQR(_qrId: string): Promise<boolean> {
         // PayPal orders automatically expire, but we can't explicitly 'cancel' a pending order 
         // easily via API without complex state. We'll just let it expire or ignore it.
         return true;

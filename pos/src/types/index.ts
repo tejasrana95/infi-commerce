@@ -30,6 +30,8 @@ export interface ProductVariant {
     price: number;
     stock: number;
     image?: string;
+    taxRate?: number;
+    taxAmount?: number;
 }
 
 export interface Category {
@@ -137,7 +139,7 @@ export interface ReturnItem {
     productId?: string;
     quantity?: number;
     variantId?: string;
-    refundAmount?: number;  
+    refundAmount?: number;
     reason?: string;
     _id?: string;
 }

@@ -104,7 +104,7 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
         customerNote,
         adminNote,
         shippingCost = 0,
-        tax = 0,
+
         discount = 0,
         currency = 'USD',
         // POS specific fields
@@ -203,7 +203,7 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
             if (coupon.applyTo === 'store') {
                 isCouponEligible = true;
             } else if (coupon.applyTo === 'categories') {
-                isCouponEligible = couponCategoryIds.length === 0 || 
+                isCouponEligible = couponCategoryIds.length === 0 ||
                     productCategoryIds.some(catId => couponCategoryIds.includes(catId));
             } else {
                 isCouponEligible = true;
@@ -288,7 +288,7 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
                 // Update final price
                 item.price = parseFloat((item.originalPrice - item.discountAmount).toFixed(2));
                 if (item.price < 0) item.price = 0;
-                
+
                 remainingDiscount -= itemCouponDiscount;
             }
         }
@@ -780,7 +780,7 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
 
     // Create order items with discount breakdown
     const orderItems: any[] = [];
-    
+
     for (const item of cart.items) {
         const product = item.productId as any;
         let itemImage = item.image;
@@ -814,7 +814,7 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
             if (coupon.applyTo === 'store') {
                 isCouponEligible = true;
             } else if (coupon.applyTo === 'categories') {
-                isCouponEligible = couponCategoryIds.length === 0 || 
+                isCouponEligible = couponCategoryIds.length === 0 ||
                     productCategoryIds.some((catId: string) => couponCategoryIds.includes(catId));
             } else {
                 isCouponEligible = true;

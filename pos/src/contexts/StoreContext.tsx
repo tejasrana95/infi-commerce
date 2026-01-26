@@ -70,7 +70,7 @@ export interface Store {
 
 interface StoreContextType {
     storeId: string | null;
-    store: Store;
+    store: Store | null;
     loading: boolean;
     error: string | null;
     setStoreId: (id: string) => void;
