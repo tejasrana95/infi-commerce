@@ -1,4 +1,14 @@
 
+export interface OptionValue {
+    label: string;
+    value: string;
+}
+export interface ProductOption {
+    optionId: string;
+    name: string;
+    values: OptionValue[];
+    isVariation: boolean;
+}
 export interface Product {
     id: string;
     name: string;
@@ -14,6 +24,7 @@ export interface Product {
     variants?: ProductVariant[];
     taxRate?: number;
     taxAmount?: number;
+    productOptions?: ProductOption[];
 }
 
 export interface ProductAttribute {

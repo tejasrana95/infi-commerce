@@ -25,16 +25,6 @@ export default function VariantModal({ product, isOpen, onClose, onAddToCart }: 
         if (product) {
             setSelectedAttributes({});
             setQuantity(1);
-
-            // Pre-select first options if available
-            if (product.attributes) {
-                const initialAttributes: Record<string, string> = {};
-                product.attributes.forEach(attr => {
-                    // Optional: Pre-select first value
-                    // initialAttributes[attr.name] = attr.options[0];
-                });
-                // setSelectedAttributes(initialAttributes);
-            }
         }
     }, [product]);
 
@@ -100,25 +90,39 @@ export default function VariantModal({ product, isOpen, onClose, onAddToCart }: 
                             </div>
                         </div>
 
-                        {/* Attributes Selection */}
-                        {product.attributes?.map((attr) => (
-                            <div key={attr.id}>
-                                <label className="block text-sm font-bold text-slate-700 mb-2">{attr.name}</label>
+                        {/* Options Selection */}
+                        {product.productOptions?.map((opt: any) => (
+                            <div key={opt.optionId}>
+                                <label className="block text-sm font-bold text-slate-700 mb-2">{opt.name}</label>
                                 <div className="flex flex-wrap gap-2">
-                                    {attr.options.map((option) => {
-                                        const isSelected = selectedAttributes[attr.id] === option;
+                                    {opt.values.map((val: any) => {
+                                        // Handle both object (new format) and string (legacy/fallback) values
+                                        const value = typeof val === 'object' ? val.value : val;
+                                        const label = typeof val === 'object' ? val.label : val;
+                                        const colorCode = typeof val === 'object' ? val.colorCode : undefined;
+
+                                        const isSelected = selectedAttributes[opt.optionId] === value;
+
                                         return (
                                             <button
-                                                key={option}
-                                                onClick={() => handleAttributeSelect(attr.id, option)}
+                                                key={value}
+                                                onClick={() => handleAttributeSelect(opt.optionId, value)}
                                                 className={cn(
-                                                    "px-4 py-2 rounded-lg text-sm font-medium border-2 transition-all",
+                                                    "px-4 py-2 rounded-lg text-sm font-medium border-2 transition-all flex items-center gap-2",
                                                     isSelected
                                                         ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm"
                                                         : "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
                                                 )}
+                                                title={label}
                                             >
-                                                {option}
+                                                {/* Color Preview if available */}
+                                                {colorCode && (
+                                                    <span
+                                                        className="w-4 h-4 rounded-full border border-slate-200"
+                                                        style={{ backgroundColor: colorCode }}
+                                                    />
+                                                )}
+                                                {label}
                                             </button>
                                         );
                                     })}

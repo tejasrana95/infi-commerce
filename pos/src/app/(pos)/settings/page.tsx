@@ -2,8 +2,6 @@
 
 import React, { useState } from 'react';
 import SettingsSection from '@/components/molecules/SettingsSection';
-import { keyboardShortcuts } from '@/mock/settings';
-import { useSettingsStore } from '@/store/settingsStore';
 import { Keyboard, Save } from 'lucide-react';
 import Button from '@/components/atoms/Button';
 
@@ -11,7 +9,6 @@ type Tab = 'shortcuts' | 'preferences';
 
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<Tab>('shortcuts');
-    const settings = useSettingsStore();
     const [saved, setSaved] = useState(false);
 
     const handleSave = () => {
@@ -71,26 +68,20 @@ export default function SettingsPage() {
                                     </p>
                                 </div>
 
-                                {keyboardShortcuts.map((category, idx) => (
-                                    <SettingsSection
-                                        key={idx}
-                                        title={category.category}
+                               <SettingsSection
+                                        title="Test"
                                     >
                                         <div className="space-y-3">
-                                            {category.shortcuts.map((shortcut, sIdx) => (
-                                                <div
-                                                    key={sIdx}
+                                            <div
                                                     className="flex items-center justify-between py-2"
                                                 >
-                                                    <span className="text-slate-700">{shortcut.description}</span>
+                                                    <span className="text-slate-700">Test</span>
                                                     <kbd className="px-3 py-1.5 bg-slate-100 border border-slate-300 rounded-lg text-sm font-mono font-medium text-slate-800 shadow-sm">
-                                                        {shortcut.keys}
+                                                        CTRL + T
                                                     </kbd>
                                                 </div>
-                                            ))}
                                         </div>
                                     </SettingsSection>
-                                ))}
                             </div>
                         )}
                     </div>

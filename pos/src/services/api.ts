@@ -410,6 +410,7 @@ class POCApiService {
                     name: opt.optionId?.name || 'Attribute',
                     options: opt.values,
                 })),
+                productOptions: p.productOptions,
                 variants: p.variants?.map((v: any) => {
                     const vPrice = Number(v.pricing?.finalPrice ?? v.price) || 0;
                     const vTaxRate = Number(v.pricing?.taxRate ?? p.pricing?.taxRate ?? p.taxRate ?? 0);

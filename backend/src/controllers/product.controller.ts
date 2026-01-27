@@ -11,6 +11,27 @@ import { calculatePricing, calculateTaxBreakdown } from '../utils/pricing.utils'
 import { addTimezoneAwareDates } from '../utils/date.utils';
 import { escapeRegExp, getSearchSuggestions } from '../utils/search.utils';
 
+// Helper function to transform product options for frontend
+export function transformProductOptions(product: any) {
+    if (product.productOptions && product.productOptions.length > 0) {
+        product.productOptions = product.productOptions.map((opt: any) => {
+            const optionData = opt.optionId;
+            if (!optionData) return opt;
+
+            return {
+                optionId: optionData._id?.toString() || opt.optionId,
+                name: optionData.name,
+                type: optionData.type,
+                isVariation: opt.isVariation,
+                // Filter the full option values to only include selected ones for this product
+                // and maintain the label/value format
+                values: optionData.values?.filter((v: any) => opt.values.includes(v.value)) || [],
+            };
+        });
+    }
+    return product;
+}
+
 // Helper function to add pricing with tax to a product (including variants)
 export function addPricingToProduct(product: any) {
     const taxRate = product.taxClassId?.rate || 0;
@@ -679,6 +700,7 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
             .populate('storeId', 'name slug domain')
             .populate('categoryIds', 'title slug')
             .populate('attributes.attributeId', 'name slug type values')
+            .populate('productOptions.optionId', 'name slug type values')
             .populate('taxClassId', 'name rate isSplit subTaxes')
             .populate('brand', 'name slug logo')
             .skip(skip)
@@ -711,7 +733,8 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
 
     // Add computed pricing fields to each product (including variants) and localized dates
     const productsWithPricing = products.map((product: any) => {
-        const productWithPricing = addPricingToProduct(product);
+        const productWithOptions = transformProductOptions(product);
+        const productWithPricing = addPricingToProduct(productWithOptions);
         return addTimezoneAwareDates(productWithPricing, storeTimezone);
     });
 
@@ -814,20 +837,7 @@ export const getProductById = asyncHandler(async (req: AuthRequest, res: Respons
 
     // Transform productOptions to include proper label/value format for frontend
     const productObj = product as any; // Already a plain object from .lean()
-    if (productObj.productOptions && productObj.productOptions.length > 0) {
-        productObj.productOptions = productObj.productOptions.map((opt: any) => {
-            const optionData = opt.optionId;
-            if (!optionData) return opt;
-
-            return {
-                optionId: optionData._id?.toString() || opt.optionId,
-                name: optionData.name,
-                type: optionData.type,
-                isVariation: opt.isVariation,
-                values: optionData.values?.filter((v: any) => opt.values.includes(v.value)) || [],
-            };
-        });
-    }
+    transformProductOptions(productObj);
 
     // Get active sales for this product
     const sales = await (Sale as any).getActiveSalesForProduct(product._id, product.categoryIds);
@@ -907,22 +917,7 @@ export const getProductBySlug = asyncHandler(async (req: AuthRequest, res: Respo
 
     // Transform productOptions to include proper label/value format for frontend
     const productObj = product as any; // Already a plain object from .lean()
-    if (productObj.productOptions && productObj.productOptions.length > 0) {
-        productObj.productOptions = productObj.productOptions.map((opt: any) => {
-            const optionData = opt.optionId;
-            if (!optionData) return opt;
-
-            return {
-                optionId: optionData._id?.toString() || opt.optionId,
-                name: optionData.name,
-                type: optionData.type,
-                isVariation: opt.isVariation,
-                // Filter the full option values to only include selected ones for this product
-                // and maintain the label/value format
-                values: optionData.values?.filter((v: any) => opt.values.includes(v.value)) || [],
-            };
-        });
-    }
+    transformProductOptions(productObj);
 
     // Add computed pricing fields (including variants)
     addPricingToProduct(productObj);

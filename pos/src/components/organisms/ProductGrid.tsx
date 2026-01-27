@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Product, Category, ProductVariant } from '@/types';
 import pocApi from '@/services/api';
 import { useCartStore } from '@/store/cartStore';
@@ -31,6 +31,7 @@ export default function ProductGrid() {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const addToCart = useCartStore((state) => state.addToCart);
+    const requestIdRef = useRef(0);
 
     // Shortcuts
     useKeyboardShortcuts([
@@ -46,39 +47,43 @@ export default function ProductGrid() {
     // Initial Load
     useEffect(() => {
         const loadData = async () => {
-            setLoading(true);
-            const [cats, prodsData] = await Promise.all([
-                pocApi.getCategories(),
-                pocApi.getProducts(undefined, undefined, 1, pageSize)
-            ]);
+            // Only load categories here. Products will be loaded by the filter effect
+            const cats = await pocApi.getCategories();
             setCategories(cats);
-            setProducts(prodsData.products);
-            setTotalProducts(prodsData.pagination.total);
-            setTotalPages(prodsData.pagination.pages);
-            setCurrentPage(1);
-            setLoading(false);
         };
         loadData();
     }, [pageSize]);
 
     // Filter effect
     useEffect(() => {
-        const filterProducts = async () => {
-            setLoading(true);
-            const prodsData = await pocApi.getProducts(
-                selectedCategory === 'all' ? undefined : selectedCategory,
-                searchQuery,
-                1, // Reset to page 1 when filters change
-                pageSize
-            );
-            setProducts(prodsData.products);
-            setTotalProducts(prodsData.pagination.total);
-            setTotalPages(prodsData.pagination.pages);
-            setCurrentPage(1); // Reset to first page
-            setLoading(false);
+        // Debounced filter with request id to ignore stale responses
+        const timer = setTimeout(() => {
+            const run = async () => {
+                requestIdRef.current += 1;
+                const thisId = requestIdRef.current;
+                setLoading(true);
+                const prodsData = await pocApi.getProducts(
+                    selectedCategory === 'all' ? undefined : selectedCategory,
+                    searchQuery,
+                    1, // Reset to page 1 when filters change
+                    pageSize
+                );
+                // If a newer request started, ignore this response
+                if (thisId !== requestIdRef.current) return;
+                setProducts(prodsData.products);
+                setTotalProducts(prodsData.pagination.total);
+                setTotalPages(prodsData.pagination.pages);
+                setCurrentPage(1); // Reset to first page
+                setLoading(false);
+            };
+            run();
+        }, 300);
+
+        return () => {
+            // invalidate in-flight responses and clear timer
+            requestIdRef.current += 1;
+            clearTimeout(timer);
         };
-        const timer = setTimeout(filterProducts, 300);
-        return () => clearTimeout(timer);
     }, [selectedCategory, searchQuery, pageSize]);
 
     const handleProductClick = (product: Product) => {
@@ -97,6 +102,8 @@ export default function ProductGrid() {
     const handlePageChange = async (page: number) => {
         if (page < 1 || page > totalPages || page === currentPage) return;
 
+        requestIdRef.current += 1;
+        const thisId = requestIdRef.current;
         setLoading(true);
         const prodsData = await pocApi.getProducts(
             selectedCategory === 'all' ? undefined : selectedCategory,
@@ -104,6 +111,7 @@ export default function ProductGrid() {
             page,
             pageSize
         );
+        if (thisId !== requestIdRef.current) return;
         setProducts(prodsData.products);
         setCurrentPage(page);
         setLoading(false);
