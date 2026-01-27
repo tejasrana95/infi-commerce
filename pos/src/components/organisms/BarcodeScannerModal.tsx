@@ -278,11 +278,11 @@ export function BarcodeScannerModal({ isOpen, onClose, onScan }: BarcodeScannerM
                             {/* Error Overlay */}
                             {error && (
                                 <div className="absolute inset-0 flex items-center justify-center bg-black/90">
-                                    <div className="text-white text-center max-w-md mx-4">
+                                    <div className="text-white  flex flex-col items-center justify-center text-center max-w-md mx-4">
                                         <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-400" />
                                         <p className="text-lg font-semibold mb-2">Camera Error</p>
                                         <p className="text-sm text-gray-300 mb-4">{error}</p>
-                                        <Button onClick={handleRetry} variant="primary">
+                                        <Button onClick={handleRetry} className='flex  text-center items-center' variant="primary">
                                             <RefreshCw className="w-4 h-4 mr-2" />
                                             Try Again
                                         </Button>

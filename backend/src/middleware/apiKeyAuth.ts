@@ -203,10 +203,12 @@ export const optionalApiKeyAuth = async (
         ].filter(Boolean);
 
         // Check if request is from an allowed CORS domain
-        const isFromAllowedOrigin = allowedOrigins.some(allowed =>
-            origin.startsWith(allowed)
+        const isFromAllowedOrigin = allowedOrigins.some(allowed =>{
+            const domain = allowed.split(',');
+            return domain.some(d => origin.startsWith(d));
+        }
         );
-
+       
         // If API key is provided, always validate it (even from allowed origins)
         if (apiKeyHeader) {
             // Continue to validation below
