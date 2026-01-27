@@ -1,20 +1,22 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Barcode, CheckCircle, AlertCircle } from 'lucide-react';
+import { Barcode, CheckCircle, AlertCircle, Camera } from 'lucide-react';
 
 import { barcodeService } from '@/services/barcode.service';
 import { sounds } from '@/utils/sounds';
 import Input from '../atoms/Input';
 import Spinner from '../atoms/Spinner';
+import IconButton from '../atoms/IconButton';
 
 interface BarcodeInputProps {
     onScan: (barcode: string) => Promise<void>;
     placeholder?: string;
     autoFocus?: boolean;
+    setShowCameraScanner?: (show: boolean) => void;
 }
 
-export function BarcodeInput({ onScan, placeholder = 'Scan or type SKU/barcode...', autoFocus = true }: BarcodeInputProps) {
+export function BarcodeInput({ onScan, placeholder = 'Scan or type SKU/barcode...', autoFocus = true, setShowCameraScanner = () => { } }: BarcodeInputProps) {
     const [barcode, setBarcode] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -38,7 +40,7 @@ export function BarcodeInput({ onScan, placeholder = 'Scan or type SKU/barcode..
             const target = e.target as HTMLElement;
             // Check if clicking on an interactive element or inside one
             const isInteractive = target.closest('input, button, select, textarea, [role="button"], [tabindex], a, label');
-            
+
             // Only refocus if clicking on a truly empty area (like the background)
             if (!isInteractive && inputRef.current && !loading) {
                 // Check if the click target is a container/wrapper element
@@ -61,7 +63,7 @@ export function BarcodeInput({ onScan, placeholder = 'Scan or type SKU/barcode..
             if (e.key === 'F2' || (e.key === '/' && !e.ctrlKey && !e.metaKey)) {
                 const target = e.target as HTMLElement;
                 const isInInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
-                
+
                 if (!isInInput || e.key === 'F2') {
                     e.preventDefault();
                     inputRef.current?.focus();
@@ -99,7 +101,7 @@ export function BarcodeInput({ onScan, placeholder = 'Scan or type SKU/barcode..
         // For SKU/barcode lookup, we allow alphanumeric and common barcode characters
         if (!barcodeService.isValidBarcode(trimmedBarcode)) {
             setError('Invalid SKU/barcode format');
-           sounds.error()
+            sounds.error()
             if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
             errorTimeoutRef.current = setTimeout(() => {
                 setError(null);
@@ -115,7 +117,7 @@ export function BarcodeInput({ onScan, placeholder = 'Scan or type SKU/barcode..
 
         try {
             await onScan(trimmedBarcode);
-            
+
             setSuccess(`Added: ${trimmedBarcode}`);
             if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
             successTimeoutRef.current = setTimeout(() => {
@@ -191,7 +193,7 @@ export function BarcodeInput({ onScan, placeholder = 'Scan or type SKU/barcode..
     return (
         <div className="relative w-full">
             <div className="relative">
-                <Barcode className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Barcode className="absolute left-3 top-1/2 transform -translate-y-1/2 w-6 h-5 text-gray-400" />
                 <Input
                     ref={inputRef}
                     type="text"
@@ -199,22 +201,30 @@ export function BarcodeInput({ onScan, placeholder = 'Scan or type SKU/barcode..
                     onChange={(e) => handleChange(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder={placeholder}
-                    className={`pl-10 pr-10 text-sm  ${
-                        error ? 'border-red-500 focus:ring-red-500' : 
+                    className={`pl-10 pr-10 text-sm  ${error ? 'border-red-500 focus:ring-red-500' :
                         success ? 'border-green-500 focus:ring-green-500' : ''
-                    }`}
+                        }`}
                     disabled={loading}
                     autoComplete="off"
                     autoCorrect="off"
                     spellCheck={false}
                 />
+                {!loading && (!success && !error) && (
+                    <IconButton
+                        icon={<Camera className="w-5 h-5" />}
+                        onClick={() => setShowCameraScanner(true)}
+                        variant="ghost"
+                        title="Open camera scanner"
+                        className='absolute right-0 top-1/2 transform -translate-y-1/2'
+                    />
+                )}
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                     {loading && <Spinner size="sm" />}
                     {!loading && success && <CheckCircle className="w-5 h-5 text-green-500" />}
                     {!loading && error && <AlertCircle className="w-5 h-5 text-red-500" />}
                 </div>
             </div>
-            
+
             {/* Status Messages */}
             <div className="h-5 mt-1">
                 {error && (
@@ -224,7 +234,7 @@ export function BarcodeInput({ onScan, placeholder = 'Scan or type SKU/barcode..
                     <p className="text-sm text-green-600">{success}</p>
                 )}
                 {!error && !success && (
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500" style={{ fontSize: '10px' }}>
                         SKU/Barcode only • F2 to focus • Enter to add
                     </p>
                 )}

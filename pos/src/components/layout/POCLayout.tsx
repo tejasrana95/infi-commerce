@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, History, Settings, LogOut, Maximize, Minimize, Loader2, Package } from 'lucide-react';
+import { LayoutDashboard, History, Settings, LogOut, Maximize, Minimize, Loader2, Package, Menu, X, ArrowRightLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -18,6 +18,11 @@ import Image from 'next/image';
 import { HoldOrderModal } from '@/components/organisms/HoldOrderModal';
 import { HeldOrdersList } from '@/components/organisms/HeldOrdersList';
 import { useCartStore } from '@/store/cartStore';
+import { useUIStore } from '@/store/uiStore';
+import { ReturnOrderModal } from '../organisms/ReturnOrderModal';
+import CheckoutModal from '../organisms/CheckoutModal';
+import CustomerSelectionModal from '../organisms/CustomerSelectionModal';
+
 
 interface POCLayoutProps {
     children: React.ReactNode;
@@ -35,9 +40,20 @@ export default function POCLayout({ children }: POCLayoutProps) {
     const [showEndShiftModal, setShowEndShiftModal] = useState(false);
     const [isShiftEnded, setIsShiftEnded] = useState(false);
     const [checkingSession, setCheckingSession] = useState(true);
-    const [showHoldOrderModal, setShowHoldOrderModal] = useState(false);
     const [showHeldOrdersList, setShowHeldOrdersList] = useState(false);
-    const { items } = useCartStore();
+    const { items, setCustomer } = useCartStore();
+    const {
+        isSidebarOpen,
+        closeSidebar,
+        toggleSidebar,
+        isCheckoutOpen,
+        closeCheckout,
+        isHoldOrderOpen,
+        closeHoldOrder,
+        isCustomerModalOpen,
+        closeCustomerModal
+    } = useUIStore();
+    const [showReturnModal, setShowReturnModal] = useState(false);
 
 
 
@@ -159,11 +175,24 @@ export default function POCLayout({ children }: POCLayoutProps) {
 
     return (
         <div className="flex h-screen w-full bg-gray-100 overflow-hidden font-sans">
-            {/* Sidebar Navigation (Narrow) */}
-            <aside className="w-16 bg-slate-900 text-white flex flex-col items-center py-4 z-20">
+            {/* Mobile Sidebar Overlay */}
+            {isSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-30 md:hidden"
+                    onClick={closeSidebar}
+                />
+            )}
+
+            {/* Sidebar Navigation */}
+            <aside
+                className={cn(
+                    "fixed md:relative inset-y-0 left-0 bg-slate-900 text-white flex flex-col items-center py-4 z-40 transition-transform duration-300 ease-in-out md:translate-x-0 w-16",
+                    isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+                )}
+            >
                 <div className="mb-8 font-bold text-xl text-blue-400">
                     {store?.logo ? (
-                        <Image src={store.logo} alt={store.name} width={10} height={10} className="w-10 h-10 rounded-lg object-contain bg-white" />
+                        <Image src={store.logo} alt={store.name} width={40} height={40} className="w-10 h-10 rounded-lg object-contain bg-white" />
                     ) : (
                         <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
                             {store?.name?.charAt(0) || 'I'}
@@ -172,10 +201,13 @@ export default function POCLayout({ children }: POCLayoutProps) {
                 </div>
 
                 <nav className="flex-1 flex flex-col gap-4 w-full px-2">
-                    <NavItem href="/" icon={<LayoutDashboard size={24} />} label="POS" active={pathname === '/'} />
-                    <NavItem href="/orders" icon={<History size={24} />} label="Orders" active={pathname === '/orders'} />
+                    <NavItem href="/" icon={<LayoutDashboard size={24} />} label="POS" active={pathname === '/'} onClick={closeSidebar} />
+                    <NavItem href="/orders" icon={<History size={24} />} label="Orders" active={pathname === '/orders'} onClick={closeSidebar} />
                     <button
-                        onClick={() => setShowHeldOrdersList(true)}
+                        onClick={() => {
+                            setShowHeldOrdersList(true);
+                            closeSidebar();
+                        }}
                         className="p-3 rounded-xl transition-colors flex justify-center group relative text-slate-400 hover:bg-slate-800 hover:text-white"
                         title="Held Orders"
                     >
@@ -184,13 +216,32 @@ export default function POCLayout({ children }: POCLayoutProps) {
                             Held Orders
                         </span>
                     </button>
-                    <NavItem href="/settings" icon={<Settings size={24} />} label="Settings" active={pathname === '/settings'} />
+                    <button
+                        onClick={() => {
+                            setShowReturnModal(true);
+                            closeSidebar();
+                        }}
+                        className="p-3 rounded-xl transition-colors flex justify-center group relative text-slate-400 hover:bg-slate-800 hover:text-white"
+                        title="Return Orders"
+                    >
+                        <ArrowRightLeft size={24} />
+                        <span className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-xs text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
+                            Return Orders
+                        </span>
+                    </button>
+                    <NavItem href="/settings" icon={<Settings size={24} />} label="Settings" active={pathname === '/settings'} onClick={closeSidebar} />
                 </nav>
+
+                <div
+                    className="xl:hidden text-[11px] text-slate-400 font-mono tracking-wider mb-4 [writing-mode:vertical-rl] rotate-180 whitespace-nowrap select-none "
+                >
+                    Session: {activeSession?.sessionNumber || 'Loading...'}
+                </div>
 
                 <div className="mt-auto flex flex-col gap-4 w-full px-2">
                     <button
                         onClick={toggleFullscreen}
-                        className="p-3 rounded-xl hover:bg-slate-800 transition-colors flex justify-center text-slate-400 hover:text-white"
+                        className="p-3 rounded-xl hover:bg-slate-800 transition-colors flex justify-center text-slate-400 hover:text-white hidden md:flex"
                         title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
                     >
                         {isFullscreen ? <Minimize size={24} /> : <Maximize size={24} />}
@@ -207,7 +258,7 @@ export default function POCLayout({ children }: POCLayoutProps) {
 
             {/* Main Content Area */}
             <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-                <Header />
+                <Header setShowReturnModal={setShowReturnModal} />
 
                 {/* Page Content */}
                 <div className="flex-1 overflow-hidden relative">
@@ -237,8 +288,15 @@ export default function POCLayout({ children }: POCLayoutProps) {
 
             {/* Hold Order Modal */}
             <HoldOrderModal
-                isOpen={showHoldOrderModal}
-                onClose={() => setShowHoldOrderModal(false)}
+                isOpen={isHoldOrderOpen}
+                onClose={closeHoldOrder}
+            />
+
+            {/* Customer Selection Modal */}
+            <CustomerSelectionModal
+                isOpen={isCustomerModalOpen}
+                onClose={closeCustomerModal}
+                onSelect={(customer) => setCustomer(customer)}
             />
 
             {/* Held Orders List */}
@@ -246,14 +304,26 @@ export default function POCLayout({ children }: POCLayoutProps) {
                 isOpen={showHeldOrdersList}
                 onClose={() => setShowHeldOrdersList(false)}
             />
+
+            <ReturnOrderModal
+                isOpen={showReturnModal}
+                onClose={() => setShowReturnModal(false)}
+            />
+
+            <CheckoutModal
+                isOpen={isCheckoutOpen}
+                onClose={closeCheckout}
+                onSuccess={() => { }}
+            />
         </div>
     );
 }
 
-function NavItem({ href, icon, label, active }: { href: string; icon: React.ReactNode; label: string; active?: boolean }) {
+function NavItem({ href, icon, label, active, onClick }: { href: string; icon: React.ReactNode; label: string; active?: boolean, onClick?: () => void }) {
     return (
         <Link
             href={href}
+            onClick={onClick}
             className={cn(
                 "p-3 rounded-xl transition-colors flex justify-center group relative",
                 active ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20" : "text-slate-400 hover:bg-slate-800 hover:text-white"

@@ -20,6 +20,7 @@ export default function SearchBar({ value, onChange, placeholder = 'Search...', 
                 onChange={(e) => onChange(e.target.value)}
                 className="pl-11"
                 autoFocus={autoFocus}
+                id="search-bar"
             />
         </div>
     );

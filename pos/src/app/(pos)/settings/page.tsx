@@ -68,25 +68,43 @@ export default function SettingsPage() {
                                     </p>
                                 </div>
 
-                               <SettingsSection
-                                        title="Test"
-                                    >
-                                        <div className="space-y-3">
-                                            <div
-                                                    className="flex items-center justify-between py-2"
-                                                >
-                                                    <span className="text-slate-700">Test</span>
-                                                    <kbd className="px-3 py-1.5 bg-slate-100 border border-slate-300 rounded-lg text-sm font-mono font-medium text-slate-800 shadow-sm">
-                                                        CTRL + T
-                                                    </kbd>
-                                                </div>
-                                        </div>
-                                    </SettingsSection>
+                                <SettingsSection title="General">
+                                    <div className="space-y-3">
+                                        <ShortcutItem label="Focus Barcode Input" shortcut="F2" />
+                                        <ShortcutItem label="Focus Search Bar" shortcut="/" />
+                                    </div>
+                                </SettingsSection>
+
+                                <SettingsSection title="Cart Actions">
+                                    <div className="space-y-3">
+                                        <ShortcutItem label="Quick Pay / Checkout" shortcut="Ctrl + Enter" />
+                                        <ShortcutItem label="Hold Order" shortcut="F3" />
+                                    </div>
+                                </SettingsSection>
+
+                                <SettingsSection title="Checkout Modal">
+                                    <div className="space-y-3">
+                                        <ShortcutItem label="Confirm Payment" shortcut="Ctrl + Enter" />
+                                        <ShortcutItem label="Print Receipt" shortcut="Ctrl + P" />
+                                        <ShortcutItem label="Close Modal" shortcut="Esc" />
+                                    </div>
+                                </SettingsSection>
                             </div>
                         )}
                     </div>
                 </div>
             </div>
+        </div>
+    );
+}
+
+function ShortcutItem({ label, shortcut }: { label: string, shortcut: string }) {
+    return (
+        <div className="flex items-center justify-between py-2 bg-white px-2 rounded-md hover:bg-slate-50 transition-colors">
+            <span className="text-slate-700 font-medium">{label}</span>
+            <kbd className="px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-lg text-sm font-mono font-medium text-slate-600 shadow-sm min-w-[3rem] text-center">
+                {shortcut}
+            </kbd>
         </div>
     );
 }

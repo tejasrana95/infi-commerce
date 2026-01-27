@@ -20,7 +20,7 @@ export default function TimeDisplay() {
     }, [getSessionDuration]);
 
     return (
-        <div className="flex items-center gap-4 text-sm">
+        <div className="flex items-center gap-4 text-sm hidden xl:flex">
             <div className="flex items-center gap-2 text-slate-700" style={{ minWidth: '120px' }}>
                 <Clock className="w-4 h-4" />
                 <span className="font-bold">{formatTime(currentTime)}</span>

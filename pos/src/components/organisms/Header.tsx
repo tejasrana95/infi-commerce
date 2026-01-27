@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Store, User, Camera, RotateCcw, BarChart3, Package, History } from 'lucide-react';
+import { Store, User, Camera, RotateCcw, BarChart3, Package, History, ArrowRightLeft } from 'lucide-react';
 import TimeDisplay from '../molecules/TimeDisplay';
 import { useUser } from '@/contexts/UserContext';
 import { useStore } from '@/contexts/StoreContext';
@@ -15,15 +15,21 @@ import { useSessionStore } from '@/store/sessionStore';
 
 import IconButton from '../atoms/IconButton';
 import api from '@/services/api';
+import { useUIStore } from '@/store/uiStore';
+import { Menu, ShoppingCart } from 'lucide-react';
 
-export default function Header() {
+
+export default function Header({ setShowReturnModal }: { setShowReturnModal: (show: boolean) => void }) {
     const { store } = useStore();
     const { user } = useUser();
     const { activeSession, endSession, startSession } = useSessionStore();
     const { addToCart } = useCartStore();
     const [showEndShiftModal, setShowEndShiftModal] = useState(false);
-    const [showReturnModal, setShowReturnModal] = useState(false);
+
     const [showCameraScanner, setShowCameraScanner] = useState(false);
+    const { toggleSidebar, toggleMobileCart } = useUIStore();
+    const { items } = useCartStore();
+
     const handleBarcodeScan = async (barcode: string) => {
         const product = await api.getProductByBarcode(barcode);
 
@@ -59,39 +65,43 @@ export default function Header() {
 
     return (
         <>
-            <header className="bg-white border-b shadow-sm px-6 py-3 flex items-center justify-between">
+            <header className="bg-white border-b shadow-sm px-3 py-3 flex items-center justify-between">
                 {/* Left: Store & Barcode Scanner */}
                 <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-3 border-r pr-4">
-                        <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
+                    {/* Mobile Menu Button */}
+                    <button
+                        onClick={toggleSidebar}
+                        className="p-2 -ml-2 mr-2 md:hidden text-slate-600 hover:bg-slate-100 rounded-lg"
+                    >
+                        <Menu size={24} />
+                    </button>
+
+                    <div className="flex items-center gap-3 border-r pr-4 hidden xl:flex">
+                        <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 hidden sm:flex">
                             {store?.logo && <Image src={store?.logo || ''} alt={store?.name || 'Store Logo'} width={40} height={40} />}
                             {!store?.logo && <Store size={22} />}
                         </div>
-                        <div>
+                        <div className="hidden sm:block">
                             <h2 className="text-sm font-bold text-slate-800 leading-none">{store?.name || 'My Store'}</h2>
-                            <p className="text-xs text-slate-500 mt-1">
-                                Session: {activeSession?.sessionNumber || 'Loading...'}
+                            <p className="text-xs text-slate-500 mt-1" style={{ fontSize: '10px' }}>
+                                {activeSession?.sessionNumber || 'Loading...'}
                             </p>
+                        </div>
+                        {/* Mobile Store Name */}
+                        <div className="block sm:hidden">
+                            <h2 className="text-sm font-bold text-slate-800 leading-none truncate max-w-[120px]">{store?.name || 'My Store'}</h2>
                         </div>
                     </div>
 
                     {/* Barcode Input */}
-                    <div className="w-72">
-                        <BarcodeInput onScan={handleBarcodeScan} autoFocus={false} />
+                    <div className="flex-1 max-w-sm">
+                        <BarcodeInput onScan={handleBarcodeScan} autoFocus={false} setShowCameraScanner={setShowCameraScanner} />
                     </div>
 
-                    {/* Camera Scanner Button */}
-                    <IconButton
-                        icon={<Camera className="w-5 h-5" />}
-                        onClick={() => setShowCameraScanner(true)}
-                        variant="outline"
-                        title="Open camera scanner"
-                    />
-
                     {/* Quick Action Buttons */}
-                    <div className="flex items-center gap-2 border-l pl-4">
+                    <div className="flex items-center gap-2 border-l pl-4 hidden md:flex">
                         <IconButton
-                            icon={<RotateCcw className="w-5 h-5" />}
+                            icon={<ArrowRightLeft className="w-5 h-5" />}
                             onClick={() => setShowReturnModal(true)}
                             variant="outline"
                             title="Returns"
@@ -101,44 +111,57 @@ export default function Header() {
 
 
 
-                {/* Right: User Info */}
+
+                {/* Right: User Info & Cart Toggle */}
                 <div className="flex items-center gap-3">
-                    {/* Middle: Time Display */}
-                    <TimeDisplay />
-                    <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-600">
-                        <User size={20} />
+                    <div className="hidden md:flex items-center gap-3">
+                        {/* Middle: Time Display */}
+                        <TimeDisplay />
+                        <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-600">
+                            <User size={20} />
+                        </div>
+                        <div>
+                            <h2 className="text-sm font-bold text-slate-800 leading-none">
+                                {user ? `${user.firstName} ${user.lastName}` : 'Cashier'}
+                            </h2>
+                            <span className="text-[10px] text-green-600 font-bold uppercase">{user?.role?.replace('_', ' ') || 'Online'}</span>
+                        </div>
                     </div>
-                    <div>
-                        <h2 className="text-sm font-bold text-slate-800 leading-none">
-                            {user ? `${user.firstName} ${user.lastName}` : 'Cashier'}
-                        </h2>
-                        <span className="text-[10px] text-green-600 font-bold uppercase">{user?.role?.replace('_', ' ') || 'Online'}</span>
-                    </div>
+
+                    {/* Mobile Cart Toggle */}
+                    <button
+                        onClick={toggleMobileCart}
+                        className="p-2 lg:hidden text-slate-600 hover:bg-slate-100 rounded-lg relative"
+                    >
+                        <ShoppingCart size={24} />
+                        {items.length > 0 && (
+                            <span className="absolute top-1 right-1 w-4 h-4 bg-blue-600 text-white text-[10px] flex items-center justify-center rounded-full">
+                                {items.reduce((acc, item) => acc + item.quantity, 0)}
+                            </span>
+                        )}
+                    </button>
                 </div>
-            </header>
+            </header >
 
             {/* Camera Scanner Modal */}
             <BarcodeScannerModal
                 isOpen={showCameraScanner}
-                onClose={() => setShowCameraScanner(false)}
+                onClose={() => setShowCameraScanner(false)
+                }
                 onScan={handleBarcodeScan}
             />
 
             {/* End Shift Modal */}
-            {activeSession && (
-                <EndShiftModal
-                    isOpen={showEndShiftModal}
-                    onClose={() => setShowEndShiftModal(false)}
-                    session={activeSession}
-                    onSuccess={handleEndShiftSuccess}
-                />
-            )}
-
-            {/* Return Order Modal */}
-            <ReturnOrderModal
-                isOpen={showReturnModal}
-                onClose={() => setShowReturnModal(false)}
-            />
+            {
+                activeSession && (
+                    <EndShiftModal
+                        isOpen={showEndShiftModal}
+                        onClose={() => setShowEndShiftModal(false)}
+                        session={activeSession}
+                        onSuccess={handleEndShiftSuccess}
+                    />
+                )
+            }
         </>
     );
 }

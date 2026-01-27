@@ -38,7 +38,7 @@ export default function ProductGrid() {
         {
             key: '/',
             action: () => {
-                document.querySelector<HTMLInputElement>('input[type="text"]')?.focus();
+                document.querySelector<HTMLInputElement>('#search-bar')?.focus();
             },
             preventDefault: true
         }
@@ -150,7 +150,7 @@ export default function ProductGrid() {
                         <p>Try adjusting your search or category</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1  md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 pb-20">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-4 pb-20">
                         {products.map((product) => (
                             <ProductCard
                                 key={product.id}
@@ -195,11 +195,10 @@ export default function ProductGrid() {
                                         key={pageNum}
                                         onClick={() => handlePageChange(pageNum)}
                                         disabled={loading}
-                                        className={`px-3 py-1 rounded-md text-sm font-medium ${
-                                            pageNum === currentPage
-                                                ? 'bg-blue-600 text-white'
-                                                : 'border border-slate-300 hover:bg-slate-50'
-                                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                        className={`px-3 py-1 rounded-md text-sm font-medium ${pageNum === currentPage
+                                            ? 'bg-blue-600 text-white'
+                                            : 'border border-slate-300 hover:bg-slate-50'
+                                            } disabled:opacity-50 disabled:cursor-not-allowed`}
                                     >
                                         {pageNum}
                                     </button>

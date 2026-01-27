@@ -325,14 +325,14 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
             )}
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                 <motion.div
-                    initial={{ scale: 0.95, opacity: 0 }}
+                    initial={{ scale: 0.90, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.95, opacity: 0 }}
-                    className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex h-[600px]"
+                    className="bg-white rounded-2xl shadow-2xl w-full max-w-lg md:max-w-4xl overflow-y-auto flex flex-col md:flex-row h-[90vh] md:h-[600px]"
                     onClick={e => e.stopPropagation()}
                 >
                     {/* Left: Summary */}
-                    <div className="w-1/3 bg-slate-50 border-r p-6 flex flex-col">
+                    <div className="w-full md:w-1/3 bg-slate-50 border-b md:border-b-0 md:border-r p-4 md:p-6 flex flex-col h-1/3 h-full order-2 md:order-1">
                         <h3 className="font-bold text-xl mb-6 flex items-center gap-2 text-slate-800">
                             <span className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-sm font-bold">
                                 {items.length}
@@ -351,7 +351,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
                             </div>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+                        <div className="flex-1 overflow-y-auto space-y-4 pr-2 mb-2">
                             {items.map(item => {
                                 // Calculate effective price with discount
                                 let basePrice = item.basePrice;
@@ -395,7 +395,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
                             })}
                         </div>
 
-                        <div className="mt-auto space-y-2 pt-6 border-t">
+                        <div className="mt-auto space-y-2 pt-6 border-t mb-2">
                             <div className="flex justify-between text-slate-600">
                                 <span>Subtotal</span>
                                 <span>{formatPrice(subtotal)}</span>
@@ -424,8 +424,8 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
                     </div>
 
                     {/* Right: Payment */}
-                    <div className="flex-1 p-8 flex flex-col relative">
-                        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full">
+                    <div className="w-full md:flex-1 p-4 md:p-8 flex flex-col relative h-2/3 md:h-full order-1 md:order-2">
+                        <button onClick={onClose} className="absolute top-0 -right-0 p-2 hover:bg-slate-100 rounded-full z-10">
                             <X className="text-slate-500 hover:text-slate-800" />
                         </button>
 

@@ -2,11 +2,9 @@
 
 import React, { useState } from 'react';
 import { useCartStore } from '@/store/cartStore';
-import { ShoppingCart, User, ChevronRight, Package } from 'lucide-react';
+import { ShoppingCart, User, ChevronRight, Package, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import CheckoutModal from './CheckoutModal';
-import CustomerSelectionModal from './CustomerSelectionModal';
-import { HoldOrderModal } from './HoldOrderModal';
+import { useUIStore } from '@/store/uiStore';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useStore } from '@/contexts/StoreContext';
@@ -24,9 +22,7 @@ export default function CartPanel() {
     const subtotal = getSubtotal();
     const taxTotal = getTaxTotal();
 
-    const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-    const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
-    const [isHoldOrderOpen, setIsHoldOrderOpen] = useState(false);
+    const { closeMobileCart, openCheckout, openCustomerModal, openHoldOrder } = useUIStore();
 
     // Global Shortcuts
     useKeyboardShortcuts([
@@ -34,19 +30,19 @@ export default function CartPanel() {
             key: 'Enter',
             ctrlKey: true,
             action: () => {
-                if (items.length > 0 && allowQuickCheckout) setIsCheckoutOpen(true);
+                if (items.length > 0 && allowQuickCheckout) openCheckout();
             }
         },
         {
             key: 'F3',
             action: () => {
-                if (items.length > 0) setIsHoldOrderOpen(true);
+                if (items.length > 0) openHoldOrder();
             }
         }
     ]);
 
     return (
-        <div className="flex flex-col h-full bg-white border-l shadow-xl w-[400px]">
+        <div className="flex flex-col h-full bg-white border-l shadow-xl w-full">
             {/* Cart Header */}
             <div className="p-4 border-b flex items-center justify-between bg-white shrink-0">
                 <div className="flex items-center gap-2 text-slate-800">
@@ -56,6 +52,16 @@ export default function CartPanel() {
                         {items.reduce((acc, item) => acc + item.quantity, 0)}
                     </Badge>
                 </div>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={closeMobileCart}
+                    className="text-slate-500 hover:bg-slate-100"
+                >
+                    <X size={20} className="lg:hidden" />
+                </Button>
                 <Button
                     variant="ghost"
                     size="sm"
@@ -70,7 +76,7 @@ export default function CartPanel() {
             {/* Customer Selector */}
             <div
                 className="px-4 py-3 border-b bg-slate-50 flex items-center justify-between cursor-pointer hover:bg-slate-100 transition-colors"
-                onClick={() => setIsCustomerModalOpen(true)}
+                onClick={openCustomerModal}
             >
                 <div className="flex items-center gap-3 text-slate-600">
                     <Avatar
@@ -131,7 +137,7 @@ export default function CartPanel() {
                     variant="primary"
                     className="w-full h-14 text-lg flex items-center justify-center gap-2"
                     disabled={items.length === 0}
-                    onClick={() => setIsCheckoutOpen(true)}
+                    onClick={openCheckout}
                 >
                     Pay {formatPrice(total)}
                     {allowQuickCheckout && <span className="text-xs bg-black/20 px-2 py-0.5 rounded font-mono font-normal">Ctrl+Enter</span>}
@@ -140,7 +146,7 @@ export default function CartPanel() {
                     variant="outline"
                     className="w-full h-12 flex items-center justify-center gap-2 text-sm mt-2"
                     disabled={items.length === 0}
-                    onClick={() => setIsHoldOrderOpen(true)}
+                    onClick={openHoldOrder}
                     title="Hold Current Order (F3)"
                 >
                     <Package className="w-4 h-4" />
@@ -148,26 +154,6 @@ export default function CartPanel() {
                 </Button>
             </div>
 
-            {/* Checkout Modal */}
-            <CheckoutModal
-                isOpen={isCheckoutOpen}
-                onClose={() => setIsCheckoutOpen(false)}
-                onSuccess={() => {
-                    // Handle global success (e.g. show toast)
-                    // Modal handles local success state/print
-                }}
-            />
-
-            <CustomerSelectionModal
-                isOpen={isCustomerModalOpen}
-                onClose={() => setIsCustomerModalOpen(false)}
-                onSelect={(customer) => setCustomer(customer)}
-            />
-
-            <HoldOrderModal
-                isOpen={isHoldOrderOpen}
-                onClose={() => setIsHoldOrderOpen(false)}
-            />
         </div>
     );
 }
