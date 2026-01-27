@@ -42,7 +42,7 @@ class POCApiService {
     /**
      * Search products
      */
-    async getProducts(categoryId?: string, search?: string): Promise<Product[]> {
+    async getProducts(categoryId?: string, search?: string, page?: number, limit?: number): Promise<{ products: Product[], pagination: { total: number, page: number, limit: number, pages: number } }> {
         // Using main products API
         let url = '/products';
 
@@ -53,6 +53,12 @@ class POCApiService {
         if (categoryId) {
             params.push(`categoryId=${categoryId}`);
         }
+        if (page && page > 0) {
+            params.push(`page=${page}`);
+        }
+        if (limit && limit > 0) {
+            params.push(`limit=${limit}`);
+        }
 
         if (params.length > 0) {
             url += '?' + params.join('&');
@@ -60,7 +66,10 @@ class POCApiService {
 
         const response = await apiClient.get(url);
         const products = response.data.products || [];
-        return this.transformProducts(products);
+        return {
+            products: this.transformProducts(products),
+            pagination: response.data.pagination || { total: 0, page: 1, limit: 100, pages: 0 }
+        };
     }
 
     /**
