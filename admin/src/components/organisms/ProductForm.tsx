@@ -120,6 +120,7 @@ const schema = z.object({
         attributes: z.record(z.string()),
         price: z.number(),
         salePrice: z.number().optional(),
+        costPrice: z.number().optional(),
         stock: z.number(),
         images: z.array(z.string()).optional(),
         weight: z.number().optional(),

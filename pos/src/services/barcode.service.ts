@@ -128,19 +128,19 @@ class BarcodeService {
       const containerWidth = container.offsetWidth || 640;
       const containerHeight = container.offsetHeight || 480;
       
-      const qrboxWidth = Math.min(containerWidth * 0.8, 400);
-      const qrboxHeight = Math.min(containerHeight * 0.3, 150);
+      const qrboxWidth = Math.min(containerWidth * 0.8, 500);
+      const qrboxHeight = Math.min(containerHeight * 1.3, 300);
 
       await this.scanner.start(
         cameraId,
         {
-          fps: 15, // Higher FPS for better detection
+          fps: 60, // Higher FPS for better detection
           qrbox: { 
             width: qrboxWidth, 
             height: qrboxHeight 
           },
           aspectRatio: containerWidth / containerHeight,
-          disableFlip: false,
+          disableFlip: true,
         },
         (decodedText, decodedResult) => {
           const now = Date.now();

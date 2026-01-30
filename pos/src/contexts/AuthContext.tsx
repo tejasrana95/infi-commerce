@@ -6,6 +6,7 @@ import { useUser } from './UserContext';
 import { useStore } from './StoreContext';
 import { useSessionStore } from '@/store/sessionStore';
 import { User } from '@/types';
+import { syncScheduler } from '@/services/syncScheduler.service';
 
 interface AuthContextType {
     isAuthenticated: boolean;
@@ -29,8 +30,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const storedToken = localStorage.getItem('pos_auth_token');
         if (storedToken) {
             setToken(storedToken);
+            syncScheduler.start();
         }
         setLoading(false);
+
+        return () => {
+            syncScheduler.stop();
+        };
     }, []);
 
     const login = useCallback((newToken: string, user: User, storeId: string) => {
@@ -44,6 +50,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Save store ID
         localStorage.setItem('pos_store_id', storeId);
+
+        // Start sync scheduler
+        syncScheduler.start();
     }, [setUser]);
 
     const logout = useCallback(() => {
@@ -59,6 +68,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Clear session store
         useSessionStore.getState().logout();
+
+        // Stop sync scheduler
+        syncScheduler.stop();
 
         // Redirect to login
         router.push('/login');

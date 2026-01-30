@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react';
 import SettingsSection from '@/components/molecules/SettingsSection';
-import { Keyboard, Save } from 'lucide-react';
+import { Keyboard, Save, Wifi } from 'lucide-react';
 import Button from '@/components/atoms/Button';
+import { SyncSettings } from '@/components/SyncSettings';
 
-type Tab = 'shortcuts' | 'preferences';
+type Tab = 'shortcuts' | 'preferences' | 'sync';
 
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<Tab>('shortcuts');
@@ -18,6 +19,7 @@ export default function SettingsPage() {
 
     const tabs = [
         { id: 'shortcuts' as Tab, label: 'Keyboard Shortcuts', icon: Keyboard },
+        { id: 'sync' as Tab, label: 'Offline & Sync', icon: Wifi },
     ];
 
     return (
@@ -90,6 +92,9 @@ export default function SettingsPage() {
                                     </div>
                                 </SettingsSection>
                             </div>
+                        )}
+                        {activeTab === 'sync' && (
+                            <SyncSettings />
                         )}
                     </div>
                 </div>

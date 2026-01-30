@@ -3,6 +3,7 @@ import posController from '../controllers/pos.controller';
 import { authenticate, authorize } from '../middleware/auth';
 import Product from '../models/Product';
 import posPaymentRoutes from './pos-payment.routes';
+import posSyncController from '../controllers/pos-sync.controller';
 
 const router = Router();
 
@@ -12,6 +13,9 @@ router.use(authorize('pos_user', 'store_admin', 'super_admin'));
 
 // Mount POS Payment Routes (e.g. /api/pos/payment/qr)
 router.use('/payment', posPaymentRoutes);
+
+// Sync Status
+router.get('/sync-status', posSyncController.getSyncStatus);
 
 // Session Management
 router.post('/session/start', posController.startSession);

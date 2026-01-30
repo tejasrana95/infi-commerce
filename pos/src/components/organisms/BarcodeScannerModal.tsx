@@ -67,7 +67,7 @@ export function BarcodeScannerModal({ isOpen, onClose, onScan }: BarcodeScannerM
             setScannedHistory([]);
             setTotalScanned(0);
             setLastScanned(null);
-            
+
             // Small delay to ensure DOM is ready
             const timer = setTimeout(() => {
                 startScanning();
@@ -85,7 +85,7 @@ export function BarcodeScannerModal({ isOpen, onClose, onScan }: BarcodeScannerM
     const handleScanSuccess = async (barcode: string) => {
         // Temporarily pause scanning to process
         setScanning(false);
-        
+
         const scannedItem: ScannedItem = {
             barcode,
             timestamp: new Date(),
@@ -94,10 +94,8 @@ export function BarcodeScannerModal({ isOpen, onClose, onScan }: BarcodeScannerM
 
         try {
             const result = await onScan(barcode);
-            
             scannedItem.success = true;
             scannedItem.productName = result?.productName;
-            
             setLastScanned(scannedItem);
             setScannedHistory(prev => [scannedItem, ...prev].slice(0, 10)); // Keep last 10
             setTotalScanned(prev => prev + 1);
@@ -111,10 +109,10 @@ export function BarcodeScannerModal({ isOpen, onClose, onScan }: BarcodeScannerM
         } catch (err) {
             scannedItem.success = false;
             scannedItem.error = err instanceof Error ? err.message : 'Product not found';
-            
+
             // Play error sound
-           sounds.error();
-            
+            sounds.error();
+
             setLastScanned(scannedItem);
             setScannedHistory(prev => [scannedItem, ...prev].slice(0, 10));
 
@@ -183,7 +181,7 @@ export function BarcodeScannerModal({ isOpen, onClose, onScan }: BarcodeScannerM
 
                     <div className="flex flex-col lg:flex-row">
                         {/* Scanner Container */}
-                        <div 
+                        <div
                             ref={containerRef}
                             className="relative bg-black flex-1"
                             style={{ minHeight: '400px' }}
@@ -198,8 +196,8 @@ export function BarcodeScannerModal({ isOpen, onClose, onScan }: BarcodeScannerM
                             />
 
                             {/* Scanner will render here via html5-qrcode */}
-                            <div 
-                                id="barcode-scanner-container" 
+                            <div
+                                id="barcode-scanner-container"
                                 className="w-full h-full"
                                 style={{ minHeight: '400px' }}
                             />
@@ -240,9 +238,8 @@ export function BarcodeScannerModal({ isOpen, onClose, onScan }: BarcodeScannerM
                                 <motion.div
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className={`absolute inset-0 flex items-center justify-center ${
-                                        lastScanned.success ? 'bg-green-500/90' : 'bg-red-500/90'
-                                    } backdrop-blur-sm`}
+                                    className={`absolute inset-0 flex items-center justify-center ${lastScanned.success ? 'bg-green-500/90' : 'bg-red-500/90'
+                                        } backdrop-blur-sm`}
                                 >
                                     <div className="text-white text-center">
                                         <motion.div

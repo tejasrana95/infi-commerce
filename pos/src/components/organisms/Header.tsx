@@ -17,6 +17,9 @@ import IconButton from '../atoms/IconButton';
 import api from '@/services/api';
 import { useUIStore } from '@/store/uiStore';
 import { Menu, ShoppingCart } from 'lucide-react';
+import { SyncStatus } from '../SyncStatus';
+import { productCacheService } from '@/services/productCache.service';
+import { Product } from '@/types';
 
 
 export default function Header({ setShowReturnModal }: { setShowReturnModal: (show: boolean) => void }) {
@@ -31,7 +34,39 @@ export default function Header({ setShowReturnModal }: { setShowReturnModal: (sh
     const { items } = useCartStore();
 
     const handleBarcodeScan = async (barcode: string) => {
-        const product = await api.getProductByBarcode(barcode);
+        let product: Product | undefined;
+        try {
+            // 1. Check Offline Cache First
+            const cachedProduct = await productCacheService.getProductByBarcode(barcode);
+
+            if (cachedProduct) {
+                // Map IndexedDBProduct to Product
+                product = {
+                    id: cachedProduct.id,
+                    name: cachedProduct.name,
+                    sku: cachedProduct.sku,
+                    barcode: cachedProduct.barcode,
+                    price: cachedProduct.salePrice || cachedProduct.price,
+                    salePrice: cachedProduct.salePrice,
+                    stock: cachedProduct.stock,
+                    image: cachedProduct.image,
+                    type: cachedProduct.type,
+                    categoryIds: cachedProduct.categoryIds,
+                    variants: cachedProduct.variants,
+                    taxRate: cachedProduct.taxRate,
+                    taxAmount: cachedProduct.taxAmount,
+                    productOptions: cachedProduct.productOptions,
+                    // attributes: cachedProduct.productOptions // Optional: map attributes if needed for UI
+                };
+            }
+        } catch (err) {
+            console.warn('Local product lookup failed:', err);
+        }
+
+        // 2. Fallback to API if not found locally
+        if (!product) {
+            product = await api.getProductByBarcode(barcode);
+        }
 
         if (!product) {
             throw new Error('Product not found');
@@ -116,6 +151,7 @@ export default function Header({ setShowReturnModal }: { setShowReturnModal: (sh
                 <div className="flex items-center gap-3">
                     <div className="hidden md:flex items-center gap-3">
                         {/* Middle: Time Display */}
+                        <SyncStatus />
                         <TimeDisplay />
                         <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-600">
                             <User size={20} />

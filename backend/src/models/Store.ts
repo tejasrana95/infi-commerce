@@ -320,6 +320,8 @@ export interface IStore extends Document {
 
     createdAt: Date;
     updatedAt: Date;
+    lastProductModified?: Date;
+    lastCategoryModified?: Date;
 }
 
 const StoreSchema = new Schema<IStore>(
@@ -569,6 +571,16 @@ const StoreSchema = new Schema<IStore>(
                     qrLabel: { type: String, default: 'Scan to Pay' },
                 },
             },
+        },
+        lastProductModified: {
+            type: Date,
+            default: Date.now,
+            index: true,
+        },
+        lastCategoryModified: {
+            type: Date,
+            default: Date.now,
+            index: true,
         },
     },
     {

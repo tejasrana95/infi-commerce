@@ -10,6 +10,7 @@ import { asyncHandler, AppError } from '../middleware/validation';
 import { calculatePricing, calculateTaxBreakdown } from '../utils/pricing.utils';
 import { addTimezoneAwareDates } from '../utils/date.utils';
 import { escapeRegExp, getSearchSuggestions } from '../utils/search.utils';
+import { updateProductSyncTimestamp } from '../utils/sync-timestamp.utils';
 
 // Helper function to transform product options for frontend
 export function transformProductOptions(product: any) {
@@ -227,6 +228,8 @@ export const createProduct = asyncHandler(async (req: AuthRequest, res: Response
     // Create product
     const product = await Product.create(productData);
 
+    await updateProductSyncTimestamp(product.storeId.toString());
+
     res.status(201).json({
         message: 'Product created successfully',
         product,
@@ -322,6 +325,10 @@ export const createProduct = asyncHandler(async (req: AuthRequest, res: Response
  *         description: Products retrieved with active filters metadata
  */
 export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const userRole = req.user?.role;
+    const isAdmin = userRole && (userRole === 'admin' || userRole === 'store_admin' || userRole === 'super_admin');
+    const removeProductCost = !isAdmin ? '-costPrice -variants.costPrice' : '';
+    
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 100;
     const skip = (page - 1) * limit;
@@ -697,6 +704,7 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
     // Get products with pagination
     const [products, total] = await Promise.all([
         Product.find(filter)
+            .select('-__v ' + removeProductCost)
             .populate('storeId', 'name slug domain')
             .populate('categoryIds', 'title slug')
             .populate('attributes.attributeId', 'name slug type values')
@@ -819,7 +827,12 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
  *         description: Product not found
  */
 export const getProductById = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const product = await Product.findById(req.params.id)
+    const userRole = req.user?.role;
+    const isAdmin = userRole && (userRole === 'admin' || userRole === 'store_admin' || userRole === 'super_admin');
+    const removeProductCost = !isAdmin ? '-costPrice -variants.costPrice' : '';
+
+    const product = await Product. findById(req.params.id)
+        .select(`-__v ${removeProductCost}`)
         .populate('storeId', 'name slug domain timezone')
         .populate('categoryIds', 'title slug path')
         .populate('attributes.attributeId', 'name slug type values')
@@ -1030,6 +1043,8 @@ export const updateProduct = asyncHandler(async (req: AuthRequest, res: Response
     Object.assign(product, updates);
     await product.save();
 
+    await updateProductSyncTimestamp(product.storeId.toString());
+
     res.json({
         message: 'Product updated successfully',
         product,
@@ -1069,6 +1084,8 @@ export const deleteProduct = asyncHandler(async (req: AuthRequest, res: Response
     if (!product) {
         throw new AppError('Product not found', 404);
     }
+
+    await updateProductSyncTimestamp(product.storeId.toString());
 
     res.json({
         message: 'Product deleted successfully',
@@ -1293,6 +1310,8 @@ export const updateStock = asyncHandler(async (req: AuthRequest, res: Response) 
     if (stockStatus) product.stockStatus = stockStatus;
 
     await product.save();
+
+    await updateProductSyncTimestamp(product.storeId.toString());
 
     res.json({
         message: 'Stock updated successfully',

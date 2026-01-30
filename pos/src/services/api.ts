@@ -1,5 +1,8 @@
 import apiClient from '@/lib/apiClient';
 import { Category, Order, Product } from '../types';
+import { productCacheService } from './productCache.service';
+import { categoryCacheService } from './categoryCache.service';
+import { indexedDBService } from './indexedDB.service';
 
 class POCApiService {
     private storeId: string = '';
@@ -26,27 +29,109 @@ class POCApiService {
      * Get categories for POC
      */
     async getCategories(): Promise<Category[]> {
-        // Using main categories API
-        const response = await apiClient.get('/categories');
-        const categories = response.data.categories || [];
+        // Try getting from cache first
+        try {
+            const cachedCategories = await categoryCacheService.getAllCategories();
+            if (cachedCategories.length > 0) {
+                return cachedCategories.map(cat => ({
+                    id: cat.id,
+                    name: cat.name,
+                    slug: cat.slug,
+                    image: cat.image,
+                    parentCategory: cat.parentCategory,
+                }));
+            }
+        } catch (error) {
+            console.warn('Failed to get categories from cache, falling back to network', error);
+        }
 
-        return categories.map((cat: any) => ({
-            id: cat._id,
-            name: cat.title, // Mapping title to name
-            slug: cat.slug,
-            image: cat.image,
-            parentCategory: cat.parentCategory,
-        }));
+        // Fallback to API
+        try {
+            const response = await apiClient.get('/categories');
+            const categories = response.data.categories || [];
+
+            return categories.map((cat: any) => ({
+                id: cat._id,
+                name: cat.title, // Mapping title to name
+                slug: cat.slug,
+                image: cat.image,
+                parentCategory: cat.parentCategory,
+            }));
+        } catch (error) {
+            console.error('Failed to categories from API', error);
+            // If API fails and we have nothing, return empty
+            return [];
+        }
     }
 
     /**
      * Search products
      */
-    async getProducts(categoryId?: string, search?: string, page?: number, limit?: number): Promise<{ products: Product[], pagination: { total: number, page: number, limit: number, pages: number } }> {
-        // Using main products API
+    async getProducts(categoryId?: string, search?: string, page: number = 1, limit: number = 20): Promise<{ products: Product[], pagination: { total: number, page: number, limit: number, pages: number } }> {
+        // Try getting from cache first if simple query
+        // Complex filtering might still need API if cache doesn't support it fully yet,
+        // but our cache service supports search and category filter.
+        try {
+            let cachedResult;
+
+            if (categoryId) {
+
+                // If special "all-products" category, treat as no category filter
+                if (categoryId === 'all-products') {
+                    cachedResult = await productCacheService.searchProducts(search || '');
+                } else {
+                    cachedResult = await productCacheService.getProductsByCategory(categoryId);
+                    // If search is also present, filter the category results (in-memory filter)
+                    // This is efficiently handled by getProductsByCategory's underlying logic if expanded, 
+                    // but for now we just filter the result array if needed or trust the service.
+                    // Actually productCacheService.getProductsByCategory doesn't take a search query.
+                    // So we should filter manually if search is present.
+                    if (search) {
+                        const lowerSearch = search.toLowerCase();
+                        cachedResult = cachedResult.filter(p => p.searchText.includes(lowerSearch));
+                    }
+                }
+            } else {
+                cachedResult = await productCacheService.searchProducts(search || '');
+            }
+
+            if (cachedResult && cachedResult.length > 0) {
+                // Pagination simulation
+                const total = cachedResult.length;
+                const start = (page - 1) * limit;
+                const paginatedItems = cachedResult.slice(start, start + limit);
+
+                return {
+                    products: this.transformIndexedDBProducts(paginatedItems),
+                    pagination: {
+                        total,
+                        page,
+                        limit,
+                        pages: Math.ceil(total / limit)
+                    }
+                };
+            } else if (await productCacheService.getProductCount() > 0) {
+                // If we have products in cache but result is empty, it means no match.
+                // We should still return empty result from cache instead of hitting API 
+                // IF we trust our cache is up to date (sync service handles that).
+                // However, user might want to force fetch match from server?
+                // For "offline-first", we trust cache.
+                return {
+                    products: [],
+                    pagination: { total: 0, page, limit, pages: 0 }
+                };
+            }
+        } catch (error) {
+            console.warn('Cache lookup failed, falling back to API', error);
+        }
+
+        // Fallback to API
         let url = '/products';
 
         const params: string[] = [];
+        // Add isActive=true to match what we sync
+        params.push('isActive=true');
+
         if (search) {
             params.push(`search=${encodeURIComponent(search)}`);
         }
@@ -64,18 +149,36 @@ class POCApiService {
             url += '?' + params.join('&');
         }
 
-        const response = await apiClient.get(url);
-        const products = response.data.products || [];
-        return {
-            products: this.transformProducts(products),
-            pagination: response.data.pagination || { total: 0, page: 1, limit: 100, pages: 0 }
-        };
+        try {
+            const response = await apiClient.get(url);
+            const products = response.data.products || [];
+            return {
+                products: this.transformProducts(products),
+                pagination: response.data.pagination || { total: 0, page: 1, limit: 100, pages: 0 }
+            };
+        } catch (error) {
+            console.error('API fetch failed', error);
+            throw error;
+        }
     }
 
     /**
      * Get product by barcode or SKU
      */
     async getProductByBarcode(code: string): Promise<Product | undefined> {
+        // Try cache first
+        try {
+            const cachedProduct = await productCacheService.getProductBySku(code);
+            console.log('cachedProduct', cachedProduct);
+            if (cachedProduct) {
+                // transform and return
+                const products = this.transformIndexedDBProducts([cachedProduct]);
+                return products[0];
+            }
+        } catch (error) {
+            console.warn('Cache lookup by barcode failed', error);
+        }
+
         try {
             // Using main products API with barcode search (which I just added)
             // We search for exact code
@@ -432,6 +535,50 @@ class POCApiService {
                         image: v.images?.[0],
                     };
                 }),
+            };
+        });
+    }
+
+    private transformIndexedDBProducts(products: import('./indexedDB.service').IndexedDBProduct[]): Product[] {
+        return products.map(p => {
+            // We stored raw data, need to calculate prices if not pre-calculated
+            // Our IndexedDBProduct interface stores basic fields.
+            // We need to match frontend Product type.
+
+            // Simplification: In sync service we stored variants with full structure?
+            // Checking sync service: yes, we stored p.variants.
+
+            return {
+                id: p.id,
+                name: p.name,
+                sku: p.sku,
+                barcode: p.barcode || p.sku,
+                price: p.salePrice || p.price, // Display price
+                salePrice: p.salePrice,
+                taxRate: p.taxRate || 0,
+                taxAmount: p.taxAmount || 0,
+                stock: p.stock,
+                image: p.image || '',
+                type: p.type as any,
+                categoryIds: p.categoryIds,
+                // reconstruct attributes from options if possible, or just pass empty for cached items if not strictly needed
+                attributes: p.productOptions?.map((opt: any) => ({
+                    id: opt.optionId?._id?.toString() || opt.optionId?.toString() || 'Attribute',
+                    name: opt.optionId?.name || 'Attribute',
+                    options: opt.values,
+                })),
+                productOptions: p.productOptions,
+                variants: p.variants?.map((v: any) => ({
+                    id: v._id || v.sku, // syncing keeps _id inside variant object
+                    sku: v.sku,
+                    barcode: v.barcode || v.sku,
+                    attributes: v.attributes || {},
+                    price: v.salePrice || v.price, // prefer sale price
+                    taxRate: v.taxRate || p.taxRate || 0, // Fallback to product tax rate
+                    taxAmount: 0, // Should be calculated or stored
+                    stock: v.stock,
+                    image: v.images?.[0],
+                }))
             };
         });
     }

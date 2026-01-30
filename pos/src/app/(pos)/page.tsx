@@ -5,9 +5,32 @@ import ProductGrid from '@/components/organisms/ProductGrid';
 import CartPanel from '@/components/organisms/CartPanel';
 import { useUIStore } from '@/store/uiStore';
 import { cn } from '@/lib/utils';
+import { useDataLoader } from '@/hooks/useDataLoader';
+import { useSyncStore } from '@/store/syncStore';
 
 export default function Page() {
     const { isMobileCartOpen, closeMobileCart } = useUIStore();
+    const { isLoading } = useDataLoader();
+    const { productCount, categoryCount, isSyncingProducts, isSyncingCategories } = useSyncStore();
+
+    if (isLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center h-full bg-gray-50">
+                <div className="text-center">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mb-4"></div>
+                    <h2 className="text-xl font-semibold text-gray-800 mb-2">Initializing POS...</h2>
+                    <p className="text-gray-500 mb-4">Please wait while we prepare your store.</p>
+
+                    {(isSyncingProducts || isSyncingCategories) && (
+                        <div className="text-sm text-gray-400">
+                            {isSyncingProducts && <div>Syncing products ({productCount})...</div>}
+                            {isSyncingCategories && <div>Syncing categories ({categoryCount})...</div>}
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex h-full relative">

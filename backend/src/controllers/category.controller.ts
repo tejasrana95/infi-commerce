@@ -10,6 +10,7 @@ import { CACHE_TTL } from '../utils/cache-keys';
 import { invalidateCategoryCache } from '../utils/cache-invalidation';
 import { triggerRevalidation } from '../utils/revalidation';
 import { escapeRegExp } from '../utils/search.utils';
+import { updateCategorySyncTimestamp } from '../utils/sync-timestamp.utils';
 
 // Validation rules
 export const createCategoryValidation = [
@@ -173,6 +174,8 @@ export const createCategory = asyncHandler(async (req: AuthRequest, res: Respons
 
     // Invalidate store categories cache
     await invalidateCategoryCache(storeId);
+
+    await updateCategorySyncTimestamp(storeId.toString());
 });
 
 /**
@@ -562,6 +565,8 @@ export const updateCategory = asyncHandler(async (req: AuthRequest, res: Respons
         message: 'Category updated successfully',
         category,
     });
+
+    await updateCategorySyncTimestamp(category.storeId.toString());
 });
 
 /**
@@ -610,6 +615,8 @@ export const deleteCategory = asyncHandler(async (req: AuthRequest, res: Respons
 
     // Invalidate store categories cache
     await invalidateCategoryCache(category.storeId.toString());
+
+    await updateCategorySyncTimestamp(category.storeId.toString());
 
     return res.json({
         message: 'Category deleted successfully',

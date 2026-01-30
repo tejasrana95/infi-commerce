@@ -15,18 +15,18 @@ import {
     cloneProduct,
     getSearchFilters
 } from '../controllers/product.controller';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate, authorize, optionalAuth } from '../middleware/auth';
 import { validate } from '../middleware/validation';
 
 const router = Router();
 
 // Public routes
-router.get('/', getProducts);
+router.get('/', optionalAuth, getProducts);
 router.get('/featured', getFeaturedProducts);
 router.get('/on-sale', getOnSaleProducts);
 router.get('/search/filters', getSearchFilters);
-router.get('/:id', getProductById);
-router.get('/slug/:storeId/:slug', getProductBySlug);
+router.get('/:id', optionalAuth, getProductById);
+router.get('/slug/:storeId/:slug', optionalAuth, getProductBySlug);
 router.post('/:id/check-shipping', checkShipping);
 
 // Protected routes (admin only)
