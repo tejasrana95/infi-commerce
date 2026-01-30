@@ -96,6 +96,46 @@ export const TEMPLATE_TYPES = {
         label: 'Admin: New Customer',
         description: 'Sent to admin when a new customer registers',
         variables: ['email', 'firstName', 'phone', 'storeName'],
+    },
+    return_created: {
+        label: 'Return Requested',
+        description: 'Sent to customer when they request a return',
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'returnItems', 'status', 'storeName'],
+    },
+    return_approved: {
+        label: 'Return Approved',
+        description: 'Sent to customer when return is approved',
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'status', 'storeName'],
+    },
+    return_rejected: {
+        label: 'Return Rejected',
+        description: 'Sent to customer when return is rejected',
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'status', 'adminNote', 'storeName'],
+    },
+    return_received: {
+        label: 'Return Received',
+        description: 'Sent to customer when returned items are received',
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'status', 'storeName'],
+    },
+    return_refunded: {
+        label: 'Return Refunded',
+        description: 'Sent to customer when refund is processed for return',
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'amount', 'storeName'],
+    },
+    return_partially_refunded: {
+        label: 'Return Partially Refunded',
+        description: 'Sent to customer when partial refund is processed',
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'amount', 'storeName'],
+    },
+    return_exchange_shipped: {
+        label: 'Exchange Shipped',
+        description: 'Sent when exchange items are shipped',
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'trackingNumber', 'trackingUrl', 'storeName'],
+    },
+    return_completed: {
+        label: 'Return Completed',
+        description: 'Sent when return process is closed',
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'storeName'],
     }
 } as const;
 
@@ -671,6 +711,123 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         name: 'Order Shipped Telegram',
         textContent: 'Hi {{firstName}}, your order #<b>{{orderNumber}}</b> from {{storeName}} has been shipped! Track here: {{trackingUrl}}',
         variables: ['firstName', 'orderNumber', 'storeName', 'trackingUrl'],
+    },
+
+
+    // ============================================
+    // Return Notifications
+    // ============================================
+    {
+        type: 'return_created',
+        channel: 'email',
+        name: 'Return Request Confirmation',
+        subject: 'Return Request Received - {{requestNumber}}',
+        htmlContent: `
+<!DOCTYPE html>
+<html>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h2>Return Request Received</h2>
+    <p>Hi {{firstName}},</p>
+    <p>We have received your return request for Order <strong>#{{orderNumber}}</strong>.</p>
+    <p><strong>Request Number:</strong> {{requestNumber}}</p>
+    <p><strong>Status:</strong> {{status}}</p>
+    
+    {{{returnItems}}}
+
+    <p>We will review your request and get back to you shortly.</p>
+    <p>Best regards,<br>{{storeName}}</p>
+</body>
+</html>`,
+        textContent: 'Hi {{firstName}}, we received your return request {{requestNumber}} for order {{orderNumber}}. Status: {{status}}',
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'returnItems', 'status', 'storeName'],
+    },
+    {
+        type: 'return_approved',
+        channel: 'email',
+        name: 'Return Approved',
+        subject: 'Return Request Approved - {{requestNumber}}',
+        htmlContent: `
+<!DOCTYPE html>
+<html>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h2>Return Request Approved</h2>
+    <p>Hi {{firstName}},</p>
+    <p>Good news! Your return request <strong>{{requestNumber}}</strong> for Order #{{orderNumber}} has been approved.</p>
+    <p>Please follow the instructions provided to ship your items back to us.</p>
+    <p>Best regards,<br>{{storeName}}</p>
+</body>
+</html>`,
+        textContent: 'Hi {{firstName}}, your return request {{requestNumber}} has been submitted. Please ship items back.',
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'storeName'],
+    },
+    {
+        type: 'return_rejected',
+        channel: 'email',
+        name: 'Return Rejected',
+        subject: 'Update on Return Request - {{requestNumber}}',
+        htmlContent: `
+<!DOCTYPE html>
+<html>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h2>Return Request Update</h2>
+    <p>Hi {{firstName}},</p>
+    <p>Regarding your return request <strong>{{requestNumber}}</strong> for Order #{{orderNumber}}.</p>
+    <p>Unfortunately, we cannot approve your return request at this time.</p>
+    
+    {{#if adminNote}}
+    <div style="background: #f9f9f9; padding: 15px; border-left: 4px solid #e53e3e; margin: 15px 0;">
+        <strong>Reason:</strong> {{adminNote}}
+    </div>
+    {{/if}}
+
+    <p>If you have questions, please reply to this email.</p>
+    <p>Best regards,<br>{{storeName}}</p>
+</body>
+</html>`,
+        textContent: 'Hi {{firstName}}, your return request {{requestNumber}} has been rejected. {{#if adminNote}}Reason: {{adminNote}}{{/if}}',
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'adminNote', 'storeName'],
+    },
+    {
+        type: 'return_refunded',
+        channel: 'email',
+        name: 'Return Refunded',
+        subject: 'Refund Processed - {{requestNumber}}',
+        htmlContent: `
+<!DOCTYPE html>
+<html>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h2>Refund Processed</h2>
+    <p>Hi {{firstName}},</p>
+    <p>We have processed a refund regarding return request <strong>{{requestNumber}}</strong> for Order #{{orderNumber}}.</p>
+    <p>The amount should reflect in your account shortly.</p>
+    <p>Best regards,<br>{{storeName}}</p>
+</body>
+</html>`,
+        textContent: 'Hi {{firstName}}, refund for request {{requestNumber}} (Order {{orderNumber}}) has been processed.',
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'storeName'],
+    },
+    {
+        type: 'admin_return_requested',
+        channel: 'email',
+        name: 'Admin: Return Requested',
+        subject: '[New Return] {{requestNumber}} from {{customerName}}',
+        htmlContent: `
+<!DOCTYPE html>
+<html>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h2>New Return Request</h2>
+    <p><strong>Request:</strong> {{requestNumber}}</p>
+    <p><strong>Order:</strong> #{{orderNumber}}</p>
+    <p><strong>Customer:</strong> {{customerName}}</p>
+    <p><strong>Type:</strong> {{type}}</p>
+    <p><strong>Items:</strong></p>
+    {{{items_table}}}
+    
+    <p><a href="{{storeUrl}}/admin/returns/{{requestNumber}}" style="padding: 10px 20px; background: #000; color: #fff; text-decoration: none; border-radius: 5px;">View Return</a></p>
+</body>
+</html>`,
+        textContent: 'New Return Request {{requestNumber}} from {{customerName}}. Order #{{orderNumber}}.',
+        variables: ['requestNumber', 'orderNumber', 'customerName', 'type', 'items_table', 'storeName'],
     },
 
     // ============================================

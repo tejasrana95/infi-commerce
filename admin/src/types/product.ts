@@ -109,6 +109,7 @@ export interface Product {
     shortDescription?: string;
     type: 'simple' | 'variable' | 'digital';
     sku: string;
+    hsnCode?: string;
 
     // Pricing
     price: number;

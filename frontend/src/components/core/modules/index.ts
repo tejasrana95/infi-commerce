@@ -47,6 +47,8 @@ import AccountDashboardModule from './account/AccountDashboard';
 import AccountOrdersModule from './account/AccountOrders';
 import AccountProfileModule from './account/AccountProfile';
 import AccountAddressesModule from './account/AccountAddresses';
+import AccountReturnsModule from './account/AccountReturns';
+import AccountReturnDetailsModule from './account/AccountReturnDetails';
 
 // Blog Modules
 import BlogHeroModule from './blog/BlogHero';
@@ -130,6 +132,8 @@ export const moduleRegistry: Record<string, ModuleComponent> = {
     'account-orders': AccountOrdersModule,
     'account-profile': AccountProfileModule,
     'account-addresses': AccountAddressesModule,
+    'account-returns': AccountReturnsModule,
+    'account-return-details': AccountReturnDetailsModule,
 };
 
 /**

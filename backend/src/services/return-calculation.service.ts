@@ -159,9 +159,9 @@ export class ReturnCalculationService {
         const alreadyRefunded = orderDetails.items.reduce((sum, item) => {
             return sum + (item.refundedAmount || 0);
         }, 0);
-        
+
         const maxRefundable = orderDetails.total - alreadyRefunded;
-        
+
         if (refundAmount > maxRefundable + 0.01) { // Small tolerance for rounding
             console.warn(
                 `Refund amount ${refundAmount.toFixed(2)} exceeds max refundable ${maxRefundable.toFixed(2)}. Capping.`
@@ -181,6 +181,64 @@ export class ReturnCalculationService {
                 tax: parseFloat(totalTax.toFixed(2)),
                 total: parseFloat(refundAmount.toFixed(2)),
             },
+        };
+    }
+
+    /**
+     * Calculate refund for a single item
+     * Simplified method for use in return controller
+     */
+    static calculateItemRefund(
+        orderItem: OrderItem,
+        returnQuantity: number
+    ): {
+        productId: string;
+        variantId?: string;
+        quantity: number;
+        unitPrice: number;
+        unitTax: number;
+        subtotal: number;
+        taxRefund: number;
+        totalRefund: number;
+    } {
+        // Calculate max returnable quantity
+        const alreadyReturned = orderItem.returnedQuantity || 0;
+        const maxReturnable = orderItem.quantity - alreadyReturned;
+        const quantityToReturn = Math.min(returnQuantity, maxReturnable);
+
+        if (quantityToReturn <= 0) {
+            return {
+                productId: orderItem.productId,
+                variantId: orderItem.variantId,
+                quantity: 0,
+                unitPrice: 0,
+                unitTax: 0,
+                subtotal: 0,
+                taxRefund: 0,
+                totalRefund: 0,
+            };
+        }
+
+        // Get stored values per unit
+        const finalPrice = orderItem.price;
+        const unitTaxAmount = orderItem.taxAmount || 0;
+
+        // Calculate totals for returned quantity
+        const returnSubtotal = finalPrice * quantityToReturn;
+        const returnTax = unitTaxAmount * quantityToReturn;
+
+        // Total refund = final price (after discount) + tax
+        const totalRefund = returnSubtotal + returnTax;
+
+        return {
+            productId: orderItem.productId,
+            variantId: orderItem.variantId,
+            quantity: quantityToReturn,
+            unitPrice: finalPrice,
+            unitTax: unitTaxAmount,
+            subtotal: parseFloat(returnSubtotal.toFixed(2)),
+            taxRefund: parseFloat(returnTax.toFixed(2)),
+            totalRefund: parseFloat(totalRefund.toFixed(2)),
         };
     }
 
@@ -234,7 +292,7 @@ export class ReturnCalculationService {
         const alreadyRefunded = orderDetails.items.reduce((sum, item) => {
             return sum + (item.refundedAmount || 0);
         }, 0);
-        
+
         return Math.max(0, orderDetails.total - alreadyRefunded);
     }
 
@@ -262,7 +320,7 @@ export class ReturnCalculationService {
                 const returned = item.returnedQuantity || 0;
                 const returnable = item.quantity - returned;
                 const unitTax = item.taxAmount || 0;
-                
+
                 return {
                     productId: item.productId,
                     variantId: item.variantId,

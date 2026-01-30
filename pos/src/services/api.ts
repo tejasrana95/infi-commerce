@@ -2,7 +2,6 @@ import apiClient from '@/lib/apiClient';
 import { Category, Order, Product } from '../types';
 import { productCacheService } from './productCache.service';
 import { categoryCacheService } from './categoryCache.service';
-import { indexedDBService } from './indexedDB.service';
 
 class POCApiService {
     private storeId: string = '';
@@ -169,7 +168,6 @@ class POCApiService {
         // Try cache first
         try {
             const cachedProduct = await productCacheService.getProductBySku(code);
-            console.log('cachedProduct', cachedProduct);
             if (cachedProduct) {
                 // transform and return
                 const products = this.transformIndexedDBProducts([cachedProduct]);

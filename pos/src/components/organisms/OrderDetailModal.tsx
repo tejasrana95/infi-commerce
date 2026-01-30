@@ -30,7 +30,6 @@ export default function OrderDetailModal({ order, isOpen, onClose, onReturn }: O
     const { store } = useStore();
     if (!order || !isOpen) return null;
     const PaymentIcon = paymentIcons[order.paymentMethod];
-
     const handlePrint = async () => {
         if (!order) return;
         if (!store) {
@@ -49,8 +48,6 @@ export default function OrderDetailModal({ order, isOpen, onClose, onReturn }: O
 
             // Print with the configured printer type (defaults to inkjet/laser)
             await printService.printReceipt(receiptContainer, store, 'inkjet');
-
-            console.log('Receipt printed successfully');
         } catch (error) {
             console.error('Failed to print receipt:', error);
             alert('Failed to print receipt. Please check your printer connection.');

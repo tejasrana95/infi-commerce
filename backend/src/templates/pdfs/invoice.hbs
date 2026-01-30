@@ -3,306 +3,940 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Invoice #{{order.orderNumber}}</title>
+    <title>{{#if (or (eq order.status 'cancelled') (eq order.status 'refunded'))}}Credit Note{{else}}Tax Invoice{{/if}}
+        #{{order.orderNumber}}</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
-            color: #555;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-size: 12px;
+            color: #333;
+            line-height: 1.5;
+            background: #fff;
+        }
+
+        .invoice {
             max-width: 800px;
-            margin: auto;
-            line-height: 24px;
-        }
-
-        .invoice-box {
-            border: 1px solid #eee;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+            margin: 0 auto;
             padding: 30px;
-            font-size: 16px;
         }
 
+        /* Watermark for cancelled/refunded orders */
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 100px;
+            font-weight: bold;
+            color: rgba(200, 200, 200, 0.15);
+            text-transform: uppercase;
+            pointer-events: none;
+            z-index: -1;
+            letter-spacing: 20px;
+        }
+
+        /* Header */
         .header {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 40px;
-            border-bottom: 2px solid #eee;
+            align-items: flex-start;
             padding-bottom: 20px;
+            border-bottom: 2px solid #333;
+            margin-bottom: 20px;
         }
 
-        .header h1 {
-            margin: 0;
+        .header-left h1 {
+            font-size: 24px;
             color: #333;
-            font-size: 28px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
         }
 
-        .header .meta {
+        .header-left .doc-type {
+            font-size: 14px;
+            font-weight: bold;
+            padding: 4px 12px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-top: 5px;
+        }
+
+        .doc-type.invoice {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .doc-type.credit-note {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .doc-type.cancelled {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .header-right {
             text-align: right;
         }
 
-        .section-title {
+        .header-right .store-name {
+            font-size: 18px;
             font-weight: bold;
-            text-transform: uppercase;
             color: #333;
-            margin-bottom: 10px;
-            font-size: 14px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 5px;
         }
 
+        .header-right .store-info {
+            font-size: 11px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        /* Document Info */
+        .doc-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .doc-info-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+
+        .doc-info-item {
+            text-align: center;
+        }
+
+        .doc-info-item label {
+            display: block;
+            font-size: 10px;
+            text-transform: uppercase;
+            color: #666;
+            margin-bottom: 3px;
+        }
+
+        .doc-info-item value {
+            display: block;
+            font-size: 13px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* Status Banner */
+        .status-banner {
+            padding: 12px 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .status-banner.delivered {
+            background: #e8f5e9;
+            border: 1px solid #a5d6a7;
+        }
+
+        .status-banner.cancelled {
+            background: #ffebee;
+            border: 1px solid #ef9a9a;
+        }
+
+        .status-banner.refunded {
+            background: #e3f2fd;
+            border: 1px solid #90caf9;
+        }
+
+        .status-banner.return_requested,
+        .status-banner.exchange_requested {
+            background: #fff8e1;
+            border: 1px solid #ffe082;
+        }
+
+        .status-banner.returned,
+        .status-banner.partially_returned {
+            background: #e0f7fa;
+            border: 1px solid #80deea;
+        }
+
+        .status-text {
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        .status-date {
+            font-size: 11px;
+            color: #666;
+        }
+
+        /* Addresses */
         .addresses {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 40px;
+            gap: 20px;
+            margin-bottom: 25px;
         }
 
         .address-box {
-            width: 45%;
+            flex: 1;
+            padding: 15px;
+            background: #fafafa;
+            border-radius: 6px;
+        }
+
+        .address-box h3 {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: #666;
+            margin-bottom: 8px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .address-box .name {
+            font-weight: bold;
+            font-size: 13px;
+            margin-bottom: 5px;
         }
 
         .address-box p {
+            font-size: 11px;
+            color: #555;
             margin: 0;
+            line-height: 1.6;
+        }
+
+        /* Items Table */
+        .items-section h2 {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #666;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #eee;
         }
 
         table {
             width: 100%;
-            line-height: inherit;
-            text-align: left;
             border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        table th {
+            background: #f5f5f5;
+            padding: 10px 8px;
+            text-align: left;
+            font-size: 10px;
+            text-transform: uppercase;
+            color: #666;
+            border-bottom: 2px solid #ddd;
+        }
+
+        table th.text-right,
+        table td.text-right {
+            text-align: right;
+        }
+
+        table th.text-left,
+        table td.text-left {
+            text-align: left;
+        }
+
+        table th.text-center,
+        table td.text-center {
+            text-align: center;
         }
 
         table td {
-            padding: 10px;
-            vertical-align: top;
-        }
-
-        table tr.heading td {
-            background: #eee;
-            border-bottom: 1px solid #ddd;
-            font-weight: bold;
-        }
-
-        table tr.item td {
+            padding: 10px 8px;
             border-bottom: 1px solid #eee;
+            font-size: 11px;
         }
 
-        table tr.item.last td {
+        table tr.item-returned td {
+            background: #fff8e1;
+        }
+
+        table tr.item-exchanged td {
+            background: #e3f2fd;
+        }
+
+        .item-name {
+            font-weight: 600;
+        }
+
+        .item-sku {
+            font-size: 10px;
+            color: #888;
+            margin-top: 2px;
+        }
+
+        .item-status {
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            display: inline-block;
+            margin-top: 3px;
+        }
+
+        .item-status.returned {
+            background: #ffecb3;
+            color: #e65100;
+        }
+
+        .item-status.exchanged {
+            background: #bbdefb;
+            color: #1565c0;
+        }
+
+        .item-status.refunded {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+
+        /* Summary Section */
+        .summary-section {
+            display: flex;
+            justify-content: space-between;
+            gap: 30px;
+            margin-bottom: 25px;
+        }
+
+        .summary-left {
+            flex: 1;
+        }
+
+        .summary-right {
+            width: 280px;
+        }
+
+        .summary-table {
+            width: 100%;
+            margin-bottom: 0;
+        }
+
+        .summary-table td {
+            padding: 6px 8px;
+            border: none;
+        }
+
+        .summary-table tr.total-row td {
+            border-top: 2px solid #333;
+            font-weight: bold;
+            font-size: 14px;
+            padding-top: 12px;
+        }
+
+        .summary-table tr.refund-row td {
+            color: #c62828;
+            background: #ffebee;
+        }
+
+        .summary-table tr.net-row td {
+            border-top: 2px solid #333;
+            font-weight: bold;
+            font-size: 15px;
+            padding-top: 12px;
+            background: #f5f5f5;
+        }
+
+        /* Return/Refund Details */
+        .return-section {
+            background: #fff8e1;
+            border: 1px solid #ffe082;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .return-section h3 {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #e65100;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .return-section.exchange {
+            background: #e3f2fd;
+            border-color: #90caf9;
+        }
+
+        .return-section.exchange h3 {
+            color: #1565c0;
+        }
+
+        .return-section.refund {
+            background: #e8f5e9;
+            border-color: #a5d6a7;
+        }
+
+        .return-section.refund h3 {
+            color: #2e7d32;
+        }
+
+        .return-items {
+            font-size: 11px;
+        }
+
+        .return-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .return-item:last-child {
             border-bottom: none;
         }
 
-        table tr.total td:nth-child(2) {
-            border-top: 2px solid #eee;
+        .return-total {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 2px solid rgba(0, 0, 0, 0.2);
             font-weight: bold;
+            display: flex;
+            justify-content: space-between;
         }
 
-        .text-right {
-            text-align: right;
+        /* Payment Info */
+        .payment-section {
+            background: #f5f5f5;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .payment-section h3 {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .payment-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            font-size: 11px;
+        }
+
+        .payment-item label {
+            color: #888;
+            display: block;
+            font-size: 10px;
+        }
+
+        .payment-item value {
+            font-weight: 600;
         }
 
         .badge {
             display: inline-block;
-            padding: 5px 10px;
+            padding: 3px 8px;
             border-radius: 4px;
-            color: white;
-            font-size: 12px;
+            font-size: 10px;
             font-weight: bold;
             text-transform: uppercase;
         }
 
         .badge.paid {
-            background-color: #28a745;
+            background: #c8e6c9;
+            color: #2e7d32;
         }
 
         .badge.pending {
-            background-color: #ffc107;
-            color: #333;
+            background: #fff9c4;
+            color: #f9a825;
         }
 
         .badge.failed {
-            background-color: #dc3545;
+            background: #ffcdd2;
+            color: #c62828;
         }
 
         .badge.refunded {
-            background-color: #6c757d;
+            background: #e1bee7;
+            color: #7b1fa2;
         }
 
-        .badge.cancelled {
-            background-color: #dc3545;
+        .badge.partially_refunded {
+            background: #ffe0b2;
+            color: #e65100;
         }
 
-        .badge.returned {
-            background-color: #17a2b8;
-        }
-
-        .badge.return_requested {
-            background-color: #ffc107;
-            color: #333;
-        }
-
-        .footer {
-            margin-top: 40px;
-            text-align: center;
-            font-size: 12px;
-            color: #aaa;
-            border-top: 1px solid #eee;
+        /* Legal Section */
+        .legal-section {
+            margin-top: 25px;
             padding-top: 20px;
+            border-top: 1px solid #ddd;
+        }
+
+        .legal-section h4 {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .legal-text {
+            font-size: 9px;
+            color: #888;
+            line-height: 1.6;
+        }
+
+        .legal-text li {
+            margin-bottom: 4px;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 2px solid #333;
+            text-align: center;
+        }
+
+        .footer-main {
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .footer-contact {
+            font-size: 10px;
+            color: #666;
+        }
+
+        .footer-note {
+            margin-top: 15px;
+            font-size: 9px;
+            color: #999;
+            font-style: italic;
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .invoice {
+                padding: 15px;
+            }
         }
     </style>
 </head>
 
 <body>
-    <div class="invoice-box">
+    {{#if (or (eq order.status 'cancelled') (eq order.status 'refunded'))}}
+    <div class="watermark">{{order.status}}</div>
+    {{/if}}
+
+    <div class="invoice">
+        <!-- Header -->
         <div class="header">
-            <div>
-                <h1>INVOICE</h1>
-                <p><strong>Order #:</strong> {{order.orderNumber}}</p>
-                <p><strong>Date:</strong> {{formatDate order.createdAt}}</p>
-                <div style="margin-top: 20px;">
-                    <h3 style="margin: 0;">{{order.storeId.name}}</h3>
-                    <p style="margin: 0; font-size: 14px;">
-                        <a href="https://{{order.storeId.domain}}"
-                            style="color: #555; text-decoration: none;">{{order.storeId.domain}}</a>
-                    </p>
+            <div class="header-left">
+                <h1>{{#if (or (eq order.status 'cancelled') (eq order.status 'refunded'))}}Credit Note{{else}}Tax
+                    Invoice{{/if}}</h1>
+                {{#if (eq order.status 'cancelled')}}
+                <span class="doc-type cancelled">ORDER CANCELLED</span>
+                {{else if (eq order.status 'refunded')}}
+                <span class="doc-type credit-note">FULLY REFUNDED</span>
+                {{else if (eq order.status 'returned')}}
+                <span class="doc-type credit-note">RETURNED</span>
+                {{else if (eq order.status 'partially_returned')}}
+                <span class="doc-type credit-note">PARTIAL RETURN</span>
+                {{else if (eq order.status 'exchange_requested')}}
+                <span class="doc-type credit-note">EXCHANGE IN PROGRESS</span>
+                {{else if (eq order.status 'return_requested')}}
+                <span class="doc-type credit-note">RETURN IN PROGRESS</span>
+                {{else}}
+                <span class="doc-type invoice">ORIGINAL</span>
+                {{/if}}
+            </div>
+            <div class="header-right">
+                <div class="store-name">{{order.storeId.name}}</div>
+                <div class="store-info">
+                    {{#if order.storeId.domain}}{{order.storeId.domain}}<br>{{/if}}
                     {{#if order.storeId.settings.contact}}
-                    <p style="margin: 5px 0 0 0; font-size: 12px; color: #777;">
-                        {{#if order.storeId.settings.contact.address}}
-                        {{order.storeId.settings.contact.address}}<br>
-                        {{/if}}
-                        {{#if order.storeId.settings.contact.email}}
-                        Email: {{order.storeId.settings.contact.email}}
-                        {{/if}}
-                        {{#if order.storeId.settings.contact.phone}}
-                        <span style="margin-left: 10px;">Phone: {{order.storeId.settings.contact.phone}}</span>
-                        {{/if}}
-                    </p>
+                    {{#if order.storeId.settings.contact.address}}{{order.storeId.settings.contact.address}}<br>{{/if}}
+                    {{#if order.storeId.settings.contact.email}}{{order.storeId.settings.contact.email}}{{/if}}
+                    {{#if order.storeId.settings.contact.phone}} | {{order.storeId.settings.contact.phone}}{{/if}}
                     {{/if}}
                 </div>
             </div>
-            <div class="meta">
-                <h2>Total: {{formatPrice order.total order.currency order.exchangeRate}}</h2>
-                <span class="badge {{order.paymentStatus}}">{{order.paymentStatus}}</span>
-                {{#if (eq order.status 'cancelled')}}
-                <br><br><span class="badge cancelled">CANCELLED</span>
-                {{/if}}
-                {{#if (eq order.status 'returned')}}
-                <br><br><span class="badge returned">RETURNED</span>
-                {{/if}}
-                {{#if (eq order.status 'return_requested')}}
-                <br><br><span class="badge return_requested">RETURN REQUESTED</span>
-                {{/if}}
+        </div>
+
+        <!-- Document Info -->
+        <div class="doc-info">
+            <div class="doc-info-grid">
+                <div class="doc-info-item">
+                    <label>Invoice Number</label>
+                    <value>#{{order.orderNumber}}</value>
+                </div>
+                <div class="doc-info-item">
+                    <label>Order Date</label>
+                    <value>{{formatDate order.createdAt}}</value>
+                </div>
+                <div class="doc-info-item">
+                    <label>Order Status</label>
+                    <value>{{toUpperCase (replace order.status '_' ' ')}}</value>
+                </div>
+                <div class="doc-info-item">
+                    <label>Payment Status</label>
+                    <value><span class="badge {{order.paymentStatus}}">{{order.paymentStatus}}</span></value>
+                </div>
             </div>
         </div>
 
+        <!-- Status Banner for Special Cases -->
+        {{#if (eq order.status 'cancelled')}}
+        <div class="status-banner cancelled">
+            <span class="status-text">⚠️ This order was CANCELLED and is no longer valid</span>
+            <span class="status-date">{{#if order.cancelledAt}}Cancelled on {{formatDate
+                order.cancelledAt}}{{/if}}</span>
+        </div>
+        {{/if}}
+
+        {{#if (eq order.status 'refunded')}}
+        <div class="status-banner refunded">
+            <span class="status-text">💰 Full refund has been processed</span>
+            <span class="status-date">{{#if order.refundedAt}}Refunded on {{formatDate order.refundedAt}}{{/if}}</span>
+        </div>
+        {{/if}}
+
+        {{#if (or (eq order.status 'returned') (eq order.status 'partially_returned'))}}
+        <div class="status-banner returned">
+            <span class="status-text">↩️ Items have been returned{{#if (eq order.status 'partially_returned')}} (Partial
+                Return){{/if}}</span>
+        </div>
+        {{/if}}
+
+        {{#if (or (eq order.status 'return_requested') (eq order.status 'exchange_requested'))}}
+        <div class="status-banner return_requested">
+            <span class="status-text">⏳ {{#if (eq order.status 'exchange_requested')}}Exchange{{else}}Return{{/if}}
+                request is being processed</span>
+            <span class="status-date">Return Status: {{toUpperCase (replace order.returnStatus '_' ' ')}}</span>
+        </div>
+        {{/if}}
+
+        <!-- Addresses -->
         <div class="addresses">
             <div class="address-box">
-                <div class="section-title">Billed To:</div>
+                <h3>Bill To</h3>
+                <div class="name">{{order.billingAddress.firstName}} {{order.billingAddress.lastName}}</div>
                 <p>
-                    <strong>{{order.billingAddress.firstName}} {{order.billingAddress.lastName}}</strong><br>
                     {{order.billingAddress.address1}}<br>
                     {{#if order.billingAddress.address2}}{{order.billingAddress.address2}}<br>{{/if}}
                     {{order.billingAddress.city}}, {{order.billingAddress.state}}
                     {{order.billingAddress.postalCode}}<br>
                     {{order.billingAddress.country}}<br>
-                    {{order.billingAddress.phone}}
+                    {{#if order.billingAddress.phone}}Tel: {{order.billingAddress.phone}}{{/if}}
                 </p>
             </div>
-            <div class="address-box text-right">
-                <div class="section-title">Shipped To:</div>
+            <div class="address-box">
+                <h3>Ship To</h3>
+                <div class="name">{{order.shippingAddress.firstName}} {{order.shippingAddress.lastName}}</div>
                 <p>
-                    <strong>{{order.shippingAddress.firstName}} {{order.shippingAddress.lastName}}</strong><br>
                     {{order.shippingAddress.address1}}<br>
                     {{#if order.shippingAddress.address2}}{{order.shippingAddress.address2}}<br>{{/if}}
                     {{order.shippingAddress.city}}, {{order.shippingAddress.state}}
                     {{order.shippingAddress.postalCode}}<br>
                     {{order.shippingAddress.country}}<br>
-                    {{order.shippingAddress.phone}}
+                    {{#if order.shippingAddress.phone}}Tel: {{order.shippingAddress.phone}}{{/if}}
                 </p>
             </div>
         </div>
 
-        <table>
-            <tr class="heading">
-                <td>Item</td>
-                <td class="text-right">Price</td>
-                <td class="text-right">Quantity</td>
-                <td class="text-right">Tax</td>
-                <td class="text-right">Total</td>
-            </tr>
+        <!-- Items -->
+        <div class="items-section">
+            <h2>Order Items</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40%">Item Description</th>
+                        <th class="text-left">HSN</th>
+                        <th class="text-right">Unit Price</th>
+                        <th class="text-center">Qty</th>
+                        <th class="text-right">Tax</th>
+                        <th class="text-right">Amount</th>
+                        <th class="text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#each order.items}}
+                    <tr
+                        class="{{#if this.returnedQty}}item-returned{{/if}} {{#if this.exchangedQty}}item-exchanged{{/if}}">
+                        <td>
+                            <div class="item-name">{{this.name}}</div>
+                            <div class="item-sku">SKU: {{this.sku}}</div>
+                            {{#if this.returnedQty}}
+                            <span class="item-status returned">↩️ {{this.returnedQty}} Returned</span>
+                            {{/if}}
+                            {{#if this.exchangedQty}}
+                            <span class="item-status exchanged">🔄 {{this.exchangedQty}} Exchanged</span>
+                            {{/if}}
+                            {{#if this.refundedQty}}
+                            <span class="item-status refunded">💰 {{this.refundedQty}} Refunded</span>
+                            {{/if}}
+                        </td>
+                        <td class="text-left">{{this.hsnCode}}</td>
+                        <td class="text-right">
+                            {{#if this.manualDiscount}}
+                            <small style="text-decoration: line-through; color: #999;">{{formatPrice this.originalPrice
+                                ../order.currency ../order.exchangeRate}}</small><br>
+                            {{formatPrice this.price ../order.currency ../order.exchangeRate}}
+                            <br><small style="color: #2e7d32;">-{{formatPrice this.manualDiscount ../order.currency
+                                ../order.exchangeRate}} (Manual)</small>
+                            {{else if this.discount.amount}}
+                            {{formatPrice this.price ../order.currency ../order.exchangeRate}}
+                            <br><small style="color: #2e7d32;">-{{formatPrice this.discount.amount ../order.currency
+                                ../order.exchangeRate}}</small>
+                            {{else}}
+                            {{formatPrice this.price ../order.currency ../order.exchangeRate}}
+                            {{/if}}
+                        </td>
+                        <td class="text-center">{{this.quantity}}</td>
+                        <td class="text-right">
+                            {{#if this.taxRate}}
+                            {{this.taxRate}}%
+                            {{else}}
+                            -
+                            {{/if}}
+                        </td>
+                        <td class="text-right">
+                            {{formatPrice (multiply this.price this.quantity) ../order.currency ../order.exchangeRate}}
+                        </td>
+                        <td class="text-center">
+                            {{#if (eq ../order.status 'cancelled')}}
+                            <span class="badge" style="background:#ffcdd2;color:#c62828;">Cancelled</span>
+                            {{else if this.returnedQty}}
+                            <span class="badge" style="background:#ffe0b2;color:#e65100;">Returned</span>
+                            {{else if this.exchangedQty}}
+                            <span class="badge" style="background:#bbdefb;color:#1565c0;">Exchanged</span>
+                            {{else}}
+                            <span class="badge" style="background:#c8e6c9;color:#2e7d32;">OK</span>
+                            {{/if}}
+                        </td>
+                    </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+        </div>
 
-            {{#each order.items}}
-            <tr class="item">
-                <td>
-                    <strong>{{this.name}}</strong><br>
-                    <small>SKU: {{this.sku}}</small>
-                </td>
-                <td class="text-right">{{formatPrice this.price ../order.currency ../order.exchangeRate}}</td>
-                <td class="text-right">{{this.quantity}}</td>
-                <td class="text-right">
-                    {{#if this.taxRate}}
-                    {{this.taxRate}}% ({{formatPrice this.taxAmount ../order.currency ../order.exchangeRate}})
+        <!-- Summary Section -->
+        <div class="summary-section">
+            <div class="summary-left">
+                <!-- Return/Exchange Details -->
+                {{#if order.returns}}
+                {{#each order.returns}}
+                <div class="return-section {{#if (eq this.type 'exchange')}}exchange{{else}}refund{{/if}}">
+                    <h3>
+                        {{#if (eq this.type 'exchange')}}🔄 Exchange Details{{else}}↩️ Return & Refund Details{{/if}}
+                    </h3>
+                    <div class="return-items">
+                        {{#each this.items}}
+                        <div class="return-item">
+                            <span>{{this.productName}} × {{this.quantity}}</span>
+                            {{#if this.refundAmount}}
+                            <span>Refunded: {{formatPrice this.refundAmount ../../order.currency
+                                ../../order.exchangeRate}}</span>
+                            {{/if}}
+                        </div>
+                        {{/each}}
+                        {{#if this.totalRefundAmount}}
+                        <div class="return-total">
+                            <span>Total Refund Amount:</span>
+                            <span>{{formatPrice this.totalRefundAmount ../order.currency ../order.exchangeRate}}</span>
+                        </div>
+                        {{/if}}
+                        {{#if this.refundMethod}}
+                        <div style="font-size: 10px; color: #666; margin-top: 8px;">
+                            Refund Method: {{this.refundMethod}}
+                            {{#if this.refundReference}} | Ref: {{this.refundReference}}{{/if}}
+                        </div>
+                        {{/if}}
+                    </div>
+                </div>
+                {{/each}}
+                {{/if}}
+
+                <!-- Payment Information -->
+                <div class="payment-section">
+                    <h3>Payment Information</h3>
+                    <div class="payment-grid">
+                        <div class="payment-item">
+                            <label>Payment Method</label>
+                            <value>{{toUpperCase order.paymentMethod}}</value>
+                        </div>
+                        <div class="payment-item">
+                            <label>Payment Status</label>
+                            <value><span class="badge {{order.paymentStatus}}">{{order.paymentStatus}}</span></value>
+                        </div>
+                        {{#if order.paymentId}}
+                        <div class="payment-item">
+                            <label>Transaction ID</label>
+                            <value>{{order.paymentId}}</value>
+                        </div>
+                        {{/if}}
+                        {{#if order.trackingNumber}}
+                        <div class="payment-item">
+                            <label>Tracking</label>
+                            <value>{{order.trackingNumber}}{{#if order.courierName}} ({{order.courierName}}){{/if}}
+                            </value>
+                        </div>
+                        {{/if}}
+                    </div>
+                </div>
+            </div>
+
+            <div class="summary-right">
+                <table class="summary-table">
+                    <tr>
+                        <td>Subtotal</td>
+                        <td class="text-right">{{formatPrice order.subtotal order.currency order.exchangeRate}}</td>
+                    </tr>
+                    {{#if order.taxBreakdown}}
+                    {{#each order.taxBreakdown}}
+                    {{#if this.isSplit}}
+                    {{#each this.subTaxes}}
+                    <tr style="font-size: 10px; color: #666;">
+                        <td>&nbsp;&nbsp;{{this.name}} ({{this.rate}}%)</td>
+                        <td class="text-right">{{formatPrice (divide ../amount 2) ../../order.currency
+                            ../../order.exchangeRate}}</td>
+                    </tr>
+                    {{/each}}
                     {{else}}
-                    -
+                    <tr style="font-size: 10px; color: #666;">
+                        <td>&nbsp;&nbsp;{{this.name}} ({{this.rate}}%)</td>
+                        <td class="text-right">{{formatPrice this.amount ../order.currency ../order.exchangeRate}}</td>
+                    </tr>
                     {{/if}}
-                </td>
-                <td class="text-right">{{formatPrice (multiply this.price this.quantity) ../order.currency
-                    ../order.exchangeRate}}</td>
-            </tr>
-            {{/each}}
+                    {{/each}}
+                    {{/if}}
+                    <tr>
+                        <td>Tax</td>
+                        <td class="text-right">{{formatPrice order.tax order.currency order.exchangeRate}}</td>
+                    </tr>
+                    <tr>
+                        <td>Shipping</td>
+                        <td class="text-right">{{formatPrice order.shippingCost order.currency order.exchangeRate}}</td>
+                    </tr>
+                    {{#if order.discount}}
+                    <tr style="color: #2e7d32;">
+                        <td>Discount{{#if order.couponCode}} ({{order.couponCode}}){{/if}}</td>
+                        <td class="text-right">-{{formatPrice order.discount order.currency order.exchangeRate}}</td>
+                    </tr>
+                    {{/if}}
+                    {{#if order.roundOffAmount}}
+                    <tr style="font-size: 10px; color: #666;">
+                        <td>Round Off</td>
+                        <td class="text-right">{{formatPrice order.roundOffAmount order.currency order.exchangeRate}}
+                        </td>
+                    </tr>
+                    {{/if}}
+                    <tr class="total-row">
+                        <td>{{#if (or (eq order.status 'cancelled') (eq order.status 'refunded'))}}Original
+                            Total{{else}}Grand Total{{/if}}</td>
+                        <td class="text-right">{{formatPrice order.total order.currency order.exchangeRate}}</td>
+                    </tr>
 
-            <tr class="total">
-                <td colspan="4" class="text-right">Subtotal:</td>
-                <td class="text-right">{{formatPrice order.subtotal order.currency order.exchangeRate}}</td>
-            </tr>
-            <tr class="total">
-                <td colspan="4" class="text-right">Total Tax:</td>
-                <td class="text-right">{{formatPrice order.tax order.currency order.exchangeRate}}</td>
-            </tr>
-            <tr class="total">
-                <td colspan="4" class="text-right">Shipping:</td>
-                <td class="text-right">{{formatPrice order.shippingCost order.currency order.exchangeRate}}</td>
-            </tr>
-            {{#if order.taxBreakdown}}
-            {{#each order.taxBreakdown}}
-            {{#if this.isSplit}}
-            {{#each this.subTaxes}}
-            <tr class="total" style="color: #666; font-size: 0.9em;">
-                <td colspan="4" class="text-right">{{this.name}} ({{this.rate}}%):</td>
-                {{!-- Assuming equal split for now, or use formula: totalAmount * (subRate / totalRate) --}}
-                {{!-- For standard GST (18 -> 9+9), it's just amount / 2 --}}
-                <td class="text-right">{{formatPrice (divide ../amount 2) ../../order.currency
-                    ../../order.exchangeRate}}</td>
-            </tr>
-            {{/each}}
-            {{else}}
-            <tr class="total" style="color: #666; font-size: 0.9em;">
-                <td colspan="4" class="text-right">{{this.name}} ({{this.rate}}%):</td>
-                <td class="text-right">{{formatPrice this.amount ../order.currency ../order.exchangeRate}}</td>
-            </tr>
-            {{/if}}
-            {{/each}}
-            {{/if}}
-            {{#if order.discount}}
-            <tr class="total">
-                <td colspan="4" class="text-right">Discount{{#if order.couponCode}} ({{order.couponCode}}){{/if}}:</td>
-                <td class="text-right">-{{formatPrice order.discount order.currency order.exchangeRate}}</td>
-            </tr>
-            {{/if}}
-            <tr class="heading">
-                <td colspan="4" class="text-right">Grand Total:</td>
-                <td class="text-right">{{formatPrice order.total order.currency order.exchangeRate}}</td>
-            </tr>
-        </table>
+                    {{!-- Refund Information --}}
+                    {{#if order.returns}}
+                    {{#with (sumReturns order.returns)}}
+                    {{#if this}}
+                    <tr class="refund-row">
+                        <td>Total Refunded</td>
+                        <td class="text-right">-{{formatPrice this ../order.currency ../order.exchangeRate}}</td>
+                    </tr>
+                    <tr class="net-row">
+                        <td>Net Amount</td>
+                        <td class="text-right">{{formatPrice (subtract ../order.total this) ../order.currency
+                            ../order.exchangeRate}}</td>
+                    </tr>
+                    {{/if}}
+                    {{/with}}
+                    {{/if}}
 
+                    {{!-- Cancelled Order --}}
+                    {{#if (eq order.status 'cancelled')}}
+                    <tr class="refund-row">
+                        <td>Order Cancelled</td>
+                        <td class="text-right">-{{formatPrice order.total order.currency order.exchangeRate}}</td>
+                    </tr>
+                    <tr class="net-row">
+                        <td>Net Payable</td>
+                        <td class="text-right">{{formatPrice 0 order.currency order.exchangeRate}}</td>
+                    </tr>
+                    {{/if}}
+
+                    {{!-- Full Refund --}}
+                    {{#if (eq order.status 'refunded')}}
+                    <tr class="refund-row">
+                        <td>Full Refund</td>
+                        <td class="text-right">-{{formatPrice order.total order.currency order.exchangeRate}}</td>
+                    </tr>
+                    <tr class="net-row">
+                        <td>Net Payable</td>
+                        <td class="text-right">{{formatPrice 0 order.currency order.exchangeRate}}</td>
+                    </tr>
+                    {{/if}}
+                </table>
+            </div>
+        </div>
+
+        <!-- Legal Section -->
+        <div class="legal-section">
+            <h4>Terms & Conditions</h4>
+            <ul class="legal-text">
+                <li>This is a computer-generated document and does not require a signature.</li>
+                <li>All prices are inclusive of applicable taxes unless otherwise stated.</li>
+                {{#if (or (eq order.status 'cancelled') (eq order.status 'refunded'))}}
+                <li><strong>This document serves as a Credit Note for the cancelled/refunded order.</strong></li>
+                <li>Refunds are processed to the original payment method within 5-10 business days.</li>
+                {{/if}}
+                {{#if (or (eq order.status 'returned') (eq order.status 'partially_returned'))}}
+                <li>Returned items have been processed and refunds credited as shown above.</li>
+                {{/if}}
+                {{#if (eq order.status 'exchange_requested')}}
+                <li>Exchange is in progress. A new order will be created upon approval.</li>
+                {{/if}}
+                <li>For any disputes or queries, please contact us within 7 days of receipt.</li>
+                <li>This invoice is valid for warranty claims. Please retain for your records.</li>
+            </ul>
+        </div>
+
+        <!-- Footer -->
         <div class="footer">
-            <p>Thank you for your business!</p>
+            <div class="footer-main">Thank you for shopping with <strong>{{order.storeId.name}}</strong>!</div>
             {{#if order.storeId.settings.contact}}
-            <p>
-                For questions, contact us at:
+            <div class="footer-contact">
                 {{#if order.storeId.settings.contact.email}}{{order.storeId.settings.contact.email}}{{/if}}
                 {{#if order.storeId.settings.contact.phone}} | {{order.storeId.settings.contact.phone}}{{/if}}
-            </p>
+                {{#if order.storeId.domain}} | {{order.storeId.domain}}{{/if}}
+            </div>
             {{/if}}
-            {{#if order.trackingNumber}}
-            <p><strong>Tracking Number:</strong> {{order.trackingNumber}} ({{order.courierName}})</p>
-            {{/if}}
+            <div class="footer-note">
+                Document generated on {{formatDate (now)}} | Order #{{order.orderNumber}}
+                {{#if (or (eq order.status 'cancelled') (eq order.status 'refunded') (eq order.status 'returned') (eq
+                order.status 'partially_returned'))}}
+                <br><strong>⚠️ This document reflects the final status of the order including all returns and
+                    refunds.</strong>
+                {{/if}}
+            </div>
         </div>
     </div>
 </body>

@@ -4,9 +4,16 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCustomer } from '@/providers/AuthProvider';
-import { ModuleProps } from '@/components/core/modules';
+// import { ModuleProps } from '@/components/core/modules';
 import styles from './AccountSidebar.module.scss';
 import Image from 'next/image';
+
+export interface ModuleProps {
+    config: Record<string, any>;
+    sectionType?: 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';
+    initialData?: any;
+    priority?: boolean;
+}
 
 const MENU_ITEMS = [
     {
@@ -31,6 +38,17 @@ const MENU_ITEMS = [
                 <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
                 <line x1="3" y1="6" x2="21" y2="6"></line>
                 <path d="M16 10a4 4 0 0 1-8 0"></path>
+            </svg>
+        )
+    },
+    {
+        id: 'returns',
+        label: 'Returns & Refunds',
+        href: '/account/returns',
+        icon: (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 14 4 9 9 4"></polyline>
+                <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
             </svg>
         )
     },

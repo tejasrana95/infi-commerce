@@ -50,6 +50,7 @@ const schema = z.object({
     storeId: z.string().min(1, 'Store is required'),
     type: z.enum(['simple', 'variable', 'digital']),
     sku: z.string().min(1, 'SKU is required'),
+    hsnCode: z.string().optional(),
     description: z.string().min(1, 'Description is required'),
     shortDescription: z.string().optional(),
     brand: z.string().optional(),
@@ -86,6 +87,13 @@ const schema = z.object({
         countries: z.array(z.string()).optional(),
         states: z.array(z.string()).optional(),
         cities: z.array(z.string()).optional(),
+    }).optional(),
+
+    // Return Settings (product-level overrides)
+    returnSettings: z.object({
+        isReturnable: z.boolean().optional(),
+        returnWindowDays: z.number().min(0).optional(),
+        exchangeWindowDays: z.number().min(0).optional(),
     }).optional(),
 
     // Media
@@ -200,6 +208,7 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
             storeId: '',
             type: 'simple',
             sku: '',
+            hsnCode: '',
             description: '',
             shortDescription: '',
             brand: '',
@@ -350,6 +359,7 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
             setValue('storeId', typeof initialData.storeId === 'object' ? initialData.storeId._id : initialData.storeId || '');
             setValue('type', initialData.type || 'simple');
             setValue('sku', initialData.sku || '');
+            setValue('hsnCode', initialData.hsnCode || '');
             setValue('description', initialData.description || '');
             setValue('shortDescription', initialData.shortDescription || '');
             // Handle brand - could be object or string
@@ -420,6 +430,7 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
             setValue('isActive', initialData.isActive !== undefined ? initialData.isActive : true);
             setValue('isFeatured', initialData.isFeatured || false);
             setValue('downloadable', initialData.downloadable || false);
+            setValue('returnSettings', initialData.returnSettings);
         }
     }, [initialData, setValue]);
 
@@ -598,6 +609,22 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
                                         required
                                         error={!!errors.sku}
                                         helperText={errors.sku?.message}
+                                    />
+                                )}
+                            />
+                        </Grid>
+
+                        <Grid size={{ xs: 12, md: 6 }}>
+                            <Controller
+                                name="hsnCode"
+                                control={control}
+                                render={({ field }) => (
+                                    <TextField
+                                        {...field}
+                                        label="HSN Code"
+                                        fullWidth
+                                        error={!!errors.hsnCode}
+                                        helperText={errors.hsnCode?.message}
                                     />
                                 )}
                             />
@@ -1080,6 +1107,62 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
                                             <MenuItem value="in">Inches (in)</MenuItem>
                                         </Select>
                                     </FormControl>
+                                )}
+                            />
+                        </Grid>
+
+                        <Grid size={{ xs: 12 }}>
+                            <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>Return & Exchange</Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                Override store-level return settings for this product. Leave empty to use store defaults.
+                            </Typography>
+                        </Grid>
+
+                        <Grid size={{ xs: 12 }}>
+                            <Controller
+                                name="returnSettings.isReturnable"
+                                control={control}
+                                render={({ field }) => (
+                                    <FormControlLabel
+                                        control={<Checkbox {...field} checked={field.value ?? true} />}
+                                        label="Product is returnable"
+                                    />
+                                )}
+                            />
+                        </Grid>
+
+                        <Grid size={{ xs: 12, md: 6 }}>
+                            <Controller
+                                name="returnSettings.returnWindowDays"
+                                control={control}
+                                render={({ field }) => (
+                                    <TextField
+                                        {...field}
+                                        value={field.value ?? ''}
+                                        label="Return Window (days)"
+                                        type="number"
+                                        fullWidth
+                                        helperText="Leave empty to use store default"
+                                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                                    />
+                                )}
+                            />
+                        </Grid>
+
+                        <Grid size={{ xs: 12, md: 6 }}>
+                            <Controller
+                                name="returnSettings.exchangeWindowDays"
+                                control={control}
+                                render={({ field }) => (
+                                    <TextField
+                                        {...field}
+                                        value={field.value ?? ''}
+                                        label="Exchange Window (days)"
+                                        type="number"
+                                        fullWidth
+                                        helperText="Leave empty to use store default"
+                                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                                    />
                                 )}
                             />
                         </Grid>

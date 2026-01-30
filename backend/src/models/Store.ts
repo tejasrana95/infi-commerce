@@ -87,6 +87,18 @@ export interface IStore extends Document {
             phone?: string;
             email?: string;
         };
+        returnSettings?: {
+            enabled: boolean;
+            defaultReturnWindow: number; // days (default: 7)
+            defaultExchangeWindow: number; // days (default: 7)
+            allowPartialReturns: boolean;
+            requireReturnReason: boolean;
+            autoApproveReturns: boolean;
+            returnPolicyText?: string;
+            pickupEnabled: boolean;
+            dropOffEnabled: boolean;
+            refundMethods: ('original' | 'store_credit' | 'bank_transfer')[];
+        };
         [key: string]: any;
     };
 

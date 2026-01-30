@@ -15,6 +15,7 @@ import { queueOrderConfirmation } from '../services/notification-queue.service';
 import { notificationService } from '../services/notification.service';
 import InventoryService from '../services/inventory.service';
 import { addPricingToProduct } from './product.controller';
+import ReturnWindowService from '../services/return-window.service';
 
 /**
  * Validation rules
@@ -907,11 +908,18 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
             downloadExpiresAt = expiryDate;
         }
 
+        // Get return window snapshot for this product
+        const returnWindowData = await ReturnWindowService.getProductReturnWindow(
+            product._id.toString(),
+            storeId
+        );
+
         orderItems.push({
             productId: product._id,
             variantId: item.variantId,
             name: product.name,
             sku: itemSku,
+            hsnCode: product.hsnCode || '',
             originalPrice: itemPrice,           // Price before discount (per unit)
             price: itemPrice,                   // Will be adjusted after coupon calculation
             costPrice: product.costPrice || 0,  // Snapshot for accounting COGS
@@ -930,6 +938,10 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
             downloadFiles: product.downloadFiles,
             downloadLimit: product.downloadLimit,
             downloadExpiresAt,
+            // Return window snapshot
+            returnWindowDays: returnWindowData.returnWindowDays,
+            exchangeWindowDays: returnWindowData.exchangeWindowDays,
+            isReturnable: returnWindowData.isReturnable,
         });
     }
 
@@ -982,9 +994,9 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
                 const taxAmount = (itemTotal * taxRate.rate) / 100;
                 totalTax += taxAmount;
 
-                // Set item tax details
+                // Set item tax details (per-unit values as per Order model)
                 item.taxRate = taxRate.rate;
-                item.taxAmount = parseFloat(taxAmount.toFixed(2));
+                item.taxAmount = parseFloat((item.price * taxRate.rate / 100).toFixed(2));
 
                 // Check if tax breakdown already exists for this rate
                 const existingBreakdown = taxBreakdown.find(b => b.taxRateId.toString() === taxRate._id.toString());
@@ -1012,7 +1024,7 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
 
     if (cart.appliedCoupon && cart.appliedCoupon.code) {
         const channel = req.headers['x-channel'] as string;
-        
+
         // Build coupon filter with channel consideration
         const couponFilter: any = {
             code: cart.appliedCoupon.code.toUpperCase(),
@@ -1035,23 +1047,23 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
             if (coupon.canCustomerUse(customerIdentifier)) {
                 // Determine which items are eligible for this coupon
                 const couponCategoryIds = coupon.categoryIds?.map(id => id.toString()) || [];
-                
+
                 // Mark items as eligible and calculate eligible total
                 let eligibleTotal = 0;
                 for (const item of orderItems) {
                     const itemCategoryIds = (item.categoryIds || []).map((id: any) => id.toString());
-                    
+
                     if (coupon.applyTo === 'store') {
                         // All items eligible for store-wide coupons
                         item.isCouponEligible = true;
                     } else if (coupon.applyTo === 'categories') {
                         // Only items in matching categories are eligible
-                        item.isCouponEligible = couponCategoryIds.length === 0 || 
+                        item.isCouponEligible = couponCategoryIds.length === 0 ||
                             itemCategoryIds.some((catId: string) => couponCategoryIds.includes(catId));
                     } else {
                         item.isCouponEligible = true; // Default to eligible
                     }
-                    
+
                     if (item.isCouponEligible) {
                         const itemTotal = item.price * item.quantity;
                         const itemTaxAmount = (item.taxAmount || 0) * item.quantity;
@@ -1069,13 +1081,13 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
                     if (discount > 0 && eligibleTotal > 0) {
                         let remainingDiscount = discount;
                         const eligibleItems = orderItems.filter(item => item.isCouponEligible);
-                        
+
                         for (let i = 0; i < eligibleItems.length; i++) {
                             const item = eligibleItems[i];
                             const itemTotal = item.price * item.quantity;
                             const itemTaxAmount = (item.taxAmount || 0) * item.quantity;
                             const itemTotalWithTax = itemTotal + itemTaxAmount;
-                            
+
                             let itemCouponDiscount: number;
                             if (i === eligibleItems.length - 1) {
                                 // Last item gets remainder to avoid rounding issues
@@ -1085,7 +1097,7 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
                                 itemCouponDiscount = (itemTotalWithTax / eligibleTotal) * discount;
                                 itemCouponDiscount = parseFloat(itemCouponDiscount.toFixed(2));
                             }
-                            
+
                             // Store per-unit coupon discount
                             item.couponDiscount = parseFloat((itemCouponDiscount / item.quantity).toFixed(4));
                             item.discountAmount = item.couponDiscount; // No manual discount in website checkout

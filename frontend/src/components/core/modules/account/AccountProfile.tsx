@@ -6,8 +6,14 @@ import { useCustomer } from '@/providers/AuthProvider';
 import api from '@/lib/api';
 import { formatDate } from '@/lib/date';
 import Loader from '@/components/molecules/Loader';
-import { ModuleProps } from '@/components/core/modules';
 import TwoFactorSetup from '@/components/molecules/TwoFactorSetup/TwoFactorSetup';
+
+export interface ModuleProps {
+    config: Record<string, any>;
+    sectionType?: 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';
+    initialData?: any;
+    priority?: boolean;
+}
 
 export default function AccountProfileModule({ config = {} }: ModuleProps) {
     const { customer, refreshCustomer } = useCustomer();

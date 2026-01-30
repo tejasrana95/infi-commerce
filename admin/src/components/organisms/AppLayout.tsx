@@ -68,6 +68,7 @@ import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import DescriptionIcon from '@mui/icons-material/Description';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import UndoIcon from '@mui/icons-material/Undo';
 import api from '@/lib/api';
 import Image from 'next/image';
 const drawerWidth = 260;
@@ -83,6 +84,7 @@ interface NavItem {
 const navigationItems: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: <DashboardIcon /> },
   { name: 'Orders', href: '/orders', icon: <ShoppingCartIcon /> },
+  { name: 'Returns', href: '/returns', icon: <UndoIcon /> },
   { name: 'Accounting', href: '/accounting', icon: <AccountBalanceIcon /> },
   { name: 'Customers', href: '/customers', icon: <PeopleIcon /> },
   {

@@ -7,13 +7,20 @@ import api from '@/lib/api';
 import { formatDate } from '@/lib/date';
 import { formatPrice } from '@/lib/currency';
 import Loader from '@/components/molecules/Loader';
-import { ModuleProps } from '@/components/core/modules';
 import Chip from '@/components/atoms/Chip';
+
+export interface ModuleProps {
+    config: Record<string, any>;
+    sectionType?: 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';
+    initialData?: any;
+    priority?: boolean;
+}
 
 interface OrderItem {
     name: string;
     image: string;
     quantity: number;
+    originalPrice?: number;
     price: number;
 }
 
@@ -36,6 +43,7 @@ interface Order {
         state: string;
     };
     isPOSOrder?: boolean;
+    returnStatus?: string;
 }
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
@@ -44,6 +52,9 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
     shipped: { bg: '#ede9fe', text: '#7c3aed' },
     delivered: { bg: '#d1fae5', text: '#059669' },
     cancelled: { bg: '#fee2e2', text: '#dc2626' },
+    returned: { bg: '#e0f2fe', text: '#0369a1' },
+    return_requested: { bg: '#fffbeb', text: '#b45309' },
+    exchange_requested: { bg: '#fef3c7', text: '#ea580c' },
 };
 
 export default function AccountOrdersModule({ config = {} }: ModuleProps) {
@@ -108,16 +119,20 @@ export default function AccountOrdersModule({ config = {} }: ModuleProps) {
             </header>
 
             <div className={styles.filterTabs}>
-                {['all', 'pending', 'processing', 'shipped', 'delivered', 'cancelled'].map((status) => (
-                    <button
-                        key={status}
-                        className={`${styles.filterTab} ${filter === status ? styles.active : ''}`}
-                        onClick={() => handleFilterChange(status)}
-                    >
-                        {status.charAt(0).toUpperCase() + status.slice(1)}
-                        {status === 'all' && ` (${totalOrders})`}
-                    </button>
-                ))}
+                {['all', 'pending', 'processing', 'shipped', 'delivered', 'cancelled', 'returned', 'return_requested', 'exchange_requested', 'partially_returned'].map((status) => {
+                    const statusName = status.replace('_', ' ');
+
+                    return (
+                        <button
+                            key={status}
+                            className={`${styles.filterTab} ${filter === status ? styles.active : ''}`}
+                            onClick={() => handleFilterChange(status)}
+                        >
+                            {statusName.charAt(0).toUpperCase() + statusName.slice(1)}
+                            {status === 'all' && ` (${totalOrders})`}
+                        </button>
+                    )
+                })}
             </div>
 
             {orders.length > 0 ? (
@@ -142,9 +157,22 @@ export default function AccountOrdersModule({ config = {} }: ModuleProps) {
                                                     color: statusStyle.text
                                                 }}
                                             >
-                                                {order.status}
+                                                {order.status.replace('_', ' ')}
                                             </span>
                                             {order.isPOSOrder && <Chip variant="info" size="medium">POS Order</Chip>}
+                                            {order.returnStatus && order.returnStatus !== 'none' && (
+                                                <Chip
+                                                    variant="secondary"
+                                                    size="medium"
+                                                    sx={{
+                                                        backgroundColor: '#f3f4f6',
+                                                        color: '#4b5563',
+                                                        textTransform: 'capitalize'
+                                                    } as any}
+                                                >
+                                                    Return: {order.returnStatus.replace('_', ' ')}
+                                                </Chip>
+                                            )}
                                         </div>
                                     </div>
 
@@ -163,7 +191,18 @@ export default function AccountOrdersModule({ config = {} }: ModuleProps) {
                                                     <span className={styles.itemQty}>Qty: {item.quantity}</span>
                                                 </div>
                                                 <span className={styles.itemPrice}>
-                                                    {formatPrice(item.price * item.quantity, { code: order.currency, exchangeRate: order.exchangeRate })}
+                                                    {(item.originalPrice && item.originalPrice !== item.price) ? (
+                                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                                            <span style={{ textDecoration: 'line-through', color: '#9ca3af', fontSize: '0.85rem' }}>
+                                                                {formatPrice(item.originalPrice * item.quantity, { code: order.currency, exchangeRate: order.exchangeRate })}
+                                                            </span>
+                                                            <span>
+                                                                {formatPrice(item.price * item.quantity, { code: order.currency, exchangeRate: order.exchangeRate })}
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        formatPrice((item.originalPrice || item.price) * item.quantity, { code: order.currency, exchangeRate: order.exchangeRate })
+                                                    )}
                                                 </span>
                                             </div>
                                         ))}

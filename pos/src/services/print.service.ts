@@ -7,6 +7,7 @@ interface ReceiptOrderItem {
   variantId?: string;
   name: string;
   sku: string;
+  hsnCode?: string;
   originalPrice: number;        // Price before any discount (per unit)
   price: number;                // Final price after all discounts (per unit)
   quantity: number;
@@ -595,8 +596,6 @@ class PrintService {
       // await sendCommand(new Uint8Array([ESC, 0x70, 0x00, 0x3C, 0xFF])); // Uncomment if drawer kick is available
 
       writer.releaseLock();
-
-      console.log('Successfully printed to thermal printer');
     } catch (error) {
       console.error('Failed to print to thermal printer:', error);
       throw error;
@@ -610,7 +609,7 @@ class PrintService {
   generateReceiptHTML(order: Order | ReceiptOrder, store: Store): string {
     // Cast order to ReceiptOrder for extended properties access
     const receiptOrder = order as ReceiptOrder;
-    
+
     const config = {
       storeName: store.name,
       storeAddress: store.settings.contact.address,
@@ -654,14 +653,19 @@ class PrintService {
 
     // Build items HTML with discount and return info
     const itemsHTML = order.items
-      .map((item) => {
+      .map((item, index) => {
         const extItem = item as ReceiptOrderItem;
-        const hasDiscount = (extItem.discountAmount || 0) > 0;
-        const hasReturn = extItem.returnedQuantity && extItem.returnedQuantity > 0;
-        const effectiveQty = item.quantity - (extItem.returnedQuantity || 0);
-
+        const hasDiscount = (item.discountAmount || 0) > 0;
+        const hasReturn = item.returnedQuantity && item.returnedQuantity > 0;
+        const effectiveQty = item.quantity - (item.returnedQuantity || 0);
         return `
           <tr class="item-row">
+          <td class="item-name">
+              ${index + 1}
+            </td>
+            <td class="item-name">
+              ${item.hsnCode}
+            </td>
             <td class="item-name">
               ${item.name}
               ${item.attributes ? `<br><small style="color:#666;">${Object.entries(item.attributes).map(([k, v]) => `${k}: ${v}`).join(', ')}</small>` : ''}
@@ -689,8 +693,8 @@ class PrintService {
             RETURNS / REFUNDS
           </div>
           ${order.returns
-            ?.map(
-              (ret) => `
+          ?.map(
+            (ret) => `
             <div style="font-size: 10px; margin-bottom: 6px; padding: 4px; background: #fef2f2; border-radius: 4px;">
               <div><strong>Date:</strong> ${ret.returnedAt ? new Date(ret.returnedAt).toLocaleDateString() : 'N/A'}</div>
               <div><strong>Method:</strong> ${ret.refundMethod || 'N/A'}</div>
@@ -710,8 +714,8 @@ class PrintService {
               ${ret.notes ? `<div style="font-style: italic; color: #666;">Note: ${ret.notes}</div>` : ''}
             </div>
           `,
-            )
-            .join('')}
+          )
+          .join('')}
         </div>
       `
         : '';
@@ -743,23 +747,22 @@ class PrintService {
           ${cardDetails?.cardLast4 ? `****${cardDetails.cardLast4}` : ''}
           ${qrDetails?.paymentType ? `(${qrDetails.paymentType})` : ''}
         </div>
-        ${
-          cashDetails
-            ? `
+        ${cashDetails
+        ? `
           <div style="font-size: 10px;">
             <div>Amount Received: ${config.currency} ${cashDetails.amountReceived.toFixed(2)}</div>
             ${cashDetails.changeGiven > 0 ? `<div>Change Given: ${config.currency} ${cashDetails.changeGiven.toFixed(2)}</div>` : ''}
           </div>
         `
-            : order.cashReceived
-              ? `
+        : order.cashReceived
+          ? `
           <div style="font-size: 10px;">
             <div>Amount Received: ${config.currency} ${order.cashReceived.toFixed(2)}</div>
             ${order.change ? `<div>Change: ${config.currency} ${order.change.toFixed(2)}</div>` : ''}
           </div>
         `
-              : ''
-        }
+          : ''
+      }
       </div>
     `;
 
@@ -775,14 +778,13 @@ class PrintService {
           </div>
         </div>
 
-        ${
-          config.receiptHeader
-            ? `
+        ${config.receiptHeader
+        ? `
           <div class="divider"></div>
           <div class="text-center footer-text mb-2">${config.receiptHeader}</div>
         `
-            : ''
-        }
+        : ''
+      }
         
         <div class="divider"></div>
         
@@ -791,15 +793,14 @@ class PrintService {
             <div><strong>Order #:</strong> ${order.orderNumber}</div>
             <div><strong>Date:</strong> ${new Date(order.date).toLocaleString()}</div>
             <div><strong>Status:</strong> <span style="text-transform: capitalize;">${order.status.replace('_', ' ')}</span></div>
-            ${
-              customer
-                ? `
+            ${customer
+        ? `
               <div style="margin-top: 4px;">
                 <strong>Customer:</strong> ${customer.firstName} ${customer.lastName}
               </div>
             `
-                : ''
-            }
+        : ''
+      }
           </div>
         </div>
         ${statusBannerHTML}
@@ -808,6 +809,8 @@ class PrintService {
         <table>
           <thead>
             <tr>
+              <th class="item-name">#</th>
+              <th class="item-name">HSN</th>
               <th class="item-name">Item</th>
               <th class="item-qty">Qty</th>
               <th class="item-price">Price</th>
@@ -827,52 +830,48 @@ class PrintService {
             <span>${config.currency} ${order.subtotal.toFixed(2)}</span>
           </div>
           
-          ${
-            order.discount && order.discount > 0
-              ? `
+          ${order.discount && order.discount > 0
+        ? `
             <div class="total-row" style="color: #22c55e;">
               <span>Discount${order.couponCode ? ` (${order.couponCode})` : ''}:</span>
               <span>-${config.currency} ${order.discount.toFixed(2)}</span>
             </div>
           `
-              : ''
-          }
+        : ''
+      }
           
-          ${
-            itemDiscountsTotal > 0
-              ? `
+          ${itemDiscountsTotal > 0
+        ? `
             <div class="total-row" style="color: #22c55e;">
               <span>Item Discounts:</span>
               <span>-${config.currency} ${itemDiscountsTotal.toFixed(2)}</span>
             </div>
           `
-              : ''
-          }
+        : ''
+      }
           
           <div class="total-row">
             <span>Tax:</span>
             <span>${config.currency} ${order.tax.toFixed(2)}</span>
           </div>
           
-          ${
-            receiptOrder.roundOffAmount && receiptOrder.roundOffAmount !== 0
-              ? `
+          ${receiptOrder.roundOffAmount && receiptOrder.roundOffAmount !== 0
+        ? `
             <div class="total-row">
               <span>Round Off:</span>
               <span>${receiptOrder.roundOffAmount > 0 ? '+' : ''}${config.currency} ${receiptOrder.roundOffAmount.toFixed(2)}</span>
             </div>
           `
-              : ''
-          }
+        : ''
+      }
           
           <div class="total-row grand-total">
             <span>TOTAL:</span>
             <span>${config.currency} ${order.total.toFixed(2)}</span>
           </div>
           
-          ${
-            returnsTotal > 0
-              ? `
+          ${returnsTotal > 0
+        ? `
             <div class="total-row" style="color: #ef4444; font-weight: bold;">
               <span>Total Refunded:</span>
               <span>-${config.currency} ${returnsTotal.toFixed(2)}</span>
@@ -882,8 +881,8 @@ class PrintService {
               <span>${config.currency} ${(order.total - returnsTotal).toFixed(2)}</span>
             </div>
           `
-              : ''
-          }
+        : ''
+      }
         </div>
 
         ${returnsHTML}
@@ -898,14 +897,13 @@ class PrintService {
           All prices are in ${config.currency}
         </div>
         
-        ${
-          config.receiptFooter
-            ? `
+        ${config.receiptFooter
+        ? `
           <div class="divider"></div>
           <div class="text-center footer-text">${config.receiptFooter}</div>
         `
-            : ''
-        }
+        : ''
+      }
         
         <div style="text-align: center; margin-top: 8px; font-size: 8px; color: #999;">
           Thank you for your business!

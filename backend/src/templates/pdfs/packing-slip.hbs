@@ -153,6 +153,7 @@
         <table>
             <tr class="heading">
                 <td>SKU</td>
+                <td>HSN</td>
                 <td>Product Name</td>
                 <td>Quantity</td>
             </tr>
@@ -160,6 +161,7 @@
             {{#each order.items}}
             <tr class="item">
                 <td>{{this.sku}}</td>
+                <td>{{this.hsnCode}}</td>
                 <td>
                     <strong>{{this.name}}</strong>
                     {{#if this.attributes}}

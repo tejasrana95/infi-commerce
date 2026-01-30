@@ -225,4 +225,8 @@ router.use('/pos-payment', posPaymentRoutes);
 import barcodeRoutes from './barcode.routes';
 router.use('/barcode', barcodeRoutes);
 
+// Mount return/exchange routes
+import returnRoutes from './return.routes';
+router.use('/returns', returnRoutes);
+
 export default router;

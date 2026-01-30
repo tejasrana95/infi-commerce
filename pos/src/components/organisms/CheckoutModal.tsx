@@ -260,8 +260,6 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
 
             // Print with the configured printer type (defaults to inkjet/laser)
             await printService.printReceipt(receiptContainer, store, 'inkjet');
-
-            console.log('Receipt printed successfully');
         } catch (error) {
             console.error('Failed to print receipt:', error);
             alert('Failed to print receipt. Please check your printer connection.');

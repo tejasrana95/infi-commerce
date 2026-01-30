@@ -59,7 +59,20 @@ export const createStoreValidation = [
     body('posPaymentSettings.enabledMethods.cash').optional().isBoolean(),
     body('posPaymentSettings.enabledMethods.card').optional().isBoolean(),
     body('posPaymentSettings.enabledMethods.qr').optional().isBoolean(),
+    body('posPaymentSettings.enabledMethods.qr').optional().isBoolean(),
     body('posPaymentSettings.qrSettings.mode').optional().isIn(['gateway', 'custom']),
+
+    // Return Settings Validation
+    body('settings.returnSettings.enabled').optional().isBoolean(),
+    body('settings.returnSettings.defaultReturnWindow').optional().isInt({ min: 0 }),
+    body('settings.returnSettings.defaultExchangeWindow').optional().isInt({ min: 0 }),
+    body('settings.returnSettings.allowPartialReturns').optional().isBoolean(),
+    body('settings.returnSettings.requireReturnReason').optional().isBoolean(),
+    body('settings.returnSettings.autoApproveReturns').optional().isBoolean(),
+    body('settings.returnSettings.pickupEnabled').optional().isBoolean(),
+    body('settings.returnSettings.dropOffEnabled').optional().isBoolean(),
+    body('settings.returnSettings.refundMethods').optional().isArray(),
+    body('settings.returnSettings.refundMethods.*').optional().isIn(['original', 'store_credit', 'bank_transfer']),
 ];
 
 export const updateStoreValidation = [
@@ -105,7 +118,20 @@ export const updateStoreValidation = [
     body('posPaymentSettings.enabledMethods.cash').optional().isBoolean(),
     body('posPaymentSettings.enabledMethods.card').optional().isBoolean(),
     body('posPaymentSettings.enabledMethods.qr').optional().isBoolean(),
+    body('posPaymentSettings.enabledMethods.qr').optional().isBoolean(),
     body('posPaymentSettings.qrSettings.mode').optional().isIn(['gateway', 'custom']),
+
+    // Return Settings Validation (Update)
+    body('settings.returnSettings.enabled').optional().isBoolean(),
+    body('settings.returnSettings.defaultReturnWindow').optional().isInt({ min: 0 }),
+    body('settings.returnSettings.defaultExchangeWindow').optional().isInt({ min: 0 }),
+    body('settings.returnSettings.allowPartialReturns').optional().isBoolean(),
+    body('settings.returnSettings.requireReturnReason').optional().isBoolean(),
+    body('settings.returnSettings.autoApproveReturns').optional().isBoolean(),
+    body('settings.returnSettings.pickupEnabled').optional().isBoolean(),
+    body('settings.returnSettings.dropOffEnabled').optional().isBoolean(),
+    body('settings.returnSettings.refundMethods').optional().isArray(),
+    body('settings.returnSettings.refundMethods.*').optional().isIn(['original', 'store_credit', 'bank_transfer']),
 ];
 
 // ============================================

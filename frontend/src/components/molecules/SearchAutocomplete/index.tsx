@@ -22,6 +22,13 @@ interface ProductSuggestion {
     salePrice?: number;
     featuredImage?: string;
     images?: string[];
+    pricing: {
+        originalPrice: number;
+        salePrice?: number;
+        finalPrice?: number;
+        isOnSale?: boolean;
+        price: number;
+    };
 }
 
 interface SearchAutocompleteProps {
@@ -300,10 +307,10 @@ export default function SearchAutocomplete({
                                     <div className={styles.productInfo}>
                                         <span className={styles.productName}>{product.name}</span>
                                         <span className={styles.productPrice}>
-                                            {formatPrice(product.salePrice || product.price, currency)}
-                                            {product.salePrice && product.salePrice < product.price && (
+                                            {formatPrice(product.pricing.finalPrice || product.pricing.price, currency)}
+                                            {product.pricing.salePrice && product.pricing.salePrice < product.pricing.price && (
                                                 <span className={styles.originalPrice}>
-                                                    {formatPrice(product.price, currency)}
+                                                    {formatPrice(product.pricing.originalPrice, currency)}
                                                 </span>
                                             )}
                                         </span>

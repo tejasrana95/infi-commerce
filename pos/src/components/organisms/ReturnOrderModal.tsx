@@ -19,6 +19,11 @@ interface ReturnOrderModalProps {
     initialOrder?: any;
 }
 
+interface EligibilityResult {
+    eligible: boolean;
+    reason?: string;
+}
+
 export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderModalProps) {
     const { formatPrice } = useCurrency();
     const [step, setStep] = useState<'search' | 'results' | 'select' | 'confirm'>(initialOrder ? 'select' : 'search');
@@ -34,6 +39,37 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
     const [notes, setNotes] = useState('');
     const [refundCalculation, setRefundCalculation] = useState<any>(null);
     const [calculatingRefund, setCalculatingRefund] = useState(false);
+
+    // Helper function to check return eligibility for an item
+    const getReturnEligibility = (item: any): EligibilityResult => {
+        if (!order?.deliveredAt && !order?.createdAt) {
+            return { eligible: false, reason: 'Order not yet processed' };
+        }
+
+        // 1. Master switch check (isReturnable)
+        if (item.isReturnable === false) {
+            return { eligible: false, reason: 'This item is not returnable' };
+        }
+
+        // 2. Window check using returnWindowDays
+        const referenceDate = order.deliveredAt ? new Date(order.deliveredAt) : new Date(order.createdAt);
+        const now = new Date();
+        const windowDays = item.returnWindowDays ?? 30; // Default to 30 days if not specified
+
+        // Calculate deadline
+        const deadline = new Date(referenceDate);
+        deadline.setDate(deadline.getDate() + windowDays);
+
+        // Check if current date is past deadline
+        if (now > deadline) {
+            return {
+                eligible: false,
+                reason: `Return window closed on ${deadline.toLocaleDateString()}`
+            };
+        }
+
+        return { eligible: true };
+    };
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -97,6 +133,10 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
     const handleQuantityChange = async (item: any, qty: number) => {
         if (qty < 0) return;
 
+        // Check return eligibility
+        const { eligible } = getReturnEligibility(item);
+        if (!eligible) return;
+
         // Normalize IDs: productId can be object or string
         const productId = typeof item.productId === 'object' ? item.productId._id : item.productId || item._id;
         const variantId = item.variantId || undefined;
@@ -142,7 +182,7 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
         }
 
         setReturnItems(updatedReturnItems);
-      
+
         // Calculate refund in the background
         if (updatedReturnItems.length > 0) {
             try {
@@ -189,7 +229,7 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
             const finalRefundAmount = calculateRefund();
 
             await api.processReturn({
-                orderId:  order._id || order.id,
+                orderId: order._id || order.id,
                 items: returnItems.map(i => ({
                     productId: i.productId,
                     variantId: i.variantId,
@@ -327,37 +367,37 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
 
                         {
                             step === 'results' && (
-                            <div className="mx-auto">
-                                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                                    <h3 className="text-lg font-semibold mb-4 text-slate-800">Select Order</h3>
-                                    {searchResults.length === 0 ? (
-                                        <p className="text-slate-600 text-sm">No orders found.</p>
-                                    ) : (
-                                        <div className="space-y-4">
-                                            {searchResults.map((res) => (
-                                                <button
-                                                    key={res._id || res.id}
-                                                    onClick={() => selectOrder(res)}
-                                                    className="w-full text-left p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
-                                                >
-                                                    <div className="flex items-center justify-between">
-                                                        <div>
-                                                            <p className="font-medium text-slate-900">Order #{res.orderNumber}</p>
-                                                            <p className="text-sm text-slate-600">
-                                                                {formatDateTime(res.createdAt)} &middot; {typeof res.customerId === 'object' && res.customerId ? `${res.customerId.firstName} ${res.customerId.lastName}` : 'Walk-in Customer'}
-                                                            </p>
+                                <div className="mx-auto">
+                                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                                        <h3 className="text-lg font-semibold mb-4 text-slate-800">Select Order</h3>
+                                        {searchResults.length === 0 ? (
+                                            <p className="text-slate-600 text-sm">No orders found.</p>
+                                        ) : (
+                                            <div className="space-y-4">
+                                                {searchResults.map((res) => (
+                                                    <button
+                                                        key={res._id || res.id}
+                                                        onClick={() => selectOrder(res)}
+                                                        className="w-full text-left p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                                                    >
+                                                        <div className="flex items-center justify-between">
+                                                            <div>
+                                                                <p className="font-medium text-slate-900">Order #{res.orderNumber}</p>
+                                                                <p className="text-sm text-slate-600">
+                                                                    {formatDateTime(res.createdAt)} &middot; {typeof res.customerId === 'object' && res.customerId ? `${res.customerId.firstName} ${res.customerId.lastName}` : 'Walk-in Customer'}
+                                                                </p>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <p className="font-medium text-blue-600">{formatPrice(res.total)}</p>
+                                                                <p className="text-sm text-slate-600">{res.items.length} item(s)</p>
+                                                            </div>
                                                         </div>
-                                                        <div className="text-right">
-                                                            <p className="font-medium text-blue-600">{formatPrice(res.total)}</p>
-                                                            <p className="text-sm text-slate-600">{res.items.length} item(s)</p>
-                                                        </div>
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
                             )
                         }
                         {/* Step 2: Select Items */}
@@ -366,7 +406,7 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
                                 {/* Order Summary */}
                                 {isLoading ? (
                                     <div className="flex items-center justify-center h-32">
-                                       <Spinner size="lg" />
+                                        <Spinner size="lg" />
                                     </div>
                                 ) : (
                                     <>
@@ -391,6 +431,18 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
                                             </div>
                                         </div>
 
+                                        {!order.createdAt || Math.ceil((new Date().getTime() - new Date(order.createdAt).getTime()) / (1000 * 60 * 60 * 24)) > 30 ? (
+                                            <div className="bg-red-50 p-4 rounded-xl border border-red-200 flex items-start gap-3">
+                                                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                                                <div>
+                                                    <h4 className="font-semibold text-red-900">Return Window Expired</h4>
+                                                    <p className="text-sm text-red-700">
+                                                        This order was placed more than 30 days ago and is no longer eligible for return.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ) : null}
+
                                         {order.returns && order.returns.length > 0 && (
                                             <div className="bg-white p-4 rounded-xl border border-slate-200">
                                                 <p className="text-sm text-slate-600 font-semibold">Previous Returns</p>
@@ -400,8 +452,8 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
                                                             <div>
                                                                 <p className="font-medium">{new Date(r.returnedAt).toLocaleString()}</p>
                                                                 <p className="text-xs text-slate-500">
-                                                                    {r.items.map((i:any) => {
-                                                                        const prod = order.items.find((oi:any) => {
+                                                                    {r.items.map((i: any) => {
+                                                                        const prod = order.items.find((oi: any) => {
                                                                             const pid = typeof oi.productId === 'object' ? oi.productId._id : oi.productId || oi._id;
                                                                             return pid === (typeof i.productId === 'object' ? i.productId._id : i.productId);
                                                                         });
@@ -437,10 +489,12 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
                                                         const qtyToReturn = currentReturnItem?.quantityToReturn || 0;
                                                         const maxReturnable = item.quantity - (item.returnedQuantity || 0);
                                                         const isFullyReturned = maxReturnable <= 0;
+                                                        // Check eligibility using the new function
+                                                        const { eligible: isEligible, reason: ineligibilityReason } = getReturnEligibility(item);
                                                         const imageSrc = item.image || (item.productId && item.productId.images && item.productId.images[0]);
 
                                                         return (
-                                                            <tr key={idx} className={isFullyReturned ? 'bg-slate-50 opacity-60' : ''}>
+                                                            <tr key={idx} className={isFullyReturned || !isEligible ? 'bg-slate-50 opacity-60' : ''}>
                                                                 <td className="px-4 py-3">
                                                                     <div className="flex items-center gap-3">
                                                                         <div className="w-10 h-10 bg-slate-100 rounded-lg overflow-hidden relative flex-shrink-0">
@@ -459,6 +513,9 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
                                                                             {item.returnedQuantity > 0 && (
                                                                                 <p className="text-xs text-amber-600 mt-1">Previously refunded {formatPrice(item.refundedAmount || 0)}</p>
                                                                             )}
+                                                                            {!isEligible && (
+                                                                                <p className="text-xs text-red-600 mt-1">{ineligibilityReason}</p>
+                                                                            )}
                                                                         </div>
                                                                     </div>
                                                                 </td>
@@ -466,7 +523,7 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
                                                                 <td className="px-4 py-3 text-center text-orange-600 font-medium">{item.returnedQuantity || 0}</td>
                                                                 <td className="px-4 py-3 text-right">{formatPrice(item.price + item.taxAmount)}</td>
                                                                 <td className="px-4 py-3">
-                                                                    {!isFullyReturned ? (
+                                                                    {!isFullyReturned && isEligible ? (
                                                                         <div className="flex items-center justify-center gap-2">
                                                                             <button
                                                                                 onClick={() => handleQuantityChange(item, qtyToReturn - 1)}
@@ -485,7 +542,9 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
                                                                             </button>
                                                                         </div>
                                                                     ) : (
-                                                                        <span className="text-xs text-slate-500 text-center block">Max Returned</span>
+                                                                        <span className="text-xs text-slate-500 text-center block">
+                                                                            {!isEligible ? 'Not Eligible' : 'Max Returned'}
+                                                                        </span>
                                                                     )}
                                                                 </td>
                                                             </tr>

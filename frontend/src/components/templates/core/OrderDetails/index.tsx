@@ -1,9 +1,23 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+    Clock,
+    Settings,
+    Truck,
+    CheckCircle,
+    XCircle,
+    DollarSign,
+    RotateCcw,
+    ArrowLeftRight,
+    FileText,
+    MapPin,
+    Phone,
+    Package,
+    ChevronLeft
+} from 'lucide-react';
 import { useCurrency } from '@/hooks/useCurrency';
 import { formatPrice } from '@/lib/currency';
 import styles from './OrderDetails.module.scss';
@@ -12,22 +26,31 @@ import { apiClient } from '@/services/api-client';
 import { useToast } from '@/providers/ToastProvider';
 import { useDialog } from '@/providers/DialogProvider';
 import Chip from '@/components/atoms/Chip';
+import ReturnOrderModal from '@/components/core/modules/account/ReturnOrderModal';
 
-// Types reuse
+// Types
 export interface OrderItem {
     name: string;
     sku: string;
+    hsnCode?: string;
     price: number;
+    originalPrice?: number;
     quantity: number;
     image?: string;
     attributes?: Record<string, string>;
+    productId?: string;
+    variantId?: string;
     discount?: {
         amount?: number;
-        appliedAt?: string; // ISO date string
+        appliedAt?: string;
         discountType?: 'fixed' | 'percentage';
         discountedPrice?: number;
         originalPrice?: number;
-    }
+    };
+    returnWindowDays?: number;
+    exchangeWindowDays?: number;
+    isReturnable?: boolean;
+    manualDiscount?: number;
 }
 
 export interface OrderAddress {
@@ -51,7 +74,7 @@ export interface TaxBreakdown {
 export interface OrderDetails {
     _id: string;
     orderNumber: string;
-    status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'return_requested' | 'returned';
+    status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'return_requested' | 'exchange_requested' | 'returned';
     paymentStatus: string;
     paymentMethod: string;
     items: OrderItem[];
@@ -75,10 +98,24 @@ export interface OrderDetails {
     shippedAt?: string;
     deliveredAt?: string;
     trackingNumber?: string;
-    trackingUrl?: string; // Add trackingUrl
-    courierName?: string; // Add courierName
+    trackingUrl?: string;
+    courierName?: string;
     guestEmail?: string;
     isPOSOrder?: boolean;
+    returns?: {
+        returnedAt: string;
+        items: {
+            productId: string;
+            variantId?: string;
+            quantity: number;
+            reason?: string;
+            refundAmount?: number;
+        }[];
+        totalRefundAmount?: number;
+        status: string;
+    }[];
+    returnStatus?: 'none' | 'pending' | 'approved' | 'rejected' | 'pickup_scheduled' | 'picked_up' | 'received' | 'inspected' | 'refund_initiated' | 'refund_completed' | 'exchange_shipped' | 'completed' | 'cancelled';
+    returnRequestId?: string | { _id: string;[key: string]: any };
 }
 
 interface OrderDetailsTemplateProps {
@@ -87,105 +124,78 @@ interface OrderDetailsTemplateProps {
     onRefresh?: () => Promise<void>;
 }
 
+// Status configuration
+const STATUS_CONFIG: Record<string, { icon: React.ComponentType<{ size?: number; className?: string }>; color: string; bg: string; label: string }> = {
+    pending: { icon: Clock, color: '#d97706', bg: '#fef3c7', label: 'Pending' },
+    processing: { icon: Settings, color: '#2563eb', bg: '#dbeafe', label: 'Processing' },
+    shipped: { icon: Truck, color: '#7c3aed', bg: '#ede9fe', label: 'Shipped' },
+    delivered: { icon: CheckCircle, color: '#059669', bg: '#d1fae5', label: 'Delivered' },
+    cancelled: { icon: XCircle, color: '#dc2626', bg: '#fee2e2', label: 'Cancelled' },
+    refunded: { icon: DollarSign, color: '#4b5563', bg: '#f3f4f6', label: 'Refunded' },
+    return_requested: { icon: RotateCcw, color: '#b45309', bg: '#fffbeb', label: 'Return Requested' },
+    exchange_requested: { icon: ArrowLeftRight, color: '#ea580c', bg: '#fef3c7', label: 'Exchange Requested' },
+    returned: { icon: RotateCcw, color: '#0369a1', bg: '#e0f2fe', label: 'Returned' },
+};
+
+const RETURN_STATUS_CONFIG: Record<string, { message: string; color: string }> = {
+    pending: { message: 'Your request is being reviewed by our team.', color: '#d97706' },
+    approved: { message: 'Your request has been approved. Follow pickup/shipping instructions.', color: '#059669' },
+    rejected: { message: 'Your request was declined.', color: '#dc2626' },
+    pickup_scheduled: { message: 'A pickup has been scheduled. Please be ready.', color: '#7c3aed' },
+    picked_up: { message: 'Items have been picked up and are in transit.', color: '#7c3aed' },
+    received: { message: 'We have received your items and are inspecting them.', color: '#2563eb' },
+    inspected: { message: 'Inspection complete. Processing your refund/exchange.', color: '#2563eb' },
+    refund_initiated: { message: 'Your refund has been initiated.', color: '#059669' },
+    refund_completed: { message: 'Your refund has been processed successfully.', color: '#059669' },
+    exchange_shipped: { message: 'Your exchange has been shipped!', color: '#059669' },
+    completed: { message: 'Process completed successfully.', color: '#059669' },
+    cancelled: { message: 'Request was cancelled.', color: '#6b7280' },
+};
+
 export default function OrderDetailsTemplate({ order, loading, onRefresh }: OrderDetailsTemplateProps) {
     const router = useRouter();
-    const currency = useCurrency();
     const { isAuthenticated } = useAuth();
     const { addToast } = useToast();
+    const { showConfirm } = useDialog();
+
+    // State
     const [downloading, setDownloading] = useState(false);
     const [showReturnModal, setShowReturnModal] = useState(false);
-    const [returnReason, setReturnReason] = useState('');
-    const [requestingReturn, setRequestingReturn] = useState(false);
     const [cancellingOrder, setCancellingOrder] = useState(false);
-    const [showRefundModal, setShowRefundModal] = useState(false);
-    const [refundReason, setRefundReason] = useState('');
-    const [requestingRefund, setRequestingRefund] = useState(false);
-    const { showConfirm } = useDialog();
-    const handleCancelOrder = async () => {
 
-        const confirmed = await showConfirm({
-            title: 'Cancel Order',
-            message: 'Are you sure you want to cancel this order? This action cannot be undone.',
-            confirmText: 'Yes, Cancel Order',
-            cancelText: 'No, Keep Order',
-            type: 'warning',
-            isDanger: true,
+    // Helper functions
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
         });
-
-        if (!confirmed) {
-            return;
-        }
-
-        try {
-            setCancellingOrder(true);
-            await apiClient.post(`/orders/${order._id}/cancel`);
-            addToast('success', 'Order cancelled successfully');
-            if (onRefresh) {
-                await onRefresh();
-            } else {
-                router.refresh();
-            }
-        } catch (error) {
-            addToast('error', 'Failed to cancel order');
-        } finally {
-            setCancellingOrder(false);
-        }
     };
 
-    const handleRequestRefund = async () => {
-        if (!refundReason.trim()) {
-            addToast('error', 'Please provide a reason for refund');
-            return;
-        }
-        try {
-            setRequestingRefund(true);
-            await apiClient.post(`/orders/${order._id}/refund-request`, {
-                reason: refundReason
-            });
-            addToast('success', 'Refund request submitted successfully');
-            setShowRefundModal(false);
-            if (onRefresh) {
-                await onRefresh();
-            } else {
-                router.refresh();
-            }
-        } catch (error) {
-            console.error(error);
-            addToast('error', 'Failed to request refund');
-        } finally {
-            setRequestingRefund(false);
-        }
+    const canRequestReturn = () => {
+        if (order.isPOSOrder) return false;
+        if (order.status !== 'delivered') return false;
+        if (order.returnStatus && !['none', 'rejected'].includes(order.returnStatus)) return false;
+        return true;
     };
 
-    const handleRequestReturn = async () => {
-        if (!returnReason.trim()) {
-            addToast('error', 'Please provide a reason for return');
-            return;
-        }
-        try {
-            setRequestingReturn(true);
-            await apiClient.post(`/orders/${order._id}/return-request`, {
-                reason: returnReason
-            });
-            addToast('success', 'Return requested successfully');
-            setShowReturnModal(false);
-            if (onRefresh) {
-                await onRefresh();
-            } else {
-                router.refresh();
-            }
-        } catch (error) {
-            console.error(error);
-            addToast('error', 'Failed to request return');
-        } finally {
-            setRequestingReturn(false);
-        }
+    const canCancelOrder = () => {
+        if (order.isPOSOrder) return false;
+        return ['pending', 'processing'].includes(order.status);
     };
 
-    // We can also allow overriding currency if strictly needed from order object
-    // but standard approach is to use store currency context or handle conversion if needed.
-    // For now assuming store currency context is correct or order.currency matches store.
+    const hasTracking = () => !!(order.trackingNumber && order.trackingUrl);
 
+    const hasActiveReturn = () => order.returnStatus && order.returnStatus !== 'none' && order.returnStatus !== 'rejected';
+
+    const getStatusStep = () => {
+        const steps = ['pending', 'processing', 'shipped', 'delivered'];
+        return steps.indexOf(order.status);
+    };
+
+    // Actions
     const handleDownloadInvoice = async () => {
         try {
             setDownloading(true);
@@ -200,29 +210,46 @@ export default function OrderDetailsTemplate({ order, loading, onRefresh }: Orde
             window.URL.revokeObjectURL(url);
             addToast('success', 'Invoice downloaded successfully');
         } catch (error) {
-            console.error("Download failed", error);
             addToast('error', 'Failed to download invoice');
         } finally {
             setDownloading(false);
         }
     };
 
-    const getStatusStep = (status: string) => {
-        const steps = ['pending', 'processing', 'shipped', 'delivered'];
-        if (['cancelled', 'refunded', 'returned', 'return_requested'].includes(status)) return -1;
-        return steps.indexOf(status);
-    };
-
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+    const handleCancelOrder = async () => {
+        const confirmed = await showConfirm({
+            title: 'Cancel Order',
+            message: 'Are you sure you want to cancel this order? This action cannot be undone.',
+            confirmText: 'Yes, Cancel Order',
+            cancelText: 'No, Keep Order',
+            type: 'warning',
+            isDanger: true,
         });
+
+        if (!confirmed) return;
+
+        try {
+            setCancellingOrder(true);
+            await apiClient.post(`/orders/${order._id}/cancel`);
+            addToast('success', 'Order cancelled successfully');
+            onRefresh?.() || router.refresh();
+        } catch (error) {
+            addToast('error', 'Failed to cancel order');
+        } finally {
+            setCancellingOrder(false);
+        }
     };
 
+    const handleReturnSuccess = async () => {
+        onRefresh?.() || router.refresh();
+    };
+
+    const getAttributeLabel = (key: string) => {
+        if (/^[a-fA-F0-9]{24}$/.test(key)) return '';
+        return `${key}: `;
+    };
+
+    // Loading state
     if (loading) {
         return (
             <div className={styles.loadingContainer}>
@@ -234,363 +261,308 @@ export default function OrderDetailsTemplate({ order, loading, onRefresh }: Orde
 
     if (!order) return null;
 
-    const currentStep = getStatusStep(order.status);
-    const isCancelled = ['cancelled', 'refunded', 'returned', 'return_requested'].includes(order.status);
-
-    const getAttributeLabel = (key: string) => {
-        // If key looks like a MongoDB ID (24 hex chars), probably a variant ID.
-        // We can't easily map it to a name here without more data, so we'll just return 'Option' or empty.
-        // For standard UI, let's just ignore the key if it looks like an ID and only show value,
-        // or formatting it if it's a readable key.
-        if (/^[a-fA-F0-9]{24}$/.test(key)) return '';
-        return `${key}: `;
-    };
+    const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
+    const isTerminalStatus = ['cancelled', 'refunded', 'returned'].includes(order.status);
+    const showTimeline = ['pending', 'processing', 'shipped', 'delivered'].includes(order.status);
 
     return (
         <div className={styles.pageContainer}>
             <div className={styles.container}>
-                <div className={styles.content}>
-                    {/* Header Section */}
-                    <div className={styles.header}>
-                        <div className={styles.headerTop}>
-                            <div>
-                                <h1>Order #{order.orderNumber}</h1>
-                                <p className={styles.date}>Placed on {formatDate(order.createdAt)}</p>
+                {/* Back Link */}
+                {isAuthenticated && (
+                    <Link href="/account/orders" className={styles.backLink}>
+                        <ChevronLeft size={18} /> Back to My Orders
+                    </Link>
+                )}
+
+                {/* Header Card */}
+                <div className={styles.headerCard}>
+                    <div className={styles.headerMain}>
+                        <div className={styles.orderInfo}>
+                            <h1>Order #{order.orderNumber}</h1>
+                            <p className={styles.orderDate}>Placed on {formatDate(order.createdAt)}</p>
+                            <div className={styles.badges}>
+                                {order.isPOSOrder && <Chip variant="info" size="small">POS Order</Chip>}
                             </div>
-                            {order.isPOSOrder && <Chip variant="info" size="medium">POS Order</Chip>}
-                            {!order.isPOSOrder && (
-                                <div className={styles.actions}>
-                                    <button
-                                        className={styles.btnSecondary}
-                                        onClick={handleDownloadInvoice}
-                                        disabled={downloading}
-                                    >
-                                        {downloading ? 'Downloading...' : 'Download Invoice'}
-                                    </button>
-
-                                    {order.status === 'delivered' && (
-                                        <button
-                                            className={styles.btnSecondary}
-                                            onClick={() => setShowReturnModal(true)}
-                                        >
-                                            Request Return
-                                        </button>
-                                    )}
-
-                                    {(order.status === 'pending' || order.status === 'processing') && (
-                                        <button
-                                            className={styles.btnSecondary}
-                                            onClick={handleCancelOrder}
-                                            disabled={cancellingOrder}
-                                            style={{ color: 'var(--color-error, #dc3545)' }}
-                                        >
-                                            {cancellingOrder ? 'Cancelling...' : 'Cancel Order'}
-                                        </button>
-                                    )}
-
-                                    {order.paymentStatus === 'paid' && (!order.refundStatus || order.refundStatus === 'none' || order.refundStatus === 'rejected') && order.status !== 'refunded' && (
-                                        <button
-                                            className={styles.btnSecondary}
-                                            onClick={() => setShowRefundModal(true)}
-                                        >
-                                            {order.refundStatus === 'rejected' ? 'Re-request Refund' : 'Request Refund'}
-                                        </button>
-                                    )}
-
-                                    {order.trackingNumber && order.trackingUrl && (
-                                        <a
-                                            href={order.trackingUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className={styles.btnPrimary}
-                                            style={{
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                padding: '0.75rem 1.5rem',
-                                                backgroundColor: 'var(--color-primary, #000)',
-                                                color: 'white',
-                                                borderRadius: '8px',
-                                                fontWeight: 600,
-                                                textDecoration: 'none',
-                                            }}
-                                        >
-                                            Track Order
-                                        </a>
-                                    )}
-                                </div>
-                            )}
                         </div>
+                        <div
+                            className={styles.statusBadge}
+                            style={{ backgroundColor: statusConfig.bg, color: statusConfig.color }}
+                        >
+                            <statusConfig.icon size={18} className={styles.statusIcon} />
+                            <span>{statusConfig.label}</span>
+                        </div>
+                    </div>
 
-                        {/* Order Status Timeline */}
+                    {/* Timeline */}
+                    {showTimeline && (
                         <div className={styles.timeline}>
-                            {isCancelled ? (
-                                <div className={`${styles.statusBadge} ${styles[order.status]}`}>
-                                    {order.status.replace('_', ' ').toUpperCase()}
-                                </div>
-                            ) : (
-                                <div className={styles.steps}>
-                                    {['Pending', 'Processing', 'Shipped', 'Delivered'].map((step, index) => {
-                                        const stepName = step.toLowerCase();
-                                        const isCompleted = index <= currentStep;
-                                        const isActive = index === currentStep;
-
-                                        return (
-                                            <div
-                                                key={step}
-                                                className={`${styles.step} ${isCompleted ? styles.completed : ''} ${isActive ? styles.active : ''}`}
-                                            >
-                                                <div className={styles.stepIcon}>
-                                                    {index < currentStep ? '✓' : index + 1}
-                                                </div>
-                                                <span className={styles.stepLabel}>{step}</span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
+                            {['Pending', 'Processing', 'Shipped', 'Delivered'].map((step, index) => {
+                                const currentStep = getStatusStep();
+                                const isCompleted = index <= currentStep;
+                                const isActive = index === currentStep;
+                                return (
+                                    <div key={step} className={`${styles.step} ${isCompleted ? styles.completed : ''} ${isActive ? styles.active : ''}`}>
+                                        <div className={styles.stepIcon}>
+                                            {index < currentStep ? '✓' : index + 1}
+                                        </div>
+                                        <span className={styles.stepLabel}>{step}</span>
+                                    </div>
+                                );
+                            })}
                         </div>
-                    </div>
+                    )}
 
-                    <div className={styles.grid}>
-                        {/* Main Column */}
-                        <div className={styles.main}>
-                            {/* Order Items */}
-                            <section className={`${styles.card}`}>
-                                <h2>Items ({order.items.length})</h2>
-                                <div className={styles.itemsList}>
-                                    {order.items.map((item, index) => (
-                                        <div key={index} className={styles.item}>
-                                            <div className={styles.itemImage}>
-                                                {item.image ? (
-                                                    <img src={item.image} alt={item.name} />
-                                                ) : (
-                                                    <div className={styles.placeholder}>📦</div>
-                                                )}
-                                            </div>
-                                            <div className={styles.itemDetails}>
-                                                <h3>{item.name}</h3>
-                                                <p className={styles.sku}>SKU: {item.sku}</p>
-                                                {item.attributes && Object.keys(item.attributes).length > 0 && (
-                                                    <div className={styles.attributes}>
-                                                        {Object.entries(item.attributes).map(([key, value]) => (
-                                                            <span key={key}>
-                                                                {getAttributeLabel(key)}{value}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                                {item?.discount?.amount && (
-                                                    <div className={styles.discountChip}>
-                                                        <Chip variant="discount" size="small">
-                                                            -{item.discount.discountType === 'percentage' ? item.discount.amount + '%' : formatPrice(item.discount.amount, { code: order.currency, exchangeRate: order.exchangeRate })} OFF
-                                                        </Chip>
-                                                    </div>
-                                                )}
-
-                                            </div>
-                                            <div className={styles.itemMeta}>
-                                                <span className={styles.price}>
-                                                    {formatPrice(item.price, { code: order.currency, exchangeRate: order.exchangeRate })}
-                                                </span>
-                                                <span className={styles.quantity}>Qty: {item.quantity}</span>
-                                                <span className={styles.totalPrice}>
-                                                    {formatPrice(item.price * item.quantity, { code: order.currency, exchangeRate: order.exchangeRate })}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </section>
-
-                            {/* Addresses */}
-                            <div className={styles.addressGrid}>
-                                <div className={styles.addressCard}>
-                                    <h2>Shipping Address</h2>
-                                    <address>
-                                        <strong>{order.shippingAddress.firstName} {order.shippingAddress.lastName}</strong>
-                                        {order.shippingAddress.address1}<br />
-                                        {order.shippingAddress.address2 && <>{order.shippingAddress.address2}<br /></>}
-                                        {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.postalCode}<br />
-                                        {order.shippingAddress.country}<br />
-                                        {order.shippingAddress.phone && <>Phone: {order.shippingAddress.phone}</>}
-                                    </address>
-                                    {order.trackingNumber && (
-                                        <div className={styles.trackingInfo}>
-                                            <h2>Tracking Information</h2>
-                                            <div><strong>Courier:</strong> {order.courierName}</div>
-                                            <div><strong>Tracking Number:</strong> {order.trackingNumber}</div>
-                                            <div><strong>Tracking URL:</strong> <a href={order.trackingUrl} target="_blank" rel="noopener noreferrer">{order.trackingUrl}</a></div>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className={styles.addressCard}>
-                                    <h2>Billing Address</h2>
-                                    <address>
-                                        <strong>{order.billingAddress.firstName} {order.billingAddress.lastName}</strong>
-                                        {order.billingAddress.address1}<br />
-                                        {order.billingAddress.address2 && <>{order.billingAddress.address2}<br /></>}
-                                        {order.billingAddress.city}, {order.billingAddress.state} {order.billingAddress.postalCode}<br />
-                                        {order.billingAddress.country}
-                                    </address>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Sidebar Column */}
-                        <div className={styles.sidebar}>
-                            <section className={`${styles.section} ${styles.card}`}>
-                                <h2>Order Summary</h2>
-                                <div className={styles.summaryRows}>
-                                    <div className={styles.row}>
-                                        <span>Subtotal</span>
-                                        <span>{formatPrice(order.subtotal, { code: order.currency, exchangeRate: order.exchangeRate })}</span>
-                                    </div>
-                                    <div className={styles.row}>
-                                        <span>Shipping</span>
-                                        <span>{formatPrice(order.shippingCost, { code: order.currency, exchangeRate: order.exchangeRate })}</span>
-                                    </div>
-                                    <div className={styles.row}>
-                                        <span>Tax</span>
-                                        <span>{formatPrice(order.tax, { code: order.currency, exchangeRate: order.exchangeRate })}</span>
-                                    </div>
-                                    {order.taxBreakdown?.map((t, i) => (
-                                        <div key={i} className={`${styles.row} ${styles.subTx}`}>
-                                            <span>{t.name} ({t.rate}%)</span>
-                                            <span>{formatPrice(t.amount, { code: order.currency, exchangeRate: order.exchangeRate })}</span>
-                                        </div>
-                                    ))}
-                                    {order.discount > 0 && (
-                                        <div className={`${styles.row} ${styles.discount}`}>
-                                            <span>Discount {order.couponCode && `(${order.couponCode})`}</span>
-                                            <span>-{formatPrice(order.discount, { code: order.currency, exchangeRate: order.exchangeRate })}</span>
-                                        </div>
-                                    )}
-                                    <div className={`${styles.row} ${styles.total}`}>
-                                        <span>Total</span>
-                                        <span>{formatPrice(order.total, { code: order.currency, exchangeRate: order.exchangeRate })}</span>
-                                    </div>
-                                </div>
-
-                                <div className={styles.paymentInfo}>
-                                    <p>
-                                        <strong>Payment Method:</strong>
-                                        <span>{order.paymentMethod.toUpperCase()}</span>
-                                    </p>
-                                    <p>
-                                        <strong>Status:</strong>
-                                        <span className={`${styles.statusLabel} ${styles[order.paymentStatus]}`}>
-                                            {order.paymentStatus}
-                                        </span>
-                                    </p>
-                                </div>
-                            </section>
-
-                            {order.customerNote && (
-                                <section className={styles.note}>
-                                    <p>“{order.customerNote}”</p>
-                                </section>
-                            )}
-
-                            <div className={styles.help}>
-                                <p>Need help with this order? <Link href="/contact">Contact Support</Link></p>
-                            </div>
-
-                            {isAuthenticated && (
-                                <div className={styles.backLink}>
-                                    <Link href="/account/orders">
-                                        <span>←</span> Back to My Orders
-                                    </Link>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {order.refundStatus && order.refundStatus !== 'none' && (
-                        <div className={`${styles.refundStatusBanner} ${styles[order.refundStatus]}`}>
-                            <div className={styles.statusLabel}>
-                                Refund Status: <strong>{order.refundStatus.replace('_', ' ')}</strong>
-                            </div>
-                            {order.refundStatus === 'requested' && (
-                                <p>Your refund request is currently being reviewed by our team.</p>
-                            )}
-                            {order.refundStatus === 'rejected' && (
-                                <div className={styles.rejectedMessage}>
-                                    <p>Your refund request was declined.</p>
-                                    {order.adminNote && (
-                                        <div className={styles.adminNote}>
-                                            <strong>Reason from Store:</strong> {order.adminNote}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                            {order.refundStatus === 'approved' && (
-                                <p>Your refund request has been approved and is being processed.</p>
-                            )}
+                    {/* Terminal Status Message */}
+                    {isTerminalStatus && (
+                        <div className={styles.terminalMessage} style={{ backgroundColor: statusConfig.bg, color: statusConfig.color }}>
+                            <statusConfig.icon size={20} className={styles.terminalIcon} />
+                            <span>This order has been {order.status.replace('_', ' ')}.</span>
                         </div>
                     )}
                 </div>
 
-                {(showReturnModal && !order.isPOSOrder) && (
-                    <div className={styles.modalOverlay}>
-                        <div className={styles.modalContent}>
-                            <h2>Request Return</h2>
-                            <label>Reason for Return</label>
-                            <textarea
-                                value={returnReason}
-                                onChange={(e) => setReturnReason(e.target.value)}
-                                placeholder="Please describe why you want to return this item..."
-                            />
-                            <div className={styles.modalActions}>
-                                <button
-                                    className={styles.btnSecondary}
-                                    onClick={() => setShowReturnModal(false)}
-                                    disabled={requestingReturn}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    className={styles.btnPrimary}
-                                    onClick={handleRequestReturn}
-                                    disabled={requestingReturn}
-                                >
-                                    {requestingReturn ? 'Submitting...' : 'Submit Request'}
-                                </button>
-                            </div>
+                {/* Alert Banners */}
+                {hasActiveReturn() && (
+                    <div className={styles.alertBanner} style={{ borderLeftColor: RETURN_STATUS_CONFIG[order.returnStatus!]?.color }}>
+                        <div className={styles.alertHeader}>
+                            {order.status === 'exchange_requested' ? <ArrowLeftRight size={18} className={styles.alertIcon} /> : <RotateCcw size={18} className={styles.alertIcon} />}
+                            <span className={styles.alertTitle}>
+                                {order.status === 'exchange_requested' ? 'Exchange' : 'Return'} Request: <strong>{order.returnStatus?.replace(/_/g, ' ')}</strong>
+                            </span>
                         </div>
+                        <p className={styles.alertMessage}>{RETURN_STATUS_CONFIG[order.returnStatus!]?.message}</p>
+                        {order.returnRequestId && (
+                            <Link
+                                href={`/account/returns/${typeof order.returnRequestId === 'string' ? order.returnRequestId : order.returnRequestId._id}`}
+                                className={styles.alertLink}
+                            >
+                                View Return Details →
+                            </Link>
+                        )}
                     </div>
                 )}
 
-                {(showRefundModal && !order.isPOSOrder) && (
-                    <div className={styles.modalOverlay}>
-                        <div className={styles.modalContent}>
-                            <h2>Request Refund</h2>
-                            <label>Reason for Refund</label>
-                            <textarea
-                                value={refundReason}
-                                onChange={(e) => setRefundReason(e.target.value)}
-                                placeholder="Please explain why you are requesting a refund..."
-                            />
-                            <div className={styles.modalActions}>
-                                <button
-                                    className={styles.btnSecondary}
-                                    onClick={() => setShowRefundModal(false)}
-                                    disabled={requestingRefund}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    className={styles.btnPrimary}
-                                    onClick={handleRequestRefund}
-                                    disabled={requestingRefund}
-                                >
-                                    {requestingRefund ? 'Submitting...' : 'Submit Request'}
-                                </button>
-                            </div>
+                {order.refundStatus && order.refundStatus !== 'none' && (
+                    <div className={styles.alertBanner} style={{ borderLeftColor: order.refundStatus === 'rejected' ? '#dc2626' : '#059669' }}>
+                        <div className={styles.alertHeader}>
+                            <DollarSign size={18} className={styles.alertIcon} />
+                            <span className={styles.alertTitle}>
+                                Refund Status: <strong>{order.refundStatus.replace(/_/g, ' ')}</strong>
+                            </span>
                         </div>
+                        {order.refundStatus === 'rejected' && order.adminNote && (
+                            <p className={styles.alertMessage} style={{ color: '#dc2626' }}>Reason: {order.adminNote}</p>
+                        )}
                     </div>
                 )}
+
+                <div className={styles.grid}>
+                    {/* Main Column */}
+                    <div className={styles.mainColumn}>
+                        {/* Order Items */}
+                        <div className={styles.card}>
+                            <h2>Items ({order.items.length})</h2>
+                            <div className={styles.itemsList}>
+                                {order.items.map((item, index) => (
+                                    <div key={index} className={styles.item}>
+                                        <div className={styles.itemImage}>
+                                            {item.image ? (
+                                                <img src={item.image} alt={item.name} />
+                                            ) : (
+                                                <div className={styles.placeholder}><Package size={28} /></div>
+                                            )}
+                                        </div>
+                                        <div className={styles.itemDetails}>
+                                            <h3>{item.name}</h3>
+                                            <p className={styles.sku}>SKU: {item.sku}</p>
+                                            {item.hsnCode && <p className={styles.sku}>HSN: {item.hsnCode}</p>}
+                                            {item.attributes && Object.keys(item.attributes).length > 0 && (
+                                                <div className={styles.attributes}>
+                                                    {Object.entries(item.attributes).map(([key, value]) => (
+                                                        <span key={key}>{getAttributeLabel(key)}{value}</span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {item?.discount?.amount && (
+                                                <Chip variant="discount" size="small">
+                                                    -{item.discount.discountType === 'percentage' ? item.discount.amount + '%' : formatPrice(item.discount.amount, { code: order.currency, exchangeRate: order.exchangeRate })} OFF
+                                                </Chip>
+                                            )}
+                                            {item?.manualDiscount !== undefined && item.manualDiscount > 0 && (
+                                                <Chip variant="discount" size="small">
+                                                    Manual Discount: -{formatPrice(item.manualDiscount, { code: order.currency, exchangeRate: order.exchangeRate })}
+                                                </Chip>
+                                            )}
+                                        </div>
+                                        <div className={styles.itemMeta}>
+                                            <span className={styles.quantity}>Qty: {item.quantity}</span>
+                                            <span className={styles.price}>
+                                                {item?.manualDiscount && item.manualDiscount > 0 && (
+                                                    <span className={styles.originalPrice}>
+                                                        {formatPrice((item.originalPrice || 0) * item.quantity, { code: order.currency, exchangeRate: order.exchangeRate })}
+                                                    </span>
+                                                )}
+                                                {formatPrice(item.price * item.quantity, { code: order.currency, exchangeRate: order.exchangeRate })}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Addresses */}
+                        <div className={styles.addressGrid}>
+                            <div className={styles.addressCard}>
+                                <h3>Shipping Address</h3>
+                                <address>
+                                    <strong>{order.shippingAddress.firstName} {order.shippingAddress.lastName}</strong>
+                                    <p>{order.shippingAddress.address1}</p>
+                                    {order.shippingAddress.address2 && <p>{order.shippingAddress.address2}</p>}
+                                    <p>{order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.postalCode}</p>
+                                    <p>{order.shippingAddress.country}</p>
+                                    {order.shippingAddress.phone && <p className="flex items-center gap-1"><Phone size={14} /> {order.shippingAddress.phone}</p>}
+                                </address>
+                            </div>
+                            <div className={styles.addressCard}>
+                                <h3>Billing Address</h3>
+                                <address>
+                                    <strong>{order.billingAddress.firstName} {order.billingAddress.lastName}</strong>
+                                    <p>{order.billingAddress.address1}</p>
+                                    {order.billingAddress.address2 && <p>{order.billingAddress.address2}</p>}
+                                    <p>{order.billingAddress.city}, {order.billingAddress.state} {order.billingAddress.postalCode}</p>
+                                    <p>{order.billingAddress.country}</p>
+                                </address>
+                            </div>
+                        </div>
+
+                        {/* Tracking Info */}
+                        {hasTracking() && order.status !== 'delivered' && (
+                            <div className={styles.card}>
+                                <h2>Tracking Information</h2>
+                                <div className={styles.trackingDetails}>
+                                    <div className={styles.trackingRow}>
+                                        <span className={styles.trackingLabel}>Courier:</span>
+                                        <span className={styles.trackingValue}>{order.courierName || 'N/A'}</span>
+                                    </div>
+                                    <div className={styles.trackingRow}>
+                                        <span className={styles.trackingLabel}>Tracking Number:</span>
+                                        <span className={styles.trackingValue}>{order.trackingNumber}</span>
+                                    </div>
+                                    <a href={order.trackingUrl} target="_blank" rel="noopener noreferrer" className={styles.trackButton}>
+                                        <MapPin size={18} /> Track Shipment
+                                    </a>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Sidebar */}
+                    <div className={styles.sidebar}>
+                        {/* Quick Actions */}
+                        <div className={styles.card}>
+                            <h2>Quick Actions</h2>
+                            <div className={styles.actionButtons}>
+                                <button className={styles.actionBtn} onClick={handleDownloadInvoice} disabled={downloading}>
+                                    <FileText size={18} /> {downloading ? 'Downloading...' : 'Download Invoice'}
+                                </button>
+
+                                {hasTracking() && order.status !== 'delivered' && (
+                                    <a href={order.trackingUrl} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.primary}`}>
+                                        <MapPin size={18} /> Track Order
+                                    </a>
+                                )}
+
+                                {canRequestReturn() && (
+                                    <button className={styles.actionBtn} onClick={() => setShowReturnModal(true)}>
+                                        <RotateCcw size={18} /> {order.returnStatus === 'rejected' ? 'Re-request Return' : 'Request Return/Exchange'}
+                                    </button>
+                                )}
+
+                                {canCancelOrder() && (
+                                    <button className={`${styles.actionBtn} ${styles.danger}`} onClick={handleCancelOrder} disabled={cancellingOrder}>
+                                        <XCircle size={18} /> {cancellingOrder ? 'Cancelling...' : 'Cancel Order'}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Order Summary */}
+                        <div className={styles.card}>
+                            <h2>Order Summary</h2>
+                            <div className={styles.summaryRows}>
+                                <div className={styles.summaryRow}>
+                                    <span>Subtotal</span>
+                                    <span>{formatPrice(order.subtotal, { code: order.currency, exchangeRate: order.exchangeRate })}</span>
+                                </div>
+                                <div className={styles.summaryRow}>
+                                    <span>Shipping</span>
+                                    <span>{formatPrice(order.shippingCost, { code: order.currency, exchangeRate: order.exchangeRate })}</span>
+                                </div>
+                                <div className={styles.summaryRow}>
+                                    <span>Tax</span>
+                                    <span>{formatPrice(order.tax, { code: order.currency, exchangeRate: order.exchangeRate })}</span>
+                                </div>
+                                {order.discount > 0 && (
+                                    <div className={`${styles.summaryRow} ${styles.discount}`}>
+                                        <span>Discount {order.couponCode && `(${order.couponCode})`}</span>
+                                        <span>-{formatPrice(order.discount, { code: order.currency, exchangeRate: order.exchangeRate })}</span>
+                                    </div>
+                                )}
+                                <div className={`${styles.summaryRow} ${styles.total}`}>
+                                    <span>Total</span>
+                                    <span>{formatPrice(order.total, { code: order.currency, exchangeRate: order.exchangeRate })}</span>
+                                </div>
+                                {order.returns && order.returns.some(r => r.totalRefundAmount && r.totalRefundAmount > 0) && (
+                                    <div className={`${styles.summaryRow} ${styles.refunded}`}>
+                                        <span>Total Refunded</span>
+                                        <span>
+                                            {formatPrice(
+                                                order.returns.reduce((acc, ret) => acc + (ret.totalRefundAmount || 0), 0),
+                                                { code: order.currency, exchangeRate: order.exchangeRate }
+                                            )}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                            <div className={styles.paymentInfo}>
+                                <div className={styles.paymentRow}>
+                                    <span>Payment Method:</span>
+                                    <span>{order.paymentMethod.toUpperCase()}</span>
+                                </div>
+                                <div className={styles.paymentRow}>
+                                    <span>Payment Status:</span>
+                                    <Chip variant={order.paymentStatus === 'paid' ? 'success' : 'warning'} size="small">
+                                        {order.paymentStatus.toUpperCase()}
+                                    </Chip>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Customer Note */}
+                        {order.customerNote && (
+                            <div className={styles.card}>
+                                <h2>Your Note</h2>
+                                <p className={styles.customerNote}>"{order.customerNote}"</p>
+                            </div>
+                        )}
+
+                        {/* Help */}
+                        <div className={styles.helpCard}>
+                            <p>Need help with this order?</p>
+                            <Link href="/contact" className={styles.helpLink}>Contact Support</Link>
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            {/* Return Modal */}
+            <ReturnOrderModal
+                isOpen={showReturnModal}
+                onClose={() => setShowReturnModal(false)}
+                order={order}
+                onSuccess={handleReturnSuccess}
+            />
         </div>
     );
 }

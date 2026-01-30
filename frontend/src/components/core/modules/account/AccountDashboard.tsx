@@ -2,7 +2,15 @@
 
 import React from 'react';
 import { usePathname } from 'next/navigation';
-import { ModuleProps } from '@/components/core/modules';
+
+export interface ModuleProps {
+    config: Record<string, any>;
+    sectionType?: 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';
+    initialData?: any;
+    priority?: boolean;
+}
+
+// Import sub-modules
 
 // Import sub-modules
 import AccountOverview from './AccountOverview';

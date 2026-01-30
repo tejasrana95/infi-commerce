@@ -20,6 +20,7 @@ import { LoadingSpinner } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
 import { Store } from '@/types';
 import PWASettings from '@/components/organisms/PWASettings/PWASettings';
+import ReturnSettingsPanel from '@/components/organisms/ReturnSettingsPanel';
 
 type EmailProvider = 'smtp' | 'ses' | 'sendgrid' | 'mailjet';
 
@@ -488,6 +489,7 @@ export default function EditStorePage() {
                         <Tab label="Admin Notifications" />
                         <Tab label="AI Assistant" />
                         <Tab label="PWA Settings" />
+                        <Tab label="Return Settings" />
                     </Tabs>
                 </Box>
 
@@ -1525,6 +1527,11 @@ export default function EditStorePage() {
                             saving={savingPWA}
                         />
                     </Box>
+                </TabPanel>
+
+                {/* Return Settings Tab */}
+                <TabPanel value={activeTab} index={8}>
+                    <ReturnSettingsPanel storeId={id} />
                 </TabPanel>
             </Paper>
         </Box>

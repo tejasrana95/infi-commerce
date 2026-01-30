@@ -49,7 +49,6 @@ export const Receipt = React.forwardRef<HTMLDivElement, ReceiptProps>(({ data },
                     </div>
                 )}
             </div>
-
             {/* Items */}
             <div className="mb-3">
                 <table className="w-full text-xs">
@@ -76,13 +75,28 @@ export const Receipt = React.forwardRef<HTMLDivElement, ReceiptProps>(({ data },
                                                 ))}
                                             </div>
                                         )}
-                                        <div className="text-[10px] text-gray-500">SKU: {item.sku}</div>
+                                        <div className="text-[10px] text-gray-500">
+                                            <span className="mr-2">SKU: {item.sku}</span>
+                                            {item.hsnCode && <span>HSN: {item.hsnCode}</span>}
+                                        </div>
                                     </td>
                                 </tr>
                                 <tr className="border-b border-dotted">
                                     <td></td>
                                     <td className="text-center">{item.quantity}</td>
-                                    <td className="text-right">${item.price.toFixed(2)}</td>
+                                    <td className="text-right">
+                                        {item.originalPrice && item.originalPrice !== item.price ? (
+                                            <>
+                                                <span style={{ textDecoration: 'line-through', color: '#999', fontSize: '10px' }}>
+                                                    {item.originalPrice.toFixed(2)}
+                                                </span>
+                                                <br />
+                                                {item.price.toFixed(2)}
+                                            </>
+                                        ) : (
+                                            `${item.price.toFixed(2)}`
+                                        )}
+                                    </td>
                                     <td className="text-right font-semibold">${item.total.toFixed(2)}</td>
                                 </tr>
                             </React.Fragment>

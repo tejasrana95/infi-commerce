@@ -243,9 +243,120 @@ export class TransactionalNotificationService {
             console.error('Failed to trigger admin order notification:', error);
         }
     }
+
     /**
-     * Helper to render order items table as HTML for emails
+     * Send notification for new return request
      */
+    async sendReturnRequestCreated(storeId: string, storeName: string, returnRequest: any, customer: any) {
+        const type = 'return_created';
+
+        // Determine recipient
+        const recipientEmail = customer.email;
+        const recipientName = `${customer.firstName} ${customer.lastName}`;
+        const recipientPhone = customer.phone;
+
+        await this.notify({
+            storeId,
+            storeName,
+            recipientEmail,
+            recipientPhone,
+            recipientName,
+            type,
+            orderId: returnRequest.orderId,
+            subject: `Return Request Received - ${returnRequest.requestNumber || returnRequest._id}`,
+            templateData: {
+                requestNumber: returnRequest.requestNumber || returnRequest._id,
+                orderNumber: returnRequest.orderNumber,
+                recipientName,
+                returnItems: await this.renderReturnItemsTable(returnRequest, storeId),
+                reason: returnRequest.reason,
+                status: returnRequest.status,
+                type: returnRequest.type // return or exchange
+            }
+        });
+
+        // Trigger admin notification
+        try {
+            await notificationService.triggerAdminNotifications(storeId, 'returnRequest', {
+                requestNumber: returnRequest.requestNumber || returnRequest._id,
+                orderNumber: returnRequest.orderNumber,
+                customerName: recipientName,
+                amount: returnRequest.refund ? returnRequest.refund.amount : 0,
+                type: returnRequest.type,
+                reason: returnRequest.reason,
+                items_table: await this.renderReturnItemsTable(returnRequest, storeId)
+            });
+        } catch (error) {
+            console.error('Failed to trigger admin return notification:', error);
+        }
+    }
+
+    /**
+     * Send notification for return status update
+     */
+    async sendReturnStatusUpdate(storeId: string, storeName: string, returnRequest: any, customer: any) {
+        const status = returnRequest.status;
+        const type = `return_${status}`;
+
+        // Determine recipient
+        const recipientEmail = customer.email;
+        const recipientName = `${customer.firstName} ${customer.lastName}`;
+        const recipientPhone = customer.phone;
+
+        await this.notify({
+            storeId,
+            storeName,
+            recipientEmail,
+            recipientPhone,
+            recipientName,
+            type,
+            orderId: returnRequest.orderId,
+            subject: `Return Request ${status.replace(/_/g, ' ').toUpperCase()} - ${returnRequest.requestNumber || returnRequest._id}`,
+            templateData: {
+                requestNumber: returnRequest.requestNumber || returnRequest._id,
+                orderNumber: returnRequest.orderNumber,
+                recipientName,
+                status: status.replace(/_/g, ' '),
+                adminNote: returnRequest.adminNote,
+                returnItems: await this.renderReturnItemsTable(returnRequest, storeId),
+            }
+        });
+    }
+
+    /**
+     * Helper to render return items table
+     */
+    private async renderReturnItemsTable(returnRequest: any, _storeId: string): Promise<string> {
+        let itemsHtml = '';
+        for (const item of returnRequest.items) {
+            itemsHtml += `
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 12px 10px; vertical-align: top;">
+                    <div style="font-weight: 600; color: #333;">${item.name}</div>
+                    ${item.sku ? `<div style="font-size: 11px; color: #999; margin-top: 2px;">SKU: ${item.sku}</div>` : ''}
+                </td>
+                <td style="padding: 12px 10px; text-align: right; vertical-align: top; color: #666;">${item.quantity}</td>
+                <td style="padding: 12px 10px; text-align: right; vertical-align: top; color: #666;">${item.reason}</td>
+            </tr>`;
+        }
+
+        return `
+        <div style="margin: 24px 0; background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px; line-height: 1.5;">
+                <thead>
+                    <tr style="background-color: #f8f9fa; border-bottom: 2px solid #e0e0e0; text-align: left;">
+                        <th style="padding: 12px 10px; font-weight: 700; color: #333;">Product</th>
+                        <th style="padding: 12px 10px; text-align: right; font-weight: 700; color: #333;">Qty</th>
+                        <th style="padding: 12px 10px; text-align: right; font-weight: 700; color: #333;">Reason</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${itemsHtml}
+                </tbody>
+            </table>
+        </div>
+        `;
+    }
     private async renderOrderItemsTable(order: any, _storeId: string): Promise<string> {
         let fullOrder = order;
 

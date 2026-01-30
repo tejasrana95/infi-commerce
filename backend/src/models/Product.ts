@@ -14,6 +14,7 @@ export interface IProduct extends Document {
     shortDescription?: string;
     type: 'simple' | 'variable' | 'digital';
     sku: string;
+    hsnCode?: string;
 
     // Pricing
     price: number;
@@ -138,6 +139,13 @@ export interface IProduct extends Document {
     // Channel Integration
     channels?: string[]; // Codes of channels where this product is available
 
+    // Return/Exchange Settings
+    returnSettings?: {
+        returnWindowDays?: number; // Days - 0 = non-returnable, undefined = use store default
+        exchangeWindowDays?: number; // Days for exchange eligibility
+        isReturnable?: boolean; // Default true, set false to disable returns
+    };
+
 
     createdAt: Date;
     updatedAt: Date;
@@ -190,7 +198,12 @@ const ProductSchema = new Schema<IProduct>(
             uppercase: true,
             trim: true,
         },
-
+        hsnCode: {
+            type: String,
+            trim: true,
+            maxlength: 20,
+            required: false,
+        },
         // Pricing
         price: {
             type: Number,
@@ -463,6 +476,22 @@ const ProductSchema = new Schema<IProduct>(
             type: [String],
             index: true,
             default: [],
+        },
+
+        // Return/Exchange Settings
+        returnSettings: {
+            returnWindowDays: {
+                type: Number,
+                min: 0,
+            },
+            exchangeWindowDays: {
+                type: Number,
+                min: 0,
+            },
+            isReturnable: {
+                type: Boolean,
+                default: true,
+            },
         },
     },
     {

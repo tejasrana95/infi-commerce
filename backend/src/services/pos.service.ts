@@ -1,6 +1,7 @@
 import POSSession, { IPOSSession } from '../models/POSSession';
 import Order from '../models/Order';
 import User from '../models/User';
+import Store from '../models/Store';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import ReturnCalculationService from './return-calculation.service';
@@ -485,6 +486,19 @@ class POSService {
         const order = await Order.findOne({ _id: orderId, storeId });
         if (!order) {
             throw new Error('Order not found');
+        }
+
+        // Validate Return Window
+        const store = await Store.findById(storeId).select('returnSettings');
+        const returnWindow = store?.returnSettings?.defaultReturnWindow || 30; // Default 30 days
+
+        const orderDate = new Date(order.createdAt);
+        const currentDate = new Date();
+        const diffTime = Math.abs(currentDate.getTime() - orderDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays > returnWindow) {
+            throw new Error(`Return window expired. This order was placed ${diffDays} days ago (limit: ${returnWindow} days).`);
         }
 
         // Prepare order details for calculation service

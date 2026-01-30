@@ -12,6 +12,7 @@ export interface IOrder extends Document {
         variantId?: string;
         name: string;
         sku: string;
+        hsnCode?: string;
         // Pricing
         originalPrice: number;          // Price before any discount (per unit)
         price: number;                  // Final price after all discounts (per unit)
@@ -42,6 +43,10 @@ export interface IOrder extends Document {
         // Return tracking
         returnedQuantity?: number;
         refundedAmount?: number;
+        // Return window snapshot (captured at order creation)
+        returnWindowDays?: number; // Snapshot of return window at order time
+        exchangeWindowDays?: number; // Snapshot of exchange window at order time
+        isReturnable?: boolean; // Whether item is returnable
     }>;
 
     // Returns history
@@ -113,7 +118,7 @@ export interface IOrder extends Document {
 
     // Payment
     paymentMethod: 'razorpay' | 'stripe' | 'paypal' | 'cod' | 'cash' | 'card' | 'upi' | 'qr';
-    paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
+    paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded' | 'partially_refunded';
     paymentId?: string;
     paymentDetails?: Record<string, any>;
     refundStatus?: 'none' | 'requested' | 'approved' | 'rejected' | 'processed';
@@ -121,7 +126,7 @@ export interface IOrder extends Document {
     refundRequestedAt?: Date;
     refundedAt?: Date;
     // Order status
-    status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'return_requested' | 'returned' | 'partially_returned';
+    status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'return_requested' | 'exchange_requested' | 'returned' | 'partially_returned';
 
     // Tracking
     trackingNumber?: string;
@@ -136,6 +141,10 @@ export interface IOrder extends Document {
 
     // Accounting reference
     accountingId?: mongoose.Types.ObjectId;
+
+    // Return reference
+    returnStatus?: 'none' | 'pending' | 'approved' | 'rejected' | 'pickup_scheduled' | 'picked_up' | 'received' | 'inspected' | 'refund_initiated' | 'refund_completed' | 'exchange_shipped' | 'completed' | 'cancelled';
+    returnRequestId?: mongoose.Types.ObjectId;
 
     // POS (Point of Sale) fields
     isPOSOrder?: boolean;
@@ -238,6 +247,7 @@ const OrderSchema = new Schema<IOrder>(
                 variantId: String,
                 name: { type: String, required: true },
                 sku: { type: String, required: true },
+                hsnCode: String,
                 // Pricing
                 originalPrice: { type: Number, required: true, min: 0 }, // Price before discount
                 price: { type: Number, required: true, min: 0 },         // Final price after discount
@@ -270,6 +280,10 @@ const OrderSchema = new Schema<IOrder>(
                 // Return tracking
                 returnedQuantity: { type: Number, default: 0 },
                 refundedAmount: { type: Number, default: 0 },
+                // Return window snapshot (captured at order creation)
+                returnWindowDays: { type: Number },
+                exchangeWindowDays: { type: Number },
+                isReturnable: { type: Boolean, default: true },
             },
         ],
         subtotal: {
@@ -362,7 +376,7 @@ const OrderSchema = new Schema<IOrder>(
         },
         paymentStatus: {
             type: String,
-            enum: ['pending', 'paid', 'failed', 'refunded'],
+            enum: ['pending', 'paid', 'failed', 'refunded', 'partially_refunded'],
             default: 'pending',
         },
         paymentId: String,
@@ -376,7 +390,7 @@ const OrderSchema = new Schema<IOrder>(
         refundRequestedAt: Date,
         status: {
             type: String,
-            enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded', 'return_requested', 'returned', 'partially_returned'],
+            enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded', 'return_requested', 'exchange_requested', 'returned', 'partially_returned'],
             default: 'pending',
         },
         trackingNumber: String,
@@ -390,6 +404,16 @@ const OrderSchema = new Schema<IOrder>(
         accountingId: {
             type: Schema.Types.ObjectId,
             ref: 'OrderAccounting',
+        },
+        // Return tracking
+        returnStatus: {
+            type: String,
+            enum: ['none', 'pending', 'approved', 'rejected', 'pickup_scheduled', 'picked_up', 'received', 'inspected', 'refund_initiated', 'refund_completed', 'exchange_shipped', 'completed', 'cancelled'],
+            default: 'none',
+        },
+        returnRequestId: {
+            type: Schema.Types.ObjectId,
+            ref: 'ReturnRequest',
         },
         // POS fields
         isPOSOrder: {

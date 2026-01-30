@@ -140,16 +140,24 @@ export const createProductValidation = [
     body('storeId').isMongoId().withMessage('Valid store ID is required'),
     body('type').isIn(['simple', 'variable', 'digital']).withMessage('Invalid product type'),
     body('sku').trim().notEmpty().withMessage('SKU is required'),
+    body('hsnCode').optional().trim(),
     body('price').isFloat({ min: 0 }).withMessage('Price must be a positive number'),
     body('stock').optional().isInt({ min: 0 }).withMessage('Stock must be a positive integer'),
     body('categoryIds').optional().isArray().withMessage('Category IDs must be an array'),
+    body('returnSettings.returnWindowDays').optional({ nullable: true }).isInt({ min: 0 }).withMessage('Return window must be a positive integer'),
+    body('returnSettings.exchangeWindowDays').optional({ nullable: true }).isInt({ min: 0 }).withMessage('Exchange window must be a positive integer'),
+    body('returnSettings.isReturnable').optional().isBoolean(),
 ];
 
 export const updateProductValidation = [
     param('id').isMongoId().withMessage('Invalid product ID'),
     body('name').optional().trim().notEmpty().withMessage('Name cannot be empty'),
     body('slug').optional().trim().matches(/^[a-z0-9-]+$/).withMessage('Invalid slug format'),
+    body('hsnCode').optional().trim(),
     body('price').optional().isFloat({ min: 0 }).withMessage('Price must be positive'),
+    body('returnSettings.returnWindowDays').optional({ nullable: true }).isInt({ min: 0 }).withMessage('Return window must be a positive integer'),
+    body('returnSettings.exchangeWindowDays').optional({ nullable: true }).isInt({ min: 0 }).withMessage('Exchange window must be a positive integer'),
+    body('returnSettings.isReturnable').optional().isBoolean(),
 ];
 
 /**
@@ -176,6 +184,8 @@ export const updateProductValidation = [
  */
 export const createProduct = asyncHandler(async (req: AuthRequest, res: Response) => {
     const productData = req.body;
+
+
 
     // Verify store exists
     const store = await Store.findById(productData.storeId);
@@ -328,7 +338,7 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
     const userRole = req.user?.role;
     const isAdmin = userRole && (userRole === 'admin' || userRole === 'store_admin' || userRole === 'super_admin');
     const removeProductCost = !isAdmin ? '-costPrice -variants.costPrice' : '';
-    
+
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 100;
     const skip = (page - 1) * limit;
@@ -831,7 +841,7 @@ export const getProductById = asyncHandler(async (req: AuthRequest, res: Respons
     const isAdmin = userRole && (userRole === 'admin' || userRole === 'store_admin' || userRole === 'super_admin');
     const removeProductCost = !isAdmin ? '-costPrice -variants.costPrice' : '';
 
-    const product = await Product. findById(req.params.id)
+    const product = await Product.findById(req.params.id)
         .select(`-__v ${removeProductCost}`)
         .populate('storeId', 'name slug domain timezone')
         .populate('categoryIds', 'title slug path')
@@ -991,6 +1001,8 @@ export const getProductBySlug = asyncHandler(async (req: AuthRequest, res: Respo
 export const updateProduct = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const updates = req.body;
+
+
 
     const product = await Product.findById(id);
     if (!product) {

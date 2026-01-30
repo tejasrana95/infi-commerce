@@ -52,7 +52,7 @@ const fallbackAccountLayout: Section[] = [
                 modules: [
                     {
                         id: 'account-detail',
-                        type: 'account-dashboard',
+                        type: 'account-addresses',
                         order: 0,
                         isPlaceholder: false,
                         isRemovable: true,

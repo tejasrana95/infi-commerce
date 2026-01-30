@@ -19,6 +19,8 @@ import { emitOrderEvent } from '../events';
 import posService from '../services/pos.service';
 import { addPricingToProduct } from './product.controller';
 import { AccountingService } from '../services/accounting.service';
+import ReturnWindowService from '../services/return-window.service';
+import Store from '../models/Store';
 
 /**
  * Validation rules
@@ -226,11 +228,18 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
 
         subtotal += priceAfterManualDiscount * item.quantity;
 
+        // Get return window snapshot for this product
+        const returnWindowData = await ReturnWindowService.getProductReturnWindow(
+            product._id.toString(),
+            storeId
+        );
+
         orderItems.push({
             productId: product._id,
             variantId: item.variantId,
             name: product.name,
             sku,
+            hsnCode: product.hsnCode || '',
             originalPrice: originalPrice,                      // Price before any discount
             price: priceAfterManualDiscount,                   // Will be adjusted after coupon distribution
             costPrice,
@@ -246,6 +255,10 @@ export const adminCreateOrder = asyncHandler(async (req: AuthRequest, res: Respo
             couponDiscount: 0,                                 // Will be calculated below
             manualDiscount: parseFloat(manualDiscount.toFixed(4)),
             isCouponEligible,
+            // Return window snapshot
+            returnWindowDays: returnWindowData.returnWindowDays,
+            exchangeWindowDays: returnWindowData.exchangeWindowDays,
+            isReturnable: returnWindowData.isReturnable,
         });
     }
 
@@ -467,6 +480,7 @@ export const adminUpdateOrder = asyncHandler(async (req: AuthRequest, res: Respo
             let name = product.name;
             let attributes: Record<string, string> = {};
             let itemImage = product.images?.[0];
+            let hsnCode = product.hsnCode || '';
 
             if (item.variantId && product.variants) {
                 const variant = product.variants.find((v: any) => v._id.toString() === item.variantId);
@@ -496,6 +510,7 @@ export const adminUpdateOrder = asyncHandler(async (req: AuthRequest, res: Respo
                 variantId: item.variantId,
                 name,
                 sku,
+                hsnCode, // Add hsnCode here
                 originalPrice: price,   // In updates, originalPrice = price (no discounts)
                 price,
                 costPrice,
@@ -785,6 +800,7 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
         const product = item.productId as any;
         let itemImage = item.image;
         let costPrice = product.costPrice || 0;
+        let hsnCode = product.hsnCode || '';
 
         if (item.variantId && product.variants) {
             const variant = product.variants.find((v: any) => v._id?.toString() === item.variantId);
@@ -832,11 +848,18 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
             }
         }
 
+        // Get return window snapshot for this product
+        const returnWindowData = await ReturnWindowService.getProductReturnWindow(
+            product._id.toString(),
+            storeId
+        );
+
         orderItems.push({
             productId: item.productId,
             variantId: item.variantId,
             name: item.name,
             sku: item.sku,
+            hsnCode,
             originalPrice: item.price,              // Price before discount
             price: item.price,                      // Will be adjusted after coupon distribution
             costPrice,
@@ -852,6 +875,10 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
             couponDiscount: 0,
             manualDiscount: 0,
             isCouponEligible,
+            // Return window snapshot
+            returnWindowDays: returnWindowData.returnWindowDays,
+            exchangeWindowDays: returnWindowData.exchangeWindowDays,
+            isReturnable: returnWindowData.isReturnable,
         });
     }
 
@@ -2127,6 +2154,21 @@ export const updateRefundStatus = asyncHandler(async (req: any, res: Response) =
     order.refundStatus = status as any;
     if (adminNote !== undefined) {
         order.adminNote = adminNote;
+    }
+
+    // Auto-update paymentStatus when refund is approved for cancelled orders without returns
+    if (status === 'approved' &&
+        order.paymentStatus === 'paid' &&
+        (!order.returnStatus || order.returnStatus === 'none')) {
+        order.paymentStatus = 'refunded';
+        order.refundedAt = new Date();
+
+        // Sync to accounting
+        try {
+            await AccountingService.syncReturnsToAccounting(req.params.id);
+        } catch (error) {
+            console.error('Failed to sync refund to accounting:', error);
+        }
     }
 
     // If status is processed, we also update the order payment status and order status

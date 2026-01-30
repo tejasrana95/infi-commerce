@@ -61,8 +61,19 @@ export default function CartItem({ item, onUpdateQuantity, onRemove }: CartItemP
                         <h4 className="font-bold text-sm text-slate-900 truncate leading-tight">
                             {item.name}
                         </h4>
-                        <span className="font-bold text-sm text-slate-900">
-                            {formatPrice(totalPrice * item.quantity)}
+                        <span className="font-bold text-sm text-slate-900 text-right">
+                            {(item.discountAmount || item.basePrice !== totalPrice / item.quantity) ? (
+                                <>
+                                    <div className="text-xs text-slate-400 line-through">
+                                        {formatPrice(item.basePrice * item.quantity)}
+                                    </div>
+                                    <div className="text-green-600">
+                                        {formatPrice(totalPrice * item.quantity)}
+                                    </div>
+                                </>
+                            ) : (
+                                formatPrice(totalPrice * item.quantity)
+                            )}
                         </span>
                     </div>
                     <p className="text-xs text-slate-600 truncate">
@@ -72,8 +83,8 @@ export default function CartItem({ item, onUpdateQuantity, onRemove }: CartItemP
                     {/* Discount Info */}
                     {item.discountAmount && (
                         <div className="text-xs text-amber-600 mt-1">
-                            Discount: {item.discountType === 'percentage' 
-                                ? `${item.discountAmount}%` 
+                            Discount: {item.discountType === 'percentage'
+                                ? `${item.discountAmount}%`
                                 : formatPrice(item.discountAmount)
                             }
                         </div>

@@ -260,7 +260,7 @@ export default function OrderItemsSection() {
                                                 {formatConvertedPrice(selectedVariant.salePrice || selectedVariant.price || selectedProduct?.price || 0)}
                                             </Typography>
                                         </Grid>
-                                        {selectedVariant.weight && (
+                                        {selectedVariant.weight !== undefined && selectedVariant.weight !== 0 && (
                                             <Grid size={{ xs: 6 }}>
                                                 <Typography variant="caption" color="text.secondary">Weight</Typography>
                                                 <Typography variant="body2">{selectedVariant.weight} kg</Typography>

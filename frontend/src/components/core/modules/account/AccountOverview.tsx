@@ -27,23 +27,28 @@ export default function AccountOverview() {
     const { customer, defaultShippingAddress } = useCustomer();
     const [recentOrders, setRecentOrders] = useState<Order[]>([]);
     const [totalOrders, setTotalOrders] = useState<number>(0);
+    const [totalReturns, setTotalReturns] = useState<number>(0);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchRecentOrders = async () => {
+        const fetchData = async () => {
             if (!customer) return;
             try {
-                const response = await api.get('orders/user/me?limit=3');
-                setRecentOrders(response.orders || []);
-                setTotalOrders(response.pagination?.total || 0);
+                const [ordersRes, returnsRes] = await Promise.all([
+                    api.get('orders/user/me?limit=3'),
+                    api.get('returns/user/me?limit=1')
+                ]);
+                setRecentOrders(ordersRes.orders || []);
+                setTotalOrders(ordersRes.pagination?.total || 0);
+                setTotalReturns(returnsRes.pagination?.total || 0);
             } catch (error) {
-                console.error('Failed to fetch orders:', error);
+                console.error('Failed to fetch account data:', error);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchRecentOrders();
+        fetchData();
     }, [customer]);
 
     const getStatusColor = (status: string) => {
@@ -102,6 +107,18 @@ export default function AccountOverview() {
                     <div className={styles.statContent}>
                         <span className={styles.statValue}>{customer?.wishlist?.length || 0}</span>
                         <span className={styles.statLabel}>Wishlist Items</span>
+                    </div>
+                </div>
+                <div className={styles.statCard}>
+                    <div className={styles.statIcon}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                            <polyline points="9 14 4 9 9 4"></polyline>
+                            <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
+                        </svg>
+                    </div>
+                    <div className={styles.statContent}>
+                        <span className={styles.statValue}>{totalReturns}</span>
+                        <span className={styles.statLabel}>Return Requests</span>
                     </div>
                 </div>
                 <div className={styles.statCard}>

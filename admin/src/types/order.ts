@@ -1,5 +1,5 @@
-export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'return_requested' | 'returned' | 'partially_returned';
-export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
+export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'return_requested' | 'exchange_requested' | 'returned' | 'partially_returned';
+export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded' | 'partially_refunded';
 export type PaymentMethod = 'razorpay' | 'stripe' | 'paypal' | 'cod';
 
 export interface OrderItem {
@@ -7,11 +7,14 @@ export interface OrderItem {
     variantId?: string;
     name: string;
     sku: string;
+    hsnCode?: string;
     price: number;
+    originalPrice?: number;
     quantity: number;
     image?: string;
     attributes?: Record<string, string>;
     weight?: number;
+    manualDiscount?: number;
     discount?: {
         amount?: number;
         appliedAt?: string; // ISO date string
@@ -60,6 +63,7 @@ export interface Order {
     status: OrderStatus;
     paymentStatus: PaymentStatus;
     paymentMethod: PaymentMethod;
+    returnStatus?: 'none' | 'pending' | 'approved' | 'rejected' | 'pickup_scheduled' | 'picked_up' | 'received' | 'inspected' | 'refund_initiated' | 'refund_completed' | 'exchange_shipped' | 'completed' | 'cancelled';
     paymentId?: string;
     paymentDetails?: Record<string, any>;
     refundStatus?: 'none' | 'requested' | 'approved' | 'rejected' | 'processed';

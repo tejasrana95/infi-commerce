@@ -16,7 +16,10 @@ handlebars.registerHelper('formatPrice', (amount: number, currency: string, exch
 });
 
 handlebars.registerHelper('formatDate', (date: Date) => {
-    return new Date(date).toLocaleDateString();
+    if (!date) return 'N/A';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return 'Invalid Date';
+    return d.toLocaleDateString();
 });
 
 handlebars.registerHelper('multiply', (a: number, b: number) => {
@@ -29,6 +32,37 @@ handlebars.registerHelper('eq', (a: any, b: any) => {
 
 handlebars.registerHelper('divide', (a: number, b: number) => {
     return a / b;
+});
+
+// Additional helpers for comprehensive invoice template
+handlebars.registerHelper('subtract', (a: number, b: number) => {
+    return a - b;
+});
+
+handlebars.registerHelper('toUpperCase', (str: string) => {
+    if (typeof str !== 'string') return '';
+    return str.toUpperCase();
+});
+
+handlebars.registerHelper('replace', (str: string, find: string, replacement: string) => {
+    if (typeof str !== 'string') return '';
+    return str.split(find).join(replacement);
+});
+
+handlebars.registerHelper('or', (...args: any[]) => {
+    // Remove the last argument which is the Handlebars options object
+    const values = args.slice(0, -1);
+    return values.some(Boolean);
+});
+
+handlebars.registerHelper('sumReturns', (returns: any[]) => {
+    if (!returns || !Array.isArray(returns)) return 0;
+    return returns.reduce((sum, ret) => sum + (ret.totalRefundAmount || 0), 0);
+});
+
+// Helper to get current date
+handlebars.registerHelper('now', () => {
+    return new Date();
 });
 
 export class PdfService {

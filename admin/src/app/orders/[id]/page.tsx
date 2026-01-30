@@ -39,6 +39,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import DownloadIcon from '@mui/icons-material/Download';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import AssignmentIcon from '@mui/icons-material/Assignment';
+import UndoIcon from '@mui/icons-material/Undo';
 import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { Order, OrderStatus } from '@/types/order';
@@ -47,6 +48,7 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import OrderAccountingSection from '@/components/organisms/OrderAccountingSection';
+import AdminReturnModal from '@/components/organisms/AdminReturnModal';
 
 export default function OrderDetailPage() {
     const { id } = useParams();
@@ -71,6 +73,7 @@ export default function OrderDetailPage() {
     const [refundDialogOpen, setRefundDialogOpen] = useState(false);
     const [refundAction, setRefundAction] = useState<'approved' | 'rejected' | 'processed'>('approved');
     const [adminNote, setAdminNote] = useState('');
+    const [returnModalOpen, setReturnModalOpen] = useState(false);
 
     // Notification choice state
     const [notifyCustomer, setNotifyCustomer] = useState(true);
@@ -249,18 +252,30 @@ export default function OrderDetailPage() {
                                 <Chip
                                     label={order?.status?.replace(/_/g, ' ')}
                                     color={getStatusColor(order.status)}
+                                    size='small'
                                     sx={{ textTransform: 'capitalize', fontWeight: 'bold' }}
                                 />
                                 <Chip
                                     label={order.paymentStatus}
                                     variant="outlined"
+                                    size='small'
                                     color={order.paymentStatus === 'paid' ? 'success' : 'warning'}
                                     sx={{ textTransform: 'capitalize' }}
                                 />
+                                {order.returnStatus !== 'none' && (
+                                    <Chip
+                                        label={`Return ${order?.returnStatus?.replace(/_/g, ' ')}`}
+                                        variant="outlined"
+                                        size='small'
+                                        color={order?.returnStatus === 'received' || order?.returnStatus === 'refund_completed' ? 'success' : 'warning'}
+                                        sx={{ textTransform: 'capitalize' }}
+                                    />
+                                )}
                                 {order.isPOSOrder && (
                                     <Chip
                                         label="POS Order"
                                         variant="filled"
+                                        size='small'
                                         sx={{ textTransform: 'capitalize' }}
                                     />
                                 )}
@@ -304,6 +319,16 @@ export default function OrderDetailPage() {
                     >
                         Edit Order
                     </Button>
+                    {order && ['delivered', 'shipped'].includes(order.status) && (
+                        <Button
+                            variant="outlined"
+                            startIcon={<UndoIcon />}
+                            onClick={() => setReturnModalOpen(true)}
+                            color="warning"
+                        >
+                            Return
+                        </Button>
+                    )}
                     {order && !['cancelled', 'refunded'].includes(order.status) && (
                         <Button
                             variant="contained"
@@ -335,16 +360,8 @@ export default function OrderDetailPage() {
                             <MenuItem onClick={() => openStatusConfirm('delivered', 'Mark as Delivered')}>Mark as Delivered</MenuItem>
                         )}
 
-                        {/* Return Workflow */}
-                        {order.status === 'delivered' && (
-                            <MenuItem onClick={() => handleReturnUpdate('return_requested')}>Initiate Return</MenuItem>
-                        )}
-                        {order.status === 'return_requested' && (
-                            <MenuItem onClick={() => handleReturnUpdate('returned')}>Complete Return</MenuItem>
-                        )}
-
                         {/* Refund Workflow */}
-                        {['cancelled', 'returned'].includes(order.status) &&
+                        {(['cancelled', 'returned', 'delivered'].includes(order.status) || (order.returnStatus === 'received')) &&
                             order.paymentStatus !== 'refunded' && order.paymentStatus === 'paid' && [
                                 <Divider key="refund-divider" />,
                                 <MenuItem
@@ -428,6 +445,7 @@ export default function OrderDetailPage() {
                                                             <Box>
                                                                 <Typography variant="body2" fontWeight={500}>{item.name}</Typography>
                                                                 <Typography variant="caption" color="text.secondary">SKU: {item.sku}</Typography>
+                                                                {item.hsnCode && <Typography variant="caption" display="block" color="text.secondary">HSN: {item.hsnCode}</Typography>}
                                                                 {item.attributes && Object.entries(item.attributes).length > 0 && (
                                                                     <Typography variant="caption" display="block" color="text.secondary">
                                                                         {Object.entries(item.attributes).map(([k, v]) => `${k}: ${v}`).join(', ')}
@@ -438,7 +456,18 @@ export default function OrderDetailPage() {
                                                         </Box>
                                                     </TableCell>
                                                     <TableCell align="right">
-                                                        {convertAndFormat(item.price, order.currency)}
+                                                        {item?.manualDiscount && item.manualDiscount > 0 ? (
+                                                            <>
+                                                                <Typography variant="caption" sx={{ textDecoration: 'line-through', color: 'text.disabled' }}>
+                                                                    {convertAndFormat(item.originalPrice || 0, order.currency)}
+                                                                </Typography>
+                                                                <Typography variant="body2" color="success.main" fontWeight={500}>
+                                                                    {convertAndFormat(item.price, order.currency)}
+                                                                </Typography>
+                                                            </>
+                                                        ) : (
+                                                            convertAndFormat(item.originalPrice || item.price, order.currency)
+                                                        )}
                                                     </TableCell>
                                                     <TableCell align="right">{item.quantity}</TableCell>
                                                     <TableCell align="right" sx={{ fontWeight: 500 }}>
@@ -490,7 +519,6 @@ export default function OrderDetailPage() {
                                                             <TableRow>
                                                                 <TableCell>Product</TableCell>
                                                                 <TableCell align="center">Qty</TableCell>
-                                                                <TableCell align="right">Reason</TableCell>
                                                                 <TableCell align="right">Refund Amount</TableCell>
                                                             </TableRow>
                                                         </TableHead>
@@ -506,9 +534,6 @@ export default function OrderDetailPage() {
                                                                         <TableCell variant="head">{originalItem?.name || 'Unknown Product'}</TableCell>
                                                                         <TableCell align="center">{item.quantity}</TableCell>
                                                                         <TableCell align="right">
-                                                                            <Typography variant="caption">{item.reason}</Typography>
-                                                                        </TableCell>
-                                                                        <TableCell align="right">
                                                                             <Typography variant="caption" fontWeight={500}>
                                                                                 {convertAndFormat(item.refundAmount || 0, order.currency)}
                                                                             </Typography>
@@ -519,14 +544,6 @@ export default function OrderDetailPage() {
                                                         </TableBody>
                                                     </Table>
                                                 </TableContainer>
-
-                                                {/* Return Note */}
-                                                {returnRecord.note && (
-                                                    <Alert severity="info" sx={{ mt: 2 }}>
-                                                        <Typography variant="caption" fontWeight={600} display="block">Note:</Typography>
-                                                        {returnRecord.note}
-                                                    </Alert>
-                                                )}
                                             </Box>
                                         ))}
                                     </Box>
@@ -595,7 +612,7 @@ export default function OrderDetailPage() {
                                                 {order.customerNote}
                                             </Alert>
                                         )}
-                                        {order.refundStatus === 'requested' && (
+                                        {order.refundStatus === 'requested' || (order.status === 'cancelled' && order.paymentStatus === 'paid') && (
                                             <Alert severity="warning" sx={{ mt: 2 }}>
                                                 <Typography variant="caption" fontWeight={600} display="block">Refund Requested:</Typography>
                                                 {order.refundReason || 'No reason provided'}
@@ -898,6 +915,15 @@ export default function OrderDetailPage() {
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            {/* Admin Return Modal */}
+            <AdminReturnModal
+                open={returnModalOpen}
+                onClose={() => setReturnModalOpen(false)}
+                order={order}
+                onSuccess={fetchOrder}
+            />
+
             {ConfirmStateDialog()}
         </Box>
     );

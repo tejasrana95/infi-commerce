@@ -6,7 +6,14 @@ import { useCustomer } from '@/providers/AuthProvider';
 import api from '@/lib/api';
 import Loader from '@/components/molecules/Loader';
 import { getCountries, type GeoCountry } from '@/services/checkout.service';
-import { ModuleProps } from '@/components/core/modules';
+// import { ModuleProps } from '@/components/core/modules';
+
+export interface ModuleProps {
+    config: Record<string, any>;
+    sectionType?: 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';
+    initialData?: any;
+    priority?: boolean;
+}
 
 interface Address {
     _id?: string;

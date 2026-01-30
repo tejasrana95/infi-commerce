@@ -23,10 +23,12 @@ export interface ReceiptData {
 export interface ReceiptItem {
     name: string;
     sku: string;
+    hsnCode?: string;
     quantity: number;
     price: number;
     total: number;
     attributes?: Record<string, string>;
+    originalPrice?: number;
 }
 
 export interface PrinterSettings {
