@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import {
     Box,
     Button,
@@ -243,7 +243,7 @@ export default function IconPicker({
                         ) : (
                             <Box display="flex" justifyContent="center" alignItems="center" height={200}>
                                 <Typography color="text.secondary">
-                                    No icons found matching "{searchTerm}"
+                                    No icons found matching &quot;{searchTerm}&quot;
                                 </Typography>
                             </Box>
                         )}

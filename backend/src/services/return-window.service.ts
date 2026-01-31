@@ -355,6 +355,10 @@ class ReturnWindowService {
         }> = [];
 
         const eligibility = await this.checkOrderEligibility(orderId, storeId);
+        
+        // Get store settings to check allowPartialReturns
+        const store = await Store.findById(storeId);
+        const allowPartialReturns = store?.settings?.returnSettings?.allowPartialReturns ?? true;
 
         for (const requestItem of items) {
             const orderItem = eligibility.items.find(
@@ -378,6 +382,14 @@ class ReturnWindowService {
             if (requestItem.quantity > orderItem.returnableQuantity) {
                 errors.push(
                     `${orderItem.name}: Requested quantity (${requestItem.quantity}) exceeds returnable quantity (${orderItem.returnableQuantity})`
+                );
+                continue;
+            }
+
+            // Check if partial returns are allowed
+            if (!allowPartialReturns && requestItem.quantity !== orderItem.returnableQuantity) {
+                errors.push(
+                    `${orderItem.name}: Partial returns are not allowed. You must return all ${orderItem.returnableQuantity} unit(s).`
                 );
                 continue;
             }

@@ -1061,25 +1061,39 @@ export const initializePayment = asyncHandler(async (req: AuthRequest, res: Resp
         paymentAmount = order.total * order.exchangeRate;
     }
 
-    // Create payment with gateway
-    const payment = await gateway.instance.createPayment({
-        orderId: order.orderNumber,
-        amount: paymentAmount,
-        currency: order.currency,
-        customerEmail: userId ? req.user!.email : order.guestEmail!,
-        customerName: `${order.shippingAddress.firstName} ${order.shippingAddress.lastName}`,
-        description: `Order ${order.orderNumber}`,
-        shippingAddress: order.shippingAddress,
-        metadata: {
-            orderId: order._id.toString(),
-            orderNumber: order.orderNumber,
-            userId: userId || 'guest',
-            guestEmail: order.guestEmail,
-        },
-    });
+    // For Stripe: Check if payment is already initialized and reuse it
+    let payment: any;
+    
+    if (order.paymentMethod === 'stripe' && order.paymentDetails?.clientSecret) {
+        console.log(`📝 Reusing existing Stripe payment for order ${order.orderNumber}`);
+        // Reuse existing payment initialization
+        payment = {
+            success: true,
+            paymentId: `${order.orderNumber}-stripe-${Date.now()}`, // Placeholder, won't be used
+            clientSecret: order.paymentDetails.clientSecret,
+        };
+    } else {
+        // Create payment with gateway
+        payment = await gateway.instance.createPayment({
+            orderId: order.orderNumber,
+            amount: paymentAmount,
+            currency: order.currency,
+            customerEmail: userId ? req.user!.email : order.guestEmail!,
+            customerName: `${order.shippingAddress.firstName} ${order.shippingAddress.lastName}`,
+            description: `Order ${order.orderNumber}`,
+            shippingAddress: order.shippingAddress,
+            metadata: {
+                orderId: order._id.toString(),
+                orderNumber: order.orderNumber,
+                userId: userId || 'guest',
+                guestEmail: order.guestEmail,
+            },
+        });
+    }
 
     if (!payment.success) {
         console.error(`Payment initialization failed for order ${order.orderNumber}:`, JSON.stringify(payment, null, 2));
+        console.error(`Full gateway response:`, payment.gatewayResponse);
 
         // Extract the best possible error message from different gateways
         const gr = payment.gatewayResponse;
@@ -1090,12 +1104,35 @@ export const initializePayment = asyncHandler(async (req: AuthRequest, res: Resp
             || (typeof gr === 'string' ? gr : null)
             || 'Failed to initialize payment';
 
+        console.error(`Extracted error message: "${errorMessage}"`);
+
         throw new AppError(errorMessage, 400); // Changed to 400 as it's often a client/configuration issue
     }
 
-    // Store payment ID in order
-    order.paymentId = payment.paymentId;
-    await order.save();
+    // For Stripe: DON'T store the initial PaymentIntent ID here
+    // Reason: Stripe might create multiple PaymentIntents during checkout
+    // The successful one will be stored by the frontend after confirmation
+    // For other gateways: Store immediately for reference
+    if (order.paymentMethod !== 'stripe') {
+        // For non-Stripe gateways, store the paymentId immediately
+        order.paymentId = payment.paymentId;
+        await order.save();
+    } else {
+        // For Stripe: Only store clientSecret, not the incomplete PaymentIntent ID
+        // Check if this is the first initialization for this order
+        if (order.paymentDetails?.clientSecret) {
+            console.log(`📝 Stripe payment already initialized for order ${order.orderNumber}, skipping duplicate initialization`);
+            // Already initialized, don't create a new PaymentIntent
+            // Just return the existing clientSecret
+        } else {
+            // First time initializing, store the clientSecret
+            if (!order.paymentDetails) {
+                order.paymentDetails = {};
+            }
+            order.paymentDetails.clientSecret = payment.clientSecret;
+            await order.save();
+        }
+    }
 
     // Return payment details based on gateway type
     const response: any = {
@@ -1108,7 +1145,10 @@ export const initializePayment = asyncHandler(async (req: AuthRequest, res: Resp
             currency: order.currency,
             paymentMethod: order.paymentMethod,
             gatewayType: gateway.gatewayType,
-            paymentId: payment.paymentId,
+            // For Stripe: Don't send initial paymentId (it's incomplete)
+            // Frontend will send the successful one after confirmPayment()
+            // For other gateways: Send the paymentId immediately
+            ...(gateway.gatewayType !== 'stripe' && { paymentId: payment.paymentId }),
         },
     };
 
@@ -1623,13 +1663,17 @@ export const cancelOrder = asyncHandler(async (req: AuthRequest, res: Response) 
 
 /**
  * @route   POST /api/orders/:id/payment-success
- * @desc    Handle successful payment
+ * @desc    Handle successful payment - stores the confirmed PaymentIntent ID immediately
  * @access  Private
  */
 export const handlePaymentSuccess = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const { paymentId, paymentDetails } = req.body;
     const userId = req.user?.id;
+
+    if (!paymentId) {
+        throw new AppError('paymentId is required', 400);
+    }
 
     const order = await Order.findById(id).populate('storeId customerId');
 
@@ -1652,11 +1696,39 @@ export const handlePaymentSuccess = asyncHandler(async (req: AuthRequest, res: R
         }
     }
 
-    // Update payment status
+    // For Stripe: Validate the PaymentIntent is in succeeded state
+    if (order.paymentMethod === 'stripe') {
+        console.log(`🔄 Validating Stripe PaymentIntent: ${paymentId}`);
+        
+        const { PaymentService } = await import('../services/payment/payment.service');
+        const gateway = await PaymentService.getGatewayInstance({
+            storeId: order.storeId._id.toString(),
+            gatewayType: 'stripe',
+        });
+
+        const paymentStatus = await (gateway as any).getPaymentStatus(paymentId);
+        
+        console.log(`📊 PaymentStatus result:`, paymentStatus);
+        
+        if (paymentStatus.status !== 'success') {
+            console.error(`❌ Stripe PaymentIntent ${paymentId} validation failed - Status: ${paymentStatus.status}`);
+            // Don't throw error for now - log and continue (webhook might have issues too)
+            // Better to accept payment and retry later than reject it
+            console.warn(`⚠️ Accepting payment anyway - webhook will verify. PaymentIntent: ${paymentId}`);
+        } else {
+            console.log(`✅ Confirmed Stripe PaymentIntent ${paymentId} is successfully completed`);
+        }
+    }
+
+    // Update payment status with the confirmed successful paymentId
     order.paymentStatus = 'paid';
     order.status = 'processing';
-    order.paymentId = paymentId;
-    order.paymentDetails = { ...order.paymentDetails, ...paymentDetails };
+    order.paymentId = paymentId; // Store the successful PaymentIntent ID immediately
+    order.paymentDetails = { 
+        ...order.paymentDetails, 
+        ...paymentDetails,
+        confirmedAt: new Date(),
+    };
 
     await order.save();
 

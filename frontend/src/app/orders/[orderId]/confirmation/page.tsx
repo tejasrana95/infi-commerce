@@ -8,7 +8,7 @@ import { useInterest } from '@/providers/InterestProvider';
 import styles from './page.module.scss';
 import { apiClient } from '@/services/api-client';
 import { useCurrency } from '@/hooks/useCurrency';
-import { formatPrice } from '@/lib/currency';
+import Image from 'next/image';
 
 interface OrderDetails {
     _id: string;
@@ -46,6 +46,7 @@ interface OrderDetails {
     couponCode?: string;
     total: number;
     currency: string;
+    exchangeRate: number;
     customerNote?: string;
     createdAt: string;
     guestEmail?: string;
@@ -58,7 +59,7 @@ export default function OrderConfirmationPage() {
     const toast = useToast();
     const { showConfirm } = useDialog();
     const { trackPurchase } = useInterest();
-    const currency = useCurrency();
+    const {convertAndFormat} = useCurrency();
     const orderId = params.orderId as string;
 
     const [loading, setLoading] = useState(true);
@@ -249,7 +250,7 @@ export default function OrderConfirmationPage() {
                                     <div key={index} className={styles.orderItem}>
                                         {item.image && (
                                             <div className={styles.itemImage}>
-                                                <img src={item.image} alt={item.name} />
+                                                <Image src={item.image} alt={item.name} width={100} height={100} />
                                             </div>
                                         )}
                                         <div className={styles.itemDetails}>
@@ -258,7 +259,7 @@ export default function OrderConfirmationPage() {
                                             <p className={styles.quantity}>Quantity: {item.quantity}</p>
                                         </div>
                                         <div className={styles.itemPrice}>
-                                            {formatPrice(item.price * item.quantity, currency)}
+                                            {convertAndFormat(item.price * item.quantity, order.currency, order.exchangeRate)}
                                         </div>
                                     </div>
                                 ))}
@@ -307,19 +308,19 @@ export default function OrderConfirmationPage() {
                             <div className={styles.summaryItems}>
                                 <div className={styles.summaryRow}>
                                     <span>Subtotal</span>
-                                    <span>{formatPrice(order.subtotal, currency)}</span>
+                                    <span>{convertAndFormat(order.subtotal, order.currency, order.exchangeRate)}</span>
                                 </div>
 
                                 {order.shippingCost > 0 && (
                                     <div className={styles.summaryRow}>
                                         <span>Shipping</span>
-                                        <span>{formatPrice(order.shippingCost, currency)}</span>
+                                        <span>{convertAndFormat(order.shippingCost, order.currency, order.exchangeRate)}</span>
                                     </div>
                                 )}
 
                                 <div className={styles.summaryRow}>
                                     <span>Tax</span>
-                                    <span>{formatPrice(order.tax, currency)}</span>
+                                    <span>{convertAndFormat(order.tax, order.currency, order.exchangeRate)}</span>
                                 </div>
 
                                 {order.taxBreakdown && order.taxBreakdown.length > 0 && (
@@ -327,7 +328,7 @@ export default function OrderConfirmationPage() {
                                         {order.taxBreakdown.map((tax, index) => (
                                             <div key={index} className={styles.taxRow}>
                                                 <span>{tax.name} ({tax.rate}%)</span>
-                                                <span>{formatPrice(tax.amount, currency)}</span>
+                                                <span>{convertAndFormat(tax.amount, order.currency, order.exchangeRate)}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -336,13 +337,13 @@ export default function OrderConfirmationPage() {
                                 {order.discount > 0 && (
                                     <div className={`${styles.summaryRow} ${styles.discount}`}>
                                         <span>Discount {order.couponCode && `(${order.couponCode})`}</span>
-                                        <span>-{formatPrice(order.discount, currency)}</span>
+                                        <span>-{convertAndFormat(order.discount, order.currency, order.exchangeRate)}</span>
                                     </div>
                                 )}
 
                                 <div className={`${styles.summaryRow} ${styles.total}`}>
                                     <strong>Total</strong>
-                                    <strong>{formatPrice(order.total, currency)}</strong>
+                                    <strong>{convertAndFormat(order.total, order.currency, order.exchangeRate)}</strong>
                                 </div>
                             </div>
 

@@ -5,7 +5,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/providers/StoreProvider';
-import { formatPrice } from '@/lib/currency';
 import { useCurrency } from '@/hooks/useCurrency';
 import api from '@/lib/api';
 import styles from './SearchAutocomplete.module.scss';
@@ -106,7 +105,7 @@ export default function SearchAutocomplete({
 }: SearchAutocompleteProps) {
     const router = useRouter();
     const { store } = useStore();
-    const currency = useCurrency();
+    const { formatPriceWithExchange } = useCurrency();
 
     const [query, setQuery] = useState('');
     const [suggestions, setSuggestions] = useState<ProductSuggestion[]>([]);
@@ -307,10 +306,10 @@ export default function SearchAutocomplete({
                                     <div className={styles.productInfo}>
                                         <span className={styles.productName}>{product.name}</span>
                                         <span className={styles.productPrice}>
-                                            {formatPrice(product.pricing.finalPrice || product.pricing.price, currency)}
+                                            {formatPriceWithExchange(product.pricing.finalPrice || product.pricing.price)}
                                             {product.pricing.salePrice && product.pricing.salePrice < product.pricing.price && (
                                                 <span className={styles.originalPrice}>
-                                                    {formatPrice(product.pricing.originalPrice, currency)}
+                                                    {formatPriceWithExchange(product.pricing.originalPrice)}
                                                 </span>
                                             )}
                                         </span>

@@ -49,6 +49,7 @@ import { useConfirm } from '@/contexts/ConfirmContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import OrderAccountingSection from '@/components/organisms/OrderAccountingSection';
 import AdminReturnModal from '@/components/organisms/AdminReturnModal';
+import { formatDateTime } from '@/utils/date';
 
 export default function OrderDetailPage() {
     const { id } = useParams();
@@ -720,8 +721,8 @@ export default function OrderDetailPage() {
                                         titleTypographyProps={{ variant: 'subtitle1', fontWeight: 600 }}
                                     />
                                     <Divider />
-                                    <CardContent>
-                                        <Box display="flex" justifyContent="space-between" mb={1}>
+                                    <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                        <Box display="flex" justifyContent="space-between">
                                             <Typography variant="body2" color="text.secondary">Method</Typography>
                                             <Typography variant="body2" fontWeight={500} sx={{ textTransform: 'capitalize' }}>
                                                 {order.paymentMethod}
@@ -736,6 +737,16 @@ export default function OrderDetailPage() {
                                                 sx={{ textTransform: 'capitalize', height: 20, fontSize: '0.75rem' }}
                                             />
                                         </Box>
+                                        {order.paymentId && (
+                                        <Box display="flex" justifyContent="space-between">
+                                            <Typography variant="body2" color="text.secondary">Payment ID</Typography>
+                                            <small>{order.paymentId}</small>
+                                        </Box> )}
+                                         {order?.paymentDetails?.confirmedAt && (
+                                        <Box display="flex" justifyContent="space-between">
+                                            <Typography variant="body2" color="text.secondary">Payment Confirmed At</Typography>
+                                            {order.paymentDetails.confirmedAt ? formatDateTime(order.paymentDetails.confirmedAt) : 'N/A'}
+                                        </Box> )}
                                     </CardContent>
                                 </Card>
                             </Box>

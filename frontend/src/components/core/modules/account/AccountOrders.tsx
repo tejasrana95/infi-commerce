@@ -4,15 +4,26 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import styles from './AccountOrders.module.scss';
 import api from '@/lib/api';
+import { Box } from 'lucide-react';
 import { formatDate } from '@/lib/date';
 import { formatPrice } from '@/lib/currency';
 import Loader from '@/components/molecules/Loader';
 import Chip from '@/components/atoms/Chip';
+import Image from 'next/image';
+
+interface ConfigType {
+    limit?: number;
+    [key: string]: unknown;
+}
+
+interface InitialDataType {
+    [key: string]: unknown;
+}
 
 export interface ModuleProps {
-    config: Record<string, any>;
+    config: ConfigType;
     sectionType?: 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';
-    initialData?: any;
+    initialData?: InitialDataType;
     priority?: boolean;
 }
 
@@ -89,6 +100,7 @@ export default function AccountOrdersModule({ config = {} }: ModuleProps) {
 
     useEffect(() => {
         fetchOrders(page, filter);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page, filter]);
 
     const handleFilterChange = (newFilter: string) => {
@@ -164,11 +176,11 @@ export default function AccountOrdersModule({ config = {} }: ModuleProps) {
                                                 <Chip
                                                     variant="secondary"
                                                     size="medium"
-                                                    sx={{
+                                                    style={{
                                                         backgroundColor: '#f3f4f6',
                                                         color: '#4b5563',
                                                         textTransform: 'capitalize'
-                                                    } as any}
+                                                    }}
                                                 >
                                                     Return: {order.returnStatus.replace('_', ' ')}
                                                 </Chip>
@@ -181,9 +193,9 @@ export default function AccountOrdersModule({ config = {} }: ModuleProps) {
                                             <div key={index} className={styles.itemRow}>
                                                 <div className={styles.itemImage}>
                                                     {item.image ? (
-                                                        <img src={item.image} alt={item.name} />
+                                                        <Image src={item.image} alt={item.name} width={50} height={50} />
                                                     ) : (
-                                                        <div className={styles.placeholder}>📦</div>
+                                                        <div className={styles.placeholder}><Box /></div>
                                                     )}
                                                 </div>
                                                 <div className={styles.itemDetails}>

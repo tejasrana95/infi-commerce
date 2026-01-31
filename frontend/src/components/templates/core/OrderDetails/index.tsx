@@ -19,7 +19,6 @@ import {
     ChevronLeft
 } from 'lucide-react';
 import { useCurrency } from '@/hooks/useCurrency';
-import { formatPrice } from '@/lib/currency';
 import styles from './OrderDetails.module.scss';
 import { useAuth } from '@/providers/AuthProvider';
 import { apiClient } from '@/services/api-client';
@@ -27,6 +26,8 @@ import { useToast } from '@/providers/ToastProvider';
 import { useDialog } from '@/providers/DialogProvider';
 import Chip from '@/components/atoms/Chip';
 import ReturnOrderModal from '@/components/core/modules/account/ReturnOrderModal';
+import { useStore } from '@/providers/StoreProvider';
+import Image from 'next/image';
 
 // Types
 export interface OrderItem {
@@ -157,12 +158,13 @@ export default function OrderDetailsTemplate({ order, loading, onRefresh }: Orde
     const { isAuthenticated } = useAuth();
     const { addToast } = useToast();
     const { showConfirm } = useDialog();
-
+    const { store } = useStore();
+    const { returnSettings } = store?.settings || {};
     // State
     const [downloading, setDownloading] = useState(false);
     const [showReturnModal, setShowReturnModal] = useState(false);
     const [cancellingOrder, setCancellingOrder] = useState(false);
-
+    const { convertAndFormat } = useCurrency();
     // Helper functions
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-US', {
@@ -175,6 +177,7 @@ export default function OrderDetailsTemplate({ order, loading, onRefresh }: Orde
     };
 
     const canRequestReturn = () => {
+        if(!returnSettings?.enabled) return false;
         if (order.isPOSOrder) return false;
         if (order.status !== 'delivered') return false;
         if (order.returnStatus && !['none', 'rejected'].includes(order.returnStatus)) return false;
@@ -368,7 +371,7 @@ export default function OrderDetailsTemplate({ order, loading, onRefresh }: Orde
                                     <div key={index} className={styles.item}>
                                         <div className={styles.itemImage}>
                                             {item.image ? (
-                                                <img src={item.image} alt={item.name} />
+                                                <Image width={68} height={68} src={item.image} alt={item.name} />
                                             ) : (
                                                 <div className={styles.placeholder}><Package size={28} /></div>
                                             )}
@@ -386,24 +389,24 @@ export default function OrderDetailsTemplate({ order, loading, onRefresh }: Orde
                                             )}
                                             {item?.discount?.amount && (
                                                 <Chip variant="discount" size="small">
-                                                    -{item.discount.discountType === 'percentage' ? item.discount.amount + '%' : formatPrice(item.discount.amount, { code: order.currency, exchangeRate: order.exchangeRate })} OFF
+                                                    -{item.discount.discountType === 'percentage' ? item.discount.amount + '%' : convertAndFormat(item.discount.amount, order.currency, order.exchangeRate)} OFF
                                                 </Chip>
                                             )}
                                             {item?.manualDiscount !== undefined && item.manualDiscount > 0 && (
                                                 <Chip variant="discount" size="small">
-                                                    Manual Discount: -{formatPrice(item.manualDiscount, { code: order.currency, exchangeRate: order.exchangeRate })}
+                                                    Manual Discount: -{convertAndFormat(item.manualDiscount, order.currency, order.exchangeRate)}
                                                 </Chip>
                                             )}
                                         </div>
                                         <div className={styles.itemMeta}>
                                             <span className={styles.quantity}>Qty: {item.quantity}</span>
                                             <span className={styles.price}>
-                                                {item?.manualDiscount && item.manualDiscount > 0 && (
+                                                {item?.manualDiscount !== undefined && item.manualDiscount > 0 && (
                                                     <span className={styles.originalPrice}>
-                                                        {formatPrice((item.originalPrice || 0) * item.quantity, { code: order.currency, exchangeRate: order.exchangeRate })}
+                                                        {convertAndFormat((item.originalPrice || 0) * item.quantity, order.currency, order.exchangeRate)}
                                                     </span>
                                                 )}
-                                                {formatPrice(item.price * item.quantity, { code: order.currency, exchangeRate: order.exchangeRate })}
+                                                {convertAndFormat(item.price * item.quantity, order.currency, order.exchangeRate)}
                                             </span>
                                         </div>
                                     </div>
@@ -493,33 +496,34 @@ export default function OrderDetailsTemplate({ order, loading, onRefresh }: Orde
                             <div className={styles.summaryRows}>
                                 <div className={styles.summaryRow}>
                                     <span>Subtotal</span>
-                                    <span>{formatPrice(order.subtotal, { code: order.currency, exchangeRate: order.exchangeRate })}</span>
+                                    <span>{convertAndFormat(order.subtotal, order.currency, order.exchangeRate)}</span>
                                 </div>
                                 <div className={styles.summaryRow}>
                                     <span>Shipping</span>
-                                    <span>{formatPrice(order.shippingCost, { code: order.currency, exchangeRate: order.exchangeRate })}</span>
+                                    <span>{convertAndFormat(order.shippingCost, order.currency, order.exchangeRate)}</span>
                                 </div>
                                 <div className={styles.summaryRow}>
                                     <span>Tax</span>
-                                    <span>{formatPrice(order.tax, { code: order.currency, exchangeRate: order.exchangeRate })}</span>
+                                    <span>{convertAndFormat(order.tax, order.currency, order.exchangeRate)}</span>
                                 </div>
                                 {order.discount > 0 && (
                                     <div className={`${styles.summaryRow} ${styles.discount}`}>
                                         <span>Discount {order.couponCode && `(${order.couponCode})`}</span>
-                                        <span>-{formatPrice(order.discount, { code: order.currency, exchangeRate: order.exchangeRate })}</span>
+                                        <span>-{convertAndFormat(order.discount, order.currency, order.exchangeRate)}</span>
                                     </div>
                                 )}
                                 <div className={`${styles.summaryRow} ${styles.total}`}>
                                     <span>Total</span>
-                                    <span>{formatPrice(order.total, { code: order.currency, exchangeRate: order.exchangeRate })}</span>
+                                    <span>{convertAndFormat(order.total, order.currency, order.exchangeRate)}</span>
                                 </div>
                                 {order.returns && order.returns.some(r => r.totalRefundAmount && r.totalRefundAmount > 0) && (
                                     <div className={`${styles.summaryRow} ${styles.refunded}`}>
                                         <span>Total Refunded</span>
                                         <span>
-                                            {formatPrice(
+                                            {convertAndFormat(
                                                 order.returns.reduce((acc, ret) => acc + (ret.totalRefundAmount || 0), 0),
-                                                { code: order.currency, exchangeRate: order.exchangeRate }
+                                                order.currency,
+                                                order.exchangeRate
                                             )}
                                         </span>
                                     </div>

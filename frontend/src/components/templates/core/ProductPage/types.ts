@@ -114,6 +114,12 @@ export interface Product {
         subTaxes?: Array<{ name: string; rate: number }>;
     };
 
+    returnSettings: {
+        isReturnable: boolean;
+        exchangeWindowDays?: number;
+        returnWindowDays?: number;
+    },
+
     // Inventory
     stock: number;
     manageStock: boolean;

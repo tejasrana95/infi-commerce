@@ -1,12 +1,13 @@
-import { useStore } from '@/providers/StoreProvider';
+import { useCurrency as useCurrencyContext } from '@/providers/CurrencyProvider';
 import { Currency } from '@/types';
 
 /**
- * Hook to get the current currency from the store context.
- * Returns the currency object if available, or 'USD' as a fallback string.
- * This unifies currency access across components.
+ * Hook to get currency utilities from the CurrencyProvider context.
+ * Provides formatPrice, convertPrice, and other currency utilities.
+ * Returns the full CurrencyContextType for rich currency functionality.
+ * 
+ * For backward compatibility, currentCurrency is available as a property.
  */
-export function useCurrency(): Currency | string {
-    const { currentCurrency } = useStore();
-    return currentCurrency || 'USD';
+export function useCurrency() {
+    return useCurrencyContext();
 }

@@ -9,7 +9,6 @@ import { getComponent } from '@/components/templates/registry';
 import api from '@/lib/api';
 import { CompareProduct, CompareAttribute, ComparePageTemplateProps } from './types';
 import { DEFAULT_COMPARE_CONFIG } from '@/types';
-import { formatPrice } from '@/lib/currency';
 import { useCurrency } from '@/hooks/useCurrency';
 
 // ============================================
@@ -19,7 +18,7 @@ import { useCurrency } from '@/hooks/useCurrency';
 export default function ComparePageContainer() {
     const router = useRouter();
     const templateId = useTemplateId();
-    const currency = useCurrency();
+    const {formatPriceWithExchange} = useCurrency();
     const { store, themeConfig, currentCurrency } = useStore();
     const { items, removeFromCompare, clearCompare, config } = useCompare();
     const { addToWishlist } = useWishlist();
@@ -90,8 +89,8 @@ export default function ComparePageContainer() {
 
     // Format price helper
     const handleFormatPrice = useCallback((price: number) => {
-        return formatPrice(price, currency ?? 'USD');
-    }, [currency]);
+        return formatPriceWithExchange(price);
+    }, [formatPriceWithExchange]);
 
     // Get the template component
     const Template = getComponent<ComparePageTemplateProps>('ComparePageTemplate', templateId);

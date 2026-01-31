@@ -21,6 +21,7 @@ import KeyIcon from '@mui/icons-material/Key';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import SecurityIcon from '@mui/icons-material/Security';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import CookieIcon from '@mui/icons-material/Cookie';
 import PageHeader from '@/components/molecules/PageHeader';
 
 interface SettingCard {
@@ -103,6 +104,16 @@ export default function SettingsPage() {
             badgeColor: 'warning',
             color: '#06b6d4',
             enabled: true
+        },
+        {
+            title: 'Cookie Consent',
+            description: 'It has been moved to the store settings for store specific cookie consent configuration.',
+            icon: <CookieIcon sx={{ fontSize: 32 }} />,
+            link: '/stores',
+            badge: 'Moved',
+            badgeColor: 'info',
+            color: '#ec4899',
+            enabled: false
         },
 
         {

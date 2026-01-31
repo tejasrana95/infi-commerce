@@ -24,10 +24,13 @@ import { InterestProvider } from "@/providers/InterestProvider";
 import AutoAnalytics from "@/components/analytics/AutoAnalytics";
 import NavigationProgress from '@/components/ui/NavigationProgress';
 import ClientOnlyWidgets from "@/components/core/ClientOnlyWidgets";
+import CookieConsentWrapper from "@/components/core/CookieBanner/CookieConsentWrapper";
 import { formatFontFamily } from "@/lib/fonts";
 import OfflineIndicator from "@/components/pwa/OfflineIndicator";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
 import PWARegistration from "@/components/pwa/PWARegistration";
+import { DynamicHeader } from "@/components/layout/DynamicHeader";
+import { DynamicFooter } from "@/components/layout/DynamicFooter";
 
 
 // Optimized font loading with display: swap to prevent FOIT
@@ -182,10 +185,6 @@ export default async function RootLayout({
     selectedCurrency = currencies.find(c => c.code === currencyCode) || currencies[0];
   }
 
-  // Get template-specific components
-  const Header = getComponent("Header", templateId);
-  const Footer = getComponent("Footer", templateId);
-
   // Handle inactive store globally
   if (store && !store.isActive) {
     return (
@@ -290,7 +289,7 @@ export default async function RootLayout({
                             ) : (
                               <div className="flex flex-col min-h-screen">
                                 {/* Header - Template-specific container */}
-                                <Header config={store?.theme?.header} store={store} templateId={templateId} />
+                                <DynamicHeader config={store?.theme?.header} store={store} templateId={templateId} />
 
                                 {/* Main Content */}
                                 <main className="flex-1">
@@ -298,10 +297,12 @@ export default async function RootLayout({
                                 </main>
 
                                 {/* Footer - Template-specific container */}
-                                <Footer config={store?.theme?.footer} store={store} templateId={templateId} />
+                                <DynamicFooter config={store?.theme?.footer} store={store} templateId={templateId} />
                               </div>
                             )}
                             <ClientOnlyWidgets showCompare={!store?.settings?.maintenanceMode} />
+                            {/* Cookie Consent Banner */}
+                            <CookieConsentWrapper />
                             {/* PWA Components */}
                             {store?.pwaSettings?.enabled && (
                               <>

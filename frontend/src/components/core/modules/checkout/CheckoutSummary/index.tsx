@@ -6,7 +6,7 @@ import React, { useState } from 'react';
 import { useCheckout } from '../context';
 import styles from './CheckoutSummary.module.scss';
 import { useCurrency } from '@/hooks/useCurrency';
-import { formatPrice } from '@/lib/currency';
+import Image from 'next/image';
 
 export interface CheckoutSummaryProps {
     config?: any;
@@ -25,7 +25,7 @@ export default function CheckoutSummary({ config: propsConfig }: CheckoutSummary
         setCouponCode
     } = useCheckout();
 
-    const currency = useCurrency();
+    const {formatPriceWithExchange} = useCurrency();
 
     const config = propsConfig || globalConfig?.summary || {};
     const {
@@ -44,7 +44,7 @@ export default function CheckoutSummary({ config: propsConfig }: CheckoutSummary
             <div className={styles.mobileHeader} onClick={() => collapsibleMobile && setIsExpanded(!isExpanded)}>
                 <div className={styles.mobileTotal}>
                     <span>Total</span>
-                    <span className={styles.totalValue}>{formatPrice(orderSummary.total, currency)}</span>
+                    <span className={styles.totalValue}>{formatPriceWithExchange(orderSummary.total)}</span>
                 </div>
                 {collapsibleMobile && (
                     <button className={`${styles.expandBtn} ${isExpanded ? styles.expanded : ''}`}>
@@ -64,7 +64,7 @@ export default function CheckoutSummary({ config: propsConfig }: CheckoutSummary
                             <div key={`${item.productId}-${index}`} className={styles.item}>
                                 <div className={styles.itemImage}>
                                     {item.image ? (
-                                        <img src={item.image} alt={item.name} />
+                                        <Image src={item.image} alt={item.name} width={68} height={68}/>
                                     ) : (
                                         <div className={styles.placeholderImg} />
                                     )}
@@ -75,7 +75,7 @@ export default function CheckoutSummary({ config: propsConfig }: CheckoutSummary
                                     <p className={styles.itemVariant}>{item.variant}</p>
                                 </div>
                                 <div className={styles.itemPrice}>
-                                    {formatPrice((item.salePrice || item.price) * item.quantity, currency)}
+                                    {formatPriceWithExchange((item.salePrice || item.price) * item.quantity)}
                                 </div>
                             </div>
                         ))}
@@ -114,33 +114,33 @@ export default function CheckoutSummary({ config: propsConfig }: CheckoutSummary
                 <div className={styles.totals}>
                     <div className={styles.row}>
                         <span>Subtotal</span>
-                        <span>{formatPrice(orderSummary.subtotal, currency)}</span>
+                        <span>{formatPriceWithExchange(orderSummary.subtotal)}</span>
                     </div>
 
                     <div className={styles.row}>
                         <span>Shipping</span>
                         <span>
-                            {orderSummary.shipping > 0 ? formatPrice(orderSummary.shipping, currency) : (orderSummary.shipping === 0 && 'Calculated at next step')}
+                            {orderSummary.shipping > 0 ? formatPriceWithExchange(orderSummary.shipping) : (orderSummary.shipping === 0 && 'Calculated at next step')}
                         </span>
                     </div>
 
                     {orderSummary.tax > 0 && (
                         <div className={styles.row}>
                             <span>Tax</span>
-                            <span>{formatPrice(orderSummary.tax, currency)}</span>
+                            <span>{formatPriceWithExchange(orderSummary.tax)}</span>
                         </div>
                     )}
 
                     {orderSummary.discount > 0 && (
                         <div className={`${styles.row} ${styles.discount}`}>
                             <span>Discount</span>
-                            <span>-{formatPrice(orderSummary.discount, currency)}</span>
+                            <span>-{formatPriceWithExchange(orderSummary.discount)}</span>
                         </div>
                     )}
 
                     <div className={`${styles.row} ${styles.total}`}>
                         <span>Total</span>
-                        <span>{formatPrice(orderSummary.total, currency)}</span>
+                        <span>{formatPriceWithExchange(orderSummary.total)}</span>
                     </div>
                 </div>
             </div>

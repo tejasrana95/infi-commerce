@@ -21,6 +21,7 @@ import { useNotification } from '@/contexts/NotificationContext';
 import { Store } from '@/types';
 import PWASettings from '@/components/organisms/PWASettings/PWASettings';
 import ReturnSettingsPanel from '@/components/organisms/ReturnSettingsPanel';
+import CookieConsentSettingsComponent, { CookieConsentSettings } from '@/components/organisms/CookieConsentSettings';
 
 type EmailProvider = 'smtp' | 'ses' | 'sendgrid' | 'mailjet';
 
@@ -209,6 +210,23 @@ export default function EditStorePage() {
     });
     const [savingPWA, setSavingPWA] = useState(false);
 
+    // Cookie Consent settings state
+    const [cookieConsentSettings, setCookieConsentSettings] = useState<CookieConsentSettings>({
+        enabled: false,
+        title: '',
+        description: '',
+        ctaLink: '',
+        ctaText: 'Accept',
+        icon: '',
+        position: 'bottom-center',
+        width: 'half',
+        backgroundColor: '#1f2937',
+        textColor: '#ffffff',
+        buttonColor: '#3b82f6',
+        buttonTextColor: '#ffffff',
+    });
+    const [savingCookie, setSavingCookie] = useState(false);
+
     useEffect(() => {
         fetchStore();
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -262,7 +280,10 @@ export default function EditStorePage() {
                     installPromptStyle: currentStore.pwaSettings.installPromptStyle || 'toast',
                 });
             }
-        } catch (_err) {
+            if (currentStore?.cookieConsentSettings) {
+                setCookieConsentSettings(currentStore.cookieConsentSettings);
+            }
+        } catch {
             showNotification('Failed to load store', 'error');
             router.push('/stores');
         } finally {
@@ -441,6 +462,21 @@ export default function EditStorePage() {
         }
     };
 
+    const handleSaveCookie = async (settings: CookieConsentSettings) => {
+        setSavingCookie(true);
+        try {
+            await api.patch(`/stores/${id}`, { cookieConsentSettings: settings });
+            setCookieConsentSettings(settings);
+            showNotification('Cookie consent settings saved successfully', 'success');
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } } };
+            showNotification(error.response?.data?.message || 'Failed to save Cookie consent settings', 'error');
+            throw error;
+        } finally {
+            setSavingCookie(false);
+        }
+    };
+
     return (
         <Box sx={{ position: 'relative' }}>
             {loading && (
@@ -490,6 +526,7 @@ export default function EditStorePage() {
                         <Tab label="AI Assistant" />
                         <Tab label="PWA Settings" />
                         <Tab label="Return Settings" />
+                        <Tab label="Cookie Consent" />
                     </Tabs>
                 </Box>
 
@@ -1449,7 +1486,7 @@ export default function EditStorePage() {
                                 </Box>
 
                                 <Alert severity="info" sx={{ mb: 3 }}>
-                                    The AI assistant uses OpenAI's GPT models to provide intelligent responses based on your product catalog.
+                                    The AI assistant uses OpenAI&apos;s GPT models to provide intelligent responses based on your product catalog.
                                     {aiSettings.enabled && !aiSettings.openaiKey && (
                                         <Typography variant="body2" sx={{ mt: 1, fontWeight: 600, color: 'error.main' }}>
                                             Note: Assistant will be disabled on the storefront until a valid API key is provided.
@@ -1532,6 +1569,18 @@ export default function EditStorePage() {
                 {/* Return Settings Tab */}
                 <TabPanel value={activeTab} index={8}>
                     <ReturnSettingsPanel storeId={id} />
+                </TabPanel>
+
+                {/* Cookie Consent Settings Tab */}
+                <TabPanel value={activeTab} index={9}>
+                    <Box sx={{ p: 3, pt: 0 }}>
+                        <CookieConsentSettingsComponent
+                            storeId={id}
+                            initialSettings={cookieConsentSettings}
+                            onSave={handleSaveCookie}
+                            saving={savingCookie}
+                        />
+                    </Box>
                 </TabPanel>
             </Paper>
         </Box>

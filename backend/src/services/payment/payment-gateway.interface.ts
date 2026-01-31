@@ -21,6 +21,7 @@ export interface RefundResponse {
     amount: number;
     status: 'pending' | 'success' | 'failed';
     gatewayResponse?: any;
+    message?: string;
 }
 
 export interface WebhookVerification {
@@ -74,6 +75,7 @@ export interface IPaymentGateway {
         paymentId: string;
         amount: number;
         reason?: string;
+        currency?: string;
     }): Promise<RefundResponse>;
 
     /**

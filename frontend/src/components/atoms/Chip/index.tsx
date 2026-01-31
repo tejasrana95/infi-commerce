@@ -43,6 +43,8 @@ export interface ChipProps {
     removable?: boolean;
     /** Icon to display before the content */
     icon?: React.ReactNode;
+    /** Inline styles */
+    style?: React.CSSProperties;
 }
 
 export default function Chip({
@@ -54,6 +56,7 @@ export default function Chip({
     onRemove,
     removable = false,
     icon,
+    style = {},
 }: ChipProps) {
     const handleClick = (e: React.MouseEvent) => {
         if (onClick) {
@@ -75,6 +78,7 @@ export default function Chip({
             onClick={handleClick}
             role={onClick ? 'button' : undefined}
             tabIndex={onClick ? 0 : undefined}
+            style={style}
         >
             {icon && <span className={styles.icon}>{icon}</span>}
             <span className={styles.content}>{children}</span>

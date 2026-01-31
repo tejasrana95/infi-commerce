@@ -4,7 +4,6 @@ import React from 'react';
 import Link from 'next/link';
 import { useCart } from '@/providers/CartProvider';
 import { useCurrency } from '@/hooks/useCurrency';
-import { formatPrice } from '@/lib/currency';
 import CartItem from '@/components/core/CartItem';
 import styles from './CartPopup.module.scss';
 
@@ -14,7 +13,7 @@ interface CartPopupProps {
 
 export default function CartPopup({ onClose }: CartPopupProps) {
     const { cart, items, cartCount, updateCartItem, removeFromCart } = useCart();
-    const currency = useCurrency();
+    const {formatPriceWithExchange} = useCurrency();
 
     // Show only first 3 items in popup
     const displayItems = items.slice(0, 3);
@@ -80,7 +79,7 @@ export default function CartPopup({ onClose }: CartPopupProps) {
             <div className={styles.footer}>
                 <div className={styles.total}>
                     <span>Total:</span>
-                    <span className={styles.totalAmount}>{formatPrice(total, currency)}</span>
+                    <span className={styles.totalAmount}>{formatPriceWithExchange(total)}</span>
                 </div>
 
                 <div className={styles.actions}>

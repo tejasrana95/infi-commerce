@@ -6,7 +6,6 @@ import React from 'react';
 import { useCheckout } from '../context';
 import styles from './CheckoutShipping.module.scss';
 import { useCurrency } from '@/hooks/useCurrency';
-import { formatPrice } from '@/lib/currency';
 
 export interface CheckoutShippingProps {
     config?: any;
@@ -26,7 +25,7 @@ export default function CheckoutShipping({ config: propsConfig }: CheckoutShippi
     // It seems simple shipping for now.
 
     // Let's use currency hook for formatting
-    const currency = useCurrency();
+    const {formatPriceWithExchange} = useCurrency();
 
     const config = propsConfig || globalConfig?.shipping || {};
     const {
@@ -76,7 +75,7 @@ export default function CheckoutShipping({ config: propsConfig }: CheckoutShippi
                             </div>
                         )}
                         <div className={styles.price}>
-                            {shippingCost === 0 ? 'FREE' : formatPrice(shippingCost, currency)}
+                            {shippingCost === 0 ? 'FREE' : formatPriceWithExchange(shippingCost)}
                         </div>
                     </div>
 

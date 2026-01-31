@@ -24,11 +24,7 @@ export default function CheckoutReview({ config: propsConfig }: CheckoutReviewPr
         goToStep
     } = useCheckout();
 
-    const currency = useCurrency();
-    const formatPrice = (price: number) => {
-        if (typeof currency === 'string') return `${currency} ${price.toFixed(2)}`;
-        return `${currency?.symbol || '$'}${price.toFixed(2)}`;
-    };
+    const {formatPriceWithExchange} = useCurrency();
 
     const config = propsConfig || globalConfig?.review || {};
     const {
@@ -118,7 +114,7 @@ export default function CheckoutReview({ config: propsConfig }: CheckoutReviewPr
                         <div className={styles.sectionContent}>
                             <p><strong>Method:</strong> {selectedPayment.name}</p>
                             {selectedPayment.extraCharge! > 0 && (
-                                <p><strong>Extra Charge:</strong> {formatPrice(selectedPayment.extraCharge!)}</p>
+                                <p><strong>Extra Charge:</strong> {formatPriceWithExchange(selectedPayment.extraCharge!)}</p>
                             )}
                         </div>
                     ) : (

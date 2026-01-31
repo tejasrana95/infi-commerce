@@ -16,7 +16,7 @@ export default function CartModule({ config }: ModuleProps) {
     useEffect(() => {
         refreshCart();
     }, [refreshCart]);
-    const currency = useCurrency();
+    const {formatPriceWithExchange} = useCurrency();
 
     // Calculate totals
     const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -74,26 +74,26 @@ export default function CartModule({ config }: ModuleProps) {
 
                     <div className={styles.summaryRow}>
                         <span>Subtotal</span>
-                        <span>{formatPrice(subtotal, currency)}</span>
+                        <span>{formatPriceWithExchange(subtotal)}</span>
                     </div>
 
                     {tax > 0 && (
                         <div className={styles.summaryRow}>
                             <span>Tax</span>
-                            <span>{formatPrice(tax, currency)}</span>
+                            <span>{formatPriceWithExchange(tax)}</span>
                         </div>
                     )}
 
                     <div className={styles.summaryRow}>
                         <span>Shipping</span>
-                        <span>{shipping > 0 ? formatPrice(shipping, currency) : 'Calculated at checkout'}</span>
+                        <span>{shipping > 0 ? formatPriceWithExchange(shipping) : 'Calculated at checkout'}</span>
                     </div>
 
                     <div className={styles.divider}></div>
 
                     <div className={`${styles.summaryRow} ${styles.total}`}>
                         <span>Total</span>
-                        <span>{formatPrice(total, currency)}</span>
+                        <span>{formatPriceWithExchange(total)}</span>
                     </div>
 
                     <Link href="/checkout" className={styles.checkoutBtn}>

@@ -73,6 +73,13 @@ export const createStoreValidation = [
     body('settings.returnSettings.dropOffEnabled').optional().isBoolean(),
     body('settings.returnSettings.refundMethods').optional().isArray(),
     body('settings.returnSettings.refundMethods.*').optional().isIn(['original', 'store_credit', 'bank_transfer']),
+    body('settings.returnSettings.returnConditions').optional().isArray(),
+    body('settings.returnSettings.returnConditions.*').optional().isString().trim(),
+    body('settings.returnSettings.exchangeConditions').optional().isArray(),
+    body('settings.returnSettings.exchangeConditions.*').optional().isString().trim(),
+    body('settings.returnSettings.processSteps').optional().isArray(),
+    body('settings.returnSettings.processSteps.*.label').optional().isString().trim(),
+    body('settings.returnSettings.processSteps.*.description').optional().isString().trim(),
 ];
 
 export const updateStoreValidation = [
@@ -132,6 +139,13 @@ export const updateStoreValidation = [
     body('settings.returnSettings.dropOffEnabled').optional().isBoolean(),
     body('settings.returnSettings.refundMethods').optional().isArray(),
     body('settings.returnSettings.refundMethods.*').optional().isIn(['original', 'store_credit', 'bank_transfer']),
+    body('settings.returnSettings.returnConditions').optional().isArray(),
+    body('settings.returnSettings.returnConditions.*').optional().isString().trim(),
+    body('settings.returnSettings.exchangeConditions').optional().isArray(),
+    body('settings.returnSettings.exchangeConditions.*').optional().isString().trim(),
+    body('settings.returnSettings.processSteps').optional().isArray(),
+    body('settings.returnSettings.processSteps.*.label').optional().isString().trim(),
+    body('settings.returnSettings.processSteps.*.description').optional().isString().trim(),
 ];
 
 // ============================================

@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiClient } from '@/services/api-client';
 import styles from './ShippingCalculator.module.scss';
-import { formatPrice } from '@/lib/currency';
 import { useCurrency } from '@/hooks/useCurrency';
 
 interface ShippingCalculatorProps {
@@ -39,7 +38,7 @@ const ShippingCalculator: React.FC<ShippingCalculatorProps> = ({
     const [zip, setZip] = useState('');
     const [countries, setCountries] = useState<GeoCountry[]>([]);
     const [loadingCountries, setLoadingCountries] = useState(false);
-    const currency = useCurrency();
+    const {formatPriceWithExchange} = useCurrency();
 
     const [isExpanded, setIsExpanded] = useState(false);
 
@@ -136,7 +135,7 @@ const ShippingCalculator: React.FC<ShippingCalculatorProps> = ({
                             )}
                             <div className={`${styles.resultItem} ${styles.total}`}>
                                 <span className={styles.label}>Shipping Cost:</span>
-                                <span className={styles.value}>{formatPrice(estimate.cost, currency)}</span>
+                                <span className={styles.value}>{formatPriceWithExchange(estimate.cost)}</span>
                             </div>
                         </div>
                     )}

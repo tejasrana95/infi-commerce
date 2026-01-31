@@ -5,7 +5,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useToast } from '@/providers/ToastProvider';
 import { CartItem as CartItemType } from '@/types/cart';
-import { formatPrice } from '@/lib/currency';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useThemeConfig } from '@/providers/StoreProvider';
 import styles from './CartItem.module.scss';
@@ -28,7 +27,7 @@ interface CartItemProps {
 }
 
 export default function CartItem({ item, onUpdateQuantity, onRemove, compact = false }: CartItemProps) {
-    const currency = useCurrency();
+    const {formatPriceWithExchange} = useCurrency();
     const themeConfig = useThemeConfig();
     const toast = useToast();
     const [isUpdating, setIsUpdating] = useState(false);
@@ -130,7 +129,7 @@ export default function CartItem({ item, onUpdateQuantity, onRemove, compact = f
 
                 {/* Price (Mobile) */}
                 <div className={styles.priceMobile}>
-                    {formatPrice(priceToDisplay, currency)}
+                    {formatPriceWithExchange(priceToDisplay)}
                     {item.quantity > 1 && (
                         <span className={styles.quantity}> × {item.quantity}</span>
                     )}
@@ -140,7 +139,7 @@ export default function CartItem({ item, onUpdateQuantity, onRemove, compact = f
             {/* Price (Desktop) */}
             {!compact && (
                 <div className={styles.price}>
-                    {formatPrice(priceToDisplay, currency)}
+                    {formatPriceWithExchange(priceToDisplay)}
                 </div>
             )}
 
@@ -181,7 +180,7 @@ export default function CartItem({ item, onUpdateQuantity, onRemove, compact = f
             {/* Total (Desktop) */}
             {!compact && (
                 <div className={styles.total}>
-                    {formatPrice(itemTotal, currency)}
+                    {formatPriceWithExchange(itemTotal)}
                 </div>
             )}
 

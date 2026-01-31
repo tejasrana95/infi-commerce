@@ -1,13 +1,12 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
 import { useToast } from '@/providers/ToastProvider';
 import { useDialog } from '@/providers/DialogProvider';
 import { apiClient } from '@/services/api-client';
 import { useCurrency } from '@/hooks/useCurrency';
-import { formatPrice } from '@/lib/currency';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import StripePaymentForm from '@/components/payment/StripePaymentForm';
@@ -22,6 +21,7 @@ interface OrderData {
     tax: number;
     discount: number;
     currency: string;
+    exchangeRate: number;
     paymentMethod: string;
     paymentStatus: string;
     guestEmail?: string;
@@ -66,7 +66,7 @@ export default function OrderPaymentPage() {
     const { customer } = useAuth();
     const toast = useToast();
     const { showConfirm } = useDialog();
-    const currency = useCurrency();
+    const { convertAndFormat } = useCurrency();
 
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
@@ -78,10 +78,16 @@ export default function OrderPaymentPage() {
 
     const guestEmail = searchParams.get('guestEmail');
     const queryString = guestEmail ? `?guestEmail=${encodeURIComponent(guestEmail)}` : '';
+    
+    // Track if payment initialization has already been called to prevent duplicate calls
+    // This prevents React StrictMode and race conditions from calling initializePayment twice
+    const initializePaymentRef = useRef(false);
 
     // Load order and initialize payment
     useEffect(() => {
-        if (orderId) {
+        if (orderId && !initializePaymentRef.current) {
+            initializePaymentRef.current = true;
+            console.log('🔄 Initializing payment for order:', orderId);
             initializePayment();
         }
     }, [orderId]);
@@ -91,21 +97,26 @@ export default function OrderPaymentPage() {
             setLoading(true);
             setError(null);
 
+            console.log('📡 Fetching order details for orderId:', orderId);
             // First, fetch order details
             const orderResponse = await apiClient.get(`/orders/${orderId}${queryString}`);
-            const orderData = orderResponse.data;
+            const orderData = orderResponse.data;;
             setOrder(orderData);
 
             // Check if already paid
             if (orderData.paymentStatus === 'paid') {
+                console.log('✅ Order already paid, redirecting to confirmation');
                 router.replace(`/orders/${orderId}/confirmation${queryString}`);
                 return;
             }
 
             // Initialize payment with gateway
+            console.log('🔐 Calling initialize-payment endpoint');
             const paymentResponse = await apiClient.post(`/orders/${orderId}/initialize-payment`, {
                 guestEmail: guestEmail || undefined,
             });
+
+            console.log('✅ Payment initialized:', paymentResponse.data.gatewayType);
 
             if (paymentResponse.data?.requiresPayment === false) {
                 // COD or other offline method
@@ -226,18 +237,14 @@ export default function OrderPaymentPage() {
     const handleStripeSuccess = async () => {
         try {
             setProcessing(true);
-            await apiClient.post(`/orders/${orderId}/payment-success`, {
-                paymentId: paymentData?.paymentId,
-                guestEmail: guestEmail || order?.guestEmail || undefined,
-                paymentDetails: {
-                    gateway: 'stripe',
-                },
-            });
+            // Note: StripePaymentForm already calls payment-success with the correct PaymentIntent ID
+            // This is just for navigation and UI updates
+            console.log('✅ Stripe payment form succeeded, redirecting to confirmation');
             toast.success('Payment successful!');
             router.replace(`/orders/${orderId}/confirmation${queryString}`);
         } catch (err) {
-            console.error('Error confirming payment:', err);
-            toast.error('Payment received but confirmation failed. Please contact support.');
+            console.error('Error after payment success:', err);
+            toast.error('Payment successful but redirect failed. Please check your order status.');
         } finally {
             setProcessing(false);
         }
@@ -379,29 +386,29 @@ export default function OrderPaymentPage() {
                             <h2>Order Summary</h2>
                             <div className={styles.summaryRow}>
                                 <span>Subtotal</span>
-                                <span>{formatPrice(order.subtotal, currency)}</span>
+                                <span>{convertAndFormat(order.subtotal, order.currency, order.exchangeRate)}</span>
                             </div>
                             {order.shippingCost > 0 && (
                                 <div className={styles.summaryRow}>
                                     <span>Shipping</span>
-                                    <span>{formatPrice(order.shippingCost, currency)}</span>
+                                    <span>{convertAndFormat(order.shippingCost, order.currency, order.exchangeRate)}</span>
                                 </div>
                             )}
                             {order.tax > 0 && (
                                 <div className={styles.summaryRow}>
                                     <span>Tax</span>
-                                    <span>{formatPrice(order.tax, currency)}</span>
+                                    <span>{convertAndFormat(order.tax, order.currency, order.exchangeRate)}</span>
                                 </div>
                             )}
                             {order.discount > 0 && (
                                 <div className={styles.summaryRow}>
                                     <span>Discount</span>
-                                    <span>-{formatPrice(order.discount, currency)}</span>
+                                    <span>-{convertAndFormat(order.discount, order.currency, order.exchangeRate)}</span>
                                 </div>
                             )}
                             <div className={`${styles.summaryRow} ${styles.total}`}>
                                 <span>Total</span>
-                                <span>{formatPrice(order.total, currency)}</span>
+                                <span>{convertAndFormat(order.total, order.currency, order.exchangeRate)}</span>
                             </div>
                         </div>
                     )}
@@ -465,7 +472,7 @@ export default function OrderPaymentPage() {
                                     onClick={handlePayNow}
                                     disabled={processing}
                                 >
-                                    {processing ? 'Processing...' : `Pay ${formatPrice(order?.total || 0, currency)}`}
+                                    {processing ? 'Processing...' : `Pay ${convertAndFormat(order?.total || 0, order?.currency || 'USD', order?.exchangeRate || 1)}`}
                                 </button>
 
                                 <div className={styles.cancelLink} onClick={handleCancel}>

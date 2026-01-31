@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect } from 'react';
 import { Store, StoreContextType, ThemeConfig, DEFAULT_TEMPLATE_ID } from '@/types';
 import api from '@/lib/api';
 import { detectCurrency, hasManualCurrencySelection } from '@/lib/geolocation';
+import { CurrencyProvider } from './CurrencyProvider';
 
 // ============================================
 // Context Creation
@@ -175,9 +176,14 @@ export function StoreProvider({ store, children, currentCurrency, availableCurre
     };
 
     return (
-        <StoreContext.Provider value={contextValue}>
-            {children}
-        </StoreContext.Provider>
+        <CurrencyProvider 
+            initialCurrency={activeCurrency}
+            availableCurrencies={availableCurrencies}
+        >
+            <StoreContext.Provider value={contextValue}>
+                {children}
+            </StoreContext.Provider>
+        </CurrencyProvider>
     );
 }
 

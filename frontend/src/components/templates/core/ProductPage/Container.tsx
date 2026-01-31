@@ -24,7 +24,6 @@ import {
     DEFAULT_PRODUCT_PAGE_CONFIG,
     DEFAULT_REVIEW_SETTINGS,
 } from './types';
-import { formatPrice } from '@/lib/currency';
 import { useCurrency } from '@/hooks/useCurrency';
 
 interface ProductPageContainerProps {
@@ -40,6 +39,7 @@ export default function ProductPageContainer({
 }: ProductPageContainerProps) {
     const { store, currentCurrency } = useStore();
     const themeConfig = useThemeConfig();
+    const {formatPriceWithExchange} = useCurrency();
     const currency = useCurrency();
     const { isInWishlist, toggleWishlist } = useWishlist();
     const { addToCompare, isInCompare, removeFromCompare, canAddToCompare, config: compareConfig } = useCompare();
@@ -78,12 +78,12 @@ export default function ProductPageContainer({
 
         return {
             ...initialProduct,
-            formattedPrice: formatPrice(currentPrice, currency),
+            formattedPrice: formatPriceWithExchange(currentPrice),
             formattedSalePrice: initialProduct.salePrice
-                ? formatPrice(initialProduct.salePrice, currency)
+                ? formatPriceWithExchange(initialProduct.salePrice)
                 : undefined,
             formattedCompareAtPrice: compareAt
-                ? formatPrice(compareAt, currency)
+                ? formatPriceWithExchange(compareAt)
                 : undefined,
             discountPercent: compareAt
                 ? Math.round((1 - currentPrice / compareAt) * 100)
@@ -550,7 +550,7 @@ export default function ProductPageContainer({
                     variantId: selectedVariant?._id,
                     quantity
                 }],
-                currency: typeof currency === 'string' ? currency : currency.code
+                currency: typeof currency === 'string' ? currency : (currency.currentCurrency?.code) || 'USD',
             });
 
             if (response.success) {
@@ -634,7 +634,7 @@ export default function ProductPageContainer({
         config,
         currencySymbol,
         exchangeRate,
-        currency,
+        currency: typeof currency === 'string' ? currency : (currency.currentCurrency?.code || 'USD'),
         templateId,
         cardConfig: themeConfig?.productCard,
         layout,

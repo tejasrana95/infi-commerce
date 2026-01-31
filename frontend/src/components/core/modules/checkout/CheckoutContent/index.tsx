@@ -52,7 +52,6 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
     const toast = useToast();
     const { clearCart } = useCart();
     const currency = useCurrency();
-
     // Step management
     const [currentStep, setCurrentStep] = useState(1);
     const checkoutMode = config?.mode || 'stepper';
@@ -224,7 +223,7 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
                 const { methods } = await checkoutService.getPaymentMethods(
                     shippingAddress.country,
                     orderSummary.total,
-                    typeof currency === 'string' ? currency : (currency?.code || 'USD')
+                    typeof currency === 'string' ? currency : (currency.currentCurrency?.code || 'USD')
                 );
                 setPaymentMethods(methods);
                 if (methods.length > 0 && !selectedPayment) {
@@ -380,7 +379,7 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
                 shippingAddress,
                 billingAddress: (sameAsShipping ? shippingAddress : billingAddress) as Address,
                 paymentMethod: selectedPayment.id,
-                currency: typeof currency === 'string' ? currency : (currency?.code || 'USD'),
+                currency: typeof currency === 'string' ? currency : (currency.currentCurrency?.code || 'USD'),
                 customerNote,
                 guestEmail: !customer ? guestEmail : undefined,
                 saveAddress: customer ? saveAddress : false,

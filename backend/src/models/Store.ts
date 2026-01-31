@@ -98,6 +98,9 @@ export interface IStore extends Document {
             pickupEnabled: boolean;
             dropOffEnabled: boolean;
             refundMethods: ('original' | 'store_credit' | 'bank_transfer')[];
+            returnConditions?: string[];
+            exchangeConditions?: string[];
+            processSteps?: { label: string; description?: string }[];
         };
         [key: string]: any;
     };
@@ -245,6 +248,23 @@ export interface IStore extends Document {
             appleTouchIcon?: string;  // 180x180 Apple touch icon
         };
         installPromptStyle?: 'toast' | 'banner' | 'modal';
+    };
+
+    // Cookie Consent Configuration
+    cookieConsentSettings?: {
+        enabled: boolean;
+        title?: string;
+        description?: string;
+        ctaLink?: string;
+        ctaText?: string;
+        icon?: string; // Icon identifier from icon picker
+        position: 'bottom-left' | 'bottom-center' | 'bottom-right';
+        width: 'full' | 'half' | 'custom';
+        customWidth?: number; // in pixels, only used when width is 'custom'
+        backgroundColor?: string;
+        textColor?: string;
+        buttonColor?: string;
+        buttonTextColor?: string;
     };
 
     // POS (Point of Sale) Configuration
@@ -480,6 +500,30 @@ const StoreSchema = new Schema<IStore>(
                 enum: ['toast', 'banner', 'modal'],
                 default: 'toast',
             },
+        },
+        // Cookie Consent configuration
+        cookieConsentSettings: {
+            enabled: { type: Boolean, default: false },
+            title: { type: String, trim: true },
+            description: { type: String, trim: true }, // Can contain HTML from RTE
+            ctaLink: { type: String, trim: true },
+            ctaText: { type: String, trim: true, default: 'Accept' },
+            icon: { type: String, trim: true }, // Icon identifier
+            position: {
+                type: String,
+                enum: ['bottom-left', 'bottom-center', 'bottom-right'],
+                default: 'bottom-center',
+            },
+            width: {
+                type: String,
+                enum: ['full', 'half', 'custom'],
+                default: 'half',
+            },
+            customWidth: { type: Number }, // in pixels
+            backgroundColor: { type: String, trim: true, default: '#1f2937' },
+            textColor: { type: String, trim: true, default: '#ffffff' },
+            buttonColor: { type: String, trim: true, default: '#3b82f6' },
+            buttonTextColor: { type: String, trim: true, default: '#ffffff' },
         },
         // POS configuration
         posSettings: {

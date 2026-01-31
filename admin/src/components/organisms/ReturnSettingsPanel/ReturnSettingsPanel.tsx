@@ -5,10 +5,11 @@ import {
     Box, Button, Typography, Card, CardContent,
     TextField, FormControl, InputLabel, Select, MenuItem,
     FormControlLabel, Checkbox, FormGroup, CircularProgress,
-    Alert, Divider, Switch,
+    Alert, Divider, Switch, IconButton, List, ListItem,
+    ListItemText, ListItemSecondaryAction, Paper
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
-import { Refresh as RefreshIcon } from '@mui/icons-material';
+import { Refresh as RefreshIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
 import api from '@/lib/api';
 import { useNotification } from '@/contexts/NotificationContext';
 
@@ -26,7 +27,9 @@ interface ReturnSettings {
     pickupEnabled: boolean;
     dropOffEnabled: boolean;
     refundMethods: ('original' | 'bank_transfer')[];
-    restockingFeePercentage?: number;
+    returnConditions: string[];
+    exchangeConditions: string[];
+    processSteps: { label: string; description?: string }[];
 }
 
 const defaultSettings: ReturnSettings = {
@@ -39,7 +42,149 @@ const defaultSettings: ReturnSettings = {
     pickupEnabled: true,
     dropOffEnabled: true,
     refundMethods: ['original', 'bank_transfer'],
-    restockingFeePercentage: 0,
+    returnConditions: [],
+    exchangeConditions: [],
+    processSteps: [],
+};
+
+interface ListEditorProps {
+    title: string;
+    items: string[];
+    onChange: (items: string[]) => void;
+    placeholder?: string;
+}
+
+const ListEditor = ({ title, items, onChange, placeholder }: ListEditorProps) => {
+    const [newItem, setNewItem] = useState('');
+
+    const handleAdd = () => {
+        if (newItem.trim()) {
+            onChange([...items, newItem.trim()]);
+            setNewItem('');
+        }
+    };
+
+    const handleDelete = (index: number) => {
+        const newItems = [...items];
+        newItems.splice(index, 1);
+        onChange(newItems);
+    };
+
+    return (
+        <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>{title}</Typography>
+            <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                <TextField
+                    fullWidth
+                    size="small"
+                    value={newItem}
+                    onChange={(e) => setNewItem(e.target.value)}
+                    placeholder={placeholder || 'Add new item'}
+                    onKeyPress={(e) => e.key === 'Enter' && handleAdd()}
+                />
+                <Button
+                    variant="contained"
+                    onClick={handleAdd}
+                    startIcon={<AddIcon />}
+                    sx={{ minWidth: 100 }}
+                >
+                    Add
+                </Button>
+            </Box>
+            {items.length > 0 && (
+                <Paper variant="outlined">
+                    <List dense>
+                        {items.map((item, index) => (
+                            <ListItem key={index} divider={index !== items.length - 1}>
+                                <ListItemText primary={item} />
+                                <ListItemSecondaryAction>
+                                    <IconButton edge="end" onClick={() => handleDelete(index)} size="small" color="error">
+                                        <DeleteIcon />
+                                    </IconButton>
+                                </ListItemSecondaryAction>
+                            </ListItem>
+                        ))}
+                    </List>
+                </Paper>
+            )}
+        </Box>
+    );
+};
+
+interface ProcessStepEditorProps {
+    steps: { label: string; description?: string }[];
+    onChange: (steps: { label: string; description?: string }[]) => void;
+}
+
+const ProcessStepEditor = ({ steps, onChange }: ProcessStepEditorProps) => {
+    const [newStep, setNewStep] = useState({ label: '', description: '' });
+
+    const handleAdd = () => {
+        if (newStep.label.trim()) {
+            onChange([...steps, { ...newStep, label: newStep.label.trim(), description: newStep.description.trim() }]);
+            setNewStep({ label: '', description: '' });
+        }
+    };
+
+    const handleDelete = (index: number) => {
+        const newSteps = [...steps];
+        newSteps.splice(index, 1);
+        onChange(newSteps);
+    };
+
+    return (
+        <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>Process Steps</Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
+                <TextField
+                    fullWidth
+                    size="small"
+                    label="Step Name"
+                    value={newStep.label}
+                    onChange={(e) => setNewStep({ ...newStep, label: e.target.value })}
+                    placeholder="e.g. Quality Check"
+                />
+                <TextField
+                    fullWidth
+                    size="small"
+                    label="Description (Optional)"
+                    value={newStep.description}
+                    onChange={(e) => setNewStep({ ...newStep, description: e.target.value })}
+                    placeholder="Describe what happens in this step"
+                />
+                <Button
+                    variant="contained"
+                    onClick={handleAdd}
+                    startIcon={<AddIcon />}
+                    disabled={!newStep.label.trim()}
+                    fullWidth
+                >
+                    Add Step
+                </Button>
+            </Box>
+
+            {steps.length > 0 && (
+                <Paper variant="outlined">
+                    <List dense>
+                        {steps.map((step, index) => (
+                            <ListItem key={index} divider={index !== steps.length - 1} alignItems="flex-start">
+                                <ListItemText
+                                    primary={step.label}
+                                    secondary={step.description}
+                                    primaryTypographyProps={{ fontWeight: 500 }}
+                                />
+                                <ListItemSecondaryAction sx={{ top: 16 }}>
+                                    <IconButton edge="end" onClick={() => handleDelete(index)} size="small" color="error">
+                                        <DeleteIcon />
+                                    </IconButton>
+                                </ListItemSecondaryAction>
+                            </ListItem>
+                        ))}
+                    </List>
+                </Paper>
+            )}
+        </Box>
+    );
 };
 
 export default function ReturnSettingsPanel({ storeId }: ReturnSettingsProps) {
@@ -234,20 +379,6 @@ export default function ReturnSettingsPanel({ storeId }: ReturnSettingsProps) {
                                 </Typography>
                             </FormGroup>
                         </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="Restocking Fee (%)"
-                                type="number"
-                                value={settings.restockingFeePercentage || 0}
-                                onChange={(e) => setSettings({
-                                    ...settings,
-                                    restockingFeePercentage: Math.max(0, Math.min(100, parseFloat(e.target.value) || 0)),
-                                })}
-                                inputProps={{ min: 0, max: 100, step: 0.1 }}
-                                helperText="Percentage deducted from refund (0 for no fee)"
-                            />
-                        </Grid>
                     </Grid>
 
                     <Divider sx={{ my: 3 }} />
@@ -337,6 +468,35 @@ export default function ReturnSettingsPanel({ storeId }: ReturnSettingsProps) {
                                     Direct transfer to bank account
                                 </Typography>
                             </FormGroup>
+                        </Grid>
+                    </Grid>
+
+                    <Divider sx={{ my: 3 }} />
+
+                    {/* Conditions & Process */}
+                    <Typography variant="h6" sx={{ mb: 2 }}>Conditions & Process</Typography>
+                    <Grid container spacing={3}>
+                        <Grid size={{ xs: 12, md: 4 }}>
+                            <ListEditor
+                                title="Return Conditions"
+                                items={settings.returnConditions || []}
+                                onChange={(items) => setSettings({ ...settings, returnConditions: items })}
+                                placeholder="e.g. Tag must be attached"
+                            />
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 4 }}>
+                            <ListEditor
+                                title="Exchange Conditions"
+                                items={settings.exchangeConditions || []}
+                                onChange={(items) => setSettings({ ...settings, exchangeConditions: items })}
+                                placeholder="e.g. Original packaging required"
+                            />
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 4 }}>
+                            <ProcessStepEditor
+                                steps={settings.processSteps || []}
+                                onChange={(steps) => setSettings({ ...settings, processSteps: steps })}
+                            />
                         </Grid>
                     </Grid>
 

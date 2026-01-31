@@ -12,6 +12,7 @@ import Customer from '../models/Customer';
 import { InventoryService } from '../services/inventory.service';
 import { AccountingService } from '../services/accounting.service';
 import { AppError, asyncHandler } from '../middleware/validation';
+import { PaymentService } from '../services/payment/payment.service';
 
 
 /**
@@ -99,6 +100,11 @@ export const createReturnRequest = asyncHandler(async (req: AuthRequest, res: Re
     // Get store settings
     const store = await Store.findById(storeId);
     const returnSettings = store?.settings?.returnSettings || ReturnWindowService.getDefaultSettings();
+
+    // Check if return settings are enabled
+    if (!returnSettings.enabled) {
+        throw new AppError('Returns and exchanges are currently disabled for this store', 400);
+    }
 
     // Build return items with full details
     const returnItems = await Promise.all(
@@ -194,6 +200,8 @@ export const createReturnRequest = asyncHandler(async (req: AuthRequest, res: Re
         status: returnSettings.autoApproveReturns ? 'approved' : 'pending',
         items: returnItems,
         totalRefundAmount,
+        currency: order.currency,
+        exchangeRate: order.exchangeRate,
         reason,
         customerNotes,
         requestedAt: new Date(),
@@ -234,7 +242,7 @@ export const createReturnRequest = asyncHandler(async (req: AuthRequest, res: Re
             } as any;
         }
 
-        if (customerData && returnSettings?.emailNotifications !== false) {
+        if (customerData && store?.settings?.emailNotifications !== false) {
             await transactionalNotificationService.sendReturnRequestCreated(
                 storeId,
                 store?.name || 'Store',
@@ -746,70 +754,139 @@ export const processRefund = asyncHandler(async (req: AuthRequest, res: Response
         throw new AppError('This is an exchange request, not a return', 400);
     }
 
-    // Update order items with returned quantities
     const order = await Order.findById(returnRequest.orderId);
-    if (order) {
-        for (const returnItem of returnRequest.items) {
-            const orderItem = order.items.find(
-                (oi: any) =>
-                    oi.productId.toString() === returnItem.productId.toString() &&
-                    oi.variantId === returnItem.variantId
-            );
-            if (orderItem) {
-                orderItem.returnedQuantity = (orderItem.returnedQuantity || 0) + returnItem.quantity;
-                orderItem.refundedAmount = (orderItem.refundedAmount || 0) + (returnItem.refundAmount || 0);
+    if (!order) {
+        throw new AppError('Order not found', 404);
+    }
+
+    console.log('📦 Processing refund for order:', {
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        paymentId: order.paymentId,
+        paymentMethod: order.paymentMethod,
+        paymentStatus: order.paymentStatus,
+    });
+
+    // Process refund via payment gateway if refund method is 'original'
+    let gatewayRefundResponse = null;
+    if (returnRequest.refund?.method === 'original' && order.paymentStatus === 'paid') {
+        // Only process refund for paid orders with gateway payments
+        if (order.paymentMethod && ['razorpay', 'stripe', 'paypal'].includes(order.paymentMethod)) {
+            try {
+                // Validate that we have a valid payment ID
+                if (!order.paymentId) {
+                    throw new AppError(
+                        'No payment ID found for this order. Cannot process refund.',
+                        400
+                    );
+                }
+
+                // Get the appropriate payment service gateway instance
+                const paymentService = await PaymentService.getGatewayInstance({
+                    storeId: order.storeId.toString(),
+                    gatewayType: order.paymentMethod,
+                });
+
+                // Convert refund amount using exchange rate from return request or order
+                let refundAmountInGatewayCurrency = returnRequest.refund.amount || 0;
+
+                // Use exchange rate from return request (captured at return creation) or fallback to order's exchange rate
+                const exchangeRateToUse = returnRequest.exchangeRate || order.exchangeRate || 1;
+
+                // If exchange rate is not 1, convert the amount
+                if (exchangeRateToUse && exchangeRateToUse !== 1) {
+                    refundAmountInGatewayCurrency = refundAmountInGatewayCurrency * exchangeRateToUse;
+                }
+
+                // Get currency from return request or order
+                const currencyToUse = returnRequest.currency || order.currency || 'USD';
+
+                // Process refund via gateway
+                gatewayRefundResponse = await paymentService.processRefund({
+                    paymentId: order.paymentId,
+                    amount: refundAmountInGatewayCurrency,
+                    currency: currencyToUse,
+                    reason: `Refund for returned order #${order.orderNumber}`,
+                });
+                if (gatewayRefundResponse.status !== 'success') {
+                    const errorMessage =
+                        gatewayRefundResponse.gatewayResponse?.message ||
+                        gatewayRefundResponse.gatewayResponse?.raw?.message ||
+                        gatewayRefundResponse.gatewayResponse?.toString() ||
+                        'Unknown error';
+
+                    throw new AppError(
+                        `Refund processing failed: ${errorMessage}`,
+                        400
+                    );
+                }
+            } catch (error: any) {
+                console.error('Payment gateway refund error:', error);
+                throw new AppError(
+                    `Failed to process refund via ${order.paymentMethod}: ${error.message}`,
+                    400
+                );
             }
         }
+    }
 
-        // Check if all items are returned
-        const allReturned = order.items.every((i: any) => (i.returnedQuantity || 0) >= i.quantity);
-        order.status = allReturned ? 'returned' : 'partially_returned';
-        order.refundStatus = 'processed';
-        (order as any).returnStatus = 'refund_completed';
-
-        // Update paymentStatus based on full or partial return
-        if (order.paymentStatus === 'paid') {
-            order.paymentStatus = allReturned ? 'refunded' : 'partially_refunded';
-            order.refundedAt = new Date();
+    // Update order items with returned quantities
+    for (const returnItem of returnRequest.items) {
+        const orderItem = order.items.find(
+            (oi: any) =>
+                oi.productId.toString() === returnItem.productId.toString() &&
+                oi.variantId === returnItem.variantId
+        );
+        if (orderItem) {
+            orderItem.returnedQuantity = (orderItem.returnedQuantity || 0) + returnItem.quantity;
+            orderItem.refundedAmount = (orderItem.refundedAmount || 0) + (returnItem.refundAmount || 0);
         }
+    }
 
-        // Add to order returns history
-        if (!order.returns) {
-            order.returns = [];
-        }
-        order.returns.push({
-            returnedAt: new Date(),
-            items: returnRequest.items.map((item) => ({
-                productId: item.productId,
-                variantId: item.variantId,
-                quantity: item.quantity,
-                reason: item.reason,
-                refundAmount: item.refundAmount || 0,
-            })),
-            totalRefundAmount: returnRequest.refund?.amount || 0,
-            refundMethod: returnRequest.refund?.method || 'original',
-            processedBy: new mongoose.Types.ObjectId(adminId as string),
-            refundReference: transactionId,
-            note: adminNotes
-        });
+    // Check if all items are returned
+    const allReturned = order.items.every((i: any) => (i.returnedQuantity || 0) >= i.quantity);
+    order.status = allReturned ? 'returned' : 'partially_returned';
+    order.refundStatus = 'processed';
+    (order as any).returnStatus = 'refund_completed';
 
-        await order.save();
+    // Update paymentStatus based on full or partial return
+    if (order.paymentStatus === 'paid') {
+        order.paymentStatus = allReturned ? 'refunded' : 'partially_refunded';
+        order.refundedAt = new Date();
+    }
 
-        // Sync Accounting
-        try {
-            await AccountingService.syncReturnsToAccounting(order._id.toString());
-        } catch (error) {
-            console.error('Failed to sync accounting for return:', error);
-        }
+    // Store gateway refund reference for future tracking
+    if (gatewayRefundResponse?.refundId) {
+        order.refundReferenceId = gatewayRefundResponse.refundId;
+    }
 
-        // Restore Inventory if configured to restore on refund
-        // Usually reserved for 'received' or explicit 'completed' check, but assuming refund means items are back or lost-but-accounted-for.
-        // If we want to restore strictly on "received", we should move this to markReceived. 
-        // However, many flows refund after receipt. Let's check if we should restore here.
-        // A safe bet is to restore inventory when "received" status is set, OR here if not already done.
-        // Let's add inventory restoration to 'markReceived' instead to be precise physically.
-        // But if 'markReceived' was skipped, we might miss it.
-        // Let's stick to adding it to 'markReceived' below and ensure it covers it.
+    // Add to order returns history
+    if (!order.returns) {
+        order.returns = [];
+    }
+    order.returns.push({
+        returnedAt: new Date(),
+        items: returnRequest.items.map((item) => ({
+            productId: item.productId,
+            variantId: item.variantId,
+            quantity: item.quantity,
+            reason: item.reason,
+            refundAmount: item.refundAmount || 0,
+        })),
+        totalRefundAmount: returnRequest.refund?.amount || 0,
+        refundMethod: returnRequest.refund?.method || 'original',
+        processedBy: new mongoose.Types.ObjectId(adminId as string),
+        refundReference: gatewayRefundResponse?.refundId || transactionId,
+        note: adminNotes
+    });
+
+    await order.save();
+
+    // Sync Accounting
+    try {
+        await AccountingService.syncReturnsToAccounting(order._id.toString());
+    } catch (error) {
+        console.error('Failed to sync accounting for return:', error);
     }
 
     // Update return request
@@ -818,7 +895,7 @@ export const processRefund = asyncHandler(async (req: AuthRequest, res: Response
     if (returnRequest.refund) {
         returnRequest.refund.status = 'completed';
         returnRequest.refund.processedAt = new Date();
-        returnRequest.refund.transactionId = transactionId;
+        returnRequest.refund.transactionId = gatewayRefundResponse?.refundId || transactionId;
     }
     returnRequest.processedBy = new mongoose.Types.ObjectId(adminId);
     if (adminNotes) {

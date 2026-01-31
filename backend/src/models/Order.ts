@@ -125,6 +125,7 @@ export interface IOrder extends Document {
     refundReason?: string;
     refundRequestedAt?: Date;
     refundedAt?: Date;
+    refundReferenceId?: string; // Gateway refund ID (Razorpay/Stripe/PayPal) for future tracking
     // Order status
     status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'return_requested' | 'exchange_requested' | 'returned' | 'partially_returned';
 
@@ -388,6 +389,7 @@ const OrderSchema = new Schema<IOrder>(
         },
         refundReason: String,
         refundRequestedAt: Date,
+        refundReferenceId: String, // Gateway refund ID (Razorpay/Stripe/PayPal)
         status: {
             type: String,
             enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded', 'return_requested', 'exchange_requested', 'returned', 'partially_returned'],

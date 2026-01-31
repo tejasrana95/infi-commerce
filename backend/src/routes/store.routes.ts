@@ -55,6 +55,13 @@ router.put(
     updateStore
 );
 
+router.patch(
+    '/:id',
+    authenticate,
+    authorize('admin', 'store_admin', 'super_admin'),
+    updateStore
+);
+
 router.delete(
     '/:id',
     authenticate,

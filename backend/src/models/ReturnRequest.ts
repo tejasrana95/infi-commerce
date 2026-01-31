@@ -52,6 +52,8 @@ export interface IReturnRequest extends Document {
     customerId?: mongoose.Types.ObjectId;
     requestNumber: string; // RET-XXXXXX
     totalRefundAmount?: number;
+    currency?: string; // Currency at time of return creation (from order)
+    exchangeRate?: number; // Exchange rate at time of return creation (from order)
 
     type: ReturnRequestType;
     status: ReturnRequestStatus;
@@ -152,6 +154,8 @@ const ReturnRequestSchema = new Schema<IReturnRequest>(
             unique: true,
         },
         totalRefundAmount: Number,
+        currency: String, // Currency at time of return creation (from order)
+        exchangeRate: Number, // Exchange rate at time of return creation (from order)
 
         type: {
             type: String,

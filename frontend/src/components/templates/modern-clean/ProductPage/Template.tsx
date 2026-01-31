@@ -19,14 +19,15 @@ import { ProductVariantSelector } from '@/components/molecules/ProductVariantSel
 import { ProductSocialShare } from '@/components/molecules/ProductSocialShare';
 import { ProductTabs } from '@/components/molecules/ProductTabs';
 import { ProductVideoGallery } from '@/components/molecules/ProductVideoGallery';
+import ProductReturnExchange from '@/components/molecules/ProductReturnExchange/ProductReturnExchange';
 import ShippingCalculator from '@/components/organisms/ShippingCalculator';
 
 import styles from './ProductPage.module.scss';
-import { formatPrice } from '@/lib/currency';
 import api from '@/lib/api';
 import { useToast } from '@/providers/ToastProvider';
 import { trackViewItem } from '@/lib/ga';
 import { useStore } from '@/providers/StoreProvider';
+import { useCurrency } from '@/providers/CurrencyProvider';
 
 export default function ModernCleanProductPageTemplate({
     product,
@@ -74,7 +75,9 @@ export default function ModernCleanProductPageTemplate({
     onCalculateShipping,
 }: ProductPageTemplateProps) {
     const { error: toastError } = useToast();
-    const { currentCurrency } = useStore();
+    const { currentCurrency, store } = useStore();
+    const { formatPriceWithExchange } = useCurrency();
+    const { enabled = false, defaultExchangeWindow = 0, defaultReturnWindow = 0} = store?.settings?.returnSettings || {};
     // Get ProductCard component
     const ProductCard = getComponent('ProductCard', templateId);
 
@@ -322,10 +325,12 @@ export default function ModernCleanProductPageTemplate({
                     >
                         ×
                     </button>
-                    <img
+                    <Image
                         src={lightboxImage}
                         alt="Review Full Size"
                         className={styles.lightboxImage}
+                        width={800}
+                        height={600}
                     />
                 </div>
             </div>,
@@ -399,10 +404,11 @@ export default function ModernCleanProductPageTemplate({
 
             {/* Price */}
             <div className={styles.pricing}>
-                <span className={styles.price}>{formatPrice(effectivePrice, currency)}</span>
+                
+                <span className={styles.price}>{formatPriceWithExchange(effectivePrice)}</span>
                 {hasDiscount && displayComparePrice && (
                     <>
-                        <span className={styles.comparePrice}>{formatPrice(displayComparePrice, currency)}</span>
+                        <span className={styles.comparePrice}>{formatPriceWithExchange(displayComparePrice)}</span>
                         <span className={styles.discount}>
                             -{Math.round(((displayComparePrice - effectivePrice) / displayComparePrice) * 100)}%
                         </span>
@@ -416,7 +422,7 @@ export default function ModernCleanProductPageTemplate({
             {/* Show price without tax if configured */}
             {showPriceWithoutTax && currentPricing && showTaxIncluded && (
                 <p className={styles.priceExTax}>
-                    {formatPrice((displayVariant?.pricing?.price || product.pricing?.price || currentPrice), currency)} excl. tax
+                    {formatPriceWithExchange((displayVariant?.pricing?.price || product.pricing?.price || currentPrice))} excl. tax
                 </p>
             )}
 
@@ -425,7 +431,7 @@ export default function ModernCleanProductPageTemplate({
                 <div className={styles.taxBreakdown}>
                     {currentPricing.taxBreakdown.map((tax, idx) => (
                         <span key={idx} className={styles.taxItem}>
-                            {tax.name}: {formatPrice(tax.amount, currency)}
+                            {tax.name}: {formatPriceWithExchange(tax.amount)}
                         </span>
                     ))}
                 </div>
@@ -494,6 +500,15 @@ export default function ModernCleanProductPageTemplate({
                     {showStockCount && ` (${effectiveStock} available)`}
                 </div>
             )}
+
+            {/* Return & Exchange Info */}
+            {product?.returnSettings?.isReturnable && enabled && <ProductReturnExchange
+                info={{
+                    returnWindow: product?.returnSettings?.returnWindowDays || defaultReturnWindow || 0,
+                    exchangeWindow: product?.returnSettings?.exchangeWindowDays || defaultExchangeWindow || 0,
+                }}
+            />}
+            
 
             {/* Action Buttons */}
             {product.type === 'variable' && !allOptionsSelected && (

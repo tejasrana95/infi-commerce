@@ -122,9 +122,10 @@ export default function PersonalizedProductsModule({ config }: ModuleProps) {
                 // If we have local data but no auth, we need to use a different approach
                 // For guests, we'll filter locally based on localStorage data
                 let result: RecommendationResponse;
-
+                let originalResult: RecommendationResponse['products'] = [];
                 try {
                     result = await api.get<RecommendationResponse>(`interests/recommendations?${params}`);
+                    originalResult = [...result.products];
                 } catch {
                     // Fallback: fetch products directly with fallback type
                     const fallbackParams = new URLSearchParams({
@@ -186,8 +187,7 @@ export default function PersonalizedProductsModule({ config }: ModuleProps) {
                         return true;
                     });
                 }
-
-                setProducts(result.products);
+                setProducts(result.products.length > 0 ? result.products : originalResult);
                 setIsPersonalized(result.isPersonalized);
             } catch (error) {
                 console.error('Failed to fetch recommendations:', error);

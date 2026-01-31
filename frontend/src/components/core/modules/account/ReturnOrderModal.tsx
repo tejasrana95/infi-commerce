@@ -5,7 +5,8 @@ import Modal from '@/components/atoms/Modal';
 import styles from './ReturnOrderModal.module.scss';
 import { useToast } from '@/providers/ToastProvider';
 import { apiClient } from '@/services/api-client';
-import { formatPrice } from '@/lib/currency';
+import { useStore } from '@/providers/StoreProvider';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface ReturnOrderModalProps {
     isOpen: boolean;
@@ -29,22 +30,37 @@ const RETURN_REASONS = [
     { value: 'other', label: 'Other' },
 ];
 
-const REFUND_METHODS = [
-    { value: 'original', label: 'Refund to Original Payment Method' },
-    { value: 'bank_transfer', label: 'Bank Transfer' },
-];
+
 
 export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: ReturnOrderModalProps) {
     const toast = useToast();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
+    const { store } = useStore();
+    const { returnSettings } = store?.settings || {};
+    const { convertAndFormat } = useCurrency();
     // Form state
     const [type, setType] = useState<'return' | 'exchange'>('return');
     const [reason, setReason] = useState('');
     const [refundMethod, setRefundMethod] = useState('original');
     const [customerNotes, setCustomerNotes] = useState('');
     const [selectedItems, setSelectedItems] = useState<Map<string, { quantity: number; checked: boolean }>>(new Map());
+
+    const REFUND_METHODS = [
+        { value: 'original', label: 'Refund to Original Payment Method' },
+        { value: 'bank_transfer', label: 'Bank Transfer' },
+    ];
+
+    if (returnSettings?.refundMethods) {
+        REFUND_METHODS.splice(0, REFUND_METHODS.length, ...returnSettings.refundMethods.map(method => {
+            if (method === 'original') {
+                return { value: 'original', label: 'Refund to Original Payment Method' };
+            } else if (method === 'bank_transfer') {
+                return { value: 'bank_transfer', label: 'Bank Transfer' };
+            }
+            return { value: method, label: method };
+        }));
+    }
 
     // Initialize selected items when order changes
     useEffect(() => {
@@ -113,8 +129,23 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
         });
     };
 
+    const isFullOrderReturn = () => {
+        if (!order?.items || order.items.length === 0) return false;
+        let totalItems = 0;
+        let selectedCount = 0;
+        order.items.forEach((item: any) => {
+            totalItems++;
+            const key = item.variantId ? `${item.productId}-${item.variantId}` : item.productId;
+            const selection = selectedItems.get(key);
+            if (selection?.checked) {
+                selectedCount++;
+            }
+        });
+        return totalItems > 0 && totalItems === selectedCount;
+    };
+
     const calculateRefundBreakdown = () => {
-        if (!order) return { subtotal: 0, tax: 0, total: 0 };
+        if (!order) return { subtotal: 0, tax: 0, shipping: 0, total: 0 };
 
         let subtotal = 0;
         let tax = 0;
@@ -129,10 +160,14 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
             }
         });
 
+        // Only include shipping if entire order is being returned
+        const shipping = isFullOrderReturn() ? (order.shippingCost || 0) : 0;
+
         return {
             subtotal,
             tax,
-            total: subtotal + tax
+            shipping,
+            total: subtotal + tax + shipping
         };
     };
 
@@ -146,10 +181,20 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
 
     const handleSubmit = async () => {
         if (!order) return;
-        if (!reason) {
+
+        // Check if returns are enabled
+        if (!returnSettings?.enabled) {
+            setError('Returns and exchanges are currently disabled');
+            return;
+        }
+
+        // Check if return reason is required by store settings
+        const requireReturnReason = returnSettings?.requireReturnReason ?? true;
+        if (requireReturnReason && !reason) {
             setError('Please select a return reason');
             return;
         }
+
         if (getSelectedItemsCount() === 0) {
             setError('Please select at least one item to return');
             return;
@@ -183,6 +228,7 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
                 }
             });
 
+            const refundBreakdown = calculateRefundBreakdown();
             const payload = {
                 orderId: order._id,
                 storeId: typeof order.storeId === 'object' ? order.storeId._id : order.storeId,
@@ -192,19 +238,16 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
                 items,
                 refundMethod,
                 customerNotes,
-                totalRefundAmount: calculateRefundBreakdown().total,
+                subtotalRefundAmount: refundBreakdown.subtotal,
+                taxRefundAmount: refundBreakdown.tax,
+                shippingRefundAmount: refundBreakdown.shipping,
+                totalRefundAmount: refundBreakdown.total,
             };
 
-            await apiClient.post('returns/create', payload); // Assume specific endpoint for customers or generic /returns
+            await apiClient.post('returns/create', payload);
             toast.success('Return request submitted successfully');
             onSuccess?.();
             onClose();
-
-            // Allow time for toast
-            setTimeout(() => {
-                // Refresh or redirect if needed
-            }, 1000);
-
         } catch (err: any) {
             console.error('Return request failed:', err);
             setError(err.response?.data?.message || 'Failed to submit return request');
@@ -227,8 +270,8 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
             <button
                 className={styles.submitBtn}
                 onClick={handleSubmit}
-                disabled={loading || getSelectedItemsCount() === 0}
-                title={type === 'return' ? 'Request Return' : 'Request Exchange'}
+                disabled={loading || getSelectedItemsCount() === 0 || !returnSettings?.enabled}
+                title={!returnSettings?.enabled ? 'Returns are currently disabled' : (type === 'return' ? 'Request Return' : 'Request Exchange')}
             >
                 {loading ? 'Submitting...' : type === 'return' ? 'Request Return' : 'Request Exchange'}
             </button>
@@ -246,6 +289,9 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
         >
             <div className={styles.container}>
                 {error && <div className={styles.errorAlert}>{error}</div>}
+                {!returnSettings?.enabled && (
+                    <div className={styles.errorAlert}>Returns and exchanges are currently disabled for this store.</div>
+                )}
 
                 <div className={styles.section}>
                     <h3>Return Type</h3>
@@ -318,21 +364,25 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
                                         {isChecked ? (
                                             <div className={styles.qtyControl}>
                                                 <label>Qty:</label>
-                                                <select
-                                                    value={qty}
-                                                    onChange={(e) => handleQuantityChange(key, parseInt(e.target.value), maxQty)}
-                                                >
-                                                    {Array.from({ length: maxQty }, (_, i) => i + 1).map(n => (
-                                                        <option key={n} value={n}>{n}</option>
-                                                    ))}
-                                                </select>
+                                                {returnSettings?.allowPartialReturns ? (
+                                                    <select
+                                                        value={qty}
+                                                        onChange={(e) => handleQuantityChange(key, parseInt(e.target.value), maxQty)}
+                                                    >
+                                                        {Array.from({ length: maxQty }, (_, i) => i + 1).map(n => (
+                                                            <option key={n} value={n}>{n}</option>
+                                                        ))}
+                                                    </select>
+                                                ) : (
+                                                    <span className={styles.qtyText}>{maxQty}</span>
+                                                )}
                                             </div>
                                         ) : (
                                             <span className={styles.qtyText}>Qty: {maxQty}</span>
                                         )}
                                     </div>
                                     <div className={styles.priceCol}>
-                                        {formatPrice((item.discountedPrice || item.price) * qty, { code: order.currency })}
+                                        {convertAndFormat((item.discountedPrice || item.price) * qty, order?.currency, order?.exchangeRate)}
                                         {disabled && <div className={styles.itemError}>{eligibilityReason}</div>}
                                     </div>
                                 </div>
@@ -343,7 +393,7 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
 
                 <div className={styles.formGrid}>
                     <div className={styles.formGroup}>
-                        <label>Reason for Return <span className={styles.required}>*</span></label>
+                        <label>Reason for Return {(returnSettings?.requireReturnReason ?? true) && <span className={styles.required}>*</span>}</label>
                         <select
                             value={reason}
                             onChange={(e) => setReason(e.target.value)}
@@ -391,19 +441,28 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
                         <div className={styles.summaryItem}>
                             <span>Subtotal:</span>
                             <strong>
-                                {formatPrice(calculateRefundBreakdown().subtotal, { code: order?.currency })}
+                                
+                                {convertAndFormat(calculateRefundBreakdown().subtotal, order?.currency, order?.exchangeRate )}
                             </strong>
                         </div>
                         <div className={styles.summaryItem}>
                             <span>Tax:</span>
                             <strong>
-                                {formatPrice(calculateRefundBreakdown().tax, { code: order?.currency })}
+                                {convertAndFormat(calculateRefundBreakdown().tax, order?.currency, order?.exchangeRate )}
                             </strong>
                         </div>
+                        {calculateRefundBreakdown().shipping > 0 && (
+                            <div className={styles.summaryItem}>
+                                <span>Shipping Refund:</span>
+                                <strong>
+                                    {convertAndFormat(calculateRefundBreakdown().shipping, order?.currency, order?.exchangeRate)}
+                                </strong>
+                            </div>
+                        )}
                         <div className={styles.summaryItem}>
                             <span>Estimated Refund:</span>
                             <strong className={styles.refundAmount}>
-                                {formatPrice(calculateRefundBreakdown().total, { code: order?.currency })}
+                                {convertAndFormat(calculateRefundBreakdown().total, order?.currency, order?.exchangeRate)}
                             </strong>
                         </div>
                     </div>
