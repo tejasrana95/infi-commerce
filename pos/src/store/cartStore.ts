@@ -42,50 +42,36 @@ export const useCartStore = create<CartState>((set, get) => ({
                 (item) => item.productId === product.id && item.variantId === (variant?.id || undefined)
             );
 
-            // Use pricing object for tax-inclusive prices (consistent with frontend)
-            // Priority: variant.pricing > product.pricing > fallback calculation
-            const variantPricing = variant?.pricing;
-            const productPricing = product.pricing;
-            const pricing = variantPricing || productPricing;
+            // Get pricing object - variant pricing takes priority over product pricing
+            const pricing = variant?.pricing || product.pricing;
 
-            // Get tax-inclusive price (finalPrice is the sale price with tax if on sale, otherwise priceWithTax)
-            const priceWithTax = Number(pricing?.finalPrice ?? variant?.price ?? product.salePrice ?? product.price) || 0;
-            const taxRate = Number(pricing?.taxRate ?? variant?.taxRate ?? product.taxRate ?? 0);
-            let unitTaxAmount = Number(pricing?.taxAmount ?? variant?.taxAmount ?? product.taxAmount ?? 0);
-
-            // Calculate basePrice (price without tax)
-            // If we have pricing object, use price field; otherwise calculate from inclusive price
-            let basePrice: number;
-            if (pricing?.price !== undefined) {
-                basePrice = Number(pricing.price);
-                // Recalculate tax amount based on whether it's on sale
-                if (pricing.isOnSale && pricing.salePrice !== undefined) {
-                    basePrice = Number(pricing.salePrice);
-                    unitTaxAmount = priceWithTax - basePrice;
-                }
-            } else {
-                // Fallback: calculate basePrice from inclusive price
-                if (unitTaxAmount === 0 && taxRate > 0) {
-                    unitTaxAmount = priceWithTax - (priceWithTax / (1 + (taxRate / 100)));
-                }
-                basePrice = priceWithTax - unitTaxAmount;
+            if (!pricing) {
+                console.error('Product missing pricing object:', product.name);
+                return state; // Don't add item without pricing
             }
 
-            const sku = variant ? variant.sku : product.sku;
+            // Use the pricing object directly - all values are pre-calculated by the API
+            const finalPrice = pricing.finalPrice;
+            const basePrice = pricing.isOnSale ? pricing.salePrice! : pricing.price;
+            const taxRate = pricing.taxRate;
+            const taxAmount = pricing.taxAmount;
+            const originalPrice = pricing.isOnSale ? pricing.originalPrice : undefined;
+
+            const sku = variant?.sku || product.sku;
             const name = product.name;
             const image = variant?.image || product.image;
 
             let newItems;
 
             if (existingItemIndex > -1) {
-                // Update existing item immutably
+                // Update existing item quantity
                 newItems = state.items.map((item, index) =>
                     index === existingItemIndex
                         ? { ...item, quantity: item.quantity + quantity }
                         : item
                 );
             } else {
-                // Add new item
+                // Add new item to cart
                 newItems = [
                     ...state.items,
                     {
@@ -94,18 +80,18 @@ export const useCartStore = create<CartState>((set, get) => ({
                         variantId: variant?.id,
                         name,
                         sku,
-                        price: priceWithTax,    // Store the tax-inclusive price
+                        price: finalPrice,      // Tax-inclusive price (sale price with tax if on sale)
                         quantity,
                         image,
                         attributes: variant?.attributes,
                         taxRate,
-                        taxAmount: unitTaxAmount,
-                        basePrice,              // Price without tax
+                        taxAmount,              // Tax amount per unit (from API)
+                        basePrice,              // Price without tax (from API)
+                        originalPrice,          // Original price with tax (for strikethrough)
                     }
                 ];
             }
 
-            // Play sound if enabled
             if (isSoundEnabled()) {
                 sounds.addToCart();
             }

@@ -53,7 +53,10 @@ class ProductCacheService {
                 if (aStarts && !bStarts) return -1;
                 if (!aStarts && bStarts) return 1;
 
-                return 0;
+                // Tie-breaker: Newest first
+                const dateA = new Date(a.createdAt || 0).getTime();
+                const dateB = new Date(b.createdAt || 0).getTime();
+                return dateB - dateA;
             })
             .slice(0, limit);
 
@@ -62,7 +65,13 @@ class ProductCacheService {
 
     async getProductsByCategory(categoryId: string): Promise<IndexedDBProduct[]> {
         // We use the multi-entry index for categoryIds
-        return indexedDBService.getByIndex<IndexedDBProduct>(STORES.PRODUCTS, 'categoryIds', categoryId);
+        const products = await indexedDBService.getByIndex<IndexedDBProduct>(STORES.PRODUCTS, 'categoryIds', categoryId);
+        // Sort by createdAt desc
+        return products.sort((a, b) => {
+            const dateA = new Date(a.createdAt || 0).getTime();
+            const dateB = new Date(b.createdAt || 0).getTime();
+            return dateB - dateA;
+        });
     }
 
     async saveProducts(products: IndexedDBProduct[]): Promise<void> {

@@ -65,6 +65,7 @@ const LoginPage = memo(() => {
                 // Fetch store name
                 try {
                     const storeData = await api.getStoreData(storeId);
+                    console.log('Store Data:', storeData);
                     if (storeData && storeData?.posSettings?.enabled === false) {
                         setError('The Point of Sale is disabled for this store. Please contact your system administrator.');
                         setLoading(false);

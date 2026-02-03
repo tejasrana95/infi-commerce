@@ -40,23 +40,26 @@ export default function Header({ setShowReturnModal }: { setShowReturnModal: (sh
             const cachedProduct = await productCacheService.getProductByBarcode(barcode);
 
             if (cachedProduct) {
-                // Map IndexedDBProduct to Product
+                // Map IndexedDBProduct to Product - ensure variants have proper id field
                 product = {
                     id: cachedProduct.id,
                     name: cachedProduct.name,
                     sku: cachedProduct.sku,
                     barcode: cachedProduct.barcode,
-                    price: cachedProduct.salePrice || cachedProduct.price,
+                    price: cachedProduct.price,
                     salePrice: cachedProduct.salePrice,
                     stock: cachedProduct.stock,
                     image: cachedProduct.image,
                     type: cachedProduct.type,
                     categoryIds: cachedProduct.categoryIds,
-                    variants: cachedProduct.variants,
+                    variants: cachedProduct.variants?.map((v: any) => ({
+                        ...v,
+                        id: v._id || v.id || v.sku, // Ensure id field is set from _id
+                    })),
                     taxRate: cachedProduct.taxRate,
                     taxAmount: cachedProduct.taxAmount,
                     productOptions: cachedProduct.productOptions,
-                    // attributes: cachedProduct.productOptions // Optional: map attributes if needed for UI
+                    pricing: cachedProduct.pricing,
                 };
             }
         } catch (err) {

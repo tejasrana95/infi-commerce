@@ -130,7 +130,8 @@ class POCApiService {
         const params: string[] = [];
         // Add isActive=true to match what we sync
         params.push('isActive=true');
-
+        params.push('sortBy=createdAt');
+        params.push('sortOrder=desc');
         if (search) {
             params.push(`search=${encodeURIComponent(search)}`);
         }
@@ -343,6 +344,10 @@ class POCApiService {
     }) {
         const queryParams = new URLSearchParams();
         queryParams.append('isPOSOrder', 'true');
+
+        // Enforce descending sort by default for POS
+        queryParams.append('sortBy', 'createdAt');
+        queryParams.append('sortOrder', 'desc');
 
         if (params?.page) queryParams.append('page', String(params.page));
         if (params?.limit) queryParams.append('limit', String(params.limit));

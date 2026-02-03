@@ -61,6 +61,9 @@ export interface ProductVariant {
     taxRate?: number;
     taxAmount?: number;
     pricing?: ProductPricing;   // Full pricing object with tax-inclusive prices
+    priceWithTax?: number; // Price including tax
+    salePriceWithTax?: number; // Sale price including tax
+    finalPrice?: number; // Final display price (with tax, either sale or regular)
 }
 
 export interface Category {
@@ -78,13 +81,14 @@ export interface CartItem {
     variantId?: string;
     name: string;
     sku: string;
-    price: number; // Final price including tax
+    price: number; // Final price including tax (sale price with tax if on sale)
     quantity: number;
     image: string;
     attributes?: Record<string, string>; // Display selected attributes
     taxRate: number;
     taxAmount: number; // Unit tax amount
     basePrice: number; // Unit price without tax
+    originalPrice?: number; // Original price with tax (for strikethrough when on sale)
     discountAmount?: number; // Discount per unit
     discountType?: 'fixed' | 'percentage'; // Type of discount
 }

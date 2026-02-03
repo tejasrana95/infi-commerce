@@ -46,7 +46,7 @@ export default function CartItem({ item, onUpdateQuantity, onRemove }: CartItemP
     }
     // Add tax
     const totalPrice = effectivePrice + (effectivePrice * item.taxRate / 100);
-
+    console.log('CartItem Render:', item);
     return (
         <div className="bg-white p-3 rounded-xl border shadow-sm flex flex-col gap-3 group">
             <div className="flex gap-3">
@@ -62,10 +62,10 @@ export default function CartItem({ item, onUpdateQuantity, onRemove }: CartItemP
                             {item.name}
                         </h4>
                         <span className="font-bold text-sm text-slate-900 text-right">
-                            {(item.discountAmount || item.basePrice !== totalPrice / item.quantity) ? (
+                            {(item.discountAmount || item.originalPrice) ? (
                                 <>
                                     <div className="text-xs text-slate-400 line-through">
-                                        {formatPrice(item.basePrice * item.quantity)}
+                                        {formatPrice((item.originalPrice ?? item.price) * item.quantity)}
                                     </div>
                                     <div className="text-green-600">
                                         {formatPrice(totalPrice * item.quantity)}

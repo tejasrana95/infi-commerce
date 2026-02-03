@@ -31,7 +31,7 @@ class SyncService {
 
             while (hasMore) {
                 // Use existing API endpoint
-                const response = await apiClient.get(`/products?limit=${BATCH_SIZE}&page=${page}&isActive=true`);
+                const response = await apiClient.get(`/products?limit=${BATCH_SIZE}&page=${page}&isActive=true&sortBy=createdAt&sortOrder=desc`);
                 const { products, pagination } = response.data;
 
                 if (!products || !Array.isArray(products)) {
@@ -64,6 +64,7 @@ class SyncService {
                         ...(p.variants?.map((v: any) => v.barcode) || []),
                     ].filter(Boolean).join(' ').toLowerCase(),
                     updatedAt: p.updatedAt,
+                    createdAt: p.createdAt || p.updatedAt || new Date().toISOString(),
                     // Include pricing object for tax-inclusive prices (consistent with frontend)
                     pricing: p.pricing ? {
                         price: p.pricing.price,

@@ -2,7 +2,7 @@ import { ProductVariant, ProductOption } from '../types';
 
 // Database Configuration
 const DB_NAME = 'pos_offline_cache';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 // Object Stores (Tables)
 export const STORES = {
@@ -35,6 +35,7 @@ export interface IndexedDBProduct {
     productOptions?: ProductOption[];
     storeId: string;
     updatedAt: string; // ISO string for Safari compatibility
+    createdAt: string; // ISO string for sorting
     // Search optimization fields
     searchText: string;   // Lowercase concatenation of name + sku + barcode for fast search
     // Pricing object for tax-inclusive prices
@@ -105,7 +106,10 @@ class IndexedDBService {
 
             request.onupgradeneeded = (event) => {
                 const db = request.result;
-                this.initializeSchema(db, event.oldVersion);
+                const transaction = request.transaction;
+                if (transaction) {
+                    this.initializeSchema(db, transaction, event.oldVersion);
+                }
             };
         });
 
@@ -115,7 +119,7 @@ class IndexedDBService {
     /**
      * Initialize object stores and indexes
      */
-    private initializeSchema(db: IDBDatabase, oldVersion: number) {
+    private initializeSchema(db: IDBDatabase, transaction: IDBTransaction, oldVersion: number) {
         // PRODUCTS Store
         if (!db.objectStoreNames.contains(STORES.PRODUCTS)) {
             const productStore = db.createObjectStore(STORES.PRODUCTS, { keyPath: 'id' });
@@ -126,6 +130,13 @@ class IndexedDBService {
             // searchText index might not be useful with standard IDB indexes for partial match, 
             // but keeping it for potential exact matches or future usage
             productStore.createIndex('searchText', 'searchText', { unique: false });
+            productStore.createIndex('createdAt', 'createdAt', { unique: false });
+        } else {
+            // Upgrade existing store if needed (check if index missing)
+            const productStore = transaction.objectStore(STORES.PRODUCTS);
+            if (!productStore.indexNames.contains('createdAt')) {
+                productStore.createIndex('createdAt', 'createdAt', { unique: false });
+            }
         }
 
         // CATEGORIES Store
