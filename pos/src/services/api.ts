@@ -244,7 +244,7 @@ class POCApiService {
         subtotal: number;
         tax: number;
         total: number;
-        paymentMethod: 'cash' | 'card' | 'upi' | 'qr';
+        paymentMethod: 'cash' | 'card' | 'upi' | 'qr' | 'stripe' | 'razorpay' | 'paypal';
         cashReceived?: number;
         roundOffAmount?: number;
         customer?: any;
@@ -481,22 +481,32 @@ class POCApiService {
      */
     private transformProducts(products: any[]): Product[] {
         return products.map((p: any) => {
-            // Using pricing from main API if available, otherwise fallback to basic fields
-            const currentPrice = Number(p.pricing?.finalPrice ?? (p.isOnSale && p.salePrice ? p.salePrice : p.price)) || 0;
-            const taxRate = Number(p.pricing?.taxRate ?? p.taxRate ?? 0);
-            let taxAmount = Number(p.pricing?.unitTaxAmount ?? p.taxAmount ?? 0);
+            // Extract pricing info from API response
+            const apiPricing = p.pricing || {};
+            const taxRate = Number(apiPricing.taxRate ?? p.taxRate ?? 0);
+            const taxAmount = Number(apiPricing.taxAmount ?? p.taxAmount ?? 0);
 
-            // If taxAmount is 0 but taxRate exists, calculate it (assuming inclusive price)
-            if (taxAmount === 0 && taxRate > 0) {
-                taxAmount = currentPrice - (currentPrice / (1 + (taxRate / 100)));
-            }
+            // Build the pricing object - using tax-inclusive prices from backend
+            const pricing = apiPricing ? {
+                price: Number(apiPricing.price ?? p.price) || 0,
+                salePrice: apiPricing.salePrice,
+                priceWithTax: Number(apiPricing.priceWithTax ?? apiPricing.originalPrice ?? p.price) || 0,
+                salePriceWithTax: apiPricing.salePriceWithTax,
+                taxRate: taxRate,
+                taxAmount: taxAmount,
+                finalPrice: Number(apiPricing.finalPrice ?? apiPricing.salePriceWithTax ?? apiPricing.priceWithTax ?? p.price) || 0,
+                originalPrice: Number(apiPricing.originalPrice ?? apiPricing.priceWithTax ?? p.price) || 0,
+                isOnSale: Boolean(apiPricing.isOnSale ?? p.isOnSale),
+                discountPercent: apiPricing.discountPercent,
+            } : undefined;
+
             return {
                 id: p._id,
                 name: p.name,
                 sku: p.sku,
                 barcode: p.barcode || p.sku,
-                price: p?.pricing?.originalPrice || currentPrice,
-                salePrice: (p.pricing?.isOnSale || p.isOnSale) ? currentPrice : undefined,
+                price: Number(p.price) || 0,                    // Base price (without tax)
+                salePrice: p.salePrice,                         // Sale price (without tax)
                 taxRate: taxRate,
                 taxAmount: taxAmount,
                 stock: p.stock,
@@ -512,25 +522,38 @@ class POCApiService {
                     options: opt.values,
                 })),
                 productOptions: p.productOptions,
+                pricing: pricing,                               // Full pricing object
                 variants: p.variants?.map((v: any) => {
-                    const vPrice = Number(v.pricing?.finalPrice ?? v.price) || 0;
-                    const vTaxRate = Number(v.pricing?.taxRate ?? p.pricing?.taxRate ?? p.taxRate ?? 0);
-                    let vTaxAmount = Number(v.pricing?.unitTaxAmount ?? 0);
+                    const vApiPricing = v.pricing || {};
+                    const vTaxRate = Number(vApiPricing.taxRate ?? apiPricing.taxRate ?? taxRate ?? 0);
+                    const vTaxAmount = Number(vApiPricing.taxAmount ?? 0);
 
-                    if (vTaxAmount === 0 && vTaxRate > 0) {
-                        vTaxAmount = vPrice - (vPrice / (1 + (vTaxRate / 100)));
-                    }
+                    // Build variant pricing object
+                    const vPricing = vApiPricing ? {
+                        price: Number(vApiPricing.price ?? v.price) || 0,
+                        salePrice: vApiPricing.salePrice,
+                        priceWithTax: Number(vApiPricing.priceWithTax ?? vApiPricing.originalPrice ?? v.price) || 0,
+                        salePriceWithTax: vApiPricing.salePriceWithTax,
+                        taxRate: vTaxRate,
+                        taxAmount: vTaxAmount,
+                        finalPrice: Number(vApiPricing.finalPrice ?? vApiPricing.salePriceWithTax ?? vApiPricing.priceWithTax ?? v.price) || 0,
+                        originalPrice: Number(vApiPricing.originalPrice ?? vApiPricing.priceWithTax ?? v.price) || 0,
+                        isOnSale: Boolean(vApiPricing.isOnSale),
+                        discountPercent: vApiPricing.discountPercent,
+                    } : undefined;
 
                     return {
                         id: v._id || v.sku,
                         sku: v.sku,
                         barcode: v.barcode || v.sku,
                         attributes: v.attributes || {},
-                        price: vPrice,
+                        price: Number(v.price) || 0,            // Base price (without tax)
+                        salePrice: v.salePrice,                 // Sale price (without tax)
                         taxRate: vTaxRate,
                         taxAmount: vTaxAmount,
                         stock: v.stock,
                         image: v.images?.[0],
+                        pricing: vPricing,                      // Full pricing object
                     };
                 }),
             };
@@ -539,44 +562,78 @@ class POCApiService {
 
     private transformIndexedDBProducts(products: import('./indexedDB.service').IndexedDBProduct[]): Product[] {
         return products.map(p => {
-            // We stored raw data, need to calculate prices if not pre-calculated
-            // Our IndexedDBProduct interface stores basic fields.
-            // We need to match frontend Product type.
+            // Extract pricing from cached data if available
+            const cachedPricing = (p as any).pricing;
+            const taxRate = Number(p.taxRate ?? cachedPricing?.taxRate ?? 0);
+            const taxAmount = Number(p.taxAmount ?? cachedPricing?.taxAmount ?? 0);
 
-            // Simplification: In sync service we stored variants with full structure?
-            // Checking sync service: yes, we stored p.variants.
+            // Build pricing object from cached data
+            const pricing = cachedPricing ? {
+                price: Number(cachedPricing.price ?? p.price) || 0,
+                salePrice: cachedPricing.salePrice,
+                priceWithTax: Number(cachedPricing.priceWithTax ?? cachedPricing.originalPrice ?? p.price) || 0,
+                salePriceWithTax: cachedPricing.salePriceWithTax,
+                taxRate: taxRate,
+                taxAmount: taxAmount,
+                finalPrice: Number(cachedPricing.finalPrice ?? cachedPricing.salePriceWithTax ?? cachedPricing.priceWithTax ?? p.price) || 0,
+                originalPrice: Number(cachedPricing.originalPrice ?? cachedPricing.priceWithTax ?? p.price) || 0,
+                isOnSale: Boolean(cachedPricing.isOnSale),
+                discountPercent: cachedPricing.discountPercent,
+            } : undefined;
 
             return {
                 id: p.id,
                 name: p.name,
                 sku: p.sku,
                 barcode: p.barcode || p.sku,
-                price: p.salePrice || p.price, // Display price
+                price: Number(p.price) || 0,                    // Base price
                 salePrice: p.salePrice,
-                taxRate: p.taxRate || 0,
-                taxAmount: p.taxAmount || 0,
+                taxRate: taxRate,
+                taxAmount: taxAmount,
                 stock: p.stock,
                 image: p.image || '',
                 type: p.type as any,
                 categoryIds: p.categoryIds,
-                // reconstruct attributes from options if possible, or just pass empty for cached items if not strictly needed
                 attributes: p.productOptions?.map((opt: any) => ({
                     id: opt.optionId?._id?.toString() || opt.optionId?.toString() || 'Attribute',
                     name: opt.optionId?.name || 'Attribute',
                     options: opt.values,
                 })),
                 productOptions: p.productOptions,
-                variants: p.variants?.map((v: any) => ({
-                    id: v._id || v.sku, // syncing keeps _id inside variant object
-                    sku: v.sku,
-                    barcode: v.barcode || v.sku,
-                    attributes: v.attributes || {},
-                    price: v.salePrice || v.price, // prefer sale price
-                    taxRate: v.taxRate || p.taxRate || 0, // Fallback to product tax rate
-                    taxAmount: 0, // Should be calculated or stored
-                    stock: v.stock,
-                    image: v.images?.[0],
-                }))
+                pricing: pricing,                               // Full pricing object
+                variants: p.variants?.map((v: any) => {
+                    const vCachedPricing = v.pricing;
+                    const vTaxRate = Number(vCachedPricing?.taxRate ?? taxRate ?? 0);
+                    const vTaxAmount = Number(vCachedPricing?.taxAmount ?? 0);
+
+                    // Build variant pricing object
+                    const vPricing = vCachedPricing ? {
+                        price: Number(vCachedPricing.price ?? v.price) || 0,
+                        salePrice: vCachedPricing.salePrice,
+                        priceWithTax: Number(vCachedPricing.priceWithTax ?? vCachedPricing.originalPrice ?? v.price) || 0,
+                        salePriceWithTax: vCachedPricing.salePriceWithTax,
+                        taxRate: vTaxRate,
+                        taxAmount: vTaxAmount,
+                        finalPrice: Number(vCachedPricing.finalPrice ?? vCachedPricing.salePriceWithTax ?? vCachedPricing.priceWithTax ?? v.price) || 0,
+                        originalPrice: Number(vCachedPricing.originalPrice ?? vCachedPricing.priceWithTax ?? v.price) || 0,
+                        isOnSale: Boolean(vCachedPricing.isOnSale),
+                        discountPercent: vCachedPricing.discountPercent,
+                    } : undefined;
+
+                    return {
+                        id: v._id || v.sku,
+                        sku: v.sku,
+                        barcode: v.barcode || v.sku,
+                        attributes: v.attributes || {},
+                        price: Number(v.price) || 0,
+                        salePrice: v.salePrice,
+                        taxRate: vTaxRate,
+                        taxAmount: vTaxAmount,
+                        stock: v.stock,
+                        image: v.images?.[0],
+                        pricing: vPricing,
+                    };
+                })
             };
         });
     }
@@ -652,7 +709,9 @@ class POCApiService {
         currency?: string;
         orderId?: string; // Optional, if we want to link unrelated to an order yet
         description?: string;
+        posSessionId?: string;
         customerDetails?: {
+            id?: string;
             name?: string;
             email?: string;
             phone?: string;

@@ -68,6 +68,16 @@ export default function OrderPaymentPage() {
     const { showConfirm } = useDialog();
     const { convertAndFormat } = useCurrency();
 
+    const getErrorMessage = (err: unknown) => {
+        if (!err) return 'Unknown error';
+        if (typeof err === 'string') return err;
+        if (typeof err === 'object' && err !== null && 'response' in err) {
+            // @ts-ignore
+            return (err as any).response?.data?.message || JSON.stringify(err);
+        }
+        return JSON.stringify(err);
+    };
+
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -78,7 +88,7 @@ export default function OrderPaymentPage() {
 
     const guestEmail = searchParams.get('guestEmail');
     const queryString = guestEmail ? `?guestEmail=${encodeURIComponent(guestEmail)}` : '';
-    
+
     // Track if payment initialization has already been called to prevent duplicate calls
     // This prevents React StrictMode and race conditions from calling initializePayment twice
     const initializePaymentRef = useRef(false);
@@ -142,9 +152,10 @@ export default function OrderPaymentPage() {
                 // PayPal redirect happens on button click
             }
 
-        } catch (err: any) {
-            console.error('Payment initialization error:', err);
-            setError(err.response?.data?.message || 'Failed to initialize payment');
+        } catch (err: unknown) {
+            const message = getErrorMessage(err);
+            console.error('Payment initialization error:', message);
+            setError(message || 'Failed to initialize payment');
         } finally {
             setLoading(false);
         }
@@ -178,23 +189,25 @@ export default function OrderPaymentPage() {
             description: paymentData.razorpay.description,
             order_id: paymentData.razorpay.orderId,
             prefill: paymentData.razorpay.prefill,
-            handler: async (response: any) => {
+            handler: async (response: unknown) => {
                 // Payment successful - notify backend
                 try {
                     setProcessing(true);
+                    const r = response as Record<string, any>;
                     await apiClient.post(`/orders/${orderId}/payment-success`, {
-                        paymentId: response.razorpay_payment_id,
+                        paymentId: r.razorpay_payment_id,
                         guestEmail: guestEmail || order?.guestEmail || undefined,
                         paymentDetails: {
-                            razorpay_order_id: response.razorpay_order_id,
-                            razorpay_payment_id: response.razorpay_payment_id,
-                            razorpay_signature: response.razorpay_signature,
+                            razorpay_order_id: r.razorpay_order_id,
+                            razorpay_payment_id: r.razorpay_payment_id,
+                            razorpay_signature: r.razorpay_signature,
                         },
                     });
                     toast.success('Payment successful!');
                     router.replace(`/orders/${orderId}/confirmation${queryString}`);
                 } catch (err) {
-                    console.error('Error confirming payment:', err);
+                    const message = getErrorMessage(err as unknown);
+                    console.error('Error confirming payment:', message);
                     toast.error('Payment received but confirmation failed. Please contact support.');
                 } finally {
                     setProcessing(false);
@@ -211,17 +224,19 @@ export default function OrderPaymentPage() {
         };
 
         const razorpay = new (window as any).Razorpay(options);
-        razorpay.on('payment.failed', async (response: any) => {
+        razorpay.on('payment.failed', async (response: unknown) => {
             try {
+                const r = response as Record<string, any>;
                 await apiClient.post(`/orders/${orderId}/payment-failed`, {
                     paymentDetails: {
-                        error: response.error,
+                        error: r.error,
                     },
                 });
+                toast.error(`Payment failed: ${r.error?.description || 'Unknown error'}`);
             } catch (err) {
-                console.error('Error reporting payment failure:', err);
+                const message = getErrorMessage(err as unknown);
+                console.error('Error reporting payment failure:', message);
             }
-            toast.error(`Payment failed: ${response.error.description}`);
         });
         razorpay.open();
     };

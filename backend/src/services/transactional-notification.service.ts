@@ -544,7 +544,7 @@ export class TransactionalNotificationService {
             }
 
             const markup = `<script type="application/ld+json">${JSON.stringify(schema)}</script>`;
-            console.log(`[GmailMarkup] Generated for order ${orderNumber} (status: ${status})`);
+
             // console.log(`[GmailMarkup] Content:`, markup); // Optional: very verbose
             return markup;
         } catch (error) {

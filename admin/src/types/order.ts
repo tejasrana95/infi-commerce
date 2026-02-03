@@ -10,11 +10,20 @@ export interface OrderItem {
     hsnCode?: string;
     price: number;
     originalPrice?: number;
+    discountedPrice?: number;
     quantity: number;
     image?: string;
     attributes?: Record<string, string>;
     weight?: number;
     manualDiscount?: number;
+    // Per-item tax amount (per unit)
+    taxAmount?: number;
+    // Shipping cost charged for this item (for full quantity)
+    shippingCost?: number;
+    // Return/exchange window and flag
+    returnWindowDays?: number;
+    exchangeWindowDays?: number;
+    isReturnable?: boolean;
     discount?: {
         amount?: number;
         appliedAt?: string; // ISO date string

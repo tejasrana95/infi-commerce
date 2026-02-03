@@ -25,7 +25,7 @@ export interface ReturnOrder {
     subtotal: number;
     tax: number;
     total: number;
-    refundMethod: 'cash' | 'card' | 'original';
+    refundMethod: 'cash' | 'card' | 'original' | 'upi' | 'stripe' | 'razorpay' | 'paypal';
     reason: string;
     // Refund breakdown
     breakdown?: {

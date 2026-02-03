@@ -6,9 +6,9 @@ import { OrderEvent } from '../types';
  * Example: Salesforce, Shiprocket, custom logging, etc.
  */
 export const handleOrderEvent = async (event: OrderEvent) => {
-    const { type, detail, storeId } = event;
+    const { type } = event;
 
-    console.log(`[OrderEvent] Received ${type} for order ${detail.orderNumber} in store ${storeId}`);
+
 
     switch (type) {
         case 'orderCreate':

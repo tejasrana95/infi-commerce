@@ -1,24 +1,360 @@
+/**
+ * Return Request Controller
+ * Handles all return/exchange operations for customers and admins
+ * 
+ * Features:
+ * - Full and partial returns with transparent tax + shipping breakdown
+ * - Exchange processing with price difference calculation
+ * - Automatic inventory restoration on receipt
+ * - Payment gateway refund integration
+ * - Status tracking with notifications
+ */
+
 import { Response } from 'express';
 import mongoose from 'mongoose';
 import { AuthRequest } from '../middleware/auth';
-import ReturnRequest, { ReturnRequestStatus } from '../models/ReturnRequest';
+import ReturnRequest from '../models/ReturnRequest';
 import Order from '../models/Order';
 import Store from '../models/Store';
 import Product from '../models/Product';
-import ReturnWindowService from '../services/return-window.service';
-import ReturnCalculationService from '../services/return-calculation.service';
-import { transactionalNotificationService } from '../services/transactional-notification.service';
 import Customer from '../models/Customer';
+import ReturnWindowService from '../services/return-window.service';
+import { transactionalNotificationService } from '../services/transactional-notification.service';
+import { notificationService } from '../services/notification.service';
 import { InventoryService } from '../services/inventory.service';
 import { AccountingService } from '../services/accounting.service';
 import { AppError, asyncHandler } from '../middleware/validation';
 import { PaymentService } from '../services/payment/payment.service';
 
+// ============================================================================
+// TYPES & INTERFACES
+// ============================================================================
+
+interface ReturnItemInput {
+    productId: string;
+    variantId?: string;
+    quantity: number;
+    reason?: string;
+    condition?: string;
+    exchangeProductId?: string;
+    exchangeVariantId?: string;
+}
+
+interface ReturnItemDetails {
+    productId: mongoose.Types.ObjectId;
+    variantId?: string;
+    name: string;
+    sku: string;
+    image?: string;
+    quantity: number;
+    reason?: string;
+    condition?: string;
+    // Refund breakdown (transparent to customer)
+    unitPrice: number;
+    unitTax: number;
+    unitShipping: number;
+    subtotalRefund: number;
+    taxRefund: number;
+    shippingRefund: number;
+    refundAmount: number;
+    // Exchange details
+    exchangeProductId?: mongoose.Types.ObjectId;
+    exchangeVariantId?: string;
+    exchangeSku?: string;
+    exchangeName?: string;
+    exchangePriceDifference?: number;
+}
+
+interface RefundBreakdown {
+    itemsSubtotal: number;
+    itemsTax: number;
+    itemsShipping: number;
+    totalRefund: number;
+}
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
 
 /**
- * Return Request Controller
- * Handles all return/exchange operations for customers and admins
+ * Build return items with full refund breakdown including tax and shipping
  */
+async function buildReturnItems(
+    order: any,
+    items: ReturnItemInput[],
+    type: 'return' | 'exchange',
+    globalReason?: string
+): Promise<{ returnItems: ReturnItemDetails[]; breakdown: RefundBreakdown }> {
+    const returnItems: ReturnItemDetails[] = [];
+    let totalSubtotal = 0;
+    let totalTax = 0;
+    let totalShipping = 0;
+
+    for (const item of items) {
+        const orderItem = order.items.find(
+            (oi: any) =>
+                oi.productId.toString() === item.productId &&
+                oi.variantId === item.variantId
+        );
+
+        if (!orderItem) {
+            throw new AppError(`Item not found in order: ${item.productId}`, 400);
+        }
+
+        // Validate return quantity
+        const alreadyReturned = orderItem.returnedQuantity || 0;
+        const maxReturnable = orderItem.quantity - alreadyReturned;
+
+        if (item.quantity > maxReturnable) {
+            throw new AppError(
+                `Cannot return ${item.quantity} of ${orderItem.name}. Only ${maxReturnable} available.`,
+                400
+            );
+        }
+
+        if (item.quantity <= 0) {
+            throw new AppError(`Return quantity must be positive for ${orderItem.name}`, 400);
+        }
+
+        // Get per-unit values (stored at order creation)
+        const unitPrice = orderItem.price;
+        const unitTax = orderItem.taxAmount || 0;
+        const unitShipping = orderItem.shippingCost || 0;
+
+        // Calculate refund amounts for this return quantity
+        const subtotalRefund = parseFloat((unitPrice * item.quantity).toFixed(2));
+        const taxRefund = parseFloat((unitTax * item.quantity).toFixed(2));
+        const shippingRefund = parseFloat((unitShipping * item.quantity).toFixed(2));
+        const refundAmount = parseFloat((subtotalRefund + taxRefund + shippingRefund).toFixed(2));
+
+        totalSubtotal += subtotalRefund;
+        totalTax += taxRefund;
+        totalShipping += shippingRefund;
+
+        const returnItem: ReturnItemDetails = {
+            productId: new mongoose.Types.ObjectId(item.productId),
+            variantId: item.variantId,
+            name: orderItem.name,
+            sku: orderItem.sku,
+            image: orderItem.image,
+            quantity: item.quantity,
+            reason: item.reason || globalReason,
+            condition: item.condition,
+            // Transparent breakdown
+            unitPrice,
+            unitTax,
+            unitShipping,
+            subtotalRefund,
+            taxRefund,
+            shippingRefund,
+            refundAmount,
+        };
+
+        // Handle exchange product details
+        if (type === 'exchange' && item.exchangeProductId) {
+            const exchangeProduct = await Product.findById(item.exchangeProductId);
+            if (!exchangeProduct) {
+                throw new AppError(`Exchange product not found: ${item.exchangeProductId}`, 400);
+            }
+
+            let exchangePrice = exchangeProduct.salePrice || exchangeProduct.price;
+            let exchangeSku = exchangeProduct.sku;
+            let exchangeName = exchangeProduct.name;
+
+            if (item.exchangeVariantId && exchangeProduct.variants) {
+                const variant = exchangeProduct.variants.find(
+                    (v: any) => v._id?.toString() === item.exchangeVariantId
+                );
+                if (variant) {
+                    exchangePrice = variant.salePrice || variant.price || exchangePrice;
+                    exchangeSku = variant.sku || exchangeSku;
+                    const attrValues = Object.values(variant.attributes || {}).join(' / ');
+                    exchangeName = attrValues ? `${exchangeProduct.name} - ${attrValues}` : exchangeName;
+                }
+            }
+
+            returnItem.exchangeProductId = new mongoose.Types.ObjectId(item.exchangeProductId);
+            returnItem.exchangeVariantId = item.exchangeVariantId;
+            returnItem.exchangeSku = exchangeSku;
+            returnItem.exchangeName = exchangeName;
+            returnItem.exchangePriceDifference = parseFloat((exchangePrice - unitPrice).toFixed(2));
+        }
+
+        returnItems.push(returnItem);
+    }
+
+    // Check for "Full Return" scenario
+    // If the user is returning everything remaining in the order, we should ensure the full remaining shipping cost is refunded.
+    // This handles cases where per-item shipping costs might not sum up to the total order shipping cost (data mismatch).
+    let isFullReturn = true;
+    for (const orderItem of order.items) {
+        const returnItem = items.find(ri =>
+            ri.productId === orderItem.productId.toString() &&
+            ri.variantId === orderItem.variantId
+        );
+        const returningQty = returnItem ? returnItem.quantity : 0;
+        const alreadyReturned = orderItem.returnedQuantity || 0;
+        if (returningQty + alreadyReturned < orderItem.quantity) {
+            isFullReturn = false;
+            break;
+        }
+    }
+
+    if (isFullReturn) {
+        // Calculate how much shipping has already been refunded
+        const previousShippingRefunds = (order.returns || []).reduce((sum: number, r: any) => sum + (r.refundBreakdown?.itemsShipping || 0), 0);
+        const remainingGlobalShipping = Math.max(0, order.shippingCost - previousShippingRefunds);
+
+        // If our calculated totalShipping (from items) is less than the actual remaining shipping cost, upgrade it.
+        // We only upgrade, never downgrade (in case per-item calculation is intentionally higher for some reason, though unlikely)
+        if (remainingGlobalShipping > totalShipping) {
+            const diff = remainingGlobalShipping - totalShipping;
+            // console.log(`🚚 Full return detected. Adjusting shipping refund by +${diff} to match global shipping cost.`);
+
+            totalShipping = remainingGlobalShipping;
+
+            // Distribute the difference to the first item (simplest way to ensure item sum matches total)
+            if (returnItems.length > 0) {
+                returnItems[0].shippingRefund = parseFloat((returnItems[0].shippingRefund + diff).toFixed(2));
+                returnItems[0].refundAmount = parseFloat((returnItems[0].refundAmount + diff).toFixed(2));
+            }
+        }
+    }
+
+    return {
+        returnItems,
+        breakdown: {
+            itemsSubtotal: parseFloat(totalSubtotal.toFixed(2)),
+            itemsTax: parseFloat(totalTax.toFixed(2)),
+            itemsShipping: parseFloat(totalShipping.toFixed(2)),
+            totalRefund: parseFloat((totalSubtotal + totalTax + totalShipping).toFixed(2)),
+        },
+    };
+}
+
+/**
+ * Validate order ownership and eligibility
+ */
+async function validateOrderForReturn(
+    orderId: string,
+    storeId: string,
+    customerId?: string,
+    isAdmin = false
+): Promise<any> {
+    const order = await Order.findOne({
+        _id: orderId,
+        storeId: new mongoose.Types.ObjectId(storeId),
+    });
+
+    if (!order) {
+        throw new AppError('Order not found', 404);
+    }
+
+    // Non-admin customers can only return their own orders
+    if (!isAdmin && customerId && order.customerId?.toString() !== customerId) {
+        throw new AppError('You can only return your own orders', 403);
+    }
+
+    return order;
+}
+
+/**
+ * Send return notification safely
+ */
+async function sendReturnNotification(
+    returnRequest: any,
+    order: any,
+    store: any,
+    notificationType: 'created' | 'status_update'
+): Promise<void> {
+    try {
+        let customerData = null;
+
+        if (order.customerId) {
+            customerData = await Customer.findById(order.customerId);
+        } else if (order.guestEmail && order.shippingAddress) {
+            customerData = {
+                email: order.guestEmail,
+                firstName: order.shippingAddress.firstName,
+                lastName: order.shippingAddress.lastName,
+                phone: order.shippingAddress.phone,
+            };
+        }
+
+        if (!customerData || store?.settings?.emailNotifications === false) {
+            return;
+        }
+
+        const storeId = store._id?.toString() || returnRequest.storeId.toString();
+        const storeName = store?.name || 'Store';
+
+        if (notificationType === 'created') {
+            await transactionalNotificationService.sendReturnRequestCreated(
+                storeId,
+                storeName,
+                { ...returnRequest.toObject(), orderNumber: order.orderNumber },
+                customerData
+            );
+        } else {
+            await transactionalNotificationService.sendReturnStatusUpdate(
+                storeId,
+                storeName,
+                returnRequest,
+                customerData
+            );
+        }
+    } catch (error) {
+        console.error('Failed to send return notification:', error);
+    }
+}
+
+/**
+ * Sync return status to parent order
+ */
+async function syncOrderStatus(
+    orderId: mongoose.Types.ObjectId,
+    returnStatus: string,
+    orderStatusOverride?: string
+): Promise<void> {
+    const updateData: any = { returnStatus };
+    if (orderStatusOverride) {
+        updateData.status = orderStatusOverride;
+    }
+    await Order.findByIdAndUpdate(orderId, updateData);
+}
+
+/**
+ * Add status to history
+ */
+function addStatusHistory(returnRequest: any, status: string, details?: any): void {
+    if (!returnRequest.statusHistory) {
+        returnRequest.statusHistory = [];
+    }
+    const entry: any = { status, updatedAt: new Date() };
+    if (details) {
+        if (details.note) entry.note = details.note;
+        if (details.updatedBy) entry.updatedBy = details.updatedBy;
+        if (details.shipping) entry.shipping = details.shipping;
+        if (details.pickup) entry.pickup = details.pickup;
+    }
+    returnRequest.statusHistory.push(entry);
+}
+
+/**
+ * Mask sensitive data - show first character and last 2 characters only
+ */
+function maskSensitiveData(value: string | undefined): string | undefined {
+    if (!value || value.length <= 3) return value;
+    const first = value.charAt(0);
+    const last2 = value.slice(-2);
+    const middleLength = value.length - 3;
+    const masked = 'x'.repeat(middleLength * 2); // Use 'xx' for each masked character
+    return `${first}${masked}${last2}`;
+}
+
+// ============================================================================
+// ROUTE HANDLERS
+// ============================================================================
 
 /**
  * @route   POST /api/returns/check-eligibility
@@ -29,13 +365,8 @@ export const checkEligibility = asyncHandler(async (req: AuthRequest, res: Respo
     const { orderId } = req.body;
     const storeId = req.headers['x-store-id'] as string;
 
-    if (!orderId) {
-        throw new AppError('Order ID is required', 400);
-    }
-
-    if (!storeId) {
-        throw new AppError('Store ID is required', 400);
-    }
+    if (!orderId) throw new AppError('Order ID is required', 400);
+    if (!storeId) throw new AppError('Store ID is required', 400);
 
     const eligibility = await ReturnWindowService.checkOrderEligibility(orderId, storeId);
 
@@ -46,53 +377,67 @@ export const checkEligibility = asyncHandler(async (req: AuthRequest, res: Respo
 });
 
 /**
+ * @route   POST /api/returns/calculate
+ * @desc    Calculate refund amount for items (preview before creating return)
+ * @access  Private (Customer/Admin)
+ */
+export const calculateRefund = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { orderId, items } = req.body;
+    const storeId = req.headers['x-store-id'] as string;
+    const customerId = req.user?.id;
+    const isAdmin = ['admin', 'store_admin', 'super_admin'].includes(req.user?.role || '');
+
+    if (!orderId || !items?.length) {
+        throw new AppError('Order ID and items are required', 400);
+    }
+    if (!storeId) throw new AppError('Store ID is required', 400);
+
+    const order = await validateOrderForReturn(orderId, storeId, customerId, isAdmin);
+    const { returnItems, breakdown } = await buildReturnItems(order, items, 'return');
+
+    res.status(200).json({
+        success: true,
+        data: {
+            items: returnItems.map(item => ({
+                productId: item.productId,
+                variantId: item.variantId,
+                name: item.name,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                unitTax: item.unitTax,
+                unitShipping: item.unitShipping,
+                subtotalRefund: item.subtotalRefund,
+                taxRefund: item.taxRefund,
+                shippingRefund: item.shippingRefund,
+                refundAmount: item.refundAmount,
+            })),
+            breakdown,
+        },
+    });
+});
+
+/**
  * @route   POST /api/returns/create
  * @desc    Create a return/exchange request (Customer)
  * @access  Private (Customer)
  */
 export const createReturnRequest = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const {
-        orderId,
-        type, // 'return' | 'exchange'
-        items, // Array of { productId, variantId, quantity, reason, exchangeProductId?, exchangeVariantId? }
-        reason,
-        customerNotes,
-        refundMethod, // For returns: 'original' | 'store_credit' | 'bank_transfer'
-    } = req.body;
-
+    const { orderId, type, items, reason, customerNotes, refundMethod, bankDetails } = req.body;
     const storeId = req.headers['x-store-id'] as string;
     const customerId = req.user?.id;
 
-    if (!storeId) {
-        throw new AppError('Store ID is required', 400);
-    }
-
-    if (!orderId || !items || items.length === 0) {
-        throw new AppError('Order ID and items are required', 400);
-    }
-
+    // Validation
+    if (!storeId) throw new AppError('Store ID is required', 400);
+    if (!orderId || !items?.length) throw new AppError('Order ID and items are required', 400);
     if (!type || !['return', 'exchange'].includes(type)) {
         throw new AppError('Valid return type is required (return or exchange)', 400);
     }
 
-    // Validate the order belongs to the customer
-    const order = await Order.findOne({
-        _id: orderId,
-        storeId: new mongoose.Types.ObjectId(storeId),
-    });
+    // Fetch and validate order
+    const order = await validateOrderForReturn(orderId, storeId, customerId);
 
-    if (!order) {
-        throw new AppError('Order not found', 404);
-    }
-
-    // Check if customer owns the order (if not admin)
-    if (customerId && order.customerId && order.customerId.toString() !== customerId) {
-        throw new AppError('You can only return your own orders', 403);
-    }
-
-    // Validate eligibility
+    // Validate return window eligibility
     const validation = await ReturnWindowService.validateReturnRequest(orderId, storeId, items);
-
     if (!validation.valid) {
         throw new AppError(`Return validation failed: ${validation.errors.join(', ')}`, 400);
     }
@@ -101,94 +446,13 @@ export const createReturnRequest = asyncHandler(async (req: AuthRequest, res: Re
     const store = await Store.findById(storeId);
     const returnSettings = store?.settings?.returnSettings || ReturnWindowService.getDefaultSettings();
 
-    // Check if return settings are enabled
     if (!returnSettings.enabled) {
         throw new AppError('Returns and exchanges are currently disabled for this store', 400);
     }
 
-    // Build return items with full details
-    const returnItems = await Promise.all(
-        items.map(async (item: any) => {
-            const orderItem = order.items.find(
-                (oi: any) =>
-                    oi.productId.toString() === item.productId &&
-                    oi.variantId === item.variantId
-            );
-
-            if (!orderItem) {
-                throw new AppError(`Item not found in order: ${item.productId}`, 400);
-            }
-
-            // Calculate refund for this item
-            const itemRefund = ReturnCalculationService.calculateItemRefund(
-                {
-                    productId: orderItem.productId.toString(),
-                    variantId: orderItem.variantId,
-                    name: orderItem.name,
-                    sku: orderItem.sku,
-                    originalPrice: orderItem.originalPrice || orderItem.price,
-                    price: orderItem.price,
-                    quantity: orderItem.quantity,
-                    taxRate: orderItem.taxRate || 0,
-                    taxAmount: orderItem.taxAmount || 0,
-                    discountAmount: orderItem.discountAmount || 0,
-                    couponDiscount: orderItem.couponDiscount || 0,
-                    manualDiscount: orderItem.manualDiscount || 0,
-                    isCouponEligible: orderItem.isCouponEligible || false,
-                    returnedQuantity: orderItem.returnedQuantity || 0,
-                    refundedAmount: orderItem.refundedAmount || 0,
-                },
-                item.quantity
-            );
-
-            const returnItem: any = {
-                productId: new mongoose.Types.ObjectId(item.productId),
-                variantId: item.variantId,
-                name: orderItem.name,
-                sku: orderItem.sku,
-                image: orderItem.image,
-                quantity: item.quantity,
-                reason: item.reason || reason,
-                condition: item.condition,
-                refundAmount: itemRefund.totalRefund,
-            };
-
-            // For exchange, add exchange product details
-            if (type === 'exchange' && item.exchangeProductId) {
-                const exchangeProduct = await Product.findById(item.exchangeProductId);
-                if (!exchangeProduct) {
-                    throw new AppError(`Exchange product not found: ${item.exchangeProductId}`, 400);
-                }
-
-                let exchangePrice = exchangeProduct.price;
-                let exchangeSku = exchangeProduct.sku;
-                let exchangeName = exchangeProduct.name;
-
-                // If variant specified, get variant details
-                if (item.exchangeVariantId && exchangeProduct.variants) {
-                    const variant = exchangeProduct.variants.find(
-                        (v: any) => v._id?.toString() === item.exchangeVariantId
-                    );
-                    if (variant) {
-                        exchangePrice = variant.salePrice || variant.price || exchangePrice;
-                        exchangeSku = variant.sku || exchangeSku;
-                        exchangeName = `${exchangeProduct.name} - ${Object.values(variant.attributes || {}).join(' / ')}`;
-                    }
-                }
-
-                returnItem.exchangeProductId = new mongoose.Types.ObjectId(item.exchangeProductId);
-                returnItem.exchangeVariantId = item.exchangeVariantId;
-                returnItem.exchangeSku = exchangeSku;
-                returnItem.exchangeName = exchangeName;
-                returnItem.exchangePriceDifference = exchangePrice - orderItem.price;
-            }
-
-            return returnItem;
-        })
-    );
-
-    // Calculate total refund
-    const totalRefundAmount = returnItems.reduce((sum: number, item: any) => sum + (item.refundAmount || 0), 0);
+    // Build return items with full breakdown
+    const { returnItems, breakdown } = await buildReturnItems(order, items, type, reason);
+    const initialStatus = returnSettings.autoApproveReturns ? 'approved' : 'pending';
 
     // Create the return request
     const returnRequest = await ReturnRequest.create({
@@ -197,9 +461,11 @@ export const createReturnRequest = asyncHandler(async (req: AuthRequest, res: Re
         orderNumber: order.orderNumber,
         customerId: customerId ? new mongoose.Types.ObjectId(customerId) : undefined,
         type,
-        status: returnSettings.autoApproveReturns ? 'approved' : 'pending',
+        status: initialStatus,
         items: returnItems,
-        totalRefundAmount,
+        // Transparent refund breakdown
+        refundBreakdown: breakdown,
+        totalRefundAmount: breakdown.totalRefund,
         currency: order.currency,
         exchangeRate: order.exchangeRate,
         reason,
@@ -208,51 +474,64 @@ export const createReturnRequest = asyncHandler(async (req: AuthRequest, res: Re
         approvedAt: returnSettings.autoApproveReturns ? new Date() : undefined,
         refund: type === 'return' ? {
             method: refundMethod || 'original',
-            amount: totalRefundAmount,
+            amount: breakdown.totalRefund,
+            subtotal: breakdown.itemsSubtotal,
+            tax: breakdown.itemsTax,
+            shipping: breakdown.itemsShipping,
             status: 'pending',
+            ...(refundMethod === 'bank_transfer' && bankDetails && { bankDetails }),
         } : undefined,
         exchange: type === 'exchange' ? {
-            priceDifference: returnItems.reduce((sum: number, item: any) => sum + (item.exchangePriceDifference || 0), 0),
-            paymentRequired: returnItems.some((item: any) => (item.exchangePriceDifference || 0) > 0),
+            priceDifference: returnItems.reduce((sum, item) => sum + (item.exchangePriceDifference || 0), 0),
+            paymentRequired: returnItems.some(item => (item.exchangePriceDifference || 0) > 0),
             paymentStatus: 'pending',
         } : undefined,
-        statusHistory: [{
-            status: returnSettings.autoApproveReturns ? 'approved' : 'pending',
-            updatedAt: new Date(),
-        }],
+        statusHistory: [{ status: initialStatus, updatedAt: new Date() }],
     });
 
-    // Sync status to Order
+    // Update order status
     order.status = type === 'exchange' ? 'exchange_requested' : 'return_requested';
-    (order as any).returnStatus = returnRequest.status;
-    (order as any).returnRequestId = returnRequest._id;
+    order.returnStatus = returnRequest.status;
+    order.returnRequestId = returnRequest._id;
     await order.save();
 
-    // Send Notification
-    try {
-        let customerData = null;
-        if (order.customerId) {
-            customerData = await Customer.findById(order.customerId);
-        } else if (order.guestEmail && order.shippingAddress) {
-            customerData = {
-                email: order.guestEmail,
-                firstName: order.shippingAddress.firstName,
-                lastName: order.shippingAddress.lastName,
-                phone: order.shippingAddress.phone
-            } as any;
-        }
+    // Send notification
+    await sendReturnNotification(returnRequest, order, store, 'created');
 
-        if (customerData && store?.settings?.emailNotifications !== false) {
-            await transactionalNotificationService.sendReturnRequestCreated(
-                storeId,
-                store?.name || 'Store',
-                // Populate order info for email template if needed, though service handles orderId
-                { ...returnRequest.toObject(), orderNumber: order.orderNumber, orderId: order._id },
-                customerData
-            );
-        }
-    } catch (error) {
-        console.error('Failed to send return notification:', error);
+    // Create admin dashboard notification
+    try {
+        await notificationService.createAdminNotification({
+            type: type === 'return' ? 'return' : 'exchange',
+            title: type === 'return' ? 'New Return Request' : 'New Exchange Request',
+            message: `${type === 'return' ? 'Return' : 'Exchange'} request #${returnRequest._id.toString().slice(-6)} for order ${order.orderNumber}`,
+            data: {
+                returnId: returnRequest._id.toString(),
+                orderId: order._id.toString(),
+                orderNumber: order.orderNumber,
+                type,
+                amount: breakdown.totalRefund,
+            },
+        });
+
+        // Trigger telegram notification
+        await notificationService.triggerAdminNotifications(
+            storeId,
+            'returnRequest',
+            {
+                returnId: returnRequest._id.toString(),
+                orderId: order._id.toString(),
+                orderNumber: order.orderNumber,
+                customerName: order.shippingAddress?.firstName && order.shippingAddress?.lastName
+                    ? `${order.shippingAddress.firstName} ${order.shippingAddress.lastName}`
+                    : 'Customer',
+                type: type === 'return' ? 'Return' : 'Exchange',
+                amount: breakdown.totalRefund,
+                currency: order.currency,
+                itemCount: returnItems.length,
+            }
+        );
+    } catch (notificationError) {
+        console.error('Failed to send admin notifications:', notificationError);
     }
 
     res.status(201).json({
@@ -270,109 +549,86 @@ export const createReturnRequest = asyncHandler(async (req: AuthRequest, res: Re
  * @access  Private (Admin)
  */
 export const adminCreateReturn = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const {
-        orderId,
-        type,
-        items,
-        reason,
-        adminNotes,
-        refundMethod,
-        autoApprove = true,
-    } = req.body;
-
-    const storeId = req.headers['x-store-id'] as string;
+    const { orderId, type, items, reason, adminNotes, refundMethod, autoApprove = true } = req.body;
+    const storeId = req.headers['x-store-id'] as string || req.body.storeId;
     const adminId = req.user?.id;
 
-    if (!storeId) {
-        throw new AppError('Store ID is required', 400);
-    }
+    if (!storeId) throw new AppError('Store ID is required', 400);
+    if (!orderId || !items?.length) throw new AppError('Order ID and items are required', 400);
 
-    // Similar to customer create but with admin privileges
-    const order = await Order.findOne({
-        _id: orderId,
-        storeId: new mongoose.Types.ObjectId(storeId),
-    });
-
-    if (!order) {
-        throw new AppError('Order not found', 404);
-    }
-
-    // Build return items (same logic as customer)
-    const returnItems = await Promise.all(
-        items.map(async (item: any) => {
-            const orderItem = order.items.find(
-                (oi: any) =>
-                    oi.productId.toString() === item.productId &&
-                    oi.variantId === item.variantId
-            );
-
-            if (!orderItem) {
-                throw new AppError(`Item not found in order: ${item.productId}`, 400);
-            }
-
-            const itemRefund = ReturnCalculationService.calculateItemRefund(
-                {
-                    productId: orderItem.productId.toString(),
-                    variantId: orderItem.variantId,
-                    name: orderItem.name,
-                    sku: orderItem.sku,
-                    originalPrice: orderItem.originalPrice || orderItem.price,
-                    price: orderItem.price,
-                    quantity: orderItem.quantity,
-                    taxRate: orderItem.taxRate || 0,
-                    taxAmount: orderItem.taxAmount || 0,
-                    discountAmount: orderItem.discountAmount || 0,
-                    couponDiscount: orderItem.couponDiscount || 0,
-                    manualDiscount: orderItem.manualDiscount || 0,
-                    isCouponEligible: orderItem.isCouponEligible || false,
-                    returnedQuantity: orderItem.returnedQuantity || 0,
-                    refundedAmount: orderItem.refundedAmount || 0,
-                },
-                item.quantity
-            );
-
-            return {
-                productId: new mongoose.Types.ObjectId(item.productId),
-                variantId: item.variantId,
-                name: orderItem.name,
-                sku: orderItem.sku,
-                image: orderItem.image,
-                quantity: item.quantity,
-                reason: item.reason || reason,
-                condition: item.condition,
-                refundAmount: itemRefund.totalRefund,
-            };
-        })
-    );
-
-    const totalRefundAmount = returnItems.reduce((sum: number, item: any) => sum + (item.refundAmount || 0), 0);
+    const order = await validateOrderForReturn(orderId, storeId, undefined, true);
+    const returnType = type || 'return';
+    const { returnItems, breakdown } = await buildReturnItems(order, items, returnType, reason);
+    const initialStatus = autoApprove ? 'approved' : 'pending';
 
     const returnRequest = await ReturnRequest.create({
         storeId: new mongoose.Types.ObjectId(storeId),
         orderId: new mongoose.Types.ObjectId(orderId),
         orderNumber: order.orderNumber,
         customerId: order.customerId,
-        type,
-        status: autoApprove ? 'approved' : 'pending',
+        type: returnType,
+        status: initialStatus,
         items: returnItems,
-        totalRefundAmount,
+        refundBreakdown: breakdown,
+        totalRefundAmount: breakdown.totalRefund,
+        currency: order.currency,
+        exchangeRate: order.exchangeRate,
         reason,
         adminNotes,
         requestedAt: new Date(),
         approvedAt: autoApprove ? new Date() : undefined,
         processedBy: new mongoose.Types.ObjectId(adminId),
-        refund: type === 'return' ? {
+        refund: {
             method: refundMethod || 'original',
-            amount: totalRefundAmount,
+            amount: breakdown.totalRefund,
+            subtotal: breakdown.itemsSubtotal,
+            tax: breakdown.itemsTax,
+            shipping: breakdown.itemsShipping,
             status: 'pending',
-        } : undefined,
+        },
+        statusHistory: [{ status: initialStatus, updatedAt: new Date() }],
     });
 
-    // Sync status to Order
     order.status = 'return_requested';
-    (order as any).returnStatus = returnRequest.status;
-    (order as any).returnRequestId = returnRequest._id;
+    order.returnStatus = returnRequest.status;
+    order.returnRequestId = returnRequest._id;
     await order.save();
+
+    // Create admin dashboard notification
+    try {
+        await notificationService.createAdminNotification({
+            type: returnType === 'return' ? 'return' : 'exchange',
+            title: returnType === 'return' ? 'Return Created by Admin' : 'Exchange Created by Admin',
+            message: `Admin created ${returnType} request #${returnRequest._id.toString().slice(-6)} for order ${order.orderNumber}`,
+            data: {
+                returnId: returnRequest._id.toString(),
+                orderId: order._id.toString(),
+                orderNumber: order.orderNumber,
+                type: returnType,
+                amount: breakdown.totalRefund,
+            },
+        });
+
+        // Trigger telegram notification
+        await notificationService.triggerAdminNotifications(
+            storeId,
+            'returnRequest',
+            {
+                returnId: returnRequest._id.toString(),
+                orderId: order._id.toString(),
+                orderNumber: order.orderNumber,
+                customerName: order.shippingAddress?.firstName && order.shippingAddress?.lastName
+                    ? `${order.shippingAddress.firstName} ${order.shippingAddress.lastName}`
+                    : 'Customer',
+                type: returnType === 'return' ? 'Return (Admin)' : 'Exchange (Admin)',
+                amount: breakdown.totalRefund,
+                currency: order.currency,
+                itemCount: returnItems.length,
+            }
+        );
+    } catch (notificationError) {
+        console.error('Failed to send admin notifications:', notificationError);
+    }
 
     res.status(201).json({
         success: true,
@@ -393,26 +649,33 @@ export const getReturnRequest = asyncHandler(async (req: AuthRequest, res: Respo
     const isAdmin = ['admin', 'store_admin', 'super_admin'].includes(req.user?.role || '');
 
     const query: any = { _id: id };
-    if (storeId) {
-        query.storeId = new mongoose.Types.ObjectId(storeId);
-    }
-    if (!isAdmin && userId) {
-        query.customerId = new mongoose.Types.ObjectId(userId);
-    }
+    if (storeId) query.storeId = new mongoose.Types.ObjectId(storeId);
+    if (!isAdmin && userId) query.customerId = new mongoose.Types.ObjectId(userId);
 
     const returnRequest = await ReturnRequest.findOne(query)
         .populate('orderId', 'orderNumber total currency shippingAddress')
         .populate('customerId', 'firstName lastName email')
+        .populate('statusHistory.updatedBy', 'firstName lastName')
         .populate('processedBy', 'firstName lastName');
 
-    if (!returnRequest) {
-        throw new AppError('Return request not found', 404);
+    if (!returnRequest) throw new AppError('Return request not found', 404);
+
+    // Mask sensitive bank details for non-admin users
+    const returnData = returnRequest.toObject();
+    if (!isAdmin && returnData.refund?.bankDetails) {
+        const bankDetails = returnData.refund.bankDetails;
+        returnData.refund.bankDetails = {
+            ...bankDetails,
+            accountHolderName: maskSensitiveData(bankDetails.accountHolderName),
+            accountNumber: maskSensitiveData(bankDetails.accountNumber),
+            bankName: maskSensitiveData(bankDetails.bankName),
+            branchAddress: maskSensitiveData(bankDetails.branchAddress),
+            routingNumber: maskSensitiveData(bankDetails.routingNumber),
+            swiftBicCode: maskSensitiveData(bankDetails.swiftBicCode),
+        };
     }
 
-    res.status(200).json({
-        success: true,
-        data: returnRequest,
-    });
+    res.status(200).json({ success: true, data: returnData });
 });
 
 /**
@@ -425,21 +688,11 @@ export const getUserReturnRequests = asyncHandler(async (req: AuthRequest, res: 
     const customerId = req.user?.id;
     const { status, page = 1, limit = 10 } = req.query;
 
-    if (!customerId) {
-        throw new AppError('Authentication required', 401);
-    }
+    if (!customerId) throw new AppError('Authentication required', 401);
 
-    const query: any = {
-        customerId: new mongoose.Types.ObjectId(customerId),
-    };
-
-    if (storeId) {
-        query.storeId = new mongoose.Types.ObjectId(storeId);
-    }
-
-    if (status) {
-        query.status = status;
-    }
+    const query: any = { customerId: new mongoose.Types.ObjectId(customerId) };
+    if (storeId) query.storeId = new mongoose.Types.ObjectId(storeId);
+    if (status) query.status = status;
 
     const skip = (Number(page) - 1) * Number(limit);
 
@@ -474,19 +727,9 @@ export const getAllReturnRequests = asyncHandler(async (req: AuthRequest, res: R
     const { status, type, search, page = 1, limit = 20 } = req.query;
 
     const query: any = {};
-
-    if (storeId) {
-        query.storeId = new mongoose.Types.ObjectId(storeId);
-    }
-
-    if (status) {
-        query.status = status;
-    }
-
-    if (type) {
-        query.type = type;
-    }
-
+    if (storeId) query.storeId = new mongoose.Types.ObjectId(storeId);
+    if (status) query.status = status;
+    if (type) query.type = type;
     if (search) {
         query.$or = [
             { requestNumber: { $regex: search, $options: 'i' } },
@@ -529,11 +772,7 @@ export const approveReturnRequest = asyncHandler(async (req: AuthRequest, res: R
     const adminId = req.user?.id;
 
     const returnRequest = await ReturnRequest.findById(id);
-
-    if (!returnRequest) {
-        throw new AppError('Return request not found', 404);
-    }
-
+    if (!returnRequest) throw new AppError('Return request not found', 404);
     if (returnRequest.status !== 'pending') {
         throw new AppError('Only pending requests can be approved', 400);
     }
@@ -541,32 +780,17 @@ export const approveReturnRequest = asyncHandler(async (req: AuthRequest, res: R
     returnRequest.status = 'approved';
     returnRequest.approvedAt = new Date();
     returnRequest.processedBy = new mongoose.Types.ObjectId(adminId);
-    if (adminNotes) {
-        returnRequest.adminNotes = adminNotes;
-    }
-
+    if (adminNotes) returnRequest.adminNotes = adminNotes;
+    addStatusHistory(returnRequest, 'approved');
     await returnRequest.save();
 
-    // Sync status to Order
-    await Order.findByIdAndUpdate(returnRequest.orderId, { returnStatus: 'approved' });
+    await syncOrderStatus(returnRequest.orderId, 'approved');
 
-    // Send Notification
-    try {
-        const fullRequest = await ReturnRequest.findById(id)
-            .populate('customerId')
-            .populate('orderId');
-
-        if (fullRequest && fullRequest.customerId) {
-            const store = await Store.findById(fullRequest.storeId);
-            await transactionalNotificationService.sendReturnStatusUpdate(
-                fullRequest.storeId.toString(),
-                store?.name || 'Store',
-                fullRequest,
-                fullRequest.customerId
-            );
-        }
-    } catch (error) {
-        console.error('Failed to send return approval notification:', error);
+    // Send notification
+    const fullRequest = await ReturnRequest.findById(id).populate('customerId').populate('orderId');
+    if (fullRequest?.customerId) {
+        const store = await Store.findById(fullRequest.storeId);
+        await sendReturnNotification(fullRequest, fullRequest.orderId, store, 'status_update');
     }
 
     res.status(200).json({
@@ -587,11 +811,7 @@ export const rejectReturnRequest = asyncHandler(async (req: AuthRequest, res: Re
     const adminId = req.user?.id;
 
     const returnRequest = await ReturnRequest.findById(id);
-
-    if (!returnRequest) {
-        throw new AppError('Return request not found', 404);
-    }
-
+    if (!returnRequest) throw new AppError('Return request not found', 404);
     if (!['pending', 'approved'].includes(returnRequest.status)) {
         throw new AppError('This request cannot be rejected', 400);
     }
@@ -600,36 +820,24 @@ export const rejectReturnRequest = asyncHandler(async (req: AuthRequest, res: Re
     returnRequest.rejectedAt = new Date();
     returnRequest.processedBy = new mongoose.Types.ObjectId(adminId);
     returnRequest.adminNotes = adminNotes || reason || 'Request rejected by admin';
-
+    addStatusHistory(returnRequest, 'rejected');
     await returnRequest.save();
 
-    // Sync status to Order
+    // Revert order status if needed
     const order = await Order.findById(returnRequest.orderId);
     if (order) {
-        (order as any).returnStatus = 'rejected';
-        if (order.status === 'return_requested') {
-            order.status = 'delivered'; // Revert to delivered if it was return_requested
+        order.returnStatus = 'rejected';
+        if (['return_requested', 'exchange_requested'].includes(order.status)) {
+            order.status = 'delivered';
         }
         await order.save();
     }
 
-    // Send Notification
-    try {
-        const fullRequest = await ReturnRequest.findById(id)
-            .populate('customerId')
-            .populate('orderId');
-
-        if (fullRequest && fullRequest.customerId) {
-            const store = await Store.findById(fullRequest.storeId);
-            await transactionalNotificationService.sendReturnStatusUpdate(
-                fullRequest.storeId.toString(),
-                store?.name || 'Store',
-                fullRequest,
-                fullRequest.customerId
-            );
-        }
-    } catch (error) {
-        console.error('Failed to send return rejection notification:', error);
+    // Send notification
+    const fullRequest = await ReturnRequest.findById(id).populate('customerId').populate('orderId');
+    if (fullRequest?.customerId) {
+        const store = await Store.findById(fullRequest.storeId);
+        await sendReturnNotification(fullRequest, fullRequest.orderId, store, 'status_update');
     }
 
     res.status(200).json({
@@ -650,17 +858,13 @@ export const schedulePickup = asyncHandler(async (req: AuthRequest, res: Respons
     const adminId = req.user?.id;
 
     const returnRequest = await ReturnRequest.findById(id);
-
-    if (!returnRequest) {
-        throw new AppError('Return request not found', 404);
-    }
-
+    if (!returnRequest) throw new AppError('Return request not found', 404);
     if (!['approved', 'pickup_scheduled'].includes(returnRequest.status)) {
         throw new AppError('Only approved requests can have pickup scheduled', 400);
     }
 
     returnRequest.status = 'pickup_scheduled';
-    returnRequest.pickup = {
+    const pickupDetails = {
         method: method || 'pickup',
         scheduledDate: scheduledDate ? new Date(scheduledDate) : undefined,
         scheduledSlot,
@@ -670,12 +874,19 @@ export const schedulePickup = asyncHandler(async (req: AuthRequest, res: Respons
         trackingUrl,
         adminNotes,
     };
+    returnRequest.pickup = pickupDetails;
     returnRequest.processedBy = new mongoose.Types.ObjectId(adminId);
 
+    // Add pickup details to history for customer tracking
+    const pickupNote = `${method === 'dropoff' ? 'Drop-off' : 'Pickup'} scheduled${scheduledDate ? ` for ${new Date(scheduledDate).toLocaleDateString()}` : ''}${scheduledSlot ? ` ${scheduledSlot}` : ''}${courierName ? ` with ${courierName}` : ''} ${trackingNumber ? `(Tracking: ${trackingNumber})` : ''}`.trim();
+    addStatusHistory(returnRequest, 'pickup_scheduled', {
+        note: pickupNote,
+        updatedBy: adminId,
+        pickup: pickupDetails
+    });
     await returnRequest.save();
 
-    // Sync status to Order
-    await Order.findByIdAndUpdate(returnRequest.orderId, { returnStatus: 'pickup_scheduled' });
+    await syncOrderStatus(returnRequest.orderId, 'pickup_scheduled');
 
     res.status(200).json({
         success: true,
@@ -686,7 +897,7 @@ export const schedulePickup = asyncHandler(async (req: AuthRequest, res: Respons
 
 /**
  * @route   PATCH /api/returns/:id/mark-received
- * @desc    Mark items as received
+ * @desc    Mark items as received and restore inventory
  * @access  Private (Admin)
  */
 export const markReceived = asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -695,33 +906,29 @@ export const markReceived = asyncHandler(async (req: AuthRequest, res: Response)
     const adminId = req.user?.id;
 
     const returnRequest = await ReturnRequest.findById(id);
-
-    if (!returnRequest) {
-        throw new AppError('Return request not found', 404);
-    }
+    if (!returnRequest) throw new AppError('Return request not found', 404);
 
     returnRequest.status = 'received';
     if (returnRequest.pickup) {
         returnRequest.pickup.receivedAt = new Date();
     }
     returnRequest.processedBy = new mongoose.Types.ObjectId(adminId);
-    if (adminNotes) {
-        returnRequest.adminNotes = adminNotes;
-    }
-
+    if (adminNotes) returnRequest.adminNotes = adminNotes;
+    addStatusHistory(returnRequest, 'received');
     await returnRequest.save();
 
-    // Sync status to Order
-    await Order.findByIdAndUpdate(returnRequest.orderId, { returnStatus: 'received' });
+    await syncOrderStatus(returnRequest.orderId, 'received');
 
-    // Restore Inventory logic
-    if (returnRequest.items && returnRequest.items.length > 0) {
+    // Restore inventory
+    if (returnRequest.items?.length > 0) {
         try {
-            await InventoryService.restoreStock(returnRequest.items.map(i => ({
-                productId: i.productId,
-                variantId: i.variantId,
-                quantity: i.quantity
-            })));
+            await InventoryService.restoreStock(
+                returnRequest.items.map((i: any) => ({
+                    productId: i.productId,
+                    variantId: i.variantId,
+                    quantity: i.quantity,
+                }))
+            );
         } catch (error) {
             console.error('Failed to restore inventory on return receipt:', error);
         }
@@ -736,7 +943,7 @@ export const markReceived = asyncHandler(async (req: AuthRequest, res: Response)
 
 /**
  * @route   PATCH /api/returns/:id/process-refund
- * @desc    Process refund for return
+ * @desc    Process refund for return (with transparent breakdown)
  * @access  Private (Admin)
  */
 export const processRefund = asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -745,88 +952,59 @@ export const processRefund = asyncHandler(async (req: AuthRequest, res: Response
     const adminId = req.user?.id;
 
     const returnRequest = await ReturnRequest.findById(id);
-
-    if (!returnRequest) {
-        throw new AppError('Return request not found', 404);
-    }
-
+    if (!returnRequest) throw new AppError('Return request not found', 404);
     if (returnRequest.type !== 'return') {
         throw new AppError('This is an exchange request, not a return', 400);
     }
 
     const order = await Order.findById(returnRequest.orderId);
-    if (!order) {
-        throw new AppError('Order not found', 404);
-    }
+    if (!order) throw new AppError('Order not found', 404);
 
     console.log('📦 Processing refund for order:', {
         orderId: order._id,
         orderNumber: order.orderNumber,
-        paymentId: order.paymentId,
-        paymentMethod: order.paymentMethod,
-        paymentStatus: order.paymentStatus,
+        refundBreakdown: returnRequest.refundBreakdown,
+        totalRefund: returnRequest.totalRefundAmount,
     });
 
-    // Process refund via payment gateway if refund method is 'original'
-    let gatewayRefundResponse = null;
-    if (returnRequest.refund?.method === 'original' && order.paymentStatus === 'paid') {
-        // Only process refund for paid orders with gateway payments
-        if (order.paymentMethod && ['razorpay', 'stripe', 'paypal'].includes(order.paymentMethod)) {
-            try {
-                // Validate that we have a valid payment ID
-                if (!order.paymentId) {
-                    throw new AppError(
-                        'No payment ID found for this order. Cannot process refund.',
-                        400
-                    );
-                }
+    // Process refund via payment gateway if applicable
+    let gatewayRefundResponse: any = null;
 
-                // Get the appropriate payment service gateway instance
-                const paymentService = await PaymentService.getGatewayInstance({
-                    storeId: order.storeId.toString(),
-                    gatewayType: order.paymentMethod,
-                });
+    if (
+        returnRequest.refund?.method === 'original' &&
+        order.paymentStatus === 'paid' &&
+        order.paymentMethod &&
+        ['razorpay', 'stripe', 'paypal'].includes(order.paymentMethod)
+    ) {
+        if (!order.paymentId) {
+            throw new AppError('No payment ID found for this order. Cannot process refund.', 400);
+        }
 
-                // Convert refund amount using exchange rate from return request or order
-                let refundAmountInGatewayCurrency = returnRequest.refund.amount || 0;
+        try {
+            const paymentService = await PaymentService.getGatewayInstance({
+                storeId: order.storeId.toString(),
+                gatewayType: order.paymentMethod,
+            });
 
-                // Use exchange rate from return request (captured at return creation) or fallback to order's exchange rate
-                const exchangeRateToUse = returnRequest.exchangeRate || order.exchangeRate || 1;
+            // Apply exchange rate if needed
+            const exchangeRate = returnRequest.exchangeRate || order.exchangeRate || 1;
+            const refundAmountInGatewayCurrency = (returnRequest.refund?.amount || 0) * exchangeRate;
+            const currency = returnRequest.currency || order.currency || 'USD';
 
-                // If exchange rate is not 1, convert the amount
-                if (exchangeRateToUse && exchangeRateToUse !== 1) {
-                    refundAmountInGatewayCurrency = refundAmountInGatewayCurrency * exchangeRateToUse;
-                }
+            gatewayRefundResponse = await paymentService.processRefund({
+                paymentId: order.paymentId,
+                amount: refundAmountInGatewayCurrency,
+                currency,
+                reason: `Refund for returned order #${order.orderNumber}`,
+            });
 
-                // Get currency from return request or order
-                const currencyToUse = returnRequest.currency || order.currency || 'USD';
-
-                // Process refund via gateway
-                gatewayRefundResponse = await paymentService.processRefund({
-                    paymentId: order.paymentId,
-                    amount: refundAmountInGatewayCurrency,
-                    currency: currencyToUse,
-                    reason: `Refund for returned order #${order.orderNumber}`,
-                });
-                if (gatewayRefundResponse.status !== 'success') {
-                    const errorMessage =
-                        gatewayRefundResponse.gatewayResponse?.message ||
-                        gatewayRefundResponse.gatewayResponse?.raw?.message ||
-                        gatewayRefundResponse.gatewayResponse?.toString() ||
-                        'Unknown error';
-
-                    throw new AppError(
-                        `Refund processing failed: ${errorMessage}`,
-                        400
-                    );
-                }
-            } catch (error: any) {
-                console.error('Payment gateway refund error:', error);
-                throw new AppError(
-                    `Failed to process refund via ${order.paymentMethod}: ${error.message}`,
-                    400
-                );
+            if (gatewayRefundResponse.status !== 'success') {
+                const errorMessage = gatewayRefundResponse.gatewayResponse?.message || 'Unknown error';
+                throw new AppError(`Refund processing failed: ${errorMessage}`, 400);
             }
+        } catch (error: any) {
+            console.error('Payment gateway refund error:', error);
+            throw new AppError(`Failed to process refund via ${order.paymentMethod}: ${error.message}`, 400);
         }
     }
 
@@ -849,40 +1027,40 @@ export const processRefund = asyncHandler(async (req: AuthRequest, res: Response
     order.refundStatus = 'processed';
     (order as any).returnStatus = 'refund_completed';
 
-    // Update paymentStatus based on full or partial return
     if (order.paymentStatus === 'paid') {
         order.paymentStatus = allReturned ? 'refunded' : 'partially_refunded';
         order.refundedAt = new Date();
     }
 
-    // Store gateway refund reference for future tracking
     if (gatewayRefundResponse?.refundId) {
         order.refundReferenceId = gatewayRefundResponse.refundId;
     }
 
-    // Add to order returns history
-    if (!order.returns) {
-        order.returns = [];
-    }
+    // Add to order returns history with full breakdown
+    if (!order.returns) order.returns = [];
     order.returns.push({
         returnedAt: new Date(),
-        items: returnRequest.items.map((item) => ({
+        items: returnRequest.items.map((item: any) => ({
             productId: item.productId,
             variantId: item.variantId,
             quantity: item.quantity,
             reason: item.reason,
             refundAmount: item.refundAmount || 0,
+            subtotalRefund: item.subtotalRefund || 0,
+            taxRefund: item.taxRefund || 0,
+            shippingRefund: item.shippingRefund || 0,
         })),
         totalRefundAmount: returnRequest.refund?.amount || 0,
+        refundBreakdown: returnRequest.refundBreakdown,
         refundMethod: returnRequest.refund?.method || 'original',
         processedBy: new mongoose.Types.ObjectId(adminId as string),
         refundReference: gatewayRefundResponse?.refundId || transactionId,
-        note: adminNotes
+        note: adminNotes,
     });
 
     await order.save();
 
-    // Sync Accounting
+    // Sync accounting
     try {
         await AccountingService.syncReturnsToAccounting(order._id.toString());
     } catch (error) {
@@ -898,29 +1076,28 @@ export const processRefund = asyncHandler(async (req: AuthRequest, res: Response
         returnRequest.refund.transactionId = gatewayRefundResponse?.refundId || transactionId;
     }
     returnRequest.processedBy = new mongoose.Types.ObjectId(adminId);
-    if (adminNotes) {
-        returnRequest.adminNotes = adminNotes;
-    }
-
+    if (adminNotes) returnRequest.adminNotes = adminNotes;
+    addStatusHistory(returnRequest, 'refund_completed');
     await returnRequest.save();
 
-    try {
-        const fullRequest = await ReturnRequest.findById(id).populate('customerId').populate('orderId');
-        if (fullRequest && fullRequest.customerId) {
-            const store = await Store.findById(fullRequest.storeId);
-            await transactionalNotificationService.sendReturnStatusUpdate(
-                fullRequest.storeId.toString(),
-                store?.name || 'Store',
-                fullRequest,
-                fullRequest.customerId
-            );
-        }
-    } catch { }
+    // Send notification
+    const fullRequest = await ReturnRequest.findById(id).populate('customerId').populate('orderId');
+    if (fullRequest?.customerId) {
+        const store = await Store.findById(fullRequest.storeId);
+        await sendReturnNotification(fullRequest, fullRequest.orderId, store, 'status_update');
+    }
 
     res.status(200).json({
         success: true,
         message: 'Refund processed successfully',
-        data: returnRequest,
+        data: {
+            returnRequest,
+            refundBreakdown: returnRequest.refundBreakdown,
+            gatewayRefund: gatewayRefundResponse ? {
+                refundId: gatewayRefundResponse.refundId,
+                status: gatewayRefundResponse.status,
+            } : null,
+        },
     });
 });
 
@@ -931,49 +1108,33 @@ export const processRefund = asyncHandler(async (req: AuthRequest, res: Response
  */
 export const shipExchange = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
-    const { newOrderId, newOrderNumber, trackingNumber, courierName, adminNotes } = req.body;
+    const { newOrderId, newOrderNumber, adminNotes } = req.body;
     const adminId = req.user?.id;
 
     const returnRequest = await ReturnRequest.findById(id);
-
-    if (!returnRequest) {
-        throw new AppError('Return request not found', 404);
-    }
-
+    if (!returnRequest) throw new AppError('Return request not found', 404);
     if (returnRequest.type !== 'exchange') {
         throw new AppError('This is a return request, not an exchange', 400);
     }
 
-    // Update exchange details
-    if (!returnRequest.exchange) {
-        returnRequest.exchange = {};
-    }
+    if (!returnRequest.exchange) returnRequest.exchange = {};
     returnRequest.exchange.newOrderId = newOrderId ? new mongoose.Types.ObjectId(newOrderId) : undefined;
     returnRequest.exchange.newOrderNumber = newOrderNumber;
 
     returnRequest.status = 'exchange_shipped';
     returnRequest.processedBy = new mongoose.Types.ObjectId(adminId);
-    if (adminNotes) {
-        returnRequest.adminNotes = adminNotes;
-    }
-
+    if (adminNotes) returnRequest.adminNotes = adminNotes;
+    addStatusHistory(returnRequest, 'exchange_shipped');
     await returnRequest.save();
 
-    // Sync status to Order
-    await Order.findByIdAndUpdate(returnRequest.orderId, { returnStatus: 'exchange_shipped' });
+    await syncOrderStatus(returnRequest.orderId, 'exchange_shipped');
 
-    try {
-        const fullRequest = await ReturnRequest.findById(id).populate('customerId').populate('orderId');
-        if (fullRequest && fullRequest.customerId) {
-            const store = await Store.findById(fullRequest.storeId);
-            await transactionalNotificationService.sendReturnStatusUpdate(
-                fullRequest.storeId.toString(),
-                store?.name || 'Store',
-                fullRequest,
-                fullRequest.customerId
-            );
-        }
-    } catch { }
+    // Send notification
+    const fullRequest = await ReturnRequest.findById(id).populate('customerId').populate('orderId');
+    if (fullRequest?.customerId) {
+        const store = await Store.findById(fullRequest.storeId);
+        await sendReturnNotification(fullRequest, fullRequest.orderId, store, 'status_update');
+    }
 
     res.status(200).json({
         success: true,
@@ -993,22 +1154,16 @@ export const completeReturn = asyncHandler(async (req: AuthRequest, res: Respons
     const adminId = req.user?.id;
 
     const returnRequest = await ReturnRequest.findById(id);
-
-    if (!returnRequest) {
-        throw new AppError('Return request not found', 404);
-    }
+    if (!returnRequest) throw new AppError('Return request not found', 404);
 
     returnRequest.status = 'completed';
     returnRequest.completedAt = new Date();
     returnRequest.processedBy = new mongoose.Types.ObjectId(adminId);
-    if (adminNotes) {
-        returnRequest.adminNotes = adminNotes;
-    }
-
+    if (adminNotes) returnRequest.adminNotes = adminNotes;
+    addStatusHistory(returnRequest, 'completed');
     await returnRequest.save();
 
-    // Sync status to Order
-    await Order.findByIdAndUpdate(returnRequest.orderId, { returnStatus: 'completed' });
+    await syncOrderStatus(returnRequest.orderId, 'completed');
 
     res.status(200).json({
         success: true,
@@ -1029,12 +1184,9 @@ export const cancelReturn = asyncHandler(async (req: AuthRequest, res: Response)
     const isAdmin = ['admin', 'store_admin', 'super_admin'].includes(req.user?.role || '');
 
     const returnRequest = await ReturnRequest.findById(id);
+    if (!returnRequest) throw new AppError('Return request not found', 404);
 
-    if (!returnRequest) {
-        throw new AppError('Return request not found', 404);
-    }
-
-    // Customers can only cancel their own pending requests
+    // Customers can only cancel their own pending/approved requests
     if (!isAdmin) {
         if (returnRequest.customerId?.toString() !== userId) {
             throw new AppError('You can only cancel your own requests', 403);
@@ -1045,17 +1197,17 @@ export const cancelReturn = asyncHandler(async (req: AuthRequest, res: Response)
     }
 
     returnRequest.status = 'cancelled';
-    returnRequest.adminNotes = reason || 'Cancelled by ' + (isAdmin ? 'admin' : 'customer');
+    returnRequest.adminNotes = reason || `Cancelled by ${isAdmin ? 'admin' : 'customer'}`;
     returnRequest.processedBy = new mongoose.Types.ObjectId(userId);
-
+    addStatusHistory(returnRequest, 'cancelled');
     await returnRequest.save();
 
-    // Sync status to Order
+    // Revert order status
     const order = await Order.findById(returnRequest.orderId);
     if (order) {
         (order as any).returnStatus = 'cancelled';
-        if (order.status === 'return_requested') {
-            order.status = 'delivered'; // Revert to delivered if it was return_requested
+        if (['return_requested', 'exchange_requested'].includes(order.status)) {
+            order.status = 'delivered';
         }
         await order.save();
     }

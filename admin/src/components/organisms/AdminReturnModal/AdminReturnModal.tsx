@@ -85,6 +85,16 @@ export default function AdminReturnModal({ open, onClose, order, onSuccess }: Ad
         }
     }, [order]);
 
+    // Helper to extract error messages from unknown errors
+    const getErrorMessage = (err: unknown) => {
+        if (!err) return 'Unknown error';
+        if (typeof err === 'string') return err;
+        if (typeof err === 'object' && err !== null && 'response' in err) {
+            return (err as any).response?.data?.message || JSON.stringify(err);
+        }
+        return JSON.stringify(err);
+    };
+
     const handleItemToggle = (itemKey: string) => {
         setSelectedItems((prev) => {
             const newMap = new Map(prev);
@@ -107,18 +117,36 @@ export default function AdminReturnModal({ open, onClose, order, onSuccess }: Ad
         });
     };
 
-    const calculateRefundAmount = () => {
-        if (!order) return 0;
-        let total = 0;
+    const calculateRefundBreakdown = () => {
+        if (!order) return { subtotal: 0, tax: 0, shipping: 0, total: 0 };
+
+        let subtotal = 0;
+        let tax = 0;
+        let shipping = 0;
+
         order.items.forEach((item) => {
             const pId = getProductId(item);
             const key = item.variantId ? `${pId}-${item.variantId}` : pId;
             const selection = selectedItems.get(key);
             if (selection?.checked) {
-                total += (item.price * selection.quantity);
+                // Use discounted price if available, otherwise regular price
+                const price = item.discountedPrice || item.price || 0;
+                subtotal += (price * selection.quantity);
+                tax += (item.taxAmount || 0) * selection.quantity;
+
+                // Calculate proportional shipping refund per item
+                // shippingCost is stored at item level for the full quantity
+                const itemShippingCost = item.shippingCost || 0;
+                shipping += itemShippingCost * selection.quantity;
             }
         });
-        return total;
+
+        return {
+            subtotal,
+            tax,
+            shipping,
+            total: subtotal + tax + shipping
+        };
     };
 
     const getSelectedItemsCount = () => {
@@ -159,18 +187,28 @@ export default function AdminReturnModal({ open, onClose, order, onSuccess }: Ad
                 const key = item.variantId ? `${pId}-${item.variantId}` : pId;
                 const selection = selectedItems.get(key);
                 if (selection?.checked) {
+                    const price = item.discountedPrice || item.price || 0;
+                    const itemSubtotal = price * selection.quantity;
+                    const itemTax = (item.taxAmount || 0) * selection.quantity;
+                    const itemShippingCost = item.shippingCost || 0;
+                    const unitShipping = itemShippingCost / (item.quantity || 1);
+                    const itemShipping = unitShipping * selection.quantity;
+                    const total = itemSubtotal + itemTax + itemShipping;
+
                     items.push({
                         productId: pId,
                         variantId: item.variantId,
                         quantity: selection.quantity,
                         name: item.name,
                         sku: item.sku,
-                        refundAmount: item.price * selection.quantity,
+                        refundAmount: total,
                     });
                 }
             });
 
-            await api.post('/returns', {
+            const refundBreakdown = calculateRefundBreakdown();
+
+            await api.post('/returns/admin/create', {
                 orderId: order._id,
                 storeId: typeof order.storeId === 'object' ? order.storeId._id : order.storeId,
                 customerId: typeof order.customerId === 'object' ? order.customerId?._id : order.customerId,
@@ -179,15 +217,19 @@ export default function AdminReturnModal({ open, onClose, order, onSuccess }: Ad
                 items,
                 refundMethod,
                 adminNotes,
-                totalRefundAmount: calculateRefundAmount(),
+                subtotalRefundAmount: refundBreakdown.subtotal,
+                taxRefundAmount: refundBreakdown.tax,
+                shippingRefundAmount: refundBreakdown.shipping,
+                totalRefundAmount: refundBreakdown.total,
             });
 
             showNotification('Return request created successfully', 'success');
             onSuccess?.();
             onClose();
             resetForm();
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to create return request');
+        } catch (err: unknown) {
+            const message = getErrorMessage(err);
+            setError(message || 'Failed to create return request');
         } finally {
             setLoading(false);
         }
@@ -304,7 +346,13 @@ export default function AdminReturnModal({ open, onClose, order, onSuccess }: Ad
                                                 type="number"
                                                 size="small"
                                                 value={qty}
-                                                onChange={(e) => handleQuantityChange(key, parseInt(e.target.value) || 1)}
+                                                onChange={(e) => {
+                                                    const value = parseInt(e.target.value) || 1;
+                                                    if (value > item.quantity) {
+                                                        return;
+                                                    }
+                                                    handleQuantityChange(key, value)
+                                                }}
                                                 disabled={!isChecked}
                                                 inputProps={{ min: 1, max: item.quantity }}
                                                 sx={{ width: 70 }}
@@ -314,7 +362,15 @@ export default function AdminReturnModal({ open, onClose, order, onSuccess }: Ad
                                             </Typography>
                                         </TableCell>
                                         <TableCell align="right">
-                                            {isChecked ? formatPrice(item.price * qty) : '-'}
+                                            {isChecked ? (() => {
+                                                const price = item.discountedPrice || item.price || 0;
+                                                const itemSubtotal = price * qty;
+                                                const itemTax = (item.taxAmount || 0) * qty;
+                                                const itemShippingCost = item.shippingCost || 0;
+                                                const unitShipping = itemShippingCost / (item.quantity || 1);
+                                                const itemShipping = unitShipping * qty;
+                                                return formatPrice(itemSubtotal + itemTax + itemShipping);
+                                            })() : '-'}
                                         </TableCell>
                                     </TableRow>
                                 );
@@ -363,11 +419,25 @@ export default function AdminReturnModal({ open, onClose, order, onSuccess }: Ad
                             {getSelectedItemsCount()} item(s) selected
                         </Typography>
                         <Box textAlign="right">
+                            <Box display="flex" gap={3} justifyContent="flex-end" mb={0.5}>
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary">Subtotal</Typography>
+                                    <Typography variant="body2">{formatPrice(calculateRefundBreakdown().subtotal)}</Typography>
+                                </Box>
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary">Tax</Typography>
+                                    <Typography variant="body2">{formatPrice(calculateRefundBreakdown().tax)}</Typography>
+                                </Box>
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary">Shipping</Typography>
+                                    <Typography variant="body2">{formatPrice(calculateRefundBreakdown().shipping)}</Typography>
+                                </Box>
+                            </Box>
                             <Typography variant="caption" color="text.secondary">
-                                Estimated Refund
+                                Total Refund
                             </Typography>
                             <Typography variant="h6" fontWeight={600} color="primary.main">
-                                {formatPrice(calculateRefundAmount())}
+                                {formatPrice(calculateRefundBreakdown().total)}
                             </Typography>
                         </Box>
                     </Box>

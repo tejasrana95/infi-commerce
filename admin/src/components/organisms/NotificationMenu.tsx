@@ -42,17 +42,14 @@ const NotificationMenu = () => {
             await markAsRead(notification._id);
         }
         handleClose();
-
         // Navigate logic
-        if ((notification.type === 'order' || notification.type === 'return') && notification.data?.orderId) {
+        if ((notification.type === 'order') && notification.data?.orderId) {
             router.push(`/orders/${notification.data.orderId}`);
+        }  else if (notification.type === 'return') {
+            router.push(`/returns/${notification.data.returnId}`);
         } else if (notification.type === 'customer' && notification.data?.customerId) {
-            // Assuming route /customers/:id exists, or we might need to go to list
-            // router.push(`/customers/${notification.data.customerId}`); // Optional: Check routes
             router.push('/customers');
-        } else if (notification.type === 'return') {
-            router.push('/orders?tab=returns'); // Example
-        }
+        } 
     };
 
     const getIcon = (type: string) => {

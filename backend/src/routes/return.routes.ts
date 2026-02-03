@@ -2,6 +2,7 @@ import express from 'express';
 import { authenticate, authorize } from '../middleware/auth';
 import {
     checkEligibility,
+    calculateRefund,
     createReturnRequest,
     adminCreateReturn,
     getReturnRequest,
@@ -25,6 +26,13 @@ const router = express.Router();
  * @access  Private (Customer/Admin)
  */
 router.post('/check-eligibility', authenticate, checkEligibility);
+
+/**
+ * @route   POST /api/returns/calculate
+ * @desc    Calculate refund amount for items (preview before creating return)
+ * @access  Private (Customer/Admin)
+ */
+router.post('/calculate', authenticate, calculateRefund);
 
 /**
  * @route   POST /api/returns/create

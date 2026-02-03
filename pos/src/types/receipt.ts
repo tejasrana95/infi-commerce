@@ -9,7 +9,7 @@ export interface ReceiptData {
     subtotal: number;
     tax: number;
     total: number;
-    paymentMethod: 'cash' | 'card' | 'qr';
+    paymentMethod: 'cash' | 'card' | 'qr' | 'upi' | 'stripe' | 'razorpay' | 'paypal';
     cashReceived?: number;
     change?: number;
     roundOffAmount?: number;

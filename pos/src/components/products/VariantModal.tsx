@@ -74,9 +74,27 @@ export default function VariantModal({ product, isOpen, onClose, onAddToCart }: 
                                 <img src={selectedVariant?.image || product.image} alt={product.name} className="w-full h-full object-cover" />
                             </div>
                             <div>
-                                <div className="text-2xl font-bold text-blue-600">
-                                    {selectedVariant ? formatPrice(selectedVariant.price) : formatPrice(product.price)}
-                                </div>
+                                {/* Use pricing object for tax-inclusive display */}
+                                {(() => {
+                                    const pricing = selectedVariant?.pricing || product.pricing;
+                                    const displayPrice = pricing?.finalPrice ?? selectedVariant?.price ?? product.salePrice ?? product.price;
+                                    const originalPrice = pricing?.originalPrice ?? product.price;
+                                    const isOnSale = pricing?.isOnSale ?? false;
+                                    const showStrikethrough = isOnSale && originalPrice > displayPrice;
+                                    
+                                    return (
+                                        <div className="flex flex-col">
+                                            {showStrikethrough && (
+                                                <span className="text-sm text-slate-500 line-through">
+                                                    {formatPrice(originalPrice)}
+                                                </span>
+                                            )}
+                                            <span className={cn("text-2xl font-bold", showStrikethrough ? "text-red-600" : "text-blue-600")}>
+                                                {formatPrice(displayPrice)}
+                                            </span>
+                                        </div>
+                                    );
+                                })()}
                                 <p className="text-slate-500 text-sm mt-1">
                                     SKU: {selectedVariant ? selectedVariant.sku : product.sku}
                                 </p>
@@ -166,7 +184,7 @@ export default function VariantModal({ product, isOpen, onClose, onAddToCart }: 
                         >
                             {isReadyToAdd ? (
                                 <>
-                                    <Check className="w-6 h-6" /> Add to Order - {formatPrice(selectedVariant!.price * quantity)}
+                                    <Check className="w-6 h-6" /> Add to Order - {formatPrice((selectedVariant!.pricing?.finalPrice ?? selectedVariant!.price) * quantity)}
                                 </>
                             ) : (
                                 "Select Options"

@@ -122,7 +122,7 @@ class MongoDbBackupService {
                     throw new Error(`mongorestore encountered failures during restore. Check logs for details.`);
                 }
                 // Log other stderr output as warnings/info
-                console.log('mongorestore output:', stderr);
+
             }
         } catch (error: any) {
             throw new Error(`Failed to restore MongoDB dump: ${error.message}`);

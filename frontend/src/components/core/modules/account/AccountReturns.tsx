@@ -8,6 +8,7 @@ import { formatDate } from '@/lib/date';
 import { formatPrice } from '@/lib/currency';
 import Loader from '@/components/molecules/Loader';
 import Chip from '@/components/atoms/Chip';
+import { Box } from 'lucide-react';
 
 export interface ModuleProps {
     config: Record<string, any>;
@@ -170,7 +171,7 @@ export default function AccountReturnsModule({ config = {} }: ModuleProps) {
                                                     {item.image ? (
                                                         <img src={item.image} alt={item.name} />
                                                     ) : (
-                                                        <div className={styles.placeholder}>📦</div>
+                                                        <div className={styles.placeholder}><Box /></div>
                                                     )}
                                                 </div>
                                                 <div className={styles.itemDetails}>

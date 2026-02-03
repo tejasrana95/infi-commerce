@@ -11,7 +11,7 @@ import { QRGenerationParams } from '../services/payment/pos-payment.interface';
  * Generate a QR Code for POS Payment
  */
 export const generateQR = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { orderId, amount, currency, description, customerDetails } = req.body;
+    const { orderId, amount, currency, description, customerDetails, posSessionId } = req.body;
     const storeId = req.headers['x-store-id'] as string;
 
     if (!storeId) {
@@ -77,13 +77,15 @@ export const generateQR = asyncHandler(async (req: AuthRequest, res: Response) =
             description: description || `POS Order ${order ? order.orderNumber : 'Payment'}`,
             customerDetails: customerDetails || {
                 name: 'Guest',
-                email: 'guest@pos.local'
+                email: 'guest@pos.local',
+                id: customerDetails?.id || ''
             },
             metadata: {
                 source: 'pos',
                 posUserId: req.user?.id,
                 storeName: store.name,
-                storeDomain: store.domains?.[0]
+                storeDomain: store.domains?.[0],
+                posSessionId: posSessionId || ''
             }
         };
 

@@ -31,11 +31,13 @@ import Image from 'next/image';
 
 // Types
 export interface OrderItem {
+    _id?: string;
     name: string;
     sku: string;
     hsnCode?: string;
     price: number;
     originalPrice?: number;
+    discountedPrice?: number;
     quantity: number;
     image?: string;
     attributes?: Record<string, string>;
@@ -52,6 +54,8 @@ export interface OrderItem {
     exchangeWindowDays?: number;
     isReturnable?: boolean;
     manualDiscount?: number;
+    taxAmount?: number;
+    shippingCost?: number;
 }
 
 export interface OrderAddress {
@@ -74,6 +78,8 @@ export interface TaxBreakdown {
 
 export interface OrderDetails {
     _id: string;
+    storeId?: string | { _id: string; name: string };
+    customerId?: string | { _id: string; firstName: string; lastName: string; email?: string };
     orderNumber: string;
     status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'return_requested' | 'exchange_requested' | 'returned';
     paymentStatus: string;

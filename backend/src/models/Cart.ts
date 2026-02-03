@@ -30,6 +30,8 @@ export interface ICart extends Document {
         name: string;
         cost: number;
         estimatedDays?: string;
+        rateType?: string;
+        rate?: number;
     };
     shippingCost: number;
 
@@ -109,6 +111,8 @@ const CartSchema = new Schema<ICart>(
             name: String,
             cost: Number,
             estimatedDays: String,
+            rateType: String,
+            rate: Number,
         },
         shippingCost: {
             type: Number,

@@ -157,7 +157,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
         processCheckout({ paymentMethod });
     };
 
-    const processCheckout = async (data: { paymentMethod: 'cash' | 'card' | 'qr' | 'upi', paymentStatus?: string, transactionId?: string }) => {
+    const processCheckout = async (data: { paymentMethod: 'cash' | 'card' | 'qr' | 'upi' | 'stripe' | 'razorpay' | 'paypal', paymentStatus?: string, transactionId?: string }) => {
         setProcessing(true);
         try {
             // Build items with original prices and send discount info separately
@@ -211,28 +211,44 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
 
     const handleQRPaymentSuccess = (paymentData: { gatewayType?: string, paymentId?: string }) => {
         setShowQRModal(false);
-        // Use the actual payment gateway from settings, not 'qr'
-        // QR is just the payment interface, the actual payment method is the configured gateway
-        let actualPaymentMethod: 'cash' | 'card' | 'qr' | 'upi' = 'qr'; // fallback
+        // Store the actual payment gateway name (stripe, razorpay, paypal) instead of generic types
+        let actualPaymentMethod: 'cash' | 'card' | 'qr' | 'upi' | 'stripe' | 'razorpay' | 'paypal' = 'upi'; // Default to UPI for QR payments
 
-        // Try to get gateway type from settings first
+        // Try to get gateway type from settings first (most reliable - this will be the actual gateway name)
         if (qrSettings?.mode === 'gateway' && qrSettings?.gatewayConfig?.gatewayType) {
-            actualPaymentMethod = qrSettings.gatewayConfig.gatewayType as 'cash' | 'card' | 'qr' | 'upi';
+            actualPaymentMethod = qrSettings.gatewayConfig.gatewayType as 'cash' | 'card' | 'qr' | 'upi' | 'stripe' | 'razorpay' | 'paypal';
         }
-        // Fallback to paymentData if available (for backward compatibility)
+        // Check paymentData if available (passed from QR modal)
         else if (paymentData?.gatewayType) {
-            actualPaymentMethod = paymentData.gatewayType as 'cash' | 'card' | 'qr' | 'upi';
+            actualPaymentMethod = paymentData.gatewayType as 'cash' | 'card' | 'qr' | 'upi' | 'stripe' | 'razorpay' | 'paypal';
         }
-        // Last resort: try to infer from payment ID format
+        // Try to infer from payment ID format
         else if (paymentData?.paymentId) {
             const paymentId = paymentData.paymentId;
+            // Stripe payment IDs
             if (paymentId.startsWith('pi_') || paymentId.startsWith('ch_')) {
-                actualPaymentMethod = 'card';
-            } else if (paymentId.startsWith('pay_')) {
-                actualPaymentMethod = 'card';
-            } else if (paymentId.includes('PAYID-')) {
-                actualPaymentMethod = 'card';
+                actualPaymentMethod = 'stripe';
+            } 
+            // PayPal payment IDs
+            else if (paymentId.includes('PAYID-')) {
+                actualPaymentMethod = 'paypal';
             }
+            // Razorpay payment IDs
+            else if (paymentId.startsWith('pay_')) {
+                actualPaymentMethod = 'razorpay';
+            }
+            // UPI transaction IDs (typically longer alphanumeric)
+            else if (paymentId.length > 12 && /^[A-Z0-9]+$/.test(paymentId)) {
+                actualPaymentMethod = 'upi';
+            }
+            // Default to UPI for QR code payments if can't determine
+            else {
+                actualPaymentMethod = 'upi';
+            }
+        }
+        // If custom QR mode (not gateway), it's typically UPI
+        else if (qrSettings?.mode === 'custom') {
+            actualPaymentMethod = 'upi';
         }
 
         processCheckout({

@@ -46,7 +46,7 @@ interface ReceiptOrder {
   returns?: Return[];
   roundOffAmount?: number;
   posPaymentDetails?: {
-    method: 'cash' | 'card' | 'qr';
+    method: 'cash' | 'card' | 'upi' | 'qr' | 'stripe' | 'razorpay' | 'paypal';
     cashDetails?: {
       amountReceived: number;
       changeGiven: number;
@@ -655,29 +655,27 @@ class PrintService {
     const itemsHTML = order.items
       .map((item, index) => {
         const extItem = item as ReceiptOrderItem;
-        const hasDiscount = (item.discountAmount || 0) > 0;
-        const hasReturn = item.returnedQuantity && item.returnedQuantity > 0;
-        const effectiveQty = item.quantity - (item.returnedQuantity || 0);
+        const hasDiscount = (extItem.discountAmount || 0) > 0;
+        const hasReturn = extItem.returnedQuantity && extItem.returnedQuantity > 0;
+        const effectiveQty = item.quantity - (extItem.returnedQuantity || 0);
+        const itemSubtotal = item.price * effectiveQty;
+        
         return `
           <tr class="item-row">
-          <td class="item-name">
-              ${index + 1}
-            </td>
-            <td class="item-name">
-              ${item.hsnCode}
-            </td>
-            <td class="item-name">
+            <td style="padding: 2px 0; width: 5%;">${index + 1}</td>
+            <td style="padding: 2px 4px; width: 10%;">${extItem.hsnCode || '-'}</td>
+            <td style="padding: 2px 4px; width: 40%;">
               ${item.name}
               ${item.attributes ? `<br><small style="color:#666;">${Object.entries(item.attributes).map(([k, v]) => `${k}: ${v}`).join(', ')}</small>` : ''}
               ${hasDiscount ? `<br><small style="color:#22c55e;">Discount: -${config.currency} ${(extItem.discountAmount || 0).toFixed(2)}/unit</small>` : ''}
-              ${hasReturn ? `<br><small style="color:#ef4444;">Returned: ${extItem.returnedQuantity} × ${config.currency} ${(extItem.refundedAmount || 0).toFixed(2)}</small>` : ''}
+              ${hasReturn ? `<br><small style="color:#ef4444;">Returned: ${extItem.returnedQuantity} × ${config.currency} ${((extItem.refundedAmount || 0) / (extItem.returnedQuantity || 1)).toFixed(2)}</small>` : ''}
             </td>
-            <td class="item-qty">${hasReturn ? `<s>${item.quantity}</s> ${effectiveQty}` : item.quantity}</td>
-            <td class="item-price">
+            <td style="padding: 2px 4px; width: 10%; text-align: center;">${hasReturn ? `<s>${item.quantity}</s> ${effectiveQty}` : item.quantity}</td>
+            <td style="padding: 2px 4px; width: 15%; text-align: right;">
               ${hasDiscount ? `<s>${(extItem.originalPrice || item.price).toFixed(2)}</s><br>` : ''}
               ${item.price.toFixed(2)}
             </td>
-            <td class="item-total">${(item.price * effectiveQty).toFixed(2)}</td>
+            <td style="padding: 2px 4px; width: 20%; text-align: right; font-weight: 600;">${itemSubtotal.toFixed(2)}</td>
           </tr>
         `;
       })
@@ -809,12 +807,12 @@ class PrintService {
         <table>
           <thead>
             <tr>
-              <th class="item-name">#</th>
-              <th class="item-name">HSN</th>
-              <th class="item-name">Item</th>
-              <th class="item-qty">Qty</th>
-              <th class="item-price">Price</th>
-              <th class="item-total">Total</th>
+              <th style="padding: 2px 0; width: 5%; text-align: left;">#</th>
+              <th style="padding: 2px 4px; width: 10%; text-align: left;">HSN</th>
+              <th style="padding: 2px 4px; width: 40%; text-align: left;">Item</th>
+              <th style="padding: 2px 4px; width: 10%; text-align: center;">Qty</th>
+              <th style="padding: 2px 4px; width: 15%; text-align: right;">Price</th>
+              <th style="padding: 2px 4px; width: 20%; text-align: right;">Total</th>
             </tr>
           </thead>
           <tbody>

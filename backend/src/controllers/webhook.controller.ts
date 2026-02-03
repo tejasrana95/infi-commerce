@@ -194,7 +194,7 @@ export const handlePayPalWebhook = asyncHandler(async (req: Request, res: Respon
 async function processSuccessfulPayment(order: any, paymentId: string, paymentData: any) {
     // Check if already processed
     if (order.paymentStatus === 'paid') {
-        console.log(`✅ Webhook: Order ${order.orderNumber} already processed (paymentStatus = paid)`);
+
         return;
     }
 
@@ -204,23 +204,23 @@ async function processSuccessfulPayment(order: any, paymentId: string, paymentDa
             console.warn(`⚠️ Webhook PaymentIntent ${paymentId} differs from stored ${order.paymentId} for order ${order.orderNumber}`);
             // If webhook has a different (newer) successful intent, update it
             if (!order.paymentId || order.paymentId.startsWith('pi_')) {
-                console.log(`📝 Updating stored PaymentIntent from webhook data`);
+                // console.log(`📝 Updating stored PaymentIntent from webhook data`);
                 order.paymentId = paymentId;
             }
         } else {
-            console.log(`✅ Webhook: PaymentIntent ${paymentId} matches stored payment for order ${order.orderNumber}`);
+
         }
     }
 
     // Update order if not already paid
     order.paymentStatus = 'paid';
     order.status = 'processing';
-    
+
     // Only update paymentId if not already set (for other gateways or backup for Stripe)
     if (!order.paymentId) {
         order.paymentId = paymentId;
     }
-    
+
     order.paymentDetails = {
         ...order.paymentDetails,
         webhookData: paymentData,
@@ -266,7 +266,7 @@ async function processSuccessfulPayment(order: any, paymentId: string, paymentDa
     // Create accounting record for the order
     try {
         await AccountingService.createAccountingRecord(order._id.toString());
-        console.log(`Accounting record created for order ${order.orderNumber}`);
+
     } catch (error) {
         console.error('Failed to create accounting record:', error);
     }

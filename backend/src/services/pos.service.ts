@@ -2,9 +2,11 @@ import POSSession, { IPOSSession } from '../models/POSSession';
 import Order from '../models/Order';
 import User from '../models/User';
 import Store from '../models/Store';
+import ReturnRequest from '../models/ReturnRequest';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import ReturnCalculationService from './return-calculation.service';
+import { PaymentService } from './payment/payment.service';
 
 class POSService {
     /**
@@ -429,6 +431,7 @@ class POSService {
                 quantity: item.quantity,
                 taxRate: item.taxRate || 0,
                 taxAmount: item.taxAmount || 0,
+                shippingCost: (item as any).shippingCost || 0,
                 // New discount fields (per unit)
                 discountAmount: item.discountAmount || 0,
                 couponDiscount: item.couponDiscount || 0,
@@ -440,6 +443,7 @@ class POSService {
             })),
             subtotal: order.subtotal,
             tax: order.tax,
+            shippingCost: order.shippingCost || 0,
             total: order.total,
             discount: order.discount || 0,
             couponCode: order.couponCode,
@@ -466,6 +470,8 @@ class POSService {
 
     /**
      * Process order return
+     * Creates a ReturnRequest document for consistency with frontend returns
+     * Automatically processes refund via payment gateway if applicable
      */
     async processReturn(
         orderId: mongoose.Types.ObjectId,
@@ -479,7 +485,7 @@ class POSService {
             reason?: string;
         }>,
         refundAmount: number,
-        refundMethod: string,
+        refundMethod: string, // 'cash' | 'original'
         reason: string,
         notes?: string
     ): Promise<any> {
@@ -489,8 +495,8 @@ class POSService {
         }
 
         // Validate Return Window
-        const store = await Store.findById(storeId).select('returnSettings');
-        const returnWindow = store?.returnSettings?.defaultReturnWindow || 30; // Default 30 days
+        const store = await Store.findById(storeId).select('settings.returnSettings');
+        const returnWindow = store?.settings?.returnSettings?.defaultReturnWindow || 30; // Default 30 days
 
         const orderDate = new Date(order.createdAt);
         const currentDate = new Date();
@@ -502,7 +508,6 @@ class POSService {
         }
 
         // Prepare order details for calculation service
-        // Since discount is now stored per-item, no need to fetch coupon details
         const orderDetails = {
             items: order.items.map((item: any) => ({
                 productId: item.productId.toString(),
@@ -514,17 +519,17 @@ class POSService {
                 quantity: item.quantity,
                 taxRate: item.taxRate || 0,
                 taxAmount: item.taxAmount || 0,
-                // New discount fields (per unit)
+                shippingCost: (item as any).shippingCost || 0,
                 discountAmount: item.discountAmount || 0,
                 couponDiscount: item.couponDiscount || 0,
                 manualDiscount: item.manualDiscount || 0,
                 isCouponEligible: item.isCouponEligible || false,
-                // Return tracking
                 returnedQuantity: item.returnedQuantity || 0,
                 refundedAmount: item.refundedAmount || 0,
             })),
             subtotal: order.subtotal,
             tax: order.tax,
+            shippingCost: order.shippingCost || 0,
             total: order.total,
             discount: order.discount || 0,
             couponCode: order.couponCode,
@@ -548,12 +553,148 @@ class POSService {
         const refundCalculation = ReturnCalculationService.calculateRefund(orderDetails, returnItems);
 
         // Validate that frontend calculation matches backend calculation (within small tolerance)
-        const tolerance = 0.01; // $0.01 tolerance for rounding differences
+        const tolerance = 0.01;
         if (Math.abs(refundCalculation.refundAmount - refundAmount) > tolerance) {
             throw new Error(
                 `Refund amount mismatch. Calculated: ${refundCalculation.refundAmount.toFixed(2)}, Provided: ${refundAmount.toFixed(2)}`
             );
         }
+
+        // Build return items with refund breakdown for ReturnRequest
+        // Note: ReturnCalculationService returns unitPrice (per unit price after discount), taxAmount (total tax for quantity)
+        const returnRequestItems = refundCalculation.itemRefunds.map((itemRefund: any) => {
+            const orderItem = order.items.find(
+                (i: any) =>
+                    i.productId.toString() === itemRefund.productId &&
+                    (i.variantId === itemRefund.variantId || (!i.variantId && !itemRefund.variantId))
+            );
+            const inputItem = items.find(i => i.productId === itemRefund.productId);
+
+            // Calculate subtotal refund (price * quantity, before tax)
+            const subtotalRefund = itemRefund.unitPrice * itemRefund.quantity;
+
+            return {
+                productId: new mongoose.Types.ObjectId(itemRefund.productId),
+                variantId: itemRefund.variantId,
+                name: orderItem?.name || itemRefund.name || '',
+                sku: orderItem?.sku || itemRefund.sku || '',
+                image: orderItem?.image,
+                quantity: itemRefund.quantity,
+                reason: inputItem?.reason || reason,
+                condition: 'opened' as const,
+                unitPrice: itemRefund.unitPrice,
+                unitTax: itemRefund.taxAmount / itemRefund.quantity, // Per unit tax
+                unitShipping: 0, // POS orders typically don't have shipping
+                subtotalRefund: subtotalRefund,
+                taxRefund: itemRefund.taxAmount,
+                shippingRefund: itemRefund.shippingRefund || 0,
+                refundAmount: itemRefund.totalRefund,
+            };
+        });
+
+        // Determine if we should process via payment gateway
+        const isGatewayRefund = refundMethod === 'original' &&
+            order.paymentStatus === 'paid' &&
+            order.paymentMethod &&
+            ['razorpay', 'stripe', 'paypal'].includes(order.paymentMethod);
+
+        let gatewayRefundResponse: any = null;
+        let refundTransactionId: string | undefined;
+
+        // Process refund via payment gateway if applicable
+        if (isGatewayRefund) {
+            // Get payment ID from order - check different locations
+            const paymentId = order.paymentId ||
+                order.posPaymentDetails?.qrDetails?.gatewayDetails?.gatewayPaymentId ||
+                order.posPaymentDetails?.cardDetails?.transactionId;
+
+            if (!paymentId) {
+                throw new Error(`No payment ID found for this order. Cannot process automatic refund via ${order.paymentMethod}.`);
+            }
+
+            try {
+                // console.log(`💳 Processing POS refund via ${order.paymentMethod} for payment: ${paymentId}`);
+
+                const paymentService = await PaymentService.getGatewayInstance({
+                    storeId: storeId.toString(),
+                    gatewayType: order.paymentMethod,
+                });
+
+                // Apply exchange rate if stored on order
+                const exchangeRate = order.exchangeRate || 1;
+                const refundAmountInGatewayCurrency = refundCalculation.refundAmount * exchangeRate;
+                const currency = order.currency || 'INR';
+
+                gatewayRefundResponse = await paymentService.processRefund({
+                    paymentId,
+                    amount: refundAmountInGatewayCurrency,
+                    currency,
+                    reason: `POS Return for order #${order.orderNumber}`,
+                });
+
+                if (gatewayRefundResponse.status !== 'success' && gatewayRefundResponse.status !== 'pending') {
+                    const errorMessage = gatewayRefundResponse.gatewayResponse?.message || 'Unknown error';
+                    throw new Error(`Refund processing failed: ${errorMessage}`);
+                }
+
+                refundTransactionId = gatewayRefundResponse.refundId;
+
+            } catch (error: any) {
+                console.error('Payment gateway refund error:', error);
+                throw new Error(`Failed to process refund via ${order.paymentMethod}: ${error.message}`);
+            }
+        }
+
+        // Create ReturnRequest document for audit trail and consistency
+        // Use refundCalculation.breakdown which has properly calculated values
+        const returnRequest = await ReturnRequest.create({
+            storeId,
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            customerId: order.customerId,
+            type: 'return',
+            status: 'refund_completed', // POS returns are processed immediately
+            totalRefundAmount: refundCalculation.refundAmount,
+            refundBreakdown: {
+                itemsSubtotal: refundCalculation.breakdown.subtotal,
+                itemsTax: refundCalculation.breakdown.tax,
+                itemsShipping: refundCalculation.breakdown.shipping,
+                totalRefund: refundCalculation.refundAmount,
+            },
+            currency: order.currency,
+            exchangeRate: order.exchangeRate,
+            // POS-specific fields
+            isPOSReturn: true,
+            posSessionId: sessionId,
+            posUserId: userId,
+            items: returnRequestItems,
+            pickup: {
+                method: 'internal', // POS returns don't need pickup
+                receivedAt: new Date(),
+            },
+            refund: {
+                method: refundMethod === 'original' ? 'original' : 'original', // Cash refunds handled at counter
+                amount: refundCalculation.refundAmount,
+                subtotal: refundCalculation.breakdown.subtotal,
+                tax: refundCalculation.breakdown.tax,
+                shipping: refundCalculation.breakdown.shipping,
+                status: 'completed',
+                processedAt: new Date(),
+                transactionId: refundTransactionId || `POS-REF-${Date.now()}`,
+            },
+            reason,
+            customerNotes: notes,
+            requestedAt: new Date(),
+            approvedAt: new Date(),
+            completedAt: new Date(),
+            processedBy: userId,
+            statusHistory: [
+                { status: 'pending', updatedAt: new Date(), updatedBy: userId },
+                { status: 'approved', updatedAt: new Date(), updatedBy: userId },
+                { status: 'received', updatedAt: new Date(), updatedBy: userId },
+                { status: 'refund_completed', updatedAt: new Date(), updatedBy: userId },
+            ],
+        });
 
         // Update order items with returned quantities and refunded amounts
         for (const itemRefund of refundCalculation.itemRefunds) {
@@ -569,25 +710,36 @@ class POSService {
             }
         }
 
-        // Add return record to order
+        // Add return record to order (keeping existing structure for backward compatibility)
+        // itemRefund has: unitPrice (per unit price), taxAmount (total tax for qty), shippingRefund, totalRefund
         if (!order.returns) order.returns = [];
         order.returns.push({
             returnedAt: new Date(),
-            items: refundCalculation.itemRefunds.map(item => ({
+            items: refundCalculation.itemRefunds.map((item: any) => ({
                 productId: new mongoose.Types.ObjectId(item.productId),
                 variantId: item.variantId,
                 quantity: item.quantity,
                 reason: items.find(i => i.productId === item.productId)?.reason || reason,
                 refundAmount: item.totalRefund,
+                subtotalRefund: item.unitPrice * item.quantity, // Calculate subtotal from unit price
+                taxRefund: item.taxAmount,
+                shippingRefund: item.shippingRefund || 0,
             })),
             totalRefundAmount: refundCalculation.refundAmount,
+            refundBreakdown: {
+                itemsSubtotal: refundCalculation.breakdown.subtotal,
+                itemsTax: refundCalculation.breakdown.tax,
+                itemsShipping: refundCalculation.breakdown.shipping,
+                totalRefund: refundCalculation.refundAmount,
+            },
             refundMethod,
             processedBy: userId,
             note: notes,
-            refundReference: `REF-${Date.now()}`,
+            refundReference: refundTransactionId || `POS-REF-${Date.now()}`,
+            returnRequestId: returnRequest._id, // Link to ReturnRequest
         });
 
-        // Update Order Status if fully returned
+        // Update Order Status
         const allItemsReturned = order.items.every((i: any) => (i.returnedQuantity || 0) === i.quantity);
         if (allItemsReturned) {
             order.status = 'returned';
@@ -596,8 +748,16 @@ class POSService {
             order.refundedAt = new Date();
         } else {
             order.status = 'partially_returned';
+            order.paymentStatus = 'partially_refunded';
             order.refundStatus = 'processed';
         }
+
+        // Store gateway refund reference on order
+        if (gatewayRefundResponse?.refundId) {
+            order.refundReferenceId = gatewayRefundResponse.refundId;
+        }
+        order.returnStatus = 'refund_completed';
+        order.returnRequestId = returnRequest._id;
 
         await order.save();
 
@@ -615,9 +775,23 @@ class POSService {
         // Update POS Session with Refund
         await this.recordSessionRefund(sessionId, refundCalculation.refundAmount);
 
+        // Sync accounting if applicable
+        try {
+            const { AccountingService } = await import('./accounting.service');
+            await AccountingService.syncReturnsToAccounting(order._id.toString());
+        } catch (error) {
+            console.error('Failed to sync accounting for POS return:', error);
+        }
+
         return {
             order,
+            returnRequest,
             refundCalculation,
+            gatewayRefund: gatewayRefundResponse ? {
+                refundId: gatewayRefundResponse.refundId,
+                status: gatewayRefundResponse.status,
+                gateway: order.paymentMethod,
+            } : null,
         };
     }
 

@@ -15,5 +15,5 @@ export interface POSSettings {
     enabled: boolean;
     allowQuickCheckout: boolean;
     requireCustomerDetails: boolean;
-    defaultPaymentMethod: 'cash' | 'card' | 'qr';
+    defaultPaymentMethod: 'cash' | 'card' | 'qr' | 'upi' | 'stripe' | 'razorpay' | 'paypal';
 }

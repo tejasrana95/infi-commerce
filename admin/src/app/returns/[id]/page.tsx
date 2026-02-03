@@ -17,15 +17,22 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import PaymentIcon from '@mui/icons-material/Payment';
 import InventoryIcon from '@mui/icons-material/Inventory';
+import PendingIcon from '@mui/icons-material/Pending';
+import ThumbUpIcon from '@mui/icons-material/ThumbUp';
+import AutorenewIcon from '@mui/icons-material/Autorenew';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import DoneAllIcon from '@mui/icons-material/DoneAll';
 import api from '@/lib/api';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { formatDate } from '@/utils/date';
+import { Landmark } from 'lucide-react';
 
 type ReturnStatus = 'pending' | 'approved' | 'rejected' | 'pickup_scheduled' | 'picked_up' | 'received' | 'inspected' | 'refund_initiated' | 'refund_completed' | 'exchange_shipped' | 'completed' | 'cancelled';;
 
 interface ReturnRequest {
     _id: string;
-    returnNumber: string;
+    requestNumber: string;
     orderId: {
         _id: string;
         orderNumber: string;
@@ -69,7 +76,22 @@ interface ReturnRequest {
     pickup?: {
         scheduled: boolean;
         scheduledDate?: string;
-        address?: object;
+        scheduledSlot?: string;
+        method?: 'internal' | 'courier' | 'dropoff';
+        courierName?: string;
+        trackingUrl?: string;
+        adminNotes?: string;
+        address?: {
+            firstName?: string;
+            lastName?: string;
+            address1?: string;
+            address2?: string;
+            city?: string;
+            state?: string;
+            country?: string;
+            postalCode?: string;
+            phone?: string;
+        };
         trackingNumber?: string;
     };
     exchange?: {
@@ -80,12 +102,19 @@ interface ReturnRequest {
         priceDifference?: number;
     };
     refund?: {
+        method?: 'original' | 'bank_transfer';
         processed: boolean;
         processedAt?: string;
         amount?: number;
         transactionId?: string;
+        status?: string;
     };
     adminNotes?: string;
+    statusHistory?: Array<{
+        status: ReturnStatus | string;
+        updatedAt: string;
+        updatedBy?: string | { _id?: string; name?: string; firstName?: string; lastName?: string };
+    }>;
     timeline: Array<{
         status: string;
         date: string;
@@ -181,6 +210,7 @@ export default function ReturnDetailPage() {
             setLoading(true);
             const response = await api.get(`/returns/${id}`);
             setReturnRequest(response.data.data);
+            console.log('response.data.data', response.data.data);
         } catch (err: any) {
             showNotification(err.response?.data?.message || 'Failed to load return details', 'error');
             router.push('/returns');
@@ -670,7 +700,7 @@ export default function ReturnDetailPage() {
                     <>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                             Process refund of {formatPrice(returnRequest?.totalRefundAmount || 0)} via{' '}
-                            {returnRequest?.refundMethod?.replace('_', ' ') || 'original payment method'}?
+                            {returnRequest?.refund?.method ? returnRequest.refund.method.replace('_', ' ') : 'original payment method'}?
                         </Typography>
                         <TextField
                             fullWidth
@@ -794,6 +824,53 @@ export default function ReturnDetailPage() {
 
     const activeStep = getStatusStep(returnRequest.status, returnRequest.type);
 
+    const statusTimeline: Array<{ status: string; timestamp: string; updatedBy?: string; note?: string }> = (returnRequest.statusHistory && returnRequest.statusHistory.length > 0
+        ? returnRequest.statusHistory.map((entry) => ({
+            status: entry.status,
+            timestamp: entry.updatedAt,
+            updatedBy: typeof entry.updatedBy === 'object'
+                ? entry.updatedBy?.name || [entry.updatedBy?.firstName, entry.updatedBy?.lastName].filter(Boolean).join(' ').trim() || entry.updatedBy?._id
+                : entry.updatedBy,
+        }))
+        : (returnRequest.timeline || []).map((entry) => ({
+            status: entry.status,
+            timestamp: entry.date,
+            note: entry.note,
+            updatedBy: undefined,
+        }))
+    ).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+    const formatStatusLabel = (status: string) => status.replace(/_/g, ' ');
+
+    const getStatusIcon = (status: string) => {
+        switch (status) {
+            case 'pending':
+                return <PendingIcon sx={{ fontSize: 20 }} />;
+            case 'approved':
+                return <ThumbUpIcon sx={{ fontSize: 20 }} />;
+            case 'rejected':
+                return <CancelIcon sx={{ fontSize: 20 }} />;
+            case 'pickup_scheduled':
+                return <LocalShippingIcon sx={{ fontSize: 20 }} />;
+            case 'received':
+            case 'items_received':
+            case 'picked_up':
+                return <InventoryIcon sx={{ fontSize: 20 }} />;
+            case 'refund_initiated':
+            case 'refund_completed':
+                return <PaymentIcon sx={{ fontSize: 20 }} />;
+            case 'exchange_shipped':
+                return <LocalShippingIcon sx={{ fontSize: 20 }} />;
+            case 'completed':
+                return <DoneAllIcon sx={{ fontSize: 20 }} />;
+            case 'cancelled':
+                return <CancelIcon sx={{ fontSize: 20 }} />;
+            default:
+                return <AssignmentIcon sx={{ fontSize: 20 }} />;
+        }
+    };
+
+
     return (
         <Box>
             {/* Header */}
@@ -808,7 +885,7 @@ export default function ReturnDetailPage() {
                     </Button>
                     <Box>
                         <Typography variant="h4" fontWeight={600}>
-                            {returnRequest.returnNumber}
+                            {returnRequest.requestNumber} - {returnRequest.orderId.orderNumber} - {returnRequest.type === 'exchange' ? 'Exchange' : 'Return'}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                             Created {new Date(returnRequest.createdAt).toLocaleString()}
@@ -880,11 +957,6 @@ export default function ReturnDetailPage() {
                                                     <Typography variant="body2" fontWeight={500}>
                                                         {item.name}
                                                     </Typography>
-                                                    {item.reason && (
-                                                        <Typography variant="caption" color="text.secondary">
-                                                            Reason: {item.reason}
-                                                        </Typography>
-                                                    )}
                                                 </TableCell>
                                                 <TableCell>{item.sku}</TableCell>
                                                 <TableCell align="center">{item.quantity}</TableCell>
@@ -934,29 +1006,97 @@ export default function ReturnDetailPage() {
                         </CardContent>
                     </Card>
 
-                    {/* Timeline */}
-                    {returnRequest.timeline && returnRequest.timeline.length > 0 && (
-                        <Card>
+                    {/* Status Timeline */}
+                    {statusTimeline.length > 0 && (
+                        <Card sx={{ mb: 3 }}>
                             <CardContent>
-                                <Typography variant="h6" sx={{ mb: 2 }}>Timeline</Typography>
-                                {returnRequest.timeline.map((event, idx) => (
-                                    <Box key={idx} sx={{ display: 'flex', gap: 2, mb: 2 }}>
-                                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'primary.main', mt: 0.75 }} />
-                                        <Box>
-                                            <Typography variant="body2" fontWeight={500} sx={{ textTransform: 'capitalize' }}>
-                                                {event.status.replace(/_/g, ' ')}
-                                            </Typography>
-                                            <Typography variant="caption" color="text.secondary">
-                                                {new Date(event.date).toLocaleString()}
-                                            </Typography>
-                                            {event.note && (
-                                                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                                                    {event.note}
-                                                </Typography>
-                                            )}
-                                        </Box>
-                                    </Box>
-                                ))}
+                                <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+                                    Status Timeline
+                                </Typography>
+                                <Box>
+                                    {statusTimeline.map((event, idx) => {
+                                        const isLast = idx === statusTimeline.length - 1;
+                                        const statusColor = getStatusColor(event.status as ReturnStatus);
+
+                                        return (
+                                            <Box
+                                                key={`${event.status}-${event.timestamp}-${idx}`}
+                                                sx={{
+                                                    display: 'flex',
+                                                    gap: 2,
+                                                    pb: isLast ? 0 : 3,
+                                                    position: 'relative',
+                                                }}
+                                            >
+                                                {/* Left side - Icon and connector */}
+                                                <Box
+                                                    sx={{
+                                                        display: 'flex',
+                                                        flexDirection: 'column',
+                                                        alignItems: 'center',
+                                                        position: 'relative',
+                                                    }}
+                                                >
+                                                    {/* Icon */}
+                                                    <Box
+                                                        sx={{
+                                                            width: 40,
+                                                            height: 40,
+                                                            borderRadius: '50%',
+                                                            bgcolor: `${statusColor}.main`,
+                                                            color: 'white',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            position: 'relative',
+                                                            zIndex: 2,
+                                                        }}
+                                                    >
+                                                        {getStatusIcon(event.status)}
+                                                    </Box>
+
+                                                    {/* Connector line */}
+                                                    {!isLast && (
+                                                        <Box
+                                                            sx={{
+                                                                width: 2,
+                                                                flex: 1,
+                                                                bgcolor: 'divider',
+                                                                position: 'absolute',
+                                                                top: 40,
+                                                                bottom: -24,
+                                                            }}
+                                                        />
+                                                    )}
+                                                </Box>
+
+                                                {/* Right side - Content */}
+                                                <Box sx={{ flex: 1, pt: 0.5 }}>
+                                                    <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={0.5}>
+                                                        <Typography variant="body1" fontWeight={600} sx={{ textTransform: 'capitalize' }}>
+                                                            {formatStatusLabel(event.status)}
+                                                        </Typography>
+                                                        <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap', ml: 2 }}>
+                                                            {new Date(event.timestamp).toLocaleDateString()} {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </Typography>
+                                                    </Box>
+
+                                                    {event.updatedBy && (
+                                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                                            Updated by: {event.updatedBy}
+                                                        </Typography>
+                                                    )}
+
+                                                    {event.note && (
+                                                        <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', mt: 0.5 }}>
+                                                            {event.note}
+                                                        </Typography>
+                                                    )}
+                                                </Box>
+                                            </Box>
+                                        );
+                                    })}
+                                </Box>
                             </CardContent>
                         </Card>
                     )}
@@ -1027,17 +1167,96 @@ export default function ReturnDetailPage() {
                             </CardContent>
                         </Card>
                     )}
+                    {returnRequest.pickup && (
+                        <Card sx={{ mb: 3 }}>
+                            <CardContent>
+                                <Typography variant="h6" sx={{ mb: 2 }}>Pickup Details</Typography>
+                                <Stack spacing={1.5}>
+                                    {returnRequest.pickup?.method && (
+                                        <Box>
+                                            <Typography variant="caption" color="text.secondary">Method</Typography>
+                                            <Typography variant="body2" fontWeight={600} sx={{ textTransform: 'capitalize' }}>
+                                                {returnRequest.pickup?.method?.replace('_', ' ') || 'Not selected'}
+                                            </Typography>
+                                        </Box>
+                                    )}
+                                    {returnRequest.pickup?.scheduledDate && (
+                                        <Box>
+                                            <Typography variant="caption" color="text.secondary">Scheduled Date</Typography>
+                                            <Typography variant="body2" fontWeight={600}>
+                                                {formatDate(returnRequest.pickup?.scheduledDate || '') || 'Not scheduled'}
+                                            </Typography>
+                                        </Box>
+                                    )}
+                                    {returnRequest.pickup?.scheduledSlot && (
+                                        <Box>
+                                            <Typography variant="caption" color="text.secondary">Scheduled Slot</Typography>
+                                            <Typography variant="body2" fontWeight={600}>
+                                                {returnRequest.pickup?.scheduledSlot || 'Not scheduled'}
+                                            </Typography>
+                                        </Box>
+                                    )}
+                                    {returnRequest.pickup?.address && returnRequest.pickup?.address?.firstName && (
+                                        <Box>
+                                            <Typography variant="caption" color="text.secondary">Address</Typography>
+                                            <Typography variant="body2" fontWeight={600} dangerouslySetInnerHTML={{
+                                                __html:
+                                                    `${returnRequest.pickup?.address?.firstName || ''} ${returnRequest.pickup?.address?.lastName || ''} <br/>
+                                            ${returnRequest.pickup?.address?.address1 || ''} <br/>${returnRequest.pickup?.address?.address2 || ''},<br/>
+                                            ${returnRequest.pickup?.address?.city || ''}, ${returnRequest.pickup?.address?.state || ''} <br/>${returnRequest.pickup?.address?.postalCode || ''},<br/>
+                                            ${returnRequest.pickup?.address?.country || ''}<br/>
+                                            
+                                            Phone: ${returnRequest.pickup?.address?.phone || ''}`
+                                            }} />
 
+                                        </Box>
+                                    )}
+                                    {returnRequest.pickup?.courierName && (
+                                        <Box>
+                                            <Typography variant="caption" color="text.secondary">Courier Name</Typography>
+                                            <Typography variant="body2" fontWeight={600}>
+                                                {returnRequest.pickup?.courierName || 'Not assigned'}
+                                            </Typography>
+                                        </Box>
+                                    )}
+                                    {returnRequest.pickup?.trackingNumber && (
+                                        <Box>
+                                            <Typography variant="caption" color="text.secondary">Tracking Number</Typography>
+                                            <Typography variant="body2" fontWeight={600}>
+                                                {returnRequest.pickup?.trackingNumber || 'Not assigned'}
+                                            </Typography>
+                                        </Box>
+                                    )}
+                                    {returnRequest.pickup?.trackingUrl && (
+                                        <Box>
+                                            <Typography variant="caption" color="text.secondary">Tracking URL</Typography>
+                                            <Typography variant="body2" fontWeight={600}>
+                                                {returnRequest.pickup?.trackingUrl || 'Not assigned'}
+                                            </Typography>
+                                        </Box>
+                                    )}
+                                    {returnRequest.pickup?.adminNotes && (
+                                        <Box>
+                                            <Typography variant="caption" color="text.secondary">Admin Notes</Typography>
+                                            <Typography variant="body2" fontWeight={600}>
+                                                {returnRequest.pickup?.adminNotes || ''}
+                                            </Typography>
+                                        </Box>
+                                    )}
+                                </Stack>
+                            </CardContent>
+                        </Card>
+                    )}
                     {/* Refund/Exchange Details */}
                     {returnRequest.type === 'return' ? (
-                        <Card>
+                        <Card sx={{ mb: 3 }}>
                             <CardContent>
                                 <Typography variant="h6" sx={{ mb: 2 }}>Refund Details</Typography>
                                 <Stack spacing={1.5}>
                                     <Box>
                                         <Typography variant="caption" color="text.secondary">Method</Typography>
                                         <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
-                                            {returnRequest.refundMethod?.replace('_', ' ') || 'Not selected'}
+                                            {returnRequest.refund?.method?.replace('_', ' ') || 'Not selected'}
                                         </Typography>
                                     </Box>
                                     <Box>
@@ -1046,7 +1265,64 @@ export default function ReturnDetailPage() {
                                             {formatPrice(returnRequest.totalRefundAmount)}
                                         </Typography>
                                     </Box>
-                                    {returnRequest.refund?.processed && (
+
+                                    {/* Bank Transfer Details */}
+                                    {returnRequest.refund?.method === 'bank_transfer' && (returnRequest.refund as any)?.bankDetails && (
+                                        <>
+                                            <Divider />
+                                            <Box>
+                                                <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600, color: '#1976d2' }}>
+                                                    <Landmark size={12} /> Bank Transfer Information
+                                                </Typography>
+                                                <Stack spacing={1}>
+                                                    <Box>
+                                                        <Typography variant="caption" color="text.secondary">Account Holder</Typography>
+                                                        <Typography variant="body2">{(returnRequest.refund as any).bankDetails.accountHolderName}</Typography>
+                                                    </Box>
+                                                    <Box>
+                                                        <Typography variant="caption" color="text.secondary">Bank Name</Typography>
+                                                        <Typography variant="body2">{(returnRequest.refund as any).bankDetails.bankName}</Typography>
+                                                    </Box>
+                                                    <Box>
+                                                        <Typography variant="caption" color="text.secondary">Account Number / IBAN</Typography>
+                                                        <Typography variant="body2" sx={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                                                            {(returnRequest.refund as any).bankDetails.accountNumber}
+                                                        </Typography>
+                                                    </Box>
+                                                    <Box>
+                                                        <Typography variant="caption" color="text.secondary">SWIFT/BIC Code</Typography>
+                                                        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                                                            {(returnRequest.refund as any).bankDetails.swiftBicCode}
+                                                        </Typography>
+                                                    </Box>
+                                                    {(returnRequest.refund as any).bankDetails.routingNumber && (
+                                                        <Box>
+                                                            <Typography variant="caption" color="text.secondary">Routing Number</Typography>
+                                                            <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                                                                {(returnRequest.refund as any).bankDetails.routingNumber}
+                                                            </Typography>
+                                                        </Box>
+                                                    )}
+                                                    <Box>
+                                                        <Typography variant="caption" color="text.secondary">Account Type</Typography>
+                                                        <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
+                                                            {(returnRequest.refund as any).bankDetails.accountType}
+                                                        </Typography>
+                                                    </Box>
+                                                    {(returnRequest.refund as any).bankDetails.branchAddress && (
+                                                        <Box>
+                                                            <Typography variant="caption" color="text.secondary">Branch Address</Typography>
+                                                            <Typography variant="body2">
+                                                                {(returnRequest.refund as any).bankDetails.branchAddress}
+                                                            </Typography>
+                                                        </Box>
+                                                    )}
+                                                </Stack>
+                                            </Box>
+                                        </>
+                                    )}
+
+                                    {returnRequest.refund?.status && returnRequest.refund.processedAt && (
                                         <>
                                             <Divider />
                                             <Box>
@@ -1067,7 +1343,7 @@ export default function ReturnDetailPage() {
                             </CardContent>
                         </Card>
                     ) : (
-                        <Card>
+                        <Card sx={{ mb: 3 }}>
                             <CardContent>
                                 <Typography variant="h6" sx={{ mb: 2 }}>Exchange Details</Typography>
                                 <Stack spacing={1.5}>

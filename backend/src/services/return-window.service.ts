@@ -146,7 +146,7 @@ class ReturnWindowService {
             };
         }
 
-        const { returnDeadline, exchangeDeadline, returnWindowDays, exchangeWindowDays } =
+        const { returnDeadline, exchangeDeadline } =
             this.calculateDeadlines(orderItem, deliveredAt, storeSettings);
 
         const now = new Date();
@@ -355,7 +355,7 @@ class ReturnWindowService {
         }> = [];
 
         const eligibility = await this.checkOrderEligibility(orderId, storeId);
-        
+
         // Get store settings to check allowPartialReturns
         const store = await Store.findById(storeId);
         const allowPartialReturns = store?.settings?.returnSettings?.allowPartialReturns ?? true;

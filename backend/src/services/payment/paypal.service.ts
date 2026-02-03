@@ -52,9 +52,28 @@ export class PayPalService extends BasePaymentGateway implements IPosQRService {
         customerName?: string;
         description?: string;
         metadata?: Record<string, any>;
+        posSessionId?: string; // For POS QR payments
+        isPOSQR?: boolean; // Flag to use POS confirmation URLs
     }): Promise<PaymentResponse> {
         try {
             const accessToken = await this.getAccessToken();
+
+            // Determine URLs based on whether this is POS QR or regular e-commerce
+            let return_url: string;
+            let cancel_url: string;
+            
+            if (params.isPOSQR) {
+                // POS QR payment - redirect to POS confirmation with email and session
+                const domain = params.metadata?.storeDomain || process.env.FRONTEND_URL || 'localhost:3000';
+                const customerParam = params.customerEmail ? encodeURIComponent(params.customerEmail) : '';
+                const sessionParam = params.posSessionId || '';
+                return_url = `https://${domain}/orders/pos/confirmation?customer=${customerParam}&posSessionId=${sessionParam}`;
+                cancel_url = `https://${domain}/orders/pos/cancelled?customer=${customerParam}&posSessionId=${sessionParam}`;
+            } else {
+                // Regular e-commerce payment - redirect to order confirmation
+                return_url = `https://${params.metadata?.storeDomain || process.env.FRONTEND_URL}/orders/${params.orderId}/confirmation`;
+                cancel_url = `https://${params.metadata?.storeDomain || process.env.FRONTEND_URL}/checkout?orderId=${params.orderId}&status=cancelled`;
+            }
 
             const orderData = {
                 intent: 'CAPTURE',
@@ -72,8 +91,8 @@ export class PayPalService extends BasePaymentGateway implements IPosQRService {
                 application_context: {
                     brand_name: params.metadata?.storeName || 'Your Store',
                     user_action: 'PAY_NOW',
-                    return_url: `https://${params.metadata?.storeDomain || process.env.FRONTEND_URL}/orders/${params.orderId}/confirmation`,
-                    cancel_url: `https://${params.metadata?.storeDomain || process.env.FRONTEND_URL}/checkout?orderId=${params.orderId}&status=cancelled`,
+                    return_url,
+                    cancel_url,
                 },
             };
 
@@ -357,7 +376,9 @@ export class PayPalService extends BasePaymentGateway implements IPosQRService {
                 description: params.description,
                 metadata: params.metadata,
                 customerEmail: params.customerDetails?.email,
-                customerName: params.customerDetails?.name
+                customerName: params.customerDetails?.name,
+                posSessionId: params.posSessionId,
+                isPOSQR: true, // Flag to use POS confirmation URLs
             });
 
             if (!payment.success || !payment.paymentId) {

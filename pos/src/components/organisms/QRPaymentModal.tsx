@@ -7,6 +7,7 @@ import QRCode from "react-qr-code";
 import { useCurrency } from '@/contexts/CurrencyContext';
 import api from '@/services/api';
 import Image from 'next/image';
+import { useSessionStore } from '@/store/sessionStore';
 
 interface QRPaymentModalProps {
     isOpen: boolean;
@@ -36,7 +37,7 @@ export default function QRPaymentModal({
     const [timeLeft, setTimeLeft] = useState<number>(300); // 5 minutes default
     const pollInterval = useRef<NodeJS.Timeout | null>(null);
     const timerInterval = useRef<NodeJS.Timeout | null>(null);
-
+    const { activeSession } = useSessionStore();
     // Initial Setup
     useEffect(() => {
         if (isOpen) {
@@ -113,11 +114,14 @@ export default function QRPaymentModal({
             // Gateway Mode
             setStage('generating');
             try {
+                console.log('customer', customer);
                 const response = await api.generateQR({
                     amount,
                     currency,
                     description: `POS Payment: ${formatPrice(amount)}`,
+                    posSessionId: activeSession?._id,
                     customerDetails: customer ? {
+                        id: customer.id || '',
                         name: customer.name || `${customer.firstName} ${customer.lastName}`,
                         email: customer.email,
                         phone: customer.phone,
@@ -181,8 +185,8 @@ export default function QRPaymentModal({
         const result = {
             ...data,
             gateway: qrData?.gateway || (settings.mode === 'custom' ? 'qr' : undefined),
-            gatewayType: settings.mode === 'gateway' && settings.gatewayConfig 
-                ? settings.gatewayConfig.gatewayType 
+            gatewayType: settings.mode === 'gateway' && settings.gatewayConfig
+                ? settings.gatewayConfig.gatewayType
                 : undefined
         };
 
@@ -275,8 +279,8 @@ export default function QRPaymentModal({
                                 <>
                                     {qrData.qrCodeUrl ? (
                                         <Image
-                                        height={200}
-                                        width={200}
+                                            height={200}
+                                            width={200}
                                             src={qrData.qrCodeUrl}
                                             alt="Payment QR"
                                             className="w-full h-full object-contain p-2"

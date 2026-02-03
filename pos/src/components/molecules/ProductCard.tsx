@@ -12,6 +12,19 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, onClick }: ProductCardProps) {
     const { formatPrice } = useCurrency();
+    
+    // Use pricing object for tax-inclusive display (consistent with frontend)
+    const pricing = product.pricing;
+    
+    // Display prices: originalPrice for strikethrough, finalPrice for current price
+    // finalPrice is salePriceWithTax when on sale, otherwise priceWithTax
+    const displayPrice = pricing?.finalPrice ?? product.salePrice ?? product.price;
+    const originalPrice = pricing?.originalPrice ?? product.price;
+    const isOnSale = pricing?.isOnSale ?? (product.salePrice !== undefined && product.salePrice < product.price);
+    
+    // Show strikethrough only when on sale and originalPrice differs from displayPrice
+    const showStrikethrough = isOnSale && originalPrice > displayPrice;
+
     return (
         <div
             onClick={onClick}
@@ -45,18 +58,18 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
 
                 <div className="mt-auto flex items-center justify-between">
                     <div className="flex flex-col">
-                        {product.salePrice ? (
+                        {showStrikethrough ? (
                             <>
                                 <span className="text-xs text-slate-500 line-through">
-                                    {formatPrice(product.price)}
+                                    {formatPrice(originalPrice)}
                                 </span>
                                 <span className="text-lg font-bold text-red-600">
-                                    {formatPrice(product.salePrice)}
+                                    {formatPrice(displayPrice)}
                                 </span>
                             </>
                         ) : (
                             <span className="text-lg font-bold text-blue-700">
-                                {formatPrice(product.price)}
+                                {formatPrice(displayPrice)}
                             </span>
                         )}
                     </div>

@@ -64,6 +64,19 @@ class SyncService {
                         ...(p.variants?.map((v: any) => v.barcode) || []),
                     ].filter(Boolean).join(' ').toLowerCase(),
                     updatedAt: p.updatedAt,
+                    // Include pricing object for tax-inclusive prices (consistent with frontend)
+                    pricing: p.pricing ? {
+                        price: p.pricing.price,
+                        salePrice: p.pricing.salePrice,
+                        priceWithTax: p.pricing.priceWithTax || p.pricing.originalPrice,
+                        salePriceWithTax: p.pricing.salePriceWithTax,
+                        taxRate: p.pricing.taxRate || 0,
+                        taxAmount: p.pricing.taxAmount || 0,
+                        finalPrice: p.pricing.finalPrice || p.pricing.salePriceWithTax || p.pricing.priceWithTax,
+                        originalPrice: p.pricing.originalPrice || p.pricing.priceWithTax,
+                        isOnSale: p.pricing.isOnSale || false,
+                        discountPercent: p.pricing.discountPercent,
+                    } : undefined,
                 }));
 
                 allProducts.push(...transformedProducts);

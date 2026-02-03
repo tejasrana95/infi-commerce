@@ -6,8 +6,10 @@ export interface QRGenerationParams {
     orderId: string;
     storeId: string;
     storeDomain?: string;
+    posSessionId?: string; // POS session ID for matching orders
     metadata?: Record<string, any>;
     customerDetails?: {
+        id?: string;
         name?: string;
         email?: string;
         phone?: string;

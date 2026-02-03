@@ -20,6 +20,8 @@ interface ShippingResult {
     cost: number;
     ruleName: string;
     ruleId: string;
+    rateType: string;
+    rate: number;
 }
 
 export class ShippingCalculatorService {
@@ -66,6 +68,8 @@ export class ShippingCalculatorService {
                     cost,
                     ruleName: rule.name,
                     ruleId: rule._id.toString(),
+                    rateType: rule.rateType,
+                    rate: rule.rate,
                 };
             }
         }
@@ -75,6 +79,8 @@ export class ShippingCalculatorService {
             cost: 0,
             ruleName: 'No shipping rule found',
             ruleId: '',
+            rateType: 'free',
+            rate: 0,
         };
     }
 

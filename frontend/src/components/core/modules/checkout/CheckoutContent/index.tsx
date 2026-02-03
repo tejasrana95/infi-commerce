@@ -34,7 +34,7 @@ import CheckoutSummary from '@/components/core/modules/checkout/CheckoutSummary'
 import CheckoutOnePage from '@/components/core/modules/checkout/CheckoutOnePage';
 
 interface CheckoutContentProps {
-    config: any;
+    config?: CheckoutContentConfig | Record<string, unknown>;
 }
 
 const DEFAULT_ORDER_SUMMARY: OrderSummary = {
@@ -52,6 +52,15 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
     const toast = useToast();
     const { clearCart } = useCart();
     const currency = useCurrency();
+    const getErrorMessage = (err: unknown) => {
+        if (!err) return 'Unknown error';
+        if (typeof err === 'string') return err;
+        if (typeof err === 'object' && err !== null && 'response' in err) {
+            // @ts-ignore
+            return (err as any).response?.data?.message || JSON.stringify(err);
+        }
+        return JSON.stringify(err);
+    };
     // Step management
     const [currentStep, setCurrentStep] = useState(1);
     const checkoutMode = config?.mode || 'stepper';
@@ -74,8 +83,8 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
 
     // Shipping state
     const [shippingCost, setShippingCost] = useState(0);
-    const [shippingDetails, setShippingDetails] = useState<any | null>(null);
-    const [storeConfig, setStoreConfig] = useState<any>(null);
+    const [shippingDetails, setShippingDetails] = useState<Record<string, unknown> | null>(null);
+    const [storeConfig, setStoreConfig] = useState<Record<string, unknown> | null>(null);
     const [restrictedItems, setRestrictedItems] = useState<string[]>([]); // Track restricted items
 
     // Payment state
@@ -128,14 +137,14 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
                         setShippingAddress(defaultAddr);
                         setSelectedAddressId(defaultAddr._id || null);
                     }
-                } catch (error) {
-                    console.error('Failed to load addresses:', error);
+                } catch (error: unknown) {
+                    console.error('Failed to load addresses:', getErrorMessage(error));
                 }
             }
 
             setLoading(false);
-        } catch (error) {
-            console.error('Failed to initialize checkout:', error);
+        } catch (error: unknown) {
+            console.error('Failed to initialize checkout:', getErrorMessage(error));
             setShowEmptyState(true);
             setLoading(false);
         }
@@ -164,7 +173,7 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
     // Load shipping when address changes
     useEffect(() => {
         const loadShipping = async () => {
-            if (!shippingAddress || !storeConfig?.shippingEnabled || !cartItems.length) return;
+            if (!shippingAddress || !Boolean((storeConfig as any)?.shippingEnabled) || !cartItems.length) return;
             try {
                 const result = await checkoutService.getShippingMethods(shippingAddress, cartItems);
 
@@ -188,13 +197,14 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
                         total: prev.subtotal + result.shippingCost + prev.tax - prev.discount,
                     }));
                 }
-            } catch (error: any) {
-                console.error('Failed to calculate shipping:', error);
-                toast.error(error.response?.data?.message || 'Failed to calculate shipping');
+            } catch (error: unknown) {
+                const msg = getErrorMessage(error);
+                console.error('Failed to calculate shipping:', msg);
+                toast.error(msg || 'Failed to calculate shipping');
             }
         };
         loadShipping();
-    }, [shippingAddress, storeConfig?.shippingEnabled, cartItems]);
+    }, [shippingAddress, storeConfig, cartItems]);
 
     // Load tax
     useEffect(() => {
@@ -208,8 +218,8 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
                     tax: taxData.totalTax,
                     total: prev.subtotal + prev.shipping + taxData.totalTax - prev.discount,
                 }));
-            } catch (error) {
-                console.error('Failed to calculate tax:', error);
+                } catch (error: unknown) {
+                    console.error('Failed to calculate tax:', getErrorMessage(error));
             }
         };
         loadTax();
@@ -243,11 +253,11 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
 
         switch (step) {
             case 2: return !!shippingAddress;
-            case 3: return !!shippingAddress && (storeConfig?.shippingEnabled ? shippingCost >= 0 : true);
+            case 3: return !!shippingAddress && (Boolean((storeConfig as any)?.shippingEnabled) ? shippingCost >= 0 : true);
             case 4: return !!shippingAddress && !!selectedPayment && (sameAsShipping || !!billingAddress);
             default: return true;
         }
-    }, [shippingAddress, storeConfig?.shippingEnabled, shippingCost, selectedPayment, sameAsShipping, billingAddress, restrictedItems]);
+    }, [shippingAddress, storeConfig, shippingCost, selectedPayment, sameAsShipping, billingAddress, restrictedItems]);
 
     const handleNextStep = useCallback(() => {
         if (canProceedToStep(currentStep + 1)) {
@@ -287,8 +297,8 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
             } else {
                 setShippingAddress(address as Address);
             }
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Failed to save address');
+        } catch (error: unknown) {
+            toast.error(getErrorMessage(error) || 'Failed to save address');
         }
     }, [customer, toast]);
 
@@ -333,8 +343,8 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
             }));
             toast.success('Coupon applied');
             setCouponCode('');
-        } catch (error: any) {
-            toast.error(error?.message || 'Failed to apply coupon');
+        } catch (error: unknown) {
+            toast.error('Coupon is no longer valid');
         } finally {
             setCouponLoading(false);
         }
@@ -365,7 +375,7 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
             toast.error('Please complete all required fields');
             return;
         }
-        if (storeConfig?.shippingEnabled && !shippingDetails) {
+        if (Boolean((storeConfig as any)?.shippingEnabled) && !shippingDetails) {
             toast.error('Please select a valid shipping method');
             return;
         }
@@ -400,9 +410,9 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
                 toast.success('Order placed successfully!');
                 router.push(`/orders/${result.order.orderId}/confirmation${queryString}`);
             }
-        } catch (error: any) {
-            console.error('Order creation error:', error);
-            toast.error(error.response?.data?.message || 'Failed to create order');
+        } catch (error: unknown) {
+            console.error('Order creation error:', getErrorMessage(error));
+            toast.error(getErrorMessage(error) || 'Failed to create order');
         } finally {
             setSubmitting(false);
         }
@@ -540,7 +550,7 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
                                 <button
                                     className={styles.placeOrderButton}
                                     onClick={handlePlaceOrder}
-                                    disabled={submitting || restrictedItems.length > 0 || (storeConfig?.shippingEnabled && !shippingDetails)}
+                                    disabled={submitting || restrictedItems.length > 0 || (Boolean((storeConfig as any)?.shippingEnabled) && !shippingDetails)}
                                 >
                                     {submitting ? 'Placing Order...' : 'Place Order'}
                                 </button>

@@ -13,5 +13,5 @@ export const registerEventHandlers = () => {
     // Register Customer Event Handlers
     eventEmitter.onEvent('customer', handleCustomerEvent);
 
-    console.log('✅ Event handlers registered successfully');
+
 };

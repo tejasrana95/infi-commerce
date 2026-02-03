@@ -43,15 +43,8 @@ export class StripeService extends BasePaymentGateway implements IPosQRService {
         };
     }): Promise<PaymentResponse> {
         try {
-            console.log(`🔄 Creating Stripe PaymentIntent for order: ${params.orderId}`);
-            console.log(`📊 Amount: ${params.amount} ${params.currency}`);
-            console.log(`📍 Shipping address provided:`, params.shippingAddress ? {
-                country: params.shippingAddress.country,
-                state: params.shippingAddress.state,
-                city: params.shippingAddress.city,
-                fullAddress: `${params.shippingAddress.address1}, ${params.shippingAddress.city}, ${params.shippingAddress.state}, ${params.shippingAddress.country}`
-            } : 'No shipping address');
-            
+
+
             const amountInCents = Math.round(params.amount * 100);
 
             const paymentIntent = await this.stripe.paymentIntents.create({
@@ -80,7 +73,7 @@ export class StripeService extends BasePaymentGateway implements IPosQRService {
                 } : undefined,
             });
 
-            console.log(`✅ PaymentIntent created: ${paymentIntent.id}`);
+
 
             return {
                 success: true,
@@ -112,10 +105,12 @@ export class StripeService extends BasePaymentGateway implements IPosQRService {
                 console.error(`   - Shipping address:`, params.shippingAddress);
 
                 // Try creating PaymentIntent without shipping as fallback
-                console.log(`🔄 Attempting fallback: Creating PaymentIntent without shipping address`);
+
                 try {
+                    // Re-calculate amountInCents here or ensure it's accessible
+                    const amountInCentsFallback = Math.round(params.amount * 100);
                     const fallbackPaymentIntent = await this.stripe.paymentIntents.create({
-                        amount: amountInCents,
+                        amount: amountInCentsFallback,
                         currency: params.currency.toLowerCase(),
                         description: params.description || `Order ${params.orderId}`,
                         metadata: {
@@ -126,7 +121,7 @@ export class StripeService extends BasePaymentGateway implements IPosQRService {
                         receipt_email: params.customerEmail,
                     });
 
-                    console.log(`✅ Fallback PaymentIntent created: ${fallbackPaymentIntent.id}`);
+
                     return {
                         success: true,
                         paymentId: fallbackPaymentIntent.id,
@@ -134,7 +129,7 @@ export class StripeService extends BasePaymentGateway implements IPosQRService {
                         amount: params.amount,
                         currency: params.currency,
                         status: 'pending',
-                        clientSecret: fallbackPaymentIntent.client_secret,
+                        clientSecret: fallbackPaymentIntent.client_secret || undefined,
                         gatewayResponse: fallbackPaymentIntent,
                     };
                 } catch (fallbackError) {
@@ -183,7 +178,7 @@ export class StripeService extends BasePaymentGateway implements IPosQRService {
                 isValid: true,
                 event: event.type,
                 paymentId: paymentIntent.id,
-                orderId: paymentIntent.metadata?.orderId,
+                orderId: paymentIntent.metadata?.orderId || undefined,
                 status,
                 amount: paymentIntent.amount ? this.parseAmount(paymentIntent.amount, paymentIntent.currency) : undefined,
                 data: event,
@@ -196,134 +191,128 @@ export class StripeService extends BasePaymentGateway implements IPosQRService {
     }
 
     // ... existing processRefund ...
-   async processRefund(params: {
-    paymentId: string;
-    amount: number;
-    reason?: string;
-    // optional: if you are using Stripe Connect, pass connected account id here
-    stripeAccount?: string;
-}): Promise<RefundResponse> {
-    try {
-        console.log('🔍 Processing Stripe refund for paymentId:', params.paymentId);
+    async processRefund(params: {
+        paymentId: string;
+        amount: number;
+        reason?: string;
+        // optional: if you are using Stripe Connect, pass connected account id here
+        stripeAccount?: string;
+    }): Promise<RefundResponse> {
+        try {
 
-        // Always expand charges to increase chance of getting the charge object inline
-        const retrieveOpts: any = { expand: ['latest_charge', 'charges.data'] };
-        if (params.stripeAccount) retrieveOpts.stripeAccount = params.stripeAccount;
 
-        let paymentIntent = await this.stripe.paymentIntents.retrieve(params.paymentId, retrieveOpts);
+            // Always expand charges to increase chance of getting the charge object inline
+            const retrieveOpts: any = { expand: ['latest_charge', 'charges.data'] };
+            if (params.stripeAccount) retrieveOpts.stripeAccount = params.stripeAccount;
 
-        console.log('💳 PaymentIntent retrieved:', {
-            id: paymentIntent.id,
-            status: paymentIntent.status,
-            charges_count: paymentIntent.charges?.data?.length ?? (paymentIntent.charges ? 0 : undefined),
-            latest_charge: (paymentIntent as any).latest_charge,
-            capture_method: paymentIntent.capture_method,
-        });
+            let paymentIntent = await this.stripe.paymentIntents.retrieve(params.paymentId, retrieveOpts);
 
-        // If not in refundable state -> try to find another PaymentIntent for same order (existing logic kept)
-        if (paymentIntent.status !== 'succeeded' && paymentIntent.status !== 'processing') {
-            console.log('⚠️  PaymentIntent status is', paymentIntent.status, 'attempting to find succeeded one...');
-            const orderId = paymentIntent.metadata?.orderId;
-            if (orderId) {
-                const piList = await this.stripe.paymentIntents.list({ limit: 10 }, params.stripeAccount ? { stripeAccount: params.stripeAccount } : undefined);
-                const foundIntent = piList.data.find((pi: any) =>
-                    pi.metadata?.orderId === orderId &&
-                    (pi.status === 'succeeded' || pi.status === 'processing') &&
-                    pi.charges?.data?.length > 0
+
+
+            // If not in refundable state -> try to find another PaymentIntent for same order (existing logic kept)
+            if (paymentIntent.status !== 'succeeded' && paymentIntent.status !== 'processing') {
+                // console.log('⚠️  PaymentIntent status is', paymentIntent.status, 'attempting to find succeeded one...');
+                const orderId = paymentIntent.metadata?.orderId;
+                if (orderId) {
+                    const piList = await this.stripe.paymentIntents.list({ limit: 10 }, params.stripeAccount ? { stripeAccount: params.stripeAccount } : undefined);
+                    const foundIntent = piList.data.find((pi: any) =>
+                        pi.metadata?.orderId === orderId &&
+                        (pi.status === 'succeeded' || pi.status === 'processing') &&
+                        (pi as any).charges?.data?.length > 0
+                    );
+                    if (foundIntent) {
+
+                        paymentIntent = foundIntent as any;
+                    }
+                }
+            }
+
+            // Now try to find a charge id using multiple strategies
+            let chargeId: string | null = null;
+            // 1) paymentIntent.charges.data if expanded
+            if ((paymentIntent as any).charges && Array.isArray((paymentIntent as any).charges.data) && (paymentIntent as any).charges.data.length > 0) {
+                chargeId = (paymentIntent as any).charges.data[0].id;
+
+            }
+
+            // 2) latest_charge may be a string (id) or an object
+            if (!chargeId && (paymentIntent as any).latest_charge) {
+                const latest = (paymentIntent as any).latest_charge;
+                if (typeof latest === 'string') {
+                    // retrieve the charge explicitly
+
+                    const charge = await this.stripe.charges.retrieve(latest, params.stripeAccount ? { stripeAccount: params.stripeAccount } : undefined);
+                    if (charge && charge.id) {
+                        chargeId = charge.id;
+
+                    }
+                } else if (latest && latest.id) {
+                    chargeId = latest.id;
+
+                }
+            }
+
+            // 3) list charges by payment_intent (safe fallback)
+            if (!chargeId) {
+
+                const chargesList = await this.stripe.charges.list({ limit: 5, payment_intent: paymentIntent.id }, params.stripeAccount ? { stripeAccount: params.stripeAccount } : undefined);
+                if (chargesList && chargesList.data && chargesList.data.length > 0) {
+                    chargeId = chargesList.data[0].id;
+
+                }
+            }
+
+            // 4) final fallback: search recent charges by metadata.orderId (if present)
+            if (!chargeId && paymentIntent.metadata?.orderId) {
+
+                const orderId = paymentIntent.metadata.orderId;
+                const recentCharges = await this.stripe.charges.list({ limit: 20 }, params.stripeAccount ? { stripeAccount: params.stripeAccount } : undefined);
+                const matched = recentCharges.data.find((c: any) => c.metadata?.orderId === orderId);
+                if (matched) {
+                    chargeId = matched.id;
+
+                }
+            }
+
+            if (!chargeId) {
+                console.error('❌ No charge found in PaymentIntent or via fallbacks');
+                throw new Error(
+                    `No charge found for PaymentIntent ${params.paymentId}. ` +
+                    `Payment status: ${paymentIntent.status}. ` +
+                    `Please ensure the payment was successfully captured, and check if the charge lives on a connected account or in another environment (test/live).`
                 );
-                if (foundIntent) {
-                    console.log('✅ Found successful PaymentIntent:', foundIntent.id);
-                    paymentIntent = foundIntent;
-                }
             }
+
+            // Prepare amount in cents (integer) for refunds
+            // If your formatAmount returns integer cents already, you can keep it; else compute directly:
+            const refundAmount = Math.round(params.amount * 100);
+
+
+            const refund = await this.stripe.refunds.create({
+                charge: chargeId,
+                amount: refundAmount,
+                reason: params.reason === 'requested_by_customer' ? 'requested_by_customer' : undefined,
+            }, params.stripeAccount ? { stripeAccount: params.stripeAccount } : undefined);
+
+
+            return {
+                success: true,
+                refundId: refund.id,
+                amount: this.parseAmount(refund.amount, refund.currency || paymentIntent.currency || 'usd'),
+                status: refund.status === 'succeeded' ? 'success' : 'pending',
+                gatewayResponse: refund,
+            };
+
+        } catch (error: any) {
+            console.error('Payment gateway refund error:', error);
+            return {
+                success: false,
+                amount: params.amount,
+                status: 'failed',
+                gatewayResponse: error,
+            };
         }
-
-        // Now try to find a charge id using multiple strategies
-        let chargeId: string | null = null;
-        // 1) paymentIntent.charges.data if expanded
-        if (paymentIntent.charges && Array.isArray(paymentIntent.charges.data) && paymentIntent.charges.data.length > 0) {
-            chargeId = paymentIntent.charges.data[0].id;
-            console.log('✅ Charge found from paymentIntent.charges:', chargeId);
-        }
-
-        // 2) latest_charge may be a string (id) or an object
-        if (!chargeId && (paymentIntent as any).latest_charge) {
-            const latest = (paymentIntent as any).latest_charge;
-            if (typeof latest === 'string') {
-                // retrieve the charge explicitly
-                console.log('🔎 latest_charge is string, retrieving charge:', latest);
-                const charge = await this.stripe.charges.retrieve(latest, params.stripeAccount ? { stripeAccount: params.stripeAccount } : undefined);
-                if (charge && charge.id) {
-                    chargeId = charge.id;
-                    console.log('✅ Charge retrieved by latest_charge:', chargeId);
-                }
-            } else if (latest && latest.id) {
-                chargeId = latest.id;
-                console.log('✅ latest_charge returned object, charge id:', chargeId);
-            }
-        }
-
-        // 3) list charges by payment_intent (safe fallback)
-        if (!chargeId) {
-            console.log('🔎 No charge yet — listing charges with payment_intent filter as fallback');
-            const chargesList = await this.stripe.charges.list({ limit: 5, payment_intent: paymentIntent.id }, params.stripeAccount ? { stripeAccount: params.stripeAccount } : undefined);
-            if (chargesList && chargesList.data && chargesList.data.length > 0) {
-                chargeId = chargesList.data[0].id;
-                console.log('✅ Charge found via charges.list:', chargeId);
-            }
-        }
-
-        // 4) final fallback: search recent charges by metadata.orderId (if present)
-        if (!chargeId && paymentIntent.metadata?.orderId) {
-            console.log('🔎 Final fallback: search recent charges and match metadata.orderId');
-            const orderId = paymentIntent.metadata.orderId;
-            const recentCharges = await this.stripe.charges.list({ limit: 20 }, params.stripeAccount ? { stripeAccount: params.stripeAccount } : undefined);
-            const matched = recentCharges.data.find((c: any) => c.metadata?.orderId === orderId);
-            if (matched) {
-                chargeId = matched.id;
-                console.log('✅ Charge matched by metadata.orderId:', chargeId);
-            }
-        }
-
-        if (!chargeId) {
-            console.error('❌ No charge found in PaymentIntent or via fallbacks');
-            throw new Error(
-                `No charge found for PaymentIntent ${params.paymentId}. ` +
-                `Payment status: ${paymentIntent.status}. ` +
-                `Please ensure the payment was successfully captured, and check if the charge lives on a connected account or in another environment (test/live).`
-            );
-        }
-
-        // Prepare amount in cents (integer) for refunds
-        // If your formatAmount returns integer cents already, you can keep it; else compute directly:
-        const refundAmount = Math.round(params.amount * 100);
-
-        console.log('🔄 Creating refund with charge ID:', chargeId, 'amount (cents):', refundAmount);
-        const refund = await this.stripe.refunds.create({
-            charge: chargeId,
-            amount: refundAmount,
-            reason: params.reason === 'requested_by_customer' ? 'requested_by_customer' : undefined,
-        }, params.stripeAccount ? { stripeAccount: params.stripeAccount } : undefined);
-
-        console.log('✅ Refund created successfully:', refund.id);
-        return {
-            success: true,
-            refundId: refund.id,
-            amount: this.parseAmount(refund.amount, refund.currency || paymentIntent.currency || 'usd'),
-            status: refund.status === 'succeeded' ? 'success' : 'pending',
-            gatewayResponse: refund,
-        };
-
-    } catch (error: any) {
-        console.error('Payment gateway refund error:', error);
-        return {
-            success: false,
-            amount: params.amount,
-            status: 'failed',
-            gatewayResponse: error,
-        };
     }
-}
 
     // ... existing getPaymentStatus ...
     /**
@@ -335,25 +324,25 @@ export class StripeService extends BasePaymentGateway implements IPosQRService {
         currency?: string;
     }> {
         try {
-            console.log(`🔍 Checking Stripe PaymentIntent status for: ${paymentId}`);
+
 
             const paymentIntent = await this.stripe.paymentIntents.retrieve(paymentId);
 
-            console.log(`📊 PaymentIntent retrieved - Status: ${paymentIntent.status}, ID: ${paymentIntent.id}`);
+
 
             let status: 'pending' | 'success' | 'failed' | 'refunded' = 'pending';
             if (paymentIntent.status === 'succeeded') {
                 status = 'success';
-                console.log(`✅ PaymentIntent succeeded`);
+
             } else if (paymentIntent.status === 'processing') {
                 status = 'success'; // Processing is also a valid success state
-                console.log(`✅ PaymentIntent processing (valid)`);
+
             } else if (paymentIntent.status === 'canceled') {
                 status = 'failed';
-                console.log(`❌ PaymentIntent canceled`);
+
             } else if (paymentIntent.status === 'requires_payment_method') {
                 status = 'failed';
-                console.log(`❌ PaymentIntent requires_payment_method`);
+
             } else {
                 console.warn(`⚠️ PaymentIntent status unknown: ${paymentIntent.status}`);
             }
@@ -474,8 +463,10 @@ export class StripeService extends BasePaymentGateway implements IPosQRService {
                     quantity: 1,
                 }],
                 mode: 'payment',
-                success_url: `https://${params.storeDomain || process.env.FRONTEND_URL}/orders/${params.orderId}/confirmation`,
-                cancel_url: `https://${params.storeDomain || process.env.FRONTEND_URL}/checkout?orderId=${params.orderId}&status=cancelled`,
+                // Redirect to POS confirmation page with customer email and session ID
+                // This allows fetching the latest order matching these parameters
+                success_url: `https://${params.storeDomain || process.env.FRONTEND_URL || 'localhost:3000'}/orders/pos/confirmation?customer=${encodeURIComponent(params.customerDetails?.email || '')}&customerId=${params.customerDetails?.id || ''}&posSessionId=${params.metadata?.posSessionId || ''}`,
+                cancel_url: `https://${params.storeDomain || process.env.FRONTEND_URL || 'localhost:3000'}/orders/pos/cancelled?customer=${encodeURIComponent(params.customerDetails?.email || '')}&customerId=${params.customerDetails?.id || ''}&posSessionId=${params.metadata?.posSessionId || ''}`,
                 client_reference_id: params.orderId,
                 payment_intent_data: {
                     description: params.description || `Order ${params.orderId}`,
@@ -498,7 +489,6 @@ export class StripeService extends BasePaymentGateway implements IPosQRService {
                     ...params.metadata
                 }))
             });
-
             return {
                 qrCodeId: session.id, // We use session ID as QR ID for tracking
                 qrCodeData: session.url || '', // This URL becomes the QR code

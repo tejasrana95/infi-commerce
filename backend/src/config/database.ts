@@ -12,18 +12,18 @@ export const connectDatabase = async (): Promise<void> => {
             retryWrites: true,      // Enable retry writes for better reliability
             retryReads: true,       // Enable retry reads
         });
-        console.log('✅ MongoDB connection established successfully');
+        console.log('MongoDB connection established successfully');
 
         mongoose.connection.on('error', (error) => {
-            console.error('❌ MongoDB connection error:', error);
+            console.error('MongoDB connection error:', error);
         });
 
         mongoose.connection.on('disconnected', () => {
-            console.warn('⚠️ MongoDB disconnected');
+            console.warn('MongoDB disconnected');
         });
 
     } catch (error) {
-        console.error('❌ Unable to connect to MongoDB:', error);
+        console.error('Unable to connect to MongoDB:', error);
         process.exit(1);
     }
 };

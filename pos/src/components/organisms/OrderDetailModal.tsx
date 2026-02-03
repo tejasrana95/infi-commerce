@@ -210,7 +210,7 @@ export default function OrderDetailModal({ order, isOpen, onClose, onReturn }: O
                                     <span>Tax</span>
                                     <span>{formatPrice(order.tax)}</span>
                                 </div>
-                                {order?.discount && order?.discount > 0 && (
+                                {order?.discount !== undefined && order?.discount > 0 && (
                                     <div className="flex justify-between text-slate-700">
                                         <span>Discount {order.couponCode ? `(${order.couponCode})` : ''}</span>
                                         <span>{formatPrice(order?.discount || 0)}</span>

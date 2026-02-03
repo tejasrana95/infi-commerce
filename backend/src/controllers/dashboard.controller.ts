@@ -3,6 +3,7 @@ import Order from '../models/Order';
 import Customer from '../models/Customer';
 import Product from '../models/Product';
 import Review from '../models/Review';
+import ReturnRequest from '../models/ReturnRequest';
 import mongoose from 'mongoose';
 import { AuthRequest } from '../middleware/auth';
 
@@ -111,7 +112,8 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
             customersCount,
             productsCount,
             lowStockCount,
-            pendingReviewsCount
+            pendingReviewsCount,
+            returnRequestsCount
         ] = await Promise.all([
             Order.countDocuments(filter),
             getCustomerCount(),
@@ -121,7 +123,8 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
                 manageStock: true,
                 $expr: { $lte: ['$stock', { $ifNull: ['$lowStockThreshold', 5] }] }
             }),
-            Review.countDocuments({ ...filter, isApproved: false })
+            Review.countDocuments({ ...filter, isApproved: false }),
+            ReturnRequest.countDocuments(filter)
         ]);
 
         // 2. Revenue Calculation (Paid orders)
@@ -171,6 +174,12 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
             { $group: { _id: "$status", count: { $sum: 1 } } }
         ]);
 
+        // 7. Return Request Status Distribution
+        const returnStatusDistribution = await ReturnRequest.aggregate([
+            { $match: filter },
+            { $group: { _id: "$status", count: { $sum: 1 } } }
+        ]);
+
         return res.status(200).json({
             success: true,
             data: {
@@ -180,12 +189,14 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
                     customersCount,
                     productsCount,
                     lowStockCount,
-                    pendingReviewsCount
+                    pendingReviewsCount,
+                    returnRequestsCount
                 },
                 recentOrders,
                 topProducts,
                 salesData,
-                statusDistribution
+                statusDistribution,
+                returnStatusDistribution
             }
         });
 

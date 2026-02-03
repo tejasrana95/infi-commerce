@@ -5,6 +5,7 @@ import { getComponent } from '@/components/templates/registry';
 import { ModuleProps } from '../..';
 import api from '@/lib/api';
 import styles from './ProductGrid.module.scss';
+import { Box } from 'lucide-react';
 
 interface ProductGridConfig {
     source: 'best-sellers' | 'new-arrivals' | 'custom' | 'category';
@@ -108,7 +109,7 @@ export default function ProductGridModule({ config, initialData }: ModuleProps) 
             return (
                 <div className={styles.container}>
                     <div className={styles.errorState}>
-                        <span>📦</span>
+                        <span><Box /></span>
                         <p>Error: {error || 'No products found'}</p>
                     </div>
                 </div>

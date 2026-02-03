@@ -3,6 +3,7 @@ import {
     createOrder,
     initializePayment,
     getOrderById,
+    getLatestPOSOrder,
     getUserOrders,
     getAllOrders,
     updateOrderStatus,
@@ -295,6 +296,32 @@ router.post('/:id/initialize-payment', optionalAuth, initializePayment);
  *         description: Unauthorized
  */
 router.get('/user/me', authenticate, getUserOrders);
+
+/**
+ * @swagger
+ * /api/orders/pos/latest:
+ *   get:
+ *     summary: Get latest POS order by customer email and posSessionId
+ *     tags: [Orders]
+ *     parameters:
+ *       - in: query
+ *         name: customerEmail
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: posSessionId
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Latest POS order details
+ *       400:
+ *         description: Invalid parameters
+ *       404:
+ *         description: No matching order found
+ */
+router.get('/pos/latest', getLatestPOSOrder);
 
 /**
  * @swagger

@@ -9,13 +9,28 @@ export interface ProductOption {
     values: OptionValue[];
     isVariation: boolean;
 }
+
+// Pricing object structure from backend - includes tax-inclusive prices
+export interface ProductPricing {
+    price: number;              // Base price (without tax)
+    salePrice?: number;         // Sale price (without tax)
+    priceWithTax: number;       // Price including tax
+    salePriceWithTax?: number;  // Sale price including tax
+    taxRate: number;            // Tax percentage rate
+    taxAmount: number;          // Calculated tax amount
+    finalPrice: number;         // Final display price (with tax, either sale or regular)
+    originalPrice: number;      // Original price with tax (for strikethrough display)
+    isOnSale: boolean;          // Whether product is on sale
+    discountPercent?: number;   // Discount percentage
+}
+
 export interface Product {
     id: string;
     name: string;
     sku: string;
     barcode?: string;
-    price: number;
-    salePrice?: number; // Effective price if on sale
+    price: number;              // Base price (without tax)
+    salePrice?: number;         // Sale price (without tax)
     stock: number;
     image: string;
     type: 'simple' | 'variable';
@@ -25,6 +40,7 @@ export interface Product {
     taxRate?: number;
     taxAmount?: number;
     productOptions?: ProductOption[];
+    pricing?: ProductPricing;   // Full pricing object with tax-inclusive prices
 }
 
 export interface ProductAttribute {
@@ -38,11 +54,13 @@ export interface ProductVariant {
     sku: string;
     barcode?: string;
     attributes: Record<string, string>; // e.g. { Size: 'L', Color: 'Red' }
-    price: number;
+    price: number;              // Base price (without tax)
+    salePrice?: number;         // Sale price (without tax)
     stock: number;
     image?: string;
     taxRate?: number;
     taxAmount?: number;
+    pricing?: ProductPricing;   // Full pricing object with tax-inclusive prices
 }
 
 export interface Category {
@@ -136,6 +154,9 @@ export interface OrderItem {
     categoryIds?: string[];     // Product categories for display
     taxRate?: number;
     taxAmount?: number;         // Tax per unit
+    // Optional fields for compatibility with other parts of the app
+    discountedPrice?: number;
+    shippingCost?: number;
     // Discount breakdown (per unit)
     discountAmount?: number;    // Total discount per unit
     couponDiscount?: number;    // Coupon portion per unit
@@ -159,7 +180,7 @@ export interface Return {
     items: ReturnItem[];
     notes?: string;
     processedBy?: string;
-    refundMethod?: 'cash' | 'card' | 'original';
+    refundMethod?: 'cash' | 'card' | 'upi' | 'qr' | 'stripe' | 'razorpay' | 'paypal';
     refundReference?: string;
     returnedAt?: string;
     totalRefundAmount?: number;

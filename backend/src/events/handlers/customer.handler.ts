@@ -6,9 +6,9 @@ import { CustomerEvent } from '../types';
  * Example: Mailchimp, CRM systems, custom logging, etc.
  */
 export const handleCustomerEvent = async (event: CustomerEvent) => {
-    const { type, detail, storeId } = event;
+    const { type } = event;
 
-    console.log(`[CustomerEvent] Received ${type} for customer ${detail.email} in store ${storeId}`);
+
 
     switch (type) {
         case 'customerCreate':

@@ -42,17 +42,34 @@ export const useCartStore = create<CartState>((set, get) => ({
                 (item) => item.productId === product.id && item.variantId === (variant?.id || undefined)
             );
 
-            // Determine price and tax info
-            const price = Number(variant ? variant.price : (product.salePrice || product.price)) || 0;
-            const taxRate = Number(variant?.taxRate ?? product.taxRate ?? 0);
-            let unitTaxAmount = Number(variant?.taxAmount ?? product.taxAmount ?? 0);
+            // Use pricing object for tax-inclusive prices (consistent with frontend)
+            // Priority: variant.pricing > product.pricing > fallback calculation
+            const variantPricing = variant?.pricing;
+            const productPricing = product.pricing;
+            const pricing = variantPricing || productPricing;
 
-            // Fallback calculation if taxAmount is 0 but rate is present
-            if (unitTaxAmount === 0 && taxRate > 0) {
-                unitTaxAmount = price - (price / (1 + (taxRate / 100)));
+            // Get tax-inclusive price (finalPrice is the sale price with tax if on sale, otherwise priceWithTax)
+            const priceWithTax = Number(pricing?.finalPrice ?? variant?.price ?? product.salePrice ?? product.price) || 0;
+            const taxRate = Number(pricing?.taxRate ?? variant?.taxRate ?? product.taxRate ?? 0);
+            let unitTaxAmount = Number(pricing?.taxAmount ?? variant?.taxAmount ?? product.taxAmount ?? 0);
+
+            // Calculate basePrice (price without tax)
+            // If we have pricing object, use price field; otherwise calculate from inclusive price
+            let basePrice: number;
+            if (pricing?.price !== undefined) {
+                basePrice = Number(pricing.price);
+                // Recalculate tax amount based on whether it's on sale
+                if (pricing.isOnSale && pricing.salePrice !== undefined) {
+                    basePrice = Number(pricing.salePrice);
+                    unitTaxAmount = priceWithTax - basePrice;
+                }
+            } else {
+                // Fallback: calculate basePrice from inclusive price
+                if (unitTaxAmount === 0 && taxRate > 0) {
+                    unitTaxAmount = priceWithTax - (priceWithTax / (1 + (taxRate / 100)));
+                }
+                basePrice = priceWithTax - unitTaxAmount;
             }
-
-            const basePrice = price - unitTaxAmount;
 
             const sku = variant ? variant.sku : product.sku;
             const name = product.name;
@@ -77,13 +94,13 @@ export const useCartStore = create<CartState>((set, get) => ({
                         variantId: variant?.id,
                         name,
                         sku,
-                        price, // Inclusive price
+                        price: priceWithTax,    // Store the tax-inclusive price
                         quantity,
                         image,
                         attributes: variant?.attributes,
                         taxRate,
                         taxAmount: unitTaxAmount,
-                        basePrice,
+                        basePrice,              // Price without tax
                     }
                 ];
             }

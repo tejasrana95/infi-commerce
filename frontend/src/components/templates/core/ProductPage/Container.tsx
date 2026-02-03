@@ -28,7 +28,7 @@ import { useCurrency } from '@/hooks/useCurrency';
 
 interface ProductPageContainerProps {
     product: Product;
-    layout?: any;
+    layout?: React.ReactNode;
 }
 
 
@@ -566,8 +566,9 @@ export default function ProductPageContainer({
                     error: response.message || 'No shipping options available for this location'
                 });
             }
-        } catch (e: any) {
-            setShippingEstimate({ loading: false, error: e.message || 'Failed to calculate shipping' });
+        } catch (e: unknown) {
+            const msg = typeof e === 'string' ? e : JSON.stringify(e);
+            setShippingEstimate({ loading: false, error: (msg as string) || 'Failed to calculate shipping' });
         }
     }, [store?._id, product._id, selectedVariant?._id, quantity, currency]);
 

@@ -561,12 +561,12 @@ export const updateCategory = asyncHandler(async (req: AuthRequest, res: Respons
         console.error('Revalidation failed:', err);
     });
 
+    await updateCategorySyncTimestamp(category.storeId.toString());
+
     return res.json({
         message: 'Category updated successfully',
         category,
     });
-
-    await updateCategorySyncTimestamp(category.storeId.toString());
 });
 
 /**

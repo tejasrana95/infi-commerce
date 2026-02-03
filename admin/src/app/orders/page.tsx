@@ -243,7 +243,7 @@ export default function OrdersPage() {
             renderCell: (params: GridRenderCellParams) => (
                 <Box display="flex" flexDirection="column" gap={0.5}>
                     <Chip
-                        label={params.value}
+                        label={params.value.replace('_', ' ')}
                         size="small"
                         color={getPaymentStatusColor(params.value)}
                         variant="outlined"
@@ -352,6 +352,8 @@ export default function OrdersPage() {
                             <MenuItem value="delivered">Delivered</MenuItem>
                             <MenuItem value="cancelled">Cancelled</MenuItem>
                             <MenuItem value="refunded">Refunded</MenuItem>
+                            <MenuItem value="return_requested">Return Requested</MenuItem>
+                            <MenuItem value="partially_returned">Partial Returned</MenuItem>
                         </Select>
                     </FormControl>
 

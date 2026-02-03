@@ -10,6 +10,8 @@ import { formatPrice } from '@/lib/currency';
 import Loader from '@/components/molecules/Loader';
 import { useToast } from '@/providers/ToastProvider';
 import { useDialog } from '@/providers/DialogProvider';
+import { Box } from 'lucide-react';
+import { REFUND_METHODS } from '@/lib/constants';
 
 export interface ModuleProps {
     config: Record<string, any>;
@@ -164,7 +166,7 @@ export default function AccountReturnDetailsModule({ config = {} }: ModuleProps)
                             {formatPrice(refund.amount, { code: currency })}
                         </span>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                            Method: {refund.method === 'original' ? 'Original Payment' : 'Store Credit'}
+                            Method: {REFUND_METHODS[refund.method ?? ''] || refund.method || 'N/A'}
                         </div>
                     </div>
                 )}
@@ -179,7 +181,7 @@ export default function AccountReturnDetailsModule({ config = {} }: ModuleProps)
                                 {item.image ? (
                                     <img src={item.image} alt={item.name} />
                                 ) : (
-                                    <div className={styles.placeholder}>📦</div>
+                                    <div className={styles.placeholder}><Box /></div>
                                 )}
                             </div>
                             <div className={styles.details}>
@@ -268,18 +270,145 @@ export default function AccountReturnDetailsModule({ config = {} }: ModuleProps)
                     )}
                 </div>
             </div>
-
+            {refund?.method === 'bank_transfer' && (
+                <div className={styles.section}>
+                    <h2>Bank Details</h2>
+                    <div className={`${styles.card} ${styles.infoGrid}`}>
+                        {refund?.bankDetails?.accountHolderName && (
+                            <div className={styles.infoGroup}>
+                                <h3>Account Holder Name</h3>
+                                <p>{refund?.bankDetails?.accountHolderName}</p>
+                            </div>
+                        )}
+                        {refund?.bankDetails?.accountNumber && (
+                            <div className={styles.infoGroup}>
+                                <h3>Account Number</h3>
+                                <p>{refund?.bankDetails?.accountNumber}</p>
+                            </div>
+                        )}
+                        {refund?.bankDetails?.accountType && (
+                            <div className={`${styles.infoGroup} capitalize`}>
+                                <h3>Account Type</h3>
+                                <p>{refund?.bankDetails?.accountType}</p>
+                            </div>
+                        )}
+                        {refund?.bankDetails?.routingNumber && (
+                            <div className={styles.infoGroup}>
+                                <h3>Routing Number</h3>
+                                <p>{refund?.bankDetails?.routingNumber}</p>
+                            </div>
+                        )}
+                        {refund?.bankDetails?.swiftBicCode && (
+                            <div className={styles.infoGroup}>
+                                <h3>IFSC/SWIFT/BIC Code</h3>
+                                <p>{refund?.bankDetails?.swiftBicCode}</p>
+                            </div>
+                        )}
+                        {refund?.bankDetails?.bankName && (
+                            <div className={styles.infoGroup}>
+                                <h3>Bank Name</h3>
+                                <p>{refund?.bankDetails?.bankName}</p>
+                            </div>
+                        )}
+                        {refund?.bankDetails?.branchAddress && (
+                            <div className={styles.infoGroup}>
+                                <h3>Branch Address</h3>
+                                <p>{refund?.bankDetails?.branchAddress}</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
             <div className={styles.section}>
                 <h2>Timeline</h2>
                 <div className={styles.card} style={{ padding: '1.5rem' }}>
-                    <div className={styles.timeline}>
-                        {statusHistory?.slice().reverse().map((hist: any, i: number) => (
-                            <div key={i} className={styles.timelineItem}>
-                                <h4>{hist.status.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}</h4>
-                                <time>{formatDate(hist.updatedAt, 'long')}</time>
-                            </div>
-                        ))}
-                    </div>
+                    {statusHistory && statusHistory.length > 0 ? (
+                        <div style={{ position: 'relative', paddingLeft: '2rem' }}>
+                            {/* Vertical line */}
+                            <div
+                                style={{
+                                    position: 'absolute',
+                                    left: '0.4rem',
+                                    top: 0,
+                                    bottom: 0,
+                                    width: '2px',
+                                    background: 'linear-gradient(to bottom, #d97706, #2563eb, #4338ca, #3f6212)',
+                                    opacity: 0.3
+                                }}
+                            />
+
+                            {statusHistory.slice().reverse().map((event: any, index: number) => {
+                                const statusText = (event.status || '').replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+                                const { text: markerColor } = getStatusStyle(event.status || '');
+
+                                // Handle updatedBy safely
+                                let updatedByText = '';
+                                if (event.updatedBy) {
+                                    if (typeof event.updatedBy === 'string') {
+                                        updatedByText = event.updatedBy;
+                                    } else if (typeof event.updatedBy === 'object') {
+                                        const first = event.updatedBy.firstName || '';
+                                        const last = event.updatedBy.lastName || '';
+                                        updatedByText = `${first} ${last}`.trim() || event.updatedBy.name || '';
+                                    }
+                                }
+
+                                return (
+                                    <div
+                                        key={index}
+                                        style={{
+                                            position: 'relative',
+                                            marginBottom: index !== statusHistory.length - 1 ? '2rem' : 0,
+                                            paddingBottom: index !== statusHistory.length - 1 ? '0' : 0
+                                        }}
+                                    >
+                                        {/* Timeline dot */}
+                                        <div
+                                            style={{
+                                                position: 'absolute',
+                                                left: '-2.05rem',
+                                                top: '0.125rem',
+                                                width: '16px',
+                                                height: '16px',
+                                                borderRadius: '50%',
+                                                backgroundColor: markerColor,
+                                                border: '3px solid white',
+                                                boxShadow: `0 0 0 2px ${markerColor}80`,
+                                                zIndex: 2
+                                            }}
+                                        />
+
+                                        {/* Content */}
+                                        <div style={{ paddingTop: '0.25rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '1rem', marginBottom: '0.375rem', flexWrap: 'wrap' }}>
+                                                <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#111827' }}>
+                                                    {statusText}
+                                                </h4>
+                                                <time style={{ fontSize: '0.85rem', color: '#6b7280', whiteSpace: 'nowrap' }}>
+                                                    {formatDate(event.updatedAt, 'long')}
+                                                </time>
+                                            </div>
+
+                                            {event.note && (
+                                                <p style={{
+                                                    margin: '0.5rem 0 0 0',
+                                                    fontSize: '0.9375rem',
+                                                    color: '#4b5563',
+                                                    lineHeight: 1.6
+                                                }}>
+                                                    {event.note}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <p style={{ textAlign: 'center', color: '#9ca3af', margin: 0, padding: '1rem 0' }}>
+                            No timeline updates yet
+                        </p>
+                    )}
                 </div>
             </div>
 

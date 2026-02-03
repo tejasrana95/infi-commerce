@@ -19,7 +19,7 @@ class RedisService {
         if (config.redis.enabled) {
             this.initializeRedis();
         } else {
-            console.log('Redis: Disabled (REDIS_ENABLED=false), using in-memory cache');
+            // console.log('Redis: Disabled (REDIS_ENABLED=false), using in-memory cache');
         }
     }
 
@@ -45,12 +45,12 @@ class RedisService {
 
             this.client.on('connect', () => {
                 this.isConnected = true;
-                console.log('Redis: Connected successfully');
+
             });
 
             this.client.on('ready', () => {
                 this.isConnected = true;
-                console.log('Redis: Ready to accept commands');
+
             });
 
             this.client.on('error', (err) => {
@@ -59,12 +59,12 @@ class RedisService {
             });
 
             this.client.on('close', () => {
-                console.log('Redis: Connection closed');
+
                 this.isConnected = false;
             });
 
             this.client.on('reconnecting', () => {
-                console.log('Redis: Attempting to reconnect...');
+
             });
 
             // Attempt connection

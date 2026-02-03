@@ -9,6 +9,7 @@ import styles from './page.module.scss';
 import { apiClient } from '@/services/api-client';
 import { useCurrency } from '@/hooks/useCurrency';
 import Image from 'next/image';
+import { Box, Mail, Truck } from 'lucide-react';
 
 interface OrderDetails {
     _id: string;
@@ -401,15 +402,15 @@ export default function OrderConfirmationPage() {
                                 <h3>What's Next?</h3>
                                 <ul>
                                     <li>
-                                        <span className={styles.stepIcon}>📧</span>
+                                        <span className={styles.stepIcon}><Mail /></span>
                                         <span>You'll receive an email confirmation shortly</span>
                                     </li>
                                     <li>
-                                        <span className={styles.stepIcon}>📦</span>
+                                        <span className={styles.stepIcon}><Box /></span>
                                         <span>We'll notify you when your order ships</span>
                                     </li>
                                     <li>
-                                        <span className={styles.stepIcon}>🚚</span>
+                                        <span className={styles.stepIcon}><Truck /></span>
                                         <span>Track your order status in your account</span>
                                     </li>
                                 </ul>

@@ -17,6 +17,7 @@ interface OrderItem {
     categoryIds?: string[];     // Product categories
     taxRate?: number;
     taxAmount?: number;         // Tax per unit
+    shippingCost?: number;      // Shipping per unit
     // Discount breakdown (per unit)
     discountAmount?: number;    // Total discount per unit (coupon + manual)
     couponDiscount?: number;    // Coupon portion per unit
@@ -38,6 +39,7 @@ interface OrderDetails {
     items: OrderItem[];
     subtotal: number;
     tax: number;
+    shippingCost?: number;
     total: number;
     discount: number;
     couponCode?: string;
@@ -57,11 +59,13 @@ interface RefundCalculationResult {
         discountAmount: number;     // Total discount for returned quantity
         couponDiscount: number;     // Coupon discount for returned quantity
         manualDiscount: number;     // Manual discount for returned quantity
+        shippingRefund: number;     // Shipping refunded for this item
         totalRefund: number;        // Total refund for this item
         isCouponEligible: boolean;
     }>;
     breakdown: {
         subtotal: number;           // Refund before tax (based on discounted price)
+        shipping: number;           // Shipping refunded
         originalSubtotal: number;   // Original price total before discounts
         totalDiscount: number;      // Total discount deducted
         couponDiscount: number;     // Coupon portion of discount
@@ -86,7 +90,10 @@ export class ReturnCalculationService {
         let totalDiscount = 0;
         let totalCouponDiscount = 0;
         let totalManualDiscount = 0;
+        let totalShipping = 0;
         let totalTax = 0;
+
+        const totalQuantity = orderDetails.items.reduce((sum, item) => sum + item.quantity, 0) || 0;
 
         // Calculate refund for each returned item
         for (const returnItem of returnItems) {
@@ -116,6 +123,9 @@ export class ReturnCalculationService {
             const unitCouponDiscount = orderItem.couponDiscount || 0;
             const unitManualDiscount = orderItem.manualDiscount || 0;
             const unitTotalDiscount = orderItem.discountAmount || 0;
+            const unitShipping = orderItem.shippingCost ?? ((orderDetails.shippingCost || 0) && totalQuantity > 0
+                ? (orderDetails.shippingCost as number) / totalQuantity
+                : 0);
 
             // Calculate totals for returned quantity
             const returnOriginalSubtotal = originalPrice * quantityToReturn;
@@ -124,9 +134,10 @@ export class ReturnCalculationService {
             const returnCouponDiscount = unitCouponDiscount * quantityToReturn;
             const returnManualDiscount = unitManualDiscount * quantityToReturn;
             const returnTotalDiscount = unitTotalDiscount * quantityToReturn;
+            const returnShipping = unitShipping * quantityToReturn;
 
-            // Total refund = final price (after discount) + tax
-            const itemTotalRefund = returnSubtotal + returnTax;
+            // Total refund = final price (after discount) + tax + shipping share
+            const itemTotalRefund = returnSubtotal + returnTax + returnShipping;
 
             totalOriginalSubtotal += returnOriginalSubtotal;
             totalSubtotal += returnSubtotal;
@@ -134,6 +145,7 @@ export class ReturnCalculationService {
             totalCouponDiscount += returnCouponDiscount;
             totalManualDiscount += returnManualDiscount;
             totalDiscount += returnTotalDiscount;
+            totalShipping += returnShipping;
 
             itemRefunds.push({
                 productId: orderItem.productId,
@@ -147,13 +159,14 @@ export class ReturnCalculationService {
                 discountAmount: parseFloat(returnTotalDiscount.toFixed(2)),
                 couponDiscount: parseFloat(returnCouponDiscount.toFixed(2)),
                 manualDiscount: parseFloat(returnManualDiscount.toFixed(2)),
+                shippingRefund: parseFloat(returnShipping.toFixed(2)),
                 totalRefund: parseFloat(itemTotalRefund.toFixed(2)),
                 isCouponEligible: orderItem.isCouponEligible || false,
             });
         }
 
         // Calculate final refund amount
-        let refundAmount = totalSubtotal + totalTax;
+        let refundAmount = totalSubtotal + totalTax + totalShipping;
 
         // Safety check - ensure total refunds never exceed remaining refundable amount
         const alreadyRefunded = orderDetails.items.reduce((sum, item) => {
@@ -174,6 +187,7 @@ export class ReturnCalculationService {
             itemRefunds,
             breakdown: {
                 subtotal: parseFloat(totalSubtotal.toFixed(2)),
+                shipping: parseFloat(totalShipping.toFixed(2)),
                 originalSubtotal: parseFloat(totalOriginalSubtotal.toFixed(2)),
                 totalDiscount: parseFloat(totalDiscount.toFixed(2)),
                 couponDiscount: parseFloat(totalCouponDiscount.toFixed(2)),
@@ -222,13 +236,15 @@ export class ReturnCalculationService {
         // Get stored values per unit
         const finalPrice = orderItem.price;
         const unitTaxAmount = orderItem.taxAmount || 0;
+        const unitShipping = orderItem.shippingCost || 0;
 
         // Calculate totals for returned quantity
         const returnSubtotal = finalPrice * quantityToReturn;
         const returnTax = unitTaxAmount * quantityToReturn;
+        const returnShipping = unitShipping * quantityToReturn;
 
-        // Total refund = final price (after discount) + tax
-        const totalRefund = returnSubtotal + returnTax;
+        // Total refund = final price (after discount) + tax + shipping share
+        const totalRefund = returnSubtotal + returnTax + returnShipping;
 
         return {
             productId: orderItem.productId,

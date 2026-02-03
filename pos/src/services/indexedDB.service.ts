@@ -37,6 +37,19 @@ export interface IndexedDBProduct {
     updatedAt: string; // ISO string for Safari compatibility
     // Search optimization fields
     searchText: string;   // Lowercase concatenation of name + sku + barcode for fast search
+    // Pricing object for tax-inclusive prices
+    pricing?: {
+        price: number;
+        salePrice?: number;
+        priceWithTax: number;
+        salePriceWithTax?: number;
+        taxRate: number;
+        taxAmount: number;
+        finalPrice: number;
+        originalPrice: number;
+        isOnSale: boolean;
+        discountPercent?: number;
+    };
 }
 
 export interface IndexedDBCategory {

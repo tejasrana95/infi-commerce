@@ -414,6 +414,8 @@ export const applyShippingToCart = asyncHandler(async (req: AuthRequest, res: Re
         name: shippingRule.name,
         cost: shippingCost,
         estimatedDays: '3-5 business days',
+        rateType: shippingRule.rateType,
+        rate: shippingRule.rate,
     };
     cart.shippingCost = shippingCost;
 
@@ -649,6 +651,18 @@ export const calculateSmartShipping = asyncHandler(async (req: AuthRequest, res:
     const breakdown: ShippingBreakdown[] = [];
     const processedItems = new Set<number>();
 
+    interface ItemShippingAllocation {
+        productId: string;
+        variantId?: string;
+        quantity: number;
+        shippingCostPerUnit: number;
+        shippingCostTotal: number;
+        ruleId: string;
+        ruleName: string;
+    }
+
+    const itemShippingAllocations: ItemShippingAllocation[] = [];
+
     // Helper function to calculate cost for a group of items
     const calculateCostForItems = (
         itemsToProcess: ItemDetails[],
@@ -676,6 +690,54 @@ export const calculateSmartShipping = asyncHandler(async (req: AuthRequest, res:
         return parseFloat(cost.toFixed(2));
     };
 
+    // Allocate rule cost to individual items based on rate type
+    const allocateCostToItems = (
+        itemsToProcess: ItemDetails[],
+        rule: any,
+        groupCost: number
+    ) => {
+        if (!itemsToProcess.length || groupCost <= 0) return;
+
+        const totalQty = itemsToProcess.reduce((sum, i) => sum + i.quantity, 0);
+        const totalWeight = itemsToProcess.reduce((sum, i) => sum + i.weight, 0);
+        const totalValue = itemsToProcess.reduce((sum, i) => sum + i.price, 0);
+
+        // Basis selection: flat -> quantity, per_kg -> weight (fallback to qty), percentage -> value (fallback to qty)
+        let basis: 'quantity' | 'weight' | 'value' = 'quantity';
+        if (rule.rateType === 'per_kg' && totalWeight > 0) basis = 'weight';
+        else if (rule.rateType === 'percentage' && totalValue > 0) basis = 'value';
+
+        const denominator = basis === 'weight' ? totalWeight : basis === 'value' ? totalValue : totalQty;
+        let remaining = groupCost;
+
+        itemsToProcess.forEach((item, idx) => {
+            const numerator = basis === 'weight' ? item.weight : basis === 'value' ? item.price : item.quantity;
+
+            let itemShare = 0;
+            if (denominator > 0) {
+                if (idx === itemsToProcess.length - 1) {
+                    // Give remainder to last item to preserve totals after rounding
+                    itemShare = parseFloat(remaining.toFixed(2));
+                } else {
+                    itemShare = parseFloat(((groupCost * numerator) / denominator).toFixed(2));
+                    remaining -= itemShare;
+                }
+            }
+
+            const perUnitShare = item.quantity > 0 ? parseFloat((itemShare / item.quantity).toFixed(4)) : 0;
+
+            itemShippingAllocations.push({
+                productId: item.productId,
+                variantId: item.variantId,
+                quantity: item.quantity,
+                shippingCostPerUnit: perUnitShare,
+                shippingCostTotal: itemShare,
+                ruleId: rule._id.toString(),
+                ruleName: rule.name,
+            });
+        });
+    };
+
     // Priority 1: Category-specific rules (most specific)
     const categoryRules = categorizedRules.filter(r => r.categoryIds.length > 0);
 
@@ -698,6 +760,8 @@ export const calculateSmartShipping = asyncHandler(async (req: AuthRequest, res:
         if (matchingItems.length > 0) {
             const itemsToProcess = matchingItems.map(m => m.item);
             const cost = calculateCostForItems(itemsToProcess, ruleInfo.rule);
+
+            allocateCostToItems(itemsToProcess, ruleInfo.rule, cost);
 
             breakdown.push({
                 itemProductIds: itemsToProcess.map(i => i.productId),
@@ -727,6 +791,8 @@ export const calculateSmartShipping = asyncHandler(async (req: AuthRequest, res:
         const geoRule = geoRules[0];
         const cost = calculateCostForItems(remainingItems, geoRule.rule);
 
+        allocateCostToItems(remainingItems, geoRule.rule, cost);
+
         breakdown.push({
             itemProductIds: remainingItems.map(i => i.productId),
             ruleName: geoRule.rule.name,
@@ -755,6 +821,8 @@ export const calculateSmartShipping = asyncHandler(async (req: AuthRequest, res:
     if (stillRemaining.length > 0 && universalRules.length > 0) {
         const universalRule = universalRules[0];
         const cost = calculateCostForItems(stillRemaining, universalRule.rule);
+
+        allocateCostToItems(stillRemaining, universalRule.rule, cost);
 
         breakdown.push({
             itemProductIds: stillRemaining.map(i => i.productId),
@@ -796,6 +864,7 @@ export const calculateSmartShipping = asyncHandler(async (req: AuthRequest, res:
         name: methodName,
         description: methodDescription,
         breakdown,
+        itemShippingAllocations,
         itemsWithoutShipping: itemsWithoutRule.length > 0 ? itemsWithoutRule.map(i => ({
             productId: i.productId,
             productName: i.product.name,

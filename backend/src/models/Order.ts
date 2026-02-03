@@ -18,6 +18,7 @@ export interface IOrder extends Document {
         price: number;                  // Final price after all discounts (per unit)
         costPrice?: number;             // Cost price snapshot for accounting
         quantity: number;
+        shippingCost?: number;          // Shipping share per unit
         image?: string;
         attributes?: Record<string, string>;
         weight?: number;
@@ -49,7 +50,7 @@ export interface IOrder extends Document {
         isReturnable?: boolean; // Whether item is returnable
     }>;
 
-    // Returns history
+    // Returns history (with transparent breakdown)
     returns?: Array<{
         returnedAt: Date;
         items: Array<{
@@ -58,12 +59,22 @@ export interface IOrder extends Document {
             quantity: number;
             reason: string;
             refundAmount: number;
+            subtotalRefund?: number;
+            taxRefund?: number;
+            shippingRefund?: number;
         }>;
         totalRefundAmount: number;
+        refundBreakdown?: {
+            itemsSubtotal: number;
+            itemsTax: number;
+            itemsShipping: number;
+            totalRefund: number;
+        };
         refundMethod: string;
         refundReference?: string;
         processedBy?: mongoose.Types.ObjectId;
         note?: string;
+        returnRequestId?: mongoose.Types.ObjectId; // Link to ReturnRequest for POS returns
     }>;
 
     // Pricing
@@ -254,6 +265,7 @@ const OrderSchema = new Schema<IOrder>(
                 price: { type: Number, required: true, min: 0 },         // Final price after discount
                 costPrice: { type: Number, min: 0 },                     // Cost price snapshot
                 quantity: { type: Number, required: true, min: 1 },
+                shippingCost: { type: Number, default: 0, min: 0 },      // Per-unit shipping share
                 image: String,
                 attributes: Schema.Types.Mixed,
                 weight: Number,
@@ -496,7 +508,7 @@ const OrderSchema = new Schema<IOrder>(
                 quantity: { type: Number, required: true },
             },
         ],
-        // Returns history
+        // Returns history (with transparent breakdown)
         returns: [
             {
                 returnedAt: { type: Date, default: Date.now },
@@ -507,13 +519,23 @@ const OrderSchema = new Schema<IOrder>(
                         quantity: Number,
                         reason: String,
                         refundAmount: Number,
+                        subtotalRefund: Number,
+                        taxRefund: Number,
+                        shippingRefund: Number,
                     }
                 ],
                 totalRefundAmount: Number,
+                refundBreakdown: {
+                    itemsSubtotal: Number,
+                    itemsTax: Number,
+                    itemsShipping: Number,
+                    totalRefund: Number,
+                },
                 refundMethod: String,
                 refundReference: String,
                 processedBy: { type: Schema.Types.ObjectId, ref: 'User' },
                 note: String,
+                returnRequestId: { type: Schema.Types.ObjectId, ref: 'ReturnRequest' }, // Link to ReturnRequest for POS returns
             }
         ],
     },

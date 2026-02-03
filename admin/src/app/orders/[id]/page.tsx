@@ -61,6 +61,16 @@ export default function OrderDetailPage() {
     const { convertAndFormat } = useCurrency();
     const { confirm } = useConfirm();
     const { showNotification } = useNotification();
+    const getErrorMessage = (err: unknown) => {
+        if (!err) return 'Unknown error';
+        if (typeof err === 'string') return err;
+        try {
+            // @ts-ignore
+            return err.response?.data?.message || JSON.stringify(err);
+        } catch (e) {
+            return JSON.stringify(err);
+        }
+    };
     // Status update state
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [downloadAnchorEl, setDownloadAnchorEl] = useState<null | HTMLElement>(null);
@@ -95,21 +105,21 @@ export default function OrderDetailPage() {
             if (response.data.success) {
                 setOrder(response.data.data);
             }
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to load order');
+        } catch (err: unknown) {
+            setError(getErrorMessage(err) || 'Failed to load order');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleStatusUpdate = async (newStatus: OrderStatus, extraData: any = {}, notify: boolean = true) => {
+    const handleStatusUpdate = async (newStatus: OrderStatus, extraData: Record<string, unknown> = {}, notify: boolean = true) => {
         setActionLoading(true);
         try {
             await api.put(`/orders/${id}/status`, { status: newStatus, notifyCustomer: notify, ...extraData });
             await fetchOrder(); // Refresh
             setShipDialogOpen(false);
-        } catch (err: any) {
-            showNotification(err.response?.data?.message || 'Failed to update status', 'error');
+        } catch (err: unknown) {
+            showNotification(getErrorMessage(err) || 'Failed to update status', 'error');
         } finally {
             setActionLoading(false);
             setAnchorEl(null);
@@ -134,8 +144,8 @@ export default function OrderDetailPage() {
             await api.post(`/orders/${id}/cancel`, { reason: cancelReason, notifyCustomer });
             await fetchOrder();
             setCancelDialogOpen(false);
-        } catch (err: any) {
-            showNotification(err.response?.data?.message || 'Failed to cancel order', 'error');
+        } catch (err: unknown) {
+            showNotification(getErrorMessage(err) || 'Failed to cancel order', 'error');
         } finally {
             setActionLoading(false);
         }
@@ -153,8 +163,8 @@ export default function OrderDetailPage() {
                 try {
                     await api.patch(`/orders/${id}/refund`, { notifyCustomer: notify });
                     await fetchOrder();
-                } catch (err: any) {
-                    showNotification(err.response?.data?.message || 'Failed to refund', 'error');
+                } catch (err: unknown) {
+                    showNotification(getErrorMessage(err) || 'Failed to refund', 'error');
                 } finally {
                     setActionLoading(false);
                 }
@@ -174,8 +184,8 @@ export default function OrderDetailPage() {
                 try {
                     await api.patch(`/orders/${id}/return-status`, { status, notifyCustomer: notify });
                     await fetchOrder();
-                } catch (err: any) {
-                    showNotification(err.response?.data?.message || 'Failed to update return status', 'error');
+                } catch (err: unknown) {
+                    showNotification(getErrorMessage(err) || 'Failed to update return status', 'error');
                 } finally {
                     setActionLoading(false);
                 }
@@ -194,8 +204,8 @@ export default function OrderDetailPage() {
             await fetchOrder();
             setRefundDialogOpen(false);
             setAdminNote('');
-        } catch (err: any) {
-            showNotification(err.response?.data?.message || 'Failed to update refund status', 'error');
+        } catch (err: unknown) {
+            showNotification(getErrorMessage(err) || 'Failed to update refund status', 'error');
         } finally {
             setActionLoading(false);
         }
@@ -214,8 +224,8 @@ export default function OrderDetailPage() {
             link.click();
             link.remove();
             window.URL.revokeObjectURL(url);
-        } catch (err: any) {
-            showNotification(`Failed to download ${type}`, 'error');
+        } catch (err: unknown) {
+            showNotification(`Failed to download ${type}: ${getErrorMessage(err)}`, 'error');
         } finally {
             setDownloadAnchorEl(null);
         }
@@ -488,7 +498,7 @@ export default function OrderDetailPage() {
                                         <Typography variant="h6">Returns History</Typography>
                                     </Box>
                                     <Box sx={{ p: 2 }}>
-                                        {order.returns.map((returnRecord: any, idx: number) => (
+                                        {order.returns.map((returnRecord, idx: number) => (
                                             <Box key={idx} sx={{ mb: 3, bgcolor: 'warning.50' }}>
                                                 {/* Return Header */}
                                                 <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
@@ -524,10 +534,10 @@ export default function OrderDetailPage() {
                                                             </TableRow>
                                                         </TableHead>
                                                         <TableBody>
-                                                            {returnRecord.items.map((item: any, itemIdx: number) => {
-                                                                const originalItem = order.items.find((oi: any) => {
-                                                                    const pid = typeof oi.productId === 'object' ? oi.productId._id : oi.productId;
-                                                                    const iid = typeof item.productId === 'object' ? item.productId._id : item.productId;
+                                                            {returnRecord.items.map((item, itemIdx: number) => {
+                                                                const originalItem = order.items.find((oi) => {
+                                                                    const pid = typeof oi.productId === 'object' ? (oi.productId as any)._id : (oi.productId as string);
+                                                                    const iid = typeof item.productId === 'object' ? (item.productId as any)._id : (item.productId as string);
                                                                     return pid === iid;
                                                                 });
                                                                 return (

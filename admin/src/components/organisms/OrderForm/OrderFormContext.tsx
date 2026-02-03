@@ -14,6 +14,10 @@ export interface OrderItem {
     quantity: number;
     image?: string;
     weight?: number;
+    // Optional fields for compatibility with other order types
+    discountedPrice?: number;
+    taxAmount?: number;
+    shippingCost?: number;
 }
 
 interface StoreOption {

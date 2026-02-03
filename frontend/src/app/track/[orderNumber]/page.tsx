@@ -7,6 +7,7 @@ import api from '@/lib/api';
 import Loader from '@/components/molecules/Loader';
 import { formatDate } from '@/lib/date';
 import styles from './page.module.scss';
+import { Box, Check, Settings, Truck } from 'lucide-react';
 
 interface ShippingDetails {
     carrier?: string;
@@ -34,10 +35,10 @@ interface Order {
 }
 
 const STATUS_STEPS = [
-    { key: 'pending', label: 'Order Placed', icon: '📦' },
-    { key: 'processing', label: 'Processing', icon: '⚙️' },
-    { key: 'shipped', label: 'Shipped', icon: '🚚' },
-    { key: 'delivered', label: 'Delivered', icon: '✅' },
+    { key: 'pending', label: 'Order Placed', icon: <Box /> },
+    { key: 'processing', label: 'Processing', icon: <Settings /> },
+    { key: 'shipped', label: 'Shipped', icon: <Truck /> },
+    { key: 'delivered', label: 'Delivered', icon: <Check /> },
 ];
 
 export default function TrackOrderPage() {

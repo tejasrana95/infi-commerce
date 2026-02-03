@@ -27,6 +27,15 @@ export default function StripePaymentForm({
     const elements = useElements();
     const [processing, setProcessing] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const getErrorMessage = (err: unknown) => {
+        if (!err) return 'Unknown error';
+        if (typeof err === 'string') return err;
+        if (typeof err === 'object' && err !== null && 'response' in err) {
+            // @ts-ignore
+            return (err as any).response?.data?.message || JSON.stringify(err);
+        }
+        return JSON.stringify(err);
+    };
     
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -76,10 +85,11 @@ export default function StripePaymentForm({
                         
                         console.log('✅ Backend confirmed payment:', response.data);
                         onSuccess();
-                    } catch (backendError: any) {
-                        console.error('❌ Backend error confirming payment:', backendError);
-                        setErrorMessage(backendError.response?.data?.message || 'Failed to confirm payment with backend');
-                        onError(backendError.response?.data?.message || 'Failed to confirm payment');
+                    } catch (backendError: unknown) {
+                        const message = getErrorMessage(backendError);
+                        console.error('❌ Backend error confirming payment:', message);
+                        setErrorMessage(message || 'Failed to confirm payment with backend');
+                        onError(message || 'Failed to confirm payment');
                     }
                 } else {
                     console.warn(`⚠️ PaymentIntent status is not succeeded: ${paymentIntent.status}`);
@@ -90,9 +100,10 @@ export default function StripePaymentForm({
                 setErrorMessage('No payment intent returned from Stripe');
                 onError('No payment intent returned from Stripe');
             }
-        } catch (err: any) {
-            setErrorMessage(err.message || 'An unexpected error occurred');
-            onError(err.message || 'An unexpected error occurred');
+        } catch (err: unknown) {
+            const message = getErrorMessage(err);
+            setErrorMessage((message as string) || 'An unexpected error occurred');
+            onError((message as string) || 'An unexpected error occurred');
         } finally {
             setProcessing(false);
         }

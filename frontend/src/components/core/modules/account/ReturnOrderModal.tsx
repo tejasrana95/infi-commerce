@@ -8,10 +8,13 @@ import { apiClient } from '@/services/api-client';
 import { useStore } from '@/providers/StoreProvider';
 import { useCurrency } from '@/hooks/useCurrency';
 
+import { OrderDetails as OrderDetailsType, OrderItem as OrderItemType } from '@/components/templates/core/OrderDetails';
+import { Box, Lock } from 'lucide-react';
+
 interface ReturnOrderModalProps {
     isOpen: boolean;
     onClose: () => void;
-    order: any; // Using any for now to match flexible order structure, but should ideally be typed
+    order?: OrderDetailsType | null;
     onSuccess?: () => void;
 }
 
@@ -45,6 +48,17 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
     const [refundMethod, setRefundMethod] = useState('original');
     const [customerNotes, setCustomerNotes] = useState('');
     const [selectedItems, setSelectedItems] = useState<Map<string, { quantity: number; checked: boolean }>>(new Map());
+    
+    // Bank details form state (for bank_transfer refund method)
+    const [bankDetails, setBankDetails] = useState({
+        accountHolderName: '',
+        bankName: '',
+        accountNumber: '', // Can be account number or IBAN
+        swiftBicCode: '',
+        routingNumber: '',
+        accountType: 'checking', // checking or savings
+        branchAddress: ''
+    });
 
     const REFUND_METHODS = [
         { value: 'original', label: 'Refund to Original Payment Method' },
@@ -62,25 +76,38 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
         }));
     }
 
+    // Helper to extract error messages from unknown errors
+    const getErrorMessage = (err: unknown) => {
+        if (!err) return 'Unknown error';
+        if (typeof err === 'string') return err;
+        if (typeof err === 'object' && err !== null && 'response' in err) {
+            return (err as any).response?.data?.message || JSON.stringify(err);
+        }
+        return JSON.stringify(err);
+    };
+
     // Initialize selected items when order changes
     useEffect(() => {
         if (order?.items) {
             const initialSelection = new Map<string, { quantity: number; checked: boolean }>();
-            order.items.forEach((item: any) => {
-                // Determine unique key
-                const key = item.variantId ? `${item.productId}-${item.variantId}` : item.productId;
+            order.items.forEach((item: OrderItemType) => {
+                // Determine unique key - extract productId if it's an object
+                const pid = typeof item.productId === 'object' ? (item.productId as any)._id : (item.productId ?? '');
+                const key = item.variantId ? `${pid}-${item.variantId}` : pid;
                 const maxQty = item.quantity; // In a real app we might subtract already returned qty
                 const { eligible } = getEligibility(item, type);
                 initialSelection.set(key, { quantity: maxQty, checked: eligible ? true : false });
             });
             setSelectedItems(initialSelection);
         }
-    }, [order]);
+    }, [order, type]);
 
     const handleItemToggle = (itemKey: string) => {
+      
         setSelectedItems((prev) => {
             const newMap = new Map(prev);
             const current = newMap.get(itemKey);
+              console.log('current', newMap);
             if (current) {
                 newMap.set(itemKey, { ...current, checked: !current.checked });
             }
@@ -88,7 +115,7 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
         });
     };
 
-    const getEligibility = (item: any, returnType: 'return' | 'exchange'): EligibilityResult => {
+    const getEligibility = (item: OrderItemType, returnType: 'return' | 'exchange'): EligibilityResult => {
         if (!order?.deliveredAt) return { eligible: false, reason: 'Order not delivered' };
 
         // 1. Master switch check (isReturnable)
@@ -129,39 +156,31 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
         });
     };
 
-    const isFullOrderReturn = () => {
-        if (!order?.items || order.items.length === 0) return false;
-        let totalItems = 0;
-        let selectedCount = 0;
-        order.items.forEach((item: any) => {
-            totalItems++;
-            const key = item.variantId ? `${item.productId}-${item.variantId}` : item.productId;
-            const selection = selectedItems.get(key);
-            if (selection?.checked) {
-                selectedCount++;
-            }
-        });
-        return totalItems > 0 && totalItems === selectedCount;
-    };
-
     const calculateRefundBreakdown = () => {
         if (!order) return { subtotal: 0, tax: 0, shipping: 0, total: 0 };
 
         let subtotal = 0;
         let tax = 0;
-        order.items.forEach((item: any) => {
-            const key = item.variantId ? `${item.productId}-${item.variantId}` : item.productId;
-            const selection = selectedItems.get(key);
+        let shipping = 0;
+
+        order.items.forEach((item: OrderItemType) => {
+            const pid = typeof item.productId === 'object' ? (item.productId as any)._id : (item.productId ?? '');
+            const key = item.variantId ? `${pid}-${item.variantId}` : pid;
+            const selection = selectedItems.get(key as string);
             if (selection?.checked) {
                 // Use discounted price if available, otherwise regular price
                 const price = item.discountedPrice || item.price || 0;
                 subtotal += (price * selection.quantity);
                 tax += (item.taxAmount || 0) * selection.quantity;
+
+                // Calculate proportional shipping refund per item
+                // shippingCost is stored at item level for the full quantity
+                const itemShippingCost = item.shippingCost || 0;
+                const itemTotalQty = item.quantity || 1;
+                const unitShipping = itemShippingCost / itemTotalQty;
+                shipping += unitShipping * selection.quantity;
             }
         });
-
-        // Only include shipping if entire order is being returned
-        const shipping = isFullOrderReturn() ? (order.shippingCost || 0) : 0;
 
         return {
             subtotal,
@@ -200,16 +219,44 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
             return;
         }
 
+        // Validate bank details if bank transfer is selected
+        if (refundMethod === 'bank_transfer' && type === 'return') {
+            if (!bankDetails.accountHolderName.trim()) {
+                setError('Please enter account holder name');
+                return;
+            }
+            if (!bankDetails.bankName.trim()) {
+                setError('Please enter bank name');
+                return;
+            }
+            if (!bankDetails.accountNumber.trim()) {
+                setError('Please enter account number or IBAN');
+                return;
+            }
+            if (!bankDetails.swiftBicCode.trim()) {
+                setError('Please enter SWIFT/BIC code');
+                return;
+            }
+        }
+
         setLoading(true);
         setError(null);
 
         try {
             // Build items array
-            const items: any[] = [];
+            const items: Array<{
+                productId: string;
+                variantId?: string;
+                quantity: number;
+                name?: string;
+                sku?: string;
+                refundAmount: number;
+            }> = [];
 
-            order.items.forEach((item: any) => {
-                const key = item.variantId ? `${item.productId}-${item.variantId}` : item.productId;
-                const selection = selectedItems.get(key);
+            order.items.forEach((item: OrderItemType) => {
+                const pid = typeof item.productId === 'object' ? (item.productId as any)._id : (item.productId ?? '');
+                const key = item.variantId ? `${pid}-${item.variantId}` : pid;
+                const selection = selectedItems.get(key as string);
 
                 if (selection?.checked) {
                     const price = item.price || 0;
@@ -218,7 +265,7 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
                     const total = itemSubtotal + taxAmount;
 
                     items.push({
-                        productId: typeof item.productId === 'object' ? item.productId._id : item.productId,
+                        productId: typeof item.productId === 'object' ? (item.productId as any)._id : (item.productId as string),
                         variantId: item.variantId,
                         quantity: selection.quantity,
                         name: item.name,
@@ -242,16 +289,18 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
                 taxRefundAmount: refundBreakdown.tax,
                 shippingRefundAmount: refundBreakdown.shipping,
                 totalRefundAmount: refundBreakdown.total,
+                ...(refundMethod === 'bank_transfer' && type === 'return' && { bankDetails }),
             };
 
             await apiClient.post('returns/create', payload);
             toast.success('Return request submitted successfully');
             onSuccess?.();
             onClose();
-        } catch (err: any) {
-            console.error('Return request failed:', err);
-            setError(err.response?.data?.message || 'Failed to submit return request');
-            toast.error(err.response?.data?.message || 'Failed to submit return request');
+        } catch (err: unknown) {
+            const message = getErrorMessage(err);
+            console.error('Return request failed:', message);
+            setError(message || 'Failed to submit return request');
+            toast.error(message || 'Failed to submit return request');
         } finally {
             setLoading(false);
         }
@@ -328,12 +377,13 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
                 <div className={styles.section}>
                     <h3>Select Items</h3>
                     <div className={styles.itemsList}>
-                        {order?.items?.map((item: any) => {
+                        {order?.items?.map((item: OrderItemType) => {
                             // Validation logic
                             const { eligible, reason: eligibilityReason } = getEligibility(item, type);
                             const disabled = !eligible;
-                            const key = item.variantId ? `${item.productId}-${item.variantId}` : item.productId;
-                            const selection = selectedItems.get(key);
+                            const pid = typeof item.productId === 'object' ? (item.productId as any)._id : (item.productId ?? '');
+                            const key = item.variantId ? `${pid}-${item.variantId}` : pid;
+                            const selection = selectedItems.get(key as string);
                             const isChecked = disabled ? false : selection?.checked || false;
                             const qty = selection?.quantity || 1;
                             const maxQty = item.quantity;
@@ -353,7 +403,7 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
                                         {item.image ? (
                                             <img src={item.image} alt={item.name} />
                                         ) : (
-                                            <div className={styles.placeholder}>📦</div>
+                                            <div className={styles.placeholder}><Box /></div>
                                         )}
                                     </div>
                                     <div className={styles.infoCol}>
@@ -393,11 +443,11 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
 
                 <div className={styles.formGrid}>
                     <div className={styles.formGroup}>
-                        <label>Reason for Return {(returnSettings?.requireReturnReason ?? true) && <span className={styles.required}>*</span>}</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Reason for Return {(returnSettings?.requireReturnReason ?? true) && <span className={styles.required}>*</span>}</label>
                         <select
                             value={reason}
                             onChange={(e) => setReason(e.target.value)}
-                            className={styles.selectInput}
+                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-gray-900 bg-white cursor-pointer"
                         >
                             <option value="">Select a reason</option>
                             {RETURN_REASONS.map(r => (
@@ -408,11 +458,11 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
 
                     {type === 'return' && (
                         <div className={styles.formGroup}>
-                            <label>Refund Method</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Refund Method</label>
                             <select
                                 value={refundMethod}
                                 onChange={(e) => setRefundMethod(e.target.value)}
-                                className={styles.selectInput}
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-gray-900 bg-white cursor-pointer"
                             >
                                 {REFUND_METHODS.map(m => (
                                     <option key={m.value} value={m.value}>{m.label}</option>
@@ -422,14 +472,127 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
                     )}
                 </div>
 
+                {/* Bank Details Form - Shows when bank_transfer is selected */}
+                {type === 'return' && refundMethod === 'bank_transfer' && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mt-6 mb-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Bank Transfer Details</h3>
+                        <p className="text-sm text-gray-600 mb-5">
+                            Please provide your bank details. This information will be used securely to process your refund. Works with banks worldwide (US, Canada, Australia, EU, and more).
+                        </p>
+
+                        <div className={styles.formGrid}>
+                            <div className={styles.formGroup}>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Account Holder Name <span className={styles.required}>*</span></label>
+                                <input
+                                    type="text"
+                                    value={bankDetails.accountHolderName}
+                                    onChange={(e) => setBankDetails({ ...bankDetails, accountHolderName: e.target.value })}
+                                    placeholder="Full name as it appears on the bank account"
+                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-gray-900 placeholder:text-gray-500"
+                                />
+                            </div>
+
+                            <div className={styles.formGroup}>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Bank Name <span className={styles.required}>*</span></label>
+                                <input
+                                    type="text"
+                                    value={bankDetails.bankName}
+                                    onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value })}
+                                    placeholder="e.g., Chase Bank, Barclays, Commonwealth Bank"
+                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-gray-900 placeholder:text-gray-500"
+                                />
+                            </div>
+                        </div>
+
+                        <div className={styles.formGrid}>
+                            <div className={styles.formGroup}>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Account Number or IBAN <span className={styles.required}>*</span></label>
+                                <input
+                                    type="text"
+                                    value={bankDetails.accountNumber}
+                                    onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
+                                    placeholder="e.g., 1234567890 or IBAN: GB82 WEST 1234 5698 7654 32"
+                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-gray-900 placeholder:text-gray-500 font-mono"
+                                />
+                                <small className="text-xs text-gray-500 mt-1 block">
+                                    Enter your account number or IBAN (commonly used in Europe, Middle East, and Africa)
+                                </small>
+                            </div>
+
+                            <div className={styles.formGroup}>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">IFSC/SWIFT/BIC Code <span className={styles.required}>*</span></label>
+                                <input
+                                    type="text"
+                                    value={bankDetails.swiftBicCode}
+                                    onChange={(e) => setBankDetails({ ...bankDetails, swiftBicCode: e.target.value })}
+                                    placeholder="e.g., CHAUSUSXX, BARCGB22, CTBAAU2S"
+                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-gray-900 placeholder:text-gray-500 font-mono"
+                                />
+                                <small className="text-xs text-gray-500 mt-1 block">
+                                    Used for international bank transfers worldwide
+                                </small>
+                            </div>
+                        </div>
+
+                        <div className={styles.formGrid}>
+                            <div className={styles.formGroup}>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Routing Number (US/Canada)</label>
+                                <input
+                                    type="text"
+                                    value={bankDetails.routingNumber}
+                                    onChange={(e) => setBankDetails({ ...bankDetails, routingNumber: e.target.value })}
+                                    placeholder="Optional - 9 digit US routing number or Canadian transit number"
+                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-gray-900 placeholder:text-gray-500 font-mono"
+                                />
+                                <small className="text-xs text-gray-500 mt-1 block">
+                                    Optional - only needed for US/Canada domestic transfers
+                                </small>
+                            </div>
+
+                            <div className={styles.formGroup}>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Account Type</label>
+                                <select
+                                    value={bankDetails.accountType}
+                                    onChange={(e) => setBankDetails({ ...bankDetails, accountType: e.target.value })}
+                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-gray-900 bg-white cursor-pointer"
+                                >
+                                    <option value="checking">Checking</option>
+                                    <option value="current">Current</option>
+                                    <option value="savings">Savings</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className={styles.formGroup}>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Branch Address (Optional)</label>
+                            <input
+                                type="text"
+                                value={bankDetails.branchAddress}
+                                onChange={(e) => setBankDetails({ ...bankDetails, branchAddress: e.target.value })}
+                                placeholder="e.g., New York, NY or London, UK"
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-gray-900 placeholder:text-gray-500"
+                            />
+                            <small className="text-xs text-gray-500 mt-1 block">
+                                Optional - helps identify the correct branch for international transfers
+                            </small>
+                        </div>
+
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-5">
+                            <p className="text-xs text-yellow-800 m-0 flex items-center gap-1">
+                                <Lock size={12}/> Your bank details are encrypted and stored securely. They will only be used to process your refund.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 <div className={styles.formGroup}>
-                    <label>Additional Notes</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Additional Notes</label>
                     <textarea
                         value={customerNotes}
                         onChange={(e) => setCustomerNotes(e.target.value)}
                         placeholder="Please provide any additional details about your return request..."
                         rows={3}
-                        className={styles.textareaInput}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-gray-900 placeholder:text-gray-500 resize-none"
                     />
                 </div>
                 {type === 'return' && (
@@ -442,27 +605,25 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
                             <span>Subtotal:</span>
                             <strong>
                                 
-                                {convertAndFormat(calculateRefundBreakdown().subtotal, order?.currency, order?.exchangeRate )}
+                                {convertAndFormat(calculateRefundBreakdown().subtotal, order?.currency ?? 'USD', order?.exchangeRate ?? 1 )}
                             </strong>
                         </div>
                         <div className={styles.summaryItem}>
                             <span>Tax:</span>
                             <strong>
-                                {convertAndFormat(calculateRefundBreakdown().tax, order?.currency, order?.exchangeRate )}
+                                {convertAndFormat(calculateRefundBreakdown().tax, order?.currency ?? 'USD', order?.exchangeRate ?? 1 )}
                             </strong>
                         </div>
-                        {calculateRefundBreakdown().shipping > 0 && (
-                            <div className={styles.summaryItem}>
-                                <span>Shipping Refund:</span>
-                                <strong>
-                                    {convertAndFormat(calculateRefundBreakdown().shipping, order?.currency, order?.exchangeRate)}
-                                </strong>
-                            </div>
-                        )}
+                        <div className={styles.summaryItem}>
+                            <span>Shipping Refund:</span>
+                            <strong>
+                                {convertAndFormat(calculateRefundBreakdown().shipping, order?.currency ?? 'USD', order?.exchangeRate ?? 1)}
+                            </strong>
+                        </div>
                         <div className={styles.summaryItem}>
                             <span>Estimated Refund:</span>
                             <strong className={styles.refundAmount}>
-                                {convertAndFormat(calculateRefundBreakdown().total, order?.currency, order?.exchangeRate)}
+                                {convertAndFormat(calculateRefundBreakdown().total, order?.currency ?? 'USD', order?.exchangeRate ?? 1)}
                             </strong>
                         </div>
                     </div>

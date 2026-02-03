@@ -515,7 +515,7 @@ export const applyCoupon = asyncHandler(async (req: AuthRequest, res: Response) 
         code: couponCode.toUpperCase(),
         storeId,
     };
-    console.log('Applying coupon with filter:', couponFilter);
+
     // Apply channel filter: coupon should be applicable to this channel or have no channel restriction
     if (channel) {
         couponFilter.$or = [
@@ -959,24 +959,39 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
     }
 
     // ===== STEP 2: CALCULATE SHIPPING =====
-    // Use ShippingCalculatorService for consistent logic
-    const shippingCalculatorService = (await import('../services/shipping-calculator.service')).default;
+    // Use smart shipping service to handle category-specific rules
+    const smartShippingService = (await import('../services/smart-shipping.service')).default;
 
-    const shippingResult = await shippingCalculatorService.calculateShipping({
+    const smartShippingResult = await smartShippingService.calculateSmartShipping({
         storeId,
+        country: shippingAddress.country,
         items: orderItems.map(item => ({
             productId: item.productId.toString(),
+            variantId: item.variantId?.toString(),
             quantity: item.quantity,
+            price: item.price,
+            weight: item.weight || 0,
+            categoryIds: item.categoryIds?.map((id: any) => id.toString()) || [],
         })),
-        destination: {
-            country: shippingAddress.country,
-            state: shippingAddress.state,
-            city: shippingAddress.city,
-        },
-        subtotal,
     });
 
-    const shippingCost = shippingResult.cost;
+    let shippingCost = smartShippingResult.totalShippingCost;
+
+    // Apply per-item shipping allocations from smart shipping
+    for (const allocation of smartShippingResult.itemAllocations) {
+        const matchingItem = orderItems.find(item =>
+            item.productId.toString() === allocation.productId &&
+            (!allocation.variantId || item.variantId?.toString() === allocation.variantId)
+        );
+
+        if (matchingItem) {
+            // shippingCostPerUnit is the per-unit value for the Order model
+            matchingItem.shippingCost = allocation.shippingCostPerUnit;
+        }
+    }
+
+    // Log shipping breakdown for debugging
+    console.log('Smart shipping breakdown:', JSON.stringify(smartShippingResult.breakdown, null, 2));
 
 
     // ===== STEP 3: CALCULATE TAX =====

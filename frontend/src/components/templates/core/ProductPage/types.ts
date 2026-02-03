@@ -66,7 +66,7 @@ export interface ProductOption {
 export interface ProductSpecification {
     attributeId: string;
     name: string;
-    value: any;
+    value: unknown;
 }
 
 export interface ProductSEO {
@@ -321,7 +321,7 @@ export interface ProductPageTemplateProps {
     cardConfig?: ProductCardConfig;
 
     // Layout
-    layout?: any;
+    layout?: unknown;
 
     // User state
     isLoggedIn: boolean;
