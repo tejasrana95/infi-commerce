@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useMemo, memo } from 'react';
 import { Store } from 'lucide-react';
-import { Mail, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { Mail, Eye, EyeOff, ShieldCheck, Check } from 'lucide-react';
 
 import Button from '@/components/atoms/Button';
 import Input from '@/components/atoms/Input';
@@ -94,7 +94,7 @@ const LoginPage = memo(() => {
                 role: user.role,
                 storeIds: user.storeIds || [],
                 permissions: user.permissions || [],
-                posPermissions: user.posPermissions || {canApplyDiscount: false},
+                posPermissions: user.posPermissions || { canApplyDiscount: false },
                 twoFactorEnabled: !!user.twoFactorEnabled
             };
 
@@ -138,15 +138,15 @@ const LoginPage = memo(() => {
 
                         <ul className="space-y-3 text-sm">
                             <li className="flex items-start gap-3">
-                                <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-white/10 text-white">✓</span>
+                                <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-white/10 text-white"><Check size={14} /></span>
                                 Touch based & keyboard friendly UI
                             </li>
                             <li className="flex items-start gap-3">
-                                <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-white/10 text-white">✓</span>
+                                <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-white/10 text-white"><Check size={14} /></span>
                                 Easy shift & session management
                             </li>
                             <li className="flex items-start gap-3">
-                                <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-white/10 text-white">✓</span>
+                                <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-white/10 text-white"><Check size={14} /></span>
                                 Quick sale processing & payments
                             </li>
                         </ul>

@@ -22,6 +22,7 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { useAuth } from '@/contexts/AuthContext';
 import { Transition } from '@/utils/transition';
 import api from '@/lib/api';
+import { Check } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -177,24 +178,24 @@ export default function LoginPage() {
 
           <Box sx={{ textAlign: 'left', mt: 6 }}>
             <Box sx={{ mb: 3 }}>
-              <Typography variant="body1" fontWeight={600} gutterBottom>
-                ✓ Manage Products & Inventory
+              <Typography variant="body1" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Check size={20} /> Manage Products & Inventory
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.8, fontSize: '0.875rem' }}>
                 Complete control over your product catalog
               </Typography>
             </Box>
             <Box sx={{ mb: 3 }}>
-              <Typography variant="body1" fontWeight={600} gutterBottom>
-                ✓ Track Sales & Analytics
+              <Typography variant="body1" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Check size={20} /> Track Sales & Analytics
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.8, fontSize: '0.875rem' }}>
                 Real-time insights into your business
               </Typography>
             </Box>
             <Box>
-              <Typography variant="body1" fontWeight={600} gutterBottom>
-                ✓ Multi-Store Management
+              <Typography variant="body1" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Check size={20} /> Multi-Store Management
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.8, fontSize: '0.875rem' }}>
                 Manage multiple stores from one dashboard

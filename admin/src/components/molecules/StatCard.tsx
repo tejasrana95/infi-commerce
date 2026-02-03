@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { Card, CardContent, Typography, Box } from '@mui/material';
+import { ArrowUp, ArrowDown } from 'lucide-react';
 
 interface StatCardProps {
   icon: React.ReactNode;
@@ -75,7 +76,7 @@ const StatCard = memo(({ icon, title, value, subtitle, trend }: StatCardProps) =
                   fontSize: '0.75rem',
                 }}
               >
-                {trend.isPositive ? '↑' : '↓'} {Math.abs(trend.value)}%
+                {trend.isPositive ? <ArrowUp size={12} /> : <ArrowDown size={12} />} {Math.abs(trend.value)}%
               </Typography>
             )}
           </Box>

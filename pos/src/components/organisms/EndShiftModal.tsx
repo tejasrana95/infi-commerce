@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, DollarSign, FileText, Printer, Loader2 } from 'lucide-react';
+import { X, DollarSign, FileText, Printer, Loader2, Check } from 'lucide-react';
 import Button from '../atoms/Button';
 import Input from '../atoms/Input';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -270,7 +270,7 @@ export function EndShiftModal({ isOpen, onClose, session: initialSession, onSucc
                             {closingCash && (
                                 <p className={`text-sm mt-1 ${cashDifference === 0 ? 'text-green-600' : 'text-orange-600'}`}>
                                     {cashDifference === 0
-                                        ? '✓ Cash matches expected amount'
+                                        ? <span className="flex items-center gap-1"><Check size={14} /> Cash matches expected amount</span>
                                         : `${cashDifference > 0 ? 'Overage' : 'Shortage'}: ${formatPrice(enableRoundOff ? Math.ceil(Math.abs(cashDifference)) : Math.abs(cashDifference))}`
                                     }
                                 </p>

@@ -12,6 +12,7 @@ import {
     getInstallInstructions,
 } from '@/lib/pwa/pwa-utils';
 import styles from './InstallPrompt.module.scss';
+import { X } from 'lucide-react';
 
 const DISMISSED_KEY = 'pwa-install-dismissed';
 const DISMISSED_EXPIRY_DAYS = 7;
@@ -111,7 +112,7 @@ export default function InstallPrompt() {
                             </button>
                         )}
                         <button onClick={handleDismiss} className={styles.dismissButton}>
-                            ×
+                            <X size={20} />
                         </button>
                     </div>
                 </div>
@@ -162,7 +163,7 @@ export default function InstallPrompt() {
             <div className={styles.modalOverlay} onClick={handleDismiss} />
             <div className={`${styles.installPrompt} ${styles.modal}`}>
                 <button onClick={handleDismiss} className={styles.modalClose}>
-                    ×
+                    <X size={24} />
                 </button>
                 {store?.pwaSettings?.icons?.icon512 && (
                     <img

@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import styles from './CTAButton.module.scss';
+import { ArrowRight } from 'lucide-react';
 
 interface CTAButtonProps {
     text: string;
@@ -53,7 +54,7 @@ const CTAButton: React.FC<CTAButtonProps> = ({
     const renderContent = () => (
         <>
             {text}
-            {showArrow && <span className={styles.arrow}>→</span>}
+            {showArrow && <span className={styles.arrow}><ArrowRight size={16} /></span>}
         </>
     );
 

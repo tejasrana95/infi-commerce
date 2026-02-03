@@ -1,5 +1,6 @@
 import React from 'react';
 import styles from './Chip.module.scss';
+import { X } from 'lucide-react';
 
 /**
  * Chip Component - A versatile atomic component for displaying small pieces of information
@@ -89,7 +90,7 @@ export default function Chip({
                     aria-label="Remove"
                     type="button"
                 >
-                    ×
+                    <X size={14} />
                 </button>
             )}
         </span>

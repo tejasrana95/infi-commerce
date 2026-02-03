@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { apiClient } from '@/services/api-client';
 import styles from './ShippingCalculator.module.scss';
 import { useCurrency } from '@/hooks/useCurrency';
+import { Plus, Minus } from 'lucide-react';
 
 interface ShippingCalculatorProps {
     productId: string;
@@ -38,7 +39,7 @@ const ShippingCalculator: React.FC<ShippingCalculatorProps> = ({
     const [zip, setZip] = useState('');
     const [countries, setCountries] = useState<GeoCountry[]>([]);
     const [loadingCountries, setLoadingCountries] = useState(false);
-    const {formatPriceWithExchange} = useCurrency();
+    const { formatPriceWithExchange } = useCurrency();
 
     const [isExpanded, setIsExpanded] = useState(false);
 
@@ -78,7 +79,7 @@ const ShippingCalculator: React.FC<ShippingCalculatorProps> = ({
                     Shipping Calculator
                 </div>
                 <span className={styles.toggleIcon}>
-                    {isExpanded ? '−' : '+'}
+                    {isExpanded ? <Minus size={16} /> : <Plus size={16} />}
                 </span>
             </div>
 
