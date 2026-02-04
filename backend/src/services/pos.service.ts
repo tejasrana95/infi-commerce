@@ -142,8 +142,10 @@ class POSService {
         search = '',
         status = 'all',
         limit: number = 20,
-        skip: number = 0
-    ): Promise<{ sessions: IPOSSession[]; total: number; stats: { activeSessions: number; totalSales: number } }> {
+        skip: number = 0,
+        startDate = '',
+        endDate = ''
+    ): Promise<{ sessions: IPOSSession[]; total: number; stats: { activeSessions: number; totalSales: number; totalOrders: number; avgOrderValue: number; avgSessionDuration: number } }> {
         const filter: any = {};
         if (status && status !== 'all') {
             filter.status = status;
@@ -156,20 +158,28 @@ class POSService {
                 { sessionNumber: { $regex: search, $options: 'i' } },
             ];
         }
+        // Add date range filter
+        if (startDate || endDate) {
+            filter.startedAt = {};
+            if (startDate) {
+                filter.startedAt.$gte = new Date(startDate);
+            }
+            if (endDate) {
+                filter.startedAt.$lte = new Date(endDate);
+            }
+        }
         const sessions = await POSSession.find(filter)
             .populate('userId', 'firstName lastName role email')
             .sort({ startedAt: -1 })
             .limit(limit)
             .skip(skip);
 
-        const total = await POSSession.countDocuments({ storeId });
+        const total = await POSSession.countDocuments(filter);
 
         // Calculate stats
         const statsAggregation = await POSSession.aggregate([
             {
-                $match: {
-                    storeId,
-                },
+                $match: filter,
             },
             {
                 $facet: {
@@ -183,11 +193,68 @@ class POSService {
                     ],
                     totalSales: [
                         {
+                            $match: { status: (status === 'all' || status === '') ? { $in: ['active', 'closed'] } : status },
+                        },
+                        {
                             $group: {
                                 _id: null,
                                 total: { $sum: '$totalSales' },
                             },
                         },
+                    ],
+                    totalOrders: [
+                        {
+                            $match: { status: (status === 'all' || status === '') ? { $in: ['active', 'closed'] } : status },
+                        },
+                        {
+                            $group: {
+                                _id: null,
+                                total: { $sum: '$totalOrders' },
+                            },
+                        },
+                    ],
+                    avgOrderValue: [
+                        {
+                            $match: { status: (status === 'all' || status === '') ? { $in: ['active', 'closed'] } : status },
+                        },
+                        {
+                            $group: {
+                                _id: null,
+                                totalSales: { $sum: '$totalSales' },
+                                totalOrders: { $sum: '$totalOrders' },
+                            },
+                        },
+                        {
+                            $project: {
+                                avgOrderValue: {
+                                    $cond: [
+                                        { $eq: ['$totalOrders', 0] },
+                                        0,
+                                        { $divide: ['$totalSales', '$totalOrders'] }
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    avgSessionDuration: [
+                        {
+                            $match: { status: 'closed' },
+                        },
+                        {
+                            $group: {
+                                _id: null,
+                                avgDuration: {
+                                    $avg: {
+                                        $subtract: ['$endedAt', '$startedAt']
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            $project: {
+                                avgDuration: { $divide: ['$avgDuration', 1000 * 60] }
+                            }
+                        }
                     ],
                 },
             },
@@ -195,6 +262,9 @@ class POSService {
 
         const activeSessions = statsAggregation[0].activeSessions[0]?.count || 0;
         const totalSales = statsAggregation[0].totalSales[0]?.total || 0;
+        const totalOrders = statsAggregation[0].totalOrders[0]?.total || 0;
+        const avgOrderValue = statsAggregation[0].avgOrderValue[0]?.avgOrderValue || 0;
+        const avgSessionDuration = statsAggregation[0].avgSessionDuration[0]?.avgDuration || 0;
 
         return {
             sessions,
@@ -202,6 +272,9 @@ class POSService {
             stats: {
                 activeSessions,
                 totalSales,
+                totalOrders,
+                avgOrderValue,
+                avgSessionDuration,
             },
         };
     }

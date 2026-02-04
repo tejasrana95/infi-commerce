@@ -77,10 +77,9 @@ export default function ModernCleanProductPageTemplate({
     const { error: toastError } = useToast();
     const { currentCurrency, store } = useStore();
     const { formatPriceWithExchange } = useCurrency();
-    const { enabled = false, defaultExchangeWindow = 0, defaultReturnWindow = 0} = store?.settings?.returnSettings || {};
+    const { enabled = false, defaultExchangeWindow = 0, defaultReturnWindow = 0 } = store?.settings?.returnSettings || {};
     // Get ProductCard component
     const ProductCard = getComponent('ProductCard', templateId);
-
     // Review form state
     const [showReviewForm, setShowReviewForm] = useState(false);
     const [reviewFormData, setReviewFormData] = useState({
@@ -404,7 +403,7 @@ export default function ModernCleanProductPageTemplate({
 
             {/* Price */}
             <div className={styles.pricing}>
-                
+
                 <span className={styles.price}>{formatPriceWithExchange(effectivePrice)}</span>
                 {hasDiscount && displayComparePrice && (
                     <>
@@ -504,11 +503,11 @@ export default function ModernCleanProductPageTemplate({
             {/* Return & Exchange Info */}
             {product?.returnSettings?.isReturnable && enabled && <ProductReturnExchange
                 info={{
-                    returnWindow: product?.returnSettings?.returnWindowDays || defaultReturnWindow || 0,
-                    exchangeWindow: product?.returnSettings?.exchangeWindowDays || defaultExchangeWindow || 0,
+                    returnWindow: product?.returnSettings && product?.returnSettings?.returnWindowDays !== undefined ? product?.returnSettings?.returnWindowDays : defaultReturnWindow || 0,
+                    exchangeWindow: product?.returnSettings && product?.returnSettings?.exchangeWindowDays !== undefined ? product?.returnSettings?.exchangeWindowDays : defaultExchangeWindow || 0,
                 }}
             />}
-            
+
 
             {/* Action Buttons */}
             {product.type === 'variable' && !allOptionsSelected && (

@@ -21,6 +21,7 @@ import {
     BreadcrumbItem,
     ProductPageConfig,
     ProductPageTemplateProps,
+    ProductPageLayout,
     DEFAULT_PRODUCT_PAGE_CONFIG,
     DEFAULT_REVIEW_SETTINGS,
 } from './types';
@@ -28,7 +29,7 @@ import { useCurrency } from '@/hooks/useCurrency';
 
 interface ProductPageContainerProps {
     product: Product;
-    layout?: React.ReactNode;
+    layout?: ProductPageLayout | null;
 }
 
 
@@ -39,7 +40,7 @@ export default function ProductPageContainer({
 }: ProductPageContainerProps) {
     const { store, currentCurrency } = useStore();
     const themeConfig = useThemeConfig();
-    const {formatPriceWithExchange} = useCurrency();
+    const { formatPriceWithExchange } = useCurrency();
     const currency = useCurrency();
     const { isInWishlist, toggleWishlist } = useWishlist();
     const { addToCompare, isInCompare, removeFromCompare, canAddToCompare, config: compareConfig } = useCompare();

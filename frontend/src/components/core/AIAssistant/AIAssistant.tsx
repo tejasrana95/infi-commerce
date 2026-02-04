@@ -260,9 +260,6 @@ export default function AIAssistant() {
                                     }
                                     return newHistory;
                                 });
-                            } else if (data.type === 'function_call') {
-                                // Optional: Show indicator that AI is fetching data
-                                console.log('AI is calling function:', data.name);
                             } else if (data.type === 'done') {
                                 // Stream complete
                                 break;
@@ -294,9 +291,8 @@ export default function AIAssistant() {
 
     // Only show if enabled and API key is configured
     const aiEnabled = store.settings?.aiSettings?.enabled || false;
-    const hasApiKey = !!store.settings?.aiSettings?.openaiKey;
 
-    if (!aiEnabled || !hasApiKey) {
+    if (!aiEnabled) {
         return null;
     }
 

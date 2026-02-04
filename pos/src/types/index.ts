@@ -71,7 +71,7 @@ export interface Category {
     _id: string;
     name: string;
     slug: string;
-    parentCategory?: Category;
+    parentCategory?: Category | string;
     image?: string;
 }
 

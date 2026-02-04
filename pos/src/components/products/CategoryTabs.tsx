@@ -17,10 +17,10 @@ export default function CategoryTabs({ categories, selectedId, onSelect }: Categ
     const selectedCategory = categories.find(c => c.id === selectedId);
     const activeRootId = selectedId === 'all'
         ? 'all'
-        : (selectedCategory?.parentCategory?._id || selectedId);
+        : (typeof selectedCategory?.parentCategory === 'object' ? selectedCategory?.parentCategory?._id : selectedCategory?.parentCategory) || selectedId;
 
     const subCategories = activeRootId !== 'all'
-        ? categories.filter(cat => cat.parentCategory?._id === activeRootId)
+        ? categories.filter(cat => typeof cat.parentCategory === 'object' ? cat.parentCategory?._id === activeRootId : cat.parentCategory === activeRootId)
         : [];
 
     const activeRoot = rootCategories.find(c => c.id === activeRootId);

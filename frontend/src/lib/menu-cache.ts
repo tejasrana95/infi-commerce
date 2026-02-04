@@ -5,7 +5,7 @@
 
 import { Menu } from '@/types/menu';
 
-const MEMORY_CACHE_TTL = 60 * 1000; // 1 minute
+const MEMORY_CACHE_TTL = 1440 * 60 * 1000; // 24 hours
 
 interface CachedMenuConfig {
     menuId: string;
@@ -37,7 +37,7 @@ async function loadFileCache(): Promise<Record<string, CachedMenuConfig> | null>
             const path = pathModule.default || pathModule;
             const CACHE_FILE_PATH = path.join(process.cwd(), '.next/cache/menu-config.json');
 
-            if (fs.existsSync(CACHE_FILE_PATH)) {
+            if (fs.existsSync(CACHE_FILE_PATH) && process.env.USE_CACHE_JSON === 'true') {
                 const content = fs.readFileSync(CACHE_FILE_PATH, 'utf-8');
                 fileCache = JSON.parse(content);
             }

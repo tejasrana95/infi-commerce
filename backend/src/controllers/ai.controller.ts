@@ -12,7 +12,9 @@ import Cart from '../models/Cart';
 import Order from '../models/Order';
 import UserInterest from '../models/UserInterest';
 import Customer from '../models/Customer';
+import ReturnRequest from '../models/ReturnRequest';
 import { addTimezoneAwareDates } from '../utils/date.utils';
+import { addPricingToProduct } from './product.controller';
 
 // Maximum iterations for tool call loops to prevent infinite loops
 const MAX_TOOL_ITERATIONS = 5;
@@ -152,6 +154,20 @@ function getToolDefinitions(userId?: string): OpenAI.Chat.ChatCompletionTool[] {
                     description: "Get items in the user's wishlist",
                     parameters: { type: "object", properties: {} }
                 }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "getUserReturns",
+                    description: "Get user's return and exchange requests with optional status filtering",
+                    parameters: {
+                        type: "object",
+                        properties: {
+                            status: { type: "string", description: "Filter by status (e.g., pending, approved, completed)" },
+                            limit: { type: "number", description: "Number of results to return (default 5, max 10)" }
+                        }
+                    }
+                }
             }
         );
     }
@@ -179,10 +195,27 @@ async function executeToolCall(
             const limit = Math.min(args.limit || 10, 20);
 
             if (args.query) {
+                // Search in product name, description, and variant attributes
+                const searchTerms = args.query.toLowerCase().split(' ');
+
                 query.$or = [
                     { name: { $regex: args.query, $options: 'i' } },
                     { description: { $regex: args.query, $options: 'i' } }
                 ];
+
+                // Add attribute search for each search term
+                // Searching in attributes.values and productOptions.values which are string arrays
+                searchTerms.forEach((term: string) => {
+                    if (term.length > 2) {
+                        query.$or.push({
+                            'attributes.values': { $regex: term, $options: 'i' }
+                        });
+                        query.$or.push({
+                            'productOptions.values': { $regex: term, $options: 'i' }
+                        });
+                    }
+                });
+
             }
 
             if (args.minPrice || args.maxPrice) {
@@ -193,18 +226,53 @@ async function executeToolCall(
 
             const products = await Product.find(query)
                 .populate('brand', 'name')
+                .populate('taxClassId', 'name rate isSplit subTaxes')
                 .limit(limit)
-                .select('name slug price salePrice stockStatus brand description')
+                .select('name slug price salePrice stockStatus brand description type variants')
                 .lean();
 
-            data = products.map(p => ({
-                name: p.name,
-                price: `${currencySymbol}${((p.salePrice || p.price) * exchangeRate).toLocaleString()}`,
-                brand: (p.brand as any)?.name,
-                status: p.stockStatus,
-                url: `${baseUrl}/product/${p.slug}`,
-                description: p.description?.substring(0, 150) + '...'
-            }));
+            data = products.map(p => {
+                // Add pricing using the standard utility
+                const productWithPricing = addPricingToProduct(p);
+                let finalPrice = productWithPricing.pricing.finalPrice * exchangeRate;
+                let priceNote = '';
+                let variantInfo = '';
+
+                // For variable products, check if there are matching variants
+                if (p.type === 'variable' && p.variants && p.variants.length > 0 && args.query) {
+                    const matchingVariants = p.variants.filter((v: any) => {
+                        const attrString = JSON.stringify(v.attributes).toLowerCase();
+                        return args.query.toLowerCase().split(' ').some((term: string) =>
+                            term.length > 2 && attrString.includes(term.toLowerCase())
+                        );
+                    });
+
+                    if (matchingVariants.length > 0) {
+                        // Use the first matching variant's pricing
+                        const matchingVariant = productWithPricing.variants.find((v: any) =>
+                            v.sku === matchingVariants[0].sku
+                        );
+                        if (matchingVariant && matchingVariant.pricing) {
+                            finalPrice = matchingVariant.pricing.finalPrice * exchangeRate;
+                            priceNote = ' (variant price)';
+                        }
+
+                        const variantDescriptions = matchingVariants.slice(0, 3).map((v: any) =>
+                            Object.entries(v.attributes).map(([key, val]) => `${key}: ${val}`).join(', ')
+                        );
+                        variantInfo = ` Available in: ${variantDescriptions.join(' | ')}`;
+                    }
+                }
+
+                return {
+                    name: p.name,
+                    price: `${currencySymbol}${finalPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${priceNote}`,
+                    brand: (p.brand as any)?.name,
+                    status: p.stockStatus,
+                    url: `${baseUrl}/product/${p.slug}`,
+                    description: (p.description?.substring(0, 150) || '') + variantInfo + '...'
+                };
+            });
             break;
         }
 
@@ -218,19 +286,79 @@ async function executeToolCall(
             })
                 .populate('brand', 'name')
                 .populate('categoryIds', 'name')
+                .populate('taxClassId', 'name rate isSplit subTaxes')
                 .lean();
 
             if (product) {
+                // Add pricing using the standard utility
+                const productWithPricing = addPricingToProduct(product);
+                const pricing = productWithPricing.pricing;
+                const finalPrice = pricing.finalPrice * exchangeRate;
+
+                // Build tax info
+                let taxInfo = null;
+                if (product.taxClassId) {
+                    const taxClass = product.taxClassId as any;
+                    const taxAmount = pricing.taxAmount * exchangeRate;
+                    const priceBeforeTax = pricing.unitDiscountedPrice * exchangeRate;
+
+                    taxInfo = {
+                        taxName: taxClass.name,
+                        taxRate: `${pricing.taxRate}%`,
+                        taxAmount: `${currencySymbol}${taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                        priceBeforeTax: `${currencySymbol}${priceBeforeTax.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                        subTaxes: [] as any[]
+                    };
+
+                    // Include split tax details if applicable
+                    if (pricing.taxBreakdown) {
+                        taxInfo.subTaxes = pricing.taxBreakdown.map((st: any) => ({
+                            name: st.name,
+                            rate: `${st.rate}%`,
+                            amount: `${currencySymbol}${(st.amount * exchangeRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        }));
+                    }
+                }
+
+                // Include variant information for variable products
+                let variantsInfo = null;
+                if (product.type === 'variable' && productWithPricing.variants && productWithPricing.variants.length > 0) {
+                    variantsInfo = productWithPricing.variants.map((v: any) => {
+                        const variantFinalPrice = v.pricing.finalPrice * exchangeRate;
+
+                        return {
+                            sku: v.sku,
+                            attributes: Object.entries(v.attributes).map(([key, val]) => `${key}: ${val}`).join(', '),
+                            price: `${currencySymbol}${variantFinalPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                            stock: v.stock,
+                            images: v.images,
+                            isOnSale: v.pricing.isOnSale,
+                            ...(v.pricing.isOnSale && {
+                                originalPrice: `${currencySymbol}${(v.pricing.originalPrice * exchangeRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                                discountPercent: v.pricing.discountPercent
+                            })
+                        };
+                    });
+                }
+
                 data = {
                     name: product.name,
-                    price: `${currencySymbol}${((product.salePrice || product.price) * exchangeRate).toLocaleString()}`,
+                    type: product.type,
+                    price: `${currencySymbol}${finalPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
                     brand: (product.brand as any)?.name,
                     categories: (product.categoryIds as any[])?.map(c => c.name).join(', '),
                     status: product.stockStatus,
                     description: product.description,
                     url: `${baseUrl}/product/${product.slug}`,
                     sku: product.sku,
-                    images: product.images
+                    images: product.images,
+                    isOnSale: pricing.isOnSale,
+                    ...(pricing.isOnSale && {
+                        originalPrice: `${currencySymbol}${(pricing.originalPrice * exchangeRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                        discountPercent: pricing.discountPercent
+                    }),
+                    ...(taxInfo && { tax: taxInfo }),
+                    ...(variantsInfo && { variants: variantsInfo })
                 };
             }
             break;
@@ -412,6 +540,42 @@ async function executeToolCall(
             break;
         }
 
+        case 'getUserReturns': {
+            const query: any = { customerId: userId, storeId };
+            if (args.status) {
+                query.status = args.status;
+            }
+
+            const limit = Math.min(args.limit || 5, 10);
+
+            const returns = await ReturnRequest.find(query)
+                .sort({ createdAt: -1 })
+                .limit(limit)
+                .lean();
+
+            data = returns.map(r => {
+                // Apply timezone conversion
+                const localizedReturn = addTimezoneAwareDates(r, timezone, ['createdAt', 'updatedAt']);
+
+                return {
+                    requestNumber: r.requestNumber,
+                    type: r.type,
+                    status: r.status,
+                    orderNumber: r.orderNumber,
+                    items: r.items.map(i => ({
+                        name: i.name,
+                        quantity: i.quantity,
+                        reason: i.reason,
+                        condition: i.condition
+                    })),
+                    refundAmount: r.totalRefundAmount ? `${currencySymbol}${((r.totalRefundAmount || 0) * exchangeRate).toLocaleString()}` : 'N/A',
+                    requestedAt: localizedReturn.createdAtLocal, // Using localized date
+                    lastUpdated: localizedReturn.updatedAtLocal
+                };
+            });
+            break;
+        }
+
         default:
             data = { error: `Unknown function: ${functionName}` };
     }
@@ -441,7 +605,7 @@ ${userId ? 'The user is logged in.' : 'The user is a guest. Remind them gently t
 CORE CAPABILITIES:
 1. Product Discovery: Use searchProducts to find items based on any criteria.
 2. Product Details: Use getProductDetails to get full information for a specific product.
-3. User Data: Use getUserCart, getUserOrders, and getUserWishlist to provide personalized service for logged-in users.
+34. User Data: Use getUserCart, getUserOrders, getUserWishlist, and getUserReturns to provide personalized service for logged-in users.
 4. Information: Use searchPages and searchBlogPosts to answer general questions about store policies, news, or advice.
 
 URL PATTERNS (Use these exact formats when providing links):

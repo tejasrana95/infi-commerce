@@ -59,6 +59,12 @@ interface SearchFilterBarProps {
     categoryFilterValue?: string;
     categoryFilterStoreId?: string;
     onCategoryFilterChange?: (value: string) => void;
+    // Date filter options
+    showDateFilter?: boolean;
+    datePreset?: 'today' | 'yesterday' | 'last7' | 'thisMonth' | 'last30' | 'custom';
+    onDatePresetChange?: (preset: 'today' | 'yesterday' | 'last7' | 'thisMonth' | 'last30' | 'custom') => void;
+    dateRangeValue?: { start: string; end: string };
+    onDateRangeChange?: (dates: { start: string; end: string }) => void;
 }
 
 const SearchFilterBar = memo(({
@@ -80,6 +86,11 @@ const SearchFilterBar = memo(({
     categoryFilterValue = '',
     categoryFilterStoreId = '',
     onCategoryFilterChange,
+    showDateFilter = false,
+    datePreset = 'today',
+    onDatePresetChange,
+    dateRangeValue = { start: '', end: '' },
+    onDateRangeChange,
 }: SearchFilterBarProps) => {
     const [localSearch, setLocalSearch] = useState(searchValue);
     const debouncedSearch = useDebounce(localSearch, 300);
@@ -125,9 +136,15 @@ const SearchFilterBar = memo(({
         if (onCategoryFilterChange) {
             onCategoryFilterChange('');
         }
+        if (onDateRangeChange) {
+            onDateRangeChange({ start: '', end: '' });
+        }
+        if (onDatePresetChange) {
+            onDatePresetChange('today');
+        }
     };
 
-    const hasActiveFilters = Object.keys(activeFilters).length > 0 || localSearch || storeFilterValue || categoryFilterValue;
+    const hasActiveFilters = Object.keys(activeFilters).length > 0 || localSearch || storeFilterValue || categoryFilterValue || dateRangeValue?.start || dateRangeValue?.end;
 
     return (
         <Paper
@@ -225,7 +242,7 @@ const SearchFilterBar = memo(({
 
 
                 {/* Bottom Row - Filters */}
-                {(filters.length > 0 || showStoreFilter || showCategoryFilter) && (
+                {(filters.length > 0 || showStoreFilter || showCategoryFilter || showDateFilter) && (
                     <Box
                         sx={{
                             display: 'flex',
@@ -234,7 +251,7 @@ const SearchFilterBar = memo(({
                             alignItems: 'center',
                         }}
                     >
-                        {(filters.length > 0 || showStoreFilter || showCategoryFilter) && (
+                        {(filters.length > 0 || showStoreFilter || showCategoryFilter || showDateFilter) && (
                             <Box display="flex" alignItems="center" gap={0.5}>
                                 <FilterListIcon fontSize="small" color="action" />
                                 <Box component="span" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
@@ -292,6 +309,49 @@ const SearchFilterBar = memo(({
                                     />
                                 </Box>
                             </Tooltip>
+                        )}
+
+                        {/* Date filter */}
+                        {showDateFilter && onDatePresetChange && (
+                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                                <FormControl size="small" sx={{ minWidth: 150 }}>
+                                    <InputLabel>Date Range</InputLabel>
+                                    <Select
+                                        value={datePreset}
+                                        label="Date Range"
+                                        onChange={(e: SelectChangeEvent) => onDatePresetChange(e.target.value as any)}
+                                    >
+                                        <MenuItem value="today">Today</MenuItem>
+                                        <MenuItem value="yesterday">Yesterday</MenuItem>
+                                        <MenuItem value="last7">Last 7 Days</MenuItem>
+                                        <MenuItem value="thisMonth">This Month</MenuItem>
+                                        <MenuItem value="last30">Last 30 Days</MenuItem>
+                                        <MenuItem value="custom">Custom</MenuItem>
+                                    </Select>
+                                </FormControl>
+                                {datePreset === 'custom' && onDateRangeChange && (
+                                    <>
+                                        <TextField
+                                            type="date"
+                                            size="small"
+                                            label="Start Date"
+                                            value={dateRangeValue?.start || ''}
+                                            onChange={(e) => onDateRangeChange({ ...dateRangeValue, start: e.target.value })}
+                                            InputLabelProps={{ shrink: true }}
+                                            sx={{ width: 150 }}
+                                        />
+                                        <TextField
+                                            type="date"
+                                            size="small"
+                                            label="End Date"
+                                            value={dateRangeValue?.end || ''}
+                                            onChange={(e) => onDateRangeChange({ ...dateRangeValue, end: e.target.value })}
+                                            InputLabelProps={{ shrink: true }}
+                                            sx={{ width: 150 }}
+                                        />
+                                    </>
+                                )}
+                            </Box>
                         )}
                     </Box>
                 )}

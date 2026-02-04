@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import styles from './ProductReturnExchange.module.scss';
 import DynamicIcon from '@/components/core/common/DynamicIcon';
 import { useStore } from '@/providers/StoreProvider';
+
 interface ReturnExchangeInfo {
     returnWindow?: number; // in days
     exchangeWindow?: number; // in days
@@ -28,130 +29,133 @@ const defaultReturnExchangeInfo: ReturnExchangeInfo = {
     freeExchanges: true,
 };
 
-export default function ProductReturnExchange({ 
+export default function ProductReturnExchange({
     info = defaultReturnExchangeInfo,
 }: ProductReturnExchangeProps) {
     const [showDetails, setShowDetails] = useState(false);
     const { store } = useStore();
-    const { exchangeConditions = [], processSteps = [], returnConditions = []} = store?.settings?.returnSettings || {};
+    const { exchangeConditions = [], processSteps = [], returnConditions = [] } = store?.settings?.returnSettings || {};
     const returnInfo = { ...defaultReturnExchangeInfo, ...info };
 
-    const getReturnWindowText = () => {
-        if (!returnInfo.returnWindow) return 'Check return policy';
-        return `${returnInfo.returnWindow}-day returns`;
-    };
+    const hasReturnPolicy = returnInfo?.returnWindow !== undefined && returnInfo?.returnWindow > 0;
+    const hasExchangePolicy = returnInfo?.exchangeWindow !== undefined && returnInfo?.exchangeWindow > 0;
 
-    const getExchangeWindowText = () => {
-        if (!returnInfo.exchangeWindow) return 'Check exchange policy';
-        return `${returnInfo.exchangeWindow}-day exchanges`;
-    };
+    if (!hasReturnPolicy && !hasExchangePolicy) return null;
 
     return (
         <div className={styles.container}>
-            {/* Quick Info Cards */}
-            <div className={styles.quickInfo}>
-                {/* Returns Card */}
-                <div className={styles.infoCard}>
-                    <div className={styles.cardHeader}>
+            {/* Minimal Service Row */}
+            <div className={styles.serviceRow}>
+                {hasReturnPolicy && (
+                    <div
+                        className={styles.serviceItem}
+                        onClick={() => setShowDetails(!showDetails)}
+                        role="button"
+                        tabIndex={0}
+                    >
                         <div className={styles.iconWrapper}>
-                            <DynamicIcon name="MdOutlineKeyboardReturn" size={24} />
+                            <DynamicIcon name="MdOutlineKeyboardReturn" size={20} />
                         </div>
-                        <div className={styles.cardContent}>
-                            <h3 className={styles.cardTitle}>{getReturnWindowText()}</h3>
-                            <span className={styles.badge}>Free Returns</span>
-                        </div>
+                        <span className={styles.label}>
+                            {returnInfo.returnWindow} Days Returnable
+                        </span>
                     </div>
-                </div>
+                )}
 
-                {/* Exchanges Card */}
-                <div className={styles.infoCard}>
-                    <div className={styles.cardHeader}>
+                {hasExchangePolicy && (
+                    <div
+                        className={styles.serviceItem}
+                        onClick={() => setShowDetails(!showDetails)}
+                        role="button"
+                        tabIndex={0}
+                    >
                         <div className={styles.iconWrapper}>
-                             <DynamicIcon name="MdOutlineSwapHoriz" size={24} />
+                            <DynamicIcon name="MdOutlineSwapHoriz" size={20} />
                         </div>
-                        <div className={styles.cardContent}>
-                            <h3 className={styles.cardTitle}>{getExchangeWindowText()}</h3>
-                            <span className={styles.badge}>Free Exchanges</span>
-                        </div>
+                        <span className={styles.label}>
+                            Exchange Available
+                        </span>
                     </div>
-                </div>
+                )}
             </div>
 
-            {/* Details Toggle */}
-            <button
-                className={styles.toggleBtn}
-                onClick={() => setShowDetails(!showDetails)}
-            >
-                <span>{showDetails ? 'Hide' : 'View'} Return & Exchange Details</span>
-                <svg 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth={2}
-                    className={showDetails ? styles.iconOpen : ''}
-                >
-                    <path d="M19 14l-7-7-7 7" />
-                </svg>
-            </button>
-
-            {/* Detailed Information */}
+            {/* Detailed Information (Expandable) */}
             {showDetails && (
-                <div className={styles.details}>
+                <div className={styles.detailsContainer}>
+                    <div className="flex justify-end">
+                        <button
+                            className={styles.closeDetails}
+                            onClick={() => setShowDetails(false)}
+                        >
+                            Close Details <DynamicIcon name="MdClose" size={14} />
+                        </button>
+                    </div>
                     {/* Return Conditions */}
                     <div className={styles.section}>
                         <h4 className={styles.sectionTitle}>
-                            <span className={styles.sectionIcon}><DynamicIcon name="MdOutlineKeyboardReturn" size={24} /></span>
-                            Return Requirements
+                            Return Policy
                         </h4>
                         <ul className={styles.conditionsList}>
-                            {returnConditions?.map((condition, idx) => (
+                            {returnConditions?.length > 0 ? returnConditions.map((condition, idx) => (
                                 <li key={idx}>
-                                    <span className={styles.checkmark}><DynamicIcon name="MdCheck" size={12} /></span>
+                                    <DynamicIcon name="MdCheck" size={14} />
                                     {condition}
                                 </li>
-                            ))}
+                            )) : (
+                                <li>
+                                    <DynamicIcon name="MdCheck" size={14} />
+                                    Items must be returned within {returnInfo.returnWindow} days
+                                </li>
+                            )}
                         </ul>
                     </div>
 
                     {/* Exchange Conditions */}
-                    <div className={styles.section}>
-                        <h4 className={styles.sectionTitle}>
-                            <span className={styles.sectionIcon}><DynamicIcon name="MdOutlineSwapHoriz" size={24} /></span>
-                            Exchange Process
-                        </h4>
-                        <ul className={styles.conditionsList}>
-                            {exchangeConditions?.map((condition, idx) => (
-                                <li key={idx}>
-                                    <span className={styles.checkmark}><DynamicIcon name="MdCheck" size={12} /></span>
-                                    {condition}
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
+                    {hasExchangePolicy && (
+                        <div className={styles.section}>
+                            <h4 className={styles.sectionTitle}>
+                                Exchange Policy
+                            </h4>
+                            <ul className={styles.conditionsList}>
+                                {exchangeConditions?.length > 0 ? exchangeConditions.map((condition, idx) => (
+                                    <li key={idx}>
+                                        <DynamicIcon name="MdCheck" size={14} />
+                                        {condition}
+                                    </li>
+                                )) : (
+                                    <li>
+                                        <DynamicIcon name="MdCheck" size={14} />
+                                        Free exchange for size or color issues
+                                    </li>
+                                )}
+                            </ul>
+                        </div>
+                    )}
 
                     {/* Process Steps */}
-                    <div className={styles.section}>
-                        <h4 className={styles.sectionTitle}>
-                            <span className={styles.sectionIcon}><DynamicIcon name="MdOutlineListAlt" size={24} /></span>
-                            How It Works
-                        </h4>
-                        <div className={styles.steps}>
-                            {processSteps?.map((step, idx) => (
-                            <div key={idx} className={styles.step}>
-                                <div className={styles.stepNumber}>{idx + 1}</div>
-                                <div className={styles.stepContent}>
-                                    <strong>{step.label}</strong>
-                                    {step.description && <p>{step.description}</p>}
-                                </div>
+                    {processSteps?.length > 0 && (
+                        <div className={styles.section}>
+                            <h4 className={styles.sectionTitle}>
+                                How It Works
+                            </h4>
+                            <div className={styles.steps}>
+                                {processSteps.map((step, idx) => (
+                                    <div key={idx} className={styles.step}>
+                                        <div className={styles.stepNumber}>{idx + 1}</div>
+                                        <div className={styles.stepContent}>
+                                            <strong>{step.label}</strong>
+                                            {step.description && <p>{step.description}</p>}
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
-                            ))}
                         </div>
-                    </div>
+                    )}
 
-                    {/* Info Text */}
+                    {/* Additional Description */}
                     {returnInfo.description && (
                         <div className={styles.description}>
-                            <p>{returnInfo.description}</p>
+                            {returnInfo.description}
                         </div>
                     )}
                 </div>

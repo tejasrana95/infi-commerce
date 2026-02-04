@@ -137,7 +137,7 @@ class POSController {
      */
     async getSessionHistory(req: Request, res: Response) {
         try {
-            const { limit = '20', skip = '0', search = '', status = 'all' } = req.query;
+            const { limit = '20', skip = '0', search = '', status = 'all', startDate = '', endDate = '' } = req.query;
             const storeId = getStoreIdFromRequest(req);
 
             if (!storeId) {
@@ -152,7 +152,9 @@ class POSController {
                 search as string,
                 status as string,
                 parseInt(limit as string),
-                parseInt(skip as string)
+                parseInt(skip as string),
+                startDate as string,
+                endDate as string
             );
 
             return res.status(200).json({

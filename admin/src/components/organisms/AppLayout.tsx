@@ -83,6 +83,7 @@ interface NavItem {
 
 const navigationItems: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: <DashboardIcon /> },
+  { name: 'POS Sessions', href: '/pos-sessions', icon: <ReceiptLongIcon /> },
   { name: 'Orders', href: '/orders', icon: <ShoppingCartIcon /> },
   { name: 'Returns', href: '/returns', icon: <UndoIcon /> },
   { name: 'Accounting', href: '/accounting', icon: <AccountBalanceIcon /> },

@@ -34,6 +34,7 @@ class POCApiService {
             if (cachedCategories.length > 0) {
                 return cachedCategories.map(cat => ({
                     id: cat.id,
+                    _id: cat.id,
                     name: cat.name,
                     slug: cat.slug,
                     image: cat.image,
@@ -51,6 +52,7 @@ class POCApiService {
 
             return categories.map((cat: any) => ({
                 id: cat._id,
+                _id: cat._id,
                 name: cat.title, // Mapping title to name
                 slug: cat.slug,
                 image: cat.image,

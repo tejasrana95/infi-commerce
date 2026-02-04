@@ -262,6 +262,11 @@ export interface RelatedProduct {
 // Template Props
 // ============================================
 
+export interface ProductPageLayout {
+    sections: any[];
+}
+
+
 export interface ProductPageTemplateProps {
     // Product data
     product: Product;
@@ -321,7 +326,7 @@ export interface ProductPageTemplateProps {
     cardConfig?: ProductCardConfig;
 
     // Layout
-    layout?: unknown;
+    layout?: ProductPageLayout | null;
 
     // User state
     isLoggedIn: boolean;

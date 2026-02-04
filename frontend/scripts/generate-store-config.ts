@@ -16,7 +16,8 @@ const OUTPUT_PATH = path.join(process.cwd(), '.next/cache/store-config.json');
 
 // Sensitive fields to exclude from cached config
 const SENSITIVE_PATHS = [
-    'settings.aiSettings',
+    'settings.aiSettings.openaiKey',
+    'settings.aiSettings.model',
     'settings.emailSettings',
     'settings.smsSettings',
     'settings.whatsappSettings',

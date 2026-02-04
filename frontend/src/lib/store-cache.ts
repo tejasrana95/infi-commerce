@@ -36,7 +36,7 @@ async function loadFileCache(): Promise<Record<string, CachedStoreConfig> | null
             const fs = fsModule.default || fsModule;
             const path = pathModule.default || pathModule;
             const CACHE_FILE_PATH = path.join(process.cwd(), '.next/cache/store-config.json');
-            if (fs.existsSync(CACHE_FILE_PATH)) {
+            if (fs.existsSync(CACHE_FILE_PATH) && process.env.USE_CACHE_JSON === 'true') {
                 const content = fs.readFileSync(CACHE_FILE_PATH, 'utf-8');
                 fileCache = JSON.parse(content);
             }
