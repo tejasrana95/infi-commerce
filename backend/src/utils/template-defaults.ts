@@ -807,6 +807,139 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         variables: ['firstName', 'requestNumber', 'orderNumber', 'storeName'],
     },
     {
+        type: 'return_received',
+        channel: 'email',
+        name: 'Return Received',
+        subject: 'We Received Your Return - {{requestNumber}}',
+        htmlContent: `
+<!DOCTYPE html>
+<html>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h2>Return Received</h2>
+    <p>Hi {{firstName}},</p>
+    <p>We have received your returned items for request <strong>{{requestNumber}}</strong> (Order #{{orderNumber}}).</p>
+    <p>We will inspect and process your refund shortly.</p>
+    <p>Best regards,<br>{{storeName}}</p>
+</body>
+</html>`,
+        textContent: 'Hi {{firstName}}, we have received your return for request {{requestNumber}} (Order {{orderNumber}}).',
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'status', 'storeName'],
+    },
+    {
+        type: 'return_received',
+        channel: 'sms',
+        name: 'Return Received SMS',
+        textContent: 'Hi {{firstName}}, we received your return for request {{requestNumber}}. We will process it shortly.',
+        variables: ['firstName', 'requestNumber', 'storeName'],
+    },
+    {
+        type: 'return_received',
+        channel: 'whatsapp',
+        name: 'Return Received WhatsApp',
+        textContent: 'Hi {{firstName}}, we received your return for request {{requestNumber}} from {{storeName}}. Thank you!',
+        variables: ['firstName', 'requestNumber', 'storeName'],
+    },
+    {
+        type: 'return_partially_refunded',
+        channel: 'email',
+        name: 'Return Partially Refunded',
+        subject: 'Partial Refund Processed - {{requestNumber}}',
+        htmlContent: `
+<!DOCTYPE html>
+<html>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h2>Partial Refund Processed</h2>
+    <p>Hi {{firstName}},</p>
+    <p>We have processed a partial refund of <strong>{{amount}}</strong> for return request <strong>{{requestNumber}}</strong> (Order #{{orderNumber}}).</p>
+    <p>The amount should reflect in your account within 5-10 business days.</p>
+    <p>Best regards,<br>{{storeName}}</p>
+</body>
+</html>`,
+        textContent: 'Hi {{firstName}}, a partial refund of {{amount}} for request {{requestNumber}} (Order {{orderNumber}}) has been processed.',
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'amount', 'storeName'],
+    },
+    {
+        type: 'return_partially_refunded',
+        channel: 'sms',
+        name: 'Return Partially Refunded SMS',
+        textContent: 'Partial refund of {{amount}} for request {{requestNumber}} has been processed.',
+        variables: ['amount', 'requestNumber', 'storeName'],
+    },
+    {
+        type: 'return_partially_refunded',
+        channel: 'whatsapp',
+        name: 'Return Partially Refunded WhatsApp',
+        textContent: 'Hi {{firstName}}, a partial refund of {{amount}} for request {{requestNumber}} from {{storeName}} has been processed.',
+        variables: ['firstName', 'amount', 'requestNumber', 'storeName'],
+    },
+    {
+        type: 'return_exchange_shipped',
+        channel: 'email',
+        name: 'Exchange Shipped',
+        subject: 'Your Exchange Items Have Shipped - {{requestNumber}}',
+        htmlContent: `
+<!DOCTYPE html>
+<html>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h2>Exchange Shipped</h2>
+    <p>Hi {{firstName}},</p>
+    <p>Your exchange items for return request <strong>{{requestNumber}}</strong> (Order #{{orderNumber}}) have been shipped!</p>
+    <p><strong>Tracking Number:</strong> {{trackingNumber}}</p>
+    <p><a href="{{trackingUrl}}" style="padding: 10px 20px; background: #000; color: #fff; text-decoration: none; border-radius: 5px; display: inline-block;">Track Package</a></p>
+    <p>Best regards,<br>{{storeName}}</p>
+</body>
+</html>`,
+        textContent: 'Hi {{firstName}}, your exchange items for request {{requestNumber}} have shipped! Tracking: {{trackingNumber}}. Track: {{trackingUrl}}',
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'trackingNumber', 'trackingUrl', 'storeName'],
+    },
+    {
+        type: 'return_exchange_shipped',
+        channel: 'sms',
+        name: 'Exchange Shipped SMS',
+        textContent: 'Your exchange items for request {{requestNumber}} have shipped! Track: {{trackingUrl}}',
+        variables: ['requestNumber', 'trackingUrl'],
+    },
+    {
+        type: 'return_exchange_shipped',
+        channel: 'whatsapp',
+        name: 'Exchange Shipped WhatsApp',
+        textContent: 'Hi {{firstName}}, your exchange items for request {{requestNumber}} from {{storeName}} have shipped! Track: {{trackingUrl}}',
+        variables: ['firstName', 'requestNumber', 'storeName', 'trackingUrl'],
+    },
+    {
+        type: 'return_completed',
+        channel: 'email',
+        name: 'Return Completed',
+        subject: 'Return Process Closed - {{requestNumber}}',
+        htmlContent: `
+<!DOCTYPE html>
+<html>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h2>Return Process Completed</h2>
+    <p>Hi {{firstName}},</p>
+    <p>Your return request <strong>{{requestNumber}}</strong> for Order #{{orderNumber}} has been completed.</p>
+    <p>Thank you for your patience throughout this process.</p>
+    <p>Best regards,<br>{{storeName}}</p>
+</body>
+</html>`,
+        textContent: 'Hi {{firstName}}, your return request {{requestNumber}} for order {{orderNumber}} has been completed.',
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'storeName'],
+    },
+    {
+        type: 'return_completed',
+        channel: 'sms',
+        name: 'Return Completed SMS',
+        textContent: 'Your return request {{requestNumber}} has been completed. Thank you!',
+        variables: ['requestNumber', 'storeName'],
+    },
+    {
+        type: 'return_completed',
+        channel: 'whatsapp',
+        name: 'Return Completed WhatsApp',
+        textContent: 'Hi {{firstName}}, your return request {{requestNumber}} from {{storeName}} has been completed. Thank you!',
+        variables: ['firstName', 'requestNumber', 'storeName'],
+    },
+    {
         type: 'admin_return_requested',
         channel: 'email',
         name: 'Admin: Return Requested',

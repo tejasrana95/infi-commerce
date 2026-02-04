@@ -223,6 +223,28 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
             }
         };
         loadTax();
+    }, [shippingAddress, shippingCost, cartItems]);
+
+    // Recalculate tax when page comes back into focus
+    useEffect(() => {
+        const handleVisibilityChange = async () => {
+            if (document.visibilityState === 'visible' && shippingAddress) {
+                try {
+                    const taxData = await checkoutService.calculateTax(shippingAddress, shippingCost);
+                    setTaxBreakdown(taxData.taxBreakdown);
+                    setOrderSummary(prev => ({
+                        ...prev,
+                        tax: taxData.totalTax,
+                        total: prev.subtotal + prev.shipping + taxData.totalTax - prev.discount,
+                    }));
+                } catch (error: unknown) {
+                    console.error('Failed to recalculate tax on page focus:', getErrorMessage(error));
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }, [shippingAddress, shippingCost]);
 
     // Load payment methods
