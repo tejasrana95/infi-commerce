@@ -78,21 +78,22 @@ const initialFormData: TemplateFormData = {
 const VARIABLE_CATEGORIES: Record<string, { label: string; variables: (string | { name: string; isHtml: boolean })[] }> = {
     user: {
         label: 'User',
-        variables: ['firstName', 'lastName', 'email', 'phone'],
+        variables: ['firstName', 'lastName', 'email', 'phone', 'customerName'],
     },
     store: {
         label: 'Store',
-        variables: ['storeName', 'storeAddress', 'storePhone', 'storeEmail'],
+        variables: ['storeName', 'storeUrl', 'storeAddress', 'storePhone', 'storeEmail'],
     },
     links: {
         label: 'Links',
-        variables: ['verifyUrl', 'resetUrl', 'loginUrl'],
+        variables: ['verifyUrl', 'resetUrl', 'loginUrl', 'orderUrl', 'reviewUrl', 'cartUrl', 'productUrl', 'trackingUrl'],
     },
     order: {
         label: 'Order',
         variables: [
-            'orderNumber', 'total', 'itemCount', 'orderUrl', 'invoiceDownloadLink',
-            { name: 'order_items_table', isHtml: true }
+            'orderNumber', 'orderId', 'total', 'amount', 'itemCount', 'status', 'reason',
+            { name: 'order_items_table', isHtml: true },
+            { name: 'gmailMarkup', isHtml: true }
         ],
     },
     shipping: {
@@ -101,7 +102,15 @@ const VARIABLE_CATEGORIES: Record<string, { label: string; variables: (string | 
     },
     product: {
         label: 'Product',
-        variables: ['productName', 'productUrl', 'cartUrl', 'reviewUrl'],
+        variables: ['productName', 'productUrl'],
+    },
+    returns: {
+        label: 'Returns',
+        variables: [
+            'requestNumber', 'adminNote', 'pickupDate', 'pickupSlot', 'pickupMethod',
+            { name: 'returnItems', isHtml: true },
+            { name: 'items_table', isHtml: true }
+        ],
     },
 };
 

@@ -1,5 +1,6 @@
 import { notificationService } from './notification.service';
 import Store from '../models/Store';
+import { RETURN_REASONS } from '../utils/constants';
 
 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
@@ -199,6 +200,20 @@ export class TransactionalNotificationService {
                 }
             }
         }
+        let fullOrder = order;
+        // Ensure we have total and items
+        if (order.total === undefined || order.total === null || isNaN(order.total) || !order.currency) {
+            try {
+                const OrderModel = (await import('../models/Order')).default;
+                const fetchedOrder = await OrderModel.findById(order._id || order.id).lean();
+                if (fetchedOrder) {
+                    fullOrder = fetchedOrder;
+                }
+            } catch (error) {
+                console.error('Failed to fetch full order for status update notification:', error);
+            }
+        }
+
         await this.notify({
             storeId,
             storeName,
@@ -206,18 +221,19 @@ export class TransactionalNotificationService {
             recipientPhone,
             recipientName,
             type,
-            orderId: order._id,
-            subject: `Order ${status} - ${order.orderNumber}`,
+            orderId: fullOrder._id,
+            subject: `Order ${status} - ${fullOrder.orderNumber}`,
             templateData: {
-                orderNumber: order.orderNumber,
-                firstName: order.shippingAddress?.firstName || recipientName.split(' ')[0],
-                total: `${order.currency} ${(order.total * (order.exchangeRate || 1)).toFixed(2)}`,
+                orderNumber: fullOrder.orderNumber,
+                firstName: fullOrder.shippingAddress?.firstName || recipientName.split(' ')[0],
+                total: this.formatCurrency(fullOrder.total, fullOrder.currency, fullOrder.exchangeRate),
+                amount: this.formatCurrency(fullOrder.refundedAmount || fullOrder.total, fullOrder.currency, fullOrder.exchangeRate),
                 status,
-                orderUrl: `${frontendUrl}/orders/${order._id}`,
-                order_items_table: await this.renderOrderItemsTable(order, storeId),
-                trackingNumber: order.trackingNumber,
-                trackingUrl: order.trackingUrl || (order.trackingNumber ? `https://${(await Store.findById(storeId).select('domains').lean())?.domains?.[0]}/orders/${order._id}/track` : undefined),
-                gmailMarkup: this.generateGmailMarkup(order, status, store.name || storeName),
+                orderUrl: `${frontendUrl}/orders/${fullOrder._id}`,
+                order_items_table: await this.renderOrderItemsTable(fullOrder, storeId),
+                trackingNumber: fullOrder.trackingNumber,
+                trackingUrl: fullOrder.trackingUrl || (fullOrder.trackingNumber ? `https://${(await Store.findById(storeId).select('domains').lean())?.domains?.[0]}/orders/${fullOrder._id}/track` : undefined),
+                gmailMarkup: this.generateGmailMarkup(fullOrder, status, store.name || storeName),
             }
         });
 
@@ -233,7 +249,7 @@ export class TransactionalNotificationService {
                 await notificationService.triggerAdminNotifications(storeId, adminEvent, {
                     orderNumber: order.orderNumber,
                     customerName: recipientName,
-                    total: `${order.currency} ${(order.total * (order.exchangeRate || 1)).toFixed(2)}`,
+                    total: this.formatCurrency(order.total, order.currency, order.exchangeRate),
                     status,
                     orderId: order._id,
                     order_items_table: await this.renderOrderItemsTable(order, storeId)
@@ -249,11 +265,14 @@ export class TransactionalNotificationService {
      */
     async sendReturnRequestCreated(storeId: string, storeName: string, returnRequest: any, customer: any) {
         const type = 'return_created';
-
         // Determine recipient
         const recipientEmail = customer.email;
         const recipientName = `${customer.firstName} ${customer.lastName}`;
         const recipientPhone = customer.phone;
+
+        const currency = returnRequest.currency || 'USD';
+        const rate = returnRequest.exchangeRate || 1;
+        const amount = returnRequest.refund ? returnRequest.refund.amount : (returnRequest.totalRefundAmount || 0);
 
         await this.notify({
             storeId,
@@ -265,13 +284,16 @@ export class TransactionalNotificationService {
             orderId: returnRequest.orderId,
             subject: `Return Request Received - ${returnRequest.requestNumber || returnRequest._id}`,
             templateData: {
+                firstName: customer.firstName,
+                lastName: customer.lastName,
                 requestNumber: returnRequest.requestNumber || returnRequest._id,
                 orderNumber: returnRequest.orderNumber,
                 recipientName,
                 returnItems: await this.renderReturnItemsTable(returnRequest, storeId),
                 reason: returnRequest.reason,
                 status: returnRequest.status,
-                type: returnRequest.type // return or exchange
+                type: returnRequest.type, // return or exchange
+                total: this.formatCurrency(amount, currency, rate)
             }
         });
 
@@ -281,7 +303,8 @@ export class TransactionalNotificationService {
                 requestNumber: returnRequest.requestNumber || returnRequest._id,
                 orderNumber: returnRequest.orderNumber,
                 customerName: recipientName,
-                amount: returnRequest.refund ? returnRequest.refund.amount : 0,
+                amount: amount,
+                total: this.formatCurrency(amount, currency, rate),
                 type: returnRequest.type,
                 reason: returnRequest.reason,
                 items_table: await this.renderReturnItemsTable(returnRequest, storeId)
@@ -296,12 +319,69 @@ export class TransactionalNotificationService {
      */
     async sendReturnStatusUpdate(storeId: string, storeName: string, returnRequest: any, customer: any) {
         const status = returnRequest.status;
-        const type = `return_${status}`;
+        
+        // Map DB status to template type (some statuses have different names)
+        const statusToTemplateMap: Record<string, string> = {
+            'approved': 'return_approved',
+            'rejected': 'return_rejected',
+            'pickup_scheduled': 'return_pickup_scheduled',
+            'received': 'return_received',
+            'refund_completed': 'return_refunded',
+            'partially_refunded': 'return_partially_refunded',
+            'exchange_shipped': 'return_exchange_shipped',
+            'completed': 'return_completed',
+            'cancelled': 'return_cancelled',
+        };
+        
+        const type = statusToTemplateMap[status] || `return_${status}`;
 
         // Determine recipient
         const recipientEmail = customer.email;
         const recipientName = `${customer.firstName} ${customer.lastName}`;
         const recipientPhone = customer.phone;
+
+        const currency = returnRequest.currency || 'USD';
+        const rate = returnRequest.exchangeRate || 1;
+        const amount = returnRequest.refund ? returnRequest.refund.amount : (returnRequest.totalRefundAmount || 0);
+
+        // Build template data with common fields
+        const templateData: Record<string, any> = {
+            requestNumber: returnRequest.requestNumber || returnRequest._id,
+            orderNumber: returnRequest.orderNumber,
+            recipientName,
+            firstName: customer.firstName,
+            lastName: customer.lastName,
+            status: status.replace(/_/g, ' '),
+            adminNote: returnRequest.adminNote || returnRequest.adminNotes,
+            returnItems: await this.renderReturnItemsTable(returnRequest, storeId),
+            total: this.formatCurrency(amount, currency, rate),
+            amount: this.formatCurrency(amount, currency, rate),
+        };
+
+        // Add pickup-specific data for pickup_scheduled status
+        if (status === 'pickup_scheduled' && returnRequest.pickup) {
+            const pickup = returnRequest.pickup;
+            templateData.pickupDate = pickup.scheduledDate 
+                ? new Date(pickup.scheduledDate).toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                }) 
+                : '';
+            templateData.pickupSlot = pickup.scheduledSlot || '';
+            templateData.pickupMethod = pickup.method === 'dropoff' ? 'Drop-off at store' : 
+                                        pickup.method === 'courier' ? `Courier pickup${pickup.courierName ? ` (${pickup.courierName})` : ''}` : 
+                                        'Pickup from address';
+            templateData.trackingNumber = pickup.trackingNumber || '';
+            templateData.trackingUrl = pickup.trackingUrl || '';
+        }
+
+        // Add tracking info for exchange_shipped status
+        if (status === 'exchange_shipped' && returnRequest.exchange) {
+            templateData.trackingNumber = returnRequest.exchange.trackingNumber || '';
+            templateData.trackingUrl = returnRequest.exchange.trackingUrl || '';
+        }
 
         await this.notify({
             storeId,
@@ -312,15 +392,15 @@ export class TransactionalNotificationService {
             type,
             orderId: returnRequest.orderId,
             subject: `Return Request ${status.replace(/_/g, ' ').toUpperCase()} - ${returnRequest.requestNumber || returnRequest._id}`,
-            templateData: {
-                requestNumber: returnRequest.requestNumber || returnRequest._id,
-                orderNumber: returnRequest.orderNumber,
-                recipientName,
-                status: status.replace(/_/g, ' '),
-                adminNote: returnRequest.adminNote,
-                returnItems: await this.renderReturnItemsTable(returnRequest, storeId),
-            }
+            templateData
         });
+    }
+    
+    private formatCurrency(amount: number, currency: string, rate: number = 1): string {
+        if (amount === undefined || amount === null || isNaN(amount)) {
+            return `${currency} 0.00`;
+        }
+        return `${currency} ${(amount * rate).toFixed(2)}`;
     }
 
     /**
@@ -336,7 +416,7 @@ export class TransactionalNotificationService {
                     ${item.sku ? `<div style="font-size: 11px; color: #999; margin-top: 2px;">SKU: ${item.sku}</div>` : ''}
                 </td>
                 <td style="padding: 12px 10px; text-align: right; vertical-align: top; color: #666;">${item.quantity}</td>
-                <td style="padding: 12px 10px; text-align: right; vertical-align: top; color: #666;">${item.reason}</td>
+                <td style="padding: 12px 10px; text-align: right; vertical-align: top; color: #666;">${RETURN_REASONS[item.reason as keyof typeof RETURN_REASONS]}</td>
             </tr>`;
         }
 

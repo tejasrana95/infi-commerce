@@ -125,6 +125,7 @@ export default function PersonalizedProductsModule({ config }: ModuleProps) {
                 let originalResult: RecommendationResponse['products'] = [];
                 try {
                     result = await api.get<RecommendationResponse>(`interests/recommendations?${params}`);
+
                     originalResult = [...result.products];
                 } catch {
                     // Fallback: fetch products directly with fallback type

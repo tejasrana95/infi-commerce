@@ -4,6 +4,9 @@ import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import UserInterest from '../models/UserInterest';
 import Product from '../models/Product';
+import Store from '../models/Store';
+import { addPricingToProduct, transformProductOptions } from './product.controller';
+import { addTimezoneAwareDates } from '../utils/date.utils';
 
 /**
  * Track user interest event (view, search, purchase)
@@ -141,6 +144,15 @@ export const getRecommendations = asyncHandler(async (req: AuthRequest, res: Res
     const exclusionDaysNum = Math.min(parseInt(exclusionDays as string) || 30, 90);
     const retentionDaysNum = Math.min(parseInt(retentionDays as string) || 30, 90);
 
+    // Determine timezone for the response
+    let storeTimezone = 'UTC';
+    if (storeId) {
+        const store = await Store.findById(storeId).select('timezone').lean();
+        if (store && store.timezone) {
+            storeTimezone = store.timezone;
+        }
+    }
+
     // Get user interest data
     const query: any = { storeId };
     if (userId) {
@@ -240,8 +252,12 @@ export const getRecommendations = asyncHandler(async (req: AuthRequest, res: Res
         const searchProducts = await Product.find(searchQuery)
             .sort({ salesCount: -1, averageRating: -1 })
             .limit(limitNum - products.length)
+            .populate('storeId', 'name slug domain')
             .populate('categoryIds', 'title slug')
-            .populate('brand', 'name')
+            .populate('attributes.attributeId', 'name slug type values')
+            .populate('productOptions.optionId', 'name slug type values')
+            .populate('taxClassId', 'name rate isSplit subTaxes')
+            .populate('brand', 'name slug logo')
             .lean();
 
         if (searchProducts.length > 0) {
@@ -268,8 +284,12 @@ export const getRecommendations = asyncHandler(async (req: AuthRequest, res: Res
         const categoryProducts = await Product.find(categoryQuery)
             .sort({ salesCount: -1, averageRating: -1 })
             .limit(limitNum - products.length)
+            .populate('storeId', 'name slug domain')
             .populate('categoryIds', 'title slug')
-            .populate('brand', 'name')
+            .populate('attributes.attributeId', 'name slug type values')
+            .populate('productOptions.optionId', 'name slug type values')
+            .populate('taxClassId', 'name rate isSplit subTaxes')
+            .populate('brand', 'name slug logo')
             .lean();
 
         if (categoryProducts.length > 0) {
@@ -312,33 +332,30 @@ export const getRecommendations = asyncHandler(async (req: AuthRequest, res: Res
         const fallbackProducts = await Product.find(fallbackQuery)
             .sort(sortOrder)
             .limit(remainingLimit)
+            .populate('storeId', 'name slug domain')
             .populate('categoryIds', 'title slug')
-            .populate('brand', 'name')
+            .populate('attributes.attributeId', 'name slug type values')
+            .populate('productOptions.optionId', 'name slug type values')
+            .populate('taxClassId', 'name rate isSplit subTaxes')
+            .populate('brand', 'name slug logo')
             .lean();
 
         products = [...products, ...fallbackProducts];
     }
+
+    // Add computed pricing fields to each product (including variants) and localized dates
+    const productsWithPricing = products.map((product: any) => {
+        const productWithOptions = transformProductOptions(product);
+        const productWithPricing = addPricingToProduct(productWithOptions);
+        return addTimezoneAwareDates(productWithPricing, storeTimezone);
+    });
 
     res.json({
         success: true,
         isPersonalized,
         fallback: isPersonalized ? null : fallback,
         total: products.length,
-        products: products.map(p => ({
-            _id: p._id,
-            name: p.name,
-            slug: p.slug,
-            price: p.price,
-            salePrice: p.isOnSale ? p.salePrice : undefined,
-            images: p.images,
-            featuredImage: p.featuredImage,
-            averageRating: p.averageRating,
-            reviewCount: p.reviewCount,
-            stockStatus: p.stockStatus,
-            isOnSale: p.isOnSale,
-            categories: p.categoryIds,
-            brand: p.brand,
-        })),
+        products: productsWithPricing,
     });
 });
 

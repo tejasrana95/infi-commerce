@@ -176,9 +176,7 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
                 // Calculate proportional shipping refund per item
                 // shippingCost is stored at item level for the full quantity
                 const itemShippingCost = item.shippingCost || 0;
-                const itemTotalQty = item.quantity || 1;
-                const unitShipping = itemShippingCost / itemTotalQty;
-                shipping += unitShipping * selection.quantity;
+                shipping += itemShippingCost * selection.quantity;
             }
         });
 

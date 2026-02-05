@@ -100,42 +100,52 @@ export const TEMPLATE_TYPES = {
     return_created: {
         label: 'Return Requested',
         description: 'Sent to customer when they request a return',
-        variables: ['firstName', 'requestNumber', 'orderNumber', 'returnItems', 'status', 'storeName'],
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'returnItems', 'status', 'reason', 'type', 'total', 'storeName'],
     },
     return_approved: {
         label: 'Return Approved',
         description: 'Sent to customer when return is approved',
-        variables: ['firstName', 'requestNumber', 'orderNumber', 'status', 'storeName'],
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'status', 'returnItems', 'amount', 'storeName'],
     },
     return_rejected: {
         label: 'Return Rejected',
         description: 'Sent to customer when return is rejected',
-        variables: ['firstName', 'requestNumber', 'orderNumber', 'status', 'adminNote', 'storeName'],
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'status', 'adminNote', 'returnItems', 'amount', 'storeName'],
+    },
+    return_pickup_scheduled: {
+        label: 'Pickup Scheduled',
+        description: 'Sent to customer when pickup is scheduled for return',
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'pickupDate', 'pickupSlot', 'pickupMethod', 'trackingNumber', 'trackingUrl', 'returnItems', 'amount', 'storeName'],
     },
     return_received: {
         label: 'Return Received',
         description: 'Sent to customer when returned items are received',
-        variables: ['firstName', 'requestNumber', 'orderNumber', 'status', 'storeName'],
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'status', 'returnItems', 'amount', 'storeName'],
     },
     return_refunded: {
         label: 'Return Refunded',
         description: 'Sent to customer when refund is processed for return',
-        variables: ['firstName', 'requestNumber', 'orderNumber', 'amount', 'storeName'],
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'amount', 'returnItems', 'storeName'],
     },
     return_partially_refunded: {
         label: 'Return Partially Refunded',
         description: 'Sent to customer when partial refund is processed',
-        variables: ['firstName', 'requestNumber', 'orderNumber', 'amount', 'storeName'],
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'amount', 'returnItems', 'storeName'],
     },
     return_exchange_shipped: {
         label: 'Exchange Shipped',
         description: 'Sent when exchange items are shipped',
-        variables: ['firstName', 'requestNumber', 'orderNumber', 'trackingNumber', 'trackingUrl', 'storeName'],
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'trackingNumber', 'trackingUrl', 'returnItems', 'amount', 'storeName'],
     },
     return_completed: {
         label: 'Return Completed',
         description: 'Sent when return process is closed',
-        variables: ['firstName', 'requestNumber', 'orderNumber', 'storeName'],
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'returnItems', 'amount', 'storeName'],
+    },
+    return_cancelled: {
+        label: 'Return Cancelled',
+        description: 'Sent when return request is cancelled',
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'adminNote', 'returnItems', 'storeName'],
     }
 } as const;
 
@@ -285,7 +295,7 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
     <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
         <h1 style="color: #333; margin-bottom: 24px;">Thank You for Your Order!</h1>
         <p style="color: #666; line-height: 1.6;">Hi {{firstName}},</p>
-        <p style="color: #666; line-height: 1.6;">Your order <strong>#{{orderNumber}}</strong> has been confirmed.</p>
+        <p style="color: #666; line-height: 1.6;">Your order <strong>#{{orderNumber}}</strong> has been received.</p>
         
         {{{order_items_table}}}
 
@@ -295,21 +305,21 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
     </div>
 </body>
 </html>`,
-        textContent: 'Hi {{firstName}}, your order #{{orderNumber}} for {{total}} has been confirmed. View at {{orderUrl}}',
+        textContent: 'Hi {{firstName}}, your order #{{orderNumber}} for {{total}} has been received. View at {{orderUrl}}',
         variables: ['firstName', 'orderNumber', 'total', 'itemCount', 'orderUrl'],
     },
     {
         type: 'order_created',
         channel: 'sms',
         name: 'Order Confirmation SMS',
-        textContent: 'Order #{{orderNumber}} confirmed! Total: {{total}}. Track at {{orderUrl}}',
+        textContent: 'Order #{{orderNumber}} received! Total: {{total}}. Track at {{orderUrl}}',
         variables: ['orderNumber', 'total', 'orderUrl'],
     },
     {
         type: 'order_created',
         channel: 'whatsapp',
         name: 'Order Confirmation WhatsApp',
-        textContent: 'Hi {{firstName}}, your order #{{orderNumber}} from {{storeName}} has been confirmed! Total: {{total}}.',
+        textContent: 'Hi {{firstName}}, your order #{{orderNumber}} from {{storeName}} has been received! Total: {{total}}.',
         variables: ['firstName', 'orderNumber', 'storeName', 'total'],
     },
     // ============================================
@@ -702,7 +712,7 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         type: 'order_created',
         channel: 'telegram',
         name: 'Order Confirmation Telegram',
-        textContent: 'Hi {{firstName}}, your order #<b>{{orderNumber}}</b> from {{storeName}} has been confirmed! Total: {{total}}.',
+        textContent: 'Hi {{firstName}}, your order #<b>{{orderNumber}}</b> from {{storeName}} has been received! Total: {{total}}.',
         variables: ['firstName', 'orderNumber', 'storeName', 'total'],
     },
     {
@@ -787,6 +797,52 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         textContent: 'Hi {{firstName}}, your return request {{requestNumber}} has been rejected. {{#if adminNote}}Reason: {{adminNote}}{{/if}}',
         variables: ['firstName', 'requestNumber', 'orderNumber', 'adminNote', 'storeName'],
     },
+    // ============================================
+    // Return Pickup Scheduled
+    // ============================================
+    {
+        type: 'return_pickup_scheduled',
+        channel: 'email',
+        name: 'Pickup Scheduled',
+        subject: 'Pickup Scheduled for Return - {{requestNumber}}',
+        htmlContent: `
+<!DOCTYPE html>
+<html>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h2>Pickup Scheduled</h2>
+    <p>Hi {{firstName}},</p>
+    <p>Your return pickup for request <strong>{{requestNumber}}</strong> (Order #{{orderNumber}}) has been scheduled.</p>
+    {{#if pickupDate}}<p><strong>Date:</strong> {{pickupDate}}</p>{{/if}}
+    {{#if pickupSlot}}<p><strong>Time Slot:</strong> {{pickupSlot}}</p>{{/if}}
+    {{#if pickupMethod}}<p><strong>Method:</strong> {{pickupMethod}}</p>{{/if}}
+    <p>Please ensure the items are packed and ready for pickup.</p>
+    <p>Best regards,<br>{{storeName}}</p>
+</body>
+</html>`,
+        textContent: 'Hi {{firstName}}, pickup for return {{requestNumber}} (Order {{orderNumber}}) is scheduled{{#if pickupDate}} for {{pickupDate}}{{/if}}{{#if pickupSlot}} {{pickupSlot}}{{/if}}.',
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'pickupDate', 'pickupSlot', 'pickupMethod', 'storeName'],
+    },
+    {
+        type: 'return_pickup_scheduled',
+        channel: 'sms',
+        name: 'Pickup Scheduled SMS',
+        textContent: 'Pickup for return {{requestNumber}} scheduled{{#if pickupDate}} for {{pickupDate}}{{/if}}. Please keep items ready.',
+        variables: ['requestNumber', 'pickupDate', 'storeName'],
+    },
+    {
+        type: 'return_pickup_scheduled',
+        channel: 'whatsapp',
+        name: 'Pickup Scheduled WhatsApp',
+        textContent: 'Hi {{firstName}}, pickup for your return {{requestNumber}} from {{storeName}} is scheduled{{#if pickupDate}} for {{pickupDate}}{{/if}}{{#if pickupSlot}} {{pickupSlot}}{{/if}}.',
+        variables: ['firstName', 'requestNumber', 'storeName', 'pickupDate', 'pickupSlot'],
+    },
+    {
+        type: 'return_pickup_scheduled',
+        channel: 'telegram',
+        name: 'Pickup Scheduled Telegram',
+        textContent: '📦 <b>Pickup Scheduled</b>\n\nHi {{firstName}}, pickup for return <b>{{requestNumber}}</b> is scheduled{{#if pickupDate}} for {{pickupDate}}{{/if}}{{#if pickupSlot}} {{pickupSlot}}{{/if}}.',
+        variables: ['firstName', 'requestNumber', 'pickupDate', 'pickupSlot', 'storeName'],
+    },
     {
         type: 'return_refunded',
         channel: 'email',
@@ -805,6 +861,27 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
 </html>`,
         textContent: 'Hi {{firstName}}, refund for request {{requestNumber}} (Order {{orderNumber}}) has been processed.',
         variables: ['firstName', 'requestNumber', 'orderNumber', 'storeName'],
+    },
+    {
+        type: 'return_refunded',
+        channel: 'sms',
+        name: 'Return Refunded SMS',
+        textContent: 'Refund for return request {{requestNumber}} has been processed. It will reflect in your account shortly.',
+        variables: ['requestNumber', 'storeName'],
+    },
+    {
+        type: 'return_refunded',
+        channel: 'whatsapp',
+        name: 'Return Refunded WhatsApp',
+        textContent: 'Hi {{firstName}}, refund for return request {{requestNumber}} from {{storeName}} has been processed. Amount: {{amount}}',
+        variables: ['firstName', 'requestNumber', 'amount', 'storeName'],
+    },
+    {
+        type: 'return_refunded',
+        channel: 'telegram',
+        name: 'Return Refunded Telegram',
+        textContent: '<b>Refund Processed</b>\n\nHi {{firstName}}, refund for return request <b>{{requestNumber}}</b> has been processed. Amount: {{amount}}',
+        variables: ['firstName', 'requestNumber', 'amount', 'storeName'],
     },
     {
         type: 'return_received',
@@ -837,6 +914,13 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         channel: 'whatsapp',
         name: 'Return Received WhatsApp',
         textContent: 'Hi {{firstName}}, we received your return for request {{requestNumber}} from {{storeName}}. Thank you!',
+        variables: ['firstName', 'requestNumber', 'storeName'],
+    },
+    {
+        type: 'return_received',
+        channel: 'telegram',
+        name: 'Return Received Telegram',
+        textContent: '📦 <b>Return Received</b>\n\nHi {{firstName}}, we have received your return for request <b>{{requestNumber}}</b>. We will process it shortly.',
         variables: ['firstName', 'requestNumber', 'storeName'],
     },
     {
@@ -907,6 +991,13 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         variables: ['firstName', 'requestNumber', 'storeName', 'trackingUrl'],
     },
     {
+        type: 'return_exchange_shipped',
+        channel: 'telegram',
+        name: 'Exchange Shipped Telegram',
+        textContent: '📦 <b>Exchange Shipped</b>\n\nHi {{firstName}}, your exchange items for request <b>{{requestNumber}}</b> have shipped! Track: {{trackingUrl}}',
+        variables: ['firstName', 'requestNumber', 'trackingUrl', 'storeName'],
+    },
+    {
         type: 'return_completed',
         channel: 'email',
         name: 'Return Completed',
@@ -938,6 +1029,63 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         name: 'Return Completed WhatsApp',
         textContent: 'Hi {{firstName}}, your return request {{requestNumber}} from {{storeName}} has been completed. Thank you!',
         variables: ['firstName', 'requestNumber', 'storeName'],
+    },
+    {
+        type: 'return_completed',
+        channel: 'telegram',
+        name: 'Return Completed Telegram',
+        textContent: '✅ <b>Return Completed</b>\n\nHi {{firstName}}, your return request <b>{{requestNumber}}</b> has been completed. Thank you for your patience!',
+        variables: ['firstName', 'requestNumber', 'storeName'],
+    },
+    // ============================================
+    // Return Cancelled
+    // ============================================
+    {
+        type: 'return_cancelled',
+        channel: 'email',
+        name: 'Return Cancelled',
+        subject: 'Return Request Cancelled - {{requestNumber}}',
+        htmlContent: `
+<!DOCTYPE html>
+<html>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h2>Return Request Cancelled</h2>
+    <p>Hi {{firstName}},</p>
+    <p>Your return request <strong>{{requestNumber}}</strong> for Order #{{orderNumber}} has been cancelled.</p>
+    
+    {{#if adminNote}}
+    <div style="background: #f9f9f9; padding: 15px; border-left: 4px solid #666; margin: 15px 0;">
+        <strong>Note:</strong> {{adminNote}}
+    </div>
+    {{/if}}
+
+    <p>If you have questions, please contact our support team.</p>
+    <p>Best regards,<br>{{storeName}}</p>
+</body>
+</html>`,
+        textContent: 'Hi {{firstName}}, your return request {{requestNumber}} for order {{orderNumber}} has been cancelled.{{#if adminNote}} Note: {{adminNote}}{{/if}}',
+        variables: ['firstName', 'requestNumber', 'orderNumber', 'adminNote', 'storeName'],
+    },
+    {
+        type: 'return_cancelled',
+        channel: 'sms',
+        name: 'Return Cancelled SMS',
+        textContent: 'Your return request {{requestNumber}} has been cancelled. Contact support for details.',
+        variables: ['requestNumber', 'storeName'],
+    },
+    {
+        type: 'return_cancelled',
+        channel: 'whatsapp',
+        name: 'Return Cancelled WhatsApp',
+        textContent: 'Hi {{firstName}}, your return request {{requestNumber}} from {{storeName}} has been cancelled.{{#if adminNote}} Note: {{adminNote}}{{/if}}',
+        variables: ['firstName', 'requestNumber', 'adminNote', 'storeName'],
+    },
+    {
+        type: 'return_cancelled',
+        channel: 'telegram',
+        name: 'Return Cancelled Telegram',
+        textContent: '❌ <b>Return Cancelled</b>\n\nHi {{firstName}}, your return request <b>{{requestNumber}}</b> has been cancelled.{{#if adminNote}}\n\nNote: {{adminNote}}{{/if}}',
+        variables: ['firstName', 'requestNumber', 'adminNote', 'storeName'],
     },
     {
         type: 'admin_return_requested',

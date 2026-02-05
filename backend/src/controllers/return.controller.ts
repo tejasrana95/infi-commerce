@@ -512,24 +512,6 @@ export const createReturnRequest = asyncHandler(async (req: AuthRequest, res: Re
                 amount: breakdown.totalRefund,
             },
         });
-
-        // Trigger telegram notification
-        await notificationService.triggerAdminNotifications(
-            storeId,
-            'returnRequest',
-            {
-                returnId: returnRequest._id.toString(),
-                orderId: order._id.toString(),
-                orderNumber: order.orderNumber,
-                customerName: order.shippingAddress?.firstName && order.shippingAddress?.lastName
-                    ? `${order.shippingAddress.firstName} ${order.shippingAddress.lastName}`
-                    : 'Customer',
-                type: type === 'return' ? 'Return' : 'Exchange',
-                amount: breakdown.totalRefund,
-                currency: order.currency,
-                itemCount: returnItems.length,
-            }
-        );
     } catch (notificationError) {
         console.error('Failed to send admin notifications:', notificationError);
     }
@@ -888,6 +870,13 @@ export const schedulePickup = asyncHandler(async (req: AuthRequest, res: Respons
 
     await syncOrderStatus(returnRequest.orderId, 'pickup_scheduled');
 
+    // Send notification to customer
+    const fullRequest = await ReturnRequest.findById(id).populate('customerId').populate('orderId');
+    if (fullRequest?.customerId) {
+        const store = await Store.findById(fullRequest.storeId);
+        await sendReturnNotification(fullRequest, fullRequest.orderId, store, 'status_update');
+    }
+
     res.status(200).json({
         success: true,
         message: 'Pickup scheduled',
@@ -932,6 +921,13 @@ export const markReceived = asyncHandler(async (req: AuthRequest, res: Response)
         } catch (error) {
             console.error('Failed to restore inventory on return receipt:', error);
         }
+    }
+
+    // Send notification to customer
+    const fullRequest = await ReturnRequest.findById(id).populate('customerId').populate('orderId');
+    if (fullRequest?.customerId) {
+        const store = await Store.findById(fullRequest.storeId);
+        await sendReturnNotification(fullRequest, fullRequest.orderId, store, 'status_update');
     }
 
     res.status(200).json({
@@ -1165,6 +1161,13 @@ export const completeReturn = asyncHandler(async (req: AuthRequest, res: Respons
 
     await syncOrderStatus(returnRequest.orderId, 'completed');
 
+    // Send notification to customer
+    const fullRequest = await ReturnRequest.findById(id).populate('customerId').populate('orderId');
+    if (fullRequest?.customerId) {
+        const store = await Store.findById(fullRequest.storeId);
+        await sendReturnNotification(fullRequest, fullRequest.orderId, store, 'status_update');
+    }
+
     res.status(200).json({
         success: true,
         message: 'Return request completed',
@@ -1210,6 +1213,13 @@ export const cancelReturn = asyncHandler(async (req: AuthRequest, res: Response)
             order.status = 'delivered';
         }
         await order.save();
+    }
+
+    // Send notification
+    const fullRequest = await ReturnRequest.findById(id).populate('customerId').populate('orderId');
+    if (fullRequest?.customerId) {
+        const store = await Store.findById(fullRequest.storeId);
+        await sendReturnNotification(fullRequest, fullRequest.orderId, store, 'status_update');
     }
 
     res.status(200).json({
