@@ -15,6 +15,7 @@ import { useStore } from '@/contexts/StoreContext';
 import { useAuth } from '@/contexts/AuthContext';
 import packageJson from '../../../package.json';
 import Link from 'next/link';
+import LoginEnterpriseBackground from '@/components/organisms/LoginEnterpriseBackground';
 
 const LoginPage = memo(() => {
     const [email, setEmail] = useState('');
@@ -23,6 +24,9 @@ const LoginPage = memo(() => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [showForgotModal, setShowForgotModal] = useState(false);
+    const [mfaRequired, setMfaRequired] = useState(false);
+    const [mfaToken, setMfaToken] = useState('');
+    const [mfaCode, setMfaCode] = useState('');
     const startSession = useSessionStore((state) => state.startSession);
     const router = useRouter();
     const { setStoreId } = useStore();
@@ -44,7 +48,17 @@ const LoginPage = memo(() => {
                 email,
                 password,
             });
-            const { accessToken, user } = response.data;
+            
+            const { accessToken, user, mfaRequired: requiresMfa, mfaToken: receivedMfaToken } = response.data;
+            
+            // Check if MFA is required
+            if (requiresMfa) {
+                setMfaRequired(true);
+                setMfaToken(receivedMfaToken || '');
+                setLoading(false);
+                return;
+            }
+            
             // Check if user has POS access
             if (user.role !== 'pos_user' && user.role !== 'store_admin' && user.role !== 'super_admin') {
                 setError('Access denied. POS access requires POS User and Store Admin role.');
@@ -114,11 +128,90 @@ const LoginPage = memo(() => {
         }
     }, [email, password, startSession, router, setStoreId, login]);
 
+    const handleMfaSubmit = useCallback(async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+
+        try {
+            // Call backend MFA verification endpoint
+            const response = await apiClient.post('/auth/admin/2fa/verify-login', {
+                mfaToken,
+                code: mfaCode,
+            });
+
+            const { accessToken, user } = response.data;
+
+            // Check if user has POS access
+            if (user.role !== 'pos_user' && user.role !== 'store_admin' && user.role !== 'super_admin') {
+                setError('Access denied. POS access requires POS User and Store Admin role.');
+                setLoading(false);
+                return;
+            }
+
+            const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'User';
+            let storeName = 'My Store';
+            let storeId = '';
+
+            // Set store ID if user has store
+            if (user.storeIds && user.storeIds.length > 0) {
+                storeId = user.storeIds[0];
+                setStoreId(storeId);
+
+                // Fetch store name
+                try {
+                    const storeData = await api.getStoreData(storeId);
+                    if (storeData && storeData?.posSettings?.enabled === false) {
+                        setError('The Point of Sale is disabled for this store. Please contact your system administrator.');
+                        setLoading(false);
+                        return;
+                    }
+                    storeName = storeData.name;
+                } catch (storeErr) {
+                    console.error('Failed to fetch store name:', storeErr);
+                }
+            } else {
+                setError('No store assigned to this admin account.');
+                setLoading(false);
+                return;
+            }
+
+            // Start POC session state with real data
+            startSession(storeName, userName);
+
+            // Normalize user object
+            const normalizedUser = {
+                id: user.id || user._id,
+                _id: user._id || user.id,
+                email: user.email,
+                name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'User',
+                firstName: user.firstName || user.name?.split(' ')[0] || 'POC',
+                lastName: user.lastName || user.name?.split(' ')[1] || 'User',
+                role: user.role,
+                storeIds: user.storeIds || [],
+                permissions: user.permissions || [],
+                posPermissions: user.posPermissions || { canApplyDiscount: false },
+                twoFactorEnabled: !!user.twoFactorEnabled
+            };
+
+            // Store auth in AuthContext
+            login(accessToken, normalizedUser, storeId);
+
+            // Redirect to main page
+            router.push('/');
+        } catch (err: any) {
+            console.error('MFA verification error:', err);
+            setError(err.response?.data?.message || 'Invalid verification code. Please try again.');
+            setLoading(false);
+        }
+    }, [mfaToken, mfaCode, startSession, router, setStoreId, login]);
+
     const versionDisplay = useMemo(() => `Version ${packageJson.version} © Infi Commerce By Infi Technology`, []);
 
     return (
-        <div className="min-h-screen bg-gradient-to-r from-slate-50 via-white to-slate-50 flex items-center justify-center p-6">
-            <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-12 gap-8">
+        <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-6">
+            <LoginEnterpriseBackground />
+            <div className="relative z-10 w-full max-w-5xl grid grid-cols-1 md:grid-cols-12 gap-8">
                 {/* Left Info Panel */}
                 <div className="md:col-span-7 bg-gradient-to-b from-blue-700 to-indigo-700 rounded-3xl p-10 text-white flex flex-col justify-between shadow-xl">
                     <div>
@@ -160,7 +253,8 @@ const LoginPage = memo(() => {
                 </div>
 
                 {/* Right Auth Card */}
-                <div className="md:col-span-5 bg-white rounded-3xl p-8 shadow-lg flex flex-col justify-center">
+                <div className="md:col-span-5 relative glass-card rounded-3xl p-8 flex flex-col justify-center">
+                    <div className="card-glow" />
                     {/* Header */}
                     <div className="flex items-center gap-3 mb-6">
                         <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -173,67 +267,117 @@ const LoginPage = memo(() => {
                     </div>
 
                     {/* Form */}
-                    <form onSubmit={handleLogin} className="space-y-4">
-                        {/* Email with icon */}
-                        <div className="relative">
-                            <span className="absolute left-3 top-9 text-slate-400"><Mail className="w-4 h-4" /></span>
-                            <Input
-                                label="Email"
-                                type="email"
-                                placeholder="you@company.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                                autoFocus
-                                className="pl-10"
-                            />
-                        </div>
+                    <form onSubmit={mfaRequired ? handleMfaSubmit : handleLogin} className="space-y-4">
+                        {!mfaRequired ? (
+                            <>
+                                {/* Email with icon */}
+                                <div className="relative">
+                                    <span className="absolute left-3 top-9 text-slate-400"><Mail className="w-4 h-4" /></span>
+                                    <Input
+                                        label="Email"
+                                        type="email"
+                                        placeholder="you@company.com"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        required
+                                        autoFocus
+                                        className="pl-10"
+                                    />
+                                </div>
 
-                        {/* Password with show/hide */}
-                        <div className="relative">
-                            <span className="absolute left-3 top-9 text-slate-400"><ShieldCheck className="w-4 h-4" /></span>
-                            <Input
-                                label="Password"
-                                type={showPassword ? 'text' : 'password'}
-                                placeholder="Enter your password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                                error={error}
-                                className="pr-12 pl-10"
-                            />
-                            <button
-                                type="button"
-                                onClick={toggleShowPassword}
-                                aria-label={showPassword ? 'Hide password' : 'Show password'}
-                                className="absolute right-3 top-9 text-slate-400 hover:text-slate-600"
-                            >
-                                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                            </button>
-                        </div>
+                                {/* Password with show/hide */}
+                                <div className="relative">
+                                    <span className="absolute left-3 top-9 text-slate-400"><ShieldCheck className="w-4 h-4" /></span>
+                                    <Input
+                                        label="Password"
+                                        type={showPassword ? 'text' : 'password'}
+                                        placeholder="Enter your password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                        error={error}
+                                        className="pr-12 pl-10"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={toggleShowPassword}
+                                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                        className="absolute right-3 top-9 text-slate-400 hover:text-slate-600"
+                                    >
+                                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                    </button>
+                                </div>
 
-                        {/* Remember + Forgot */}
-                        <div className="flex items-center justify-between text-sm">
-                            <button onClick={handleForgot} className="text-sm text-blue-600 hover:underline">Forgot password?</button>
-                        </div>
+                                {/* Remember + Forgot */}
+                                <div className="flex items-center justify-between text-sm">
+                                    <button onClick={handleForgot} className="text-sm text-blue-600 hover:underline">Forgot password?</button>
+                                </div>
 
-                        <Button
-                            type="submit"
-                            variant="primary"
-                            size="lg"
-                            className="w-full"
-                            isLoading={loading}
-                        >
-                            Sign In
-                        </Button>
+                                <Button
+                                    type="submit"
+                                    variant="primary"
+                                    size="lg"
+                                    className="w-full"
+                                    isLoading={loading}
+                                >
+                                    Sign In
+                                </Button>
+                            </>
+                        ) : (
+                            <>
+                                {/* MFA Code Input */}
+                                <div className="mb-4">
+                                    <p className="text-sm text-slate-600 mb-4">
+                                        Enter the 6-digit code from your authenticator app to complete the sign-in.
+                                    </p>
+                                    <Input
+                                        label="2FA Code"
+                                        type="text"
+                                        placeholder="000000"
+                                        value={mfaCode}
+                                        onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                        required
+                                        autoFocus
+                                        error={error}
+                                        maxLength={6}
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
+                                    />
+                                </div>
 
+                                <Button
+                                    type="submit"
+                                    variant="primary"
+                                    size="lg"
+                                    className="w-full"
+                                    isLoading={loading}
+                                    disabled={mfaCode.length !== 6}
+                                >
+                                    Verify & Sign In
+                                </Button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setMfaRequired(false);
+                                        setMfaCode('');
+                                        setError('');
+                                    }}
+                                    className="w-full text-sm text-slate-600 hover:text-slate-900 mt-2"
+                                >
+                                    ← Back to Login
+                                </button>
+                            </>
+                        )}
                     </form>
 
                     {/* Info */}
-                    <div className="mt-6 p-4 bg-slate-50 rounded-lg border border-slate-100">
-                        <p className="text-xs font-semibold text-slate-700 mb-1">Access Requirements</p>
-                        <p className="text-xs text-slate-600">POC User, Store Admin, or Super Admin role required. Use your admin panel email and password.</p>
-                    </div>
+                    {!mfaRequired && (
+                        <div className="mt-6 p-4 bg-slate-50 rounded-lg border border-slate-100">
+                            <p className="text-xs font-semibold text-slate-700 mb-1">Access Requirements</p>
+                            <p className="text-xs text-slate-600">POC User, Store Admin, or Super Admin role required. Use your admin panel email and password.</p>
+                        </div>
+                    )}
                 </div>
             </div>
             {/* Forgot Password Modal */}

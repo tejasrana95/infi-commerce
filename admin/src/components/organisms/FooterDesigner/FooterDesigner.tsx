@@ -172,7 +172,7 @@ function ElementPreview({ element, onClick, onDelete, menus }: { element: Footer
                 const links = element.settings?.socialLinks || [];
                 return (
                     <Box>
-                        <Typography variant="subtitle2" sx={{ mb: 0.5 }}>Follow Us</Typography>
+                        {element.settings?.socialTitle && <Typography variant="subtitle2" sx={{ mb: 0.5 }}>{element.settings?.socialTitle}</Typography>}
                         <Box sx={{ display: 'flex', gap: 0.5 }}>
                             {links.length > 0 ? (
                                 links.map((link) => (

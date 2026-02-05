@@ -125,6 +125,7 @@ export interface User {
     name: string;
     firstName: string;
     lastName: string;
+    phone?: string;
     role: string;
     storeIds: string[];
     permissions: string[];

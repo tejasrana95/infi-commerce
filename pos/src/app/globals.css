@@ -44,3 +44,50 @@ img {
 .stable-layout {
   contain: layout style;
 }
+
+/* Enterprise login background (minimal, soft, professional) */
+@keyframes gradient-pan {
+  0% { background-position: 10% 20%; }
+  50% { background-position: 90% 80%; }
+  100% { background-position: 10% 20%; }
+}
+
+.login-bg {
+  background: linear-gradient(120deg, rgba(14,165,233,0.06) 0%, rgba(99,102,241,0.06) 45%, rgba(79,70,229,0.06) 100%);
+  background-size: 200% 200%;
+  animation: gradient-pan 20s ease-in-out infinite;
+}
+
+.login-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(44px);
+  opacity: 0.75;
+  mix-blend-mode: screen;
+  transform: translateZ(0);
+}
+
+/* Glass card */
+.glass-card {
+  background: rgba(255,255,255,0.64);
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 10px 30px rgba(2,6,23,0.08), 0 2px 6px rgba(2,6,23,0.04);
+  backdrop-filter: blur(10px) saturate(120%);
+}
+
+/* Soft glow under the card (subtle) */
+.card-glow {
+  position: absolute;
+  inset: auto 16px 16px 16px;
+  height: 56px;
+  border-radius: 12px;
+  background: radial-gradient(closest-side, rgba(99,102,241,0.12), rgba(79,70,229,0));
+  filter: blur(18px);
+  pointer-events: none;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  .login-bg { animation: none; }
+  .login-blob { animation: none; }
+}

@@ -21,6 +21,7 @@ import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import { useDebounce } from '@/hooks';
 import StoreAutocomplete from './StoreAutocomplete';
 import CategoryAutocomplete from './CategoryAutocomplete';
+import { RefreshCwIcon } from 'lucide-react';
 
 export interface FilterOption {
     value: string;
@@ -65,6 +66,8 @@ interface SearchFilterBarProps {
     onDatePresetChange?: (preset: 'today' | 'yesterday' | 'last7' | 'thisMonth' | 'last30' | 'custom') => void;
     dateRangeValue?: { start: string; end: string };
     onDateRangeChange?: (dates: { start: string; end: string }) => void;
+    onRefresh?: () => void;
+    showRefreshButton?: boolean;
 }
 
 const SearchFilterBar = memo(({
@@ -91,6 +94,8 @@ const SearchFilterBar = memo(({
     onDatePresetChange,
     dateRangeValue = { start: '', end: '' },
     onDateRangeChange,
+    showRefreshButton = false,
+    onRefresh,
 }: SearchFilterBarProps) => {
     const [localSearch, setLocalSearch] = useState(searchValue);
     const debouncedSearch = useDebounce(localSearch, 300);
@@ -240,7 +245,7 @@ const SearchFilterBar = memo(({
                     </Button>
                 )}
 
-
+               
                 {/* Bottom Row - Filters */}
                 {(filters.length > 0 || showStoreFilter || showCategoryFilter || showDateFilter) && (
                     <Box
@@ -355,6 +360,18 @@ const SearchFilterBar = memo(({
                         )}
                     </Box>
                 )}
+                 {
+                    showRefreshButton && (
+                        <Tooltip title="Refresh">
+                            <IconButton
+                                size="small"
+                                onClick={onRefresh}
+                            >
+                                <RefreshCwIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    )
+                }
             </Box>
             {/* Active Filter Chips */}
             {Object.keys(activeFilters).length > 0 && (

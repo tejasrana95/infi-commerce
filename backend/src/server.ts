@@ -1,4 +1,5 @@
 import express, { Express, Request, Response, RequestHandler } from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -12,7 +13,10 @@ import { registerEventHandlers } from './events/handlers';
 import { channelMiddleware } from './middleware/channel.middleware';
 import { optionalApiKeyAuth } from './middleware/apiKeyAuth';
 import { globalApiLimiter } from './middleware/rateLimit';
+import { socketService } from './services/socket.service';
+
 const app: Express = express();
+const httpServer = createServer(app);
 
 // Trust Proxy (Required for correct IP detection behind Nginx/ALB)
 // This enables secure use of rate limiting and IP based middlewares
@@ -143,9 +147,12 @@ const startServer = async () => {
         // Connect to database
         await connectDatabase();
 
-        // Start listening
-        app.listen(config.port, () => {
+        // Initialize Socket.IO
+        socketService.initialize(httpServer);
 
+        // Start listening
+        httpServer.listen(config.port, () => {
+            console.log(`Server running on port ${config.port}`);
         });
     } catch (error) {
         console.error('Failed to start server:', error);

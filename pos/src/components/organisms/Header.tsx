@@ -20,6 +20,7 @@ import { Menu, ShoppingCart } from 'lucide-react';
 import { SyncStatus } from '../SyncStatus';
 import { productCacheService } from '@/services/productCache.service';
 import { Product } from '@/types';
+import Link from 'next/link';
 
 
 export default function Header({ setShowReturnModal }: { setShowReturnModal: (show: boolean) => void }) {
@@ -156,15 +157,19 @@ export default function Header({ setShowReturnModal }: { setShowReturnModal: (sh
                         {/* Middle: Time Display */}
                         <SyncStatus />
                         <TimeDisplay />
-                        <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-600">
-                            <User size={20} />
-                        </div>
-                        <div>
-                            <h2 className="text-sm font-bold text-slate-800 leading-none">
-                                {user ? `${user.firstName} ${user.lastName}` : 'Cashier'}
-                            </h2>
-                            <span className="text-[10px] text-green-600 font-bold uppercase">{user?.role?.replace('_', ' ') || 'Online'}</span>
-                        </div>
+                        <Link href="/profile">
+                            <div className='hidden md:flex items-center gap-3'>
+                                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-600">
+                                    <User size={20} />
+                                </div>
+                                <div>
+                                    <h2 className="text-sm font-bold text-slate-800 leading-none">
+                                        {user ? `${user.firstName} ${user.lastName}` : 'Cashier'}
+                                    </h2>
+                                    <span className="text-[10px] text-green-600 font-bold uppercase">{user?.role?.replace('_', ' ') || 'Online'}</span>
+                                </div>
+                            </div>
+                        </Link>
                     </div>
 
                     {/* Mobile Cart Toggle */}

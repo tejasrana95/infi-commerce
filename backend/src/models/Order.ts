@@ -2,7 +2,13 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IOrder extends Document {
     storeId: mongoose.Types.ObjectId;
-    customerId?: mongoose.Types.ObjectId; // Optional for guest checkout
+    customerId?: {
+        id: string;
+        firstName: string;
+        lastName: string;
+        email?: string;
+        phone?: string;
+    }; // Optional for guest checkout
     guestEmail?: string; // Email for guest orders
     orderNumber: string;
 

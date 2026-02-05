@@ -2,14 +2,14 @@
 
 import React from 'react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import POCLayout from '@/components/layout/POCLayout';
+import POSLayout from '@/components/layout/POSLayout';
 
 export default function PosLayout({ children }: { children: React.ReactNode }) {
     return (
         <ProtectedRoute>
-            <POCLayout>
+            <POSLayout>
                 {children}
-            </POCLayout>
+            </POSLayout>
         </ProtectedRoute>
     );
 }

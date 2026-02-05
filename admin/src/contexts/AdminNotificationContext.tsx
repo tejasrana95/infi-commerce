@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { io, Socket } from 'socket.io-client';
 import api from '@/lib/api';
 import { useAuth } from './AuthContext';
 import { AdminNotification } from '@/types';
@@ -16,6 +17,8 @@ interface AdminNotificationContextType {
 
 const AdminNotificationContext = createContext<AdminNotificationContextType | undefined>(undefined);
 
+const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
+
 export function AdminNotificationProvider({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
     const [notifications, setNotifications] = useState<AdminNotification[]>([]);
@@ -23,6 +26,7 @@ export function AdminNotificationProvider({ children }: { children: React.ReactN
     const [loading, setLoading] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const previousCountRef = useRef(0);
+    const socketRef = useRef<Socket | null>(null);
 
     // Request notification permission & Init Audio
     useEffect(() => {
@@ -47,35 +51,6 @@ export function AdminNotificationProvider({ children }: { children: React.ReactN
 
                 setNotifications(newNotifications);
                 setUnreadCount(newUnreadCount);
-
-                // Trigger notifications (Browser + Sound) if new unread items arrived
-                if (newUnreadCount > previousCountRef.current && newNotifications.length > 0) {
-                    // 1. Browser Notification
-                    // Try to find the newest unread notification
-                    // Assuming API returns sorted by newest first
-                    const latest = newNotifications.find((n: AdminNotification) => !n.isRead);
-
-                    if (latest && 'Notification' in window && Notification.permission === 'granted') {
-                        try {
-                            new Notification(latest.title, {
-                                body: latest.message,
-                                icon: '/icons/icon-192x192.png' // Optional: generic icon or leave default
-                            });
-                        } catch (e) {
-                            console.error('Notification error:', e);
-                        }
-                    }
-
-                    // 2. Audio Fallback
-                    try {
-                        const promise = audioRef.current?.play();
-                        if (promise) {
-                            promise.catch(e => {
-                                // Autoplay policy might block this
-                            });
-                        }
-                    } catch (e) { }
-                }
                 previousCountRef.current = newUnreadCount;
             }
         } catch (error) {
@@ -84,6 +59,104 @@ export function AdminNotificationProvider({ children }: { children: React.ReactN
             if (!silent) setLoading(false);
         }
     }, [user]);
+
+    // Handle new notification via Socket.IO
+    const handleNewNotification = useCallback((notification: AdminNotification) => {
+        // Add notification to the list
+        setNotifications(prev => [notification, ...prev]);
+        
+        // Increment unread count
+        setUnreadCount(prev => prev + 1);
+
+        // Trigger notifications (Browser + Sound)
+        if (!notification.isRead) {
+            // 1. Browser Notification
+            if ('Notification' in window && Notification.permission === 'granted') {
+                try {
+                    new Notification(notification.title, {
+                        body: notification.message,
+                        icon: '/icons/icon-192x192.png'
+                    });
+                } catch (e) {
+                    console.error('Notification error:', e);
+                }
+            }
+
+            // 2. Audio Fallback
+            try {
+                const promise = audioRef.current?.play();
+                if (promise) {
+                    promise.catch(() => {
+                        // Autoplay policy might block this
+                    });
+                }
+            } catch { }
+        }
+
+        previousCountRef.current = previousCountRef.current + 1;
+    }, []);
+
+    // Handle notification read event
+    const handleNotificationRead = useCallback(({ notificationId }: { notificationId: string }) => {
+        setNotifications(prev => prev.map(n => n._id === notificationId ? { ...n, isRead: true } : n));
+        setUnreadCount(prev => Math.max(0, prev - 1));
+        previousCountRef.current = Math.max(0, previousCountRef.current - 1);
+    }, []);
+
+    // Handle all notifications read event
+    const handleAllNotificationsRead = useCallback(() => {
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        setUnreadCount(0);
+        previousCountRef.current = 0;
+    }, []);
+
+    // Initialize Socket.IO connection
+    useEffect(() => {
+        if (!user) return;
+
+        const token = localStorage.getItem('accesstoken');
+        if (!token) return;
+
+        // Create socket connection
+        const socket = io(SOCKET_URL, {
+            auth: {
+                token
+            },
+            transports: ['websocket', 'polling'],
+        });
+
+        socket.on('connect', () => {
+            console.log('Socket.IO connected for admin notifications');
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Socket.IO disconnected');
+        });
+
+        socket.on('connect_error', (error) => {
+            console.error('Socket.IO connection error:', error.message);
+        });
+
+        // Listen for new notifications
+        socket.on('admin-notification', handleNewNotification);
+
+        // Listen for notification read events
+        socket.on('notification-read', handleNotificationRead);
+
+        // Listen for all notifications read event
+        socket.on('all-notifications-read', handleAllNotificationsRead);
+
+        socketRef.current = socket;
+
+        // Cleanup on unmount
+        return () => {
+            socket.off('admin-notification', handleNewNotification);
+            socket.off('notification-read', handleNotificationRead);
+            socket.off('all-notifications-read', handleAllNotificationsRead);
+            socket.disconnect();
+            socketRef.current = null;
+        };
+    }, [user, handleNewNotification, handleNotificationRead, handleAllNotificationsRead]);
 
     const markAsRead = async (id: string) => {
         try {
@@ -113,16 +186,12 @@ export function AdminNotificationProvider({ children }: { children: React.ReactN
         }
     };
 
-    // Initial fetch and polling
+    // Initial fetch on mount or user change
     useEffect(() => {
-        fetchNotifications();
-
-        const interval = setInterval(() => {
-            fetchNotifications(true);
-        }, 30000); // Poll every 30 seconds
-
-        return () => clearInterval(interval);
-    }, [fetchNotifications]);
+        if (user) {
+            fetchNotifications();
+        }
+    }, [user, fetchNotifications]);
 
     return (
         <AdminNotificationContext.Provider value={{

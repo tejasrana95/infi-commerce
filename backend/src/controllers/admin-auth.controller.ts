@@ -413,12 +413,12 @@ export const verify2FALogin = asyncHandler(async (req: AuthRequest, res: Respons
     try {
         const decoded = jwt.verify(mfaToken, config.jwt.secret) as any;
         if (decoded.type !== 'mfa_challenge') {
-            throw new AppError('Invalid MFA token', 401);
+            throw new AppError('Invalid MFA token', 400);
         }
 
         const user = await User.findById(decoded.id);
         if (!user || !user.isActive || !user.twoFactorEnabled) {
-            throw new AppError('Invalid MFA session', 401);
+            throw new AppError('Invalid MFA session', 400);
         }
 
         const isValid = TwoFactorService.verifyCode(code, user.twoFactorSecret!);
@@ -429,7 +429,7 @@ export const verify2FALogin = asyncHandler(async (req: AuthRequest, res: Respons
                 user.twoFactorBackupCodes?.splice(backupIndex, 1);
                 await user.save();
             } else {
-                throw new AppError('Invalid 2FA code', 401);
+                throw new AppError('Invalid 2FA code', 400);
             }
         }
 
@@ -458,7 +458,7 @@ export const verify2FALogin = asyncHandler(async (req: AuthRequest, res: Respons
         });
     } catch (error) {
         if (error instanceof AppError) throw error;
-        throw new AppError('Invalid or expired MFA token', 401);
+        throw new AppError('Invalid or expired MFA token', 400);
     }
 });
 

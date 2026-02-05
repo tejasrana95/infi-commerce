@@ -66,6 +66,7 @@ export interface FooterElement {
         newsletterPlaceholder?: string;
         newsletterButtonText?: string;
         newsletterDescription?: string;
+        socialTitle?: string;
         socialLinks?: Array<{
             id: string;
             platform: 'facebook' | 'twitter' | 'instagram' | 'linkedin' | 'youtube' | 'pinterest' | 'tiktok';

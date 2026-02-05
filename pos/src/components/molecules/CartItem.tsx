@@ -46,7 +46,6 @@ export default function CartItem({ item, onUpdateQuantity, onRemove }: CartItemP
     }
     // Add tax
     const totalPrice = effectivePrice + (effectivePrice * item.taxRate / 100);
-    console.log('CartItem Render:', item);
     return (
         <div className="bg-white p-3 rounded-xl border shadow-sm flex flex-col gap-3 group">
             <div className="flex gap-3">

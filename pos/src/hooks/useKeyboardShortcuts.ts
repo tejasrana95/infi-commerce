@@ -14,19 +14,27 @@ interface ShortcutHandler {
 
 export function useKeyboardShortcuts(shortcuts: ShortcutHandler[]) {
     const handleKeyDown = useCallback((event: KeyboardEvent) => {
-        // Ignore if typing in an input (except specific keys like Escape or Enter if needed)
         const target = event.target as HTMLElement;
         const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
 
-        // Allow Escape to dismiss stuff even in inputs
-        if (isInput && event.key !== 'Escape' && event.key !== 'Enter') return;
-
         shortcuts.forEach(({ key, ctrlKey, metaKey, shiftKey, action, preventDefault = true }) => {
             const matchKey = event.key.toLowerCase() === key.toLowerCase();
-            const matchCtrl = !!ctrlKey === (event.ctrlKey || event.metaKey); // Treat Cmd as Ctrl for Mac convenience
-            const matchShift = !!shiftKey === event.shiftKey;
+           
+            // Check modifiers: only check if explicitly required in the shortcut definition
+            const matchCtrl = ctrlKey ? (event.ctrlKey || event.metaKey) : !event.ctrlKey && !event.metaKey;
+            const matchMeta = metaKey ? event.metaKey : true; // Optional: specific meta key check
+            const matchShift = shiftKey ? event.shiftKey : !event.shiftKey;
 
-            if (matchKey && matchCtrl && matchShift) {
+            // Check if this shortcut matches
+            const isMatch = matchKey && matchCtrl && matchShift;
+            if (isMatch) {
+               
+                // Allow Escape and Ctrl+Enter shortcuts even in inputs
+                const allowInInput = event.key === 'Escape' || (event.key === 'Enter' && (event.ctrlKey || event.metaKey));
+                
+                // Skip if in input and this shortcut isn't allowed in inputs
+                if (isInput && !allowInInput) return;
+                
                 if (preventDefault) event.preventDefault();
                 action();
             }

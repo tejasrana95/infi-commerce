@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import api from '@/services/api';
-
+import { sounds } from '@/utils/sounds';
 import { useStore } from '@/contexts/StoreContext';
 import QRPaymentModal from './QRPaymentModal';
 import { printService } from '@/services/print.service';
@@ -203,6 +203,9 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
             setOrder(response.order);
             setProcessing(false);
             setCompleted(true);
+            
+            // Play success sound
+            sounds.checkout();
         } catch (error) {
             console.error('Checkout failed:', error);
             setProcessing(false);
@@ -294,12 +297,12 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
 
     // Shortcuts within Modal
     useKeyboardShortcuts([
-        // Fast Finish in Modal (Pay) - only if allowQuickCheckout is enabled
+        // Confirm Payment in Modal (Ctrl + Enter)
         {
             key: 'Enter',
             ctrlKey: true,
             action: () => {
-                if (!completed && !processing && isOpen && allowQuickCheckout) handlePayment();
+                if (!completed && !processing && isOpen) handlePayment();
             }
         },
         // Print in Success State

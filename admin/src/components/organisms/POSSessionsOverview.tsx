@@ -319,6 +319,8 @@ export default function POSSessionsOverview({
                 dateRangeValue={dateRange}
                 onDateRangeChange={setDateRange}
                 searchPlaceholder="Search sessions..."
+                showRefreshButton={true}
+                onRefresh={fetchSessions}
                 filters={[
                     {
                         id: 'status',

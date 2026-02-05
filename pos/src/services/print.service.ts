@@ -31,6 +31,7 @@ interface ReceiptOrder {
   id: string;
   orderNumber: string;
   date: string;
+  createdAt: string;
   status: Order['status'];
   customerId: string | Customer | null;
   items: ReceiptOrderItem[];
@@ -223,6 +224,8 @@ class PrintService {
    */
   private getReceiptStyles(paperWidth: 58 | 80 = 80): string {
     return `
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
             * {
                 margin: 0;
                 padding: 0;
@@ -230,54 +233,88 @@ class PrintService {
             }
             
             body {
-                font-family: 'Courier New', 'monospace';
-                font-size: 12px;
-                line-height: 1.4;
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                font-size: 11px;
+                line-height: 1.5;
+                color: #1f2937;
                 background: white;
             }
             
             .receipt-container {
                 background: white;
                 width: ${paperWidth}mm;
-                padding: 5mm 8mm;
+                padding: 4mm;
+                margin: 0 auto;
             }
             
             .receipt-header {
                 text-align: center;
-                margin-bottom: 8px;
+                margin-bottom: 12px;
             }
             
             .store-logo {
                 width: 100%;
-                max-width: 60px;
-                margin: 0 auto 4px;
+                max-width: 80px;
+                margin: 0 auto 8px;
                 display: block;
+                object-fit: contain;
             }
             
             .store-name {
-                font-size: 14px;
-                font-weight: bold;
-                margin-bottom: 2px;
+                font-size: 16px;
+                font-weight: 700;
+                margin-bottom: 4px;
+                color: #111827;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
             }
             
             .store-details {
                 font-size: 10px;
-                line-height: 1.3;
-                margin-bottom: 4px;
+                color: #4b5563;
+                line-height: 1.4;
             }
             
             .receipt-section {
-                margin-bottom: 8px;
+                margin-bottom: 12px;
             }
             
             .divider {
-                border-bottom: 1px dashed #000;
-                margin: 6px 0;
+                border-bottom: 1px dashed #e5e7eb;
+                margin: 12px 0;
             }
             
             .divider-solid {
-                border-bottom: 1px solid #000;
-                margin: 6px 0;
+                border-bottom: 1px solid #e5e7eb;
+                margin: 12px 0;
+            }
+
+            .info-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+                margin-bottom: 12px;
+                background: #f9fafb;
+                padding: 8px;
+                border-radius: 6px;
+                border: 1px solid #f3f4f6;
+            }
+
+            .info-item {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .info-label {
+                font-size: 9px;
+                color: #6b7280;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .info-value {
+                font-weight: 600;
+                color: #111827;
             }
             
             table {
@@ -286,119 +323,87 @@ class PrintService {
                 font-size: 11px;
             }
             
-            th, td {
-                padding: 2px 0;
-                text-align: left;
-            }
-            
             th {
-                font-weight: bold;
-                border-bottom: 1px dashed #000;
-                padding-bottom: 2px;
+                text-align: left;
+                font-weight: 600;
+                color: #6b7280;
+                border-bottom: 1px solid #e5e7eb;
+                padding: 8px 4px;
+                font-size: 10px;
+                text-transform: uppercase;
             }
             
-            .item-row td {
-                padding: 2px 0;
+            td {
+                padding: 8px 4px;
+                border-bottom: 1px solid #f3f4f6;
+                vertical-align: top;
+            }
+
+            tr:last-child td {
+                border-bottom: none;
             }
             
             .item-name {
-                width: 50%;
+                font-weight: 500;
+                color: #111827;
+                margin-bottom: 2px;
             }
-            
-            .item-qty {
-                width: 15%;
-                text-align: center;
-            }
-            
-            .item-price {
-                width: 17.5%;
-                text-align: right;
-            }
-            
-            .item-total {
-                width: 17.5%;
-                text-align: right;
+
+            .item-detail {
+                font-size: 9px;
+                color: #6b7280;
             }
             
             .totals-section {
-                font-size: 11px;
-                margin-top: 6px;
+                padding-top: 8px;
             }
             
             .total-row {
                 display: flex;
                 justify-content: space-between;
-                padding: 2px 0;
-            }
-            
-            .total-row.grand-total {
-                font-weight: bold;
-                font-size: 13px;
-                border-top: 1px dashed #000;
-                padding-top: 4px;
-                margin-top: 4px;
-            }
-            
-            .text-center {
-                text-align: center;
-            }
-            
-            .text-left {
-                text-align: left;
-            }
-            
-            .text-right {
-                text-align: right;
-            }
-            
-            .font-bold {
-                font-weight: bold;
-            }
-            
-            .font-semibold {
-                font-weight: 600;
-            }
-            
-            .text-xs {
-                font-size: 9px;
-            }
-            
-            .text-sm {
-                font-size: 10px;
-            }
-            
-            .text-base {
+                padding: 4px 0;
                 font-size: 11px;
             }
             
-            .text-lg {
-                font-size: 12px;
-            }
-            
-            .text-xl {
+            .total-row.grand-total {
+                font-weight: 700;
                 font-size: 14px;
+                border-top: 2px solid #111827;
+                padding-top: 12px;
+                margin-top: 8px;
+                color: #111827;
+            }
+
+            .payment-badge {
+                display: inline-block;
+                padding: 4px 8px;
+                background: #eff6ff;
+                color: #1d4ed8;
+                border-radius: 4px;
+                font-weight: 600;
+                font-size: 10px;
+                text-transform: uppercase;
+                margin-top: 4px;
             }
             
-            .mb-0 { margin-bottom: 0; }
-            .mb-1 { margin-bottom: 3px; }
-            .mb-2 { margin-bottom: 6px; }
-            .mb-3 { margin-bottom: 8px; }
-            .mb-4 { margin-bottom: 10px; }
-            
-            .mt-1 { margin-top: 3px; }
-            .mt-2 { margin-top: 6px; }
-            .mt-4 { margin-top: 10px; }
-            
-            .pt-1 { padding-top: 3px; }
-            .pt-2 { padding-top: 6px; }
-            .pt-3 { padding-top: 8px; }
-            
-            .py-1 { padding-top: 2px; padding-bottom: 2px; }
-            .py-2 { padding-top: 4px; padding-bottom: 4px; }
+            .text-center { text-align: center; }
+            .text-right { text-align: right; }
             
             .footer-text {
-                font-size: 9px;
-                line-height: 1.3;
+                font-size: 10px;
+                color: #6b7280;
+                max-width: 80%;
+                margin: 0 auto;
+            }
+
+            .status-badge {
+                text-align: center;
+                padding: 6px;
+                border-radius: 4px;
+                font-weight: 600;
+                font-size: 11px;
+                margin-bottom: 12px;
+                text-transform: uppercase;
             }
         `;
   }
@@ -659,23 +664,25 @@ class PrintService {
         const hasReturn = extItem.returnedQuantity && extItem.returnedQuantity > 0;
         const effectiveQty = item.quantity - (extItem.returnedQuantity || 0);
         const itemSubtotal = item.price * effectiveQty;
-        
+
         return `
           <tr class="item-row">
-            <td style="padding: 2px 0; width: 5%;">${index + 1}</td>
-            <td style="padding: 2px 4px; width: 10%;">${extItem.hsnCode || '-'}</td>
-            <td style="padding: 2px 4px; width: 40%;">
-              ${item.name}
-              ${item.attributes ? `<br><small style="color:#666;">${Object.entries(item.attributes).map(([k, v]) => `${k}: ${v}`).join(', ')}</small>` : ''}
-              ${hasDiscount ? `<br><small style="color:#22c55e;">Discount: -${config.currency} ${(extItem.discountAmount || 0).toFixed(2)}/unit</small>` : ''}
-              ${hasReturn ? `<br><small style="color:#ef4444;">Returned: ${extItem.returnedQuantity} × ${config.currency} ${((extItem.refundedAmount || 0) / (extItem.returnedQuantity || 1)).toFixed(2)}</small>` : ''}
+            <td style="width: 5%; color: #9ca3af; font-size: 9px;">${index + 1}</td>
+            <td style="width: 50%;">
+              <div class="item-name">${item.name}</div>
+              ${extItem.hsnCode ? `<div class="item-detail">HSN: ${extItem.hsnCode}</div>` : ''}
+              ${item.attributes ? `<div class="item-detail">${Object.entries(item.attributes).map(([k, v]) => `${k}: ${v}`).join(', ')}</div>` : ''}
+              ${hasDiscount ? `<div class="item-detail" style="color: #059669;">Discount: -${config.currency} ${(extItem.discountAmount || 0).toFixed(2)}/unit</div>` : ''}
+              ${hasReturn ? `<div class="item-detail" style="color: #dc2626;">Returned: ${extItem.returnedQuantity}</div>` : ''}
             </td>
-            <td style="padding: 2px 4px; width: 10%; text-align: center;">${hasReturn ? `<s>${item.quantity}</s> ${effectiveQty}` : item.quantity}</td>
-            <td style="padding: 2px 4px; width: 15%; text-align: right;">
-              ${hasDiscount ? `<s>${(extItem.originalPrice || item.price).toFixed(2)}</s><br>` : ''}
-              ${item.price.toFixed(2)}
+            <td style="width: 15%; text-align: center; color: #4b5563;">
+                 ${hasReturn ? `<span style="text-decoration: line-through; color: #9ca3af;">${item.quantity}</span> ${effectiveQty}` : item.quantity}
             </td>
-            <td style="padding: 2px 4px; width: 20%; text-align: right; font-weight: 600;">${itemSubtotal.toFixed(2)}</td>
+            <td style="width: 15%; text-align: right;">
+              ${hasDiscount ? `<div style="text-decoration: line-through; color: #9ca3af; font-size: 9px;">${(extItem.originalPrice || item.price).toFixed(2)}</div>` : ''}
+              <div style="color: #4b5563;">${item.price.toFixed(2)}</div>
+            </td>
+            <td style="width: 15%; text-align: right; font-weight: 600; color: #111827;">${itemSubtotal.toFixed(2)}</td>
           </tr>
         `;
       })
@@ -687,29 +694,33 @@ class PrintService {
         ? `
         <div class="divider"></div>
         <div class="receipt-section">
-          <div style="font-weight: bold; font-size: 11px; margin-bottom: 4px; color: #ef4444;">
-            RETURNS / REFUNDS
+          <div style="font-weight: 700; font-size: 11px; margin-bottom: 8px; color: #dc2626; text-transform: uppercase;">
+            Returns & Refunds
           </div>
           ${order.returns
           ?.map(
             (ret) => `
-            <div style="font-size: 10px; margin-bottom: 6px; padding: 4px; background: #fef2f2; border-radius: 4px;">
-              <div><strong>Date:</strong> ${ret.returnedAt ? new Date(ret.returnedAt).toLocaleDateString() : 'N/A'}</div>
-              <div><strong>Method:</strong> ${ret.refundMethod || 'N/A'}</div>
+            <div style="font-size: 10px; margin-bottom: 8px; padding: 8px; background: #fef2f2; border-radius: 6px; border: 1px solid #fee2e2;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <strong>${ret.returnedAt ? new Date(ret.returnedAt).toLocaleDateString() : 'N/A'}</strong>
+                <span style="background: #fff; padding: 2px 6px; border-radius: 4px; font-size: 9px;">${ret.refundMethod || 'N/A'}</span>
+              </div>
               ${ret.items
                 .map(
                   (ri) => `
-                <div style="margin-left: 8px;">
-                  • Qty: ${ri.quantity || 0} - Refund: ${config.currency} ${(ri.refundAmount || 0).toFixed(2)}
-                  ${ri.reason ? `<br><small style="color:#666;">Reason: ${ri.reason}</small>` : ''}
+                <div style="margin-top: 4px; padding-left: 8px; border-left: 2px solid #fca5a5;">
+                  <div style="display: flex; justify-content: space-between;">
+                     <span>${ri.quantity}x returned</span>
+                     <span>${config.currency} ${(ri.refundAmount || 0).toFixed(2)}</span>
+                  </div>
+                  ${ri.reason ? `<div style="font-size: 9px; color: #7f1d1d;">${ri.reason}</div>` : ''}
                 </div>
               `,
                 )
                 .join('')}
-              <div style="font-weight: bold; margin-top: 4px;">
-                Total Refund: ${config.currency} ${(ret.totalRefundAmount || 0).toFixed(2)}
+              <div style="font-weight: 600; margin-top: 6px; text-align: right; color: #dc2626;">
+                Refund Total: ${config.currency} ${(ret.totalRefundAmount || 0).toFixed(2)}
               </div>
-              ${ret.notes ? `<div style="font-style: italic; color: #666;">Note: ${ret.notes}</div>` : ''}
             </div>
           `,
           )
@@ -722,41 +733,40 @@ class PrintService {
     const statusBannerHTML =
       isCancelled || isRefunded
         ? `
-        <div style="background: ${isCancelled ? '#fef2f2' : '#fef9c3'}; color: ${isCancelled ? '#dc2626' : '#ca8a04'}; 
-             padding: 8px; text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 8px; border-radius: 4px;">
-          ${isCancelled ? 'ORDER CANCELLED' : 'ORDER REFUNDED'}
+        <div class="status-badge" style="background: ${isCancelled ? '#fef2f2' : '#fef9c3'}; color: ${isCancelled ? '#991b1b' : '#854d0e'};">
+          ${isCancelled ? 'Order Cancelled' : 'Order Refunded'}
         </div>
       `
         : isReturned
           ? `
-        <div style="background: #fff7ed; color: #ea580c; 
-             padding: 8px; text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 8px; border-radius: 4px;">
-            ${order.status === 'partially_returned' ? 'PARTIALLY RETURNED' : 'ORDER RETURNED'}
+        <div class="status-badge" style="background: #fff7ed; color: #9a3412;">
+            ${order.status === 'partially_returned' ? 'Partially Returned' : 'Order Returned'}
         </div>
       `
           : '';
 
     // Build payment details section
     const paymentDetailsHTML = `
-      <div class="receipt-section text-center">
-        <div style="font-size: 11px; font-weight: bold; margin-bottom: 3px;">
-          Payment: ${order.paymentMethod.toUpperCase()}
-          ${cardDetails?.cardNetwork ? `(${cardDetails.cardNetwork})` : ''}
-          ${cardDetails?.cardLast4 ? `****${cardDetails.cardLast4}` : ''}
-          ${qrDetails?.paymentType ? `(${qrDetails.paymentType})` : ''}
-        </div>
+      <div class="receipt-section" style="text-align: center; margin-top: 16px;">
+        <span class="payment-badge">
+            ${order.paymentMethod}
+            ${cardDetails?.cardNetwork ? ` • ${cardDetails.cardNetwork}` : ''}
+            ${cardDetails?.cardLast4 ? ` • ${cardDetails.cardLast4}` : ''}
+            ${qrDetails?.paymentType ? ` • ${qrDetails.paymentType}` : ''}
+        </span>
+        
         ${cashDetails
         ? `
-          <div style="font-size: 10px;">
-            <div>Amount Received: ${config.currency} ${cashDetails.amountReceived.toFixed(2)}</div>
-            ${cashDetails.changeGiven > 0 ? `<div>Change Given: ${config.currency} ${cashDetails.changeGiven.toFixed(2)}</div>` : ''}
+          <div style="margin-top: 8px; font-size: 10px; color: #4b5563;">
+            <span style="margin-right: 8px;">Received: <strong>${config.currency} ${cashDetails.amountReceived.toFixed(2)}</strong></span>
+            ${cashDetails.changeGiven > 0 ? `<span>Change: <strong>${config.currency} ${cashDetails.changeGiven.toFixed(2)}</strong></span>` : ''}
           </div>
         `
         : order.cashReceived
           ? `
-          <div style="font-size: 10px;">
-            <div>Amount Received: ${config.currency} ${order.cashReceived.toFixed(2)}</div>
-            ${order.change ? `<div>Change: ${config.currency} ${order.change.toFixed(2)}</div>` : ''}
+          <div style="margin-top: 8px; font-size: 10px; color: #4b5563;">
+            <span style="margin-right: 8px;">Received: <strong>${config.currency} ${order.cashReceived.toFixed(2)}</strong></span>
+            ${order.change ? `<span>Change: <strong>${config.currency} ${order.change.toFixed(2)}</strong></span>` : ''}
           </div>
         `
           : ''
@@ -767,7 +777,7 @@ class PrintService {
     return `
       <div class="receipt-container">        
         <div class="receipt-header">
-          ${config.showLogo ? `<img src="${store.logo || '/logo.png'}" alt="Logo" onerror="this.style.display='none'" style="max-width: 80px; max-height: 80px; margin: 0 auto 8px; display: block;" />` : ''}
+          ${config.showLogo ? `<img src="${store.logo || '/logo.png'}" alt="Logo" class="store-logo" onerror="this.style.display='none'" />` : ''}
           <div class="store-name">${config.storeName}</div>
           <div class="store-details">
             <div>${config.storeAddress}</div>
@@ -784,35 +794,39 @@ class PrintService {
         : ''
       }
         
-        <div class="divider"></div>
+        <div class="divider-solid"></div>
         
-        <div class="receipt-section">
-          <div style="display: flex; flex-direction: column; font-size: 10px;">
-            <div><strong>Order #:</strong> ${order.orderNumber}</div>
-            <div><strong>Date:</strong> ${new Date(order.date).toLocaleString()}</div>
-            <div><strong>Status:</strong> <span style="text-transform: capitalize;">${order.status.replace('_', ' ')}</span></div>
-            ${customer
-        ? `
-              <div style="margin-top: 4px;">
-                <strong>Customer:</strong> ${customer.firstName} ${customer.lastName}
-              </div>
-            `
-        : ''
-      }
-          </div>
-        </div>
         ${statusBannerHTML}
-        <div class="divider"></div>
+        
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">Order No</span>
+                <span class="info-value">#${order.orderNumber}</span>
+            </div>
+            <div class="info-item" style="text-align: right;">
+              <span class="info-label">Date</span>
+              <span class="info-value">${
+                  ((order.date || order.createdAt) && !isNaN(new Date(order.date || order.createdAt).getTime()))
+                    ? (new Date(order.date || order.createdAt).toLocaleDateString() + ' ' + new Date(order.date || order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }))
+                : 'N/A'
+              }</span>
+            </div>
+             ${customer ? `
+            <div class="info-item">
+                 <span class="info-label">Customer</span>
+                 <span class="info-value">${customer.firstName} ${customer.lastName}</span>
+            </div>
+             ` : ''}
+        </div>
 
         <table>
           <thead>
             <tr>
-              <th style="padding: 2px 0; width: 5%; text-align: left;">#</th>
-              <th style="padding: 2px 4px; width: 10%; text-align: left;">HSN</th>
-              <th style="padding: 2px 4px; width: 40%; text-align: left;">Item</th>
-              <th style="padding: 2px 4px; width: 10%; text-align: center;">Qty</th>
-              <th style="padding: 2px 4px; width: 15%; text-align: right;">Price</th>
-              <th style="padding: 2px 4px; width: 20%; text-align: right;">Total</th>
+              <th style="width: 5%;">#</th>
+              <th style="width: 50%;">Item</th>
+              <th style="width: 15%; text-align: center;">Qty</th>
+              <th style="width: 15%; text-align: right;">Price</th>
+              <th style="width: 15%; text-align: right;">Total</th>
             </tr>
           </thead>
           <tbody>
@@ -820,18 +834,18 @@ class PrintService {
           </tbody>
         </table>
 
-        <div class="divider-solid"></div>
+         <div class="divider-solid"></div>
 
         <div class="totals-section">
           <div class="total-row">
-            <span>Subtotal:</span>
-            <span>${config.currency} ${order.subtotal.toFixed(2)}</span>
+            <span style="color: #6b7280;">Subtotal</span>
+            <span style="font-weight: 600;">${config.currency} ${order.subtotal.toFixed(2)}</span>
           </div>
           
           ${order.discount && order.discount > 0
         ? `
-            <div class="total-row" style="color: #22c55e;">
-              <span>Discount${order.couponCode ? ` (${order.couponCode})` : ''}:</span>
+            <div class="total-row" style="color: #059669;">
+              <span>Discount ${order.couponCode ? `(${order.couponCode})` : ''}</span>
               <span>-${config.currency} ${order.discount.toFixed(2)}</span>
             </div>
           `
@@ -840,8 +854,8 @@ class PrintService {
           
           ${itemDiscountsTotal > 0
         ? `
-            <div class="total-row" style="color: #22c55e;">
-              <span>Item Discounts:</span>
+            <div class="total-row" style="color: #059669;">
+              <span>Item Discounts</span>
               <span>-${config.currency} ${itemDiscountsTotal.toFixed(2)}</span>
             </div>
           `
@@ -849,14 +863,14 @@ class PrintService {
       }
           
           <div class="total-row">
-            <span>Tax:</span>
-            <span>${config.currency} ${order.tax.toFixed(2)}</span>
+             <span style="color: #6b7280;">Tax</span>
+             <span style="font-weight: 600;">${config.currency} ${order.tax.toFixed(2)}</span>
           </div>
           
           ${receiptOrder.roundOffAmount && receiptOrder.roundOffAmount !== 0
         ? `
-            <div class="total-row">
-              <span>Round Off:</span>
+            <div class="total-row" style="color: #6b7280;">
+              <span>Round Off</span>
               <span>${receiptOrder.roundOffAmount > 0 ? '+' : ''}${config.currency} ${receiptOrder.roundOffAmount.toFixed(2)}</span>
             </div>
           `
@@ -864,18 +878,18 @@ class PrintService {
       }
           
           <div class="total-row grand-total">
-            <span>TOTAL:</span>
+            <span>TOTAL AMOUNT</span>
             <span>${config.currency} ${order.total.toFixed(2)}</span>
           </div>
           
           ${returnsTotal > 0
         ? `
-            <div class="total-row" style="color: #ef4444; font-weight: bold;">
-              <span>Total Refunded:</span>
+            <div class="total-row" style="color: #dc2626; font-weight: 600; margin-top: 4px;">
+              <span>Total Refunded</span>
               <span>-${config.currency} ${returnsTotal.toFixed(2)}</span>
             </div>
-            <div class="total-row" style="font-weight: bold; border-top: 1px dashed #ccc; padding-top: 4px;">
-              <span>NET AMOUNT:</span>
+            <div class="total-row" style="font-weight: 700; border-top: 1px dashed #e5e7eb; padding-top: 6px; margin-top: 4px;">
+              <span>NET PAYABLE</span>
               <span>${config.currency} ${(order.total - returnsTotal).toFixed(2)}</span>
             </div>
           `
@@ -885,14 +899,10 @@ class PrintService {
 
         ${returnsHTML}
 
-        <div class="divider"></div>
-
         ${paymentDetailsHTML}
-        
-        <div class="divider"></div>
 
-        <div class="receipt-section text-center" style="font-size: 9px; color: #666;">
-          All prices are in ${config.currency}
+        <div class="text-center" style="margin-top: 24px; font-size: 9px; color: #9ca3af;">
+             All prices include taxes where applicable
         </div>
         
         ${config.receiptFooter
@@ -903,8 +913,8 @@ class PrintService {
         : ''
       }
         
-        <div style="text-align: center; margin-top: 8px; font-size: 8px; color: #999;">
-          Thank you for your business!
+        <div style="text-align: center; margin-top: 12px; font-size: 10px; font-weight: 500; color: #111827;">
+          Thank you for shopping with us!
         </div>
       </div>
     `;

@@ -37,9 +37,14 @@ export const sounds = {
     addToCart: () => playBeep(800, 100, 0.2), // Higher pitch, short
     removeFromCart: () => playBeep(400, 150, 0.2), // Lower pitch, slightly longer
     checkout: () => {
-        // Success sound - two tone
-        playBeep(600, 80, 0.15);
-        setTimeout(() => playBeep(800, 120, 0.15), 100);
+        // Play custom MP3 audio
+        try {
+            const audio = new Audio('/success_ding.mp3');
+            audio.volume = 0.5;
+            audio.play().catch(err => console.warn('Unable to play checkout sound:', err));
+        } catch (error) {
+            console.warn('Unable to play checkout sound:', error);
+        }
     },
     error: () => playBeep(300, 200, 0.25), // Low pitch, longer
     click: () => playBeep(1000, 50, 0.1), // Very short, high pitch

@@ -163,9 +163,6 @@ export function EndShiftModal({ isOpen, onClose, session: initialSession, onSucc
                                                 <span className="font-semibold text-gray-500">{formatPrice(enableRoundOff ? Math.ceil(shiftSummary.paymentBreakdown.card || 0) : shiftSummary.paymentBreakdown.card || 0)}</span>
                                             </div>
                                             <div className="flex justify-between pl-4">
-                                                <span className="font-semibold text-gray-500">{formatPrice(enableRoundOff ? Math.ceil(shiftSummary.paymentBreakdown.upi || 0) : shiftSummary.paymentBreakdown.upi || 0)}</span>
-                                            </div>
-                                            <div className="flex justify-between pl-4">
                                                 <span className="text-gray-600">QR / UPI:</span>
                                                 <span className="font-semibold text-gray-500">{formatPrice(enableRoundOff ? Math.ceil((shiftSummary.paymentBreakdown.qr || 0) + (shiftSummary.paymentBreakdown.upi || 0)) : ((shiftSummary.paymentBreakdown.qr || 0) + (shiftSummary.paymentBreakdown.upi || 0)))}</span>
                                             </div>
@@ -175,14 +172,6 @@ export function EndShiftModal({ isOpen, onClose, session: initialSession, onSucc
                             </div>
 
                             <div className="flex gap-3">
-                                <Button
-                                    onClick={() => {/* TODO: Print shift report */ }}
-                                    variant="secondary"
-                                    className="flex-1 flex items-center justify-center"
-                                >
-                                    <Printer className="w-4 h-4 mr-2" />
-                                    Print Report
-                                </Button>
                                 <Button
                                     onClick={closeModal}
                                     variant="primary"

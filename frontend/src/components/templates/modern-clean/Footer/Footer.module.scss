@@ -106,9 +106,6 @@
         font-size: 14px;
         background: var(--footer-bottom-bg, #000000);
         color: var(--footer-bottom-text, #888888);
-        // backdrop-filter: blur(10px); // Removed to respect solid color settings
-        animation: fadeIn 1s ease-in-out 0.4s forwards;
-        opacity: 0;
 
         @include mobile {
             padding: 16px 0;
@@ -328,7 +325,6 @@
                 }
 
                 &:hover {
-                    transform: translateY(-4px) rotate(360deg);
                     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
 
                     &::before {

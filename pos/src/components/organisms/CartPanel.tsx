@@ -22,7 +22,7 @@ export default function CartPanel() {
     const subtotal = getSubtotal();
     const taxTotal = getTaxTotal();
 
-    const { closeMobileCart, openCheckout, openCustomerModal, openHoldOrder } = useUIStore();
+    const { closeMobileCart, openCheckout, openCustomerModal, openHoldOrder, isCheckoutOpen } = useUIStore();
 
     // Global Shortcuts
     useKeyboardShortcuts([
@@ -30,7 +30,8 @@ export default function CartPanel() {
             key: 'Enter',
             ctrlKey: true,
             action: () => {
-                if (items.length > 0 && allowQuickCheckout) openCheckout();
+                // Only open checkout if it's not already open
+                if (items.length > 0 && allowQuickCheckout && !isCheckoutOpen) openCheckout();
             }
         },
         {

@@ -26,13 +26,13 @@ export interface ThemeFonts {
 export interface HeaderTopBarItem {
   id: string;
   type:
-    | 'text'
-    | 'link'
-    | 'phone'
-    | 'email'
-    | 'social'
-    | 'language'
-    | 'currency';
+  | 'text'
+  | 'link'
+  | 'phone'
+  | 'email'
+  | 'social'
+  | 'language'
+  | 'currency';
   content?: string;
   label?: string;
   url?: string;
@@ -91,17 +91,18 @@ export interface FooterElementSettings {
   newsletterPlaceholder?: string;
   newsletterButtonText?: string;
   newsletterDescription?: string;
+  socialTitle?: string;
   // Social settings
   socialLinks?: Array<{
     id: string;
     platform:
-      | 'facebook'
-      | 'twitter'
-      | 'instagram'
-      | 'linkedin'
-      | 'youtube'
-      | 'pinterest'
-      | 'tiktok';
+    | 'facebook'
+    | 'twitter'
+    | 'instagram'
+    | 'linkedin'
+    | 'youtube'
+    | 'pinterest'
+    | 'tiktok';
     url: string;
   }>;
   // Contact settings
@@ -128,13 +129,13 @@ export interface FooterElementSettings {
 export interface FooterElement {
   id: string;
   type:
-    | 'menu'
-    | 'text'
-    | 'html'
-    | 'newsletter'
-    | 'social'
-    | 'contact'
-    | 'payment-methods';
+  | 'menu'
+  | 'text'
+  | 'html'
+  | 'newsletter'
+  | 'social'
+  | 'contact'
+  | 'payment-methods';
   menuId?: string;
   content?: string;
   settings?: FooterElementSettings;
@@ -270,13 +271,13 @@ export interface CategoryGridConfig {
 
 export interface CategorySortingConfig {
   defaultSort:
-    | 'featured'
-    | 'newest'
-    | 'oldest'
-    | 'price-low'
-    | 'price-high'
-    | 'alphabetical'
-    | 'bestselling';
+  | 'featured'
+  | 'newest'
+  | 'oldest'
+  | 'price-low'
+  | 'price-high'
+  | 'alphabetical'
+  | 'bestselling';
   showSortDropdown: boolean;
   availableSortOptions: string[];
 }

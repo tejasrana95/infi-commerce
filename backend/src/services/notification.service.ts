@@ -4,6 +4,7 @@ import NotificationQueue, { INotificationQueue, NotificationChannel, Notificatio
 import NotificationTemplate, { INotificationTemplate } from '../models/NotificationTemplate';
 import Store from '../models/Store';
 import Handlebars from 'handlebars';
+import { socketService } from './socket.service';
 
 // ============================================
 // Email Provider Types
@@ -935,6 +936,18 @@ class NotificationService {
             isRead: false
         });
 
+        // Emit socket event for real-time notification
+        socketService.emitAdminNotification({
+            _id: notification._id.toString(),
+            type: notification.type,
+            title: notification.title,
+            message: notification.message,
+            data: notification.data,
+            recipient: notification.recipient,
+            isRead: notification.isRead,
+            createdAt: notification.createdAt
+        });
+
         return notification;
     }
 
@@ -1005,6 +1018,11 @@ class NotificationService {
             { $set: { isRead: true } }
         );
 
+        // Emit socket event for notification read
+        if (result.modifiedCount > 0) {
+            socketService.emitNotificationRead(id);
+        }
+
         return result.modifiedCount > 0;
     }
 
@@ -1026,6 +1044,11 @@ class NotificationService {
             query,
             { $set: { isRead: true } }
         );
+
+        // Emit socket event for all notifications read
+        if (result.modifiedCount > 0) {
+            socketService.emitAllNotificationsRead();
+        }
 
         return result.modifiedCount > 0;
     }

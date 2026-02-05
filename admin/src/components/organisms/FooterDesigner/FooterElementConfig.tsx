@@ -289,8 +289,24 @@ export default function FooterElementConfig({
                     {/* Social Links Configuration */}
                     {formData.type === 'social' && (
                         <>
+                            <TextField
+                                label="Section Heading"
+                                value={formData.settings?.socialTitle || ''}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        settings: {
+                                            ...formData.settings,
+                                            socialTitle: e.target.value,
+                                        },
+                                    })
+                                }
+                                fullWidth
+                                placeholder="Follow Us"
+                                sx={{ mb: 2 }}
+                            />
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Typography variant="subtitle2">Social Links</Typography>
+                                {formData.settings?.socialTitle && <Typography variant="subtitle2">{formData.settings?.socialTitle}</Typography>}
                                 <Button size="small" startIcon={<AddIcon />} onClick={handleAddSocialLink}>
                                     Add Link
                                 </Button>

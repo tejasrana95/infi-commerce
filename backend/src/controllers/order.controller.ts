@@ -532,10 +532,41 @@ export const adminCreateOrder = asyncHandler(
       order.customerId?.toString(),
     );
 
+    // Include basic customer info in response when available
+    let customerInfo = null;
+    if (customerIdToUse) {
+      try {
+        const Customer = (await import('../models/Customer')).default;
+        const cust = await Customer.findById(customerIdToUse).select('firstName lastName email');
+        if (cust) {
+          customerInfo = {
+            id: cust._id.toString(),
+            firstName: cust.firstName,
+            lastName: cust.lastName,
+            email: cust.email,
+          };
+        }
+      } catch (err) {
+        // Non-fatal: if customer lookup fails, continue without customer info
+        console.warn('Failed to load customer info for response', err);
+      }
+    }
+
+    // Prepare order object for response and embed customer info under customerId
+    const responseOrder = order && (typeof order.toObject === 'function' ? order.toObject() : order);
+    if (customerInfo) {
+      responseOrder.customerId = {
+        id: customerInfo.id,
+        firstName: customerInfo.firstName,
+        lastName: customerInfo.lastName,
+        email: customerInfo.email,
+      };
+    }
+
     res.status(201).json({
       success: true,
       message: 'Order created successfully',
-      data: order,
+      data: responseOrder,
     });
   },
 );

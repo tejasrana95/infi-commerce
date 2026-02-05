@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, History, Settings, LogOut, Maximize, Minimize, Loader2, Package, Menu, X, ArrowRightLeft } from 'lucide-react';
+import { LayoutDashboard, History, Settings, LogOut, Maximize, Minimize, Loader2, Package, Menu, X, ArrowRightLeft, UserCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -24,11 +24,11 @@ import CheckoutModal from '../organisms/CheckoutModal';
 import CustomerSelectionModal from '../organisms/CustomerSelectionModal';
 
 
-interface POCLayoutProps {
+interface POSLayoutProps {
     children: React.ReactNode;
 }
 
-export default function POCLayout({ children }: POCLayoutProps) {
+export default function POSLayout({ children }: POSLayoutProps) {
     const pathname = usePathname();
     const router = useRouter();
     const { store, loading: storeLoading } = useStore();
@@ -229,9 +229,10 @@ export default function POCLayout({ children }: POCLayoutProps) {
                             Return Orders
                         </span>
                     </button>
-                    <NavItem href="/settings" icon={<Settings size={24} />} label="Settings" active={pathname === '/settings'} onClick={closeSidebar} />
+                    <NavItem href="/profile" className='flex md:hidden' icon={<UserCircle size={24} />} label="Profile" active={pathname === '/profile'} onClick={closeSidebar} />
+                    <NavItem href="/settings" className="hidden md:flex" icon={<Settings size={24} />} label="Settings" active={pathname === '/settings'} onClick={closeSidebar} />
                 </nav>
-
+                        
                 <div
                     className="xl:hidden text-[11px] text-slate-400 font-mono tracking-wider mb-4 [writing-mode:vertical-rl] rotate-180 whitespace-nowrap select-none "
                 >
@@ -319,7 +320,7 @@ export default function POCLayout({ children }: POCLayoutProps) {
     );
 }
 
-function NavItem({ href, icon, label, active, onClick }: { href: string; icon: React.ReactNode; label: string; active?: boolean, onClick?: () => void }) {
+function NavItem({ href, icon, label, active, onClick, className }: { href: string; icon: React.ReactNode; label: string; active?: boolean, onClick?: () => void, className?: string }) {
     return (
         <Link
             href={href}
@@ -327,6 +328,7 @@ function NavItem({ href, icon, label, active, onClick }: { href: string; icon: R
             className={cn(
                 "p-3 rounded-xl transition-colors flex justify-center group relative",
                 active ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20" : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                , className
             )}
         >
             {icon}

@@ -133,9 +133,11 @@ export function FooterSocialElement({ element }: FooterSocialElementProps) {
 
     if (socialLinks.length === 0) return null;
 
+    const heading = element.settings?.socialTitle;
+
     return (
         <div className={styles.elementSocial}>
-            <h4>Follow Us</h4>
+            {heading && <h4>{heading}</h4>}
             <div className={styles.socialLinks}>
                 {socialLinks.map((link) => {
                     const Icon = socialIcons[link.platform];
