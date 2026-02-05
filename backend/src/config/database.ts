@@ -12,7 +12,13 @@ export const connectDatabase = async (): Promise<void> => {
             retryWrites: true,      // Enable retry writes for better reliability
             retryReads: true,       // Enable retry reads
         });
+        console.log('===========================================');
+        console.log('===========================================');
+
         console.log('MongoDB connection established successfully');
+
+        console.log('===========================================');
+        console.log('===========================================');
 
         mongoose.connection.on('error', (error) => {
             console.error('MongoDB connection error:', error);
