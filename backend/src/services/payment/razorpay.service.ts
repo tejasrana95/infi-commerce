@@ -94,7 +94,11 @@ export class RazorpayService extends BasePaymentGateway implements IPosQRService
                 .update(JSON.stringify(payload))
                 .digest('hex');
 
-            const isValid = expectedSignature === signature;
+            // Secure constant-time comparison
+            const expectedBuffer = Buffer.from(expectedSignature);
+            const signatureBuffer = Buffer.from(signature);
+            const isValid = expectedBuffer.length === signatureBuffer.length &&
+                crypto.timingSafeEqual(expectedBuffer, signatureBuffer);
 
             if (!isValid) {
                 return { isValid: false };
@@ -144,7 +148,11 @@ export class RazorpayService extends BasePaymentGateway implements IPosQRService
             .update(`${orderId}|${paymentId}`)
             .digest('hex');
 
-        return expectedSignature === signature;
+        // Secure constant-time comparison
+        const expectedBuffer = Buffer.from(expectedSignature);
+        const signatureBuffer = Buffer.from(signature);
+        return expectedBuffer.length === signatureBuffer.length &&
+            crypto.timingSafeEqual(expectedBuffer, signatureBuffer);
     }
 
     // ... processRefund ...

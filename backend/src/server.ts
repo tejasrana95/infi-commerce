@@ -11,7 +11,12 @@ import apiRoutes from './routes';
 import { registerEventHandlers } from './events/handlers';
 import { channelMiddleware } from './middleware/channel.middleware';
 import { optionalApiKeyAuth } from './middleware/apiKeyAuth';
+import { globalApiLimiter } from './middleware/rateLimit';
 const app: Express = express();
+
+// Trust Proxy (Required for correct IP detection behind Nginx/ALB)
+// This enables secure use of rate limiting and IP based middlewares
+app.set('trust proxy', 1);
 
 // Middleware
 app.use(helmet({
@@ -95,6 +100,9 @@ if (config.env !== 'production') {
 }
 
 // Global API key authentication middleware - validates key if provided, allows if not
+
+// Apply Global Rate Limiting
+app.use('/api', globalApiLimiter);
 
 app.use('/api', optionalApiKeyAuth);
 
