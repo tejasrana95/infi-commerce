@@ -50,7 +50,7 @@ export default function BulkBarcodeGeneratorPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedRows, setSelectedRows] = useState<GridRowSelectionModel>({
     type: 'include',
-    ids: new Set(),
+    ids: new Set<string>(),
   });
 
   // Settings
@@ -143,15 +143,28 @@ export default function BulkBarcodeGeneratorPage() {
     }));
   };
 
+  // Helper function to get selected IDs (handles both include and exclude modes)
+  const getSelectedIds = (): string[] => {
+    if (selectedRows.type === 'include') {
+      return Array.from(selectedRows.ids) as string[];
+    } else {
+      // type === 'exclude' means all rows are selected except the ones in ids
+      return products
+        .map(p => p._id)
+        .filter(id => !selectedRows.ids.has(id));
+    }
+  };
+
   const handleGeneratePDF = async () => {
-    if (selectedRows.ids.size === 0) {
+    const selectedIds = getSelectedIds();
+
+    if (selectedIds.length === 0) {
       showNotification('Please select at least one product', 'warning');
       return;
     }
 
     try {
       setGenerating(true);
-      const selectedIds = Array.from(selectedRows.ids) as string[];
 
       // Prepare quantities array
       const quantityList = selectedIds.map(id => ({
@@ -261,8 +274,9 @@ export default function BulkBarcodeGeneratorPage() {
     },
   ];
 
-  const totalLabels = Array.from(selectedRows.ids).reduce((sum: number, id) => {
-    return sum + (quantities[id as string] || 1);
+  const selectedIds = getSelectedIds();
+  const totalLabels = selectedIds.reduce((sum: number, id) => {
+    return sum + (quantities[id] || 1);
   }, 0);
 
   const labelsPerPage = useMemo(() => {
@@ -474,7 +488,7 @@ export default function BulkBarcodeGeneratorPage() {
                       fullWidth
                       variant="contained"
                       onClick={handleGeneratePDF}
-                      disabled={selectedRows.ids.size === 0 || generating}
+                      disabled={selectedIds.length === 0 || generating}
                       startIcon={generating ? null : <Download size={18} />}
                     >
                       {generating ? 'Generating...' : 'Download PDF'}
@@ -491,8 +505,8 @@ export default function BulkBarcodeGeneratorPage() {
               <CardHeader
                 title="Select Products"
                 subheader={
-                  selectedRows.ids.size > 0
-                    ? `${selectedRows.ids.size} product${selectedRows.ids.size !== 1 ? 's' : ''} selected`
+                  selectedIds.length > 0
+                    ? `${selectedIds.length} product${selectedIds.length !== 1 ? 's' : ''} selected`
                     : 'Search and select products to print'
                 }
               />
@@ -506,7 +520,9 @@ export default function BulkBarcodeGeneratorPage() {
                     checkboxSelection
                     disableRowSelectionOnClick
                     rowSelectionModel={selectedRows}
-                    onRowSelectionModelChange={setSelectedRows}
+                    onRowSelectionModelChange={(newModel) => {
+                      setSelectedRows(newModel);
+                    }}
                     pageSizeOptions={[25, 50, 100]}
                     initialState={{
                       pagination: { paginationModel: { pageSize: 25 } },

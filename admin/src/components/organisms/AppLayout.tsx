@@ -71,6 +71,7 @@ import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import UndoIcon from '@mui/icons-material/Undo';
 import api from '@/lib/api';
 import Image from 'next/image';
+import { QrCode } from 'lucide-react';
 const drawerWidth = 260;
 
 interface NavItem {
@@ -98,6 +99,7 @@ const navigationItems: NavItem[] = [
       { name: 'Specifications', href: '/attributes', icon: <ChecklistIcon /> },
       { name: 'Brands', href: '/brands', icon: <LabelImportantIcon /> },
       { name: 'Reviews', href: '/reviews', icon: <CommentIcon /> },
+      { name: 'Barcode Generator', href: '/barcode', icon: <QrCode /> },
     ],
   },
   {

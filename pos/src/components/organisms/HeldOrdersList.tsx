@@ -118,18 +118,41 @@ export function HeldOrdersList({ isOpen, onClose }: HeldOrdersListProps) {
 
                 // Re-add items to cart
                 order.items.forEach((item) => {
+                    // Construct the pricing object from the saved item data
+                    // Calculate if the item has a sale price by checking if there's an originalPrice
+                    const isOnSale = !!item.originalPrice && item.originalPrice > item.price;
+                    const basePrice = item.basePrice || item.price / (1 + (item.taxRate || 0) / 100);
+                    const salePrice = isOnSale ? basePrice : undefined;
+                    const priceWithoutTax = basePrice;
+                    const priceWithTax = item.price;
+
                     addToCart(
                         {
                             id: item.productId,
                             name: item.name,
                             sku: item.sku,
-                            price: item.price,
+                            price: priceWithoutTax,
+                            salePrice: salePrice,
                             stock: 999, // Placeholder
                             image: item.image,
                             type: 'simple',
                             categoryIds: [],
                             taxRate: item.taxRate,
                             taxAmount: item.taxAmount,
+                            pricing: {
+                                price: priceWithoutTax,
+                                salePrice: salePrice,
+                                priceWithTax: priceWithTax,
+                                salePriceWithTax: isOnSale ? item.price : undefined,
+                                taxRate: item.taxRate || 0,
+                                taxAmount: item.taxAmount || 0,
+                                finalPrice: item.price,
+                                originalPrice: item.originalPrice || item.price,
+                                isOnSale: isOnSale,
+                                discountPercent: isOnSale && item.originalPrice
+                                    ? ((item.originalPrice - item.price) / item.originalPrice * 100)
+                                    : undefined,
+                            }
                         },
                         undefined,
                         item.quantity
@@ -198,8 +221,8 @@ export function HeldOrdersList({ isOpen, onClose }: HeldOrdersListProps) {
                             <button
                                 onClick={() => setShowAllOrders(!showAllOrders)}
                                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${showAllOrders
-                                        ? 'bg-blue-100 text-blue-700'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                     }`}
                             >
                                 <Users className="w-4 h-4" />
@@ -373,8 +396,8 @@ export function HeldOrdersList({ isOpen, onClose }: HeldOrdersListProps) {
                     >
                         <motion.div
                             className={`relative p-6 rounded-lg shadow-xl max-w-sm mx-4 pointer-events-auto ${dialogMessage.type === 'success'
-                                    ? 'bg-green-50 border border-green-200'
-                                    : 'bg-red-50 border border-red-200'
+                                ? 'bg-green-50 border border-green-200'
+                                : 'bg-red-50 border border-red-200'
                                 }`}
                             layout
                         >
