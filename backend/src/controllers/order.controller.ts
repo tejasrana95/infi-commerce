@@ -2001,8 +2001,11 @@ export const cancelOrder = asyncHandler(
       userRole === 'admin' ||
       userRole === 'store_admin' ||
       userRole === 'super_admin';
-    const isOwner =
-      order.customerId && order.customerId._id.toString() === userId;
+    // Handle both populated (with id) and non-populated (ObjectId with _id) customerId
+    const customerIdString = order.customerId
+      ? ((order.customerId as any).id || (order.customerId as any)._id?.toString() || order.customerId.toString())
+      : null;
+    const isOwner = customerIdString === userId;
 
     // Check for guest access via email verification
     const guestEmailInput =

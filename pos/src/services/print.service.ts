@@ -31,7 +31,7 @@ interface ReceiptOrder {
   id: string;
   orderNumber: string;
   date: string;
-  createdAt: string;
+  createdAt?: string;
   status: Order['status'];
   customerId: string | Customer | null;
   items: ReceiptOrderItem[];
@@ -805,11 +805,12 @@ class PrintService {
             </div>
             <div class="info-item" style="text-align: right;">
               <span class="info-label">Date</span>
-              <span class="info-value">${
-                  ((order.date || order.createdAt) && !isNaN(new Date(order.date || order.createdAt).getTime()))
-                    ? (new Date(order.date || order.createdAt).toLocaleDateString() + ' ' + new Date(order.date || order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }))
-                : 'N/A'
-              }</span>
+              <span class="info-value">${(() => {
+        const dateValue = order.date || order.createdAt;
+        return dateValue && !isNaN(new Date(dateValue).getTime())
+          ? (new Date(dateValue).toLocaleDateString() + ' ' + new Date(dateValue).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }))
+          : 'N/A';
+      })()}</span>
             </div>
              ${customer ? `
             <div class="info-item">

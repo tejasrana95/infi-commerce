@@ -25,6 +25,7 @@ import { InventoryService } from '../services/inventory.service';
 import { AccountingService } from '../services/accounting.service';
 import { AppError, asyncHandler } from '../middleware/validation';
 import { PaymentService } from '../services/payment/payment.service';
+import { emitOrderEvent } from '../events';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -516,6 +517,15 @@ export const createReturnRequest = asyncHandler(async (req: AuthRequest, res: Re
         console.error('Failed to send admin notifications:', notificationError);
     }
 
+    // Emit order event for 3rd party integrations
+    emitOrderEvent(
+        'orderRefundRequest',
+        order,
+        storeId,
+        order._id.toString(),
+        customerId
+    );
+
     res.status(201).json({
         success: true,
         message: returnSettings.autoApproveReturns
@@ -611,6 +621,15 @@ export const adminCreateReturn = asyncHandler(async (req: AuthRequest, res: Resp
     } catch (notificationError) {
         console.error('Failed to send admin notifications:', notificationError);
     }
+
+    // Emit order event for 3rd party integrations
+    emitOrderEvent(
+        'orderRefundRequest',
+        order,
+        storeId,
+        order._id.toString(),
+        order.customerId?.toString()
+    );
 
     res.status(201).json({
         success: true,
@@ -774,6 +793,15 @@ export const approveReturnRequest = asyncHandler(async (req: AuthRequest, res: R
         const store = await Store.findById(fullRequest.storeId);
         await sendReturnNotification(fullRequest, fullRequest.orderId, store, 'status_update');
     }
+
+    // Emit order event for 3rd party integrations
+    emitOrderEvent(
+        'orderReturn',
+        returnRequest.orderId as any,
+        returnRequest.storeId.toString(),
+        returnRequest.orderId.toString(),
+        returnRequest.customerId?.toString()
+    );
 
     res.status(200).json({
         success: true,
@@ -1082,6 +1110,15 @@ export const processRefund = asyncHandler(async (req: AuthRequest, res: Response
         const store = await Store.findById(fullRequest.storeId);
         await sendReturnNotification(fullRequest, fullRequest.orderId, store, 'status_update');
     }
+
+    // Emit order event for 3rd party integrations
+    emitOrderEvent(
+        'orderRefund',
+        order,
+        order.storeId.toString(),
+        order._id.toString(),
+        order.customerId?.toString()
+    );
 
     res.status(200).json({
         success: true,

@@ -23,6 +23,15 @@ export const handleOrderEvent = async (event: OrderEvent) => {
         case 'orderPaid':
             await onOrderPaid(event);
             break;
+        case 'orderReturn':
+            await onOrderReturn(event);
+            break;
+        case 'orderRefund':
+            await onOrderRefund(event);
+            break;
+        case 'orderRefundRequest':
+            await onOrderRefundRequest(event);
+            break;
         // Add other cases as needed
         default:
             // Generic handling or ignore
@@ -60,4 +69,32 @@ async function onOrderShipped(_event: OrderEvent) {
  */
 async function onOrderPaid(_event: OrderEvent) {
     // Handle payment success side effects
+}
+
+/**
+ * Logic to run when a return request is created
+ */
+async function onOrderRefundRequest(_event: OrderEvent) {
+    // TODO: Notify ERP system of return request
+    // TODO: Update inventory forecasting systems
+    // TODO: Trigger custom workflows for return approval
+}
+
+/**
+ * Logic to run when a return is approved/processed
+ */
+async function onOrderReturn(_event: OrderEvent) {
+    // TODO: Connect to warehouse management system
+    // TODO: Update inventory tracking
+    // TODO: Sync with accounting software
+}
+
+/**
+ * Logic to run when a refund is processed
+ */
+async function onOrderRefund(_event: OrderEvent) {
+    // TODO: Sync with accounting software (QuickBooks, Xero, etc.)
+    // TODO: Update financial reporting systems
+    // TODO: Trigger reconciliation workflows
+    // Example: await accountingService.recordRefund(event.detail);
 }

@@ -195,6 +195,7 @@ export interface Order {
     id: string;
     orderNumber: string;
     date: string;
+    createdAt?: string;
     status: OrderStatus;
     customerId: string | Customer | null;
     items: OrderItem[];
