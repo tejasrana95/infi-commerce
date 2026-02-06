@@ -27,6 +27,10 @@ Name	Super Admin
 Email customer@demo.com
 password: Customer@123
 
+## POS
+Email pos@demo.com
+password: POS@1234
+
 // Run daily via cron job
 await UserInterest.cleanupStaleData(30); // Clean data older than 30 days
 // Get stats for monitoring
