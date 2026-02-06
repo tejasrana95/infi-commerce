@@ -8,12 +8,14 @@
 # Configuration - Customize these values as needed
 FRONTEND_DIR="frontend"
 ADMIN_DIR="admin"
+POS_DIR="pos"
 BACKEND_DIR="backend"
 GIT_BRANCH="main"  # Change to your default branch if different
 
 # Parse command-line arguments
 BUILD_FRONTEND=false
 BUILD_ADMIN=false
+BUILD_POS=false
 BUILD_BACKEND=false
 SKIP_GIT_PULL=false
 AUTO_DETECT=false
@@ -34,6 +36,10 @@ while [[ $# -gt 0 ]]; do
             BUILD_ADMIN=true
             shift
             ;;
+        --pos)
+            BUILD_POS=true
+            shift
+            ;;
         --backend)
             BUILD_BACKEND=true
             shift
@@ -41,6 +47,7 @@ while [[ $# -gt 0 ]]; do
         --all)
             BUILD_FRONTEND=true
             BUILD_ADMIN=true
+            BUILD_POS=true
             BUILD_BACKEND=true
             shift
             ;;
@@ -54,6 +61,7 @@ while [[ $# -gt 0 ]]; do
             echo "Options:"
             echo "  --frontend      Build only frontend"
             echo "  --admin         Build only admin"
+            echo "  --pos           Build only POS"
             echo "  --backend       Build only backend"
             echo "  --all           Build all applications (default)"
             echo "  --no-pull       Skip git pull step"
@@ -63,6 +71,7 @@ while [[ $# -gt 0 ]]; do
             echo "  ./deploy.sh                  # Build all apps"
             echo "  ./deploy.sh --frontend       # Build only frontend"
             echo "  ./deploy.sh --frontend --admin  # Build frontend and admin"
+            echo "  ./deploy.sh --pos --backend  # Build POS and backend"
             echo "  ./deploy.sh --backend --no-pull # Build backend without git pull"
             exit 0
             ;;
@@ -109,7 +118,7 @@ cd "$PROJECT_ROOT" || handle_error "Failed to change to project root directory"
 print_section "Starting Deployment Process"
 print_message "$YELLOW" "Project Root: $PROJECT_ROOT"
 print_message "$YELLOW" "Branch: $GIT_BRANCH"
-print_message "$YELLOW" "Building: $([ "$BUILD_FRONTEND" = true ] && echo -n "Frontend ")$([ "$BUILD_ADMIN" = true ] && echo -n "Admin ")$([ "$BUILD_BACKEND" = true ] && echo -n "Backend")"
+print_message "$YELLOW" "Building: $([ "$BUILD_FRONTEND" = true ] && echo -n "Frontend ")$([ "$BUILD_ADMIN" = true ] && echo -n "Admin ")$([ "$BUILD_POS" = true ] && echo -n "POS ")$([ "$BUILD_BACKEND" = true ] && echo -n "Backend")"
 echo ""
 
 # Step 1: Git Pull (skip if --no-pull flag is set)
@@ -148,6 +157,11 @@ if [ "$SKIP_GIT_PULL" = false ]; then
                     print_message "$BLUE" "  → Admin changes detected"
                 fi
                 
+                if echo "$CHANGED_FILES" | grep -q "^$POS_DIR/"; then
+                    BUILD_POS=true
+                    print_message "$BLUE" "  → POS changes detected"
+                fi
+                
                 if echo "$CHANGED_FILES" | grep -q "^$BACKEND_DIR/"; then
                     BUILD_BACKEND=true
                     print_message "$BLUE" "  → Backend changes detected"
@@ -160,10 +174,11 @@ if [ "$SKIP_GIT_PULL" = false ]; then
                 fi
                 
                 # If no app-specific changes detected, build all as fallback
-                if [ "$BUILD_FRONTEND" = false ] && [ "$BUILD_ADMIN" = false ] && [ "$BUILD_BACKEND" = false ]; then
+                if [ "$BUILD_FRONTEND" = false ] && [ "$BUILD_ADMIN" = false ] && [ "$BUILD_POS" = false ] && [ "$BUILD_BACKEND" = false ]; then
                     print_message "$YELLOW" "  → No app-specific changes detected, building all apps"
                     BUILD_FRONTEND=true
                     BUILD_ADMIN=true
+                    BUILD_POS=true
                     BUILD_BACKEND=true
                 fi
             else
@@ -181,6 +196,7 @@ else
         print_message "$YELLOW" "  → Auto-detection requires git pull, building all apps"
         BUILD_FRONTEND=true
         BUILD_ADMIN=true
+        BUILD_POS=true
         BUILD_BACKEND=true
     fi
 fi
@@ -245,10 +261,30 @@ else
     print_message "$YELLOW" "⊘ Skipping admin build"
 fi
 
+# Step 5: Build POS
+if [ "$BUILD_POS" = true ]; then
+    print_section "Building POS"
+    if [ -d "$PROJECT_ROOT/$POS_DIR" ]; then
+        cd "$PROJECT_ROOT/$POS_DIR" || handle_error "Failed to change to $POS_DIR directory"
+        
+        print_message "$YELLOW" "Installing dependencies..."
+        npm install || handle_error "POS npm install failed"
+        
+        print_message "$YELLOW" "Building POS..."
+        npm run build || handle_error "POS build failed"
+        
+        print_message "$GREEN" "✓ POS build completed successfully"
+    else
+        handle_error "POS directory '$POS_DIR' not found"
+    fi
+else
+    print_message "$YELLOW" "⊘ Skipping POS build"
+fi
+
 # Return to project root
 cd "$PROJECT_ROOT" || handle_error "Failed to return to project root"
 
-# Step 5: Summary
+# Step 6: Summary
 print_section "Deployment Summary"
 if [ "$SKIP_GIT_PULL" = false ]; then
     print_message "$GREEN" "✓ Git pull completed"
@@ -262,9 +298,12 @@ fi
 if [ "$BUILD_ADMIN" = true ]; then
     print_message "$GREEN" "✓ Admin built successfully"
 fi
+if [ "$BUILD_POS" = true ]; then
+    print_message "$GREEN" "✓ POS built successfully"
+fi
 echo ""
 print_message "$GREEN" "🎉 Build process completed successfully!"
-if [ "$BUILD_FRONTEND" = true ] || [ "$BUILD_ADMIN" = true ] || [ "$BUILD_BACKEND" = true ]; then
+if [ "$BUILD_FRONTEND" = true ] || [ "$BUILD_ADMIN" = true ] || [ "$BUILD_POS" = true ] || [ "$BUILD_BACKEND" = true ]; then
     print_message "$YELLOW" "Note: Remember to restart your services if they are running"
 fi
 echo ""
