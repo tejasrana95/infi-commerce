@@ -23,6 +23,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Transition } from '@/utils/transition';
 import api from '@/lib/api';
 import { Check } from 'lucide-react';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -41,8 +42,8 @@ export default function LoginPage() {
     const fetchBranding = async () => {
       try {
         const response = await api.get('/settings/admin-branding');
-        if (response.data.success && response.data.branding && (response.data.branding.name || response.data.branding.logo || response.data.branding.favicon)) {
-          setBranding(response.data.branding);
+        if (response.data.success && response.data.branding && (response.data.branding.name && response.data.branding.logo && response.data.branding.favicon)) {
+          setBranding(branding);
         }
       } catch (error) {
         console.error('Failed to fetch branding:', error);
@@ -148,7 +149,7 @@ export default function LoginPage() {
                 overflow: 'hidden'
               }}
             >
-              <img src={branding.logo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              <Image src={branding.logo} alt="Logo" width={70} height={70} style={{ objectFit: 'contain' }} />
             </Box>
           ) : (
             <Box
