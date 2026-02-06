@@ -27,6 +27,7 @@ import {
 } from '../controllers/store.controller';
 import { authenticate, authorize } from '../middleware/auth';
 import { validate } from '../middleware/validation';
+import { checkDemoMode } from '../middleware/checkDemoMode';
 
 const router = Router();
 
@@ -43,6 +44,7 @@ router.post(
     '/',
     authenticate,
     authorize('admin', 'store_admin', 'super_admin'),
+    checkDemoMode,
     validate(createStoreValidation),
     createStore
 );
@@ -51,6 +53,7 @@ router.put(
     '/:id',
     authenticate,
     authorize('admin', 'store_admin', 'super_admin'),
+    checkDemoMode,
     validate(updateStoreValidation),
     updateStore
 );
@@ -59,6 +62,7 @@ router.patch(
     '/:id',
     authenticate,
     authorize('admin', 'store_admin', 'super_admin'),
+    checkDemoMode,
     updateStore
 );
 
@@ -66,6 +70,7 @@ router.delete(
     '/:id',
     authenticate,
     authorize('admin', 'super_admin'), // Only admin and super_admin can delete
+    checkDemoMode,
     deleteStore
 );
 
@@ -73,6 +78,7 @@ router.patch(
     '/:id/toggle-status',
     authenticate,
     authorize('admin', 'super_admin'), // Only admin and super_admin can toggle status
+    checkDemoMode,
     toggleStoreStatus
 );
 
@@ -88,6 +94,7 @@ router.put(
     '/:id/email-settings',
     authenticate,
     authorize('admin', 'store_admin', 'super_admin'),
+    checkDemoMode,
     validate(updateEmailSettingsValidation),
     updateEmailSettings
 );
@@ -104,6 +111,7 @@ router.put(
     '/:id/sms-settings',
     authenticate,
     authorize('admin', 'store_admin', 'super_admin'),
+    checkDemoMode,
     validate(updateSmsSettingsValidation),
     updateSmsSettings
 );
@@ -120,6 +128,7 @@ router.put(
     '/:id/whatsapp-settings',
     authenticate,
     authorize('admin', 'store_admin', 'super_admin'),
+    checkDemoMode,
     validate(updateWhatsappSettingsValidation),
     updateWhatsappSettings
 );
@@ -128,6 +137,7 @@ router.post(
     '/:id/email-settings/test',
     authenticate,
     authorize('admin', 'store_admin', 'super_admin'),
+    checkDemoMode,
     validate(testEmailSettingsValidation),
     testEmailSettings
 );
@@ -144,6 +154,7 @@ router.put(
     '/:id/pos-payment-settings',
     authenticate,
     authorize('admin', 'store_admin', 'super_admin'),
+    checkDemoMode,
     updatePosPaymentSettings
 );
 
