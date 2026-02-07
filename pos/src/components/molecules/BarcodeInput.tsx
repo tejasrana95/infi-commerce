@@ -8,6 +8,7 @@ import { sounds } from '@/utils/sounds';
 import Input from '../atoms/Input';
 import Spinner from '../atoms/Spinner';
 import IconButton from '../atoms/IconButton';
+import { isMobile, isTablet } from '@/utils/device';
 
 interface BarcodeInputProps {
     onScan: (barcode: string) => Promise<void>;
@@ -36,13 +37,15 @@ export function BarcodeInput({ onScan, placeholder = 'Scan or type SKU/barcode..
 
     // Keep focus when clicking on empty areas (not on interactive elements)
     useEffect(() => {
+        const disableAutoFocus = isMobile() || isTablet();
+
         const handleClick = (e: MouseEvent) => {
             const target = e.target as HTMLElement;
             // Check if clicking on an interactive element or inside one
             const isInteractive = target.closest('input, button, select, textarea, [role="button"], [tabindex], a, label');
 
             // Only refocus if clicking on a truly empty area (like the background)
-            if (!isInteractive && inputRef.current && !loading) {
+            if (!isInteractive && inputRef.current && !loading && !disableAutoFocus) {
                 // Check if the click target is a container/wrapper element
                 const isEmptyArea = target.tagName === 'DIV' || target.tagName === 'MAIN' || target.tagName === 'SECTION';
                 if (isEmptyArea) {
@@ -52,15 +55,16 @@ export function BarcodeInput({ onScan, placeholder = 'Scan or type SKU/barcode..
                 }
             }
         };
-
-        document.addEventListener('click', handleClick);
-        return () => document.removeEventListener('click', handleClick);
+        if (!disableAutoFocus) {
+            document.addEventListener('click', handleClick);
+            return () => document.removeEventListener('click', handleClick);
+        }
     }, [loading]);
 
-    // Register global keyboard shortcut (F2 or /) to focus input
+    // Register global keyboard shortcut (F2 or F4) to focus input
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'F2' || (e.key === '/' && !e.ctrlKey && !e.metaKey)) {
+            if (e.key === 'F2') {
                 const target = e.target as HTMLElement;
                 const isInInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
 

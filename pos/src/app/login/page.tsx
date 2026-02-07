@@ -48,9 +48,9 @@ const LoginPage = memo(() => {
                 email,
                 password,
             });
-            
+
             const { accessToken, user, mfaRequired: requiresMfa, mfaToken: receivedMfaToken } = response.data;
-            
+
             // Check if MFA is required
             if (requiresMfa) {
                 setMfaRequired(true);
@@ -58,7 +58,7 @@ const LoginPage = memo(() => {
                 setLoading(false);
                 return;
             }
-            
+
             // Check if user has POS access
             if (user.role !== 'pos_user' && user.role !== 'store_admin' && user.role !== 'super_admin') {
                 setError('Access denied. POS access requires POS User and Store Admin role.');
@@ -213,7 +213,7 @@ const LoginPage = memo(() => {
             <LoginEnterpriseBackground />
             <div className="relative z-10 w-full max-w-5xl grid grid-cols-1 md:grid-cols-12 gap-8">
                 {/* Left Info Panel */}
-                <div className="md:col-span-7 bg-gradient-to-b from-blue-700 to-indigo-700 rounded-3xl p-10 text-white flex flex-col justify-between shadow-xl">
+                <div className="md:col-span-7 bg-gradient-to-b from-blue-700 to-indigo-700 rounded-3xl p-10 text-white flex flex-col justify-between shadow-xl order-2 md:order-1">
                     <div>
                         <div className="flex items-center gap-3 mb-6">
                             <div className="bg-white/10 rounded-lg p-3">
@@ -253,7 +253,7 @@ const LoginPage = memo(() => {
                 </div>
 
                 {/* Right Auth Card */}
-                <div className="md:col-span-5 relative glass-card rounded-3xl p-8 flex flex-col justify-center">
+                <div className="md:col-span-5 relative glass-card rounded-3xl p-8 flex flex-col justify-center order-1 md:order-2">
                     <div className="card-glow" />
                     {/* Header */}
                     <div className="flex items-center gap-3 mb-6">
@@ -370,14 +370,6 @@ const LoginPage = memo(() => {
                             </>
                         )}
                     </form>
-
-                    {/* Info */}
-                    {!mfaRequired && (
-                        <div className="mt-6 p-4 bg-slate-50 rounded-lg border border-slate-100">
-                            <p className="text-xs font-semibold text-slate-700 mb-1">Access Requirements</p>
-                            <p className="text-xs text-slate-600">POC User, Store Admin, or Super Admin role required. Use your admin panel email and password.</p>
-                        </div>
-                    )}
                 </div>
             </div>
             {/* Forgot Password Modal */}

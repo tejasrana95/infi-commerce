@@ -296,10 +296,10 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="relative w-full max-w-4xl mx-4 bg-white rounded-xl shadow-2xl max-h-[90vh] flex flex-col overflow-hidden"
+                    className="relative w-full md:max-w-4xl max-h-[95dvh] md:max-h-[90vh] h-full md:h-auto bg-white md:rounded-xl shadow-2xl flex flex-col overflow-hidden"
                 >
                     {/* Header */}
-                    <div className="flex items-center justify-between p-6 border-b bg-white z-10">
+                    <div className="flex items-center justify-between p-4 md:p-6 border-b bg-white z-10 shrink-0">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
                                 <RotateCcw className="w-5 h-5 text-orange-600" />
@@ -326,7 +326,7 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
                     </div>
 
                     {/* Body */}
-                    <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
+                    <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50">
                         {/* Step 1: Search Order */}
                         {step === 'search' && (
                             <div className=" mx-auto">
@@ -337,7 +337,7 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
                                     </p>
 
                                     <form onSubmit={handleSearch}>
-                                        <div className="flex gap-3">
+                                        <div className="flex flex-col md:flex-row gap-3">
                                             <div className="flex-1">
                                                 <Input
                                                     type="text"
@@ -348,7 +348,7 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
                                                     autoFocus
                                                 />
                                             </div>
-                                            <Button type="submit" className='flex items-center ' disabled={loading || searchQuery.length < 3}>
+                                            <Button type="submit" className='flex items-center justify-center w-full md:w-auto h-10 md:h-auto' disabled={loading || searchQuery.length < 3}>
                                                 <Search className="w-4 h-4 mr-2" />
                                                 {loading ? 'Searching...' : 'Search'}
                                             </Button>
@@ -410,10 +410,10 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
                                     </div>
                                 ) : (
                                     <>
-                                        <div className="bg-white p-4 rounded-xl border border-slate-200 flex justify-between items-center">
+                                        <div className="bg-white p-4 rounded-xl border border-slate-200 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                                             <div>
                                                 <p className="text-sm text-slate-500">Customer</p>
-                                                <p className="font-medium text-slate-900">
+                                                <p className="font-medium text-slate-900 truncate">
                                                     {order.customerId ? `${order.customerId.firstName} ${order.customerId.lastName}` : 'Walk-in Customer'}
                                                 </p>
                                             </div>
@@ -469,7 +469,82 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
                                         )}
 
                                         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                                            <table className="w-full text-left text-sm">
+                                            {/* Mobile View: Cards */}
+                                            <div className="block md:hidden">
+                                                {order.items.map((item: any, idx: number) => {
+                                                    const productId = typeof item.productId === 'object' ? item.productId._id : item.productId || item._id;
+                                                    const variantId = item.variantId || undefined;
+                                                    const currentReturnItem = returnItems.find(
+                                                        ri => ri.productId === productId && ri.variantId === variantId
+                                                    );
+                                                    const qtyToReturn = currentReturnItem?.quantityToReturn || 0;
+                                                    const maxReturnable = item.quantity - (item.returnedQuantity || 0);
+                                                    const isFullyReturned = maxReturnable <= 0;
+                                                    const { eligible: isEligible, reason: ineligibilityReason } = getReturnEligibility(item);
+                                                    const imageSrc = item.image || (item.productId && item.productId.images && item.productId.images[0]);
+
+                                                    return (
+                                                        <div key={idx} className={`p-4 border-b last:border-b-0 ${isFullyReturned || !isEligible ? 'bg-slate-50 opacity-75' : ''}`}>
+                                                            <div className="flex gap-3 mb-3">
+                                                                <div className="w-16 h-16 bg-slate-100 rounded-lg overflow-hidden relative flex-shrink-0">
+                                                                    {imageSrc && (
+                                                                        <Image
+                                                                            src={imageSrc}
+                                                                            alt={item.name}
+                                                                            layout="fill"
+                                                                            objectFit="cover"
+                                                                        />
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="font-medium text-slate-900 truncate">{item.name}</p>
+                                                                    <p className="text-xs text-slate-500">{item.sku}</p>
+                                                                    <div className="flex justify-between items-center mt-1">
+                                                                        <span className="font-medium text-slate-900">{formatPrice(item.price + item.taxAmount)}</span>
+                                                                        <span className="text-xs text-slate-500">Qty: {item.quantity}</span>
+                                                                    </div>
+                                                                    {item.returnedQuantity > 0 && (
+                                                                        <p className="text-xs text-amber-600 mt-1">Refunded: {item.returnedQuantity} qty</p>
+                                                                    )}
+                                                                    {!isEligible && (
+                                                                        <p className="text-xs text-red-600 mt-1">{ineligibilityReason}</p>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="flex items-center justify-between bg-slate-50 p-2 rounded-lg">
+                                                                <span className="text-sm font-medium text-slate-700">Return Qty:</span>
+                                                                {!isFullyReturned && isEligible ? (
+                                                                    <div className="flex items-center gap-3">
+                                                                        <button
+                                                                            onClick={() => handleQuantityChange(item, qtyToReturn - 1)}
+                                                                            className="w-8 h-8 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 disabled:opacity-50 active:bg-slate-100"
+                                                                            disabled={qtyToReturn <= 0}
+                                                                        >
+                                                                            -
+                                                                        </button>
+                                                                        <span className="w-6 text-center font-medium block">{qtyToReturn}</span>
+                                                                        <button
+                                                                            onClick={() => handleQuantityChange(item, qtyToReturn + 1)}
+                                                                            className="w-8 h-8 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 disabled:opacity-50 active:bg-slate-100"
+                                                                            disabled={qtyToReturn >= maxReturnable}
+                                                                        >
+                                                                            +
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="text-xs text-slate-500 font-medium px-2">
+                                                                        {!isEligible ? 'Not Eligible' : 'Max Returned'}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            {/* Desktop View: Table */}
+                                            <table className="w-full text-left text-sm hidden md:table">
                                                 <thead className="bg-slate-50 border-b border-slate-200">
                                                     <tr>
                                                         <th className="px-4 py-3 font-semibold text-slate-700">Product</th>
@@ -618,7 +693,7 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
                                         )}
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-sm font-medium text-slate-700 mb-2">Return Reason</label>
                                             <select
@@ -657,9 +732,8 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
                             </div>
                         )}
                     </div>
-
                     {/* Footer */}
-                    <div className="p-6 border-t bg-white flex justify-between items-center gap-4">
+                    <div className="p-4 md:p-6 border-t bg-white flex justify-between items-center gap-4 shrink-0">
                         {step === 'search' ? (
                             <Button onClick={onClose} variant="secondary">Cancel</Button>
                         ) : (

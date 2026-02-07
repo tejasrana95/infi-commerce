@@ -210,10 +210,10 @@ export default function ProfilePage() {
                 <p className="text-sm text-slate-600 mt-1">{user?.email}</p>
             </div>
 
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
                 {/* Sidebar */}
-                <div className="w-64 bg-white border-r p-4">
-                    <nav className="space-y-1">
+                <div className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r p-4 shrink-0">
+                    <nav className="flex md:flex-col overflow-x-auto md:overflow-x-visible items-start md:items-stretch gap-2 md:space-y-1 pb-2 md:pb-0 hide-scrollbar">
                         {tabs.map(tab => {
                             const Icon = tab.icon;
                             return (
@@ -224,13 +224,12 @@ export default function ProfilePage() {
                                         setError('');
                                         setSuccess('');
                                     }}
-                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${
-                                        activeTab === tab.id
+                                    className={`w-auto md:w-full flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-lg font-medium transition-colors whitespace-nowrap text-sm md:text-base ${activeTab === tab.id
                                             ? 'bg-blue-50 text-blue-700 border border-blue-200'
                                             : 'text-slate-700 hover:bg-slate-50'
-                                    }`}
+                                        }`}
                                 >
-                                    <Icon className="w-5 h-5" />
+                                    <Icon className="w-4 h-4 md:w-5 md:h-5" />
                                     {tab.label}
                                 </button>
                             );
@@ -239,7 +238,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex-1 overflow-y-auto p-4 md:p-6">
                     <div className="max-w-2xl">
                         {/* Error/Success Messages */}
                         {error && (
@@ -258,9 +257,9 @@ export default function ProfilePage() {
                             <form onSubmit={handleUpdateProfile} className="space-y-6">
                                 <div className="bg-white rounded-lg border p-6">
                                     <h2 className="text-lg font-bold text-slate-900 mb-4">Personal Information</h2>
-                                    
+
                                     <div className="space-y-4">
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <Input
                                                 label="First Name"
                                                 name="firstName"
@@ -313,7 +312,7 @@ export default function ProfilePage() {
                             <form onSubmit={handleChangePassword} className="space-y-6">
                                 <div className="bg-white rounded-lg border p-6">
                                     <h2 className="text-lg font-bold text-slate-900 mb-4">Change Password</h2>
-                                    
+
                                     <div className="space-y-4">
                                         <div className="relative">
                                             <Input
@@ -404,19 +403,17 @@ export default function ProfilePage() {
                                     {showSetupStep === 'initial' && (
                                         <div>
                                             <div className="flex items-center gap-3 mb-4">
-                                                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                                                    twoFactorEnabled ? 'bg-green-100' : 'bg-slate-100'
-                                                }`}>
-                                                    <Shield className={`w-6 h-6 ${
-                                                        twoFactorEnabled ? 'text-green-600' : 'text-slate-400'
-                                                    }`} />
+                                                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${twoFactorEnabled ? 'bg-green-100' : 'bg-slate-100'
+                                                    }`}>
+                                                    <Shield className={`w-6 h-6 ${twoFactorEnabled ? 'text-green-600' : 'text-slate-400'
+                                                        }`} />
                                                 </div>
                                                 <div>
                                                     <p className="font-semibold text-slate-900">
                                                         {twoFactorEnabled ? '2FA Enabled' : '2FA Disabled'}
                                                     </p>
                                                     <p className="text-sm text-slate-600">
-                                                        {twoFactorEnabled 
+                                                        {twoFactorEnabled
                                                             ? 'Your account is protected with two-factor authentication'
                                                             : 'Enable 2FA to secure your account'
                                                         }
@@ -472,9 +469,9 @@ export default function ProfilePage() {
                                                         Use your authenticator app (Google Authenticator, Authy, etc.) to scan this code
                                                     </p>
                                                     <div className="bg-white p-4 rounded-lg border inline-block">
-                                                        <img 
-                                                            src={setupData.qrCode} 
-                                                            alt="QR Code" 
+                                                        <img
+                                                            src={setupData.qrCode}
+                                                            alt="QR Code"
                                                             className="w-48 h-48"
                                                         />
                                                     </div>
@@ -539,7 +536,7 @@ export default function ProfilePage() {
                                             </p>
 
                                             <div className="bg-slate-50 border rounded-lg p-4 mb-4">
-                                                <div className="grid grid-cols-2 gap-2">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                                     {backupCodes.map((code, index) => (
                                                         <div key={index} className="font-mono text-sm bg-white px-3 py-2 rounded border">
                                                             {code}

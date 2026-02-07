@@ -19,7 +19,7 @@ export function useKeyboardShortcuts(shortcuts: ShortcutHandler[]) {
 
         shortcuts.forEach(({ key, ctrlKey, metaKey, shiftKey, action, preventDefault = true }) => {
             const matchKey = event.key.toLowerCase() === key.toLowerCase();
-           
+
             // Check modifiers: only check if explicitly required in the shortcut definition
             const matchCtrl = ctrlKey ? (event.ctrlKey || event.metaKey) : !event.ctrlKey && !event.metaKey;
             const matchMeta = metaKey ? event.metaKey : true; // Optional: specific meta key check
@@ -28,13 +28,15 @@ export function useKeyboardShortcuts(shortcuts: ShortcutHandler[]) {
             // Check if this shortcut matches
             const isMatch = matchKey && matchCtrl && matchShift;
             if (isMatch) {
-               
-                // Allow Escape and Ctrl+Enter shortcuts even in inputs
-                const allowInInput = event.key === 'Escape' || (event.key === 'Enter' && (event.ctrlKey || event.metaKey));
-                
+
+                // Allow Escape, Ctrl/Cmd+Enter, and F4 shortcuts even in inputs
+                const allowInInput = event.key === 'Escape' ||
+                    (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) ||
+                    event.key === 'F4';
+
                 // Skip if in input and this shortcut isn't allowed in inputs
                 if (isInput && !allowInInput) return;
-                
+
                 if (preventDefault) event.preventDefault();
                 action();
             }

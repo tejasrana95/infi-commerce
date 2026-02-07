@@ -64,7 +64,7 @@ export default function OrderDetailModal({ order, isOpen, onClose, onReturn }: O
                     initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.95, opacity: 0 }}
-                    className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden"
+                    className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[95vh] overflow-y-auto"
                     onClick={e => e.stopPropagation()}
                 >
                     {/* Header */}
@@ -261,10 +261,10 @@ export default function OrderDetailModal({ order, isOpen, onClose, onReturn }: O
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="bg-slate-50 border-t px-6 py-4 flex justify-end gap-3">
+                    <div className="bg-slate-50 border-t px-6 py-4 flex justify-end flex-col md:flex-row gap-3">
                         <button
                             onClick={onClose}
-                            className="px-5 py-2 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-100 transition-colors"
+                            className="px-5 py-2 hidden md:block border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-100 transition-colors"
                         >
                             Close
                         </button>

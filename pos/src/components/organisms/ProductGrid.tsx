@@ -36,7 +36,7 @@ export default function ProductGrid() {
     // Shortcuts
     useKeyboardShortcuts([
         {
-            key: '/',
+            key: 'F4',
             action: () => {
                 document.querySelector<HTMLInputElement>('#search-bar')?.focus();
             },
@@ -125,8 +125,8 @@ export default function ProductGrid() {
                 <SearchBar
                     value={searchQuery}
                     onChange={setSearchQuery}
-                    placeholder="Search products by name, SKU, or scan barcode... (/)"
-                    autoFocus
+                    placeholder="Search products by name, SKU, or scan barcode... (F4)"
+                    autoFocus={false}
                 />
 
                 {/* Categories */}

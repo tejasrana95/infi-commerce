@@ -12,6 +12,7 @@ import CartItem from '../molecules/CartItem';
 import Badge from '../atoms/Badge';
 import Button from '../atoms/Button';
 import Avatar from '../atoms/Avatar';
+import { isMobile, isTablet } from '@/utils/device';
 
 export default function CartPanel() {
     const { items, getTotal, getSubtotal, getTaxTotal, removeFromCart, updateQuantity, clearCart, customer, setCustomer } = useCartStore();
@@ -21,7 +22,7 @@ export default function CartPanel() {
     const total = getTotal();
     const subtotal = getSubtotal();
     const taxTotal = getTaxTotal();
-
+    const hideShortcut = isMobile() || isTablet();
     const { closeMobileCart, openCheckout, openCustomerModal, openHoldOrder, isCheckoutOpen } = useUIStore();
 
     // Global Shortcuts
@@ -141,7 +142,7 @@ export default function CartPanel() {
                     onClick={openCheckout}
                 >
                     Pay {formatPrice(total)}
-                    {allowQuickCheckout && <span className="text-xs bg-black/20 px-2 py-0.5 rounded font-mono font-normal">Ctrl+Enter</span>}
+                    {(allowQuickCheckout && !hideShortcut) && <span className="text-xs bg-black/20 px-2 py-0.5 rounded font-mono font-normal">Ctrl+Enter</span>}
                 </Button>
                 <Button
                     variant="outline"

@@ -13,6 +13,7 @@ import { useStore } from '@/contexts/StoreContext';
 import QRPaymentModal from './QRPaymentModal';
 import { printService } from '@/services/print.service';
 import { Order } from '@/types';
+import { isMobile, isTablet } from '@/utils/device';
 
 interface CheckoutModalProps {
     isOpen: boolean;
@@ -203,7 +204,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
             setOrder(response.order);
             setProcessing(false);
             setCompleted(true);
-            
+
             // Play success sound
             sounds.checkout();
         } catch (error) {
@@ -231,7 +232,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
             // Stripe payment IDs
             if (paymentId.startsWith('pi_') || paymentId.startsWith('ch_')) {
                 actualPaymentMethod = 'stripe';
-            } 
+            }
             // PayPal payment IDs
             else if (paymentId.includes('PAYID-')) {
                 actualPaymentMethod = 'paypal';
@@ -326,7 +327,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
     ]);
 
     if (!isOpen) return null;
-
+    const hideShortcut = isMobile() || isTablet();
     return (
         <AnimatePresence>
             {showQRModal && (
@@ -340,7 +341,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
                     customer={customer || undefined}
                 />
             )}
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm ">
                 <motion.div
                     initial={{ scale: 0.90, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
@@ -349,7 +350,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
                     onClick={e => e.stopPropagation()}
                 >
                     {/* Left: Summary */}
-                    <div className="w-full md:w-1/3 bg-slate-50 border-b md:border-b-0 md:border-r p-4 md:p-6 flex flex-col h-1/3 h-full order-2 md:order-1">
+                    <div className="w-full md:w-1/3 bg-slate-50 border-b md:border-b-0 md:border-r p-4 md:p-6 flex flex-col h-auto md:h-full order-2 md:order-1 shrink-0">
                         <h3 className="font-bold text-xl mb-6 flex items-center gap-2 text-slate-800">
                             <span className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-sm font-bold">
                                 {items.length}
@@ -441,7 +442,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
                     </div>
 
                     {/* Right: Payment */}
-                    <div className="w-full md:flex-1 p-4 md:p-8 flex flex-col relative h-2/3 md:h-full order-1 md:order-2">
+                    <div className="w-full md:flex-1 p-4 md:p-8 flex flex-col relative h-auto md:h-full order-1 md:order-2 shrink-0">
                         <button onClick={onClose} className="absolute top-0 -right-0 p-2 hover:bg-slate-100 rounded-full z-10">
                             <X className="text-slate-500 hover:text-slate-800" />
                         </button>
@@ -517,9 +518,9 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
                                     )}
                                 </div>
 
-                                <h2 className="text-2xl font-bold mb-8 text-slate-900">Select Payment Method</h2>
+                                <h2 className="text-2xl font-bold mb-4 text-slate-900">Select Payment Method</h2>
 
-                                <div className="grid grid-cols-3 gap-4 mb-8">
+                                <div className="grid grid-cols-3 gap-4 mb-4">
                                     {isCashEnabled && (
                                         <PaymentMethodCard
                                             icon={<Banknote size={32} />}
@@ -582,10 +583,10 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
                                 <button
                                     onClick={handlePayment}
                                     disabled={processing || (requireCustomerDetails && !customer) || (paymentMethod === 'cash' && !isValidCashAmount)}
-                                    className="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xl shadow-lg shadow-blue-900/20 active:translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+                                    className="w-full py-5 mt-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xl shadow-lg shadow-blue-900/20 active:translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
                                 >
                                     {processing ? "Processing..." : `Complete ${(paymentMethod === 'cash' ? 'Cash' : (paymentMethod === 'qr' ? 'QR' : 'Card'))} Payment`}
-                                    {allowQuickCheckout && <span className="text-xs bg-black/20 px-2 py-1 rounded font-mono font-normal opacity-80 border border-white/10">Ctrl+Enter</span>}
+                                    {(allowQuickCheckout && !hideShortcut) && <span className="text-xs bg-black/20 px-2 py-1 rounded font-mono font-normal opacity-80 border border-white/10">Ctrl+Enter</span>}
                                 </button>
                             </>
                         ) : (

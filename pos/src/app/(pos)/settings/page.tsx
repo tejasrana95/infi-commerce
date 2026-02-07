@@ -73,7 +73,7 @@ export default function SettingsPage() {
                                 <SettingsSection title="General">
                                     <div className="space-y-3">
                                         <ShortcutItem label="Focus Barcode Input" shortcut="F2" />
-                                        <ShortcutItem label="Focus Search Bar" shortcut="/" />
+                                        <ShortcutItem label="Focus Search Bar" shortcut="F4" />
                                     </div>
                                 </SettingsSection>
 

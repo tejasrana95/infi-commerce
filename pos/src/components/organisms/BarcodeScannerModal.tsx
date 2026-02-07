@@ -155,7 +155,7 @@ export function BarcodeScannerModal({ isOpen, onClose, onScan }: BarcodeScannerM
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="relative w-full max-w-4xl mx-4 bg-white rounded-lg shadow-2xl overflow-hidden"
+                    className="relative w-full max-w-4xl mx-4 bg-white rounded-lg shadow-2xl overflow-hidden max-h-[95vh] overflow-y-auto"
                 >
                     {/* Header */}
                     <div className="flex items-center justify-between p-4 border-b bg-gray-50">
@@ -347,7 +347,7 @@ export function BarcodeScannerModal({ isOpen, onClose, onScan }: BarcodeScannerM
 
                     {/* Footer */}
                     <div className="p-4 bg-gray-50 border-t">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between flex-col md:flex-row gap-2">
                             <div className="text-sm text-gray-600">
                                 {initializing ? (
                                     'Starting camera...'
