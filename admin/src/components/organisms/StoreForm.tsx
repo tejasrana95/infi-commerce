@@ -497,6 +497,7 @@ export default function StoreForm({ initialData, onSubmit, isSubmitting = false 
                             control={control}
                             render={({ field }) => (
                                 <TextField
+                                    {...field}
                                     fullWidth
                                     multiline
                                     rows={3}

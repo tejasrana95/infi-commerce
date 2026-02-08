@@ -296,7 +296,6 @@ export default function EditStorePage() {
         try {
             await api.put(`/stores/${id}`, data);
             showNotification('Store updated successfully', 'success');
-            router.push('/stores');
         } catch (err: unknown) {
             const error = err as { response?: { data?: { message?: string } } };
             showNotification(error.response?.data?.message || 'Failed to update store', 'error');
