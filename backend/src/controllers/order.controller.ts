@@ -2152,16 +2152,6 @@ export const handlePaymentSuccess = asyncHandler(
       }
     }
 
-    // For Stripe: Validate the PaymentIntent is in succeeded state
-    if (order.paymentMethod === 'stripe') {
-
-      const { PaymentService } =
-        await import('../services/payment/payment.service');
-      const gateway = await PaymentService.getGatewayInstance({
-        storeId: order.storeId._id.toString(),
-        gatewayType: 'stripe',
-      });
-    }
 
     // Check if all items are digital products
     const orderProductIds = order.items.map((item: any) => item.productId);
