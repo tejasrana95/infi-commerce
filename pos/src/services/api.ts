@@ -506,7 +506,6 @@ class POCApiService {
                 isOnSale: Boolean(apiPricing.isOnSale ?? p.isOnSale),
                 discountPercent: apiPricing.discountPercent,
             } : undefined;
-
             return {
                 id: p._id,
                 name: p.name,
@@ -529,6 +528,7 @@ class POCApiService {
                     options: opt.values,
                 })),
                 productOptions: p.productOptions,
+                manageStock: p.manageStock,
                 pricing: pricing,                               // Full pricing object
                 variants: p.variants?.map((v: any) => {
                     const vApiPricing = v.pricing || {};
@@ -598,6 +598,7 @@ class POCApiService {
                 taxRate: taxRate,
                 taxAmount: taxAmount,
                 stock: p.stock,
+                manageStock: p.manageStock,
                 image: p.image || '',
                 type: p.type as any,
                 categoryIds: p.categoryIds,

@@ -9,7 +9,6 @@ export interface User {
     storeIds?: string[];
     permissions?: string[];
     posPermissions?: {
-        canOverridePrice: boolean;
         canApplyDiscount: boolean;
     };
     twoFactorEnabled?: boolean;

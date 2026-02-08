@@ -458,6 +458,25 @@ export const adminCreateOrder = asyncHandler(
       }
     }
 
+    // Check if all items are digital products
+    const productIds = items.map((item: any) => item.productId);
+    const allProducts = await Product.find({
+      _id: { $in: productIds },
+    });
+
+    const allItemsDigital = items.every((item: any) => {
+      const product = allProducts.find((p) => p._id.toString() === item.productId.toString());
+      return product && product.type === 'digital';
+    });
+
+    // If all items are digital, automatically set order to delivered
+    let orderStatus = status;
+    let deliveredAt = undefined;
+    if (allItemsDigital) {
+      orderStatus = 'delivered';
+      deliveredAt = new Date();
+    }
+
     // Create order
     const order = await Order.create({
       storeId: new mongoose.Types.ObjectId(storeId),
@@ -476,7 +495,8 @@ export const adminCreateOrder = asyncHandler(
       billingAddress,
       paymentMethod,
       paymentStatus,
-      status,
+      status: orderStatus,
+      deliveredAt,
       paymentId,
       paymentDetails,
       customerNote,
@@ -1178,6 +1198,25 @@ export const createOrder = asyncHandler(
     const subtotal = cart.subtotal;
     const total = subtotal + shippingCost + tax - discount;
 
+    // Check if all items are digital products
+    const cartProductIds = cart.items.map((item: any) => item.productId);
+    const allCartProducts = await Product.find({
+      _id: { $in: cartProductIds },
+    });
+
+    const allCartItemsDigital = cart.items.every((item: any) => {
+      const product = allCartProducts.find((p) => p._id.toString() === item.productId.toString());
+      return product && product.type === 'digital';
+    });
+
+    // If all items are digital, automatically set order to delivered
+    let orderStatus = 'pending';
+    let deliveredAt = undefined;
+    if (allCartItemsDigital) {
+      orderStatus = 'delivered';
+      deliveredAt = new Date();
+    }
+
     const order = await Order.create({
       storeId,
       customerId: userId ? new mongoose.Types.ObjectId(userId) : undefined,
@@ -1195,7 +1234,8 @@ export const createOrder = asyncHandler(
       billingAddress,
       paymentMethod,
       paymentStatus: 'pending',
-      status: 'pending',
+      status: orderStatus,
+      deliveredAt,
       customerNote,
       couponId,
       couponCode: coupon?.code,
@@ -2120,7 +2160,6 @@ export const handlePaymentSuccess = asyncHandler(
 
     // For Stripe: Validate the PaymentIntent is in succeeded state
     if (order.paymentMethod === 'stripe') {
-      console.log(`🔄 Validating Stripe PaymentIntent: ${paymentId}`);
 
       const { PaymentService } =
         await import('../services/payment/payment.service');
@@ -2128,30 +2167,26 @@ export const handlePaymentSuccess = asyncHandler(
         storeId: order.storeId._id.toString(),
         gatewayType: 'stripe',
       });
-
-      const paymentStatus = await (gateway as any).getPaymentStatus(paymentId);
-
-      console.log(`📊 PaymentStatus result:`, paymentStatus);
-
-      if (paymentStatus.status !== 'success') {
-        console.error(
-          `❌ Stripe PaymentIntent ${paymentId} validation failed - Status: ${paymentStatus.status}`,
-        );
-        // Don't throw error for now - log and continue (webhook might have issues too)
-        // Better to accept payment and retry later than reject it
-        console.warn(
-          `⚠️ Accepting payment anyway - webhook will verify. PaymentIntent: ${paymentId}`,
-        );
-      } else {
-        console.log(
-          `✅ Confirmed Stripe PaymentIntent ${paymentId} is successfully completed`,
-        );
-      }
     }
+
+    // Check if all items are digital products
+    const orderProductIds = order.items.map((item: any) => item.productId);
+    const orderProducts = await Product.find({
+      _id: { $in: orderProductIds },
+    });
+
+    const allOrderItemsDigital = order.items.every((item: any) => {
+      const product = orderProducts.find((p) => p._id.toString() === item.productId.toString());
+      return product && product.type === 'digital';
+    });
 
     // Update payment status with the confirmed successful paymentId
     order.paymentStatus = 'paid';
-    order.status = 'processing';
+    // Set status to 'delivered' for digital-only orders, otherwise 'processing'
+    order.status = allOrderItemsDigital ? 'delivered' : 'processing';
+    if (allOrderItemsDigital) {
+      order.deliveredAt = new Date();
+    }
     order.paymentId = paymentId; // Store the successful PaymentIntent ID immediately
     order.paymentDetails = {
       ...order.paymentDetails,
@@ -2195,7 +2230,7 @@ export const handlePaymentSuccess = asyncHandler(
         order.storeId._id.toString(),
         (order.storeId as any).name,
         order,
-        'processing',
+        order.status, // Use actual order status (processing or delivered)
       );
     } catch (notificationError) {
       console.error(

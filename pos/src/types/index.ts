@@ -32,6 +32,7 @@ export interface Product {
     price: number;              // Base price (without tax)
     salePrice?: number;         // Sale price (without tax)
     stock: number;
+    manageStock?: boolean;
     image: string;
     type: 'simple' | 'variable';
     categoryIds: string[];
@@ -83,6 +84,8 @@ export interface CartItem {
     sku: string;
     price: number; // Final price including tax (sale price with tax if on sale)
     quantity: number;
+    stock?: number;
+    manageStock?: boolean;
     image: string;
     attributes?: Record<string, string>; // Display selected attributes
     taxRate: number;

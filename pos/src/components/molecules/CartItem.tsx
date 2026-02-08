@@ -21,7 +21,6 @@ export default function CartItem({ item, onUpdateQuantity, onRemove }: CartItemP
     const [showDiscount, setShowDiscount] = useState(false);
     const [discountAmount, setDiscountAmount] = useState<string>(item.discountAmount?.toString() || '');
     const [discountType, setDiscountType] = useState<'fixed' | 'percentage'>(item.discountType || 'fixed');
-
     const handleApplyDiscount = () => {
         if (discountAmount) {
             applyDiscount(item.cartId, parseFloat(discountAmount), discountType);
@@ -96,8 +95,8 @@ export default function CartItem({ item, onUpdateQuantity, onRemove }: CartItemP
                             onIncrement={() => onUpdateQuantity(item.quantity + 1)}
                             onDecrement={() => onUpdateQuantity(item.quantity - 1)}
                             min={1}
+                            max={item.manageStock ? item.stock : undefined}
                         />
-
                         <div className="flex items-center gap-1">
                             {/* Discount Button */}
                             {canApplyDiscount && (

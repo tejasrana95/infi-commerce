@@ -200,6 +200,11 @@ const calculateCartTotals = async (cartItems: any[]) => {
         const product = await Product.findById(item.productId);
         if (!product) continue;
 
+        // Skip digital products - they don't require shipping
+        if (product.type === 'digital') {
+            continue;
+        }
+
         let itemWeight = product.weight || 0;
         let itemPrice = product.salePrice || product.price;
 
@@ -531,6 +536,11 @@ export const calculateSmartShipping = asyncHandler(async (req: AuthRequest, res:
         const product = await Product.findById(item.productId).populate('taxClassId');
         if (!product) {
             throw new AppError(`Product not found: ${item.productId}`, 404);
+        }
+
+        // Skip digital products - they don't require shipping
+        if (product.type === 'digital') {
+            continue;
         }
 
         // Check if product can ship to this location

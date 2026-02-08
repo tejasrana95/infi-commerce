@@ -47,6 +47,7 @@ class SyncService {
                     price: p.price,
                     salePrice: p.salePrice || undefined,
                     stock: p.stock || 0,
+                    manageStock: p.manageStock || false,
                     image: p.images?.[0] || p.image || '',
                     type: p.type || 'simple',
                     categoryIds: p.categoryIds?.map((c: any) => (typeof c === 'object' ? c._id : c)) || [],

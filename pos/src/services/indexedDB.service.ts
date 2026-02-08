@@ -51,6 +51,7 @@ export interface IndexedDBProduct {
         isOnSale: boolean;
         discountPercent?: number;
     };
+    manageStock?: boolean;
 }
 
 export interface IndexedDBCategory {

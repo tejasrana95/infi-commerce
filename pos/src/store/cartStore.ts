@@ -56,12 +56,16 @@ export const useCartStore = create<CartState>((set, get) => ({
             const taxRate = pricing.taxRate;
             const taxAmount = pricing.taxAmount;
             const originalPrice = pricing.isOnSale ? pricing.originalPrice : undefined;
-
+            const stock = variant?.stock || product.stock;
             const sku = variant?.sku || product.sku;
             const name = product.name;
             const image = variant?.image || product.image;
-
+            const manageStock = product?.manageStock || false;
             let newItems;
+
+            if (existingItemIndex > -1 && manageStock && stock < (state.items[existingItemIndex].quantity + quantity)) {
+                return state;
+            }
 
             if (existingItemIndex > -1) {
                 // Update existing item quantity
@@ -88,6 +92,8 @@ export const useCartStore = create<CartState>((set, get) => ({
                         taxAmount,              // Tax amount per unit (from API)
                         basePrice,              // Price without tax (from API)
                         originalPrice,          // Original price with tax (for strikethrough)
+                        stock,
+                        manageStock,
                     }
                 ];
             }
@@ -134,12 +140,12 @@ export const useCartStore = create<CartState>((set, get) => ({
         set((state) => {
             return {
                 items: state.items.map((item) =>
-                    item.cartId === cartId 
-                        ? { 
-                            ...item, 
+                    item.cartId === cartId
+                        ? {
+                            ...item,
                             discountAmount: discountAmount || undefined,
                             discountType: discountAmount ? discountType : undefined
-                          }
+                        }
                         : item
                 ),
             };
@@ -153,7 +159,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     getCartItemTotal: (item: CartItem) => {
         // Start with base price (excluding tax)
         let unitPrice = item.basePrice;
-        
+
         // Apply discount if any
         if (item.discountAmount) {
             if (item.discountType === 'percentage') {
@@ -164,11 +170,11 @@ export const useCartStore = create<CartState>((set, get) => ({
                 unitPrice -= item.discountAmount;
             }
         }
-        
+
         // Add tax (calculated on discounted price)
         const tax = unitPrice * (item.taxRate / 100);
         const finalPrice = unitPrice + tax;
-        
+
         return Math.max(0, finalPrice * item.quantity);
     },
 
@@ -185,7 +191,7 @@ export const useCartStore = create<CartState>((set, get) => ({
         return items.reduce((total, item) => {
             // Start with base price (excluding tax)
             let unitPrice = item.basePrice;
-            
+
             // Apply discount if any
             if (item.discountAmount) {
                 if (item.discountType === 'percentage') {
@@ -194,18 +200,18 @@ export const useCartStore = create<CartState>((set, get) => ({
                     unitPrice -= item.discountAmount;
                 }
             }
-            
+
             return total + Math.max(0, unitPrice * item.quantity);
         }, 0);
     },
 
     getTaxTotal: () => {
         const { items } = get();
-        
+
         // Calculate tax per item considering discounts
         const totalTax = items.reduce((sum, item) => {
             let unitPrice = item.basePrice;
-            
+
             // Apply discount if any
             if (item.discountAmount) {
                 if (item.discountType === 'percentage') {
@@ -214,12 +220,12 @@ export const useCartStore = create<CartState>((set, get) => ({
                     unitPrice -= item.discountAmount;
                 }
             }
-            
+
             // Calculate tax on discounted price
             const itemTax = unitPrice * (item.taxRate / 100);
             return sum + (itemTax * item.quantity);
         }, 0);
-        
+
         return Math.max(0, totalTax);
     },
 

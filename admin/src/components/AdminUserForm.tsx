@@ -18,6 +18,7 @@ import {
     Alert,
 } from '@mui/material';
 import api from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface StoreOption {
     _id: string;
@@ -34,7 +35,6 @@ interface AdminFormData {
     storeId: string;
     isActive: boolean;
     posPermissions?: {
-        canOverridePrice: boolean;
         canApplyDiscount: boolean;
     };
 }
@@ -68,11 +68,10 @@ export default function AdminUserForm({
         storeId: initialData?.storeId || '',
         isActive: initialData?.isActive ?? true,
         posPermissions: initialData?.posPermissions || {
-            canOverridePrice: false,
             canApplyDiscount: false,
         },
     });
-
+    const { user } = useAuth();
     useEffect(() => {
         fetchStores();
     }, []);
@@ -107,7 +106,7 @@ export default function AdminUserForm({
 
     const requiresStore = formData.role === 'store_admin' || formData.role === 'pos_user';
     const showPOSPermissions = formData.role === 'pos_user';
-
+    const sameUser = initialData?.email === user?.email;
     return (
         <Paper sx={{ p: 3 }}>
             <form onSubmit={handleSubmit}>
@@ -244,31 +243,6 @@ export default function AdminUserForm({
                                     Checkout system
                                 </Alert>
                             </Grid>
-
-                            <Grid size={{ xs: 12, md: 6 }}>
-                                <FormControlLabel
-                                    control={
-                                        <Switch
-                                            checked={formData.posPermissions?.canOverridePrice || false}
-                                            onChange={(e) =>
-                                                setFormData({
-                                                    ...formData,
-                                                    posPermissions: {
-                                                        ...formData.posPermissions!,
-                                                        canOverridePrice: e.target.checked,
-                                                    },
-                                                })
-                                            }
-                                        />
-                                    }
-                                    label="Allow Price Override"
-                                />
-                                <Typography variant="caption" color="text.secondary" display="block">
-                                    User can override product prices during checkout (requires
-                                    password confirmation)
-                                </Typography>
-                            </Grid>
-
                             <Grid size={{ xs: 12, md: 6 }}>
                                 <FormControlLabel
                                     control={
@@ -288,7 +262,7 @@ export default function AdminUserForm({
                                     label="Allow Apply Discount"
                                 />
                                 <Typography variant="caption" color="text.secondary" display="block">
-                                    User can apply custom discounts (requires password confirmation)
+                                    User can apply custom discounts
                                 </Typography>
                             </Grid>
                         </>
@@ -307,7 +281,7 @@ export default function AdminUserForm({
                                     onChange={(e) =>
                                         setFormData({ ...formData, isActive: e.target.checked })
                                     }
-                                    disabled={isSuperAdmin && mode === 'edit'}
+                                    disabled={(!isSuperAdmin && mode !== 'edit') || sameUser}
                                 />
                             }
                             label="Active"

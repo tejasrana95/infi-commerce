@@ -39,13 +39,17 @@ export class ShippingCalculatorService {
             storeId: new mongoose.Types.ObjectId(storeId),
         });
 
-        // Calculate total weight and collect categories
+        // Calculate total weight and collect categories (exclude digital products)
         let totalWeight = 0;
         const categoryIds = new Set<string>();
 
         items.forEach((item) => {
             const product = products.find((p) => p._id.toString() === item.productId);
             if (product) {
+                // Skip digital products - they don't require shipping
+                if (product.type === 'digital') {
+                    return;
+                }
                 totalWeight += (product.weight || 0) * item.quantity;
                 product.categoryIds.forEach((catId) => categoryIds.add(catId.toString()));
             }

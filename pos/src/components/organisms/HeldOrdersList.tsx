@@ -134,6 +134,7 @@ export function HeldOrdersList({ isOpen, onClose }: HeldOrdersListProps) {
                             price: priceWithoutTax,
                             salePrice: salePrice,
                             stock: 999, // Placeholder
+                            manageStock: item.manageStock,
                             image: item.image,
                             type: 'simple',
                             categoryIds: [],

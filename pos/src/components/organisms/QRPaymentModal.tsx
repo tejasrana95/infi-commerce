@@ -114,7 +114,6 @@ export default function QRPaymentModal({
             // Gateway Mode
             setStage('generating');
             try {
-                console.log('customer', customer);
                 const response = await api.generateQR({
                     amount,
                     currency,

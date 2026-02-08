@@ -17,7 +17,6 @@ export const createAdminValidation = [
     body('storeIds').optional().isArray().withMessage('storeIds must be an array'),
     body('storeIds.*').optional().isMongoId().withMessage('Invalid store ID in storeIds array'),
     body('phone').optional().trim(),
-    body('posPermissions.canOverridePrice').optional().isBoolean(),
     body('posPermissions.canApplyDiscount').optional().isBoolean(),
 ];
 
@@ -33,7 +32,6 @@ export const updateAdminValidation = [
     body('storeIds.*').optional().isMongoId().withMessage('Invalid store ID in storeIds array'),
     body('phone').optional().trim(),
     body('isActive').optional().isBoolean(),
-    body('posPermissions.canOverridePrice').optional().isBoolean(),
     body('posPermissions.canApplyDiscount').optional().isBoolean(),
 ];
 

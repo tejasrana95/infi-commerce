@@ -151,66 +151,6 @@ export default function OrderDetailPage() {
         }
     };
 
-    const handleProcessRefund = async () => {
-        setAnchorEl(null);
-        setNotifyCustomer(true);
-        setConfirmDialogState({
-            open: true,
-            title: 'Process Refund',
-            message: 'Are you sure you want to mark this order as refunded? This action cannot be undone.',
-            action: async (notify) => {
-                setActionLoading(true);
-                try {
-                    await api.patch(`/orders/${id}/refund`, { notifyCustomer: notify });
-                    await fetchOrder();
-                } catch (err: unknown) {
-                    showNotification(getErrorMessage(err) || 'Failed to refund', 'error');
-                } finally {
-                    setActionLoading(false);
-                }
-            }
-        });
-    };
-
-    const handleReturnUpdate = async (status: string) => {
-        setAnchorEl(null);
-        setNotifyCustomer(true);
-        setConfirmDialogState({
-            open: true,
-            title: status === 'return_requested' ? 'Initiate Return' : 'Complete Return',
-            message: `Are you sure you want to update the return status to ${status.replace('_', ' ')}?`,
-            action: async (notify) => {
-                setActionLoading(true);
-                try {
-                    await api.patch(`/orders/${id}/return-status`, { status, notifyCustomer: notify });
-                    await fetchOrder();
-                } catch (err: unknown) {
-                    showNotification(getErrorMessage(err) || 'Failed to update return status', 'error');
-                } finally {
-                    setActionLoading(false);
-                }
-            }
-        });
-    };
-
-    const handleRefundUpdate = async () => {
-        setActionLoading(true);
-        try {
-            await api.patch(`/orders/${id}/refund-status`, {
-                status: refundAction,
-                adminNote: adminNote,
-                notifyCustomer
-            });
-            await fetchOrder();
-            setRefundDialogOpen(false);
-            setAdminNote('');
-        } catch (err: unknown) {
-            showNotification(getErrorMessage(err) || 'Failed to update refund status', 'error');
-        } finally {
-            setActionLoading(false);
-        }
-    };
-
     const handleDownload = async (type: 'invoice' | 'packing-slip') => {
         try {
             const response = await api.get(`/orders/${id}/${type}`, {
@@ -370,19 +310,6 @@ export default function OrderDetailPage() {
                         {order.status === 'shipped' && (
                             <MenuItem onClick={() => openStatusConfirm('delivered', 'Mark as Delivered')}>Mark as Delivered</MenuItem>
                         )}
-
-                        {/* Refund Workflow */}
-                        {(['cancelled', 'returned', 'delivered'].includes(order.status) || (order.returnStatus === 'received')) &&
-                            order.paymentStatus !== 'refunded' && order.paymentStatus === 'paid' && [
-                                <Divider key="refund-divider" />,
-                                <MenuItem
-                                    key="refund"
-                                    onClick={handleProcessRefund}
-                                    sx={{ color: 'warning.main' }}
-                                >
-                                    Process Refund
-                                </MenuItem>,
-                            ]}
 
                         {/* Cancel Order */}
                         {!['cancelled', 'returned', 'refunded'].includes(order.status) && [
@@ -748,15 +675,15 @@ export default function OrderDetailPage() {
                                             />
                                         </Box>
                                         {order.paymentId && (
-                                        <Box display="flex" justifyContent="space-between">
-                                            <Typography variant="body2" color="text.secondary">Payment ID</Typography>
-                                            <small>{order.paymentId}</small>
-                                        </Box> )}
-                                         {order?.paymentDetails?.confirmedAt && (
-                                        <Box display="flex" justifyContent="space-between">
-                                            <Typography variant="body2" color="text.secondary">Payment Confirmed At</Typography>
-                                            {order.paymentDetails.confirmedAt ? formatDateTime(order.paymentDetails.confirmedAt) : 'N/A'}
-                                        </Box> )}
+                                            <Box display="flex" justifyContent="space-between">
+                                                <Typography variant="body2" color="text.secondary">Payment ID</Typography>
+                                                <small>{order.paymentId}</small>
+                                            </Box>)}
+                                        {order?.paymentDetails?.confirmedAt && (
+                                            <Box display="flex" justifyContent="space-between">
+                                                <Typography variant="body2" color="text.secondary">Payment Confirmed At</Typography>
+                                                {order.paymentDetails.confirmedAt ? formatDateTime(order.paymentDetails.confirmedAt) : 'N/A'}
+                                            </Box>)}
                                     </CardContent>
                                 </Card>
                             </Box>
@@ -870,69 +797,6 @@ export default function OrderDetailPage() {
                     <Button onClick={() => setCancelDialogOpen(false)}>Back</Button>
                     <Button onClick={handleCancelOrder} variant="contained" color="error">
                         Confirm Cancel
-                    </Button>
-                </DialogActions>
-            </Dialog>
-            {/* Refund Management Dialog */}
-            <Dialog open={refundDialogOpen} onClose={() => setRefundDialogOpen(false)} maxWidth="sm" fullWidth>
-                <DialogTitle>Manage Refund Request</DialogTitle>
-                <DialogContent>
-                    <Box sx={{ mt: 2 }}>
-                        <Typography variant="subtitle2" gutterBottom>Action</Typography>
-                        <Box display="flex" gap={2} mb={3}>
-                            <Button
-                                variant={refundAction === 'approved' ? 'contained' : 'outlined'}
-                                color="success"
-                                onClick={() => setRefundAction('approved')}
-                            >
-                                Approve
-                            </Button>
-                            <Button
-                                variant={refundAction === 'rejected' ? 'contained' : 'outlined'}
-                                color="error"
-                                onClick={() => setRefundAction('rejected')}
-                            >
-                                Reject
-                            </Button>
-                            <Button
-                                variant={refundAction === 'processed' ? 'contained' : 'outlined'}
-                                color="primary"
-                                onClick={() => setRefundAction('processed')}
-                            >
-                                Mark as Processed
-                            </Button>
-                        </Box>
-
-                        <TextField
-                            label={refundAction === 'rejected' ? 'Rejection Reason' : 'Admin Note'}
-                            fullWidth
-                            multiline
-                            rows={3}
-                            value={adminNote}
-                            onChange={(e) => setAdminNote(e.target.value)}
-                            placeholder={refundAction === 'rejected' ? 'Explain why the refund was rejected...' : 'Add a note for the customer...'}
-                            helperText="This note will be visible to the customer."
-                        />
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    checked={notifyCustomer}
-                                    onChange={(e) => setNotifyCustomer(e.target.checked)}
-                                />
-                            }
-                            label="Notify Customer"
-                            sx={{ mt: 2 }}
-                        />
-                    </Box>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setRefundDialogOpen(false)}>Cancel</Button>
-                    <Button
-                        onClick={handleRefundUpdate}
-                        variant="contained"
-                        disabled={actionLoading || (refundAction === 'rejected' && !adminNote)}
-                    >
-                        Confirm {refundAction}
                     </Button>
                 </DialogActions>
             </Dialog>

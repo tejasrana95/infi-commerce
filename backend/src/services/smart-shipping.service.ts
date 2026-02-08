@@ -69,36 +69,42 @@ class SmartShippingService {
         const itemDetails: ItemDetails[] = [];
 
         for (const item of items) {
+            // Fetch product to check if it's digital
+            const product = await Product.findById(item.productId);
+            if (!product) continue;
+
+            // Skip digital products - they don't require shipping
+            if (product.type === 'digital') {
+                continue;
+            }
+
             let weight = item.weight ?? 0;
             let price = item.price ?? 0;
             let categoryIds = item.categoryIds ?? [];
 
-            // Fetch product if we need more info
+            // Fetch product pricing if we need more info
             if (!item.price || !item.categoryIds) {
-                const product = await Product.findById(item.productId);
-                if (product) {
-                    const productWithPricing = addPricingToProduct(product.toObject());
-                    
-                    if (!item.weight) {
-                        weight = productWithPricing.weight || 0;
-                    }
-                    if (!item.price) {
-                        price = productWithPricing.salePrice || productWithPricing.price || 0;
-                    }
-                    if (!item.categoryIds) {
-                        categoryIds = (product.categoryIds || []).map((id: any) => id.toString());
-                    }
+                const productWithPricing = addPricingToProduct(product.toObject());
 
-                    // Handle variant-specific values
-                    if (item.variantId && productWithPricing.variants?.length > 0) {
-                        const variant = productWithPricing.variants.find(
-                            (v: any) => v._id?.toString() === item.variantId
-                        );
-                        if (variant) {
-                            if (variant.weight) weight = variant.weight;
-                            if (variant.pricing?.salePrice || variant.salePrice || variant.price) {
-                                price = variant.pricing?.salePrice || variant.salePrice || variant.price;
-                            }
+                if (!item.weight) {
+                    weight = productWithPricing.weight || 0;
+                }
+                if (!item.price) {
+                    price = productWithPricing.salePrice || productWithPricing.price || 0;
+                }
+                if (!item.categoryIds) {
+                    categoryIds = (product.categoryIds || []).map((id: any) => id.toString());
+                }
+
+                // Handle variant-specific values
+                if (item.variantId && productWithPricing.variants?.length > 0) {
+                    const variant = productWithPricing.variants.find(
+                        (v: any) => v._id?.toString() === item.variantId
+                    );
+                    if (variant) {
+                        if (variant.weight) weight = variant.weight;
+                        if (variant.pricing?.salePrice || variant.salePrice || variant.price) {
+                            price = variant.pricing?.salePrice || variant.salePrice || variant.price;
                         }
                     }
                 }

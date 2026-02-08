@@ -39,6 +39,7 @@ import {
 import { useNotification } from '@/contexts/NotificationContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { Order } from '@/types';
+import { useConfirm } from '@/contexts/ConfirmContext';
 
 interface OrderAccountingSectionProps {
     orderId: string;
@@ -63,6 +64,7 @@ export default function OrderAccountingSection({
     const [hasChanges, setHasChanges] = useState(false);
     const { showNotification } = useNotification();
     const { convertAndFormat } = useCurrency();
+    const { confirm } = useConfirm();
     // Form state
     const [actualShippingCost, setActualShippingCost] = useState<string>('');
     const [paymentGatewayFee, setPaymentGatewayFee] = useState<string>('');
@@ -165,9 +167,7 @@ export default function OrderAccountingSection({
     };
 
     const handleRegenerate = async () => {
-        if (!window.confirm('This will recalculate all accounting values from the order data. Any manual overrides will be lost. Continue?')) {
-            return;
-        }
+        if (!await confirm({ title: 'Are your sure to regenerate accounting data?', message: 'This will recalculate all accounting values from the order data. Any manual overrides will be lost. Continue?', severity: 'error' })) return;
         try {
             setRegenerating(true);
             const response = await api.post(`/accounting/${orderId}/regenerate`);
@@ -325,6 +325,9 @@ export default function OrderAccountingSection({
                             startIcon={regenerating ? <CircularProgress size={16} /> : <RefreshIcon />}
                             onClick={handleRegenerate}
                             disabled={regenerating}
+                            sx={{
+                                p: '0 10px',
+                            }}
                         >
                             {regenerating ? 'Regenerating...' : 'Regenerate'}
                         </Button>

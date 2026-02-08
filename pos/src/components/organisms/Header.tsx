@@ -61,6 +61,7 @@ export default function Header({ setShowReturnModal }: { setShowReturnModal: (sh
                     taxAmount: cachedProduct.taxAmount,
                     productOptions: cachedProduct.productOptions,
                     pricing: cachedProduct.pricing,
+                    manageStock: cachedProduct.manageStock,
                 };
             }
         } catch (err) {

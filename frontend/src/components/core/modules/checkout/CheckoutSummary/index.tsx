@@ -22,10 +22,11 @@ export default function CheckoutSummary({ config: propsConfig }: CheckoutSummary
         couponLoading,
         handleApplyCoupon,
         handleRemoveCoupon,
-        setCouponCode
+        setCouponCode,
+        shippingAddress
     } = useCheckout();
 
-    const {formatPriceWithExchange} = useCurrency();
+    const { formatPriceWithExchange } = useCurrency();
 
     const config = propsConfig || globalConfig?.summary || {};
     const {
@@ -64,7 +65,7 @@ export default function CheckoutSummary({ config: propsConfig }: CheckoutSummary
                             <div key={`${item.productId}-${index}`} className={styles.item}>
                                 <div className={styles.itemImage}>
                                     {item.image ? (
-                                        <Image src={item.image} alt={item.name} width={68} height={68}/>
+                                        <Image src={item.image} alt={item.name} width={68} height={68} />
                                     ) : (
                                         <div className={styles.placeholderImg} />
                                     )}
@@ -120,7 +121,9 @@ export default function CheckoutSummary({ config: propsConfig }: CheckoutSummary
                     <div className={styles.row}>
                         <span>Shipping</span>
                         <span>
-                            {orderSummary.shipping > 0 ? formatPriceWithExchange(orderSummary.shipping) : (orderSummary.shipping === 0 && 'Calculated at next step')}
+                            {orderSummary.shipping > 0
+                                ? formatPriceWithExchange(orderSummary.shipping)
+                                : (shippingAddress ? 'Free' : 'Calculated at next step')}
                         </span>
                     </div>
 

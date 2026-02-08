@@ -37,7 +37,6 @@ export default function EditAdminPage() {
                 storeId: admin.storeIds?.[0]?._id || admin.storeIds?.[0] || admin.storeId?._id || admin.storeId || '',
                 isActive: admin.isActive ?? true,
                 posPermissions: admin.posPermissions || {
-                    canOverridePrice: false,
                     canApplyDiscount: false,
                 },
             });
