@@ -48,7 +48,7 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
     const [refundMethod, setRefundMethod] = useState('original');
     const [customerNotes, setCustomerNotes] = useState('');
     const [selectedItems, setSelectedItems] = useState<Map<string, { quantity: number; checked: boolean }>>(new Map());
-    
+
     // Bank details form state (for bank_transfer refund method)
     const [bankDetails, setBankDetails] = useState({
         accountHolderName: '',
@@ -103,11 +103,10 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
     }, [order, type]);
 
     const handleItemToggle = (itemKey: string) => {
-      
+
         setSelectedItems((prev) => {
             const newMap = new Map(prev);
             const current = newMap.get(itemKey);
-              console.log('current', newMap);
             if (current) {
                 newMap.set(itemKey, { ...current, checked: !current.checked });
             }
@@ -577,7 +576,7 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
 
                         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-5">
                             <p className="text-xs text-yellow-800 m-0 flex items-center gap-1">
-                                <Lock size={12}/> Your bank details are encrypted and stored securely. They will only be used to process your refund.
+                                <Lock size={12} /> Your bank details are encrypted and stored securely. They will only be used to process your refund.
                             </p>
                         </div>
                     </div>
@@ -602,14 +601,14 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
                         <div className={styles.summaryItem}>
                             <span>Subtotal:</span>
                             <strong>
-                                
-                                {convertAndFormat(calculateRefundBreakdown().subtotal, order?.currency ?? 'USD', order?.exchangeRate ?? 1 )}
+
+                                {convertAndFormat(calculateRefundBreakdown().subtotal, order?.currency ?? 'USD', order?.exchangeRate ?? 1)}
                             </strong>
                         </div>
                         <div className={styles.summaryItem}>
                             <span>Tax:</span>
                             <strong>
-                                {convertAndFormat(calculateRefundBreakdown().tax, order?.currency ?? 'USD', order?.exchangeRate ?? 1 )}
+                                {convertAndFormat(calculateRefundBreakdown().tax, order?.currency ?? 'USD', order?.exchangeRate ?? 1)}
                             </strong>
                         </div>
                         <div className={styles.summaryItem}>

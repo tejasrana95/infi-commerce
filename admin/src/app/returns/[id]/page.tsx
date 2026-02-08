@@ -210,7 +210,6 @@ export default function ReturnDetailPage() {
             setLoading(true);
             const response = await api.get(`/returns/${id}`);
             setReturnRequest(response.data.data);
-            console.log('response.data.data', response.data.data);
         } catch (err: any) {
             showNotification(err.response?.data?.message || 'Failed to load return details', 'error');
             router.push('/returns');

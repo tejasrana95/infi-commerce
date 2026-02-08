@@ -97,7 +97,6 @@ export default function OrderPaymentPage() {
     useEffect(() => {
         if (orderId && !initializePaymentRef.current) {
             initializePaymentRef.current = true;
-            console.log('🔄 Initializing payment for order:', orderId);
             initializePayment();
         }
     }, [orderId]);
@@ -106,8 +105,6 @@ export default function OrderPaymentPage() {
         try {
             setLoading(true);
             setError(null);
-
-            console.log('📡 Fetching order details for orderId:', orderId);
             // First, fetch order details
             const orderResponse = await apiClient.get(`/orders/${orderId}${queryString}`);
             const orderData = orderResponse.data;;
@@ -115,18 +112,14 @@ export default function OrderPaymentPage() {
 
             // Check if already paid
             if (orderData.paymentStatus === 'paid') {
-                console.log('✅ Order already paid, redirecting to confirmation');
                 router.replace(`/orders/${orderId}/confirmation${queryString}`);
                 return;
             }
 
             // Initialize payment with gateway
-            console.log('🔐 Calling initialize-payment endpoint');
             const paymentResponse = await apiClient.post(`/orders/${orderId}/initialize-payment`, {
                 guestEmail: guestEmail || undefined,
             });
-
-            console.log('✅ Payment initialized:', paymentResponse.data.gatewayType);
 
             if (paymentResponse.data?.requiresPayment === false) {
                 // COD or other offline method
@@ -252,13 +245,9 @@ export default function OrderPaymentPage() {
     const handleStripeSuccess = async () => {
         try {
             setProcessing(true);
-            // Note: StripePaymentForm already calls payment-success with the correct PaymentIntent ID
-            // This is just for navigation and UI updates
-            console.log('✅ Stripe payment form succeeded, redirecting to confirmation');
             toast.success('Payment successful!');
             router.replace(`/orders/${orderId}/confirmation${queryString}`);
         } catch (err) {
-            console.error('Error after payment success:', err);
             toast.error('Payment successful but redirect failed. Please check your order status.');
         } finally {
             setProcessing(false);

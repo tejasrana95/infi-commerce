@@ -1365,9 +1365,6 @@ export const initializePayment = asyncHandler(
       order.paymentMethod === 'stripe' &&
       order.paymentDetails?.clientSecret
     ) {
-      console.log(
-        `📝 Reusing existing Stripe payment for order ${order.orderNumber}`,
-      );
       // Reuse existing payment initialization
       payment = {
         success: true,
@@ -1427,9 +1424,6 @@ export const initializePayment = asyncHandler(
       // For Stripe: Only store clientSecret, not the incomplete PaymentIntent ID
       // Check if this is the first initialization for this order
       if (order.paymentDetails?.clientSecret) {
-        console.log(
-          `📝 Stripe payment already initialized for order ${order.orderNumber}, skipping duplicate initialization`,
-        );
         // Already initialized, don't create a new PaymentIntent
         // Just return the existing clientSecret
       } else {

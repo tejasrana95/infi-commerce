@@ -990,10 +990,6 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
         }
     }
 
-    // Log shipping breakdown for debugging
-    console.log('Smart shipping breakdown:', JSON.stringify(smartShippingResult.breakdown, null, 2));
-
-
     // ===== STEP 3: CALCULATE TAX =====
     const taxBreakdown: any[] = [];
     let totalTax = 0;

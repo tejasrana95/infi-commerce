@@ -36,7 +36,7 @@ export default function StripePaymentForm({
         }
         return JSON.stringify(err);
     };
-    
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!stripe || !elements) {
@@ -56,23 +56,17 @@ export default function StripePaymentForm({
                 redirect: 'if_required',
             });
 
-            console.log('🔍 Stripe confirmPayment response:', { error, paymentIntent });
-
             if (error) {
                 setErrorMessage(error.message || 'Payment failed');
                 onError(error.message || 'Payment failed');
             } else if (paymentIntent) {
-                console.log(`📊 PaymentIntent status: ${paymentIntent.status}, ID: ${paymentIntent.id}`);
-                
                 if (paymentIntent.status === 'succeeded') {
                     // Payment successful - send the successful PaymentIntent ID to backend immediately
                     try {
-                        console.log('✅ Payment succeeded with PaymentIntent:', paymentIntent.id);
-                        
                         // Extract guest email from query string if present
                         const params = new URLSearchParams(queryString);
                         const guestEmail = params.get('guestEmail');
-                        
+
                         // Send the successful PaymentIntent ID to backend
                         const response = await apiClient.post(`/orders/${orderId}/payment-success`, {
                             paymentId: paymentIntent.id, // The successful PaymentIntent ID from confirmPayment
@@ -82,12 +76,10 @@ export default function StripePaymentForm({
                                 confirmedAt: new Date().toISOString(),
                             },
                         });
-                        
-                        console.log('✅ Backend confirmed payment:', response.data);
+
                         onSuccess();
                     } catch (backendError: unknown) {
                         const message = getErrorMessage(backendError);
-                        console.error('❌ Backend error confirming payment:', message);
                         setErrorMessage(message || 'Failed to confirm payment with backend');
                         onError(message || 'Failed to confirm payment');
                     }

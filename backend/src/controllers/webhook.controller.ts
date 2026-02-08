@@ -201,10 +201,8 @@ async function processSuccessfulPayment(order: any, paymentId: string, paymentDa
     // For Stripe: Verify the PaymentIntent stored in database matches and is succeeded
     if (order.paymentMethod === 'stripe') {
         if (order.paymentId !== paymentId) {
-            console.warn(`⚠️ Webhook PaymentIntent ${paymentId} differs from stored ${order.paymentId} for order ${order.orderNumber}`);
             // If webhook has a different (newer) successful intent, update it
             if (!order.paymentId || order.paymentId.startsWith('pi_')) {
-                // console.log(`📝 Updating stored PaymentIntent from webhook data`);
                 order.paymentId = paymentId;
             }
         } else {

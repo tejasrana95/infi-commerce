@@ -210,8 +210,6 @@ async function buildReturnItems(
         // We only upgrade, never downgrade (in case per-item calculation is intentionally higher for some reason, though unlikely)
         if (remainingGlobalShipping > totalShipping) {
             const diff = remainingGlobalShipping - totalShipping;
-            // console.log(`🚚 Full return detected. Adjusting shipping refund by +${diff} to match global shipping cost.`);
-
             totalShipping = remainingGlobalShipping;
 
             // Distribute the difference to the first item (simplest way to ensure item sum matches total)
@@ -983,13 +981,6 @@ export const processRefund = asyncHandler(async (req: AuthRequest, res: Response
 
     const order = await Order.findById(returnRequest.orderId);
     if (!order) throw new AppError('Order not found', 404);
-
-    console.log('📦 Processing refund for order:', {
-        orderId: order._id,
-        orderNumber: order.orderNumber,
-        refundBreakdown: returnRequest.refundBreakdown,
-        totalRefund: returnRequest.totalRefundAmount,
-    });
 
     // Process refund via payment gateway if applicable
     let gatewayRefundResponse: any = null;
