@@ -122,3 +122,89 @@ export const updateAdminAiSettings = asyncHandler(async (req: AuthRequest, res: 
         settings: settings.value
     });
 });
+
+/**
+ * @swagger
+ * /api/settings/pos-pwa:
+ *   get:
+ *     summary: Get POS PWA settings
+ *     tags: [Settings]
+ *     responses:
+ *       200:
+ *         description: POS PWA settings
+ */
+export const getPosPwaSettings = asyncHandler(async (_req: Request, res: Response) => {
+    const settings = await Setting.findOne({ key: 'posPwaSettings' });
+
+    const defaultSettings = {
+        enabled: false,
+        appName: 'POS System',
+        appShortName: 'POS',
+        themeColor: '#1a1a2e',
+        backgroundColor: '#0f0f23',
+        icons: {
+            icon192: '',
+            icon512: '',
+            appleTouchIcon: '',
+        },
+        offlineSettings: {
+            cacheTTL: 24,
+            precacheProducts: false,
+            offlineMessage: 'You are currently offline. Some features may be limited.',
+        },
+        installPromptStyle: 'toast',
+    };
+
+    res.json({
+        success: true,
+        settings: settings ? settings.value : defaultSettings
+    });
+});
+
+/**
+ * @swagger
+ * /api/settings/pos-pwa:
+ *   put:
+ *     summary: Update POS PWA settings
+ *     tags: [Settings]
+ *     security:
+ *       - bearerAuth: []
+ */
+export const updatePosPwaSettings = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const {
+        enabled,
+        appName,
+        appShortName,
+        themeColor,
+        backgroundColor,
+        icons,
+        offlineSettings,
+        installPromptStyle
+    } = req.body;
+
+    const settings = await Setting.findOneAndUpdate(
+        { key: 'posPwaSettings' },
+        {
+            key: 'posPwaSettings',
+            value: {
+                enabled,
+                appName,
+                appShortName,
+                themeColor,
+                backgroundColor,
+                icons,
+                offlineSettings,
+                installPromptStyle
+            },
+            isPublic: true, // POS app needs to access this without auth
+            description: 'Global POS PWA Configuration'
+        },
+        { upsert: true, new: true }
+    );
+
+    res.json({
+        success: true,
+        message: 'POS PWA settings updated successfully',
+        settings: settings.value
+    });
+});

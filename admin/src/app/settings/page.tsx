@@ -22,6 +22,7 @@ import StorefrontIcon from '@mui/icons-material/Storefront';
 import SecurityIcon from '@mui/icons-material/Security';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import CookieIcon from '@mui/icons-material/Cookie';
+import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
 import PageHeader from '@/components/molecules/PageHeader';
 
 interface SettingCard {
@@ -60,8 +61,8 @@ export default function SettingsPage() {
             description: 'Configure global admin branding, company information, and system-wide parameters.',
             icon: <SettingsIcon sx={{ fontSize: 32 }} />,
             link: '/settings/general',
-            badge: 'Admin',
-            badgeColor: 'info',
+            badge: 'Super Admin',
+            badgeColor: 'warning',
             color: '#10b981',
             enabled: true
         },
@@ -106,27 +107,15 @@ export default function SettingsPage() {
             enabled: true
         },
         {
-            title: 'Cookie Consent',
-            description: 'It has been moved to the store settings for store specific cookie consent configuration.',
-            icon: <CookieIcon sx={{ fontSize: 32 }} />,
-            link: '/stores',
-            badge: 'Moved',
-            badgeColor: 'info',
-            color: '#ec4899',
-            enabled: false
+            title: 'POS PWA Settings',
+            description: 'Configure Progressive Web App settings for the Point of Sale system.',
+            icon: <PhoneIphoneIcon sx={{ fontSize: 32 }} />,
+            link: '/settings/pos-pwa',
+            badge: 'Super Admin',
+            badgeColor: 'warning',
+            color: '#7c3aed',
+            enabled: true
         },
-
-        {
-            title: 'Email Configuration',
-            description: 'It has been moved to the store settings for store specific email configuration.',
-            icon: <EmailIcon sx={{ fontSize: 32 }} />,
-            link: '/settings/email',
-            badge: 'Moved',
-            badgeColor: 'info',
-            color: '#f59e0b',
-            enabled: false
-        },
-
     ];
 
     return (

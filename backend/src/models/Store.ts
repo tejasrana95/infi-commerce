@@ -350,6 +350,26 @@ export interface IStore extends Document {
         };
     };
 
+    // POS PWA (Progressive Web App) Configuration
+    posPwaSettings?: {
+        enabled: boolean;
+        appName?: string;
+        appShortName?: string;
+        themeColor?: string;
+        backgroundColor?: string;
+        icons?: {
+            icon192?: string;
+            icon512?: string;
+            appleTouchIcon?: string;
+        };
+        offlineSettings?: {
+            cacheTTL?: number;           // Cache time-to-live in hours
+            precacheProducts?: boolean;   // Precache product images
+            offlineMessage?: string;      // Custom offline message
+        };
+        installPromptStyle?: 'toast' | 'banner' | 'none';
+    };
+
     createdAt: Date;
     updatedAt: Date;
     lastProductModified?: Date;
@@ -626,6 +646,29 @@ const StoreSchema = new Schema<IStore>(
                     instructions: String,
                     qrLabel: { type: String, default: 'Scan to Pay' },
                 },
+            },
+        },
+        // POS PWA Settings
+        posPwaSettings: {
+            enabled: { type: Boolean, default: false },
+            appName: { type: String, trim: true },
+            appShortName: { type: String, trim: true, maxlength: 12 },
+            themeColor: { type: String, trim: true },
+            backgroundColor: { type: String, trim: true },
+            icons: {
+                icon192: { type: String },
+                icon512: { type: String },
+                appleTouchIcon: { type: String },
+            },
+            offlineSettings: {
+                cacheTTL: { type: Number, default: 24 },
+                precacheProducts: { type: Boolean, default: false },
+                offlineMessage: { type: String, trim: true },
+            },
+            installPromptStyle: {
+                type: String,
+                enum: ['toast', 'banner', 'none'],
+                default: 'toast',
             },
         },
         lastProductModified: {

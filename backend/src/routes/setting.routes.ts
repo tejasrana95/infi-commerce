@@ -35,4 +35,16 @@ router.put(
     updateAdminAiSettings
 );
 
+// POS PWA Settings - Public GET for POS app, protected PUT for admin
+import { getPosPwaSettings, updatePosPwaSettings } from '../controllers/setting.controller';
+
+router.get('/pos-pwa', getPosPwaSettings);
+
+router.put(
+    '/pos-pwa',
+    authenticate,
+    authorize('super_admin'),
+    updatePosPwaSettings
+);
+
 export default router;
