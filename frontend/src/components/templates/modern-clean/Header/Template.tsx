@@ -78,18 +78,43 @@ export default function ModernCleanHeaderTemplate({
     const accountRef = useRef<HTMLDivElement>(null);
     const cartRef = useRef<HTMLDivElement>(null);
     const searchRef = useRef<HTMLDivElement>(null);
+    const searchBtnRef = useRef<HTMLButtonElement>(null);
     const mobileMenuRef = useRef<HTMLDivElement>(null);
     const mobileMenuBtnRef = useRef<HTMLButtonElement>(null);
 
     useClickOutside(accountRef, () => setAccountOpen(false));
     useClickOutside(cartRef, () => setCartOpen(false));
-    useClickOutside(searchRef, () => setSearchOpen(false));
+    // Don't use useClickOutside for search - handle it manually below
     // Close mobile menu only if click is outside menu AND outside the toggle button
     useClickOutside(mobileMenuRef, () => {
         if (!mobileMenuBtnRef.current?.contains(document.activeElement)) {
             setMobileMenuOpen(false);
         }
     });
+
+    // Special handling for search toggle to avoid conflict with click-outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+            if (searchOpen &&
+                searchRef.current &&
+                !searchRef.current.contains(event.target as Node) &&
+                searchBtnRef.current &&
+                !searchBtnRef.current.contains(event.target as Node)
+            ) {
+                setSearchOpen(false);
+            }
+        };
+
+        if (searchOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+            document.addEventListener('touchstart', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
+    }, [searchOpen]);
 
     // Special handling for mobile menu toggle to avoid conflict with click-outside
     useEffect(() => {
@@ -186,10 +211,11 @@ export default function ModernCleanHeaderTemplate({
                 return (
                     <button
                         key={element.id}
+                        ref={searchBtnRef}
                         className={styles.actionBtn}
                         onClick={(e) => {
-                            e.stopPropagation(); // Prevent immediate click-outside trigger
-                            setSearchOpen(!searchOpen);
+                            e.stopPropagation();
+                            setSearchOpen(prev => !prev);
                         }}
                         aria-label={labels.search}
                     >

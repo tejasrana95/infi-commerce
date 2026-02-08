@@ -316,3 +316,156 @@ export function buildGAItemFromElement(el: HTMLElement): GAItem | null {
         item_variant: el.dataset.variant,
     };
 }
+
+// ============================================
+// Navigation & Interaction Tracking
+// ============================================
+
+/**
+ * Track navigation/link clicks
+ * @param linkText - The text/label of the link
+ * @param linkUrl - The destination URL
+ * @param linkType - Type of link (menu, footer, button, etc.)
+ * @param category - Optional category for grouping
+ */
+export function trackNavigation(
+    linkText: string,
+    linkUrl: string,
+    linkType: 'menu' | 'footer' | 'header' | 'button' | 'cta' | 'breadcrumb' | 'other' = 'other',
+    category?: string
+): void {
+    if (!isGAReady()) return;
+
+    window.gtag('event', 'navigation_click', {
+        link_text: linkText,
+        link_url: linkUrl,
+        link_type: linkType,
+        link_category: category,
+    });
+
+    debugLog('[GA] Navigation:', linkType, '-', linkText, '→', linkUrl);
+}
+
+/**
+ * Track menu item clicks
+ * @param menuLabel - The menu item label
+ * @param menuUrl - The destination URL
+ * @param menuType - Type of menu item
+ * @param menuPosition - Position in menu (e.g., 'header', 'mobile', 'footer')
+ */
+export function trackMenuClick(
+    menuLabel: string,
+    menuUrl: string,
+    menuType: 'link' | 'category' | 'product' | 'page' | 'blog-category' | 'dropdown' = 'link',
+    menuPosition: 'header' | 'mobile' | 'footer' | 'sidebar' = 'header'
+): void {
+    if (!isGAReady()) return;
+
+    window.gtag('event', 'menu_click', {
+        menu_label: menuLabel,
+        menu_url: menuUrl,
+        menu_type: menuType,
+        menu_position: menuPosition,
+    });
+
+    debugLog('[GA] Menu click:', menuPosition, '-', menuLabel, '→', menuUrl);
+}
+
+/**
+ * Track button clicks
+ * @param buttonText - The button text/label
+ * @param buttonAction - What the button does
+ * @param buttonLocation - Where the button is located
+ */
+export function trackButtonClick(
+    buttonText: string,
+    buttonAction: string,
+    buttonLocation?: string
+): void {
+    if (!isGAReady()) return;
+
+    window.gtag('event', 'button_click', {
+        button_text: buttonText,
+        button_action: buttonAction,
+        button_location: buttonLocation,
+    });
+
+    debugLog('[GA] Button click:', buttonText, '-', buttonAction);
+}
+
+/**
+ * Track generic link clicks
+ * @param linkText - The link text
+ * @param linkUrl - The destination URL
+ * @param linkContext - Where the link appears
+ */
+export function trackLinkClick(
+    linkText: string,
+    linkUrl: string,
+    linkContext?: string
+): void {
+    if (!isGAReady()) return;
+
+    window.gtag('event', 'link_click', {
+        link_text: linkText,
+        link_url: linkUrl,
+        link_context: linkContext,
+    });
+
+    debugLog('[GA] Link click:', linkText, '→', linkUrl);
+}
+
+/**
+ * Track external link clicks
+ * @param linkText - The link text
+ * @param linkUrl - The external URL
+ */
+export function trackExternalLink(linkText: string, linkUrl: string): void {
+    if (!isGAReady()) return;
+
+    window.gtag('event', 'external_link_click', {
+        link_text: linkText,
+        link_url: linkUrl,
+        outbound: true,
+    });
+
+    debugLog('[GA] External link:', linkText, '→', linkUrl);
+}
+
+/**
+ * Automatically track clicks on elements with data-ga-track attribute
+ * Usage: <button data-ga-track="button" data-ga-action="subscribe" data-ga-label="Newsletter">Subscribe</button>
+ */
+export function initAutoTracking(): void {
+    if (typeof window === 'undefined') return;
+
+    document.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        const trackableElement = target.closest('[data-ga-track]') as HTMLElement;
+
+        if (!trackableElement) return;
+
+        const trackType = trackableElement.dataset.gaTrack;
+        const action = trackableElement.dataset.gaAction || 'click';
+        const label = trackableElement.dataset.gaLabel || trackableElement.textContent?.trim() || 'Unknown';
+        const category = trackableElement.dataset.gaCategory;
+
+        switch (trackType) {
+            case 'button':
+                trackButtonClick(label, action, category);
+                break;
+            case 'link':
+                const href = trackableElement.getAttribute('href') || '#';
+                trackLinkClick(label, href, category);
+                break;
+            case 'menu':
+                const menuHref = trackableElement.getAttribute('href') || '#';
+                trackMenuClick(label, menuHref, 'link', category as any);
+                break;
+            default:
+                track(action, { label, category });
+        }
+    });
+
+    debugLog('[GA] Auto-tracking initialized');
+}

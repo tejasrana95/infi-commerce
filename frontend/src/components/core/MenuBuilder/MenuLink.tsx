@@ -6,6 +6,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { MenuItem } from '@/types/menu';
+import { trackMenuClick, trackExternalLink } from '@/lib/ga';
 import styles from './MenuLink.module.scss';
 
 interface MenuLinkProps {
@@ -19,6 +20,7 @@ interface MenuLinkProps {
         text: string;
     };
     onClick?: (item: MenuItem) => void;
+    menuPosition?: 'header' | 'mobile' | 'footer' | 'sidebar';
 }
 
 export default function MenuLink({
@@ -26,6 +28,7 @@ export default function MenuLink({
     showIcon = false,
     themeColors,
     onClick,
+    menuPosition = 'header',
 }: MenuLinkProps) {
     // Generate URL based on item type
     const getUrl = (): string => {
@@ -51,10 +54,26 @@ export default function MenuLink({
     };
 
     const handleClick = (e: React.MouseEvent) => {
+        const url = getUrl();
+
+        // Track menu click in Google Analytics
+        if (url && url !== '#!') {
+            // Check if external link
+            const isExternal = url.startsWith('http') && !url.includes(window.location.hostname);
+
+            if (isExternal) {
+                trackExternalLink(item.label, url);
+            } else {
+                trackMenuClick(
+                    item.label,
+                    url,
+                    item.type as any,
+                    menuPosition
+                );
+            }
+        }
+
         if (onClick) {
-            // No preventDefault needed for Link usually, but if we want to stop prop potentially?
-            // Actually next/link handles navigation. If we have a custom onClick handler, we might want to let it run.
-            // If the parent wants to prevent navigation, it might be tricky with Link unless we just pass onClick.
             onClick(item);
         }
     };
@@ -106,7 +125,7 @@ export default function MenuLink({
     return (
         <Link
             href={url}
-            className={styles.menuLink}
+            className={`${styles.menuLink}`}
             target={target}
             rel={rel}
             onClick={handleClick}
