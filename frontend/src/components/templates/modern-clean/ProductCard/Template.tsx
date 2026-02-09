@@ -214,9 +214,17 @@ export default function ModernCleanProductCardTemplate({
                 '--card-border-radius': `${cardBorderRadius}px`,
                 '--card-padding': `${cardPadding}px`,
             } as React.CSSProperties}
+            data-ga-location="product_card"
+            data-ga-category="product"
+            data-ga-value={id}
         >
             {/* Image Container */}
-            <Link href={productUrl} title={name}>
+            <Link
+                href={productUrl}
+                title={name}
+                className="infi-track"
+                data-ga-label={name}
+            >
                 <div className={`${styles.imageContainer} ${aspectRatioClass}`}>
 
                     <div className={styles.imageInner}>
@@ -252,18 +260,15 @@ export default function ModernCleanProductCardTemplate({
                     {/* Compact Style Overlay Actions */}
                     {(cardStyle as any) === 'compact' && showAddToCart && inStock && (
                         <button
-                            className={styles.compactAddBtn}
+                            className={`${styles.compactAddBtn} infi-track`}
                             onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
                                 onAddToCart?.();
                             }}
                             aria-label="Add to Cart"
-                            data-track="add_to_cart"
-                            data-item-id={id}
-                            data-item-name={name}
-                            data-price={price}
-                            data-currency={currency}
+                            data-ga-action="add_to_cart"
+                            data-ga-label={name}
                         >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -274,7 +279,7 @@ export default function ModernCleanProductCardTemplate({
                     <div className={styles.quickIcons}>
                         {showQuickView && quickViewPosition === 'top-right' && (
                             <button
-                                className={styles.iconBtn}
+                                className={`${styles.iconBtn} infi-track`}
                                 onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
@@ -282,6 +287,8 @@ export default function ModernCleanProductCardTemplate({
                                 }}
                                 aria-label="Quick view"
                                 title="Quick View"
+                                data-ga-action="quick_view"
+                                data-ga-label={name}
                             >
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -291,7 +298,7 @@ export default function ModernCleanProductCardTemplate({
                         )}
                         {showCompare && (
                             <button
-                                className={`${styles.iconBtn} ${isInCompare ? styles.inCompare : ''} ${compareDisabled ? styles.disabled : ''}`}
+                                className={`${styles.iconBtn} ${isInCompare ? styles.inCompare : ''} ${compareDisabled ? styles.disabled : ''} infi-track`}
                                 onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
@@ -302,6 +309,8 @@ export default function ModernCleanProductCardTemplate({
                                 aria-label={compareDisabled ? compareDisabledReason : (isInCompare ? 'Remove from Compare' : 'Add to Compare')}
                                 title={compareDisabled ? compareDisabledReason : (isInCompare ? 'Remove from Compare' : 'Add to Compare')}
                                 disabled={compareDisabled}
+                                data-ga-action={isInCompare ? 'remove_from_compare' : 'add_to_compare'}
+                                data-ga-label={name}
                             >
                                 <svg viewBox="0 0 24 24" fill={isInCompare ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.5}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
@@ -310,7 +319,7 @@ export default function ModernCleanProductCardTemplate({
                         )}
                         {showWishlist && wishlistPosition === 'top-right' && (
                             <button
-                                className={`${styles.iconBtn} ${isWishlisted ? styles.wishlisted : ''}`}
+                                className={`${styles.iconBtn} ${isWishlisted ? styles.wishlisted : ''} infi-track`}
                                 onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
@@ -318,6 +327,8 @@ export default function ModernCleanProductCardTemplate({
                                 }}
                                 aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
                                 title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                                data-ga-action={isWishlisted ? 'remove_from_wishlist' : 'add_to_wishlist'}
+                                data-ga-label={name}
                             >
                                 <svg viewBox="0 0 24 24" fill={isWishlisted ? 'currentColor' : 'none'} stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -329,7 +340,7 @@ export default function ModernCleanProductCardTemplate({
                     {/* Wishlist Button - Other positions */}
                     {showWishlist && wishlistPosition !== 'top-right' && (
                         <button
-                            className={`${styles.wishlistBtn} ${styles[wishlistPosition]} ${isWishlisted ? styles.wishlisted : ''}`}
+                            className={`${styles.wishlistBtn} ${styles[wishlistPosition]} ${isWishlisted ? styles.wishlisted : ''} infi-track`}
                             onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
@@ -337,6 +348,8 @@ export default function ModernCleanProductCardTemplate({
                             }}
                             aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
                             title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                            data-ga-action={isWishlisted ? 'remove_from_wishlist' : 'add_to_wishlist'}
+                            data-ga-label={name}
                         >
                             <svg viewBox="0 0 24 24" fill={isWishlisted ? 'currentColor' : 'none'} stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -351,18 +364,15 @@ export default function ModernCleanProductCardTemplate({
                                 <div className={styles.actionButtons}>
                                     {showAddToCart && (
                                         <button
-                                            className={addToCartBtnClasses}
+                                            className={`${addToCartBtnClasses} infi-track`}
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 e.stopPropagation();
                                                 onAddToCart?.();
                                             }}
                                             title="Add to Cart"
-                                            data-track="add_to_cart"
-                                            data-item-id={id}
-                                            data-item-name={name}
-                                            data-price={price}
-                                            data-currency={currency}
+                                            data-ga-action="add_to_cart"
+                                            data-ga-label={name}
                                         >
                                             {addToCartStyle === 'icon-only' ? (
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
@@ -375,18 +385,15 @@ export default function ModernCleanProductCardTemplate({
                                     )}
                                     {showBuyNow && (
                                         <button
-                                            className={buyNowBtnClasses}
+                                            className={`${buyNowBtnClasses} infi-track`}
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 e.stopPropagation();
                                                 onBuyNow?.();
                                             }}
                                             title="Buy Now"
-                                            data-track="begin_checkout"
-                                            data-item-id={id}
-                                            data-item-name={name}
-                                            data-price={price}
-                                            data-currency={currency}
+                                            data-ga-action="buy_now"
+                                            data-ga-label={name}
                                         >
                                             {buyNowStyle === 'icon-only' ? (
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
@@ -401,7 +408,7 @@ export default function ModernCleanProductCardTemplate({
                             )}
                             {showQuickView && quickViewPosition === 'overlay' && (
                                 <button
-                                    className={styles.quickViewBtn}
+                                    className={`${styles.quickViewBtn} infi-track`}
                                     onClick={(e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
@@ -409,6 +416,8 @@ export default function ModernCleanProductCardTemplate({
                                     }}
                                     aria-label="Quick view"
                                     title="Quick View"
+                                    data-ga-action="quick_view"
+                                    data-ga-label={name}
                                 >
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -428,7 +437,11 @@ export default function ModernCleanProductCardTemplate({
                 )}
 
                 <h3 className={nameClasses}>
-                    <Link href={productUrl}>{name}</Link>
+                    <Link
+                        href={productUrl}
+                        className="infi-track"
+                        data-ga-label={name}
+                    >{name}</Link>
                 </h3>
 
                 {/* SKU */}
@@ -460,16 +473,13 @@ export default function ModernCleanProductCardTemplate({
                     <div className={`${styles.contentActions} ${(addToCartStyle === 'icon-only' && buyNowStyle === 'icon-only') ? styles.centeredActions : ''}`}>
                         {showAddToCart && (
                             <button
-                                className={`${styles.contentBtn} ${styles.addToCart} ${styles[`contentBtn${addToCartStyle.charAt(0).toUpperCase() + addToCartStyle.slice(1).replace('-', '')}`]}`}
+                                className={`${styles.contentBtn} ${styles.addToCart} ${styles[`contentBtn${addToCartStyle.charAt(0).toUpperCase() + addToCartStyle.slice(1).replace('-', '')}`]} infi-track`}
                                 onClick={(e) => {
                                     e.preventDefault();
                                     onAddToCart?.();
                                 }}
-                                data-track="add_to_cart"
-                                data-item-id={id}
-                                data-item-name={name}
-                                data-price={price}
-                                data-currency={currency}
+                                data-ga-action="add_to_cart"
+                                data-ga-label={name}
                                 title={addToCartStyle === 'icon-only' ? 'Add to Cart' : undefined}
                             >
                                 {addToCartStyle === 'icon-only' ? (
@@ -483,16 +493,13 @@ export default function ModernCleanProductCardTemplate({
                         )}
                         {showBuyNow && (
                             <button
-                                className={`${styles.contentBtn} ${styles.buyNow} ${styles[`contentBtn${buyNowStyle.charAt(0).toUpperCase() + buyNowStyle.slice(1).replace('-', '')}`]}`}
+                                className={`${styles.contentBtn} ${styles.buyNow} ${styles[`contentBtn${buyNowStyle.charAt(0).toUpperCase() + buyNowStyle.slice(1).replace('-', '')}`]} infi-track`}
                                 onClick={(e) => {
                                     e.preventDefault();
                                     onBuyNow?.();
                                 }}
-                                data-track="begin_checkout"
-                                data-item-id={id}
-                                data-item-name={name}
-                                data-price={price}
-                                data-currency={currency}
+                                data-ga-action="buy_now"
+                                data-ga-label={name}
                                 title={buyNowStyle === 'icon-only' ? 'Buy Now' : undefined}
                             >
                                 {buyNowStyle === 'icon-only' ? (
@@ -513,32 +520,26 @@ export default function ModernCleanProductCardTemplate({
                 <div className={styles.detailedFooter}>
                     {showAddToCart && (
                         <button
-                            className={`${styles.footerBtn} ${styles.footerBtnCart}`}
+                            className={`${styles.footerBtn} ${styles.footerBtnCart} infi-track`}
                             onClick={(e) => {
                                 e.preventDefault();
                                 onAddToCart?.();
                             }}
-                            data-track="add_to_cart"
-                            data-item-id={id}
-                            data-item-name={name}
-                            data-price={price}
-                            data-currency={currency}
+                            data-ga-action="add_to_cart"
+                            data-ga-label={name}
                         >
                             Add to Cart
                         </button>
                     )}
                     {showBuyNow && (
                         <button
-                            className={`${styles.footerBtn} ${styles.footerBtnBuy}`}
+                            className={`${styles.footerBtn} ${styles.footerBtnBuy} infi-track`}
                             onClick={(e) => {
                                 e.preventDefault();
                                 onBuyNow?.();
                             }}
-                            data-track="begin_checkout"
-                            data-item-id={id}
-                            data-item-name={name}
-                            data-price={price}
-                            data-currency={currency}
+                            data-ga-action="buy_now"
+                            data-ga-label={name}
                         >
                             Buy Now
                         </button>

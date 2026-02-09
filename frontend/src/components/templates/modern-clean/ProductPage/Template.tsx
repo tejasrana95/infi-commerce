@@ -366,7 +366,11 @@ export default function ModernCleanProductPageTemplate({
                     <React.Fragment key={index}>
                         {index > 0 && <span className={styles.separator}>/</span>}
                         {crumb.href ? (
-                            <Link href={crumb.href}>{crumb.label}</Link>
+                            <Link
+                                href={crumb.href}
+                                className="infi-track"
+                                data-ga-category="navigation"
+                            >{crumb.label}</Link>
                         ) : (
                             <span>{crumb.label}</span>
                         )}
@@ -454,7 +458,9 @@ export default function ModernCleanProductPageTemplate({
                     options={product.productOptions}
                     selectedOptions={selectedOptions}
                     availableOptions={availableOptions}
-                    onOptionChange={onOptionChange}
+                    onOptionChange={(option, value) => {
+                        onOptionChange(option, value);
+                    }}
                     config={{
                         style: config.variants?.style,
                         showUnavailable: config.variants?.showUnavailable,
@@ -465,11 +471,14 @@ export default function ModernCleanProductPageTemplate({
             {/* Quantity Selector */}
             <div className={styles.quantityRow}>
                 <label className={styles.quantityLabel}>Quantity</label>
-                <div className={styles.quantitySelector}>
+                <div className={styles.quantitySelector} data-ga-widget="quantity_selector">
                     <button
-                        className={styles.quantityBtn}
-                        onClick={() => onQuantityChange(quantity - 1)}
+                        className={`${styles.quantityBtn} infi-track`}
+                        onClick={() => {
+                            onQuantityChange(quantity - 1);
+                        }}
                         disabled={quantity <= 1}
+                        data-ga-action="quantity_decrease"
                     >
                         −
                     </button>
@@ -482,9 +491,12 @@ export default function ModernCleanProductPageTemplate({
                         className={styles.quantityInput}
                     />
                     <button
-                        className={styles.quantityBtn}
-                        onClick={() => onQuantityChange(quantity + 1)}
+                        className={`${styles.quantityBtn} infi-track`}
+                        onClick={() => {
+                            onQuantityChange(quantity + 1);
+                        }}
                         disabled={hasLimitedStock && quantity >= effectiveStock}
+                        data-ga-action="quantity_increase"
                     >
                         +
                     </button>
@@ -529,7 +541,9 @@ export default function ModernCleanProductPageTemplate({
                 </button>
                 <button
                     className={styles.buyNowBtn}
-                    onClick={onBuyNow}
+                    onClick={() => {
+                        onBuyNow();
+                    }}
                     disabled={!canOrder || isAddingToCart || (product.type === 'variable' && !allOptionsSelected)}
                     data-track="begin_checkout"
                     data-item-id={product._id}
@@ -543,14 +557,14 @@ export default function ModernCleanProductPageTemplate({
             </div>
 
             {/* Secondary Actions */}
-            <div className={styles.secondaryActions}>
+            <div className={styles.secondaryActions} data-ga-location="product_page">
                 <button
-                    className={`${styles.iconBtn}`}
-                    onClick={onAddToWishlist}
-                    data-track="add_to_wishlist"
-                    data-item-id={product._id}
-                    data-item-name={product.name}
-                    data-price={effectivePrice}
+                    className={`${styles.iconBtn} infi-track`}
+                    onClick={() => {
+                        onAddToWishlist();
+                    }}
+                    data-ga-action={isWishlisted ? 'remove_from_wishlist' : 'add_to_wishlist'}
+                    data-ga-label={product.name}
                 >
                     <svg viewBox="0 0 24 24" fill={isWishlisted ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2}>
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
@@ -559,10 +573,14 @@ export default function ModernCleanProductPageTemplate({
                 </button>
                 {compareEnabled && (
                     <button
-                        className={`${styles.iconBtn} ${isInCompare ? styles.inCompare : ''} ${compareDisabled ? styles.disabled : ''}`}
-                        onClick={onAddToCompare}
+                        className={`${styles.iconBtn} ${isInCompare ? styles.inCompare : ''} ${compareDisabled ? styles.disabled : ''} infi-track`}
+                        onClick={() => {
+                            onAddToCompare();
+                        }}
                         disabled={compareDisabled}
                         title={compareDisabled ? compareDisabledReason : (isInCompare ? 'Remove from Compare' : 'Add to Compare')}
+                        data-ga-action={isInCompare ? 'remove_from_compare' : 'add_to_compare'}
+                        data-ga-label={product.name}
                     >
                         <svg viewBox="0 0 24 24" fill={isInCompare ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2}>
                             <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5" />
@@ -691,8 +709,12 @@ export default function ModernCleanProductPageTemplate({
                 {/* Write Review Button */}
                 {(isLoggedIn || reviewSettings.allowGuestReviews) && (
                     <button
-                        className={styles.writeReviewBtn}
-                        onClick={() => setShowReviewForm(!showReviewForm)}
+                        className={`${styles.writeReviewBtn} infi-track`}
+                        onClick={() => {
+                            setShowReviewForm(!showReviewForm);
+                        }}
+                        data-ga-action={showReviewForm ? 'cancel_review' : 'start_review'}
+                        data-ga-label="Write a Review"
                     >
                         {showReviewForm ? 'Cancel' : 'Write a Review'}
                     </button>
@@ -701,7 +723,8 @@ export default function ModernCleanProductPageTemplate({
                 {/* Review Form */}
                 {showReviewForm && (
                     <form
-                        className={styles.reviewForm}
+                        className={`${styles.reviewForm} infi-track`}
+                        data-ga-widget="review_form"
                         onSubmit={async (e) => {
                             e.preventDefault();
                             const success = await onSubmitReview(reviewFormData);

@@ -422,8 +422,12 @@ export default function QuickViewModal({
                                 {currentImages.slice(0, 5).map((img, index) => (
                                     <button
                                         key={index}
-                                        className={`${styles.thumbnail} ${index === mainImageIndex ? styles.active : ''}`}
-                                        onClick={() => setMainImageIndex(index)}
+                                        className={`${styles.thumbnail} ${index === mainImageIndex ? styles.active : ''} infi-track`}
+                                        onClick={() => {
+                                            setMainImageIndex(index);
+                                        }}
+                                        data-ga-action="gallery_navigation"
+                                        data-ga-label={`Image ${index + 1}`}
                                     >
                                         <img src={img} alt={`${displayProduct.name} ${index + 1}`} />
                                     </button>
@@ -476,11 +480,14 @@ export default function QuickViewModal({
                         {/* Quantity Selector */}
                         <div className={styles.quantityRow}>
                             <label className={styles.quantityLabel}>Quantity</label>
-                            <div className={styles.quantitySelector}>
+                            <div className={styles.quantitySelector} data-ga-widget="quantity_selector">
                                 <button
-                                    className={styles.quantityBtn}
-                                    onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                                    className={`${styles.quantityBtn} infi-track`}
+                                    onClick={() => {
+                                        setQuantity(q => Math.max(1, q - 1));
+                                    }}
                                     disabled={quantity <= 1}
+                                    data-ga-action="quantity_decrease"
                                 >
                                     −
                                 </button>
@@ -493,9 +500,12 @@ export default function QuickViewModal({
                                     className={styles.quantityInput}
                                 />
                                 <button
-                                    className={styles.quantityBtn}
-                                    onClick={() => setQuantity(q => Math.min(maxQuantity, q + 1))}
+                                    className={`${styles.quantityBtn} infi-track`}
+                                    onClick={() => {
+                                        setQuantity(q => Math.min(maxQuantity, q + 1));
+                                    }}
                                     disabled={quantity >= maxQuantity}
+                                    data-ga-action="quantity_increase"
                                 >
                                     +
                                 </button>
@@ -515,18 +525,22 @@ export default function QuickViewModal({
                         )}
 
                         {/* Action Buttons */}
-                        <div className={styles.actions}>
+                        <div className={styles.actions} data-ga-location="quick_view">
                             <button
-                                className={styles.addToCartBtn}
+                                className={`${styles.addToCartBtn} infi-track`}
                                 onClick={handleAddToCart}
                                 disabled={!canOrder || isAddingToCart}
+                                data-ga-action="add_to_cart"
+                                data-ga-label={displayProduct.name}
                             >
                                 {isAddingToCart ? 'Adding...' : 'Add to Cart'}
                             </button>
                             <button
-                                className={styles.buyNowBtn}
+                                className={`${styles.buyNowBtn} infi-track`}
                                 onClick={handleBuyNow}
                                 disabled={!canOrder || isAddingToCart}
+                                data-ga-action="buy_now"
+                                data-ga-label={displayProduct.name}
                             >
                                 Buy Now
                             </button>
@@ -535,8 +549,12 @@ export default function QuickViewModal({
                         {/* Secondary Actions */}
                         <div className={styles.secondaryActions}>
                             <button
-                                className={`${styles.wishlistBtn} ${isInWishlist(product._id) ? styles.wishlisted : ''}`}
-                                onClick={() => toggleWishlist(product._id)}
+                                className={`${styles.wishlistBtn} ${isInWishlist(product._id) ? styles.wishlisted : ''} infi-track`}
+                                onClick={() => {
+                                    toggleWishlist(product._id);
+                                }}
+                                data-ga-action={isInWishlist(product._id) ? 'remove_from_wishlist' : 'add_to_wishlist'}
+                                data-ga-label={displayProduct.name}
                             >
                                 <svg viewBox="0 0 24 24" fill={isInWishlist(product._id) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2}>
                                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
@@ -546,7 +564,13 @@ export default function QuickViewModal({
                         </div>
 
                         {/* View Full Details Link */}
-                        <Link href={`/${product.slug}`} className={styles.viewDetailsLink} onClick={onClose}>
+                        <Link
+                            href={`/${product.slug}`}
+                            className={`${styles.viewDetailsLink} infi-track`}
+                            onClick={() => {
+                                onClose();
+                            }}
+                        >
                             View Full Details →
                         </Link>
                     </div>

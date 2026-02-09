@@ -6,7 +6,6 @@
 import React from 'react';
 import Link from 'next/link';
 import { MenuItem } from '@/types/menu';
-import { trackMenuClick, trackExternalLink } from '@/lib/ga';
 import styles from './MenuLink.module.scss';
 
 interface MenuLinkProps {
@@ -53,26 +52,7 @@ export default function MenuLink({
         }
     };
 
-    const handleClick = (e: React.MouseEvent) => {
-        const url = getUrl();
-
-        // Track menu click in Google Analytics
-        if (url && url !== '#!') {
-            // Check if external link
-            const isExternal = url.startsWith('http') && !url.includes(window.location.hostname);
-
-            if (isExternal) {
-                trackExternalLink(item.label, url);
-            } else {
-                trackMenuClick(
-                    item.label,
-                    url,
-                    item.type as any,
-                    menuPosition
-                );
-            }
-        }
-
+    const handleClick = () => {
         if (onClick) {
             onClick(item);
         }
@@ -125,10 +105,12 @@ export default function MenuLink({
     return (
         <Link
             href={url}
-            className={`${styles.menuLink}`}
+            className={`${styles.menuLink} infi-track`}
             target={target}
             rel={rel}
             onClick={handleClick}
+            data-ga-widget={`menu_${menuPosition}`}
+            data-ga-category="navigation"
         >
             {/* Icon */}
             {showIcon && item.icon && (

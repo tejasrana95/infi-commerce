@@ -212,12 +212,14 @@ export default function ModernCleanHeaderTemplate({
                     <button
                         key={element.id}
                         ref={searchBtnRef}
-                        className={styles.actionBtn}
+                        className={`${styles.actionBtn} infi-track`}
                         onClick={(e) => {
                             e.stopPropagation();
                             setSearchOpen(prev => !prev);
                         }}
                         aria-label={labels.search}
+                        data-ga-action={searchOpen ? 'close_search' : 'open_search'}
+                        data-ga-label="Search"
                     >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -227,11 +229,15 @@ export default function ModernCleanHeaderTemplate({
 
             case 'account':
                 return (
-                    <div key={element.id} className={styles.accountWrapper} ref={accountRef}>
+                    <div key={element.id} className={styles.accountWrapper} ref={accountRef} data-ga-location="header" data-ga-widget="account_menu">
                         <button
-                            className={styles.actionBtn}
-                            onClick={() => setAccountOpen(!accountOpen)}
+                            className={`${styles.actionBtn} infi-track`}
+                            onClick={() => {
+                                setAccountOpen(!accountOpen);
+                            }}
                             aria-label={labels.account}
+                            data-ga-action={accountOpen ? 'close_account' : 'open_account'}
+                            data-ga-label="Account Menu"
                         >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -248,37 +254,41 @@ export default function ModernCleanHeaderTemplate({
                                         </div>
                                         <ul className={styles.accountMenu}>
                                             <li>
-                                                <Link href="/account" className={styles.accountMenuItem} onClick={() => setAccountOpen(false)}>
+                                                <Link
+                                                    href="/account"
+                                                    className={`${styles.accountMenuItem} infi-track`}
+                                                    onClick={() => setAccountOpen(false)}
+                                                >
                                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                                                     My Account
                                                 </Link>
                                             </li>
                                             <li>
-                                                <Link href="/account/orders" className={styles.accountMenuItem} onClick={() => setAccountOpen(false)}>
+                                                <Link href="/account/orders" className={`${styles.accountMenuItem} infi-track`} onClick={() => setAccountOpen(false)}>
                                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
                                                     Orders
                                                 </Link>
                                             </li>
                                             <li>
-                                                <Link href="/account/profile" className={styles.accountMenuItem} onClick={() => setAccountOpen(false)}>
+                                                <Link href="/account/profile" className={`${styles.accountMenuItem} infi-track`} onClick={() => setAccountOpen(false)}>
                                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                                     Profile
                                                 </Link>
                                             </li>
                                             <li>
-                                                <Link href="/account/addresses" className={styles.accountMenuItem} onClick={() => setAccountOpen(false)}>
+                                                <Link href="/account/addresses" className={`${styles.accountMenuItem} infi-track`} onClick={() => setAccountOpen(false)}>
                                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                                     Address
                                                 </Link>
                                             </li>
                                             <li>
-                                                <Link href="/wishlist" className={styles.accountMenuItem} onClick={() => setAccountOpen(false)}>
+                                                <Link href="/wishlist" className={`${styles.accountMenuItem} infi-track`} onClick={() => setAccountOpen(false)}>
                                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
                                                     Wishlist
                                                 </Link>
                                             </li>
                                             <li>
-                                                <button className={`${styles.accountMenuItem} ${styles.signOut}`} onClick={() => { logout(); setAccountOpen(false); }}>
+                                                <button className={`${styles.accountMenuItem} ${styles.signOut} infi-track`} onClick={() => { logout(); setAccountOpen(false); }} data-ga-action="logout">
                                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
                                                     Sign Out
                                                 </button>
@@ -287,10 +297,10 @@ export default function ModernCleanHeaderTemplate({
                                     </>
                                 ) : (
                                     <div className={styles.authButtons}>
-                                        <Link href="/login" className={styles.loginBtn} onClick={() => setAccountOpen(false)}>
+                                        <Link href="/login" className={`${styles.loginBtn} infi-track`} onClick={() => setAccountOpen(false)}>
                                             Login
                                         </Link>
-                                        <Link href="/register" className={styles.registerBtn} onClick={() => setAccountOpen(false)}>
+                                        <Link href="/register" className={`${styles.registerBtn} infi-track`} onClick={() => setAccountOpen(false)}>
                                             Register
                                         </Link>
                                     </div>
@@ -302,7 +312,7 @@ export default function ModernCleanHeaderTemplate({
 
             case 'wishlist':
                 return (
-                    <Link key={element.id} href="/wishlist" className={styles.actionBtn} aria-label={labels.wishlist}>
+                    <Link key={element.id} href="/wishlist" className={`${styles.actionBtn} infi-track`} aria-label={labels.wishlist}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                         </svg>
@@ -316,11 +326,15 @@ export default function ModernCleanHeaderTemplate({
 
             case 'cart':
                 return (
-                    <div key={element.id} className={styles.cartWrapper} ref={cartRef}>
+                    <div key={element.id} className={styles.cartWrapper} ref={cartRef} data-ga-location="header" data-ga-widget="cart">
                         <button
-                            className={styles.actionBtn}
-                            onClick={() => setCartOpen(!cartOpen)}
+                            className={`${styles.actionBtn} infi-track`}
+                            onClick={() => {
+                                setCartOpen(!cartOpen);
+                            }}
                             aria-label={labels.cart}
+                            data-ga-action={cartOpen ? 'close_cart' : 'open_cart'}
+                            data-ga-label="Cart"
                         >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />

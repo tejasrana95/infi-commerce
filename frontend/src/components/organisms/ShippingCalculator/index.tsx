@@ -70,10 +70,14 @@ const ShippingCalculator: React.FC<ShippingCalculatorProps> = ({
     };
 
     return (
-        <div className={`${styles.shippingCalculator} ${isExpanded ? styles.expanded : ''}`}>
+        <div className={`${styles.shippingCalculator} ${isExpanded ? styles.expanded : ''}`} data-ga-location="product_page" data-ga-widget="shipping_calculator">
             <div
-                className={`${styles.header} ${isExpanded ? styles.active : ''}`}
-                onClick={() => setIsExpanded(!isExpanded)}
+                className={`${styles.header} ${isExpanded ? styles.active : ''} infi-track`}
+                onClick={() => {
+                    setIsExpanded(!isExpanded);
+                }}
+                data-ga-action={isExpanded ? 'collapse' : 'expand'}
+                data-ga-label="Shipping Calculator"
             >
                 <div className={styles.title}>
                     Shipping Calculator
@@ -102,8 +106,10 @@ const ShippingCalculator: React.FC<ShippingCalculatorProps> = ({
 
                         <button
                             type="submit"
-                            className={styles.btnCalculate}
+                            className={`${styles.btnCalculate} infi-track`}
                             disabled={estimate?.loading || !country}
+                            data-ga-action="calculate_shipping"
+                            data-ga-label={`Calculate Shipping for ${country}`}
                         >
                             {estimate?.loading ? 'Calculating...' : 'Calculate'}
                         </button>
