@@ -486,6 +486,12 @@ class RestoreService {
 
         const validatedRows: any[] = [];
 
+        // Map model names to slug entity types for slug validation
+        const slugEntityTypes: Record<string, 'product' | 'category' | 'page' | 'brand'> = {
+            'Category': 'category',
+            'Brand': 'brand',
+        };
+
         for (const { rowNumber, data } of rows) {
             const errors: string[] = [];
             const unflattened = this.unflattenObject(data);
@@ -495,6 +501,20 @@ class RestoreService {
             if (Object.keys(references).length > 0) {
                 const refErrors = await validateReferences(unflattened, references);
                 errors.push(...refErrors);
+            }
+
+            // Validate slug uniqueness for slug-bearing entities
+            const entityType = slugEntityTypes[Model.modelName];
+            if (entityType && unflattened.slug && unflattened.storeId) {
+                const isAvailable = await slugService.isSlugAvailable(
+                    unflattened.storeId,
+                    unflattened.slug,
+                    entityType,
+                    unflattened._id
+                );
+                if (!isAvailable) {
+                    errors.push(`Slug "${unflattened.slug}" is already in use by another entity`);
+                }
             }
 
             if (errors.length > 0) {
@@ -558,8 +578,8 @@ class RestoreService {
                     const id = sanitized._id;
                     delete sanitized._id;
 
-                    // Use save() for models with slug registry hooks (Category)
-                    if (['Category'].includes(Model.modelName)) {
+                    // Use save() for models with slug registry hooks (Category, Brand)
+                    if (['Category', 'Brand'].includes(Model.modelName)) {
                         const doc = await Model.findById(id);
                         if (doc) {
                             doc.set(sanitized);
@@ -577,7 +597,7 @@ class RestoreService {
                     }
                 } else {
                     delete sanitized._id;
-                    if (['Category'].includes(Model.modelName)) {
+                    if (['Category', 'Brand'].includes(Model.modelName)) {
                         const doc = new Model(sanitized);
                         await doc.save();
                     } else {
@@ -799,6 +819,25 @@ class RestoreService {
             if (Object.keys(references).length > 0) {
                 const refErrors = await validateReferences(unflattened, references);
                 errors.push(...refErrors);
+            }
+
+            // Validate slug uniqueness for slug-bearing entities during dry run
+            if (unflattened.slug && unflattened.storeId) {
+                // Determine entity type from required fields heuristic
+                const entityType = requiredFields.includes('title') ? 'category' as const
+                    : requiredFields.includes('name') && requiredFields.includes('slug') ? 'brand' as const
+                        : null;
+                if (entityType) {
+                    const isAvailable = await slugService.isSlugAvailable(
+                        unflattened.storeId,
+                        unflattened.slug,
+                        entityType,
+                        unflattened._id
+                    );
+                    if (!isAvailable) {
+                        errors.push(`Slug "${unflattened.slug}" is already in use by another entity`);
+                    }
+                }
             }
 
             if (errors.length > 0) {

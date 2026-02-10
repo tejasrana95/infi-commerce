@@ -105,7 +105,7 @@ $star-color: #fbbf24;
 .thumbnails {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
 
     @include mobile {
         width: 100%;
@@ -133,25 +133,48 @@ $star-color: #fbbf24;
     /* No shrink, no grow, fixed sizing */
     scroll-snap-align: start;
     border: 2px solid transparent;
-    border-radius: 8px;
+    border-radius: 12px;
     overflow: hidden;
     cursor: pointer;
     background: $bg-light;
     padding: 0;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 10px;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
 
     &.active {
         border-color: $primary-color;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+
+        &::after {
+            opacity: 1;
+        }
     }
 
     &:hover:not(.active) {
-        border-color: $border-color;
+        border-color: lighten($border-color, 20%);
+        transform: scale(1.05);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     img {
         width: 100%;
         height: 100%;
         object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+
+    &:hover img {
+        transform: scale(1.1);
     }
 }
 
@@ -159,12 +182,23 @@ $star-color: #fbbf24;
     flex: 1;
     aspect-ratio: 1;
     position: relative;
-    background: $bg-light;
-    border-radius: 16px;
+    background: linear-gradient(145deg, $bg-light 0%, #ffffff 100%);
+    border-radius: 20px;
     overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    transition: box-shadow 0.3s ease;
+
+    &:hover {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
 
     img {
         object-fit: cover;
+        transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    &:hover img {
+        transform: scale(1.05);
     }
 }
 
@@ -172,13 +206,28 @@ $star-color: #fbbf24;
     position: absolute;
     top: 16px;
     left: 16px;
-    background: $error-color;
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
     color: white;
-    padding: 6px 12px;
-    border-radius: 20px;
+    padding: 8px 16px;
+    border-radius: 24px;
     font-size: 0.875rem;
-    font-weight: 600;
+    font-weight: 700;
     z-index: 2;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    backdrop-filter: blur(8px);
+    animation: badgePulse 2s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
 }
 
 // ============================================
@@ -256,28 +305,35 @@ $star-color: #fbbf24;
 .pricing {
     display: flex;
     align-items: baseline;
-    gap: 12px;
+    gap: 16px;
+    flex-wrap: wrap;
 }
 
 .price {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: $text-primary;
+    font-size: 2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #111827 0%, #374151 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.02em;
 }
 
 .comparePrice {
-    font-size: 1.125rem;
+    font-size: 1.25rem;
     color: $text-muted;
     text-decoration: line-through;
+    font-weight: 400;
 }
 
 .discount {
     font-size: 0.875rem;
-    font-weight: 600;
+    font-weight: 700;
     color: $error-color;
-    background: rgba($error-color, 0.1);
-    padding: 4px 8px;
-    border-radius: 4px;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.15));
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
 .taxInfo {
@@ -347,24 +403,42 @@ $star-color: #fbbf24;
 }
 
 .variantButton {
-    padding: 10px 20px;
+    padding: 12px 24px;
     border: 2px solid $border-color;
-    border-radius: 8px;
+    border-radius: 10px;
     background: white;
     font-size: 0.875rem;
-    font-weight: 500;
+    font-weight: 600;
     color: $text-primary;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
 
     &:hover:not(:disabled) {
-        border-color: $text-secondary;
+        border-color: #3b82f6;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
     }
 
     &.selected {
-        border-color: $primary-color;
-        background: $primary-color;
+        border-color: transparent;
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
         color: white;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+
+        &::before {
+            opacity: 1;
+        }
     }
 
     &.unavailable,
@@ -376,6 +450,8 @@ $star-color: #fbbf24;
 
         &:hover {
             border-color: $border-color;
+            transform: none;
+            box-shadow: none;
         }
     }
 }
@@ -517,41 +593,68 @@ $star-color: #fbbf24;
 
 .addToCartBtn {
     flex: 1;
-    padding: 16px 32px;
-    background: $primary-color;
+    padding: 18px 36px;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     color: white;
     border: none;
     border-radius: 12px;
     font-size: 1rem;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        transition: left 0.5s;
+    }
 
     &:hover:not(:disabled) {
-        opacity: 0.9;
-        transform: translateY(-1px);
+        box-shadow: 0 8px 28px rgba(59, 130, 246, 0.4);
+        transform: translateY(-2px);
+
+        &::before {
+            left: 100%;
+        }
+    }
+
+    &:active:not(:disabled) {
+        transform: translateY(0);
     }
 
     &:disabled {
         opacity: 0.5;
         cursor: not-allowed;
+        box-shadow: none;
     }
 }
 
 .buyNowBtn {
     flex: 1;
-    padding: 16px 32px;
+    padding: 18px 36px;
     background: white;
     color: $primary-color;
     border: 2px solid $primary-color;
     border-radius: 12px;
     font-size: 1rem;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover:not(:disabled) {
-        background: $bg-light;
+        background: linear-gradient(145deg, #f9fafb 0%, #ffffff 100%);
+        border-color: #3b82f6;
+        color: #3b82f6;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
     }
 
     &:disabled {

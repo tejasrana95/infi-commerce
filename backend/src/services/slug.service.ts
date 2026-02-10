@@ -27,7 +27,7 @@ class SlugService {
     async isSlugAvailable(
         storeId: mongoose.Types.ObjectId | string,
         slug: string,
-        entityType: 'product' | 'category' | 'page',
+        entityType: 'product' | 'category' | 'page' | 'brand',
         entityId?: mongoose.Types.ObjectId | string
     ): Promise<boolean> {
         // Check if reserved slug
@@ -64,7 +64,7 @@ class SlugService {
     async checkSlugAvailability(
         storeId: mongoose.Types.ObjectId | string,
         slug: string,
-        entityType: 'product' | 'category' | 'page',
+        entityType: 'product' | 'category' | 'page' | 'brand',
         entityId?: mongoose.Types.ObjectId | string
     ): Promise<SlugAvailabilityResult> {
         const normalizedSlug = slug.toLowerCase().trim();
@@ -119,7 +119,7 @@ class SlugService {
     async registerSlug(
         storeId: mongoose.Types.ObjectId | string,
         slug: string,
-        entityType: 'product' | 'category' | 'page',
+        entityType: 'product' | 'category' | 'page' | 'brand',
         entityId: mongoose.Types.ObjectId | string
     ): Promise<void> {
         // Check if slug is available
@@ -161,7 +161,7 @@ class SlugService {
      */
     async unregisterSlug(
         storeId: mongoose.Types.ObjectId | string,
-        entityType: 'product' | 'category' | 'page',
+        entityType: 'product' | 'category' | 'page' | 'brand',
         entityId: mongoose.Types.ObjectId | string
     ): Promise<void> {
         await SlugRegistry.findOneAndDelete({

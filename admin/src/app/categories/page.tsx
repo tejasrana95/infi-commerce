@@ -2,18 +2,22 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Box, Tooltip, IconButton, Typography, useTheme, Chip } from '@mui/material';
-import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { Box, Tooltip, IconButton, Typography, useTheme, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
+import { DataGrid, GridColDef, GridRenderCellParams, GridRowSelectionModel } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import BlockIcon from '@mui/icons-material/Block';
+import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import api from '@/lib/api';
 import { Category } from '@/types';
-import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules';
+import { PageHeader, EmptyState, SearchFilterBar, BulkActionBar } from '@/components/molecules';
 import { LoadingSpinner, PermissionGuard, SeoScoreBadge } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { createDataGridStyles } from '@/utils/styles';
+import CategoryAutocomplete from '@/components/molecules/CategoryAutocomplete';
 
 export default function CategoriesPage() {
   const router = useRouter();
@@ -24,6 +28,16 @@ export default function CategoriesPage() {
   const { user } = useAuth();
   const { confirm } = useConfirm();
   const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
+  const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>({ type: 'include', ids: new Set<string>() });
+
+  const getSelectedIds = (): string[] => {
+    if (selectionModel.type === 'include') return Array.from(selectionModel.ids) as string[];
+    return categories.map(c => c._id).filter(id => !selectionModel.ids.has(id));
+  };
+
+  // Assign parent dialog
+  const [assignParentOpen, setAssignParentOpen] = useState(false);
+  const [assignParentValue, setAssignParentValue] = useState<string | null>(null);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,7 +49,7 @@ export default function CategoriesPage() {
   // Pagination state
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
-    pageSize: 10,
+    pageSize: 50,
   });
   const [totalRows, setTotalRows] = useState(0);
 
@@ -73,6 +87,29 @@ export default function CategoriesPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBulkAction = async (action: string, parentCategoryId?: string | null) => {
+    const ids = getSelectedIds();
+    if (ids.length === 0) return;
+    if (action !== 'assignParent') {
+      const actionLabels: Record<string, string> = { delete: 'delete', activate: 'activate', deactivate: 'deactivate' };
+      if (!await confirm({ title: `Bulk ${actionLabels[action]}`, message: `Are you sure you want to ${actionLabels[action]} ${ids.length} category(ies)?`, severity: action === 'delete' ? 'error' : 'warning' })) return;
+    }
+    try {
+      await api.post('/categories/bulk-action', { ids, action, parentCategoryId });
+      showNotification(`Bulk ${action} completed`, 'success');
+      setSelectionModel({ type: 'include', ids: new Set<string>() });
+      fetchCategories();
+    } catch (err: any) {
+      showNotification(err.response?.data?.message || `Bulk ${action} failed`, 'error');
+    }
+  };
+
+  const handleAssignParentSubmit = () => {
+    handleBulkAction('assignParent', assignParentValue);
+    setAssignParentOpen(false);
+    setAssignParentValue(null);
   };
 
   const handleDelete = async (id: string) => {
@@ -284,15 +321,47 @@ export default function CategoriesPage() {
           rows={categories}
           columns={columns}
           getRowId={(row) => row._id}
-          pageSizeOptions={[10, 25, 50]}
+          pageSizeOptions={[50, 100, 200]}
           paginationMode="server"
           rowCount={totalRows}
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
-          disableRowSelectionOnClick
+          checkboxSelection
+          rowSelectionModel={selectionModel}
+          onRowSelectionModelChange={setSelectionModel}
           sx={dataGridStyles}
         />
+        <BulkActionBar
+          selectedCount={getSelectedIds().length}
+          onClear={() => setSelectionModel({ type: 'include', ids: new Set<string>() })}
+          actions={[
+            { label: 'Delete', icon: <DeleteIcon />, color: 'error', onClick: () => handleBulkAction('delete') },
+            { label: 'Activate', icon: <CheckCircleIcon />, color: 'success', onClick: () => handleBulkAction('activate') },
+            { label: 'Deactivate', icon: <BlockIcon />, color: 'warning', onClick: () => handleBulkAction('deactivate') },
+            { label: 'Assign Parent', icon: <AccountTreeIcon />, color: 'info', onClick: () => setAssignParentOpen(true) },
+          ]}
+        />
       </Box>
+
+      {/* Assign Parent Category Dialog */}
+      <Dialog open={assignParentOpen} onClose={() => setAssignParentOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Assign Parent Category</DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Select a parent category for the {getSelectedIds().length} selected categories. Leave empty to make them root categories.
+          </Typography>
+          <CategoryAutocomplete
+            value={assignParentValue || ''}
+            onChange={(val) => setAssignParentValue(val || null)}
+            storeId={filterStore}
+            label="Parent Category"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAssignParentOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleAssignParentSubmit}>Assign</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

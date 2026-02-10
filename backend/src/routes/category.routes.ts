@@ -10,6 +10,7 @@ import {
     deleteCategory,
     createCategoryValidation,
     updateCategoryValidation,
+    bulkAction,
 } from '../controllers/category.controller';
 import { authenticate, authorize } from '../middleware/auth';
 import { validate } from '../middleware/validation';
@@ -25,6 +26,13 @@ router.get('/slug/:storeId/:slug', getCategoryBySlug);
 
 // Protected routes (require authentication AND admin role)
 // Only admin, store_admin, and super_admin can manage categories
+router.post(
+    '/bulk-action',
+    authenticate,
+    authorize('admin', 'super_admin'),
+    bulkAction
+);
+
 router.post(
     '/',
     authenticate,

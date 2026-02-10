@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import slugService from '../services/slug.service';
 
 /**
  * Brand Model - For product brands
@@ -93,6 +94,23 @@ const BrandSchema = new Schema<IBrand>(
 
 // Compound index for unique slug per store
 BrandSchema.index({ storeId: 1, slug: 1 }, { unique: true });
+
+// Pre-save middleware to register slug in global registry
+BrandSchema.pre('save', async function (next) {
+    if (this.isModified('slug') || this.isModified('storeId') || this.isNew) {
+        try {
+            await slugService.registerSlug(
+                this.storeId,
+                this.slug,
+                'brand',
+                this._id
+            );
+        } catch (error: any) {
+            return next(error);
+        }
+    }
+    next();
+});
 
 const Brand = mongoose.model<IBrand>('Brand', BrandSchema);
 

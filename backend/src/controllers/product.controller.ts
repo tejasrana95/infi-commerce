@@ -11,6 +11,7 @@ import { calculatePricing, calculateTaxBreakdown } from '../utils/pricing.utils'
 import { addTimezoneAwareDates } from '../utils/date.utils';
 import { escapeRegExp, getSearchSuggestions } from '../utils/search.utils';
 import { updateProductSyncTimestamp } from '../utils/sync-timestamp.utils';
+import SlugRegistry from '../models/SlugRegistry';
 
 // Helper function to transform product options for frontend
 export function transformProductOptions(product: any) {
@@ -1097,6 +1098,9 @@ export const deleteProduct = asyncHandler(async (req: AuthRequest, res: Response
         throw new AppError('Product not found', 404);
     }
 
+    // Clean up slug registry
+    await SlugRegistry.deleteMany({ entityType: 'product', entityId: product._id });
+
     await updateProductSyncTimestamp(product.storeId.toString());
 
     res.json({
@@ -1526,5 +1530,61 @@ export const getSearchFilters = asyncHandler(async (req: AuthRequest, res: Respo
         availability,
         subcategories: [], // Search doesn't have subcategories
         attributes,
+    });
+});
+
+/**
+ * Bulk action on products (delete, activate, deactivate)
+ * POST /api/products/bulk-action
+ */
+export const bulkAction = asyncHandler(async (req: AuthRequest, res: Response) => {
+    if (req.user?.role === 'store_admin') {
+        throw new AppError('Unauthorized: Store admins cannot perform bulk actions', 403);
+    }
+
+    const { ids, action } = req.body;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        throw new AppError('ids array is required', 400);
+    }
+
+    if (!['delete', 'activate', 'deactivate'].includes(action)) {
+        throw new AppError('Invalid action. Must be delete, activate, or deactivate', 400);
+    }
+
+    // Collect storeIds for cache invalidation
+    const products = await Product.find({ _id: { $in: ids } }).select('storeId');
+    const storeIds = [...new Set(products.map(p => p.storeId.toString()))];
+
+    let affected = 0;
+
+    switch (action) {
+        case 'delete': {
+            const r = await Product.deleteMany({ _id: { $in: ids } });
+            affected = r.deletedCount;
+            // Clean up slug registry for deleted products
+            await SlugRegistry.deleteMany({ entityType: 'product', entityId: { $in: ids } });
+            break;
+        }
+        case 'activate': {
+            const r = await Product.updateMany({ _id: { $in: ids } }, { isActive: true });
+            affected = r.modifiedCount;
+            break;
+        }
+        case 'deactivate': {
+            const r = await Product.updateMany({ _id: { $in: ids } }, { isActive: false });
+            affected = r.modifiedCount;
+            break;
+        }
+    }
+
+    // Invalidate caches for all affected stores
+    for (const storeId of storeIds) {
+        await updateProductSyncTimestamp(storeId);
+    }
+
+    res.json({
+        message: `Bulk ${action} completed successfully`,
+        affected,
     });
 });

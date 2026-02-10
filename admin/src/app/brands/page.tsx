@@ -2,12 +2,14 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { Box, Button, Tooltip, IconButton, Typography, useTheme, Dialog, DialogTitle, DialogContent, DialogActions, Avatar } from '@mui/material';
-import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridRenderCellParams, GridRowSelectionModel } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import BlockIcon from '@mui/icons-material/Block';
 import api from '@/lib/api';
 import { Brand } from '@/types';
-import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules';
+import { PageHeader, EmptyState, SearchFilterBar, BulkActionBar } from '@/components/molecules';
 import { LoadingSpinner, StatusChip, PermissionGuard, SeoScoreBadge } from '@/components/atoms';
 import BrandForm from '@/components/organisms/BrandForm';
 import { useNotification } from '@/contexts/NotificationContext';
@@ -23,6 +25,12 @@ export default function BrandsPage() {
     const { user } = useAuth();
     const { confirm } = useConfirm();
     const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
+    const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>({ type: 'include', ids: new Set<string>() });
+
+    const getSelectedIds = (): string[] => {
+        if (selectionModel.type === 'include') return Array.from(selectionModel.ids) as string[];
+        return brands.map(b => b._id).filter(id => !selectionModel.ids.has(id));
+    };
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [filterStore, setFilterStore] = useState<string>('');
@@ -70,6 +78,21 @@ export default function BrandsPage() {
             setTotalRows(0);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleBulkAction = async (action: string) => {
+        const ids = getSelectedIds();
+        if (ids.length === 0) return;
+        const actionLabels: Record<string, string> = { delete: 'delete', activate: 'activate', deactivate: 'deactivate' };
+        if (!await confirm({ title: `Bulk ${actionLabels[action]}`, message: `Are you sure you want to ${actionLabels[action]} ${ids.length} brand(s)?`, severity: action === 'delete' ? 'error' : 'warning' })) return;
+        try {
+            await api.post('/brands/bulk-action', { ids, action });
+            showNotification(`Bulk ${action} completed`, 'success');
+            setSelectionModel({ type: 'include', ids: new Set<string>() });
+            fetchBrands();
+        } catch (err: any) {
+            showNotification(err.response?.data?.message || `Bulk ${action} failed`, 'error');
         }
     };
 
@@ -280,7 +303,9 @@ export default function BrandsPage() {
                     columns={columns}
                     getRowId={(row) => row._id}
                     sx={dataGridStyles}
-                    disableRowSelectionOnClick
+                    checkboxSelection
+                    rowSelectionModel={selectionModel}
+                    onRowSelectionModelChange={setSelectionModel}
                     pageSizeOptions={[10, 25, 50]}
                     paginationMode="server"
                     rowCount={totalRows}
@@ -288,6 +313,15 @@ export default function BrandsPage() {
                     onPaginationModelChange={setPaginationModel}
                     loading={loading}
                 />}
+                <BulkActionBar
+                    selectedCount={getSelectedIds().length}
+                    onClear={() => setSelectionModel({ type: 'include', ids: new Set<string>() })}
+                    actions={[
+                        { label: 'Delete', icon: <DeleteIcon />, color: 'error', onClick: () => handleBulkAction('delete') },
+                        { label: 'Activate', icon: <CheckCircleIcon />, color: 'success', onClick: () => handleBulkAction('activate') },
+                        { label: 'Deactivate', icon: <BlockIcon />, color: 'warning', onClick: () => handleBulkAction('deactivate') },
+                    ]}
+                />
             </Box>
 
             <Dialog open={dialogOpen} onClose={handleClose} maxWidth="md" fullWidth>

@@ -11,6 +11,7 @@ import { invalidateCategoryCache } from '../utils/cache-invalidation';
 import { triggerRevalidation } from '../utils/revalidation';
 import { escapeRegExp } from '../utils/search.utils';
 import { updateCategorySyncTimestamp } from '../utils/sync-timestamp.utils';
+import SlugRegistry from '../models/SlugRegistry';
 
 // Validation rules
 export const createCategoryValidation = [
@@ -613,6 +614,9 @@ export const deleteCategory = asyncHandler(async (req: AuthRequest, res: Respons
 
     await category.deleteOne();
 
+    // Clean up slug registry
+    await SlugRegistry.deleteMany({ entityType: 'category', entityId: category._id });
+
     // Invalidate store categories cache
     await invalidateCategoryCache(category.storeId.toString());
 
@@ -892,5 +896,108 @@ export const getCategoryFilters = asyncHandler(async (req: AuthRequest, res: Res
         availability,
         subcategories,
         attributes,
+    });
+});
+
+/**
+ * Bulk action on categories (delete, activate, deactivate, assignParent)
+ * POST /api/categories/bulk-action
+ */
+export const bulkAction = asyncHandler(async (req: AuthRequest, res: Response) => {
+    if (req.user?.role === 'store_admin') {
+        throw new AppError('Unauthorized: Store admins cannot perform bulk actions', 403);
+    }
+
+    const { ids, action, parentCategoryId } = req.body;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        throw new AppError('ids array is required', 400);
+    }
+
+    if (!['delete', 'activate', 'deactivate', 'assignParent'].includes(action)) {
+        throw new AppError('Invalid action. Must be delete, activate, deactivate, or assignParent', 400);
+    }
+
+    // Collect storeIds for cache invalidation
+    const categories = await Category.find({ _id: { $in: ids } }).select('storeId');
+    const storeIds = [...new Set(categories.map(c => c.storeId.toString()))];
+
+    let affected = 0;
+
+    switch (action) {
+        case 'delete': {
+            // Delete each individually, skipping those with children
+            const skipped: string[] = [];
+            for (const id of ids) {
+                const childCount = await Category.countDocuments({ parentCategory: id });
+                if (childCount > 0) {
+                    skipped.push(id);
+                    continue;
+                }
+                const deleted = await Category.findByIdAndDelete(id);
+                if (deleted) {
+                    affected++;
+                    // Clean up slug registry
+                    await SlugRegistry.deleteMany({ entityType: 'category', entityId: id });
+                }
+            }
+            if (skipped.length > 0) {
+                // Invalidate caches
+                for (const storeId of storeIds) {
+                    await invalidateCategoryCache(storeId);
+                    await updateCategorySyncTimestamp(storeId);
+                }
+                return res.json({
+                    message: `Deleted ${affected} categories. ${skipped.length} skipped (have children).`,
+                    affected,
+                    skipped: skipped.length,
+                });
+            }
+            break;
+        }
+        case 'activate': {
+            const result = await Category.updateMany({ _id: { $in: ids } }, { status: 'active' });
+            affected = result.modifiedCount;
+            break;
+        }
+        case 'deactivate': {
+            const result = await Category.updateMany({ _id: { $in: ids } }, { status: 'inactive' });
+            affected = result.modifiedCount;
+            break;
+        }
+        case 'assignParent': {
+            // Validate parent category if provided
+            if (parentCategoryId) {
+                const parent = await Category.findById(parentCategoryId);
+                if (!parent) {
+                    throw new AppError('Parent category not found', 404);
+                }
+                // Make sure none of the selected ids is the parent itself
+                if (ids.includes(parentCategoryId)) {
+                    throw new AppError('Cannot assign a category as its own parent', 400);
+                }
+            }
+            // Use save() for each to trigger pre-save hooks (path/level recalculation)
+            for (const id of ids) {
+                const cat = await Category.findById(id);
+                if (cat) {
+                    cat.parentCategory = parentCategoryId || null;
+                    await cat.save();
+                    affected++;
+                }
+            }
+            break;
+        }
+    }
+
+    // Invalidate caches for all affected stores
+    for (const storeId of storeIds) {
+        await invalidateCategoryCache(storeId);
+        await updateCategorySyncTimestamp(storeId);
+    }
+
+    return res.json({
+        message: `Bulk ${action} completed successfully`,
+        affected,
     });
 });

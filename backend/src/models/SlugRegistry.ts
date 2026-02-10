@@ -3,7 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface ISlugRegistry extends Document {
     storeId: mongoose.Types.ObjectId;
     slug: string;
-    entityType: 'product' | 'category' | 'page';
+    entityType: 'product' | 'category' | 'page' | 'brand';
     entityId: mongoose.Types.ObjectId;
     createdAt: Date;
     updatedAt: Date;
@@ -25,7 +25,7 @@ const SlugRegistrySchema = new Schema<ISlugRegistry>(
         },
         entityType: {
             type: String,
-            enum: ['product', 'category', 'page'],
+            enum: ['product', 'category', 'page', 'brand'],
             required: true,
         },
         entityId: {

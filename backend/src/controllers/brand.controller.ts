@@ -6,6 +6,7 @@ import Store from '../models/Store';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import { invalidateBrandCache } from '../utils/cache-invalidation';
+import SlugRegistry from '../models/SlugRegistry';
 
 // Validation rules
 export const createBrandValidation = [
@@ -319,10 +320,69 @@ export const deleteBrand = asyncHandler(async (req: AuthRequest, res: Response) 
         throw new AppError('Brand not found', 404);
     }
 
+    // Clean up slug registry
+    await SlugRegistry.deleteMany({ entityType: 'brand', entityId: brand._id });
+
     // Invalidate brand cache for this store
     await invalidateBrandCache(brand.storeId.toString());
 
     res.json({
         message: 'Brand deleted successfully',
+    });
+});
+
+/**
+ * Bulk action on brands (delete, activate, deactivate)
+ * POST /api/brands/bulk-action
+ */
+export const bulkAction = asyncHandler(async (req: AuthRequest, res: Response) => {
+    if (req.user?.role === 'store_admin') {
+        throw new AppError('Unauthorized: Store admins cannot perform bulk actions', 403);
+    }
+
+    const { ids, action } = req.body;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        throw new AppError('ids array is required', 400);
+    }
+
+    if (!['delete', 'activate', 'deactivate'].includes(action)) {
+        throw new AppError('Invalid action. Must be delete, activate, or deactivate', 400);
+    }
+
+    // Collect storeIds for cache invalidation
+    const brands = await Brand.find({ _id: { $in: ids } }).select('storeId');
+    const storeIds = [...new Set(brands.map(b => b.storeId.toString()))];
+
+    let affected = 0;
+
+    switch (action) {
+        case 'delete': {
+            const r = await Brand.deleteMany({ _id: { $in: ids } });
+            affected = r.deletedCount;
+            // Clean up slug registry for deleted brands
+            await SlugRegistry.deleteMany({ entityType: 'brand', entityId: { $in: ids } });
+            break;
+        }
+        case 'activate': {
+            const r = await Brand.updateMany({ _id: { $in: ids } }, { isActive: true });
+            affected = r.modifiedCount;
+            break;
+        }
+        case 'deactivate': {
+            const r = await Brand.updateMany({ _id: { $in: ids } }, { isActive: false });
+            affected = r.modifiedCount;
+            break;
+        }
+    }
+
+    // Invalidate caches for all affected stores
+    for (const storeId of storeIds) {
+        await invalidateBrandCache(storeId);
+    }
+
+    res.json({
+        message: `Bulk ${action} completed successfully`,
+        affected,
     });
 });

@@ -1,7 +1,7 @@
 @use '@/styles/breakpoints' as *;
 
 // =============================================================================
-// SECTION RENDERER STYLES
+// SECTION RENDERER STYLES - Modern & Premium
 // Centralized section layout handling for all page templates
 // =============================================================================
 
@@ -48,7 +48,7 @@
 }
 
 // =============================================================================
-// COLUMN LAYOUT
+// COLUMN LAYOUT - Enhanced with Modern Design
 // Uses width (not flex) for predictable column sizing
 // Mobile: 100% width, Tablet+: respects column width from layout builder
 // Gap is accounted for in column width calculation
@@ -73,12 +73,7 @@ $column-gap-mobile: 1rem;
     min-width: 0; // Prevent content overflow
 
     // Tablet and up: use the column width with gap compensation
-    // Formula: width = percentage - (gap * (numColumns - 1) / numColumns)
-    // CSS var --column-width is the percentage, --column-count is number of columns
     @include tablet {
-        // Calculate gap per column: total gaps / number of columns
-        // For 2 columns with 2rem gap: each column loses 1rem (2rem / 2)
-        // For 3 columns with 2rem gap: each column loses ~1.33rem (4rem / 3)
         width: calc(var(--column-width) - #{$column-gap} * (var(--column-count) - 1) / var(--column-count));
     }
 }
@@ -109,13 +104,16 @@ $column-gap-mobile: 1rem;
     }
 }
 
-// Hover effect for columns
+// =============================================================================
+// HOVER EFFECTS - Subtle
+// =============================================================================
+
 .columnHover {
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.06);
         z-index: 10;
         position: relative;
     }

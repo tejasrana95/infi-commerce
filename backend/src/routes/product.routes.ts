@@ -13,7 +13,8 @@ import {
     createProductValidation,
     updateProductValidation,
     cloneProduct,
-    getSearchFilters
+    getSearchFilters,
+    bulkAction,
 } from '../controllers/product.controller';
 import { authenticate, authorize, optionalAuth } from '../middleware/auth';
 import { validate } from '../middleware/validation';
@@ -30,6 +31,13 @@ router.get('/slug/:storeId/:slug', optionalAuth, getProductBySlug);
 router.post('/:id/check-shipping', checkShipping);
 
 // Protected routes (admin only)
+router.post(
+    '/bulk-action',
+    authenticate,
+    authorize('admin', 'super_admin'),
+    bulkAction
+);
+
 router.post(
     '/',
     authenticate,

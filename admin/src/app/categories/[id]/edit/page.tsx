@@ -51,7 +51,6 @@ export default function EditCategoryPage() {
 
             await api.put(`/categories/${id}`, cleanedData);
             showNotification('Category updated successfully', 'success');
-            router.push('/categories');
         } catch (err: any) {
             showNotification(err.response?.data?.message || 'Failed to update category', 'error');
         } finally {

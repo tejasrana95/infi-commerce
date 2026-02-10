@@ -3,13 +3,15 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Box, Tooltip, IconButton, Typography, useTheme, Chip, Avatar } from '@mui/material';
-import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridRenderCellParams, GridRowSelectionModel } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import BlockIcon from '@mui/icons-material/Block';
 import api from '@/lib/api';
 import { Product } from '@/types';
-import { PageHeader, EmptyState, SearchFilterBar } from '@/components/molecules';
+import { PageHeader, EmptyState, SearchFilterBar, BulkActionBar } from '@/components/molecules';
 import { LoadingSpinner, StatusChip, PermissionGuard, SeoScoreBadge } from '@/components/atoms';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
@@ -27,6 +29,12 @@ export default function ProductsPage() {
   const { user } = useAuth();
   const { confirm } = useConfirm();
   const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
+  const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>({ type: 'include', ids: new Set<string>() });
+
+  const getSelectedIds = (): string[] => {
+    if (selectionModel.type === 'include') return Array.from(selectionModel.ids) as string[];
+    return products.map(p => p._id).filter(id => !selectionModel.ids.has(id));
+  };
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -102,6 +110,21 @@ export default function ProductsPage() {
       fetchProducts(); // Refresh list to show new clone
     } catch (err: any) {
       showNotification(err.response?.data?.message || 'Failed to clone product', 'error');
+    }
+  };
+
+  const handleBulkAction = async (action: string) => {
+    const ids = getSelectedIds();
+    if (ids.length === 0) return;
+    const actionLabels: Record<string, string> = { delete: 'delete', activate: 'activate', deactivate: 'deactivate' };
+    if (!await confirm({ title: `Bulk ${actionLabels[action]}`, message: `Are you sure you want to ${actionLabels[action]} ${ids.length} product(s)?`, severity: action === 'delete' ? 'error' : 'warning' })) return;
+    try {
+      await api.post('/products/bulk-action', { ids, action });
+      showNotification(`Bulk ${action} completed`, 'success');
+      setSelectionModel({ type: 'include', ids: new Set<string>() });
+      fetchProducts();
+    } catch (err: any) {
+      showNotification(err.response?.data?.message || `Bulk ${action} failed`, 'error');
     }
   };
 
@@ -405,9 +428,20 @@ export default function ProductsPage() {
           initialState={{
             pagination: { paginationModel: { pageSize: 25 } },
           }}
-          disableRowSelectionOnClick
+          checkboxSelection
+          rowSelectionModel={selectionModel}
+          onRowSelectionModelChange={setSelectionModel}
           sx={dataGridStyles}
           rowHeight={80}
+        />
+        <BulkActionBar
+          selectedCount={getSelectedIds().length}
+          onClear={() => setSelectionModel({ type: 'include', ids: new Set<string>() })}
+          actions={[
+            { label: 'Delete', icon: <DeleteIcon />, color: 'error', onClick: () => handleBulkAction('delete') },
+            { label: 'Activate', icon: <CheckCircleIcon />, color: 'success', onClick: () => handleBulkAction('activate') },
+            { label: 'Deactivate', icon: <BlockIcon />, color: 'warning', onClick: () => handleBulkAction('deactivate') },
+          ]}
         />
       </Box>
     </Box>

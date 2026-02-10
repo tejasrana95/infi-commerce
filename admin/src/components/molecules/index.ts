@@ -11,3 +11,6 @@ export { default as ProductAutoComplete } from './ProductAutoComplete';
 export { default as CustomerAutoComplete } from './CustomerAutoComplete';
 export { default as GeoGroupAutocomplete } from './GeoGroupAutocomplete';
 export { default as ShippingAutoComplete } from './ShippingAutoComplete';
+export { default as BulkActionBar } from './BulkActionBar';
+export type { BulkAction } from './BulkActionBar';
+export { default as CategoryAutocomplete } from './CategoryAutocomplete';
