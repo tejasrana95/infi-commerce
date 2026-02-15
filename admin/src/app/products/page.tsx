@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Box, Tooltip, IconButton, Typography, useTheme, Chip, Avatar } from '@mui/material';
-import { DataGrid, GridColDef, GridRenderCellParams, GridRowSelectionModel } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridRenderCellParams, GridRowSelectionModel, GridPaginationModel } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
@@ -21,9 +21,11 @@ import { createDataGridStyles } from '@/utils/styles';
 
 export default function ProductsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const theme = useTheme();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
   const { showNotification } = useNotification();
   const { formatPrice } = useCurrency();
   const { user } = useAuth();
@@ -36,29 +38,76 @@ export default function ProductsPage() {
     return products.map(p => p._id).filter(id => !selectionModel.ids.has(id));
   };
 
-  // Filter states
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStore, setFilterStore] = useState<string>('');
-  const [filterCategory, setFilterCategory] = useState<string>('');
-  const [filterType, setFilterType] = useState<string>('');
-  const [filterStockStatus, setFilterStockStatus] = useState<string>('');
-  const [filterStatus, setFilterStatus] = useState<string>('');
+  // Get initial values from URL
+  const getInitialValue = (key: string, defaultValue: string = '') => {
+    return searchParams.get(key) || defaultValue;
+  };
+
+  // Filter states - initialized from URL
+  const [searchQuery, setSearchQuery] = useState(getInitialValue('search'));
+  const [filterStore, setFilterStore] = useState<string>(getInitialValue('storeId'));
+  const [filterCategory, setFilterCategory] = useState<string>(getInitialValue('categoryId'));
+  const [filterType, setFilterType] = useState<string>(getInitialValue('type'));
+  const [filterStockStatus, setFilterStockStatus] = useState<string>(getInitialValue('stockStatus'));
+  const [filterStatus, setFilterStatus] = useState<string>(getInitialValue('status'));
+  
+  // Pagination state - initialized from URL
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+    page: parseInt(getInitialValue('page', '0')),
+    pageSize: parseInt(getInitialValue('limit', '25')),
+  });
 
   // Debounced search query for API calls
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
+
+  // Update URL when filters or pagination change
+  const updateURL = (newParams: Record<string, string | number>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    
+    Object.entries(newParams).forEach(([key, value]) => {
+      if (value) {
+        params.set(key, String(value));
+      } else {
+        params.delete(key);
+      }
+    });
+
+    router.push(`?${params.toString()}`, { scroll: false });
+  };
 
   // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery);
+      updateURL({ search: searchQuery, page: '0' }); // Reset to page 0 on search
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Fetch products when filters change
+  // Update URL when filters change
+  useEffect(() => {
+    updateURL({
+      storeId: filterStore,
+      categoryId: filterCategory,
+      type: filterType,
+      stockStatus: filterStockStatus,
+      status: filterStatus,
+      page: '0', // Reset to page 0 when filters change
+    });
+  }, [filterStore, filterCategory, filterType, filterStockStatus, filterStatus]);
+
+  // Update URL when pagination changes
+  useEffect(() => {
+    updateURL({
+      page: String(paginationModel.page),
+      limit: String(paginationModel.pageSize),
+    });
+  }, [paginationModel]);
+
+  // Fetch products when URL params change
   useEffect(() => {
     fetchProducts();
-  }, [debouncedSearch, filterStore, filterCategory, filterType, filterStockStatus, filterStatus]);
+  }, [debouncedSearch, filterStore, filterCategory, filterType, filterStockStatus, filterStatus, paginationModel]);
 
   const fetchProducts = async () => {
     try {
@@ -76,16 +125,22 @@ export default function ProductsPage() {
       } else {
         params.append('isActive', 'all');
       }
+      
+      // Add pagination params
+      params.append('page', String(paginationModel.page + 1)); // API expects 1-based page
+      params.append('limit', String(paginationModel.pageSize));
 
       const queryString = params.toString();
-      const url = queryString ? `/products?${queryString}` : '/products';
+      const url = `/products?${queryString}`;
 
       const response = await api.get(url);
       setProducts(response.data.products || []);
+      setTotalCount(response.data.pagination?.total || 0);
     } catch (err) {
       console.error('Failed to fetch products');
       showNotification('Failed to load products', 'error');
       setProducts([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -135,6 +190,20 @@ export default function ProductsPage() {
   const handleStoreFilterChange = (value: string) => {
     setFilterStore(value);
     setFilterCategory(''); // Reset category when store changes
+    setPaginationModel({ ...paginationModel, page: 0 }); // Reset to first page
+  };
+
+  // Handle filter changes with pagination reset
+  const handleFilterChange = (filters: Record<string, string>) => {
+    setFilterType(filters.type as string || '');
+    setFilterStockStatus(filters.stockStatus as string || '');
+    setFilterStatus(filters.status as string || '');
+    setPaginationModel({ ...paginationModel, page: 0 }); // Reset to first page
+  };
+
+  const handleCategoryFilterChange = (value: string) => {
+    setFilterCategory(value);
+    setPaginationModel({ ...paginationModel, page: 0 }); // Reset to first page
   };
 
   // Note: We no longer filter client-side since filtering is done server-side
@@ -388,18 +457,14 @@ export default function ProductsPage() {
           stockStatus: filterStockStatus,
           status: filterStatus,
         }}
-        onFilterChange={(filters) => {
-          setFilterType(filters.type as string || '');
-          setFilterStockStatus(filters.stockStatus as string || '');
-          setFilterStatus(filters.status as string || '');
-        }}
+        onFilterChange={handleFilterChange}
         showStoreFilter={user?.role !== 'store_admin'}
         storeFilterValue={filterStore}
         onStoreFilterChange={handleStoreFilterChange}
         showCategoryFilter
         categoryFilterValue={filterCategory}
         categoryFilterStoreId={filterStore}
-        onCategoryFilterChange={setFilterCategory}
+        onCategoryFilterChange={handleCategoryFilterChange}
       />
 
 
@@ -425,9 +490,10 @@ export default function ProductsPage() {
           columns={columns}
           getRowId={(row) => row._id}
           pageSizeOptions={[10, 25, 50, 100]}
-          initialState={{
-            pagination: { paginationModel: { pageSize: 25 } },
-          }}
+          paginationMode="server"
+          rowCount={totalCount}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
           checkboxSelection
           rowSelectionModel={selectionModel}
           onRowSelectionModelChange={setSelectionModel}

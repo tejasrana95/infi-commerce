@@ -11,8 +11,8 @@ export const upload = multer({
     storage,
     fileFilter: fileValidationMiddleware as multer.Options['fileFilter'],
     limits: {
-        fileSize: 50 * 1024 * 1024, // 50MB max
-        files: 10, // Max 10 files at once
+        fileSize: 200 * 1024 * 1024, // 50MB max
+        files: 100, // Max 10 files at once
     },
 });
 

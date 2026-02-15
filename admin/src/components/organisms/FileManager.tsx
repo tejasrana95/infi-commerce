@@ -81,6 +81,8 @@ export default function FileManager({
     const [contextMenu, setContextMenu] = useState<{ mouseX: number; mouseY: number; file: FileItem } | null>(null);
     const [uploading, setUploading] = useState(false);
     const [syncing, setSyncing] = useState(false);
+    const [pathInput, setPathInput] = useState(getInitialFolder());
+    const [clickTimer, setClickTimer] = useState<NodeJS.Timeout | null>(null);
     const { showNotification } = useNotification();
 
     // Dialog states
@@ -126,6 +128,7 @@ export default function FileManager({
     // Handle folder navigation
     const navigateToFolder = (folderPath: string) => {
         setCurrentFolder(folderPath);
+        setPathInput(folderPath);
         setSelectedFiles([]);
         // Save to localStorage
         if (typeof window !== 'undefined') {
@@ -133,32 +136,83 @@ export default function FileManager({
         }
     };
 
+    // Handle path input change
+    const handlePathInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setPathInput(e.target.value);
+    };
+
+    // Handle path input submit (Enter key)
+    const handlePathInputSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            let path = pathInput.trim();
+            // Ensure path starts with /
+            if (!path.startsWith('/')) {
+                path = '/' + path;
+            }
+            // Remove trailing slash unless it's root
+            if (path !== '/' && path.endsWith('/')) {
+                path = path.slice(0, -1);
+            }
+            navigateToFolder(path);
+        }
+    };
+
     // Handle file selection
     const handleFileClick = (file: FileItem) => {
+        // Clear any existing timer
+        if (clickTimer) {
+            clearTimeout(clickTimer);
+        }
+
+        // Delay single-click action to allow double-click to cancel it
+        const timer = setTimeout(() => {
+            if (file.type === 'folder') {
+                navigateToFolder(file.path);
+            } else {
+                if (multiple) {
+                    setSelectedFiles(prev =>
+                        prev.find(f => f._id === file._id)
+                            ? prev.filter(f => f._id !== file._id)
+                            : [...prev, file]
+                    );
+                } else {
+                    setSelectedFiles([file]);
+                }
+            }
+        }, 200);
+
+        setClickTimer(timer);
+    };
+
+    // Handle double-click on file
+    const handleFileDoubleClick = (file: FileItem) => {
+        // Cancel the single-click timer
+        if (clickTimer) {
+            clearTimeout(clickTimer);
+            setClickTimer(null);
+        }
+
         if (file.type === 'folder') {
             navigateToFolder(file.path);
         } else {
-            if (multiple) {
-                setSelectedFiles(prev =>
-                    prev.find(f => f._id === file._id)
-                        ? prev.filter(f => f._id !== file._id)
-                        : [...prev, file]
-                );
-            } else {
-                setSelectedFiles([file]);
+            // Immediately select the file and trigger onSelect callback
+            if (onSelect) {
+                onSelect([file]);
             }
         }
     };
 
-    // Handle file upload
-    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const uploadFiles = event.target.files;
-        if (!uploadFiles || uploadFiles.length === 0) return;
+    // State for drag and drop
+    const [isDragging, setIsDragging] = useState(false);
+
+    // Reusable upload logic
+    const processUpload = async (files: FileList | File[]) => {
+        if (!files || files.length === 0) return;
 
         setUploading(true);
         const formData = new FormData();
 
-        Array.from(uploadFiles).forEach(file => {
+        Array.from(files).forEach(file => {
             formData.append('files', file);
         });
         formData.append('folder', currentFolder);
@@ -173,7 +227,37 @@ export default function FileManager({
             showNotification(error.response?.data?.message || 'Upload failed', 'error');
         } finally {
             setUploading(false);
-            event.target.value = '';
+        }
+    };
+
+    // Handle file upload input
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.files) {
+            await processUpload(event.target.files);
+        }
+        event.target.value = '';
+    };
+
+    // Drag and drop handlers
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+    };
+
+    const handleDrop = async (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            await processUpload(e.dataTransfer.files);
         }
     };
 
@@ -341,7 +425,46 @@ export default function FileManager({
     };
 
     return (
-        <Box>
+        <Box
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            sx={{
+                position: 'relative',
+                minHeight: 400,
+                outline: isDragging ? '2px dashed' : 'none',
+                outlineColor: 'primary.main',
+                outlineOffset: -2,
+                bgcolor: isDragging ? 'action.hover' : 'transparent',
+                borderRadius: 1,
+                transition: 'all 0.2s',
+            }}
+        >
+            {isDragging && (
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        bgcolor: 'rgba(25, 118, 210, 0.08)',
+                        zIndex: 10,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        pointerEvents: 'none',
+                    }}
+                >
+                    <Box textAlign="center">
+                        <CloudUpload sx={{ fontSize: 60, color: 'primary.main', opacity: 0.5, mb: 1 }} />
+                        <Typography variant="h5" color="primary">
+                            Drop files here to upload
+                        </Typography>
+                    </Box>
+                </Box>
+            )}
+
             {/* Toolbar */}
             <Box display="flex" gap={2} mb={2} flexWrap="wrap" alignItems="center">
                 <Button
@@ -411,6 +534,24 @@ export default function FileManager({
                 </Box>
             </Box>
 
+            {/* Path Input Field */}
+            <TextField
+                size="small"
+                fullWidth
+                placeholder="Enter path (e.g., catalog/murtiya-products/Iskcon-Radha-Krishna/15-Inch)"
+                value={pathInput}
+                onChange={handlePathInputChange}
+                onKeyDown={handlePathInputSubmit}
+                sx={{ mb: 2 }}
+                InputProps={{
+                    startAdornment: (
+                        <Typography variant="body2" sx={{ mr: 1, color: 'text.secondary' }}>
+                            /
+                        </Typography>
+                    ),
+                }}
+            />
+
             {/* Breadcrumbs */}
             <Breadcrumbs sx={{ mb: 2 }}>
                 {getBreadcrumbs().map((crumb, index) => (
@@ -460,6 +601,7 @@ export default function FileManager({
 
                                 }}
                                 onClick={() => handleFileClick(file)}
+                                onDoubleClick={() => handleFileDoubleClick(file)}
                                 onContextMenu={(e) => handleContextMenu(e, file)}
                             >
                                 <Box
@@ -475,6 +617,7 @@ export default function FileManager({
                                             component="img"
                                             src={file.url}
                                             alt={file.originalName}
+                                            loading="lazy"
                                             sx={{
                                                 width: '100%',
                                                 height: '100%',
@@ -530,6 +673,7 @@ export default function FileManager({
                                 bgcolor: selectedFiles.find(f => f._id === file._id) ? 'primary.50' : 'transparent',
                             }}
                             onClick={() => handleFileClick(file)}
+                            onDoubleClick={() => handleFileDoubleClick(file)}
                             onContextMenu={(e) => handleContextMenu(e, file)}
                         >
                             {getFileIcon(file)}
@@ -560,7 +704,7 @@ export default function FileManager({
                         No files found
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                        Upload files or create a folder to get started
+                        Upload files, or drag and drop to get started
                     </Typography>
                 </Box>
             )}
@@ -637,7 +781,7 @@ export default function FileManager({
                         fullWidth
                         variant="outlined"
                         value={promptValue}
-                        onChange={(e) => setPromptValue(e.target.value)}
+                        onChange={(e) => setPromptValue(e.target.value.replace(/\s/g, '-'))}
                         onKeyPress={(e) => {
                             if (e.key === 'Enter') {
                                 promptDialog.onConfirm(promptValue);

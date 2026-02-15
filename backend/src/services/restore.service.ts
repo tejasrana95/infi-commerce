@@ -184,7 +184,7 @@ class RestoreService {
 
             // Handle boolean fields
             const booleanFields = [
-                'manageStock', 'downloadable', 'isActive', 'isFeatured', 'isOnSale'
+                'manageStock', 'downloadable', 'isActive', 'isFeatured', 'isOnSale', 'barcodeGenerated'
             ];
             booleanFields.forEach(field => {
                 if (sanitized[field] !== undefined) {
@@ -195,6 +195,11 @@ class RestoreService {
             // Handle nested boolean fields in geoLimit
             if (sanitized.geoLimit?.enabled !== undefined) {
                 sanitized.geoLimit.enabled = parseBoolean(sanitized.geoLimit.enabled);
+            }
+
+            // Handle nested boolean fields in returnSettings
+            if (sanitized.returnSettings?.isReturnable !== undefined) {
+                sanitized.returnSettings.isReturnable = parseBoolean(sanitized.returnSettings.isReturnable);
             }
 
 
@@ -208,7 +213,7 @@ class RestoreService {
 
             // Handle complex array fields (arrays of objects)
             const complexArrayFields = [
-                'specifications', 'productOptions', 'attributes',
+                'specifications', 'productOptions',
                 'variants', 'downloadFiles', 'videos'
             ];
             complexArrayFields.forEach(field => {
@@ -228,8 +233,55 @@ class RestoreService {
                             delete sanitized[field];
                         }
                     }
+                    
+                    // Clean up invalid _id fields from array items (embedded documents)
+                    if (Array.isArray(sanitized[field])) {
+                        sanitized[field] = sanitized[field].map((item: any) => {
+                            if (item && typeof item === 'object' && '_id' in item) {
+                                const { _id, ...rest } = item;
+                                return rest;
+                            }
+                            return item;
+                        });
+                    }
                 }
             });
+
+            // Handle attributes field specially - must be array of objects with attributeId, values, isVariation
+            if (sanitized.attributes) {
+                if (typeof sanitized.attributes === 'string') {
+                    // Check if it's a JSON array string with proper structure
+                    if (sanitized.attributes.startsWith('[') || sanitized.attributes.startsWith('{')) {
+                        try {
+                            const parsed = JSON.parse(sanitized.attributes);
+                            // Validate it's an array of objects with required structure
+                            if (Array.isArray(parsed) && parsed.every(item => 
+                                item && typeof item === 'object' && 'attributeId' in item
+                            )) {
+                                sanitized.attributes = parsed;
+                            } else {
+                                // Invalid structure - remove it
+                                delete sanitized.attributes;
+                            }
+                        } catch (e) {
+                            // If parsing fails, remove the field
+                            delete sanitized.attributes;
+                        }
+                    } else {
+                        // Plain string (ObjectId) - attributes must be array of objects, not plain strings
+                        // Remove it to avoid validation error
+                        delete sanitized.attributes;
+                    }
+                } else if (Array.isArray(sanitized.attributes)) {
+                    // Validate array items have proper structure
+                    const isValid = sanitized.attributes.every(item => 
+                        item && typeof item === 'object' && 'attributeId' in item
+                    );
+                    if (!isValid) {
+                        delete sanitized.attributes;
+                    }
+                }
+            }
 
             try {
                 if (sanitized._id && validateObjectId(sanitized._id)) {

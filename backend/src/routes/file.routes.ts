@@ -34,7 +34,7 @@ router.post(
     '/upload',
     authenticate,
     checkDemoMode,
-    upload.array('files', 10) as unknown as RequestHandler,
+    upload.array('files', 100) as unknown as RequestHandler,
     uploadValidation,
     uploadFiles
 );

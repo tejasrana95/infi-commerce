@@ -356,18 +356,18 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
         if (initialData) {
             setValue('name', initialData.name || '');
             setValue('slug', initialData.slug || '');
-            setValue('storeId', typeof initialData.storeId === 'object' ? initialData.storeId._id : initialData.storeId || '');
+            setValue('storeId', (initialData.storeId && typeof initialData.storeId === 'object') ? initialData.storeId._id : initialData.storeId || '');
             setValue('type', initialData.type || 'simple');
             setValue('sku', initialData.sku || '');
             setValue('hsnCode', initialData.hsnCode || '');
             setValue('description', initialData.description || '');
             setValue('shortDescription', initialData.shortDescription || '');
             // Handle brand - could be object or string
-            const brandId = typeof initialData.brand === 'object'
-                ? initialData.brand?._id
+            const brandId = (initialData.brand && typeof initialData.brand === 'object')
+                ? initialData.brand._id
                 : initialData.brand;
             setValue('brand', brandId || '');
-            setValue('categoryIds', initialData.categoryIds?.map((c: any) => typeof c === 'object' ? c._id : c) || []);
+            setValue('categoryIds', initialData.categoryIds?.map((c: any) => (c && typeof c === 'object') ? c._id : c) || []);
             setValue('tags', initialData.tags || []);
             setValue('channels', initialData.channels || []);
             setValue('price', initialData.price || 0);
@@ -383,8 +383,8 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
             }
             setValue('costPrice', initialData.costPrice);
             // Handle taxClassId - could be object or string
-            const taxId = typeof initialData.taxClassId === 'object'
-                ? initialData.taxClassId?._id
+            const taxId = (initialData.taxClassId && typeof initialData.taxClassId === 'object')
+                ? initialData.taxClassId._id
                 : initialData.taxClassId;
             setValue('taxClassId', taxId || '');
             setValue('stock', initialData.stock || 0);
@@ -399,20 +399,23 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
             setValue('videos', initialData.videos || []);
             setValue('productOptions', initialData.productOptions?.map((opt: any) => ({
                 ...opt,
-                optionId: typeof opt.optionId === 'object' ? opt.optionId._id : opt.optionId,
+                optionId: (opt.optionId && typeof opt.optionId === 'object') ? opt.optionId._id : opt.optionId,
                 // Flatten values if they are objects (from new API structure)
                 values: Array.isArray(opt.values) && typeof opt.values[0] === 'object'
                     ? opt.values.map((v: any) => v.value)
                     : opt.values
-            })) || []);
+            }))
+                .filter((opt: any) => opt.optionId) || []);
             setValue('attributes', initialData.attributes?.map((attr: any) => ({
                 ...attr,
-                attributeId: typeof attr.attributeId === 'object' ? attr.attributeId._id : attr.attributeId
-            })) || []);
+                attributeId: (attr.attributeId && typeof attr.attributeId === 'object') ? attr.attributeId._id : attr.attributeId
+            }))
+                .filter((attr: any) => attr.attributeId) || []);
             setValue('specifications', initialData.specifications?.map((spec: any) => ({
                 ...spec,
-                attributeId: typeof spec.attributeId === 'object' ? spec.attributeId._id : spec.attributeId
-            })) || []);
+                attributeId: (spec.attributeId && typeof spec.attributeId === 'object') ? spec.attributeId._id : spec.attributeId
+            }))
+                .filter((spec: any) => spec.attributeId) || []);
             setValue('variants', initialData.variants || []);
             setValue('downloadFiles', initialData.downloadFiles || []);
             setValue('downloadLimit', initialData.downloadLimit);

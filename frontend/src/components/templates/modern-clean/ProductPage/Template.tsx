@@ -362,20 +362,60 @@ export default function ModernCleanProductPageTemplate({
         <div className={styles.productInfo}>
             {/* Breadcrumbs */}
             <nav className={styles.breadcrumbs}>
-                {breadcrumbs.map((crumb, index) => (
-                    <React.Fragment key={index}>
-                        {index > 0 && <span className={styles.separator}>/</span>}
-                        {crumb.href ? (
-                            <Link
-                                href={crumb.href}
-                                className="infi-track"
-                                data-ga-category="navigation"
-                            >{crumb.label}</Link>
-                        ) : (
-                            <span>{crumb.label}</span>
-                        )}
-                    </React.Fragment>
-                ))}
+                  {(() => {
+                const breadcrumbs: Array<{ label: string; href?: string }> = [];
+                breadcrumbs.push({ label: 'Home', href: '/' });
+
+                if (product.categoryBreadcrumbs && product.categoryBreadcrumbs.length > 0) {
+                    product.categoryBreadcrumbs.forEach((c: any) => {
+                        if (c && c.label && c.href) breadcrumbs.push({ label: c.label, href: c.href });
+                    });
+                } else if (product.categories && product.categories.length > 0) {
+                    const c = product.categories[0];
+                    if (c && c.slug && c.title) breadcrumbs.push({ label: c.title, href: `/${c.slug}` });
+                }
+
+                breadcrumbs.push({ label: product.name });
+
+                const truncate = (s: string, n = 60) => (s && s.length > n) ? s.substring(0, n - 1).trim() + '\u2026' : s;
+
+                const itemStyle = {
+                    display: 'inline-block',
+                    maxWidth: '360px',
+                    verticalAlign: 'middle',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                };
+
+                return (
+                    <nav aria-label="Breadcrumb">
+                        <ol itemScope itemType="https://schema.org/BreadcrumbList" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                            {breadcrumbs.map((bc, idx) => (
+                                <li
+                                    key={idx}
+                                    itemProp="itemListElement"
+                                    itemScope
+                                    itemType="https://schema.org/ListItem"
+                                    style={{ display: 'inline' }}
+                                >
+                                    {bc.href ? (
+                                        <Link href={bc.href} itemProp="item">
+                                            <span itemProp="name" style={itemStyle}>{truncate(bc.label)}</span>
+                                        </Link>
+                                    ) : (
+                                        <span aria-current="page" itemProp="name" style={itemStyle}>{truncate(bc.label)}</span>
+                                    )}
+                                    <meta itemProp="position" content={(idx + 1).toString()} />
+                                    {idx < breadcrumbs.length - 1 && (
+                                        <span aria-hidden="true" style={{ margin: '0 8px' }}> / </span>
+                                    )}
+                                </li>
+                            ))}
+                        </ol>
+                    </nav>
+                );
+            })()}
             </nav>
 
             {/* Title & Brand */}
@@ -634,7 +674,7 @@ export default function ModernCleanProductPageTemplate({
         if (!config.specifications?.show || !product.specifications || product.specifications.length === 0) {
             return null;
         }
-
+        console.log(product);
         return (
             <div className={styles.specificationsSection}>
                 <table className={styles.specTable}>
@@ -642,7 +682,11 @@ export default function ModernCleanProductPageTemplate({
                         {product.specifications.map((spec, index) => (
                             <tr key={index}>
                                 {/* Assuming spec object shape needs validation or casting if using strict models */}
-                                <th>{spec.attributeId ? 'Attribute' : spec.name}</th>
+                                <th>
+                                    {(spec.attributeId && typeof spec.attributeId === 'object' && 'name' in spec.attributeId)
+                                        ? (spec.attributeId as any).name
+                                        : (spec.name || 'Attribute')}
+                                </th>
                                 <td>{String(spec.value)}</td>
                             </tr>
                         ))}

@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Box, Paper, Typography, FormControl, InputLabel, Select, MenuItem, IconButton, TextField, Chip, Grid, Checkbox, FormControlLabel } from '@mui/material';
+import { useState, useEffect, useMemo } from 'react';
+import { Box, Paper, Typography, FormControl, InputLabel, Select, MenuItem, IconButton, TextField, Chip, Grid, Checkbox, FormControlLabel, Autocomplete, CircularProgress } from '@mui/material';
 import { Controller } from 'react-hook-form';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import api from '@/lib/api';
+import debounce from 'lodash/debounce';
 
 interface SpecificationManagerProps {
     control: any;
@@ -25,44 +26,79 @@ export default function SpecificationManager({ control, watchStoreId, watchCateg
                 name="specifications"
                 control={control}
                 render={({ field }) => {
-                    const [selectedAttrId, setSelectedAttrId] = useState<string>('');
+                    const [selectedAttr, setSelectedAttr] = useState<any | null>(null);
                     const [attributes, setAttributes] = useState<any[]>([]);
                     const [loadingAttrs, setLoadingAttrs] = useState(false);
+                    const [inputValue, setInputValue] = useState('');
+                    const [options, setOptions] = useState<any[]>([]);
                     const productSpecs = field.value || [];
 
-                    // Fetch attributes when store changes
-                    useEffect(() => {
-                        const fetchAttributes = async () => {
-                            if (watchStoreId) {
+                    // Fetch attributes based on search
+                    const fetchAttributes = useMemo(
+                        () =>
+                            debounce(async (input: string, storeId: string) => {
+                                if (!storeId) return;
                                 setLoadingAttrs(true);
                                 try {
-                                    const response = await api.get('/attributes', {
-                                        params: { storeId: watchStoreId }
-                                    });
-                                    setAttributes(response.data.data || response.data.attributes || []);
+                                    const params: any = { storeId, limit: 20 };
+                                    if (input) {
+                                        params.search = input;
+                                    }
+                                    const response = await api.get('/attributes', { params });
+                                    setOptions(response.data.data || response.data.attributes || []);
                                 } catch (err) {
                                     console.error('Failed to fetch attributes');
                                 } finally {
                                     setLoadingAttrs(false);
                                 }
+                            }, 500),
+                        []
+                    );
+
+                    useEffect(() => {
+                        fetchAttributes('', watchStoreId);
+                    }, [watchStoreId, fetchAttributes]);
+
+                    useEffect(() => {
+                        if (inputValue !== '') {
+                            fetchAttributes(inputValue, watchStoreId);
+                        }
+                    }, [inputValue, watchStoreId, fetchAttributes]);
+
+                    // Initial fetch for rendering existing specs correctly
+                    useEffect(() => {
+                        const fetchAllAttributes = async () => {
+                            if (watchStoreId) {
+                                try {
+                                    // Fetch enough attributes or specifically needed ones if possible
+                                    // For now, we'll rely on the specification data itself containing necessary info if populated
+                                    // or fetch a base set.
+                                    // Ideally, we might want to fetch specifics if we were only displaying IDs,
+                                    // but we likely have the full object or need to fetch it.
+                                    // For this implementation, we focus on the *search* for adding new ones.
+                                    // To display existing ones correctly, we might need to fetch them if they are just IDs.
+                                    const response = await api.get('/attributes', { params: { storeId: watchStoreId, limit: 100 } });
+                                    setAttributes(response.data.data || response.data.attributes || []);
+                                } catch (err) {
+                                    console.error('Failed to fetch initial attributes');
+                                }
                             }
                         };
-                        fetchAttributes();
+                        fetchAllAttributes();
                     }, [watchStoreId]);
 
+
                     const handleAddSpec = () => {
-                        if (selectedAttrId && !productSpecs.find((s: any) => s.attributeId === selectedAttrId)) {
-                            const attr = attributes.find(a => a._id === selectedAttrId);
-                            if (attr) {
-                                field.onChange([
-                                    ...productSpecs,
-                                    {
-                                        attributeId: selectedAttrId,
-                                        value: attr.type === 'checkbox' ? false : '',
-                                    }
-                                ]);
-                                setSelectedAttrId('');
-                            }
+                        if (selectedAttr && !productSpecs.find((s: any) => s.attributeId === selectedAttr._id)) {
+                            field.onChange([
+                                ...productSpecs,
+                                {
+                                    attributeId: selectedAttr._id,
+                                    value: selectedAttr.type === 'checkbox' ? false : '',
+                                }
+                            ]);
+                            setSelectedAttr(null);
+                            setInputValue('');
                         }
                     };
 
@@ -80,12 +116,14 @@ export default function SpecificationManager({ control, watchStoreId, watchCateg
                         if (typeof attrId === 'object' && attrId?.name) {
                             return attrId;
                         }
-                        return attributes.find(a => a._id === attrId) || null;
+                        // Check in options search results or initial full list
+                        return options.find(a => a._id === attrId) || attributes.find(a => a._id === attrId) || null;
                     };
 
                     const renderValueInput = (spec: any) => {
                         const attr = getAttribute(spec.attributeId);
-                        if (!attr) return null;
+                        // Fallback display if attribute details not found yet
+                        if (!attr) return <Typography variant="body2" color="error">Attribute details not found</Typography>;
 
                         const attrId = typeof spec.attributeId === 'object' ? spec.attributeId._id : spec.attributeId;
 
@@ -173,29 +211,55 @@ export default function SpecificationManager({ control, watchStoreId, watchCateg
                     return (
                         <Box>
                             {/* Add Specification */}
-                            <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
-                                <FormControl fullWidth>
-                                    <InputLabel>Select Specification</InputLabel>
-                                    <Select
-                                        value={selectedAttrId}
-                                        onChange={(e) => setSelectedAttrId(e.target.value)}
-                                        label="Select Specification"
-                                        disabled={loadingAttrs || !watchStoreId}
-                                    >
-                                        {attributes
-                                            .filter(attr => !productSpecs.find((ps: any) => ps.attributeId === attr._id))
-                                            .map(attr => (
-                                                <MenuItem key={attr._id} value={attr._id}>
-                                                    {attr.name} ({attr.type})
-                                                </MenuItem>
-                                            ))
-                                        }
-                                    </Select>
-                                </FormControl>
+                            <Box sx={{ display: 'flex', gap: 1, mb: 3, alignItems: 'center' }}>
+                                <Autocomplete
+                                    id="specification-select"
+                                    sx={{ flexGrow: 1 }}
+                                    options={options}
+                                    autoHighlight
+                                    getOptionLabel={(option) => option.name || ''}
+                                    isOptionEqualToValue={(option, value) => option._id === value._id}
+                                    value={selectedAttr}
+                                    onChange={(event: any, newValue: any | null) => {
+                                        setSelectedAttr(newValue);
+                                    }}
+                                    onInputChange={(event, newInputValue) => {
+                                        setInputValue(newInputValue);
+                                    }}
+                                    loading={loadingAttrs}
+                                    disabled={!watchStoreId}
+                                    renderInput={(params) => (
+                                        <TextField
+                                            {...params}
+                                            label="Search Specifications"
+                                            fullWidth
+                                            InputProps={{
+                                                ...params.InputProps,
+                                                endAdornment: (
+                                                    <>
+                                                        {loadingAttrs ? <CircularProgress color="inherit" size={20} /> : null}
+                                                        {params.InputProps.endAdornment}
+                                                    </>
+                                                ),
+                                            }}
+                                        />
+                                    )}
+                                    renderOption={(props, option) => (
+                                        <Box component="li" {...props} key={option._id}>
+                                            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                                <Typography variant="body1">{option.name}</Typography>
+                                                <Typography variant="caption" color="text.secondary">
+                                                    Type: {option.type}
+                                                </Typography>
+                                            </Box>
+                                        </Box>
+                                    )}
+                                />
                                 <IconButton
                                     onClick={handleAddSpec}
                                     color="primary"
-                                    disabled={!selectedAttrId}
+                                    disabled={!selectedAttr}
+                                    sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}
                                 >
                                     <AddIcon />
                                 </IconButton>
@@ -204,23 +268,25 @@ export default function SpecificationManager({ control, watchStoreId, watchCateg
                             {/* Specifications List */}
                             {productSpecs.length === 0 ? (
                                 <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ py: 3 }}>
-                                    No specifications added yet. Select a specification attribute above to get started.
+                                    No specifications added yet. Search and select a specification above to get started.
                                 </Typography>
                             ) : (
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                     {productSpecs.map((spec: any) => {
-                                        const attr = getAttribute(spec.attributeId);
                                         const attrId = typeof spec.attributeId === 'object' ? spec.attributeId._id : spec.attributeId;
+                                        if (!attrId) return null; // Skip invalid entries
+
+                                        const attr = getAttribute(spec.attributeId);
 
                                         return (
                                             <Paper key={attrId} sx={{ p: 2 }} variant="outlined">
                                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
                                                     <Box sx={{ flex: '0 0 150px' }}>
                                                         <Typography variant="subtitle2" fontWeight={600}>
-                                                            {attr?.name || 'Unknown'}
+                                                            {attr?.name || 'Loading...'}
                                                         </Typography>
                                                         <Typography variant="caption" color="text.secondary">
-                                                            {attr?.type}
+                                                            {attr?.type || ''}
                                                         </Typography>
                                                     </Box>
                                                     <Box sx={{ flex: 1 }}>

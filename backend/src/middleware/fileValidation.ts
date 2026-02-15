@@ -13,9 +13,10 @@ const ALL_ALLOWED_TYPES = [
 ];
 
 // File size limits (in bytes)
-const MAX_IMAGE_SIZE = 20 * 1024 * 1024; // 20MB
-const MAX_DOCUMENT_SIZE = 20 * 1024 * 1024; // 20MB
-const MAX_ARCHIVE_SIZE = 50 * 1024 * 1024; // 50MB
+// File size limits (in bytes)
+const MAX_IMAGE_SIZE = 200 * 1024 * 1024; // 200MB
+const MAX_DOCUMENT_SIZE = 200 * 1024 * 1024; // 200MB
+const MAX_ARCHIVE_SIZE = 200 * 1024 * 1024; // 200MB
 
 export const validateFileType = (file: Express.Multer.File): boolean => {
     return ALL_ALLOWED_TYPES.includes(file.mimetype);
@@ -41,8 +42,8 @@ export const validateFileSize = (file: Express.Multer.File): boolean => {
 export const sanitizeFilename = (filename: string): string => {
     // Remove special characters and spaces
     return filename
-        .replace(/[^a-zA-Z0-9.-]/g, '_')
-        .replace(/_{2,}/g, '_')
+        .replace(/[^a-zA-Z0-9.-]/g, '-')
+        .replace(/-{2,}/g, '-')
         .toLowerCase();
 };
 

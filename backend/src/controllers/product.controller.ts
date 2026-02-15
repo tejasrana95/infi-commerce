@@ -353,7 +353,9 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
     } else if (req.query.isActive === 'false') {
         filter.isActive = false;
     }
-
+    if (req.query.type) {
+        filter.type = req.query.type;
+    }
     // Support comma-separated IDs filter
     if (req.query.ids) {
         const ids = (req.query.ids as string).split(',').map(id => id.trim()).filter(id => id);
@@ -712,6 +714,11 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
             break;
     }
 
+    // Always add _id as a tiebreaker for stable pagination.
+    // Without this, documents with identical sort-field values can shift
+    // between pages, causing some to be skipped or duplicated.
+    sort._id = -1;
+
     // Get products with pagination
     const [products, total] = await Promise.all([
         Product.find(filter)
@@ -847,6 +854,7 @@ export const getProductById = asyncHandler(async (req: AuthRequest, res: Respons
         .populate('storeId', 'name slug domain timezone')
         .populate('categoryIds', 'title slug path')
         .populate('attributes.attributeId', 'name slug type values')
+        .populate('specifications.attributeId', 'name slug type')
         .populate('productOptions.optionId', 'name slug type values')
         .populate('taxClassId', 'name rate isSplit subTaxes')
         .populate('brand', 'name slug logo')
@@ -927,6 +935,7 @@ export const getProductBySlug = asyncHandler(async (req: AuthRequest, res: Respo
         .populate('storeId', 'name slug domain timezone')
         .populate('categoryIds', 'title slug path')
         .populate('attributes.attributeId', 'name slug type values')
+        .populate('specifications.attributeId', 'name slug type')
         .populate('productOptions.optionId', 'name slug type values')
         .populate('taxClassId', 'name rate isSplit subTaxes')
         .populate('brand', 'name slug logo')

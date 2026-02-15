@@ -10,6 +10,7 @@
         "lint": "eslint src --ext .ts",
         "seed": "ts-node scripts/seed.ts",
         "seed:geo": "ts-node scripts/seed-geo.ts",
+        "import:opencart": "ts-node src/scripts/import-opencart.ts",
         "test": "jest"
     },
     "keywords": [
