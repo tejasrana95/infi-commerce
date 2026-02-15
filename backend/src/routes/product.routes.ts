@@ -15,6 +15,7 @@ import {
     cloneProduct,
     getSearchFilters,
     bulkAction,
+    bulkOperation,
 } from '../controllers/product.controller';
 import { authenticate, authorize, optionalAuth } from '../middleware/auth';
 import { validate } from '../middleware/validation';
@@ -36,6 +37,13 @@ router.post(
     authenticate,
     authorize('admin', 'super_admin'),
     bulkAction
+);
+
+router.post(
+    '/bulk-operation',
+    authenticate,
+    authorize('admin', 'super_admin'),
+    bulkOperation
 );
 
 router.post(

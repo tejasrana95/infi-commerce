@@ -697,6 +697,11 @@ export const calculateSmartShipping = asyncHandler(async (req: AuthRequest, res:
                 break;
         }
 
+        // Apply minimum charge if specified and cost is below it
+        if (rule.minCharge !== undefined && rule.minCharge > 0 && cost < rule.minCharge) {
+            cost = rule.minCharge;
+        }
+
         return parseFloat(cost.toFixed(2));
     };
 

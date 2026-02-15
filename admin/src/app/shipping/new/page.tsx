@@ -44,6 +44,7 @@ export default function NewShippingRulePage() {
     geoGroupId: '',
     rateType: 'flat' as 'flat' | 'per_kg' | 'free' | 'percentage',
     rate: 0,
+    minCharge: '',
     minWeight: '',
     maxWeight: '',
     minOrderValue: '',
@@ -92,6 +93,7 @@ export default function NewShippingRulePage() {
         ...formData,
         geoGroupId: formData.geoGroupId || undefined,
         categoryIds: selectedCategories.length > 0 ? selectedCategories.map(c => c._id) : undefined,
+        minCharge: formData.minCharge ? parseFloat(formData.minCharge) : undefined,
         minWeight: formData.minWeight ? parseFloat(formData.minWeight) : undefined,
         maxWeight: formData.maxWeight ? parseFloat(formData.maxWeight) : undefined,
         minOrderValue: formData.minOrderValue ? parseFloat(formData.minOrderValue) : undefined,
@@ -243,6 +245,17 @@ export default function NewShippingRulePage() {
                 value={formData.rate}
                 onChange={handleChange('rate')}
                 disabled={formData.rateType === 'free'}
+                inputProps={{ min: 0, step: 0.01 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Minimum Charge (Optional)"
+                value={formData.minCharge}
+                onChange={handleChange('minCharge')}
+                helperText="If calculated cost is below this, minimum charge is applied"
                 inputProps={{ min: 0, step: 0.01 }}
               />
             </Grid>

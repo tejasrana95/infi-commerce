@@ -2,13 +2,14 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Box, Tooltip, IconButton, Typography, useTheme, Chip, Avatar } from '@mui/material';
+import { Box, Tooltip, IconButton, Typography, useTheme, Chip, Avatar, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, FormControl, InputLabel, Select, MenuItem, Grid, Alert } from '@mui/material';
 import { DataGrid, GridColDef, GridRenderCellParams, GridRowSelectionModel, GridPaginationModel } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import BlockIcon from '@mui/icons-material/Block';
+import TuneIcon from '@mui/icons-material/Tune';
 import api from '@/lib/api';
 import { Product } from '@/types';
 import { PageHeader, EmptyState, SearchFilterBar, BulkActionBar } from '@/components/molecules';
@@ -32,6 +33,15 @@ export default function ProductsPage() {
   const { confirm } = useConfirm();
   const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
   const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>({ type: 'include', ids: new Set<string>() });
+  const [bulkOpModalOpen, setBulkOpModalOpen] = useState(false);
+  const [bulkOpLoading, setBulkOpLoading] = useState(false);
+  const [bulkOpData, setBulkOpData] = useState({
+    pricePercent: '',
+    priceNormalizer: '0',
+    priceRoundDirection: 'up',
+    stockQty: '',
+    weightPercent: '',
+  });
 
   const getSelectedIds = (): string[] => {
     if (selectionModel.type === 'include') return Array.from(selectionModel.ids) as string[];
@@ -101,8 +111,14 @@ export default function ProductsPage() {
     updateURL({
       page: String(paginationModel.page),
       limit: String(paginationModel.pageSize),
+      type: filterType,
+      stockStatus: filterStockStatus,
+      storeId: filterStore,
+      search: debouncedSearch,
+      categoryId: filterCategory,
+      status: filterStatus,
     });
-  }, [paginationModel]);
+  }, [debouncedSearch, filterCategory, filterStatus, filterStockStatus, filterStore, filterType, paginationModel]);
 
   // Fetch products when URL params change
   useEffect(() => {
@@ -171,6 +187,13 @@ export default function ProductsPage() {
   const handleBulkAction = async (action: string) => {
     const ids = getSelectedIds();
     if (ids.length === 0) return;
+    
+    // Open bulk operation modal for special actions
+    if (action === 'operation') {
+      setBulkOpModalOpen(true);
+      return;
+    }
+    
     const actionLabels: Record<string, string> = { delete: 'delete', activate: 'activate', deactivate: 'deactivate' };
     if (!await confirm({ title: `Bulk ${actionLabels[action]}`, message: `Are you sure you want to ${actionLabels[action]} ${ids.length} product(s)?`, severity: action === 'delete' ? 'error' : 'warning' })) return;
     try {
@@ -180,6 +203,39 @@ export default function ProductsPage() {
       fetchProducts();
     } catch (err: any) {
       showNotification(err.response?.data?.message || `Bulk ${action} failed`, 'error');
+    }
+  };
+
+  const handleBulkOperation = async () => {
+    const ids = getSelectedIds();
+    if (ids.length === 0) return;
+
+    if (!bulkOpData.pricePercent && !bulkOpData.stockQty && !bulkOpData.weightPercent) {
+      showNotification('Please select at least one operation', 'warning');
+      return;
+    }
+
+    if (!await confirm({ title: 'Bulk Operation', message: `Apply operations to ${ids.length} product(s) and their variants?`, severity: 'warning' })) return;
+
+    setBulkOpLoading(true);
+    try {
+      await api.post('/products/bulk-operation', {
+        ids,
+        pricePercent: bulkOpData.pricePercent ? parseFloat(bulkOpData.pricePercent) : null,
+        priceNormalizer: (bulkOpData.pricePercent && bulkOpData.priceNormalizer && bulkOpData.priceNormalizer !== '0') ? parseInt(bulkOpData.priceNormalizer) : null,
+        priceRoundDirection: (bulkOpData.priceNormalizer && bulkOpData.priceNormalizer !== '0') ? bulkOpData.priceRoundDirection : null,
+        stockQty: bulkOpData.stockQty ? parseInt(bulkOpData.stockQty) : null,
+        weightPercent: bulkOpData.weightPercent ? parseFloat(bulkOpData.weightPercent) : null,
+      });
+      showNotification('Bulk operation completed successfully', 'success');
+      setBulkOpModalOpen(false);
+      setBulkOpData({ pricePercent: '', priceNormalizer: '0', priceRoundDirection: 'up', stockQty: '', weightPercent: '' });
+      setSelectionModel({ type: 'include', ids: new Set<string>() });
+      fetchProducts();
+    } catch (err: any) {
+      showNotification(err.response?.data?.message || 'Bulk operation failed', 'error');
+    } finally {
+      setBulkOpLoading(false);
     }
   };
 
@@ -504,12 +560,117 @@ export default function ProductsPage() {
           selectedCount={getSelectedIds().length}
           onClear={() => setSelectionModel({ type: 'include', ids: new Set<string>() })}
           actions={[
+            { label: 'Bulk Operation', icon: <TuneIcon />, color: 'info', onClick: () => handleBulkAction('operation') },
             { label: 'Delete', icon: <DeleteIcon />, color: 'error', onClick: () => handleBulkAction('delete') },
             { label: 'Activate', icon: <CheckCircleIcon />, color: 'success', onClick: () => handleBulkAction('activate') },
             { label: 'Deactivate', icon: <BlockIcon />, color: 'warning', onClick: () => handleBulkAction('deactivate') },
           ]}
         />
       </Box>
+
+      {/* Bulk Operation Modal */}
+      <Dialog open={bulkOpModalOpen} onClose={() => setBulkOpModalOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Bulk Operation</DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Selected: {getSelectedIds().length} product(s) (including all variants)
+          </Alert>
+
+          <Grid container spacing={2}>
+            {/* Price Operation */}
+            <Grid size={12}>
+              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>Price Adjustment</Typography>
+              <TextField
+                fullWidth
+                label="Price Change %"
+                placeholder="e.g., 10 for +10%, -10 for -10%"
+                value={bulkOpData.pricePercent}
+                onChange={(e) => setBulkOpData({ ...bulkOpData, pricePercent: e.target.value })}
+                type="number"
+                inputProps={{ step: '0.01' }}
+                size="small"
+              />
+            </Grid>
+
+            {/* Price Normalizer */}
+            {bulkOpData.pricePercent && (
+              <>
+                <Grid size={12}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    Round prices after adjustment (e.g., 141.9 → 145 with round to 5, up)
+                  </Typography>
+                </Grid>
+                <Grid size={6}>
+                  <TextField
+                    fullWidth
+                    label="Round To Nearest"
+                    placeholder="e.g., 5, 9, 10 (0 = no rounding)"
+                    value={bulkOpData.priceNormalizer}
+                    onChange={(e) => setBulkOpData({ ...bulkOpData, priceNormalizer: e.target.value })}
+                    type="number"
+                    inputProps={{ step: '1', min: '0' }}
+                    size="small"
+                    helperText="Examples: 141→(5)→145/140, (9)→149/141, (10)→150/140"
+                  />
+                </Grid>
+                <Grid size={6}>
+                  {bulkOpData.priceNormalizer !== '0' && bulkOpData.priceNormalizer !== '' && (
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Direction</InputLabel>
+                      <Select
+                        value={bulkOpData.priceRoundDirection}
+                        label="Direction"
+                        onChange={(e) => setBulkOpData({ ...bulkOpData, priceRoundDirection: e.target.value })}
+                      >
+                        <MenuItem value="up">Round Up</MenuItem>
+                        <MenuItem value="down">Round Down</MenuItem>
+                      </Select>
+                    </FormControl>
+                  )}
+                </Grid>
+              </>
+            )}
+
+            {/* Stock Qty */}
+            <Grid size={12}>
+              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>Stock Quantity</Typography>
+              <TextField
+                fullWidth
+                label="Set Stock Quantity"
+                placeholder="e.g., 100 (sets all selected to 100)"
+                value={bulkOpData.stockQty}
+                onChange={(e) => setBulkOpData({ ...bulkOpData, stockQty: e.target.value })}
+                type="number"
+                inputProps={{ step: '1', min: '0' }}
+                size="small"
+              />
+              <Typography variant="caption" color="text.secondary">Sets stock for all selected products and variants to this quantity</Typography>
+            </Grid>
+
+            {/* Weight */}
+            <Grid size={12}>
+              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>Weight Adjustment</Typography>
+              <TextField
+                fullWidth
+                label="Weight Change %"
+                placeholder="e.g., 10 for +10%, -10 for -10%"
+                value={bulkOpData.weightPercent}
+                onChange={(e) => setBulkOpData({ ...bulkOpData, weightPercent: e.target.value })}
+                type="number"
+                inputProps={{ step: '0.01' }}
+                size="small"
+              />
+              <Typography variant="caption" color="text.secondary">Increases/decreases weight by percentage for all selected products and variants</Typography>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setBulkOpModalOpen(false)} disabled={bulkOpLoading}>Cancel</Button>
+          <Button variant="contained" onClick={handleBulkOperation} disabled={bulkOpLoading}>
+            {bulkOpLoading ? 'Processing...' : 'Apply Operations'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

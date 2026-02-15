@@ -51,6 +51,7 @@ export default function EditShippingRulePage() {
     geoGroupId: '',
     rateType: 'flat' as 'flat' | 'per_kg' | 'free' | 'percentage',
     rate: 0,
+    minCharge: '',
     minWeight: '',
     maxWeight: '',
     minOrderValue: '',
@@ -88,6 +89,7 @@ export default function EditShippingRulePage() {
         geoGroupId: rule.geoGroupId?._id || rule.geoGroupId || '',
         rateType: rule.rateType || 'flat',
         rate: rule.rate || 0,
+        minCharge: rule.minCharge?.toString() || '',
         minWeight: rule.minWeight?.toString() || '',
         maxWeight: rule.maxWeight?.toString() || '',
         minOrderValue: rule.minOrderValue?.toString() || '',
@@ -134,6 +136,7 @@ export default function EditShippingRulePage() {
         ...formData,
         geoGroupId: formData.geoGroupId || undefined,
         categoryIds: selectedCategories.length > 0 ? selectedCategories.map(c => c._id) : undefined,
+        minCharge: formData.minCharge ? parseFloat(formData.minCharge) : undefined,
         minWeight: formData.minWeight ? parseFloat(formData.minWeight) : undefined,
         maxWeight: formData.maxWeight ? parseFloat(formData.maxWeight) : undefined,
         minOrderValue: formData.minOrderValue ? parseFloat(formData.minOrderValue) : undefined,
@@ -299,6 +302,17 @@ export default function EditShippingRulePage() {
                   value={formData.rate}
                   onChange={handleChange('rate')}
                   disabled={formData.rateType === 'free'}
+                  inputProps={{ min: 0, step: 0.01 }}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Minimum Charge (Optional)"
+                  value={formData.minCharge}
+                  onChange={handleChange('minCharge')}
+                  helperText="If calculated cost is below this, minimum charge is applied"
                   inputProps={{ min: 0, step: 0.01 }}
                 />
               </Grid>

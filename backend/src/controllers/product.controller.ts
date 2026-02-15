@@ -549,54 +549,50 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         filter.isFeatured = true;
     }
 
-    // Smart Search - split query into words and match ANY word across multiple fields
+    // Two-tier search: strict (full phrase) first, then broad (individual word) matches
+    // This gives Amazon/Flipkart-style results where exact matches appear first
     if (req.query.search) {
         const searchQuery = (req.query.search as string).trim();
 
         if (searchQuery.length > 0) {
-            // Split into individual words, filter out very short words and common stop words
-            const stopWords = new Set(['the', 'and', 'for', 'with', 'this', 'that', 'from']);
-            const words = searchQuery
-                .toLowerCase()
-                .split(/[\s&,.-]+/)
-                .filter(word => word.length >= 2 && !stopWords.has(word));
+            const strictRegex = new RegExp(escapeRegExp(searchQuery), 'i');
 
-            if (words.length > 0) {
-                // Create regex patterns for each word (case insensitive)
-                const wordPatterns = words.map(word => new RegExp(escapeRegExp(word), 'i'));
+            // Tier 1: Strict conditions - full phrase match
+            const searchConditions: any[] = [
+                { name: strictRegex },
+                { sku: strictRegex },
+                { barcode: strictRegex },
+                { description: strictRegex },
+                { shortDescription: strictRegex },
+                { 'variants.sku': strictRegex },
+                { 'variants.barcode': strictRegex },
+                { tags: strictRegex },
+            ];
 
-                // Build OR conditions for each word across multiple fields
-                const searchConditions = wordPatterns.flatMap(pattern => [
-                    { name: pattern },
-                    { description: pattern },
-                    { shortDescription: pattern },
-                    { sku: pattern },
-                    { barcode: pattern },
-                    { 'variants.sku': pattern },
-                    { 'variants.barcode': pattern },
-                    { tags: { $in: words } },
-                    { 'seo.metaTitle': pattern },
-                    { 'seo.metaDescription': pattern },
-                ]);
+            // Tier 2: Broad conditions - individual word matching
+            // Only add if query has multiple words (single word is already covered by strict)
+            const words = searchQuery.split(/\s+/).filter(w => w.length >= 2);
+            if (words.length > 1) {
+                words.forEach(word => {
+                    const wordRegex = new RegExp(escapeRegExp(word), 'i');
+                    searchConditions.push(
+                        { name: wordRegex },
+                        { sku: wordRegex },
+                        { barcode: wordRegex },
+                        { tags: wordRegex },
+                        { 'variants.sku': wordRegex },
+                        { 'variants.barcode': wordRegex },
+                    );
+                });
+            }
 
-                // Use $or to match ANY word in ANY field
-                if (filter.$or) {
-                    // If there's already an $or from brand filter, use $and to combine
-                    filter.$and = filter.$and || [];
-                    filter.$and.push({ $or: searchConditions });
-                } else {
-                    filter.$or = searchConditions;
-                }
+            // Use $or to match in ANY field (strict or broad)
+            if (filter.$or) {
+                // If there's already an $or from brand filter, use $and to combine
+                filter.$and = filter.$and || [];
+                filter.$and.push({ $or: searchConditions });
             } else {
-                // If no valid words after filtering, use original query as fallback
-                const searchRegex = { $regex: searchQuery, $options: 'i' };
-                filter.$or = [
-                    { name: searchRegex },
-                    { sku: searchRegex },
-                    { barcode: searchRegex },
-                    { 'variants.sku': searchRegex },
-                    { 'variants.barcode': searchRegex },
-                ];
+                filter.$or = searchConditions;
             }
         }
     }
@@ -763,6 +759,30 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         const productWithPricing = addPricingToProduct(productWithOptions);
         return addTimezoneAwareDates(productWithPricing, storeTimezone);
     });
+
+    // Re-sort by search relevance: strict (full phrase) matches first, then broad (word) matches
+    if (req.query.search) {
+        const searchQuery = (req.query.search as string).trim();
+        if (searchQuery.length > 0) {
+            const strictRegex = new RegExp(escapeRegExp(searchQuery), 'i');
+
+            productsWithPricing.sort((a: any, b: any) => {
+                const scoreProduct = (p: any): number => {
+                    // Highest priority: name exact/partial match with full query
+                    if (strictRegex.test(p.name || '')) return 4;
+                    // SKU / barcode exact match
+                    if (strictRegex.test(p.sku || '') || strictRegex.test(p.barcode || '')) return 3;
+                    // Variant SKU/barcode match
+                    if (p.variants?.some((v: any) => strictRegex.test(v.sku || '') || strictRegex.test(v.barcode || ''))) return 2;
+                    // Tags / description match
+                    if (strictRegex.test(p.tags?.join(' ') || '') || strictRegex.test(p.description || '')) return 1;
+                    // Broad match only (individual word hit)
+                    return 0;
+                };
+                return scoreProduct(b) - scoreProduct(a);
+            });
+        }
+    }
 
     // Build active filters metadata for frontend URL reconstruction
     const activeFilters: Record<string, any> = {};
@@ -1595,5 +1615,123 @@ export const bulkAction = asyncHandler(async (req: AuthRequest, res: Response) =
     res.json({
         message: `Bulk ${action} completed successfully`,
         affected,
+    });
+});
+
+/**
+ * Bulk operation on products (price, stock, weight adjustments)
+ * POST /api/products/bulk-operation
+ */
+export const bulkOperation = asyncHandler(async (req: AuthRequest, res: Response) => {
+    if (req.user?.role === 'store_admin') {
+        throw new AppError('Unauthorized: Store admins cannot perform bulk operations', 403);
+    }
+
+    const { ids, pricePercent, priceNormalizer, priceRoundDirection, stockQty, weightPercent } = req.body;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        throw new AppError('ids array is required', 400);
+    }
+
+    if (!pricePercent && !stockQty && !weightPercent) {
+        throw new AppError('At least one operation (price, stock, or weight) is required', 400);
+    }
+
+    // Helper function to round price based on normalizer
+    const roundPrice = (price: number, normalizer: number, direction: string): number => {
+        if (normalizer === 0 || !normalizer) return price;
+
+        if (normalizer === 1) {
+            return direction === 'up' ? Math.ceil(price) : Math.floor(price);
+        }
+
+        const remainder = price % normalizer;
+        if (direction === 'up') {
+            return remainder === 0 ? price : price + (normalizer - remainder);
+        } else {
+            return price - remainder;
+        }
+    };
+
+    const products = await Product.find({ _id: { $in: ids } });
+    const storeIds = [...new Set(products.map(p => p.storeId.toString()))];
+
+    let updated = 0;
+
+    for (const product of products) {
+        const updates: any = {};
+
+        // Price adjustment
+        if (pricePercent !== null && pricePercent !== undefined && pricePercent !== '') {
+            const newPrice = product.price * (1 + pricePercent / 100);
+            updates.price = roundPrice(newPrice, priceNormalizer || 0, priceRoundDirection || 'up');
+
+            // Adjust sale price if exists
+            if (product.salePrice) {
+                const newSalePrice = product.salePrice * (1 + pricePercent / 100);
+                updates.salePrice = roundPrice(newSalePrice, priceNormalizer || 0, priceRoundDirection || 'up');
+            }
+        }
+
+        // Stock adjustment
+        if (stockQty !== null && stockQty !== undefined && stockQty !== '') {
+            updates.stock = stockQty;
+        }
+
+        // Weight adjustment
+        if (weightPercent !== null && weightPercent !== undefined && weightPercent !== '') {
+            if (product.weight) {
+                updates.weight = product.weight * (1 + weightPercent / 100);
+            }
+        }
+
+        // Update product
+        if (Object.keys(updates).length > 0) {
+            await Product.findByIdAndUpdate(product._id, updates);
+            updated++;
+        }
+
+        // Update variants if they exist
+        if (product.variants && product.variants.length > 0) {
+            const variantUpdates = product.variants.map((variant: any) => {
+                const variantUpdate: any = { ...variant.toObject() };
+
+                if (pricePercent !== null && pricePercent !== undefined && pricePercent !== '') {
+                    const newPrice = (variant.price || product.price) * (1 + pricePercent / 100);
+                    variantUpdate.price = roundPrice(newPrice, priceNormalizer || 0, priceRoundDirection || 'up');
+
+                    if (variant.salePrice) {
+                        const newSalePrice = variant.salePrice * (1 + pricePercent / 100);
+                        variantUpdate.salePrice = roundPrice(newSalePrice, priceNormalizer || 0, priceRoundDirection || 'up');
+                    }
+                }
+
+                if (stockQty !== null && stockQty !== undefined && stockQty !== '') {
+                    variantUpdate.stock = stockQty;
+                }
+
+                if (weightPercent !== null && weightPercent !== undefined && weightPercent !== '') {
+                    if (variant.weight) {
+                        variantUpdate.weight = variant.weight * (1 + weightPercent / 100);
+                    }
+                }
+
+                return variantUpdate;
+            });
+
+            if (variantUpdates.some((v: any) => Object.keys(v).length > 0)) {
+                await Product.findByIdAndUpdate(product._id, { variants: variantUpdates });
+            }
+        }
+    }
+
+    // Invalidate caches for all affected stores
+    for (const storeId of storeIds) {
+        await updateProductSyncTimestamp(storeId);
+    }
+
+    res.json({
+        message: 'Bulk operation completed successfully',
+        updated,
     });
 });

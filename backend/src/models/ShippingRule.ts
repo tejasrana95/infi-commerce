@@ -18,6 +18,7 @@ export interface IShippingRule extends Document {
     // Rate calculation
     rateType: 'flat' | 'per_kg' | 'free' | 'percentage';
     rate: number;
+    minCharge?: number; // Minimum shipping charge (e.g., courier charges min for 500g even if package is 100g)
     estimatedDays?: string; // e.g., "3-5 business days"
 
     createdAt: Date;
@@ -74,6 +75,11 @@ const ShippingRuleSchema = new Schema<IShippingRule>(
             type: Number,
             required: true,
             min: 0,
+        },
+        minCharge: {
+            type: Number,
+            min: 0,
+            comment: 'Minimum shipping charge - if calculated cost is below this, minCharge is returned',
         },
         estimatedDays: {
             type: String,

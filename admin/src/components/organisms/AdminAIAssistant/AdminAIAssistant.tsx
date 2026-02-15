@@ -34,6 +34,7 @@ interface AdminAIAssistantProps {
 }
 
 interface GenerateOptions {
+    productName: boolean;
     description: boolean;
     shortDescription: boolean;
     seo: boolean;
@@ -46,6 +47,7 @@ export default function AdminAIAssistant({ entityType, getValues, setValue }: Ad
     const [loading, setLoading] = useState(false);
     const [customPrompt, setCustomPrompt] = useState('');
     const [options, setOptions] = useState<GenerateOptions>({
+        productName: false,
         description: true,
         shortDescription: true,
         seo: true,
@@ -60,16 +62,34 @@ export default function AdminAIAssistant({ entityType, getValues, setValue }: Ad
         setLoading(true);
         try {
             // Gather context
+            const productName = getValues('name') || getValues('title');
+            
+            if (!productName) {
+                showNotification('Please enter a product name first', 'warning');
+                setLoading(false);
+                return;
+            }
+
             const context = {
                 entityType,
-                title: getValues('name') || getValues('title'),
+                productName,
+                primaryKeyword: productName, // Use product name as primary keyword for SEO/GEO
+                title: productName,
                 images: getValues('images') || [],
                 existingDescription: getValues('description'),
+                brand: getValues('brand'),
+                category: getValues('categoryIds')?.[0],
+                specifications: getValues('specifications') || [], // Pass all specifications
+                specs: getValues('specs') || {}, // Alternative spec format
+                attributes: getValues('attributes') || [], // Product attributes if available
+                price: getValues('price'),
+                stock: getValues('stock'),
                 // Add more context as needed
             };
 
             const fieldsToGenerate = [];
             if (activeTab === 0) { // Magic Fill
+                if (options.productName) fieldsToGenerate.push('productName');
                 if (options.description) fieldsToGenerate.push('description');
                 if (options.shortDescription) fieldsToGenerate.push('shortDescription');
                 if (options.seo) fieldsToGenerate.push('metaTitle', 'metaDescription', 'metaKeywords', 'focusKeyword', 'ogTitle', 'ogDescription');
@@ -77,6 +97,7 @@ export default function AdminAIAssistant({ entityType, getValues, setValue }: Ad
             } else { // Custom Chat
                 // Request all fields for custom instructions so fields can be populated if generated
                 fieldsToGenerate.push(
+                    'productName',
                     'description',
                     'shortDescription',
                     'metaTitle',
@@ -98,23 +119,25 @@ export default function AdminAIAssistant({ entityType, getValues, setValue }: Ad
             if (response.data.success) {
                 const data = response.data.data;
 
-                // Map API response to form fields
-                if (data.description) setValue('description', data.description, { shouldDirty: true });
-                if (data.shortDescription) setValue('shortDescription', data.shortDescription, { shouldDirty: true });
-                if (data.tags) setValue('tags', data.tags, { shouldDirty: true });
+                // Map API response to form fields - ONLY if that field was requested
+                if (fieldsToGenerate.includes('productName') && data.productName) setValue('name', data.productName, { shouldDirty: true });
+                if (fieldsToGenerate.includes('description') && data.description) setValue('description', data.description, { shouldDirty: true });
+                if (fieldsToGenerate.includes('shortDescription') && data.shortDescription) setValue('shortDescription', data.shortDescription, { shouldDirty: true });
+                if (fieldsToGenerate.includes('tags') && data.tags) setValue('tags', data.tags, { shouldDirty: true });
 
-                if (data.metaTitle) setValue('seo.metaTitle', data.metaTitle, { shouldDirty: true, shouldValidate: true });
-                if (data.metaDescription) setValue('seo.metaDescription', data.metaDescription, { shouldDirty: true, shouldValidate: true });
+                if (fieldsToGenerate.includes('metaTitle')) setValue('seo.metaTitle', data.metaTitle, { shouldDirty: true, shouldValidate: true });
+                if (fieldsToGenerate.includes('metaDescription')) setValue('seo.metaDescription', data.metaDescription, { shouldDirty: true, shouldValidate: true });
 
-                if (data.metaKeywords) {
+                if (fieldsToGenerate.includes('metaKeywords') && data.metaKeywords) {
                     const keywords = Array.isArray(data.metaKeywords)
                         ? data.metaKeywords
                         : (data.metaKeywords || '').split(',').map((k: string) => k.trim()).filter(Boolean);
                     setValue('seo.metaKeywords', keywords, { shouldDirty: true, shouldValidate: true });
                 }
 
-                if (data.focusKeyword) setValue('seo.focusKeyword', data.focusKeyword, { shouldDirty: true, shouldValidate: true });
-                if (data.ogTitle) setValue('seo.ogTitle', data.ogTitle, { shouldDirty: true, shouldValidate: true });
+                if (fieldsToGenerate.includes('focusKeyword')) setValue('seo.focusKeyword', data.focusKeyword, { shouldDirty: true, shouldValidate: true });
+                if (fieldsToGenerate.includes('ogTitle')) setValue('seo.ogTitle', data.ogTitle, { shouldDirty: true, shouldValidate: true });
+                if (fieldsToGenerate.includes('ogDescription')) setValue('seo.ogDescription', data.ogDescription, { shouldDirty: true, shouldValidate: true });
                 if (data.ogDescription) setValue('seo.ogDescription', data.ogDescription, { shouldDirty: true, shouldValidate: true });
 
                 showNotification('Content generated successfully', 'success');
@@ -154,9 +177,14 @@ export default function AdminAIAssistant({ entityType, getValues, setValue }: Ad
 
             <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
                 <DialogTitle sx={{ m: 0, p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Box display="flex" alignItems="center" gap={1}>
+                    <Box display="flex" alignItems="center" gap={1} flex={1}>
                         <AutoFixHighIcon color="primary" />
-                        <Typography variant="h6">AI Content Assistant</Typography>
+                        <Box>
+                            <Typography variant="h6">AI Content Assistant</Typography>
+                            <Typography variant="caption" color="text.secondary">
+                                {getValues('name') || getValues('title') || 'Untitled'}
+                            </Typography>
+                        </Box>
                     </Box>
                     <IconButton
                         aria-label="close"
@@ -179,10 +207,20 @@ export default function AdminAIAssistant({ entityType, getValues, setValue }: Ad
 
                     {activeTab === 0 ? (
                         <Box>
+                            <Alert severity="info" sx={{ mb: 2 }}>
+                                <Typography variant="body2" fontWeight={600}>SEO + GEO Optimization</Typography>
+                                <Typography variant="caption">Content optimized for Google Search AND AI Chatbots (ChatGPT, Gemini, Copilot)</Typography>
+                            </Alert>
                             <Typography variant="body2" color="text.secondary" paragraph>
-                                Select which fields you want the AI to generate based on the product title and images.
+                                Select which fields you want the AI to generate. Content will be optimized for both traditional search and generative engines.
                             </Typography>
                             <Grid container>
+                                <Grid size={12}>
+                                    <FormControlLabel
+                                        control={<Checkbox checked={options.productName} onChange={(e) => setOptions({ ...options, productName: e.target.checked })} />}
+                                        label="Product Name (Optimized for SEO)"
+                                    />
+                                </Grid>
                                 <Grid size={12}>
                                     <FormControlLabel
                                         control={<Checkbox checked={options.description} onChange={(e) => setOptions({ ...options, description: e.target.checked })} />}
@@ -211,14 +249,18 @@ export default function AdminAIAssistant({ entityType, getValues, setValue }: Ad
                         </Box>
                     ) : (
                         <Box>
+                            <Alert severity="info" sx={{ mb: 2 }}>
+                                <Typography variant="body2" fontWeight={600}>SEO + GEO Optimization</Typography>
+                                <Typography variant="caption">Content optimized for Google Search AND AI Chatbots (ChatGPT, Gemini, Copilot)</Typography>
+                            </Alert>
                             <Typography variant="body2" color="text.secondary" paragraph>
-                                Provide specific instructions for the AI.
+                                Provide specific instructions for the AI. Content will include specific facts, citations, and FAQ-style answers for AI chatbots.
                             </Typography>
                             <TextField
                                 fullWidth
                                 multiline
                                 rows={4}
-                                placeholder="e.g., Write a professional description focusing on durability and eco-friendly materials."
+                                placeholder="e.g., Write a professional description focusing on durability and eco-friendly materials. Include specific certifications and how-to instructions."
                                 value={customPrompt}
                                 onChange={(e) => setCustomPrompt(e.target.value)}
                             />

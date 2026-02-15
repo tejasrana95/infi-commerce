@@ -274,10 +274,13 @@ export default function QuickViewModal({
         variationOptions.forEach(option => {
             // Find variants that match all OTHER selected attributes
             const otherSelections = { ...selectedOptions };
-            delete otherSelections[option.optionId];
+            delete otherSelections[option?.optionId];
 
             // Filter variants that match all other selections
             const matchingVariants = displayProduct.variants!.filter(variant => {
+                // Skip variants without attributes object
+                if (!variant.attributes) return false;
+                
                 return Object.entries(otherSelections).every(
                     ([attrId, value]) => variant.attributes[attrId] === value
                 );
@@ -286,6 +289,7 @@ export default function QuickViewModal({
             // Get unique values for this attribute from matching variants
             const variantValues = [...new Set(
                 matchingVariants
+                    .filter(v => v.attributes) // Ensure attributes exist
                     .map(v => v.attributes[option.optionId])
                     .filter(Boolean)
             )];

@@ -139,24 +139,38 @@ export class ShippingCalculatorService {
 
     /**
      * Calculate shipping cost based on rule type
+     * Applies minimum charge if calculated cost is below it
      */
     private calculateCost(rule: any, totalWeight: number, subtotal: number): number {
+        let cost = 0;
+        
         switch (rule.rateType) {
             case 'free':
-                return 0;
+                cost = 0;
+                break;
 
             case 'flat':
-                return rule.rate;
+                cost = rule.rate;
+                break;
 
             case 'per_kg':
-                return rule.rate * totalWeight;
+                cost = rule.rate * totalWeight;
+                break;
 
             case 'percentage':
-                return (subtotal * rule.rate) / 100;
+                cost = (subtotal * rule.rate) / 100;
+                break;
 
             default:
-                return 0;
+                cost = 0;
         }
+
+        // Apply minimum charge if specified and cost is below it
+        if (rule.minCharge !== undefined && rule.minCharge > 0 && cost < rule.minCharge) {
+            return rule.minCharge;
+        }
+
+        return cost;
     }
 }
 

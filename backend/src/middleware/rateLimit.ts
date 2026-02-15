@@ -16,7 +16,7 @@ export const publicSubmissionLimiter = rateLimit({
  */
 export const globalApiLimiter = rateLimit({
     windowMs: 5 * 60 * 1000, // 5 minutes
-    max: 300,
+    max: 600,
     message: {
         error: 'Too many requests',
         message: 'Too many requests from this IP, please try again after 5 minutes',

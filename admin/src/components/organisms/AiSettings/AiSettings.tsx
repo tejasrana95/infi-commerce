@@ -139,16 +139,11 @@ export default function AiSettings() {
                                     label="Model"
                                     onChange={(e) => setSettings({ ...settings, model: e.target.value })}
                                 >
-                                    <MenuItem value="gpt-5.2">GPT-5.2 (Best for Coding & Agents)</MenuItem>
-                                    <MenuItem value="gpt-5.2-pro">GPT-5.2 Pro (Smart & Precise)</MenuItem>
-                                    <MenuItem value="gpt-5-mini">GPT-5 Mini (Fast & Cost-efficient)</MenuItem>
-                                    <MenuItem value="gpt-5-nano">GPT-5 Nano (Fastest)</MenuItem>
-                                    <MenuItem value="gpt-5">GPT-5 (Previous Reasoning Model)</MenuItem>
-                                    <MenuItem value="o1">o1 (High-tier Reasoning)</MenuItem>
-                                    <MenuItem value="o1-mini">o1-mini (Fast Reasoning)</MenuItem>
-                                    <MenuItem value="o3-mini">o3-mini (Advanced Small Reasoning)</MenuItem>
-                                    <MenuItem value="gpt-4o">GPT-4o (Modern Multimodal)</MenuItem>
-                                    <MenuItem value="gpt-4o-mini">GPT-4o Mini</MenuItem>
+                                    <MenuItem value="gpt-4o">★ GPT-4o (RECOMMENDED - Best for SEO/Content)</MenuItem>
+                                    <MenuItem value="gpt-4o-mini">GPT-4o Mini (Fast & Cost-efficient)</MenuItem>
+                                    <MenuItem value="gpt-5.2">GPT-5.2 (Premium - Highest Quality)</MenuItem>
+                                    <MenuItem value="gpt-5-mini">GPT-5 Mini (Fast Premium)</MenuItem>
+                                    <MenuItem value="gpt-5-nano">GPT-5 Nano (Fastest - Budget)</MenuItem>
                                 </Select>
                             </FormControl>
 
