@@ -147,8 +147,9 @@ export const sanitizeData = (row: any): any => {
         if (value === null || value === undefined || value === '') {
             sanitized[key] = undefined;
         } else if (typeof value === 'string') {
-            // Trim strings
-            sanitized[key] = value.trim();
+            // Trim strings and handle empty results
+            const trimmed = value.trim();
+            sanitized[key] = trimmed === '' ? undefined : trimmed;
         } else if (typeof value === 'number') {
             sanitized[key] = value;
         } else if (typeof value === 'boolean') {

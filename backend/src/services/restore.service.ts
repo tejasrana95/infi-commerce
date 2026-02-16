@@ -1203,6 +1203,22 @@ class RestoreService {
                 sanitized.returnSettings.isReturnable = parseBoolean(sanitized.returnSettings.isReturnable);
             }
 
+            // Handle nested fields in googleMerchant
+            if (sanitized.googleMerchant) {
+                // Booleans
+                if (sanitized.googleMerchant.isBundle !== undefined) {
+                    sanitized.googleMerchant.isBundle = parseBoolean(sanitized.googleMerchant.isBundle);
+                }
+                if (sanitized.googleMerchant.identifierExists !== undefined) {
+                    sanitized.googleMerchant.identifierExists = parseBoolean(sanitized.googleMerchant.identifierExists);
+                }
+
+                // Arrays
+                if (sanitized.googleMerchant.promotionIds && typeof sanitized.googleMerchant.promotionIds === 'string') {
+                    sanitized.googleMerchant.promotionIds = parseArray(sanitized.googleMerchant.promotionIds);
+                }
+            }
+
 
             // Handle simple array fields
             const simpleArrayFields = ['categoryIds', 'images', 'tags'];
