@@ -6,7 +6,7 @@ import { Controller } from 'react-hook-form';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import api from '@/lib/api';
-import debounce from 'lodash/debounce';
+import { debounce } from '@/utils/debounce';
 
 interface SpecificationManagerProps {
     control: any;

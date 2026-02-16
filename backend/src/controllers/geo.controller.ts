@@ -420,7 +420,7 @@ export const detectGeoLocation = asyncHandler(async (req: AuthRequest, res: Resp
             throw new Error('Geo detection API failed');
         }
 
-        const data = await response.json();
+        const data = await response.json() as { country_code: string; region_code: string; city: string };
 
         // Format to match our standard response
         const regionCode = data.region_code ? `${data.country_code}-${data.region_code}` : undefined;
