@@ -1,5 +1,7 @@
 import ExcelJS from 'exceljs';
 
+const PRODUCT_EXCEL_FIELDS = ['specifications', 'productOptions', 'attributes'] as const;
+
 /**
  * Flatten nested objects for Excel export
  * Converts { address: { city: 'NYC' } } to { 'address.city': 'NYC' }
@@ -68,6 +70,119 @@ export const flattenObject = (obj: any, prefix = ''): any => {
     return flattened;
 };
 
+const normalizeExcelText = (value: unknown): string => {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string') return value.trim();
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    if (Array.isArray(value)) {
+        return value
+            .map(item => normalizeExcelText(item))
+            .filter(Boolean)
+            .join(', ');
+    }
+
+    try {
+        return JSON.stringify(value);
+    } catch (error) {
+        return String(value);
+    }
+};
+
+const getReferenceLabel = (reference: any): string => {
+    if (reference === null || reference === undefined) return '';
+
+    if (typeof reference === 'string') {
+        return reference.trim();
+    }
+
+    if (typeof reference === 'number') {
+        return String(reference);
+    }
+
+    if (typeof reference === 'object') {
+        if ('name' in reference && typeof reference.name === 'string' && reference.name.trim()) {
+            return reference.name.trim();
+        }
+
+        if ('slug' in reference && typeof reference.slug === 'string' && reference.slug.trim()) {
+            return reference.slug.trim();
+        }
+
+        if ('_id' in reference && reference._id) {
+            return reference._id.toString();
+        }
+    }
+
+    return normalizeExcelText(reference);
+};
+
+const formatSpecificationsForExcel = (value: any): string => {
+    if (!Array.isArray(value) || value.length === 0) return '';
+
+    return value
+        .map((item: any) => {
+            if (!item || typeof item !== 'object') return '';
+
+            const attribute = getReferenceLabel(item.attributeId);
+            const specValue = normalizeExcelText(item.value);
+
+            if (!attribute && !specValue) return '';
+            if (!attribute) return specValue;
+            if (!specValue) return attribute;
+
+            return `${attribute}=${specValue}`;
+        })
+        .filter(Boolean)
+        .join('; ');
+};
+
+const formatOptionsLikeForExcel = (value: any, config: { idKey: 'optionId' | 'attributeId'; defaultVariation: boolean }): string => {
+    if (!Array.isArray(value) || value.length === 0) return '';
+
+    return value
+        .map((item: any) => {
+            // Legacy fallback: plain string/object IDs in array
+            if (typeof item === 'string' || typeof item === 'number') {
+                return normalizeExcelText(item);
+            }
+
+            if (!item || typeof item !== 'object') return '';
+
+            const idRef = config.idKey === 'optionId' ? item.optionId : item.attributeId;
+            const label = getReferenceLabel(idRef);
+            const itemValues = Array.isArray(item.values)
+                ? item.values.map((entry: any) => normalizeExcelText(entry)).filter(Boolean).join(', ')
+                : normalizeExcelText(item.values);
+
+            const variation =
+                item.isVariation === undefined ? config.defaultVariation : Boolean(item.isVariation);
+
+            if (!label && !itemValues) return '';
+            const mainValue = label ? `${label}=${itemValues}` : itemValues;
+
+            return `${mainValue}|variation=${variation ? 'Yes' : 'No'}`;
+        })
+        .filter(Boolean)
+        .join('; ');
+};
+
+const prepareProductFieldsForExcel = (obj: any): any => {
+    if (!obj || typeof obj !== 'object') return obj;
+
+    const hasProductExcelFields = PRODUCT_EXCEL_FIELDS.some(field =>
+        Object.prototype.hasOwnProperty.call(obj, field)
+    );
+
+    if (!hasProductExcelFields) return obj;
+
+    return {
+        ...obj,
+        specifications: formatSpecificationsForExcel(obj.specifications),
+        productOptions: formatOptionsLikeForExcel(obj.productOptions, { idKey: 'optionId', defaultVariation: true }),
+        attributes: formatOptionsLikeForExcel(obj.attributes, { idKey: 'attributeId', defaultVariation: false }),
+    };
+};
+
 /**
  * Format date for Excel export
  */
@@ -131,7 +246,8 @@ export const applyExcelStyles = (worksheet: ExcelJS.Worksheet): void => {
  * Opposite of excelRowToObject - prepares data for export
  */
 export const objectToExcelRow = (obj: any): any => {
-    const flattened = flattenObject(obj);
+    const excelReadyObject = prepareProductFieldsForExcel(obj);
+    const flattened = flattenObject(excelReadyObject);
     const row: any = {};
 
     for (const [key, value] of Object.entries(flattened)) {

@@ -80,6 +80,19 @@ export const createStoreValidation = [
     body('settings.returnSettings.processSteps').optional().isArray(),
     body('settings.returnSettings.processSteps.*.label').optional().isString().trim(),
     body('settings.returnSettings.processSteps.*.description').optional().isString().trim(),
+
+    // Price Visibility Validation
+    body('settings.priceVisibility.showPrice').optional().isBoolean(),
+    body('settings.priceVisibility.hiddenPriceMessage').optional().isString().trim(),
+    body('settings.priceVisibility.contactUsLink').optional().isString().trim(),
+    body('settings.priceVisibility.hideForUnauthenticated').optional().isBoolean(),
+    body('settings.priceVisibility.geoRestrictions').optional().isArray(),
+    body('settings.priceVisibility.geoRestrictions.*.countryCodes').optional().isArray(),
+    body('settings.priceVisibility.geoRestrictions.*.countryCodes.*').optional().isString().trim(),
+    body('settings.priceVisibility.geoRestrictions.*.stateCodes').optional().isArray(),
+    body('settings.priceVisibility.geoRestrictions.*.stateCodes.*').optional().isString().trim(),
+    body('settings.priceVisibility.geoRestrictions.*.cityNames').optional().isArray(),
+    body('settings.priceVisibility.geoRestrictions.*.cityNames.*').optional().isString().trim(),
 ];
 
 export const updateStoreValidation = [
@@ -146,6 +159,19 @@ export const updateStoreValidation = [
     body('settings.returnSettings.processSteps').optional().isArray(),
     body('settings.returnSettings.processSteps.*.label').optional().isString().trim(),
     body('settings.returnSettings.processSteps.*.description').optional().isString().trim(),
+
+    // Price Visibility Validation (Update)
+    body('settings.priceVisibility.showPrice').optional().isBoolean(),
+    body('settings.priceVisibility.hiddenPriceMessage').optional().isString().trim(),
+    body('settings.priceVisibility.contactUsLink').optional().isString().trim(),
+    body('settings.priceVisibility.hideForUnauthenticated').optional().isBoolean(),
+    body('settings.priceVisibility.geoRestrictions').optional().isArray(),
+    body('settings.priceVisibility.geoRestrictions.*.countryCodes').optional().isArray(),
+    body('settings.priceVisibility.geoRestrictions.*.countryCodes.*').optional().isString().trim(),
+    body('settings.priceVisibility.geoRestrictions.*.stateCodes').optional().isArray(),
+    body('settings.priceVisibility.geoRestrictions.*.stateCodes.*').optional().isString().trim(),
+    body('settings.priceVisibility.geoRestrictions.*.cityNames').optional().isArray(),
+    body('settings.priceVisibility.geoRestrictions.*.cityNames.*').optional().isString().trim(),
 ];
 
 // ============================================

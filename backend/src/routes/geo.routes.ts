@@ -8,12 +8,14 @@ import {
     getCountriesHierarchical,
     getStatesByCountry,
     getCitiesByState,
+    detectGeoLocation,
 } from '../controllers/geo.controller';
 import { authenticate, authorize } from '../middleware/auth';
 
 const router = Router();
 
 // Public routes
+router.get('/detect', detectGeoLocation); // Detect user's geo location (must be before /:id)
 router.get('/', getGeos);
 router.get('/countries', getCountriesHierarchical); // For backward compatibility with frontend
 router.get('/:id', getGeoById);

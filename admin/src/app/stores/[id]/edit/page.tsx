@@ -22,6 +22,7 @@ import { Store } from '@/types';
 import PWASettings from '@/components/organisms/PWASettings/PWASettings';
 import ReturnSettingsPanel from '@/components/organisms/ReturnSettingsPanel';
 import CookieConsentSettingsComponent, { CookieConsentSettings } from '@/components/organisms/CookieConsentSettings';
+import GoogleMerchantSettingsComponent, { GoogleMerchantSettingsData } from '@/components/organisms/GoogleMerchantSettings/GoogleMerchantSettings';
 
 type EmailProvider = 'smtp' | 'ses' | 'sendgrid' | 'mailjet';
 
@@ -227,6 +228,25 @@ export default function EditStorePage() {
     });
     const [savingCookie, setSavingCookie] = useState(false);
 
+    // Google Merchant settings state
+    const [googleMerchantSettings, setGoogleMerchantSettings] = useState<GoogleMerchantSettingsData>({
+        enabled: false,
+        merchantId: '',
+        serviceAccountKey: '',
+        targetCountries: ['US'],
+        contentLanguage: 'en',
+        autoSync: false,
+        syncFrequency: 'manual',
+        feedSettings: {
+            includeOutOfStock: false,
+            includeInactive: false,
+            defaultShippingLabel: '',
+            defaultTaxCategory: '',
+            customLabels: [],
+        },
+    });
+    const [savingGMC, setSavingGMC] = useState(false);
+
     useEffect(() => {
         fetchStore();
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -282,6 +302,24 @@ export default function EditStorePage() {
             }
             if (currentStore?.cookieConsentSettings) {
                 setCookieConsentSettings(currentStore.cookieConsentSettings);
+            }
+            if (currentStore?.googleMerchantSettings) {
+                setGoogleMerchantSettings({
+                    enabled: currentStore.googleMerchantSettings.enabled || false,
+                    merchantId: currentStore.googleMerchantSettings.merchantId || '',
+                    serviceAccountKey: currentStore.googleMerchantSettings.serviceAccountKey || '',
+                    targetCountries: currentStore.googleMerchantSettings.targetCountries || ['US'],
+                    contentLanguage: currentStore.googleMerchantSettings.contentLanguage || 'en',
+                    autoSync: currentStore.googleMerchantSettings.autoSync || false,
+                    syncFrequency: currentStore.googleMerchantSettings.syncFrequency || 'manual',
+                    feedSettings: {
+                        includeOutOfStock: currentStore.googleMerchantSettings.feedSettings?.includeOutOfStock || false,
+                        includeInactive: currentStore.googleMerchantSettings.feedSettings?.includeInactive || false,
+                        defaultShippingLabel: currentStore.googleMerchantSettings.feedSettings?.defaultShippingLabel || '',
+                        defaultTaxCategory: currentStore.googleMerchantSettings.feedSettings?.defaultTaxCategory || '',
+                        customLabels: currentStore.googleMerchantSettings.feedSettings?.customLabels || [],
+                    },
+                });
             }
         } catch {
             showNotification('Failed to load store', 'error');
@@ -476,6 +514,20 @@ export default function EditStorePage() {
         }
     };
 
+    const handleSaveGMC = async (settings: GoogleMerchantSettingsData) => {
+        setSavingGMC(true);
+        try {
+            await api.patch(`/stores/${id}`, { googleMerchantSettings: settings });
+            setGoogleMerchantSettings(settings);
+            showNotification('Google Merchant settings saved successfully', 'success');
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } } };
+            showNotification(error.response?.data?.message || 'Failed to save Google Merchant settings', 'error');
+        } finally {
+            setSavingGMC(false);
+        }
+    };
+
     return (
         <Box sx={{ position: 'relative' }}>
             {loading && (
@@ -526,6 +578,7 @@ export default function EditStorePage() {
                         <Tab label="PWA Settings" />
                         <Tab label="Return Settings" />
                         <Tab label="Cookie Consent" />
+                        <Tab label="Google Merchant" />
                     </Tabs>
                 </Box>
 
@@ -1578,6 +1631,18 @@ export default function EditStorePage() {
                             initialSettings={cookieConsentSettings}
                             onSave={handleSaveCookie}
                             saving={savingCookie}
+                        />
+                    </Box>
+                </TabPanel>
+
+                {/* Google Merchant Settings Tab */}
+                <TabPanel value={activeTab} index={10}>
+                    <Box sx={{ p: 3, pt: 0 }}>
+                        <GoogleMerchantSettingsComponent
+                            settings={googleMerchantSettings}
+                            onChange={setGoogleMerchantSettings}
+                            onSave={handleSaveGMC}
+                            saving={savingGMC}
                         />
                     </Box>
                 </TabPanel>

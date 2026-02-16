@@ -369,3 +369,75 @@ export const getCountriesHierarchical = asyncHandler(async (_req: AuthRequest, r
 
     res.json({ countries: result });
 });
+
+/**
+ * @swagger
+ * /api/geo/detect:
+ *   get:
+ *     summary: Detect user's geo location (uses Cloudflare headers if available, fallback to ipapi.co)
+ *     tags: [Geo]
+ *     responses:
+ *       200:
+ *         description: Geo location detected successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 country_code:
+ *                   type: string
+ *                 region_code:
+ *                   type: string
+ *                 city:
+ *                   type: string
+ */
+export const detectGeoLocation = asyncHandler(async (req: AuthRequest, res: Response) => {
+    // Check Cloudflare headers first (instant response)
+    const cfCountry = req.headers['cf-ipcountry'] as string | undefined;
+    const cfRegion = req.headers['cf-region-code'] as string | undefined;
+    const cfCity = req.headers['cf-city'] as string | undefined;
+
+    // If Cloudflare headers are present, use them
+    if (cfCountry && cfCountry !== 'XX') {
+        // Format region_code to match ipapi.co format (COUNTRY-REGION)
+        const regionCode = cfRegion ? `${cfCountry}-${cfRegion}` : undefined;
+
+        return res.json({
+            country_code: cfCountry,
+            region_code: regionCode,
+            city: cfCity,
+            source: 'cloudflare'
+        });
+    }
+
+    // Fallback to ipapi.co if Cloudflare headers are not available
+    try {
+        const response = await fetch('https://ipapi.co/json/', {
+            signal: AbortSignal.timeout(5000),
+        });
+
+        if (!response.ok) {
+            throw new Error('Geo detection API failed');
+        }
+
+        const data = await response.json();
+
+        // Format to match our standard response
+        const regionCode = data.region_code ? `${data.country_code}-${data.region_code}` : undefined;
+
+        return res.json({
+            country_code: data.country_code,
+            region_code: regionCode,
+            city: data.city,
+            source: 'ipapi'
+        });
+    } catch (error) {
+        // On failure, return empty data (don't block price display)
+        return res.json({
+            country_code: undefined,
+            region_code: undefined,
+            city: undefined,
+            source: 'fallback'
+        });
+    }
+});

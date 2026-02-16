@@ -9,6 +9,8 @@ import { ProductTemplateProps } from '@/components/templates/core/ProductCard/ty
 import { ProductCardConfig } from '@/types';
 import styles from './ProductCard.module.scss';
 import ImageWithDimensions from '@/components/core/common/ImageWithDimensions';
+import PriceDisplay from '@/components/core/common/PriceDisplay';
+import { usePriceVisibility } from '@/hooks/usePriceVisibility';
 
 interface ExtendedProductTemplateProps extends ProductTemplateProps {
     cardConfig?: ProductCardConfig;
@@ -129,6 +131,8 @@ export default function ModernCleanProductCardTemplate({
         showStock = styleDefaults.showStock,
         showSku = styleDefaults.showSku,
     } = cardConfig || {};
+
+    const { shouldShowPrice, contactUsLink } = usePriceVisibility();
 
     // Build class names
     const cardClasses = [
@@ -358,7 +362,7 @@ export default function ModernCleanProductCardTemplate({
                     )}
 
                     {/* Quick Actions Overlay - Only show cart/buy now buttons for overlay style */}
-                    {((cardStyle === 'overlay' && (showAddToCart || showBuyNow)) || (showQuickView && quickViewPosition === 'overlay')) && inStock && (
+                    {((cardStyle === 'overlay' && (showAddToCart || showBuyNow)) || (showQuickView && quickViewPosition === 'overlay')) && inStock && shouldShowPrice && (
                         <div className={`${styles.quickActions} ${(cardStyle === 'overlay' && showAddToCart && showBuyNow) ? styles.stacked : ''}`}>
                             {cardStyle === 'overlay' && (
                                 <div className={styles.actionButtons}>
@@ -452,14 +456,16 @@ export default function ModernCleanProductCardTemplate({
                 {renderStars()}
 
                 {/* Pricing */}
-                <div className={styles.pricing}>
-                    <span className={priceClasses}>
-                        {formattedPrice}
-                    </span>
-                    {hasDiscount && formattedCompareAtPrice && (
-                        <span className={styles.comparePrice}>{formattedCompareAtPrice}</span>
-                    )}
-                </div>
+                <PriceDisplay>
+                    <div className={styles.pricing}>
+                        <span className={priceClasses}>
+                            {formattedPrice}
+                        </span>
+                        {hasDiscount && formattedCompareAtPrice && (
+                            <span className={styles.comparePrice}>{formattedCompareAtPrice}</span>
+                        )}
+                    </div>
+                </PriceDisplay>
 
                 {/* Stock Status */}
                 {showStock && (
@@ -469,7 +475,7 @@ export default function ModernCleanProductCardTemplate({
                 )}
 
                 {/* Action Buttons - For non-overlay card styles */}
-                {cardStyle !== 'overlay' && (cardStyle as any) !== 'detailed' && (showAddToCart || showBuyNow) && inStock && (
+                {cardStyle !== 'overlay' && (cardStyle as any) !== 'detailed' && (showAddToCart || showBuyNow) && inStock && shouldShowPrice && (
                     <div className={`${styles.contentActions} ${(addToCartStyle === 'icon-only' && buyNowStyle === 'icon-only') ? styles.centeredActions : ''}`}>
                         {showAddToCart && (
                             <button
@@ -516,7 +522,7 @@ export default function ModernCleanProductCardTemplate({
             </div>
 
             {/* Detailed Style Footer */}
-            {(cardStyle as any) === 'detailed' && (showAddToCart || showBuyNow) && inStock && (
+            {(cardStyle as any) === 'detailed' && (showAddToCart || showBuyNow) && inStock && shouldShowPrice && (
                 <div className={styles.detailedFooter}>
                     {showAddToCart && (
                         <button
@@ -544,6 +550,20 @@ export default function ModernCleanProductCardTemplate({
                             Buy Now
                         </button>
                     )}
+                </div>
+            )}
+
+            {/* Contact Us button when price is hidden */}
+            {!shouldShowPrice && (showAddToCart || showBuyNow) && (
+                <div className={styles.contentActions}>
+                    <a
+                        href={contactUsLink}
+                        className={`${styles.contentBtn} ${styles.addToCart}`}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ textAlign: 'center', textDecoration: 'none' }}
+                    >
+                        Contact Us
+                    </a>
                 </div>
             )}
         </div>

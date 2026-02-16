@@ -229,4 +229,8 @@ router.use('/barcode', barcodeRoutes);
 import returnRoutes from './return.routes';
 router.use('/returns', returnRoutes);
 
+// Mount Google Merchant Center routes
+import googleMerchantRoutes from './google-merchant.routes';
+router.use('/google-merchant', googleMerchantRoutes);
+
 export default router;

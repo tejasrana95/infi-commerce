@@ -1,5 +1,6 @@
 // Search Autocomplete Styles
 @use '@/styles/breakpoints' as *;
+$accent-color: var(--color-accent, #007185);
 
 .container {
     position: relative;
@@ -33,7 +34,7 @@
 
     &:focus {
         outline: none;
-        border-color: var(--color-primary, #4f46e5);
+        border-color: $accent-color;
         background: white;
         box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
     }

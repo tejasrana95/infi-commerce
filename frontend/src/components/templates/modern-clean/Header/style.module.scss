@@ -2,6 +2,7 @@
 // Minimal, centered, elegant design
 
 @use '@/styles/breakpoints' as *;
+$accent-color: var(--color-accent, #007185);
 
 .header {
     background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
@@ -487,7 +488,7 @@
     }
 
     &:hover {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        background: $accent-color;
         color: white;
         transform: scale(1.1);
         box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
@@ -846,7 +847,7 @@
     display: block;
     text-align: center;
     padding: 0.875rem;
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: $accent-color;
     color: white;
     text-decoration: none;
     border-radius: 10px;
@@ -879,8 +880,8 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover {
-        border-color: #3b82f6;
-        color: #3b82f6;
+        border-color: $accent-color;
+        color: $accent-color;
         background: #f0f7ff;
         transform: translateY(-1px);
         box-shadow: 0 4px 8px rgba(59, 130, 246, 0.15);

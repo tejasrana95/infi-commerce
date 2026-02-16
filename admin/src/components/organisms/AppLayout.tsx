@@ -69,6 +69,7 @@ import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import DescriptionIcon from '@mui/icons-material/Description';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import UndoIcon from '@mui/icons-material/Undo';
+import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
 import api from '@/lib/api';
 import Image from 'next/image';
 import { QrCode } from 'lucide-react';
@@ -108,6 +109,7 @@ const navigationItems: NavItem[] = [
     children: [
       { name: 'Sales', href: '/sales', icon: <LocalOfferIcon /> },
       { name: 'Coupons', href: '/coupons', icon: <DiscountIcon /> },
+      { name: 'Google Merchant', href: '/google-merchant', icon: <ShoppingBagOutlinedIcon /> },
     ],
   },
   {

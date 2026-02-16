@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { Box, Tooltip, IconButton, Typography, useTheme, Chip, Avatar, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, FormControl, InputLabel, Select, MenuItem, Grid, Alert } from '@mui/material';
 import { DataGrid, GridColDef, GridRenderCellParams, GridRowSelectionModel, GridPaginationModel } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
@@ -60,7 +61,7 @@ export default function ProductsPage() {
   const [filterType, setFilterType] = useState<string>(getInitialValue('type'));
   const [filterStockStatus, setFilterStockStatus] = useState<string>(getInitialValue('stockStatus'));
   const [filterStatus, setFilterStatus] = useState<string>(getInitialValue('status'));
-  
+
   // Pagination state - initialized from URL
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: parseInt(getInitialValue('page', '0')),
@@ -73,7 +74,7 @@ export default function ProductsPage() {
   // Update URL when filters or pagination change
   const updateURL = (newParams: Record<string, string | number>) => {
     const params = new URLSearchParams(searchParams.toString());
-    
+
     Object.entries(newParams).forEach(([key, value]) => {
       if (value) {
         params.set(key, String(value));
@@ -141,7 +142,7 @@ export default function ProductsPage() {
       } else {
         params.append('isActive', 'all');
       }
-      
+
       // Add pagination params
       params.append('page', String(paginationModel.page + 1)); // API expects 1-based page
       params.append('limit', String(paginationModel.pageSize));
@@ -187,13 +188,13 @@ export default function ProductsPage() {
   const handleBulkAction = async (action: string) => {
     const ids = getSelectedIds();
     if (ids.length === 0) return;
-    
+
     // Open bulk operation modal for special actions
     if (action === 'operation') {
       setBulkOpModalOpen(true);
       return;
     }
-    
+
     const actionLabels: Record<string, string> = { delete: 'delete', activate: 'activate', deactivate: 'deactivate' };
     if (!await confirm({ title: `Bulk ${actionLabels[action]}`, message: `Are you sure you want to ${actionLabels[action]} ${ids.length} product(s)?`, severity: action === 'delete' ? 'error' : 'warning' })) return;
     try {
@@ -250,7 +251,7 @@ export default function ProductsPage() {
   };
 
   // Handle filter changes with pagination reset
-  const handleFilterChange = (filters: Record<string, string>) => {
+  const handleFilterChange = (filters: Record<string, string | string[]>) => {
     setFilterType(filters.type as string || '');
     setFilterStockStatus(filters.stockStatus as string || '');
     setFilterStatus(filters.status as string || '');
@@ -434,7 +435,7 @@ export default function ProductsPage() {
             </IconButton>
           </Tooltip>
           <Tooltip title="Edit">
-            <IconButton href={`/products/${params.row._id}/edit`} size="small" color="primary">
+            <IconButton component={Link} href={`/products/${params.row._id}/edit`} size="small" color="primary">
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>

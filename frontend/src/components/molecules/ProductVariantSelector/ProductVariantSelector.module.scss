@@ -1,6 +1,7 @@
 // ProductVariantSelector Styles
 
 $primary-color: var(--color-primary, #111827);
+$accent-color: var(--color-accent, #3b82f6);
 $text-primary: #111827;
 $text-muted: #9ca3af;
 $border-color: #e5e7eb;
@@ -107,12 +108,12 @@ $error-color: #ef4444;
     transition: all 0.2s;
 
     &:hover:not(:disabled) {
-        border-color: $primary-color;
+        border-color: $accent-color;
     }
 
     &.selected {
-        border-color: $primary-color;
-        box-shadow: 0 0 0 2px rgba($primary-color, 0.2);
+        border-color: $accent-color;
+        box-shadow: 0 0 0 2px rgba($accent-color, 0.2);
     }
 
     &.unavailable {

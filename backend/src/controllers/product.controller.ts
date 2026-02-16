@@ -13,6 +13,45 @@ import { escapeRegExp, getSearchSuggestions } from '../utils/search.utils';
 import { updateProductSyncTimestamp } from '../utils/sync-timestamp.utils';
 import SlugRegistry from '../models/SlugRegistry';
 
+// ============================================
+// Price visibility helpers for WEB channel
+// ============================================
+
+/** Check if prices should be hidden for this request */
+async function shouldHidePriceForChannel(req: AuthRequest, storeId?: string): Promise<boolean> {
+    if (!storeId || req.channel !== 'WEB') return false;
+    const store = await Store.findById(storeId).select('settings.priceVisibility').lean();
+    return store?.settings?.priceVisibility?.showPrice === false;
+}
+
+/** Strip all price-related fields from a product object (mutates in place) */
+function stripPriceFields(product: any): any {
+    if (!product) return product;
+    delete product.price;
+    delete product.salePrice;
+    delete product.compareAtPrice;
+    delete product.costPrice;
+    delete product.pricing;
+    delete product.originalPrice;
+    delete product.taxAmount;
+    delete product.taxBreakdown;
+    delete product.isOnSale;
+    delete product.salePercent;
+    // Strip variant prices
+    if (product.variants && Array.isArray(product.variants)) {
+        product.variants.forEach((v: any) => {
+            delete v.price;
+            delete v.salePrice;
+            delete v.compareAtPrice;
+            delete v.costPrice;
+            delete v.pricing;
+            delete v.originalPrice;
+            delete v.taxAmount;
+        });
+    }
+    return product;
+}
+
 // Helper function to transform product options for frontend
 export function transformProductOptions(product: any) {
     if (product.productOptions && product.productOptions.length > 0) {
@@ -832,6 +871,11 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         }
     });
 
+    // Strip prices if hidden for WEB channel
+    if (await shouldHidePriceForChannel(req, effectiveStoreId)) {
+        productsWithPricing.forEach(stripPriceFields);
+    }
+
     return res.json({
         products: productsWithPricing,
         pagination: {
@@ -919,9 +963,16 @@ export const getProductById = asyncHandler(async (req: AuthRequest, res: Respons
         }
     }
 
+    // Strip prices if hidden for WEB channel
+    const productStoreId = typeof productObj.storeId === 'object' ? productObj.storeId._id?.toString() : productObj.storeId?.toString();
+    const hidePrice = await shouldHidePriceForChannel(req, productStoreId);
+    if (hidePrice) {
+        stripPriceFields(productObj);
+    }
+
     res.json({
         product: productObj,
-        activeSales: sales,
+        activeSales: hidePrice ? undefined : sales,
     });
 });
 
@@ -995,6 +1046,12 @@ export const getProductBySlug = asyncHandler(async (req: AuthRequest, res: Respo
                 href: `/${cat.slug}`
             }));
         }
+    }
+
+    // Strip prices if hidden for WEB channel
+    const productStoreId = typeof productObj.storeId === 'object' ? productObj.storeId._id?.toString() : productObj.storeId?.toString();
+    if (await shouldHidePriceForChannel(req, productStoreId)) {
+        stripPriceFields(productObj);
     }
 
     res.json({ product: productObj });
@@ -1272,7 +1329,14 @@ export const getFeaturedProducts = asyncHandler(async (req: AuthRequest, res: Re
         .populate('storeId', 'name slug')
         .populate('categoryIds', 'title slug')
         .limit(limit)
-        .sort({ salesCount: -1 });
+        .sort({ salesCount: -1 })
+        .lean();
+
+    // Strip prices if hidden for WEB channel
+    const storeId = req.query.storeId as string;
+    if (storeId && await shouldHidePriceForChannel(req, storeId)) {
+        products.forEach((p: any) => stripPriceFields(p));
+    }
 
     res.json({ products });
 });
@@ -1309,7 +1373,14 @@ export const getOnSaleProducts = asyncHandler(async (req: AuthRequest, res: Resp
         .populate('storeId', 'name slug')
         .populate('categoryIds', 'title slug')
         .limit(limit)
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 })
+        .lean();
+
+    // Strip prices if hidden for WEB channel
+    const storeId = req.query.storeId as string;
+    if (storeId && await shouldHidePriceForChannel(req, storeId)) {
+        products.forEach((p: any) => stripPriceFields(p));
+    }
 
     res.json({ products });
 });

@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useEffect, useState, useCallback } from 'react';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import {
@@ -16,6 +16,13 @@ import {
     Typography,
     Chip,
     Autocomplete,
+    Accordion,
+    AccordionSummary,
+    AccordionDetails,
+    IconButton,
+    Button,
+    Alert,
+    Divider,
 } from '@mui/material';
 import { Store } from '@/types';
 import CurrencyAutocomplete from '@/components/molecules/CurrencyAutocomplete';
@@ -109,6 +116,18 @@ const schema = z.object({
             phone: z.string().optional(),
             email: z.string().email('Invalid email address').optional().or(z.literal('')),
         }).optional(),
+        // Price Visibility
+        priceVisibility: z.object({
+            showPrice: z.boolean(),
+            hiddenPriceMessage: z.string().optional(),
+            contactUsLink: z.string().optional(),
+            hideForUnauthenticated: z.boolean().optional(),
+            geoRestrictions: z.array(z.object({
+                countryCodes: z.array(z.string()).optional(),
+                stateCodes: z.array(z.string()).optional(),
+                cityNames: z.array(z.string()).optional(),
+            })).optional(),
+        }).optional(),
     }),
 });
 
@@ -166,6 +185,13 @@ const defaultValues: StoreFormData = {
             address: '',
             phone: '',
             email: '',
+        },
+        priceVisibility: {
+            showPrice: true,
+            hiddenPriceMessage: 'Login to View Price',
+            contactUsLink: '/contact',
+            hideForUnauthenticated: false,
+            geoRestrictions: [],
         },
     },
 };
@@ -238,6 +264,13 @@ export default function StoreForm({ initialData, onSubmit, isSubmitting = false 
                         address: initialData.settings?.contact?.address || '',
                         phone: initialData.settings?.contact?.phone || '',
                         email: initialData.settings?.contact?.email || '',
+                    },
+                    priceVisibility: {
+                        showPrice: initialData.settings?.priceVisibility?.showPrice ?? true,
+                        hiddenPriceMessage: initialData.settings?.priceVisibility?.hiddenPriceMessage || 'Login to View Price',
+                        contactUsLink: initialData.settings?.priceVisibility?.contactUsLink || '/contact',
+                        hideForUnauthenticated: initialData.settings?.priceVisibility?.hideForUnauthenticated ?? false,
+                        geoRestrictions: initialData.settings?.priceVisibility?.geoRestrictions || [],
                     },
                 },
             });
@@ -877,6 +910,246 @@ export default function StoreForm({ initialData, onSubmit, isSubmitting = false 
                             )}
                         />
                     </Grid>
+
+                    <Grid size={{ xs: 12 }}>
+                        <Divider sx={{ my: 1 }} />
+                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>Price Visibility</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            Control how and when product prices are displayed to visitors
+                        </Typography>
+                    </Grid>
+                    <Grid size={{ xs: 12 }}>
+                        <Controller
+                            name="settings.priceVisibility.showPrice"
+                            control={control}
+                            render={({ field }) => (
+                                <FormControlLabel
+                                    control={<Switch checked={field.value} onChange={field.onChange} />}
+                                    label="Show Price"
+                                />
+                            )}
+                        />
+                        <Typography variant="caption" color="text.secondary" display="block">
+                            When disabled, prices are hidden everywhere and a custom message is shown instead
+                        </Typography>
+                    </Grid>
+
+                    {!watch('settings.priceVisibility.showPrice') && (
+                        <>
+                            <Grid size={{ xs: 12, md: 8 }}>
+                                <Controller
+                                    name="settings.priceVisibility.hiddenPriceMessage"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            label="Hidden Price Message"
+                                            fullWidth
+                                            placeholder="Login to View Price"
+                                            helperText="This message will be shown in place of the price"
+                                        />
+                                    )}
+                                />
+                            </Grid>
+                            <Grid size={{ xs: 12, md: 8 }}>
+                                <Controller
+                                    name="settings.priceVisibility.contactUsLink"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            label="Contact Us Link"
+                                            fullWidth
+                                            placeholder="/contact"
+                                            helperText="URL for the 'Contact Us' button shown in place of Add to Cart / Buy Now (e.g. /contact or https://example.com/contact)"
+                                        />
+                                    )}
+                                />
+                            </Grid>
+                        </>
+                    )}
+
+                    {watch('settings.priceVisibility.showPrice') && (
+                        <>
+                            <Grid size={{ xs: 12 }}>
+                                <Accordion defaultExpanded={
+                                    watch('settings.priceVisibility.hideForUnauthenticated') ||
+                                    (watch('settings.priceVisibility.geoRestrictions')?.length ?? 0) > 0
+                                }>
+                                    <AccordionSummary expandIcon={<span>&#9660;</span>}>
+                                        <Typography variant="subtitle1" fontWeight={600}>Advanced Settings</Typography>
+                                    </AccordionSummary>
+                                    <AccordionDetails>
+                                        <Grid container spacing={2}>
+                                            <Grid size={{ xs: 12 }}>
+                                                <Controller
+                                                    name="settings.priceVisibility.hideForUnauthenticated"
+                                                    control={control}
+                                                    render={({ field }) => (
+                                                        <FormControlLabel
+                                                            control={<Switch checked={field.value ?? false} onChange={field.onChange} />}
+                                                            label="Hide price for unauthenticated users"
+                                                        />
+                                                    )}
+                                                />
+                                                <Typography variant="caption" color="text.secondary" display="block">
+                                                    Users must log in to see prices. Useful for B2B or wholesale stores.
+                                                </Typography>
+                                            </Grid>
+
+                                            {watch('settings.priceVisibility.hideForUnauthenticated') && (
+                                                <Grid size={{ xs: 12, md: 8 }}>
+                                                    <Controller
+                                                        name="settings.priceVisibility.hiddenPriceMessage"
+                                                        control={control}
+                                                        render={({ field }) => (
+                                                            <TextField
+                                                                {...field}
+                                                                label="Hidden Price Message"
+                                                                fullWidth
+                                                                placeholder="Login to View Price"
+                                                                helperText="Message shown to unauthenticated users instead of the price"
+                                                            />
+                                                        )}
+                                                    />
+                                                </Grid>
+                                            )}
+
+                                            <Grid size={{ xs: 12 }}>
+                                                <Divider sx={{ my: 1 }} />
+                                                <Typography variant="subtitle2" gutterBottom sx={{ mt: 1 }}>
+                                                    Hide Price for GEO Locations
+                                                </Typography>
+                                                <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+                                                    Add rules to hide prices for specific geographic locations.
+                                                    If any field in a rule matches the visitor&apos;s location, prices will be hidden.
+                                                </Typography>
+                                            </Grid>
+
+                                            {(watch('settings.priceVisibility.geoRestrictions') || []).map((_: any, index: number) => (
+                                                <Grid size={{ xs: 12 }} key={index}>
+                                                    <Box sx={{
+                                                        border: '1px solid',
+                                                        borderColor: 'divider',
+                                                        borderRadius: 2,
+                                                        p: 2,
+                                                        position: 'relative',
+                                                    }}>
+                                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                                                            <Typography variant="subtitle2" color="text.secondary">
+                                                                Rule {index + 1}
+                                                            </Typography>
+                                                            <IconButton
+                                                                size="small"
+                                                                color="error"
+                                                                onClick={() => {
+                                                                    const current = watch('settings.priceVisibility.geoRestrictions') || [];
+                                                                    setValue(
+                                                                        'settings.priceVisibility.geoRestrictions',
+                                                                        current.filter((_: any, i: number) => i !== index)
+                                                                    );
+                                                                }}
+                                                                title="Remove Rule"
+                                                            >
+                                                                &#10005;
+                                                            </IconButton>
+                                                        </Box>
+                                                        <Grid container spacing={2}>
+                                                            <Grid size={{ xs: 12, md: 4 }}>
+                                                                <Controller
+                                                                    name={`settings.priceVisibility.geoRestrictions.${index}.countryCodes` as any}
+                                                                    control={control}
+                                                                    render={({ field: { onChange, value } }) => (
+                                                                        <TextField
+                                                                            value={(value || []).join(', ')}
+                                                                            onChange={(e) => {
+                                                                                const values = e.target.value
+                                                                                    .split(',')
+                                                                                    .map(v => v.trim().toUpperCase())
+                                                                                    .filter(v => v.length > 0);
+                                                                                onChange(values);
+                                                                            }}
+                                                                            label="Country Codes (ISO)"
+                                                                            placeholder="e.g. US, GB, IN"
+                                                                            helperText="ISO 3166-1 alpha-2 codes (comma-separated)"
+                                                                            size="small"
+                                                                            fullWidth
+                                                                        />
+                                                                    )}
+                                                                />
+                                                            </Grid>
+                                                            <Grid size={{ xs: 12, md: 4 }}>
+                                                                <Controller
+                                                                    name={`settings.priceVisibility.geoRestrictions.${index}.stateCodes` as any}
+                                                                    control={control}
+                                                                    render={({ field: { onChange, value } }) => (
+                                                                        <TextField
+                                                                            value={(value || []).join(', ')}
+                                                                            onChange={(e) => {
+                                                                                const values = e.target.value
+                                                                                    .split(',')
+                                                                                    .map(v => v.trim().toUpperCase())
+                                                                                    .filter(v => v.length > 0);
+                                                                                onChange(values);
+                                                                            }}
+                                                                            label="State Codes (ISO)"
+                                                                            placeholder="e.g. US-CA, IN-MH"
+                                                                            helperText="ISO 3166-2 subdivision codes (comma-separated)"
+                                                                            size="small"
+                                                                            fullWidth
+                                                                        />
+                                                                    )}
+                                                                />
+                                                            </Grid>
+                                                            <Grid size={{ xs: 12, md: 4 }}>
+                                                                <Controller
+                                                                    name={`settings.priceVisibility.geoRestrictions.${index}.cityNames` as any}
+                                                                    control={control}
+                                                                    render={({ field: { onChange, value } }) => (
+                                                                        <TextField
+                                                                            value={(value || []).join(', ')}
+                                                                            onChange={(e) => {
+                                                                                const values = e.target.value
+                                                                                    .split(',')
+                                                                                    .map(v => v.trim())
+                                                                                    .filter(v => v.length > 0);
+                                                                                onChange(values);
+                                                                            }}
+                                                                            label="City Names"
+                                                                            placeholder="e.g. Mumbai, New York"
+                                                                            helperText="Exact city names (comma-separated)"
+                                                                            size="small"
+                                                                            fullWidth
+                                                                        />
+                                                                    )}
+                                                                />
+                                                            </Grid>
+                                                        </Grid>
+                                                    </Box>
+                                                </Grid>
+                                            ))}
+
+                                            <Grid size={{ xs: 12 }}>
+                                                <Button
+                                                    variant="outlined"
+                                                    size="small"
+                                                    onClick={() => {
+                                                        const current = watch('settings.priceVisibility.geoRestrictions') || [];
+                                                        setValue('settings.priceVisibility.geoRestrictions', [
+                                                            ...current,
+                                                            { countryCodes: [], stateCodes: [], cityNames: [] },
+                                                        ]);
+                                                    }}
+                                                >
+                                                    + Add GEO Rule
+                                                </Button>
+                                            </Grid>
+                                        </Grid>
+                                    </AccordionDetails>
+                                </Accordion>
+                            </Grid>
+                        </>
+                    )}
 
                     <Grid size={{ xs: 12 }}>
                         <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>Reviews</Typography>

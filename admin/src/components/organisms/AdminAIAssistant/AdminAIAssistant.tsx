@@ -47,7 +47,7 @@ export default function AdminAIAssistant({ entityType, getValues, setValue }: Ad
     const [loading, setLoading] = useState(false);
     const [customPrompt, setCustomPrompt] = useState('');
     const [options, setOptions] = useState<GenerateOptions>({
-        productName: false,
+        productName: true,
         description: true,
         shortDescription: true,
         seo: true,
@@ -63,7 +63,7 @@ export default function AdminAIAssistant({ entityType, getValues, setValue }: Ad
         try {
             // Gather context
             const productName = getValues('name') || getValues('title');
-            
+
             if (!productName) {
                 showNotification('Please enter a product name first', 'warning');
                 setLoading(false);
@@ -84,6 +84,7 @@ export default function AdminAIAssistant({ entityType, getValues, setValue }: Ad
                 attributes: getValues('attributes') || [], // Product attributes if available
                 price: getValues('price'),
                 stock: getValues('stock'),
+                storeId: getValues('storeId'),
                 // Add more context as needed
             };
 
@@ -276,6 +277,7 @@ export default function AdminAIAssistant({ entityType, getValues, setValue }: Ad
                         variant="contained"
                         disabled={loading}
                         startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <AutoFixHighIcon />}
+                        tabIndex={0}
                     >
                         {loading ? 'Generating...' : 'Generate Content'}
                     </Button>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Box, Button, Tooltip, IconButton, Typography, useTheme } from '@mui/material';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
@@ -160,22 +161,22 @@ export default function StoresPage() {
       renderCell: (params: GridRenderCellParams) => (
         <Box display="flex" flexDirection="row" gap={1} alignItems="start" justifyContent="center" height="100%">
           <Tooltip title="POS Settings">
-            <IconButton href={`/stores/${params.row._id}/pos`} size="small" color="primary">
+            <IconButton component={Link} href={`/stores/${params.row._id}/pos`} size="small" color="primary">
               <PointOfSaleIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="POS Sessions">
-            <IconButton href={`/stores/${params.row._id}/pos-sessions`} size="small" color="primary">
+            <IconButton component={Link} href={`/stores/${params.row._id}/pos-sessions`} size="small" color="primary">
               <AnalyticsIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Edit Theme">
-            <IconButton href={`/stores/${params.row._id}/theme`} size="small" color="primary">
+            <IconButton component={Link} href={`/stores/${params.row._id}/theme`} size="small" color="primary">
               <FormatPaintIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Edit">
-            <IconButton href={`/stores/${params.row._id}/edit`} size="small" color="primary">
+            <IconButton component={Link} href={`/stores/${params.row._id}/edit`} size="small" color="primary">
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>

@@ -146,6 +146,42 @@ export interface IProduct extends Document {
         isReturnable?: boolean; // Default true, set false to disable returns
     };
 
+    // Google Merchant Center
+    googleMerchant?: {
+        status: 'not_submitted' | 'pending' | 'approved' | 'disapproved' | 'warning';
+        lastSubmittedAt?: Date;
+        googleProductId?: string;
+        issues?: Array<{
+            severity: 'error' | 'warning' | 'info';
+            title: string;
+            description: string;
+            detail?: string;
+        }>;
+        gtin?: string;
+        mpn?: string;
+        googleProductCategory?: string;
+        condition?: 'new' | 'refurbished' | 'used';
+        ageGroup?: 'newborn' | 'infant' | 'toddler' | 'kids' | 'adult';
+        gender?: 'male' | 'female' | 'unisex';
+        color?: string;
+        size?: string;
+        material?: string;
+        pattern?: string;
+        brand?: string;
+        customLabel0?: string;
+        customLabel1?: string;
+        customLabel2?: string;
+        customLabel3?: string;
+        customLabel4?: string;
+        promotionIds?: string[];
+        shippingLabel?: string;
+        taxCategory?: string;
+        energyEfficiencyClass?: string;
+        multipack?: number;
+        isBundle?: boolean;
+        identifierExists?: boolean;
+    };
+
 
     createdAt: Date;
     updatedAt: Date;
@@ -492,6 +528,46 @@ const ProductSchema = new Schema<IProduct>(
                 type: Boolean,
                 default: true,
             },
+        },
+
+        // Google Merchant Center
+        googleMerchant: {
+            status: {
+                type: String,
+                enum: ['not_submitted', 'pending', 'approved', 'disapproved', 'warning'],
+                default: 'not_submitted',
+            },
+            lastSubmittedAt: Date,
+            googleProductId: { type: String, trim: true },
+            issues: [{
+                severity: { type: String, enum: ['error', 'warning', 'info'] },
+                title: String,
+                description: String,
+                detail: String,
+            }],
+            gtin: { type: String, trim: true },
+            mpn: { type: String, trim: true },
+            googleProductCategory: { type: String, trim: true },
+            condition: { type: String, enum: ['new', 'refurbished', 'used'], default: 'new' },
+            ageGroup: { type: String, enum: ['newborn', 'infant', 'toddler', 'kids', 'adult'] },
+            gender: { type: String, enum: ['male', 'female', 'unisex'] },
+            color: { type: String, trim: true },
+            size: { type: String, trim: true },
+            material: { type: String, trim: true },
+            pattern: { type: String, trim: true },
+            brand: { type: String, trim: true },
+            customLabel0: { type: String, trim: true },
+            customLabel1: { type: String, trim: true },
+            customLabel2: { type: String, trim: true },
+            customLabel3: { type: String, trim: true },
+            customLabel4: { type: String, trim: true },
+            promotionIds: [{ type: String, trim: true }],
+            shippingLabel: { type: String, trim: true },
+            taxCategory: { type: String, trim: true },
+            energyEfficiencyClass: { type: String, trim: true },
+            multipack: { type: Number, min: 0 },
+            isBundle: { type: Boolean },
+            identifierExists: { type: Boolean, default: true },
         },
     },
     {

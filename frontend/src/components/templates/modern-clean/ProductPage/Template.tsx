@@ -28,6 +28,8 @@ import { useToast } from '@/providers/ToastProvider';
 import { trackViewItem } from '@/lib/ga';
 import { useStore } from '@/providers/StoreProvider';
 import { useCurrency } from '@/providers/CurrencyProvider';
+import PriceDisplay from '@/components/core/common/PriceDisplay';
+import { usePriceVisibility } from '@/hooks/usePriceVisibility';
 
 export default function ModernCleanProductPageTemplate({
     product,
@@ -77,6 +79,7 @@ export default function ModernCleanProductPageTemplate({
     const { error: toastError } = useToast();
     const { currentCurrency, store } = useStore();
     const { formatPriceWithExchange } = useCurrency();
+    const { shouldShowPrice, contactUsLink } = usePriceVisibility();
     const { enabled = false, defaultExchangeWindow = 0, defaultReturnWindow = 0 } = store?.settings?.returnSettings || {};
     // Get ProductCard component
     const ProductCard = getComponent('ProductCard', templateId);
@@ -362,60 +365,60 @@ export default function ModernCleanProductPageTemplate({
         <div className={styles.productInfo}>
             {/* Breadcrumbs */}
             <nav className={styles.breadcrumbs}>
-                  {(() => {
-                const breadcrumbs: Array<{ label: string; href?: string }> = [];
-                breadcrumbs.push({ label: 'Home', href: '/' });
+                {(() => {
+                    const breadcrumbs: Array<{ label: string; href?: string }> = [];
+                    breadcrumbs.push({ label: 'Home', href: '/' });
 
-                if (product.categoryBreadcrumbs && product.categoryBreadcrumbs.length > 0) {
-                    product.categoryBreadcrumbs.forEach((c: any) => {
-                        if (c && c.label && c.href) breadcrumbs.push({ label: c.label, href: c.href });
-                    });
-                } else if (product.categories && product.categories.length > 0) {
-                    const c = product.categories[0];
-                    if (c && c.slug && c.title) breadcrumbs.push({ label: c.title, href: `/${c.slug}` });
-                }
+                    if (product.categoryBreadcrumbs && product.categoryBreadcrumbs.length > 0) {
+                        product.categoryBreadcrumbs.forEach((c: any) => {
+                            if (c && c.label && c.href) breadcrumbs.push({ label: c.label, href: c.href });
+                        });
+                    } else if (product.categories && product.categories.length > 0) {
+                        const c = product.categories[0];
+                        if (c && c.slug && c.title) breadcrumbs.push({ label: c.title, href: `/${c.slug}` });
+                    }
 
-                breadcrumbs.push({ label: product.name });
+                    breadcrumbs.push({ label: product.name });
 
-                const truncate = (s: string, n = 60) => (s && s.length > n) ? s.substring(0, n - 1).trim() + '\u2026' : s;
+                    const truncate = (s: string, n = 60) => (s && s.length > n) ? s.substring(0, n - 1).trim() + '\u2026' : s;
 
-                const itemStyle = {
-                    display: 'inline-block',
-                    maxWidth: '360px',
-                    verticalAlign: 'middle',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
-                };
+                    const itemStyle = {
+                        display: 'inline-block',
+                        maxWidth: '360px',
+                        verticalAlign: 'middle',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                    };
 
-                return (
-                    <nav aria-label="Breadcrumb">
-                        <ol itemScope itemType="https://schema.org/BreadcrumbList" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                            {breadcrumbs.map((bc, idx) => (
-                                <li
-                                    key={idx}
-                                    itemProp="itemListElement"
-                                    itemScope
-                                    itemType="https://schema.org/ListItem"
-                                    style={{ display: 'inline' }}
-                                >
-                                    {bc.href ? (
-                                        <Link href={bc.href} itemProp="item">
-                                            <span itemProp="name" style={itemStyle}>{truncate(bc.label)}</span>
-                                        </Link>
-                                    ) : (
-                                        <span aria-current="page" itemProp="name" style={itemStyle}>{truncate(bc.label)}</span>
-                                    )}
-                                    <meta itemProp="position" content={(idx + 1).toString()} />
-                                    {idx < breadcrumbs.length - 1 && (
-                                        <span aria-hidden="true" style={{ margin: '0 8px' }}> / </span>
-                                    )}
-                                </li>
-                            ))}
-                        </ol>
-                    </nav>
-                );
-            })()}
+                    return (
+                        <nav aria-label="Breadcrumb">
+                            <ol itemScope itemType="https://schema.org/BreadcrumbList" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                                {breadcrumbs.map((bc, idx) => (
+                                    <li
+                                        key={idx}
+                                        itemProp="itemListElement"
+                                        itemScope
+                                        itemType="https://schema.org/ListItem"
+                                        style={{ display: 'inline' }}
+                                    >
+                                        {bc.href ? (
+                                            <Link href={bc.href} itemProp="item">
+                                                <span itemProp="name" style={itemStyle}>{truncate(bc.label)}</span>
+                                            </Link>
+                                        ) : (
+                                            <span aria-current="page" itemProp="name" style={itemStyle}>{truncate(bc.label)}</span>
+                                        )}
+                                        <meta itemProp="position" content={(idx + 1).toString()} />
+                                        {idx < breadcrumbs.length - 1 && (
+                                            <span aria-hidden="true" style={{ margin: '0 8px' }}> / </span>
+                                        )}
+                                    </li>
+                                ))}
+                            </ol>
+                        </nav>
+                    );
+                })()}
             </nav>
 
             {/* Title & Brand */}
@@ -446,39 +449,41 @@ export default function ModernCleanProductPageTemplate({
             )}
 
             {/* Price */}
-            <div className={styles.pricing}>
+            <PriceDisplay>
+                <div className={styles.pricing}>
 
-                <span className={styles.price}>{formatPriceWithExchange(effectivePrice)}</span>
-                {hasDiscount && displayComparePrice && (
-                    <>
-                        <span className={styles.comparePrice}>{formatPriceWithExchange(displayComparePrice)}</span>
-                        <span className={styles.discount}>
-                            -{Math.round(((displayComparePrice - effectivePrice) / displayComparePrice) * 100)}%
-                        </span>
-                    </>
-                )}
-                {showTaxIncluded && currentPricing && (
-                    <span className={styles.taxInfo}>incl. tax</span>
-                )}
-            </div>
-
-            {/* Show price without tax if configured */}
-            {showPriceWithoutTax && currentPricing && showTaxIncluded && (
-                <p className={styles.priceExTax}>
-                    {formatPriceWithExchange((displayVariant?.pricing?.price || product.pricing?.price || currentPrice))} excl. tax
-                </p>
-            )}
-
-            {/* Tax breakdown for split taxes */}
-            {showTaxIncluded && currentPricing?.taxBreakdown && currentPricing.taxBreakdown.length > 0 && (
-                <div className={styles.taxBreakdown}>
-                    {currentPricing.taxBreakdown.map((tax, idx) => (
-                        <span key={idx} className={styles.taxItem}>
-                            {tax.name}: {formatPriceWithExchange(tax.amount)}
-                        </span>
-                    ))}
+                    <span className={styles.price}>{formatPriceWithExchange(effectivePrice)}</span>
+                    {hasDiscount && displayComparePrice && (
+                        <>
+                            <span className={styles.comparePrice}>{formatPriceWithExchange(displayComparePrice)}</span>
+                            <span className={styles.discount}>
+                                -{Math.round(((displayComparePrice - effectivePrice) / displayComparePrice) * 100)}%
+                            </span>
+                        </>
+                    )}
+                    {showTaxIncluded && currentPricing && (
+                        <span className={styles.taxInfo}>incl. tax</span>
+                    )}
                 </div>
-            )}
+
+                {/* Show price without tax if configured */}
+                {showPriceWithoutTax && currentPricing && showTaxIncluded && (
+                    <p className={styles.priceExTax}>
+                        {formatPriceWithExchange((displayVariant?.pricing?.price || product.pricing?.price || currentPrice))} excl. tax
+                    </p>
+                )}
+
+                {/* Tax breakdown for split taxes */}
+                {showTaxIncluded && currentPricing?.taxBreakdown && currentPricing.taxBreakdown.length > 0 && (
+                    <div className={styles.taxBreakdown}>
+                        {currentPricing.taxBreakdown.map((tax, idx) => (
+                            <span key={idx} className={styles.taxItem}>
+                                {tax.name}: {formatPriceWithExchange(tax.amount)}
+                            </span>
+                        ))}
+                    </div>
+                )}
+            </PriceDisplay>
 
             {/* SKU */}
             {config.info?.showSku && (
@@ -562,39 +567,51 @@ export default function ModernCleanProductPageTemplate({
 
 
             {/* Action Buttons */}
-            {product.type === 'variable' && !allOptionsSelected && (
+            {product.type === 'variable' && !allOptionsSelected && shouldShowPrice && (
                 <p className={styles.selectOptionsHint}>Please select all options to continue</p>
             )}
-            <div className={styles.actions}>
-                <button
-                    className={styles.addToCartBtn}
-                    onClick={onAddToCart}
-                    disabled={!canOrder || isAddingToCart || (product.type === 'variable' && !allOptionsSelected)}
-                    data-track="add_to_cart"
-                    data-item-id={product._id}
-                    data-item-name={product.name}
-                    data-price={effectivePrice}
-                    data-currency={typeof currency === 'object' ? currency.code : currency}
-                    data-quantity={quantity}
-                >
-                    {isAddingToCart ? 'Adding...' : 'Add to Cart'}
-                </button>
-                <button
-                    className={styles.buyNowBtn}
-                    onClick={() => {
-                        onBuyNow();
-                    }}
-                    disabled={!canOrder || isAddingToCart || (product.type === 'variable' && !allOptionsSelected)}
-                    data-track="begin_checkout"
-                    data-item-id={product._id}
-                    data-item-name={product.name}
-                    data-price={effectivePrice}
-                    data-currency={typeof currency === 'object' ? currency.code : currency}
-                    data-quantity={quantity}
-                >
-                    Buy Now
-                </button>
-            </div>
+            {shouldShowPrice ? (
+                <div className={styles.actions}>
+                    <button
+                        className={styles.addToCartBtn}
+                        onClick={onAddToCart}
+                        disabled={!canOrder || isAddingToCart || (product.type === 'variable' && !allOptionsSelected)}
+                        data-track="add_to_cart"
+                        data-item-id={product._id}
+                        data-item-name={product.name}
+                        data-price={effectivePrice || 0}
+                        data-currency={typeof currency === 'object' ? currency.code : currency}
+                        data-quantity={quantity}
+                    >
+                        {isAddingToCart ? 'Adding...' : 'Add to Cart'}
+                    </button>
+                    <button
+                        className={styles.buyNowBtn}
+                        onClick={() => {
+                            onBuyNow();
+                        }}
+                        disabled={!canOrder || isAddingToCart || (product.type === 'variable' && !allOptionsSelected)}
+                        data-track="begin_checkout"
+                        data-item-id={product._id}
+                        data-item-name={product.name}
+                        data-price={effectivePrice || 0}
+                        data-currency={typeof currency === 'object' ? currency.code : currency}
+                        data-quantity={quantity}
+                    >
+                        Buy Now
+                    </button>
+                </div>
+            ) : (
+                <div className={styles.actions}>
+                    <a
+                        href={contactUsLink}
+                        className={styles.addToCartBtn}
+                        style={{ textAlign: 'center', textDecoration: 'none', display: 'inline-block' }}
+                    >
+                        Contact Us
+                    </a>
+                </div>
+            )}
 
             {/* Secondary Actions */}
             <div className={styles.secondaryActions} data-ga-location="product_page">

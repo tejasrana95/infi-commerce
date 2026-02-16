@@ -10,6 +10,11 @@ export interface IStore extends Document {
     currency: string;
     timezone: string;
     isActive: boolean;
+    contact?: {
+        phone?: string;
+        email?: string;
+        address?: string;
+    };
 
     // SEO Fields
     seo: {
@@ -102,7 +107,37 @@ export interface IStore extends Document {
             exchangeConditions?: string[];
             processSteps?: { label: string; description?: string }[];
         };
+        priceVisibility?: {
+            showPrice: boolean;
+            hiddenPriceMessage?: string;
+            contactUsLink?: string;
+            hideForUnauthenticated?: boolean;
+            geoRestrictions?: Array<{
+                countryCodes?: string[];
+                stateCodes?: string[];
+                cityNames?: string[];
+            }>;
+        };
         [key: string]: any;
+    };
+
+    // Google Merchant Center Settings
+    googleMerchantSettings?: {
+        enabled: boolean;
+        merchantId?: string;
+        serviceAccountKey?: string;
+        targetCountries?: string[];
+        contentLanguage?: string;
+        autoSync?: boolean;
+        syncFrequency?: 'manual' | 'daily' | 'weekly';
+        lastSyncedAt?: Date;
+        feedSettings?: {
+            includeOutOfStock: boolean;
+            includeInactive: boolean;
+            defaultShippingLabel?: string;
+            defaultTaxCategory?: string;
+            customLabels?: string[];
+        };
     };
 
     // Theme Configuration (Header, Footer, Colors, Fonts)
@@ -669,6 +704,28 @@ const StoreSchema = new Schema<IStore>(
                 type: String,
                 enum: ['toast', 'banner', 'none'],
                 default: 'toast',
+            },
+        },
+        // Google Merchant Center Settings
+        googleMerchantSettings: {
+            enabled: { type: Boolean, default: false },
+            merchantId: { type: String, trim: true },
+            serviceAccountKey: { type: String },
+            targetCountries: [{ type: String, trim: true }],
+            contentLanguage: { type: String, trim: true, default: 'en' },
+            autoSync: { type: Boolean, default: false },
+            syncFrequency: {
+                type: String,
+                enum: ['manual', 'daily', 'weekly'],
+                default: 'manual',
+            },
+            lastSyncedAt: { type: Date },
+            feedSettings: {
+                includeOutOfStock: { type: Boolean, default: false },
+                includeInactive: { type: Boolean, default: false },
+                defaultShippingLabel: { type: String, trim: true },
+                defaultTaxCategory: { type: String, trim: true },
+                customLabels: [{ type: String, trim: true }],
             },
         },
         lastProductModified: {

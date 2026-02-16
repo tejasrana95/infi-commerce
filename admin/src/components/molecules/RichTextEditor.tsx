@@ -554,6 +554,181 @@ export default function RichTextEditor({
                     '& .ProseMirror': {
                         outline: 'none',
                         minHeight: minHeight,
+                        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                        fontSize: '15px',
+                        lineHeight: '1.7',
+                        color: theme.palette.text.primary,
+
+                        // Headings
+                        '& h1': {
+                            fontSize: '2em',
+                            fontWeight: 700,
+                            lineHeight: 1.3,
+                            marginTop: '1.5em',
+                            marginBottom: '0.5em',
+                            color: theme.palette.text.primary,
+                            letterSpacing: '-0.02em',
+                            '&:first-child': { marginTop: 0 },
+                        },
+                        '& h2': {
+                            fontSize: '1.65em',
+                            fontWeight: 700,
+                            lineHeight: 1.35,
+                            marginTop: '1.4em',
+                            marginBottom: '0.5em',
+                            color: theme.palette.text.primary,
+                            letterSpacing: '-0.015em',
+                            '&:first-child': { marginTop: 0 },
+                        },
+                        '& h3': {
+                            fontSize: '1.35em',
+                            fontWeight: 600,
+                            lineHeight: 1.4,
+                            marginTop: '1.3em',
+                            marginBottom: '0.5em',
+                            color: theme.palette.text.primary,
+                            letterSpacing: '-0.01em',
+                            '&:first-child': { marginTop: 0 },
+                        },
+                        '& h4': {
+                            fontSize: '1.15em',
+                            fontWeight: 600,
+                            lineHeight: 1.45,
+                            marginTop: '1.2em',
+                            marginBottom: '0.5em',
+                            color: theme.palette.text.primary,
+                            '&:first-child': { marginTop: 0 },
+                        },
+                        '& h5': {
+                            fontSize: '1em',
+                            fontWeight: 600,
+                            lineHeight: 1.5,
+                            marginTop: '1.1em',
+                            marginBottom: '0.5em',
+                            color: theme.palette.text.primary,
+                            '&:first-child': { marginTop: 0 },
+                        },
+                        '& h6': {
+                            fontSize: '0.95em',
+                            fontWeight: 600,
+                            lineHeight: 1.5,
+                            marginTop: '1em',
+                            marginBottom: '0.5em',
+                            color: theme.palette.text.secondary,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            '&:first-child': { marginTop: 0 },
+                        },
+
+                        // Paragraphs
+                        '& p': {
+                            marginTop: '0.75em',
+                            marginBottom: '0.75em',
+                            lineHeight: 1.7,
+                            '&:first-child': { marginTop: 0 },
+                            '&:last-child': { marginBottom: 0 },
+                        },
+
+                        // Lists
+                        '& ul, & ol': {
+                            paddingLeft: '1.8em',
+                            marginTop: '0.85em',
+                            marginBottom: '0.85em',
+                            '&:first-child': { marginTop: 0 },
+                            '&:last-child': { marginBottom: 0 },
+                        },
+                        '& ul': {
+                            listStyleType: 'disc',
+                        },
+                        '& ol': {
+                            listStyleType: 'decimal',
+                        },
+                        '& li': {
+                            marginTop: '0.5em',
+                            marginBottom: '0.5em',
+                            paddingLeft: '0.3em',
+                            lineHeight: 1.7,
+                            '& p': {
+                                marginTop: '0.5em',
+                                marginBottom: '0.5em',
+                            },
+                        },
+                        '& ul ul, & ul ol, & ol ul, & ol ol': {
+                            marginTop: '0.5em',
+                            marginBottom: '0.5em',
+                        },
+
+                        // Strong and emphasis
+                        '& strong, & b': {
+                            fontWeight: 600,
+                            color: theme.palette.text.primary,
+                        },
+                        '& em, & i': {
+                            fontStyle: 'italic',
+                        },
+                        '& u': {
+                            textDecoration: 'underline',
+                            textDecorationColor: theme.palette.primary.main,
+                            textDecorationThickness: '2px',
+                        },
+                        '& s, & strike': {
+                            textDecoration: 'line-through',
+                            opacity: 0.7,
+                        },
+
+                        // Links
+                        '& a': {
+                            color: theme.palette.primary.main,
+                            textDecoration: 'underline',
+                            textDecorationColor: 'rgba(59, 130, 246, 0.3)',
+                            textDecorationThickness: '2px',
+                            textUnderlineOffset: '2px',
+                            transition: 'all 0.2s',
+                            '&:hover': {
+                                textDecorationColor: theme.palette.primary.main,
+                                backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                            },
+                        },
+
+                        // Code
+                        '& code': {
+                            backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)',
+                            color: theme.palette.mode === 'dark' ? '#e879f9' : '#e11d48',
+                            padding: '0.15em 0.4em',
+                            borderRadius: '4px',
+                            fontSize: '0.9em',
+                            fontFamily: '"Fira Code", "SF Mono", Monaco, monospace',
+                            fontWeight: 500,
+                        },
+
+                        // Blockquotes
+                        '& blockquote': {
+                            borderLeft: `4px solid ${theme.palette.primary.main}`,
+                            paddingLeft: '1.2em',
+                            marginLeft: 0,
+                            marginRight: 0,
+                            marginTop: '1.2em',
+                            marginBottom: '1.2em',
+                            fontStyle: 'italic',
+                            color: theme.palette.text.secondary,
+                            backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
+                            paddingTop: '0.8em',
+                            paddingBottom: '0.8em',
+                            paddingRight: '1em',
+                            borderRadius: '0 8px 8px 0',
+                            '& p': {
+                                fontSize: '1.05em',
+                                lineHeight: 1.6,
+                            },
+                        },
+
+                        // Horizontal rule
+                        '& hr': {
+                            border: 'none',
+                            borderTop: `2px solid ${theme.palette.divider}`,
+                            marginTop: '2em',
+                            marginBottom: '2em',
+                        },
                     },
                     '& .ProseMirror p.is-editor-empty:first-of-type::before': {
                         color: theme.palette.text.disabled,
@@ -565,22 +740,32 @@ export default function RichTextEditor({
                     '& .ProseMirror img': {
                         maxWidth: '100%',
                         height: 'auto',
-                        borderRadius: 4,
+                        borderRadius: 8,
+                        marginTop: '1em',
+                        marginBottom: '1em',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
                     },
                     '& .ProseMirror pre': {
-                        background: theme.palette.grey[900],
+                        background: theme.palette.mode === 'dark' ? '#1e293b' : '#1e1e1e',
                         color: theme.palette.common.white,
-                        padding: '0.75rem 1rem',
-                        borderRadius: '0.5rem',
-                        fontFamily: 'monospace',
+                        padding: '1rem 1.25rem',
+                        borderRadius: '8px',
+                        fontFamily: '"Fira Code", "SF Mono", Monaco, monospace',
+                        fontSize: '0.9em',
+                        lineHeight: 1.6,
+                        marginTop: '1.2em',
+                        marginBottom: '1.2em',
+                        overflow: 'auto',
+                        border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+                        '& code': {
+                            background: 'transparent',
+                            color: 'inherit',
+                            padding: 0,
+                            borderRadius: 0,
+                            fontSize: 'inherit',
+                            fontWeight: 'normal',
+                        },
                     },
-                    '& .ProseMirror blockquote': {
-                        borderLeft: `3px solid ${theme.palette.grey[300]}`,
-                        paddingLeft: '1rem',
-                        marginLeft: 0,
-                        marginRight: 0,
-                        fontStyle: 'italic',
-                    }
                 }}
             >
                 {renderEditorContent()}
@@ -606,6 +791,94 @@ export default function RichTextEditor({
                             flex: 1,
                             minHeight: 'calc(100vh - 100px)',
                             padding: '24px',
+                            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                            fontSize: '15px',
+                            lineHeight: '1.7',
+                            color: theme.palette.text.primary,
+
+                            // Headings
+                            '& h1': {
+                                fontSize: '2em',
+                                fontWeight: 700,
+                                lineHeight: 1.3,
+                                marginTop: '1.5em',
+                                marginBottom: '0.5em',
+                                color: theme.palette.text.primary,
+                                letterSpacing: '-0.02em',
+                                '&:first-child': { marginTop: 0 },
+                            },
+                            '& h2': {
+                                fontSize: '1.65em',
+                                fontWeight: 700,
+                                lineHeight: 1.35,
+                                marginTop: '1.4em',
+                                marginBottom: '0.5em',
+                                color: theme.palette.text.primary,
+                                letterSpacing: '-0.015em',
+                                '&:first-child': { marginTop: 0 },
+                            },
+                            '& h3': {
+                                fontSize: '1.35em',
+                                fontWeight: 600,
+                                lineHeight: 1.4,
+                                marginTop: '1.3em',
+                                marginBottom: '0.5em',
+                                color: theme.palette.text.primary,
+                                letterSpacing: '-0.01em',
+                                '&:first-child': { marginTop: 0 },
+                            },
+                            '& h4, & h5, & h6': {
+                                fontWeight: 600,
+                                color: theme.palette.text.primary,
+                                marginTop: '1.2em',
+                                marginBottom: '0.5em',
+                                '&:first-child': { marginTop: 0 },
+                            },
+
+                            // Paragraphs
+                            '& p': {
+                                marginTop: '0.75em',
+                                marginBottom: '0.75em',
+                                lineHeight: 1.7,
+                                '&:first-child': { marginTop: 0 },
+                                '&:last-child': { marginBottom: 0 },
+                            },
+
+                            // Lists
+                            '& ul, & ol': {
+                                paddingLeft: '1.8em',
+                                marginTop: '0.85em',
+                                marginBottom: '0.85em',
+                            },
+                            '& li': {
+                                marginTop: '0.5em',
+                                marginBottom: '0.5em',
+                                paddingLeft: '0.3em',
+                                lineHeight: 1.7,
+                            },
+
+                            // Strong and emphasis
+                            '& strong, & b': {
+                                fontWeight: 600,
+                                color: theme.palette.text.primary,
+                            },
+                            '& em, & i': {
+                                fontStyle: 'italic',
+                            },
+                            '& u': {
+                                textDecoration: 'underline',
+                                textDecorationColor: theme.palette.primary.main,
+                                textDecorationThickness: '2px',
+                            },
+
+                            // Links
+                            '& a': {
+                                color: theme.palette.primary.main,
+                                textDecoration: 'underline',
+                                textDecorationColor: 'rgba(59, 130, 246, 0.3)',
+                                textDecorationThickness: '2px',
+                                textUnderlineOffset: '2px',
+                            },
                         },
                         '& .ProseMirror p.is-editor-empty:first-of-type::before': {
                             color: theme.palette.text.disabled,
@@ -617,21 +890,38 @@ export default function RichTextEditor({
                         '& .ProseMirror img': {
                             maxWidth: '100%',
                             height: 'auto',
-                            borderRadius: 4,
+                            borderRadius: 8,
+                            marginTop: '1em',
+                            marginBottom: '1em',
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
                         },
                         '& .ProseMirror pre': {
-                            background: theme.palette.grey[900],
+                            background: theme.palette.mode === 'dark' ? '#1e293b' : '#1e1e1e',
                             color: theme.palette.common.white,
-                            padding: '0.75rem 1rem',
-                            borderRadius: '0.5rem',
-                            fontFamily: 'monospace',
+                            padding: '1rem 1.25rem',
+                            borderRadius: '8px',
+                            fontFamily: '"Fira Code", "SF Mono", Monaco, monospace',
+                            fontSize: '0.9em',
+                            lineHeight: 1.6,
+                            marginTop: '1.2em',
+                            marginBottom: '1.2em',
+                            overflow: 'auto',
+                            border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
                         },
                         '& .ProseMirror blockquote': {
-                            borderLeft: `3px solid ${theme.palette.grey[300]}`,
-                            paddingLeft: '1rem',
+                            borderLeft: `4px solid ${theme.palette.primary.main}`,
+                            paddingLeft: '1.2em',
                             marginLeft: 0,
                             marginRight: 0,
+                            marginTop: '1.2em',
+                            marginBottom: '1.2em',
                             fontStyle: 'italic',
+                            color: theme.palette.text.secondary,
+                            backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
+                            paddingTop: '0.8em',
+                            paddingBottom: '0.8em',
+                            paddingRight: '1em',
+                            borderRadius: '0 8px 8px 0',
                         }
                     }
                 }}

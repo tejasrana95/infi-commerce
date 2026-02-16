@@ -8,6 +8,8 @@ import Brand from '../models/Brand';
 import Coupon from '../models/Coupon';
 import Review from '../models/Review';
 import Store from '../models/Store';
+import Attribute from '../models/Attribute';
+import ProductOption from '../models/ProductOption';
 import {
     validateObjectId,
     validateRequiredFields,
@@ -32,6 +34,33 @@ export interface ImportResult {
     errors: Array<{ row: number; errors: string[] }>;
 }
 
+interface ParsedComplexFieldResult<T> {
+    value?: T;
+    errors: string[];
+}
+
+interface ProductOptionLookupEntry {
+    id: string;
+    valueLookup: Map<string, string>;
+}
+
+interface ParsedExcelRow {
+    rowNumber: number;
+    data: any;
+}
+
+interface ProductWorkbookRows {
+    products: ParsedExcelRow[];
+    variants: ParsedExcelRow[];
+    specifications: ParsedExcelRow[];
+    options: ParsedExcelRow[];
+    attributes: ParsedExcelRow[];
+    hasVariantsSheet: boolean;
+    hasSpecificationsSheet: boolean;
+    hasOptionsSheet: boolean;
+    hasAttributesSheet: boolean;
+}
+
 class RestoreService {
     /**
      * Parse Excel file to JSON
@@ -45,18 +74,20 @@ class RestoreService {
             throw new Error('Excel file is empty or invalid');
         }
 
-        const rows: any[] = [];
+        return this.parseWorksheetRows(worksheet);
+    }
+
+    private parseWorksheetRows(worksheet: ExcelJS.Worksheet): ParsedExcelRow[] {
+        const rows: ParsedExcelRow[] = [];
         const headers: string[] = [];
 
-        // Get headers from first row
         const headerRow = worksheet.getRow(1);
         headerRow.eachCell((cell, colNumber) => {
             headers[colNumber - 1] = cell.value?.toString() || '';
         });
 
-        // Parse data rows
         worksheet.eachRow((row, rowNumber) => {
-            if (rowNumber === 1) return; // Skip header row
+            if (rowNumber === 1) return;
 
             const rowData: any = {};
             row.eachCell((cell, colNumber) => {
@@ -70,6 +101,129 @@ class RestoreService {
         });
 
         return rows;
+    }
+
+    private getWorksheetByName(workbook: ExcelJS.Workbook, sheetName: string): ExcelJS.Worksheet | undefined {
+        const normalizedName = sheetName.trim().toLowerCase();
+        return workbook.worksheets.find(worksheet => worksheet.name.trim().toLowerCase() === normalizedName);
+    }
+
+    private async parseProductWorkbook(buffer: Buffer): Promise<ProductWorkbookRows> {
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(buffer as any);
+
+        const productsWorksheet = this.getWorksheetByName(workbook, 'Products') || workbook.worksheets[0];
+        if (!productsWorksheet) {
+            throw new Error('Excel file is empty or invalid');
+        }
+
+        const variantsWorksheet = this.getWorksheetByName(workbook, 'ProductVariants');
+        const specificationsWorksheet = this.getWorksheetByName(workbook, 'ProductSpecifications');
+        const optionsWorksheet = this.getWorksheetByName(workbook, 'ProductOptions');
+        const attributesWorksheet = this.getWorksheetByName(workbook, 'ProductAttributes');
+
+        return {
+            products: this.parseWorksheetRows(productsWorksheet),
+            variants: variantsWorksheet ? this.parseWorksheetRows(variantsWorksheet) : [],
+            specifications: specificationsWorksheet ? this.parseWorksheetRows(specificationsWorksheet) : [],
+            options: optionsWorksheet ? this.parseWorksheetRows(optionsWorksheet) : [],
+            attributes: attributesWorksheet ? this.parseWorksheetRows(attributesWorksheet) : [],
+            hasVariantsSheet: Boolean(variantsWorksheet),
+            hasSpecificationsSheet: Boolean(specificationsWorksheet),
+            hasOptionsSheet: Boolean(optionsWorksheet),
+            hasAttributesSheet: Boolean(attributesWorksheet),
+        };
+    }
+
+    private buildProductKey(productId?: string, sku?: string): string | undefined {
+        if (productId && validateObjectId(productId)) {
+            return `id:${productId}`;
+        }
+
+        if (sku) {
+            const normalizedSku = sku.trim().toLowerCase();
+            if (normalizedSku) {
+                return `sku:${normalizedSku}`;
+            }
+        }
+
+        return undefined;
+    }
+
+    private buildProductKeyFromProductRow(data: any): string | undefined {
+        const productId = this.toIdString(data?._id);
+        const sku = typeof data?.sku === 'string' ? data.sku : undefined;
+        return this.buildProductKey(productId, sku);
+    }
+
+    private buildProductKeyFromChildRow(data: any): string | undefined {
+        const productId = this.toIdString(data?.product_id ?? data?.productId);
+        const skuRaw = data?.product_sku ?? data?.productSku;
+        const sku = typeof skuRaw === 'string'
+            ? skuRaw
+            : skuRaw === null || skuRaw === undefined
+                ? undefined
+                : String(skuRaw);
+
+        return this.buildProductKey(productId, sku);
+    }
+
+    private mapChildRowsByProductKey(rows: ParsedExcelRow[]): Map<string, ParsedExcelRow[]> {
+        const mappedRows = new Map<string, ParsedExcelRow[]>();
+
+        rows.forEach(row => {
+            const key = this.buildProductKeyFromChildRow(row.data);
+            if (!key) {
+                return;
+            }
+
+            const existing = mappedRows.get(key) || [];
+            existing.push(row);
+            mappedRows.set(key, existing);
+        });
+
+        return mappedRows;
+    }
+
+    private asCellText(value: any): string {
+        if (value === null || value === undefined) return '';
+
+        if (typeof value === 'string') {
+            return value.trim();
+        }
+
+        if (typeof value === 'number' || typeof value === 'boolean') {
+            return String(value);
+        }
+
+        if (value instanceof Date) {
+            return value.toISOString();
+        }
+
+        if (typeof value === 'object') {
+            if ('text' in value && typeof value.text === 'string') {
+                return value.text.trim();
+            }
+
+            if ('result' in value && value.result !== undefined) {
+                return this.asCellText(value.result);
+            }
+        }
+
+        return String(value).trim();
+    }
+
+    private parseCellNumber(value: any): number | undefined {
+        if (value === null || value === undefined || value === '') {
+            return undefined;
+        }
+
+        if (typeof value === 'number') {
+            return Number.isFinite(value) ? value : undefined;
+        }
+
+        const parsed = Number(this.asCellText(value));
+        return Number.isFinite(parsed) ? parsed : undefined;
     }
 
     /**
@@ -110,11 +264,840 @@ class RestoreService {
         return result;
     }
 
+    private normalizeLookupKey(value: string): string {
+        return value.trim().toLowerCase();
+    }
+
+    private splitFriendlyEntries(value: string): string[] {
+        return value
+            .split(/\r?\n|;/)
+            .map(entry => entry.trim())
+            .filter(Boolean);
+    }
+
+    private parseKeyValuePair(value: string): { key: string; value: string } | null {
+        const equalIndex = value.indexOf('=');
+        const colonIndex = value.indexOf(':');
+        let separatorIndex = -1;
+
+        if (equalIndex >= 0 && colonIndex >= 0) {
+            separatorIndex = Math.min(equalIndex, colonIndex);
+        } else {
+            separatorIndex = equalIndex >= 0 ? equalIndex : colonIndex;
+        }
+
+        if (separatorIndex < 0) {
+            return null;
+        }
+
+        const key = value.slice(0, separatorIndex).trim();
+        const parsedValue = value.slice(separatorIndex + 1).trim();
+
+        if (!key) {
+            return null;
+        }
+
+        return { key, value: parsedValue };
+    }
+
+    private parseEntryWithMetadata(value: string): { key: string; value: string; metadata: Record<string, string> } | null {
+        const parts = value
+            .split('|')
+            .map(part => part.trim())
+            .filter(Boolean);
+
+        if (parts.length === 0) {
+            return null;
+        }
+
+        const main = this.parseKeyValuePair(parts[0]);
+        if (!main) {
+            return null;
+        }
+
+        const metadata: Record<string, string> = {};
+        for (const metaPart of parts.slice(1)) {
+            const parsed = this.parseKeyValuePair(metaPart);
+            if (parsed) {
+                metadata[this.normalizeLookupKey(parsed.key)] = parsed.value;
+            }
+        }
+
+        return {
+            key: main.key,
+            value: main.value,
+            metadata,
+        };
+    }
+
+    private parseCommaSeparatedValues(value: string): string[] {
+        return value
+            .split(',')
+            .map(entry => entry.trim())
+            .filter(Boolean);
+    }
+
+    private toIdString(value: any): string | undefined {
+        if (value === null || value === undefined) return undefined;
+
+        if (typeof value === 'string' || typeof value === 'number') {
+            const parsed = String(value).trim();
+            return parsed || undefined;
+        }
+
+        if (typeof value === 'object') {
+            if ('_id' in value && value._id) {
+                const parsed = String(value._id).trim();
+                return parsed || undefined;
+            }
+
+            if (typeof value.toString === 'function') {
+                const parsed = value.toString().trim();
+                return parsed || undefined;
+            }
+        }
+
+        return undefined;
+    }
+
+    private normalizeStoreId(storeId: any): string | undefined {
+        const parsedStoreId = this.toIdString(storeId);
+        if (!parsedStoreId || !validateObjectId(parsedStoreId)) {
+            return undefined;
+        }
+        return parsedStoreId;
+    }
+
+    private cleanupEmbeddedDocuments(items: any[]): any[] {
+        return items.map((item: any) => {
+            if (!item || typeof item !== 'object') return item;
+
+            const cleaned = { ...item };
+            delete cleaned._id;
+
+            if ('attributeId' in cleaned) {
+                const attributeId = this.toIdString(cleaned.attributeId);
+                if (attributeId) {
+                    cleaned.attributeId = attributeId;
+                }
+            }
+
+            if ('optionId' in cleaned) {
+                const optionId = this.toIdString(cleaned.optionId);
+                if (optionId) {
+                    cleaned.optionId = optionId;
+                }
+            }
+
+            return cleaned;
+        });
+    }
+
+    private async getAttributeLookup(
+        storeId: string,
+        cache: Map<string, Map<string, string>>
+    ): Promise<Map<string, string>> {
+        const cacheKey = storeId.toString();
+        const cached = cache.get(cacheKey);
+        if (cached) {
+            return cached;
+        }
+
+        const attributes = await Attribute.find({ storeId: cacheKey })
+            .select('_id name slug')
+            .lean();
+
+        const lookup = new Map<string, string>();
+        attributes.forEach((attribute: any) => {
+            const id = attribute._id?.toString();
+            if (!id) return;
+
+            lookup.set(id, id);
+
+            if (attribute.name) {
+                lookup.set(this.normalizeLookupKey(attribute.name), id);
+            }
+
+            if (attribute.slug) {
+                lookup.set(this.normalizeLookupKey(attribute.slug), id);
+            }
+        });
+
+        cache.set(cacheKey, lookup);
+        return lookup;
+    }
+
+    private async getProductOptionLookup(
+        storeId: string,
+        cache: Map<string, Map<string, ProductOptionLookupEntry>>
+    ): Promise<Map<string, ProductOptionLookupEntry>> {
+        const cacheKey = storeId.toString();
+        const cached = cache.get(cacheKey);
+        if (cached) {
+            return cached;
+        }
+
+        const options = await ProductOption.find({ storeId: cacheKey })
+            .select('_id name slug values')
+            .lean();
+
+        const lookup = new Map<string, ProductOptionLookupEntry>();
+        options.forEach((option: any) => {
+            const id = option._id?.toString();
+            if (!id) return;
+
+            const valueLookup = new Map<string, string>();
+            if (Array.isArray(option.values)) {
+                option.values.forEach((optionValue: any) => {
+                    if (!optionValue) return;
+
+                    const parsedValue = typeof optionValue.value === 'string'
+                        ? optionValue.value.trim()
+                        : '';
+                    if (!parsedValue) return;
+
+                    valueLookup.set(this.normalizeLookupKey(parsedValue), parsedValue);
+
+                    if (typeof optionValue.label === 'string' && optionValue.label.trim()) {
+                        valueLookup.set(this.normalizeLookupKey(optionValue.label), parsedValue);
+                    }
+                });
+            }
+
+            const entry: ProductOptionLookupEntry = {
+                id,
+                valueLookup,
+            };
+
+            lookup.set(id, entry);
+
+            if (option.name) {
+                lookup.set(this.normalizeLookupKey(option.name), entry);
+            }
+
+            if (option.slug) {
+                lookup.set(this.normalizeLookupKey(option.slug), entry);
+            }
+        });
+
+        cache.set(cacheKey, lookup);
+        return lookup;
+    }
+
+    private async resolveAttributeIdentifier(
+        token: string,
+        storeId: string | undefined,
+        cache: Map<string, Map<string, string>>
+    ): Promise<string | null> {
+        const normalizedToken = token.trim();
+        if (!normalizedToken) return null;
+
+        // If store context is unavailable, only ObjectId values can be safely resolved.
+        if (!storeId) {
+            return validateObjectId(normalizedToken) ? normalizedToken : null;
+        }
+
+        const lookup = await this.getAttributeLookup(storeId, cache);
+        if (validateObjectId(normalizedToken)) {
+            return lookup.has(normalizedToken) ? normalizedToken : null;
+        }
+
+        return lookup.get(this.normalizeLookupKey(normalizedToken)) || null;
+    }
+
+    private async resolveProductOptionIdentifier(
+        token: string,
+        storeId: string | undefined,
+        cache: Map<string, Map<string, ProductOptionLookupEntry>>
+    ): Promise<ProductOptionLookupEntry | null> {
+        const normalizedToken = token.trim();
+        if (!normalizedToken) return null;
+
+        if (!storeId) {
+            if (!validateObjectId(normalizedToken)) {
+                return null;
+            }
+
+            return {
+                id: normalizedToken,
+                valueLookup: new Map<string, string>(),
+            };
+        }
+
+        const lookup = await this.getProductOptionLookup(storeId, cache);
+        if (validateObjectId(normalizedToken)) {
+            return lookup.get(normalizedToken) || null;
+        }
+
+        return lookup.get(this.normalizeLookupKey(normalizedToken)) || null;
+    }
+
+    private async parseProductSpecificationsField(
+        rawValue: any,
+        storeId: string | undefined,
+        attributeLookupCache: Map<string, Map<string, string>>
+    ): Promise<ParsedComplexFieldResult<Array<{ attributeId: string; value: any }>>> {
+        if (rawValue === null || rawValue === undefined || rawValue === '') {
+            return { errors: [] };
+        }
+
+        if (Array.isArray(rawValue)) {
+            const cleaned = this.cleanupEmbeddedDocuments(rawValue)
+                .filter((item: any) => item && typeof item === 'object')
+                .map((item: any) => {
+                    const attributeId = this.toIdString(item.attributeId);
+                    if (!attributeId) return null;
+                    return {
+                        attributeId,
+                        value: item.value,
+                    };
+                })
+                .filter((item): item is { attributeId: string; value: any } => Boolean(item));
+
+            return { value: cleaned, errors: [] };
+        }
+
+        if (typeof rawValue !== 'string') {
+            return { errors: ['Field "specifications" must be text or array format'] };
+        }
+
+        const trimmedValue = rawValue.trim();
+        if (!trimmedValue) {
+            return { value: [], errors: [] };
+        }
+
+        if (trimmedValue.startsWith('[') || trimmedValue.startsWith('{')) {
+            try {
+                const parsed = JSON.parse(trimmedValue);
+                return this.parseProductSpecificationsField(parsed, storeId, attributeLookupCache);
+            } catch (error) {
+                return { errors: ['Field "specifications" contains invalid JSON'] };
+            }
+        }
+
+        const errors: string[] = [];
+        const parsedSpecifications: Array<{ attributeId: string; value: any }> = [];
+
+        for (const entry of this.splitFriendlyEntries(trimmedValue)) {
+            const parsedEntry = this.parseEntryWithMetadata(entry);
+            if (!parsedEntry) {
+                errors.push(`Invalid specifications entry "${entry}". Use "Attribute=Value".`);
+                continue;
+            }
+
+            const attributeId = await this.resolveAttributeIdentifier(
+                parsedEntry.key,
+                storeId,
+                attributeLookupCache
+            );
+            if (!attributeId) {
+                errors.push(`Unknown specification attribute "${parsedEntry.key}".`);
+                continue;
+            }
+
+            parsedSpecifications.push({
+                attributeId,
+                value: parsedEntry.value,
+            });
+        }
+
+        return { value: parsedSpecifications, errors };
+    }
+
+    private async parseProductOptionsField(
+        rawValue: any,
+        storeId: string | undefined,
+        optionLookupCache: Map<string, Map<string, ProductOptionLookupEntry>>
+    ): Promise<ParsedComplexFieldResult<Array<{ optionId: string; values: string[]; isVariation: boolean }>>> {
+        if (rawValue === null || rawValue === undefined || rawValue === '') {
+            return { errors: [] };
+        }
+
+        if (Array.isArray(rawValue)) {
+            const cleaned = this.cleanupEmbeddedDocuments(rawValue)
+                .filter((item: any) => item && typeof item === 'object')
+                .map((item: any) => {
+                    const optionId = this.toIdString(item.optionId);
+                    if (!optionId) return null;
+
+                    const optionValues = Array.isArray(item.values)
+                        ? item.values.map((value: any) => String(value).trim()).filter(Boolean)
+                        : this.parseCommaSeparatedValues(String(item.values ?? ''));
+
+                    return {
+                        optionId,
+                        values: optionValues,
+                        isVariation: item.isVariation === undefined ? true : parseBoolean(item.isVariation),
+                    };
+                })
+                .filter((item): item is { optionId: string; values: string[]; isVariation: boolean } => Boolean(item));
+
+            return { value: cleaned, errors: [] };
+        }
+
+        if (typeof rawValue !== 'string') {
+            return { errors: ['Field "productOptions" must be text or array format'] };
+        }
+
+        const trimmedValue = rawValue.trim();
+        if (!trimmedValue) {
+            return { value: [], errors: [] };
+        }
+
+        if (trimmedValue.startsWith('[') || trimmedValue.startsWith('{')) {
+            try {
+                const parsed = JSON.parse(trimmedValue);
+                return this.parseProductOptionsField(parsed, storeId, optionLookupCache);
+            } catch (error) {
+                return { errors: ['Field "productOptions" contains invalid JSON'] };
+            }
+        }
+
+        const errors: string[] = [];
+        const parsedProductOptions: Array<{ optionId: string; values: string[]; isVariation: boolean }> = [];
+
+        for (const entry of this.splitFriendlyEntries(trimmedValue)) {
+            const parsedEntry = this.parseEntryWithMetadata(entry);
+            if (!parsedEntry) {
+                errors.push(`Invalid productOptions entry "${entry}". Use "Option=Value1,Value2|variation=Yes".`);
+                continue;
+            }
+
+            const optionEntry = await this.resolveProductOptionIdentifier(
+                parsedEntry.key,
+                storeId,
+                optionLookupCache
+            );
+            if (!optionEntry) {
+                errors.push(`Unknown product option "${parsedEntry.key}".`);
+                continue;
+            }
+
+            const values = this.parseCommaSeparatedValues(parsedEntry.value).map(value => {
+                const normalized = this.normalizeLookupKey(value);
+                return optionEntry.valueLookup.get(normalized) || value;
+            });
+
+            const variationFlag = parsedEntry.metadata.variation ?? parsedEntry.metadata.isvariation;
+            const isVariation = variationFlag === undefined ? true : parseBoolean(variationFlag);
+
+            parsedProductOptions.push({
+                optionId: optionEntry.id,
+                values,
+                isVariation,
+            });
+        }
+
+        return { value: parsedProductOptions, errors };
+    }
+
+    private async parseProductAttributesField(
+        rawValue: any,
+        storeId: string | undefined,
+        attributeLookupCache: Map<string, Map<string, string>>
+    ): Promise<ParsedComplexFieldResult<Array<{ attributeId: string; values: string[]; isVariation: boolean }>>> {
+        if (rawValue === null || rawValue === undefined || rawValue === '') {
+            return { errors: [] };
+        }
+
+        if (Array.isArray(rawValue)) {
+            const errors: string[] = [];
+            const parsedAttributes: Array<{ attributeId: string; values: string[]; isVariation: boolean }> = [];
+
+            for (const item of this.cleanupEmbeddedDocuments(rawValue)) {
+                if (item === null || item === undefined) {
+                    continue;
+                }
+
+                if (typeof item === 'string' || typeof item === 'number') {
+                    const attributeId = await this.resolveAttributeIdentifier(
+                        String(item),
+                        storeId,
+                        attributeLookupCache
+                    );
+                    if (!attributeId) {
+                        errors.push(`Unknown attribute "${String(item)}".`);
+                        continue;
+                    }
+
+                    parsedAttributes.push({
+                        attributeId,
+                        values: [],
+                        isVariation: false,
+                    });
+                    continue;
+                }
+
+                if (typeof item !== 'object') {
+                    continue;
+                }
+
+                const rawAttribute = this.toIdString((item as any).attributeId);
+                if (!rawAttribute) {
+                    continue;
+                }
+
+                const attributeId = await this.resolveAttributeIdentifier(
+                    rawAttribute,
+                    storeId,
+                    attributeLookupCache
+                );
+                if (!attributeId) {
+                    errors.push(`Unknown attribute "${rawAttribute}".`);
+                    continue;
+                }
+
+                const values = Array.isArray((item as any).values)
+                    ? (item as any).values.map((value: any) => String(value).trim()).filter(Boolean)
+                    : this.parseCommaSeparatedValues(String((item as any).values ?? ''));
+
+                parsedAttributes.push({
+                    attributeId,
+                    values,
+                    isVariation: (item as any).isVariation === undefined
+                        ? false
+                        : parseBoolean((item as any).isVariation),
+                });
+            }
+
+            return { value: parsedAttributes, errors };
+        }
+
+        if (typeof rawValue !== 'string') {
+            return { errors: ['Field "attributes" must be text or array format'] };
+        }
+
+        const trimmedValue = rawValue.trim();
+        if (!trimmedValue) {
+            return { value: [], errors: [] };
+        }
+
+        if (trimmedValue.startsWith('[') || trimmedValue.startsWith('{')) {
+            try {
+                const parsed = JSON.parse(trimmedValue);
+                return this.parseProductAttributesField(parsed, storeId, attributeLookupCache);
+            } catch (error) {
+                return { errors: ['Field "attributes" contains invalid JSON'] };
+            }
+        }
+
+        const errors: string[] = [];
+        const parsedAttributes: Array<{ attributeId: string; values: string[]; isVariation: boolean }> = [];
+
+        for (const entry of this.splitFriendlyEntries(trimmedValue)) {
+            const parsedEntry = this.parseEntryWithMetadata(entry);
+            const attributeKey = parsedEntry ? parsedEntry.key : entry.trim();
+            if (!attributeKey) {
+                continue;
+            }
+
+            const attributeId = await this.resolveAttributeIdentifier(
+                attributeKey,
+                storeId,
+                attributeLookupCache
+            );
+            if (!attributeId) {
+                errors.push(`Unknown attribute "${attributeKey}".`);
+                continue;
+            }
+
+            const values = parsedEntry
+                ? this.parseCommaSeparatedValues(parsedEntry.value)
+                : [];
+            const variationFlag = parsedEntry
+                ? parsedEntry.metadata.variation ?? parsedEntry.metadata.isvariation
+                : undefined;
+            const isVariation = variationFlag === undefined ? false : parseBoolean(variationFlag);
+
+            parsedAttributes.push({
+                attributeId,
+                values,
+                isVariation,
+            });
+        }
+
+        return { value: parsedAttributes, errors };
+    }
+
+    private async parseSpecificationsRowsFromSheet(
+        rows: ParsedExcelRow[],
+        storeId: string | undefined,
+        attributeLookupCache: Map<string, Map<string, string>>
+    ): Promise<ParsedComplexFieldResult<Array<{ attributeId: string; value: any }>>> {
+        const parsedSpecifications: Array<{ attributeId: string; value: any }> = [];
+        const errors: string[] = [];
+
+        for (const row of rows) {
+            const attributeToken = this.asCellText(row.data.attribute);
+            const value = row.data.value;
+
+            if (!attributeToken && (value === undefined || value === null || this.asCellText(value) === '')) {
+                continue;
+            }
+
+            if (!attributeToken) {
+                errors.push(`ProductSpecifications row ${row.rowNumber}: attribute is required.`);
+                continue;
+            }
+
+            const attributeId = await this.resolveAttributeIdentifier(
+                attributeToken,
+                storeId,
+                attributeLookupCache
+            );
+
+            if (!attributeId) {
+                errors.push(`ProductSpecifications row ${row.rowNumber}: unknown attribute "${attributeToken}".`);
+                continue;
+            }
+
+            parsedSpecifications.push({
+                attributeId,
+                value,
+            });
+        }
+
+        return { value: parsedSpecifications, errors };
+    }
+
+    private async parseOptionsRowsFromSheet(
+        rows: ParsedExcelRow[],
+        storeId: string | undefined,
+        optionLookupCache: Map<string, Map<string, ProductOptionLookupEntry>>
+    ): Promise<ParsedComplexFieldResult<Array<{ optionId: string; values: string[]; isVariation: boolean }>>> {
+        const parsedOptions: Array<{ optionId: string; values: string[]; isVariation: boolean }> = [];
+        const errors: string[] = [];
+
+        for (const row of rows) {
+            const optionToken = this.asCellText(row.data.option);
+            const valuesToken = this.asCellText(row.data.values);
+            const variationToken = row.data.is_variation;
+
+            if (!optionToken && !valuesToken && variationToken === undefined) {
+                continue;
+            }
+
+            if (!optionToken) {
+                errors.push(`ProductOptions row ${row.rowNumber}: option is required.`);
+                continue;
+            }
+
+            const optionEntry = await this.resolveProductOptionIdentifier(
+                optionToken,
+                storeId,
+                optionLookupCache
+            );
+
+            if (!optionEntry) {
+                errors.push(`ProductOptions row ${row.rowNumber}: unknown option "${optionToken}".`);
+                continue;
+            }
+
+            const values = this.parseCommaSeparatedValues(valuesToken).map(value => {
+                const normalized = this.normalizeLookupKey(value);
+                return optionEntry.valueLookup.get(normalized) || value;
+            });
+
+            const isVariation = variationToken === undefined || variationToken === null || variationToken === ''
+                ? true
+                : parseBoolean(variationToken);
+
+            parsedOptions.push({
+                optionId: optionEntry.id,
+                values,
+                isVariation,
+            });
+        }
+
+        return { value: parsedOptions, errors };
+    }
+
+    private async parseAttributesRowsFromSheet(
+        rows: ParsedExcelRow[],
+        storeId: string | undefined,
+        attributeLookupCache: Map<string, Map<string, string>>
+    ): Promise<ParsedComplexFieldResult<Array<{ attributeId: string; values: string[]; isVariation: boolean }>>> {
+        const parsedAttributes: Array<{ attributeId: string; values: string[]; isVariation: boolean }> = [];
+        const errors: string[] = [];
+
+        for (const row of rows) {
+            const attributeToken = this.asCellText(row.data.attribute);
+            const valuesToken = this.asCellText(row.data.values);
+            const variationToken = row.data.is_variation;
+
+            if (!attributeToken && !valuesToken && variationToken === undefined) {
+                continue;
+            }
+
+            if (!attributeToken) {
+                errors.push(`ProductAttributes row ${row.rowNumber}: attribute is required.`);
+                continue;
+            }
+
+            const attributeId = await this.resolveAttributeIdentifier(
+                attributeToken,
+                storeId,
+                attributeLookupCache
+            );
+
+            if (!attributeId) {
+                errors.push(`ProductAttributes row ${row.rowNumber}: unknown attribute "${attributeToken}".`);
+                continue;
+            }
+
+            const isVariation = variationToken === undefined || variationToken === null || variationToken === ''
+                ? false
+                : parseBoolean(variationToken);
+
+            parsedAttributes.push({
+                attributeId,
+                values: this.parseCommaSeparatedValues(valuesToken),
+                isVariation,
+            });
+        }
+
+        return { value: parsedAttributes, errors };
+    }
+
+    private async parseVariantAttributesField(
+        rawValue: any,
+        storeId: string | undefined,
+        optionLookupCache: Map<string, Map<string, ProductOptionLookupEntry>>
+    ): Promise<ParsedComplexFieldResult<Record<string, string>>> {
+        if (rawValue === undefined || rawValue === null || rawValue === '') {
+            return { value: {}, errors: [] };
+        }
+
+        const result: Record<string, string> = {};
+        const errors: string[] = [];
+
+        const resolveAndAssign = async (optionToken: string, optionValueToken: string) => {
+            const optionEntry = await this.resolveProductOptionIdentifier(
+                optionToken,
+                storeId,
+                optionLookupCache
+            );
+
+            if (!optionEntry) {
+                errors.push(`Unknown variant option "${optionToken}".`);
+                return;
+            }
+
+            const normalizedValue = this.normalizeLookupKey(optionValueToken);
+            const mappedValue = optionEntry.valueLookup.get(normalizedValue) || optionValueToken;
+            result[optionEntry.id] = mappedValue;
+        };
+
+        if (typeof rawValue === 'object' && !Array.isArray(rawValue)) {
+            for (const [optionToken, optionValue] of Object.entries(rawValue)) {
+                await resolveAndAssign(optionToken, this.asCellText(optionValue));
+            }
+            return { value: result, errors };
+        }
+
+        const text = this.asCellText(rawValue);
+        if (!text) {
+            return { value: {}, errors: [] };
+        }
+
+        if (text.startsWith('{')) {
+            try {
+                const parsed = JSON.parse(text);
+                return this.parseVariantAttributesField(parsed, storeId, optionLookupCache);
+            } catch (error) {
+                errors.push('Invalid JSON format in variant attributes.');
+                return { value: result, errors };
+            }
+        }
+
+        for (const entry of this.splitFriendlyEntries(text)) {
+            const parsedEntry = this.parseEntryWithMetadata(entry);
+            if (!parsedEntry) {
+                errors.push(`Invalid variant attribute entry "${entry}". Use "Option=Value".`);
+                continue;
+            }
+
+            await resolveAndAssign(parsedEntry.key, parsedEntry.value);
+        }
+
+        return { value: result, errors };
+    }
+
+    private async parseVariantsRowsFromSheet(
+        rows: ParsedExcelRow[],
+        storeId: string | undefined,
+        optionLookupCache: Map<string, Map<string, ProductOptionLookupEntry>>
+    ): Promise<ParsedComplexFieldResult<any[]>> {
+        const parsedVariantsWithOrder: Array<{ order: number; variant: any }> = [];
+        const errors: string[] = [];
+
+        for (const row of rows) {
+            const order = this.parseCellNumber(row.data.variant_index) ?? row.rowNumber;
+            const sku = this.asCellText(row.data.sku);
+            const attributesToken = row.data.attributes;
+
+            const parsedAttributes = await this.parseVariantAttributesField(
+                attributesToken,
+                storeId,
+                optionLookupCache
+            );
+            if (parsedAttributes.errors.length > 0) {
+                parsedAttributes.errors.forEach(error => {
+                    errors.push(`ProductVariants row ${row.rowNumber}: ${error}`);
+                });
+            }
+
+            const images = this.parseCommaSeparatedValues(this.asCellText(row.data.images));
+            const price = this.parseCellNumber(row.data.price);
+            const salePrice = this.parseCellNumber(row.data.salePrice);
+            const stock = this.parseCellNumber(row.data.stock);
+            const weight = this.parseCellNumber(row.data.weight);
+            const costPrice = this.parseCellNumber(row.data.costPrice);
+            const length = this.parseCellNumber(row.data.length);
+            const width = this.parseCellNumber(row.data.width);
+            const height = this.parseCellNumber(row.data.height);
+
+            const variant: any = {};
+            if (sku) variant.sku = sku;
+            if (parsedAttributes.value && Object.keys(parsedAttributes.value).length > 0) {
+                variant.attributes = parsedAttributes.value;
+            }
+            if (price !== undefined) variant.price = price;
+            if (salePrice !== undefined) variant.salePrice = salePrice;
+            if (stock !== undefined) variant.stock = stock;
+            if (weight !== undefined) variant.weight = weight;
+            if (costPrice !== undefined) variant.costPrice = costPrice;
+            if (images.length > 0) variant.images = images;
+
+            if (length !== undefined || width !== undefined || height !== undefined) {
+                variant.dimensions = {
+                    ...(length !== undefined ? { length } : {}),
+                    ...(width !== undefined ? { width } : {}),
+                    ...(height !== undefined ? { height } : {}),
+                };
+            }
+
+            if (Object.keys(variant).length === 0) {
+                continue;
+            }
+
+            parsedVariantsWithOrder.push({ order, variant });
+        }
+
+        parsedVariantsWithOrder.sort((a, b) => a.order - b.order);
+
+        return {
+            value: parsedVariantsWithOrder.map(item => item.variant),
+            errors,
+        };
+    }
+
     /**
      * Import products from Excel
      */
     async importProducts(buffer: Buffer, _filters: ImportFilters = {}): Promise<ImportResult> {
-        const rows = await this.parseExcelFile(buffer);
+        const workbookRows = await this.parseProductWorkbook(buffer);
+        const rows = workbookRows.products;
         const result: ImportResult = {
             success: false,
             message: '',
@@ -123,8 +1106,13 @@ class RestoreService {
             errors: []
         };
 
+        const variantRowsByProduct = this.mapChildRowsByProductKey(workbookRows.variants);
+        const specificationRowsByProduct = this.mapChildRowsByProductKey(workbookRows.specifications);
+        const optionRowsByProduct = this.mapChildRowsByProductKey(workbookRows.options);
+        const attributeRowsByProduct = this.mapChildRowsByProductKey(workbookRows.attributes);
+
         // Validate all rows first
-        const validatedRows: any[] = [];
+        const validatedRows: Array<{ rowNumber: number; data: any; productKey?: string }> = [];
 
         for (const { rowNumber, data } of rows) {
             const errors: string[] = [];
@@ -167,7 +1155,11 @@ class RestoreService {
             if (errors.length > 0) {
                 result.errors.push({ row: rowNumber, errors });
             } else {
-                validatedRows.push({ rowNumber, data: unflattened });
+                validatedRows.push({
+                    rowNumber,
+                    data: unflattened,
+                    productKey: this.buildProductKeyFromProductRow(unflattened),
+                });
             }
         }
 
@@ -178,9 +1170,18 @@ class RestoreService {
             return result;
         }
 
+        const attributeLookupCache = new Map<string, Map<string, string>>();
+        const optionLookupCache = new Map<string, Map<string, ProductOptionLookupEntry>>();
+
         // Process validated rows
-        for (const { data } of validatedRows) {
+        for (const { rowNumber, data, productKey } of validatedRows) {
             const sanitized = sanitizeData(data);
+            const rowErrors: string[] = [];
+            const storeIdForLookup = this.normalizeStoreId(sanitized.storeId);
+            const specificationRows = productKey ? (specificationRowsByProduct.get(productKey) || []) : [];
+            const optionRows = productKey ? (optionRowsByProduct.get(productKey) || []) : [];
+            const attributeRows = productKey ? (attributeRowsByProduct.get(productKey) || []) : [];
+            const variantRows = productKey ? (variantRowsByProduct.get(productKey) || []) : [];
 
             // Handle boolean fields
             const booleanFields = [
@@ -211,9 +1212,93 @@ class RestoreService {
                 }
             });
 
+            if (workbookRows.hasSpecificationsSheet) {
+                const parsedSpecifications = await this.parseSpecificationsRowsFromSheet(
+                    specificationRows,
+                    storeIdForLookup,
+                    attributeLookupCache
+                );
+                if (parsedSpecifications.errors.length > 0) {
+                    rowErrors.push(...parsedSpecifications.errors);
+                } else {
+                    sanitized.specifications = parsedSpecifications.value || [];
+                }
+            } else {
+                const parsedSpecifications = await this.parseProductSpecificationsField(
+                    sanitized.specifications,
+                    storeIdForLookup,
+                    attributeLookupCache
+                );
+                if (parsedSpecifications.errors.length > 0) {
+                    rowErrors.push(...parsedSpecifications.errors);
+                } else if (parsedSpecifications.value !== undefined) {
+                    sanitized.specifications = parsedSpecifications.value;
+                }
+            }
+
+            if (workbookRows.hasOptionsSheet) {
+                const parsedProductOptions = await this.parseOptionsRowsFromSheet(
+                    optionRows,
+                    storeIdForLookup,
+                    optionLookupCache
+                );
+                if (parsedProductOptions.errors.length > 0) {
+                    rowErrors.push(...parsedProductOptions.errors);
+                } else {
+                    sanitized.productOptions = parsedProductOptions.value || [];
+                }
+            } else {
+                const parsedProductOptions = await this.parseProductOptionsField(
+                    sanitized.productOptions,
+                    storeIdForLookup,
+                    optionLookupCache
+                );
+                if (parsedProductOptions.errors.length > 0) {
+                    rowErrors.push(...parsedProductOptions.errors);
+                } else if (parsedProductOptions.value !== undefined) {
+                    sanitized.productOptions = parsedProductOptions.value;
+                }
+            }
+
+            if (workbookRows.hasAttributesSheet) {
+                const parsedAttributes = await this.parseAttributesRowsFromSheet(
+                    attributeRows,
+                    storeIdForLookup,
+                    attributeLookupCache
+                );
+                if (parsedAttributes.errors.length > 0) {
+                    rowErrors.push(...parsedAttributes.errors);
+                } else {
+                    sanitized.attributes = parsedAttributes.value || [];
+                }
+            } else {
+                const parsedAttributes = await this.parseProductAttributesField(
+                    sanitized.attributes,
+                    storeIdForLookup,
+                    attributeLookupCache
+                );
+                if (parsedAttributes.errors.length > 0) {
+                    rowErrors.push(...parsedAttributes.errors);
+                } else if (parsedAttributes.value !== undefined) {
+                    sanitized.attributes = parsedAttributes.value;
+                }
+            }
+
+            if (workbookRows.hasVariantsSheet) {
+                const parsedVariants = await this.parseVariantsRowsFromSheet(
+                    variantRows,
+                    storeIdForLookup,
+                    optionLookupCache
+                );
+                if (parsedVariants.errors.length > 0) {
+                    rowErrors.push(...parsedVariants.errors);
+                } else {
+                    sanitized.variants = parsedVariants.value || [];
+                }
+            }
+
             // Handle complex array fields (arrays of objects)
             const complexArrayFields = [
-                'specifications', 'productOptions',
                 'variants', 'downloadFiles', 'videos'
             ];
             complexArrayFields.forEach(field => {
@@ -228,59 +1313,39 @@ class RestoreService {
                                 delete sanitized[field];
                             }
                         } else {
-                            // Plain string (likely an ObjectId from flattening) - remove it
-                            // These fields should be arrays of objects, not plain strings
+                            // Plain string is invalid for complex array fields
                             delete sanitized[field];
                         }
                     }
-                    
+
                     // Clean up invalid _id fields from array items (embedded documents)
                     if (Array.isArray(sanitized[field])) {
-                        sanitized[field] = sanitized[field].map((item: any) => {
-                            if (item && typeof item === 'object' && '_id' in item) {
-                                const { _id, ...rest } = item;
-                                return rest;
-                            }
-                            return item;
-                        });
+                        sanitized[field] = this.cleanupEmbeddedDocuments(sanitized[field]);
                     }
                 }
             });
 
-            // Handle attributes field specially - must be array of objects with attributeId, values, isVariation
-            if (sanitized.attributes) {
-                if (typeof sanitized.attributes === 'string') {
-                    // Check if it's a JSON array string with proper structure
-                    if (sanitized.attributes.startsWith('[') || sanitized.attributes.startsWith('{')) {
-                        try {
-                            const parsed = JSON.parse(sanitized.attributes);
-                            // Validate it's an array of objects with required structure
-                            if (Array.isArray(parsed) && parsed.every(item => 
-                                item && typeof item === 'object' && 'attributeId' in item
-                            )) {
-                                sanitized.attributes = parsed;
-                            } else {
-                                // Invalid structure - remove it
-                                delete sanitized.attributes;
-                            }
-                        } catch (e) {
-                            // If parsing fails, remove the field
-                            delete sanitized.attributes;
-                        }
-                    } else {
-                        // Plain string (ObjectId) - attributes must be array of objects, not plain strings
-                        // Remove it to avoid validation error
-                        delete sanitized.attributes;
-                    }
-                } else if (Array.isArray(sanitized.attributes)) {
-                    // Validate array items have proper structure
-                    const isValid = sanitized.attributes.every(item => 
-                        item && typeof item === 'object' && 'attributeId' in item
-                    );
-                    if (!isValid) {
-                        delete sanitized.attributes;
-                    }
-                }
+            if (Array.isArray(sanitized.specifications)) {
+                sanitized.specifications = this.cleanupEmbeddedDocuments(sanitized.specifications)
+                    .filter((item: any) => item && typeof item === 'object' && item.attributeId);
+            }
+
+            if (Array.isArray(sanitized.productOptions)) {
+                sanitized.productOptions = this.cleanupEmbeddedDocuments(sanitized.productOptions)
+                    .filter((item: any) => item && typeof item === 'object' && item.optionId);
+            }
+
+            if (Array.isArray(sanitized.attributes)) {
+                sanitized.attributes = this.cleanupEmbeddedDocuments(sanitized.attributes)
+                    .filter((item: any) => item && typeof item === 'object' && item.attributeId);
+            }
+
+            if (rowErrors.length > 0) {
+                result.errors.push({
+                    row: rowNumber,
+                    errors: rowErrors
+                });
+                continue;
             }
 
             try {
@@ -297,7 +1362,7 @@ class RestoreService {
                         result.updated++;
                     } else {
                         result.errors.push({
-                            row: validatedRows.indexOf({ data } as any) + 2,
+                            row: rowNumber,
                             errors: [`Product with ID ${productId} not found`]
                         });
                     }
@@ -309,7 +1374,7 @@ class RestoreService {
                 }
             } catch (error: any) {
                 result.errors.push({
-                    row: validatedRows.indexOf({ data } as any) + 2,
+                    row: rowNumber,
                     errors: [`Database error: ${error.message}`]
                 });
             }

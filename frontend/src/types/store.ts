@@ -606,6 +606,18 @@ export interface StoreSettings {
     phone?: string;
     address?: string;
   };
+  // Price Visibility
+  priceVisibility?: {
+    showPrice: boolean;
+    hiddenPriceMessage?: string;
+    contactUsLink?: string;
+    hideForUnauthenticated?: boolean;
+    geoRestrictions?: Array<{
+      countryCodes?: string[];
+      stateCodes?: string[];
+      cityNames?: string[];
+    }>;
+  };
 }
 
 export interface StoreSEO {

@@ -8,6 +8,7 @@ import { useStore } from '@/providers/StoreProvider';
 import { useCurrency } from '@/hooks/useCurrency';
 import api from '@/lib/api';
 import styles from './SearchAutocomplete.module.scss';
+import { usePriceVisibility } from '@/hooks/usePriceVisibility';
 
 // ============================================
 // Types
@@ -118,7 +119,7 @@ export default function SearchAutocomplete({
     const containerRef = useRef<HTMLDivElement>(null);
 
     const debouncedQuery = useDebounce(query, 300);
-
+    const { shouldShowPrice, contactUsLink } = usePriceVisibility();
     // Load recent searches on mount
     useEffect(() => {
         setRecentSearches(getRecentSearches());
@@ -305,14 +306,17 @@ export default function SearchAutocomplete({
                                     </div>
                                     <div className={styles.productInfo}>
                                         <span className={styles.productName}>{product.name}</span>
-                                        <span className={styles.productPrice}>
-                                            {formatPriceWithExchange(product.pricing.finalPrice || product.pricing.price)}
-                                            {product.pricing.salePrice && product.pricing.salePrice < product.pricing.price && (
-                                                <span className={styles.originalPrice}>
-                                                    {formatPriceWithExchange(product.pricing.originalPrice)}
-                                                </span>
-                                            )}
-                                        </span>
+                                        {shouldShowPrice && product?.pricing?.finalPrice && (
+                                            <span className={styles.productPrice}>
+                                                {formatPriceWithExchange(product?.pricing?.finalPrice || product?.pricing?.price)}
+                                                {product?.pricing?.salePrice && product?.pricing?.salePrice < product?.pricing?.price && (
+                                                    <span className={styles.originalPrice}>
+                                                        {formatPriceWithExchange(product?.pricing?.originalPrice)}
+                                                    </span>
+                                                )}
+                                            </span>
+                                        )}
+
                                     </div>
                                 </Link>
                             ))}

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import OpenAI from 'openai';
 import Setting from '../models/Setting';
+import Store from '../models/Store';
 import { asyncHandler, AppError } from '../middleware/validation';
 
 const getOpenAIClient = async () => {
@@ -25,12 +26,39 @@ export const generateContent = asyncHandler(async (req: Request, res: Response) 
     const { context, fields, instructions } = req.body;
     const { client, model } = await getOpenAIClient();
 
+    // Get store context if storeId is provided
+    let storeContext = '';
+    if (context?.storeId) {
+        try {
+            const store = await Store.findById(context.storeId).select('name domains contact description');
+            if (store) {
+                storeContext = `
+STORE INFORMATION:
+- Store Name: ${store.name}
+- Store Domain: ${store.domains[0] || ''}
+- Store Description: ${store.description || ''}
+- Store Contact: ${store.contact?.email || ''} | ${store.contact?.phone || ''}
+`;
+            }
+        } catch (error) {
+            console.warn('Failed to fetch store context for AI generation', error);
+        }
+    }
+
     const systemPrompt = `You are an expert E-commerce Content Writer, SEO Specialist, and GEO (Generative Engine Optimization) Expert.
 Your task is to generate PREMIUM content optimized for BOTH:
 1. Traditional Search (Google, Bing, Yahoo)
 2. Generative Engines (ChatGPT, Gemini, Copilot, Claude, Perplexity)
 
 Achieve 90-100/100 score on first generation. NO improvements needed later.
+
+CRITICAL BRANDING RULES:
+1. STORE INTEGRATION:
+   - Naturally mention the store name "${storeContext ? storeContext.match(/Store Name: (.*)/)?.[1] : 'the store'}" in the content
+   - Use phrases like "Exclusive at [Store Name]", "Available at [Store Name]"
+   - Link brand values to product benefits
+   - Reinforce brand authority and trust
+${storeContext}
 
 CRITICAL SEO RULES (TRADITIONAL SEARCH):
 1. KEYWORD PLACEMENT & DENSITY:
@@ -44,12 +72,14 @@ CRITICAL SEO RULES (TRADITIONAL SEARCH):
    - Start with primary keyword or action word
    - Make it compelling and click-worthy
    - Format: [Keyword] + [Benefit] + [Qualifier if applicable]
+   - Can include Store Name at end if space permits (e.g., "| [Store Name]")
 
 3. META DESCRIPTION (160 CHAR LIMIT):
    - MUST be under 160 characters
    - Start with primary keyword
    - Include CTA: "Buy", "Explore", "Discover", "Shop"
    - Answer "Why click?" - benefit-driven
+   - Mention Store Name naturally if it fits
 
 4. SHORT DESCRIPTION (Plain Text, no HTML):
    - Under 160 characters
@@ -60,7 +90,7 @@ CRITICAL SEO RULES (TRADITIONAL SEARCH):
 5. LONG DESCRIPTION (HTML, single line):
    - Use proper HTML structure (<h2>, <p>, <ul>, <li>, <strong>)
    - NO newlines (no \n or \\n characters)
-   - Structure: Problem → Solution → Benefits → CTA
+   - Structure: Problem → Solution → Benefits → Store Value → CTA
    - 300-500 words minimum
    - Natural keyword placement (1-2%)
    - Scannable with headers and lists
@@ -141,7 +171,7 @@ CRITICAL GEO RULES (GENERATIVE ENGINES - ChatGPT, Gemini, Copilot, Claude):
 18. CALL-TO-ACTION (Subtle for AI):
    - For humans: Traditional CTA
    - For AI: Information-focused ending
-   - Example: "Available at [store name] in various quantities"
+   - Example: "Available at ${storeContext ? storeContext.match(/Store Name: (.*)/)?.[1] : 'our store'} in various quantities"
 
 OUTPUT REQUIREMENTS:
 - Return VALID JSON matching requested fields
@@ -151,6 +181,7 @@ OUTPUT REQUIREMENTS:
 - Titles < 60 chars
 - HTML as single-line strings
 - Production-ready, no placeholders
+- Do not mention AI Friendly or look like it is generated from AI
 
 SUCCESS CRITERIA:
 ✓ Optimized for both Google AND ChatGPT/Gemini
@@ -164,6 +195,7 @@ SUCCESS CRITERIA:
     const userPrompt = `
 CONTEXT DATA:
 ${JSON.stringify(context, null, 2)}
+${storeContext}
 
 CUSTOM INSTRUCTIONS:
 ${instructions || 'Generate content optimized for BOTH Google Search AND AI chatbots (ChatGPT, Gemini, Copilot, Claude). Include specific facts, citations, FAQ-style answers, and clear entity information.'}
@@ -182,6 +214,7 @@ CRITICAL REQUIREMENTS (SEO + GEO):
   • How-to or usage instructions
   • Why it matters (context and background)
   • Clear, authoritative, professional tone
+  • Natural integration of Store Name (${storeContext ? storeContext.match(/Store Name: (.*)/)?.[1] : 'store'})
 
 SPECIFICATION INTEGRATION RULES:
 - MUST include ALL specifications provided in context data
@@ -220,6 +253,7 @@ VALIDATION CHECKLIST (Must pass all):
 ✓ Authoritative, professional, factual tone
 ✓ Readable at 60-70 Flesch Reading Ease level
 ✓ Optimized for BOTH Google AND ChatGPT/Gemini
+✓ Store name mentioned naturally in content
 
 Generate content for: ${fields.join(', ')}
 

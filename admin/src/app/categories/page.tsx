@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Box, Tooltip, IconButton, Typography, useTheme, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import { DataGrid, GridColDef, GridRenderCellParams, GridRowSelectionModel } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
@@ -232,7 +233,7 @@ export default function CategoriesPage() {
       renderCell: (params: GridRenderCellParams) => (
         <Box display="flex" flexDirection="row" justifyContent="center" height="100%">
           <Tooltip title="Edit">
-            <IconButton href={`/categories/${params.row._id}/edit`} size="small" color="primary">
+            <IconButton component={Link} href={`/categories/${params.row._id}/edit`} size="small" color="primary">
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
