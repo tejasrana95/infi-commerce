@@ -27,7 +27,8 @@ export interface HeaderElements {
     showAccount: boolean;
     showWishlist: boolean;
     layout: string;
-    sections: any[];
+    rows?: any[];
+    sections: any[]; // Deprecated: for backward compatibility
     themeColors?: ThemeColors;
 }
 
@@ -96,6 +97,9 @@ export interface HeaderTemplateProps {
 
     // Header element visibility
     headerElements: HeaderElements;
+
+    // Header config (for sticky row behavior)
+    headerConfig?: import('@/types').HeaderConfig;
 
     // Menus
     headerMenu?: import('@/types/menu').Menu;

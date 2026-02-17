@@ -267,10 +267,10 @@ function SortableElement({ element, onClick, onDelete, menus }: {
 }
 
 export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesignerProps) {
-    const [editingElement, setEditingElement] = useState<{ sectionId: string; element: HeaderElement } | null>(null);
+    const [editingElement, setEditingElement] = useState<{ sectionId: string; element: HeaderElement; rowId: string } | null>(null);
     const [settingsExpanded, setSettingsExpanded] = useState(true);
     const [topBarExpanded, setTopBarExpanded] = useState(false);
-    const [addMenuAnchor, setAddMenuAnchor] = useState<{ anchor: HTMLElement; section: string } | null>(null);
+    const [addMenuAnchor, setAddMenuAnchor] = useState<{ anchor: HTMLElement; section: string; rowId: string } | null>(null);
     const [menus, setMenus] = useState<MenuType[]>([]);
     const [topBarText, setTopBarText] = useState('Free shipping on orders over $50 | Call us: 1-800-123-4567');
 
@@ -299,13 +299,30 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
     const headerConfig = config.header || {
         main: {
             layout: 'default',
-            sections: [
-                { id: 'left', position: 'left', items: [] },
-                { id: 'center', position: 'center', items: [] },
-                { id: 'right', position: 'right', items: [] },
+            rows: [
+                {
+                    id: uuidv4(),
+                    order: 0,
+                    sections: [
+                        { id: 'left', position: 'left', items: [] },
+                        { id: 'center', position: 'center', items: [] },
+                        { id: 'right', position: 'right', items: [] },
+                    ],
+                },
             ],
         },
     };
+
+    // Migrate old sections to rows format if needed
+    if (headerConfig.main && !headerConfig.main.rows && headerConfig.main.sections) {
+        headerConfig.main.rows = [
+            {
+                id: uuidv4(),
+                order: 0,
+                sections: headerConfig.main.sections,
+            },
+        ];
+    }
 
     const topBar = headerConfig.topBar || {
         enabled: false,
@@ -375,50 +392,101 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
         });
     };
 
-    // Add element to section
-    const handleAddElement = (sectionPosition: 'left' | 'center' | 'right', elementType: string) => {
+    // Add element to section in a row
+    const handleAddElement = (rowId: string, sectionPosition: 'left' | 'center' | 'right', elementType: string) => {
         const newElement: HeaderElement = {
             id: uuidv4(),
             type: elementType as any,
             order: 0,
         };
 
-        const updatedSections = headerConfig.main.sections.map(section =>
-            section.position === sectionPosition
-                ? { ...section, items: [...section.items, newElement] }
-                : section
-        );
+        const updatedRows = headerConfig.main.rows.map(row => {
+            if (row.id === rowId) {
+                return {
+                    ...row,
+                    sections: row.sections.map(section =>
+                        section.position === sectionPosition
+                            ? { ...section, items: [...section.items, newElement] }
+                            : section
+                    ),
+                };
+            }
+            return row;
+        });
 
-        handleUpdateMainHeader({ sections: updatedSections });
+        handleUpdateMainHeader({ rows: updatedRows });
         setAddMenuAnchor(null);
-        setEditingElement({ sectionId: sectionPosition, element: newElement });
+        setEditingElement({ sectionId: sectionPosition, rowId, element: newElement });
     };
 
-    // Delete element
-    const handleDeleteElement = (sectionPosition: string, elementId: string) => {
-        const updatedSections = headerConfig.main.sections.map(section =>
-            section.position === sectionPosition
-                ? { ...section, items: section.items.filter(item => item.id !== elementId) }
-                : section
-        );
-        handleUpdateMainHeader({ sections: updatedSections });
+    // Delete element from a row section
+    const handleDeleteElement = (rowId: string, sectionPosition: string, elementId: string) => {
+        const updatedRows = headerConfig.main.rows.map(row => {
+            if (row.id === rowId) {
+                return {
+                    ...row,
+                    sections: row.sections.map(section =>
+                        section.position === sectionPosition
+                            ? { ...section, items: section.items.filter(item => item.id !== elementId) }
+                            : section
+                    ),
+                };
+            }
+            return row;
+        });
+        handleUpdateMainHeader({ rows: updatedRows });
     };
 
     // Save edited element
     const handleSaveElement = (updatedElement: HeaderElement) => {
         if (!editingElement) return;
-        const updatedSections = headerConfig.main.sections.map(section =>
-            section.position === editingElement.sectionId
-                ? {
-                    ...section,
-                    items: section.items.map(item =>
-                        item.id === updatedElement.id ? updatedElement : item
+
+        const updatedRows = headerConfig.main.rows.map(row => {
+            if (row.id === editingElement.rowId) {
+                return {
+                    ...row,
+                    sections: row.sections.map(section =>
+                        section.position === editingElement.sectionId
+                            ? {
+                                ...section,
+                                items: section.items.map(item =>
+                                    item.id === updatedElement.id ? updatedElement : item
+                                ),
+                            }
+                            : section
                     ),
-                }
-                : section
-        );
-        handleUpdateMainHeader({ sections: updatedSections });
+                };
+            }
+            return row;
+        });
+        handleUpdateMainHeader({ rows: updatedRows });
         setEditingElement(null);
+    };
+
+    // Add new row
+    const handleAddRow = () => {
+        const newRow = {
+            id: uuidv4(),
+            order: headerConfig.main.rows.length,
+            sections: [
+                { id: 'left', position: 'left' as const, items: [] },
+                { id: 'center', position: 'center' as const, items: [] },
+                { id: 'right', position: 'right' as const, items: [] },
+            ],
+        };
+        handleUpdateMainHeader({ rows: [...headerConfig.main.rows, newRow] });
+    };
+
+    // Remove row
+    const handleRemoveRow = (rowId: string) => {
+        if (headerConfig.main.rows.length <= 1) {
+            alert('Cannot remove the last row. At least one row must exist.');
+            return;
+        }
+        const updatedRows = headerConfig.main.rows
+            .filter(row => row.id !== rowId)
+            .map((row, index) => ({ ...row, order: index }));
+        handleUpdateMainHeader({ rows: updatedRows });
     };
 
     // Handle drag end for reordering
@@ -431,53 +499,66 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
         let activeItemIndex = -1;
         let overItemIndex = -1;
 
-        // Find active and over sections
-        headerConfig.main.sections.forEach(section => {
-            const aIndex = section.items.findIndex(item => item.id === active.id);
-            if (aIndex !== -1) {
-                activeSectionId = section.id;
-                activeItemIndex = aIndex;
-            }
-            const oIndex = section.items.findIndex(item => item.id === over.id);
-            if (oIndex !== -1) {
-                overSectionId = section.id;
-                overItemIndex = oIndex;
-            }
+        // Find active and over sections across all rows
+        headerConfig.main.rows.forEach(row => {
+            row.sections.forEach(section => {
+                const aIndex = section.items?.findIndex(item => item && item.id === active.id) ?? -1;
+                if (aIndex !== -1) {
+                    activeSectionId = section.id;
+                    activeItemIndex = aIndex;
+                }
+                const oIndex = section.items?.findIndex(item => item && item.id === over.id) ?? -1;
+                if (oIndex !== -1) {
+                    overSectionId = section.id;
+                    overItemIndex = oIndex;
+                }
+            });
         });
 
         if (activeSectionId && overSectionId) {
             if (activeSectionId === overSectionId) {
                 // Same section reorder
-                const updatedSections = headerConfig.main.sections.map(s =>
-                    s.id === activeSectionId
-                        ? { ...s, items: arrayMove(s.items, activeItemIndex, overItemIndex) }
-                        : s
-                );
-                handleUpdateMainHeader({ sections: updatedSections });
+                const updatedRows = headerConfig.main.rows.map(row => ({
+                    ...row,
+                    sections: row.sections.map(s =>
+                        s.id === activeSectionId
+                            ? { ...s, items: arrayMove(s.items || [], activeItemIndex, overItemIndex) }
+                            : s
+                    ),
+                }));
+                handleUpdateMainHeader({ rows: updatedRows });
             } else {
                 // Cross section move
-                const sourceSection = headerConfig.main.sections.find(s => s.id === activeSectionId)!;
-                const activeItem = sourceSection.items[activeItemIndex];
+                let activeItem: HeaderElement | null = null;
 
-                const updatedSections = headerConfig.main.sections.map(s => {
-                    if (s.id === activeSectionId) {
-                        return { ...s, items: s.items.filter(item => item.id !== active.id) };
-                    }
-                    if (s.id === overSectionId) {
-                        const newItems = [...s.items];
-                        newItems.splice(overItemIndex, 0, activeItem);
-                        return { ...s, items: newItems };
-                    }
-                    return s;
-                });
-                handleUpdateMainHeader({ sections: updatedSections });
+                const updatedRows = headerConfig.main.rows.map(row => ({
+                    ...row,
+                    sections: row.sections.map(s => {
+                        if (s.id === activeSectionId) {
+                            const item = s.items?.find(item => item && item.id === active.id);
+                            if (item) activeItem = item;
+                            return { ...s, items: (s.items || []).filter(item => item && item.id !== active.id) };
+                        }
+                        if (s.id === overSectionId) {
+                            const newItems = [...(s.items || [])];
+                            if (activeItem) {
+                                newItems.splice(overItemIndex, 0, activeItem);
+                            }
+                            return { ...s, items: newItems };
+                        }
+                        return s;
+                    }),
+                }));
+                handleUpdateMainHeader({ rows: updatedRows });
             }
         }
     };
 
-    const renderSection = (position: 'left' | 'center' | 'right', justify: string) => {
-        const section = headerConfig.main.sections.find(s => s.position === position);
-        const items = section?.items || [];
+    const renderSection = (rowId: string, position: 'left' | 'center' | 'right', justify: string) => {
+        const row = headerConfig.main.rows.find(r => r.id === rowId);
+        if (!row) return null;
+        const section = row.sections.find(s => s.position === position);
+        const items = section?.items?.filter(item => item && item.id) || [];
 
         return (
             <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: justify, gap: 1 }}>
@@ -487,15 +568,15 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
                             key={item.id}
                             element={item}
                             menus={menus}
-                            onClick={() => setEditingElement({ sectionId: position, element: item })}
-                            onDelete={() => handleDeleteElement(position, item.id)}
+                            onClick={() => setEditingElement({ sectionId: position, element: item, rowId })}
+                            onDelete={() => handleDeleteElement(rowId, position, item.id)}
                         />
                     ))}
                 </SortableContext>
                 <Tooltip title="Add element">
                     <IconButton
                         size="small"
-                        onClick={(e) => setAddMenuAnchor({ anchor: e.currentTarget, section: position })}
+                        onClick={(e) => setAddMenuAnchor({ anchor: e.currentTarget, section: position, rowId })}
                         sx={{ border: '1px dashed', borderColor: 'divider' }}
                     >
                         <AddIcon fontSize="small" />
@@ -576,21 +657,66 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
                             </Box>
                         </Collapse>
 
-                        {/* Main Header Preview */}
-                        <Box
-                            sx={{
-                                bgcolor: headerConfig.main.backgroundColor || config.colors?.background || '#ffffff',
-                                height: headerConfig.main.height || 80,
-                                display: 'flex',
-                                alignItems: 'center',
-                                px: 3,
-                                borderBottom: '1px solid',
-                                borderColor: 'divider',
-                            }}
-                        >
-                            {renderSection('left', 'flex-start')}
-                            {renderSection('center', 'center')}
-                            {renderSection('right', 'flex-end')}
+                        {/* Main Header Preview - Multiple Rows */}
+                        {headerConfig.main.rows.map((row) => (
+                            <Box
+                                key={row.id}
+                                sx={{
+                                    bgcolor: row.backgroundColor || headerConfig.main.backgroundColor || config.colors?.background || '#ffffff',
+                                    minHeight: row.height || headerConfig.main.height || 80,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    px: 3,
+                                    py: row.padding ? row.padding / 2 : 0,
+                                    borderBottom: '1px solid',
+                                    borderColor: 'divider',
+                                    position: 'relative',
+                                    '&:hover .row-actions': {
+                                        opacity: 1,
+                                    },
+                                }}
+                            >
+                                {renderSection(row.id, 'left', 'flex-start')}
+                                {renderSection(row.id, 'center', 'center')}
+                                {renderSection(row.id, 'right', 'flex-end')}
+
+                                {/* Row Actions */}
+                                {headerConfig.main.rows.length > 1 && (
+                                    <Box
+                                        className="row-actions"
+                                        sx={{
+                                            position: 'absolute',
+                                            top: 8,
+                                            right: 8,
+                                            opacity: 0,
+                                            transition: 'opacity 0.2s',
+                                            display: 'flex',
+                                            gap: 1,
+                                        }}
+                                    >
+                                        <Tooltip title="Delete row">
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleRemoveRow(row.id)}
+                                                sx={{ color: 'error.main' }}
+                                            >
+                                                <DeleteIcon fontSize="small" />
+                                            </IconButton>
+                                        </Tooltip>
+                                    </Box>
+                                )}
+                            </Box>
+                        ))}
+
+                        {/* Add Row Button */}
+                        <Box sx={{ p: 2, textAlign: 'center', borderTop: '2px dashed', borderColor: 'divider' }}>
+                            <Button
+                                variant="outlined"
+                                startIcon={<AddIcon />}
+                                onClick={handleAddRow}
+                            >
+                                Add Header Row
+                            </Button>
                         </Box>
                     </Box>
                 </PreviewContainer>
@@ -604,7 +730,7 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
                     {Object.entries(elementInfo).map(([type, info]) => (
                         <MuiMenuItem
                             key={type}
-                            onClick={() => handleAddElement(addMenuAnchor?.section as any, type)}
+                            onClick={() => handleAddElement(addMenuAnchor?.rowId as string, addMenuAnchor?.section as any, type)}
                         >
                             <ListItemIcon>{info.icon}</ListItemIcon>
                             <ListItemText>{info.label}</ListItemText>
@@ -699,6 +825,28 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
                                     }
                                     label="Sticky"
                                 />
+                            </Box>
+                            {headerConfig.main.sticky && (
+                                <Box sx={{ mt: 2 }}>
+                                    <TextField
+                                        select
+                                        label="Sticky Behavior"
+                                        value={headerConfig.main.stickyRow || 'all'}
+                                        onChange={(e) => handleUpdateMainHeader({ stickyRow: e.target.value as any })}
+                                        size="small"
+                                        fullWidth
+                                        helperText="Choose which part of the header should stick when scrolling"
+                                    >
+                                        <MuiMenuItem value="all">Whole Header (All Rows)</MuiMenuItem>
+                                        <MuiMenuItem value="first">First Row Only</MuiMenuItem>
+                                        {headerConfig.main.rows.length > 1 && (
+                                            <MuiMenuItem value="second">Second Row Only</MuiMenuItem>
+                                        )}
+                                        <MuiMenuItem value="none">None (Disable Sticky)</MuiMenuItem>
+                                    </TextField>
+                                </Box>
+                            )}
+                            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 2 }}>
                             </Box>
 
                             <Divider sx={{ my: 2 }} />

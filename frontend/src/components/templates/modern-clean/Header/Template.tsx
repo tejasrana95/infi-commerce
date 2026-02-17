@@ -26,6 +26,7 @@ export default function ModernCleanHeaderTemplate({
     labels,
     themeColors,
     headerElements,
+    headerConfig,
     mobileMenu,
     menus,
     mobileBreakpoint = 768,
@@ -38,7 +39,11 @@ export default function ModernCleanHeaderTemplate({
     const { store } = useStore();
     const [isScrolled, setIsScrolled] = useState(false);
     const [headerHeight, setHeaderHeight] = useState<number | undefined>(undefined);
+    const [stickyRowFixed, setStickyRowFixed] = useState(false);
+    const [stickyRowHeight, setStickyRowHeight] = useState(0);
     const headerRef = useRef<HTMLElement>(null);
+    const stickyRowRef = useRef<HTMLDivElement>(null);
+    const stickyPlaceholderRef = useRef<HTMLDivElement>(null);
 
     // Get mobile menu ID from store config
     const mobileMenuId = store?.theme?.header?.mobileMenu?.menuId;
@@ -141,22 +146,51 @@ export default function ModernCleanHeaderTemplate({
     }, [mobileMenuOpen]);
 
     // Handle scroll for sticky behavior
+    const stickyRowSetting = headerConfig?.main?.stickyRow;
+    const needsHeaderSticky = isSticky && !stickyRowSetting;
+    const needsRowSticky = !!stickyRowSetting && stickyRowSetting !== 'none';
+
     useEffect(() => {
-        if (!isSticky) {
+        if (!needsHeaderSticky) {
             setIsScrolled(false);
-            return;
         }
 
+        if (!needsHeaderSticky && !needsRowSticky) return;
+
         const handleScroll = () => {
-            setIsScrolled(window.scrollY > 10);
+            // Header-level sticky (old behavior)
+            if (needsHeaderSticky) {
+                setIsScrolled(window.scrollY > 10);
+            }
+
+            // Row-level sticky: fix the target row when it reaches viewport top
+            if (needsRowSticky && stickyRowRef.current) {
+                const el = stickyRowRef.current;
+                // Get the original top position from the placeholder if it exists,
+                // otherwise from the element itself
+                const placeholder = stickyPlaceholderRef.current;
+                const originalTop = placeholder
+                    ? placeholder.getBoundingClientRect().top + window.scrollY
+                    : el.getBoundingClientRect().top + window.scrollY;
+
+                if (window.scrollY >= originalTop) {
+                    if (!stickyRowFixed) {
+                        setStickyRowHeight(el.offsetHeight);
+                        setStickyRowFixed(true);
+                    }
+                } else {
+                    if (stickyRowFixed) {
+                        setStickyRowFixed(false);
+                    }
+                }
+            }
         };
 
-        window.addEventListener('scroll', handleScroll);
-        // Initial check
+        window.addEventListener('scroll', handleScroll, { passive: true });
         handleScroll();
 
         return () => window.removeEventListener('scroll', handleScroll);
-    }, [isSticky]);
+    }, [needsHeaderSticky, needsRowSticky, stickyRowFixed]);
 
     // Measure header height to prevent layout shift when it becomes fixed
     useEffect(() => {
@@ -171,13 +205,16 @@ export default function ModernCleanHeaderTemplate({
         return () => window.removeEventListener('resize', updateHeight);
     }, [isScrolled]);
 
-    // Find sections
-    const leftSection = headerElements.sections.find((s: any) => s.position === 'left');
-    const centerSection = headerElements.sections.find((s: any) => s.position === 'center');
-    const rightSection = headerElements.sections.find((s: any) => s.position === 'right');
+    // Support both new rows format and legacy sections format
+    const rows = headerElements.rows && headerElements.rows.length > 0
+        ? headerElements.rows
+        : headerElements.sections && headerElements.sections.length > 0
+            ? [{ id: 'row-1', order: 0, sections: headerElements.sections }]
+            : [];
 
     // Render individual element based on type
     const renderElement = (element: any) => {
+        if (!element) return null;
         switch (element.type) {
             case 'logo':
                 return (
@@ -208,23 +245,81 @@ export default function ModernCleanHeaderTemplate({
                 ) : null;
 
             case 'search':
+                const isExpandedForDesktop = element.settings?.expandedForDesktop ?? false;
+                const showMobileOnly = element.settings?.showMobileOnly ?? false;
+                
+                // Mobile-only search
+                if (showMobileOnly) {
+                    return (
+                        <button
+                            key={element.id}
+                            ref={searchBtnRef}
+                            className={`${styles.actionBtn} ${styles.mobileOnlyBtn} infi-track`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setSearchOpen(prev => !prev);
+                            }}
+                            aria-label={labels.search}
+                            data-ga-action={searchOpen ? 'close_search' : 'open_search'}
+                            data-ga-label="Search"
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </button>
+                    );
+                }
+                
+                // Not expanded for desktop - just show search button
+                if (!isExpandedForDesktop) {
+                    return (
+                        <button
+                            key={element.id}
+                            ref={searchBtnRef}
+                            className={`${styles.actionBtn} infi-track`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setSearchOpen(prev => !prev);
+                            }}
+                            aria-label={labels.search}
+                            data-ga-action={searchOpen ? 'close_search' : 'open_search'}
+                            data-ga-label="Search"
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </button>
+                    );
+                }
+                
+                // Expanded for desktop - render both inline search (desktop) and button (mobile) via CSS
                 return (
-                    <button
-                        key={element.id}
-                        ref={searchBtnRef}
-                        className={`${styles.actionBtn} infi-track`}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setSearchOpen(prev => !prev);
-                        }}
-                        aria-label={labels.search}
-                        data-ga-action={searchOpen ? 'close_search' : 'open_search'}
-                        data-ga-label="Search"
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                    </button>
+                    <div key={element.id} className={styles.searchWrapper} ref={searchRef}>
+                        {/* Inline search - visible on desktop via CSS media query */}
+                        <div className={styles.inlineSearchContainer}>
+                            <SearchAutocomplete
+                                placeholder={element.settings?.searchPlaceholder || 'Search products...'}
+                                onClose={() => setSearchOpen(false)}
+                                autoFocus={false}
+                            />
+                        </div>
+                        {/* Search button - visible on mobile via CSS media query */}
+                        <button
+                            ref={searchBtnRef}
+                            className={`${styles.actionBtn} ${styles.searchBtn} infi-track`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setSearchOpen(prev => !prev);
+                            }}
+                            aria-label={labels.search}
+                            data-ga-action={searchOpen ? 'close_search' : 'open_search'}
+                            data-ga-label="Search"
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </button>
+                    </div>
                 );
 
             case 'account':
@@ -363,8 +458,8 @@ export default function ModernCleanHeaderTemplate({
 
     const headerClasses = [
         styles.header,
-        isSticky ? styles.sticky : '',
-        isScrolled ? styles.scrolled : '',
+        needsHeaderSticky ? styles.sticky : '',
+        (needsHeaderSticky && isScrolled) ? styles.scrolled : '',
     ].filter(Boolean).join(' ');
 
     return (
@@ -421,64 +516,119 @@ export default function ModernCleanHeaderTemplate({
                 )}
 
                 {/* ========== MAIN HEADER (Fully Dynamic Sections) ========== */}
-                <div className={styles.mainHeader}>
-                    <div className={styles.container}>
-                        <div className={styles.headerContent}>
-                            {/* Mobile Menu Toggle */}
-                            <button
-                                ref={mobileMenuBtnRef}
-                                className={styles.mobileMenuBtn}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setMobileMenuOpen(!mobileMenuOpen);
-                                }}
-                                aria-label="Toggle menu"
-                            >
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                                </svg>
-                            </button>
+                {rows.map((row: any) => {
+                    const leftSection = row.sections.find((s: any) => s.position === 'left');
+                    const centerSection = row.sections.find((s: any) => s.position === 'center');
+                    const rightSection = row.sections.find((s: any) => s.position === 'right');
 
-                            {/* LEFT SECTION - Render all items dynamically */}
-                            {leftSection && leftSection.items.length > 0 && (
-                                <div className={styles.sectionLeft}>
-                                    {leftSection.items
-                                        .sort((a: any, b: any) => a.order - b.order)
-                                        .map((item: any) => renderElement(item))}
+                    // Determine if this row is the sticky target
+                    const isTargetSticky = needsRowSticky && (
+                        stickyRowSetting === 'all' ||
+                        (stickyRowSetting === 'first' && row.order === 0) ||
+                        (stickyRowSetting === 'second' && row.order === 1)
+                    );
+
+                    // Make second row more compact
+                    const isSecondRow = row.order === 1;
+                    
+                    // Check if this row contains an expanded search (for z-index)
+                    const hasExpandedSearch = row.sections.some((section: any) =>
+                        (section.items || []).some((item: any) => 
+                            item && item.type === 'search' && item.settings?.expandedForDesktop
+                        )
+                    );
+
+                    const rowContent = (
+                        <div
+                            ref={isTargetSticky ? stickyRowRef : undefined}
+                            className={`${styles.mainHeader} ${isSecondRow ? styles.compactRow : ''} ${isTargetSticky && stickyRowFixed ? styles.fixedRow : ''}`}
+                            style={{
+                                backgroundColor: row.backgroundColor || 'var(--color-header-bg, white)',
+                                minHeight: isSecondRow ? '50px' : (row.height ? `${row.height}px` : undefined),
+                                zIndex: hasExpandedSearch ? 1001 : undefined,
+                            }}
+                        >
+                            <div className={styles.container}>
+                                <div className={styles.headerContent}>
+                                    {/* Mobile Menu Toggle - Only in first row */}
+                                    {row.order === 0 && (
+                                        <button
+                                            ref={mobileMenuBtnRef}
+                                            className={styles.mobileMenuBtn}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setMobileMenuOpen(!mobileMenuOpen);
+                                            }}
+                                            aria-label="Toggle menu"
+                                        >
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                                            </svg>
+                                        </button>
+                                    )}
+
+                                    {/* LEFT SECTION */}
+                                    {leftSection && leftSection.items.length > 0 && (
+                                        <div className={styles.sectionLeft}>
+                                            {leftSection.items
+                                                .filter((item: any) => item)
+                                                .sort((a: any, b: any) => a.order - b.order)
+                                                .map((item: any) => renderElement(item))}
+                                        </div>
+                                    )}
+
+                                    {/* CENTER SECTION */}
+                                    {centerSection && centerSection.items.length > 0 && (
+                                        <div className={styles.sectionCenter}>
+                                            {centerSection.items
+                                                .filter((item: any) => item)
+                                                .sort((a: any, b: any) => a.order - b.order)
+                                                .map((item: any) => renderElement(item))}
+                                        </div>
+                                    )}
+
+                                    {/* RIGHT SECTION */}
+                                    {rightSection && rightSection.items.length > 0 && (
+                                        <div className={styles.sectionRight}>
+                                            {rightSection.items
+                                                .filter((item: any) => item)
+                                                .sort((a: any, b: any) => a.order - b.order)
+                                                .map((item: any) => renderElement(item))}
+                                        </div>
+                                    )}
                                 </div>
-                            )}
 
-                            {/* CENTER SECTION - Render all items dynamically */}
-                            {centerSection && centerSection.items.length > 0 && (
-                                <div className={styles.sectionCenter}>
-                                    {centerSection.items
-                                        .sort((a: any, b: any) => a.order - b.order)
-                                        .map((item: any) => renderElement(item))}
-                                </div>
-                            )}
-
-                            {/* RIGHT SECTION - Render all items dynamically */}
-                            {rightSection && rightSection.items.length > 0 && (
-                                <div className={styles.sectionRight}>
-                                    {rightSection.items
-                                        .sort((a: any, b: any) => a.order - b.order)
-                                        .map((item: any) => renderElement(item))}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Search Bar - Expanded with Autocomplete */}
-                        {searchOpen && (
-                            <div className={styles.searchBar} ref={searchRef}>
-                                <SearchAutocomplete
-                                    placeholder={search.placeholder}
-                                    onClose={() => setSearchOpen(false)}
-                                    autoFocus
-                                />
+                                {/* Search Bar - Only in first row */}
+                                {row.order === 0 && searchOpen && (
+                                    <div className={styles.searchBar} ref={searchRef}>
+                                        <SearchAutocomplete
+                                            placeholder={search.placeholder}
+                                            onClose={() => setSearchOpen(false)}
+                                            autoFocus
+                                        />
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </div>
-                </div>
+                        </div>
+                    );
+
+                    // Add a placeholder div when this row becomes fixed to prevent layout jump
+                    if (isTargetSticky) {
+                        return (
+                            <React.Fragment key={row.id}>
+                                {stickyRowFixed && (
+                                    <div
+                                        ref={stickyPlaceholderRef}
+                                        style={{ height: `${stickyRowHeight}px` }}
+                                    />
+                                )}
+                                {rowContent}
+                            </React.Fragment>
+                        );
+                    }
+
+                    return <React.Fragment key={row.id}>{rowContent}</React.Fragment>;
+                })}
 
                 {/* ========== MOBILE MENU ========== */}
                 {mobileMenuOpen && (

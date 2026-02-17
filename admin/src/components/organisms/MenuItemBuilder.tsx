@@ -41,7 +41,12 @@ import {
     Chip,
     Tooltip,
     Alert,
+    Divider,
+    Select,
+    FormControl,
+    InputLabel,
 } from '@mui/material';
+import { MenuItem as MuiMenuItem } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -135,6 +140,12 @@ function EditItemDialog({ open, item, onClose, onSave, onDelete, storeId, isNew 
                     openInNewTab: item.openInNewTab || false,
                     icon: item.icon || '',
                     badge: item.badge,
+                    // Category display options
+                    autoAddProducts: item.autoAddProducts ?? true,
+                    showProductImage: item.showProductImage ?? true,
+                    showProductPrice: item.showProductPrice ?? true,
+                    imagePosition: item.imagePosition || 'left',
+                    productLimit: item.productLimit || 10,
                 });
 
                 // If it's a product type, we should set selectedProduct
@@ -194,6 +205,12 @@ function EditItemDialog({ open, item, onClose, onSave, onDelete, storeId, isNew 
             children: item?.children || [],
             order: item?.order || 0,
             megaMenu: item?.megaMenu, // Preserve mega menu data
+            // Category display options
+            autoAddProducts: formData.autoAddProducts,
+            showProductImage: formData.showProductImage,
+            showProductPrice: formData.showProductPrice,
+            imagePosition: formData.imagePosition,
+            productLimit: formData.productLimit,
         };
         onSave(newItem);
         onClose();
@@ -261,6 +278,66 @@ function EditItemDialog({ open, item, onClose, onSave, onDelete, storeId, isNew 
                             storeId={storeId}
                             label="Select Category"
                         />
+                    )}
+
+                    {/* Category display options */}
+                    {formData.type === 'category' && (
+                        <>
+                            <Divider sx={{ my: 1 }} />
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={formData.autoAddProducts ?? true}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, autoAddProducts: e.target.checked }))}
+                                    />
+                                }
+                                label="Auto Populate Products"
+                            />
+                            {(formData.autoAddProducts ?? true) && (
+                                <>
+                                    <TextField
+                                        label="Max Product Limit"
+                                        type="number"
+                                        value={formData.productLimit || 10}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, productLimit: Number(e.target.value) }))}
+                                        fullWidth
+                                        inputProps={{ min: 1, max: 50 }}
+                                        helperText="Maximum products to display"
+                                    />
+                                    <FormControlLabel
+                                        control={
+                                            <Switch
+                                                checked={formData.showProductImage ?? true}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, showProductImage: e.target.checked }))}
+                                            />
+                                        }
+                                        label="Show Image"
+                                    />
+                                    {(formData.showProductImage ?? true) && (
+                                        <FormControl fullWidth>
+                                            <InputLabel>Image Position</InputLabel>
+                                            <Select
+                                                value={formData.imagePosition || 'left'}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, imagePosition: e.target.value as any }))}
+                                                label="Image Position"
+                                            >
+                                                <MuiMenuItem value="left">Left (Horizontal)</MuiMenuItem>
+                                                <MuiMenuItem value="top">Top (Vertical)</MuiMenuItem>
+                                            </Select>
+                                        </FormControl>
+                                    )}
+                                    <FormControlLabel
+                                        control={
+                                            <Switch
+                                                checked={formData.showProductPrice ?? true}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, showProductPrice: e.target.checked }))}
+                                            />
+                                        }
+                                        label="Show Price"
+                                    />
+                                </>
+                            )}
+                        </>
                     )}
 
                     {formData.type === 'product' && (
@@ -493,12 +570,14 @@ function SortableMenuItemRow({
                         <MegaMenuBuilder
                             data={{
                                 sections: item.megaMenu?.sections || [],
+                                maxHeight: (item.megaMenu as any)?.maxHeight,
                             }}
                             onChange={(megaData: MegaMenuData) => {
                                 onUpdateItem({
                                     ...item,
                                     megaMenu: {
                                         sections: megaData.sections,
+                                        maxHeight: megaData.maxHeight,
                                     },
                                 });
                             }}

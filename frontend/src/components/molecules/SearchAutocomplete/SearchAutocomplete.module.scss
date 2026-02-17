@@ -90,7 +90,7 @@ $accent-color: var(--color-accent, #007185);
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
     max-height: 400px;
     overflow-y: auto;
-    z-index: 1000;
+    z-index: 9999;
     animation: slideDown 0.2s ease;
 }
 

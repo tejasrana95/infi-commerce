@@ -188,6 +188,46 @@ export default function HeaderElementConfig({
                                 }
                                 fullWidth
                             />
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={formData.settings?.expandedForDesktop ?? false}
+                                        onChange={(e) =>
+                                            setFormData({
+                                                ...formData,
+                                                settings: {
+                                                    ...formData.settings,
+                                                    expandedForDesktop: e.target.checked,
+                                                },
+                                            })
+                                        }
+                                    />
+                                }
+                                label="Expanded for Desktop"
+                            />
+                            <Typography variant="caption" color="text.secondary">
+                                If enabled, the search bar will be always visible on desktop instead of showing just an icon.
+                            </Typography>
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={formData.settings?.showMobileOnly ?? false}
+                                        onChange={(e) =>
+                                            setFormData({
+                                                ...formData,
+                                                settings: {
+                                                    ...formData.settings,
+                                                    showMobileOnly: e.target.checked,
+                                                },
+                                            })
+                                        }
+                                    />
+                                }
+                                label="Show in Mobile & Tablet Only"
+                            />
+                            <Typography variant="caption" color="text.secondary">
+                                If enabled, this search bar will only appear on mobile and tablet devices. Use this to add a mobile-specific search variant alongside an expanded desktop search.
+                            </Typography>
                         </>
                     )}
 

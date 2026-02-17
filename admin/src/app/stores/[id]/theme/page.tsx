@@ -42,10 +42,16 @@ export default function ThemeSettingsPage() {
         header: {
             main: {
                 layout: 'default',
-                sections: [
-                    { id: 'left', position: 'left', items: [] },
-                    { id: 'center', position: 'center', items: [] },
-                    { id: 'right', position: 'right', items: [] },
+                rows: [
+                    {
+                        id: 'row-1',
+                        order: 0,
+                        sections: [
+                            { id: 'left', position: 'left', items: [] },
+                            { id: 'center', position: 'center', items: [] },
+                            { id: 'right', position: 'right', items: [] },
+                        ],
+                    },
                 ],
             },
         },

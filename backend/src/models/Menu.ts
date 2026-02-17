@@ -19,6 +19,13 @@ export interface IMenuItem {
     blogCategoryId?: mongoose.Types.ObjectId;
     blogCategorySlug?: string;
 
+    // Category display options (for type: 'category' top-level items)
+    autoAddProducts?: boolean;
+    showProductImage?: boolean;
+    showProductPrice?: boolean;
+    imagePosition?: 'left' | 'top';
+    productLimit?: number;
+
     // Mega menu content - Sections-based structure
     megaMenu?: {
         sections: Array<{
@@ -33,8 +40,16 @@ export interface IMenuItem {
                     label?: string;
                     categoryId?: string;
                     categoryName?: string;
+                    categorySlug?: string;
                     productLimit?: number;
                     autoAddProducts?: boolean;
+                    showProductImage?: boolean;
+                    showProductPrice?: boolean;
+                    showProductRating?: boolean;
+                    categoryDisplayMode?: 'list' | 'grid' | 'compact';
+                    categoryColumns?: number;
+                    productImageSize?: 'small' | 'medium' | 'large';
+                    imagePosition?: 'left' | 'top';
                     productIds?: string[];
                     productNames?: string[];
                     products?: Array<{ _id: string; name: string }>; // Array of product objects
@@ -54,6 +69,7 @@ export interface IMenuItem {
                 padding?: number;
             };
         }>;
+        maxHeight?: number;
     };
 
     icon?: string;                      // Icon name or URL
@@ -122,6 +138,13 @@ const MenuItemSchema = new Schema<IMenuItem>(
         blogCategoryId: { type: Schema.Types.ObjectId, ref: 'BlogCategory' },
         blogCategorySlug: { type: String, trim: true },
 
+        // Category display options (for type: 'category' top-level items)
+        autoAddProducts: { type: Boolean },
+        showProductImage: { type: Boolean },
+        showProductPrice: { type: Boolean },
+        imagePosition: { type: String, enum: ['left', 'top'] },
+        productLimit: { type: Number },
+
         megaMenu: {
             sections: [{
                 id: { type: String },
@@ -144,6 +167,13 @@ const MenuItemSchema = new Schema<IMenuItem>(
                         categorySlug: { type: String, trim: true },
                         productLimit: { type: Number },
                         autoAddProducts: { type: Boolean },
+                        showProductImage: { type: Boolean, default: true },
+                        showProductPrice: { type: Boolean, default: true },
+                        showProductRating: { type: Boolean, default: false },
+                        categoryDisplayMode: { type: String, enum: ['list', 'grid', 'compact'], default: 'list' },
+                        categoryColumns: { type: Number, default: 2 },
+                        productImageSize: { type: String, enum: ['small', 'medium', 'large'], default: 'small' },
+                        imagePosition: { type: String, enum: ['left', 'top'], default: 'left' },
                         productIds: [{ type: String }],
                         productNames: [{ type: String, trim: true }],
                         products: [{
@@ -168,6 +198,7 @@ const MenuItemSchema = new Schema<IMenuItem>(
                     padding: { type: Number },
                 },
             }],
+            maxHeight: { type: Number },
         },
 
         icon: { type: String, trim: true },

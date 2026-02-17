@@ -16,13 +16,31 @@
 }
 
 .menuItem {
-    position: static; // Allow dropdown to be positioned relative to nav container
+    position: static;
 
     &.hasDropdown {
-        position: static; // Keep static so dropdown positions relative to nav
+        position: static;
 
         &:hover {
             .megaMenuDropdown {
+                opacity: 1;
+                visibility: visible;
+                transform: translateY(0);
+            }
+
+            .categoryDropdown {
+                opacity: 1;
+                visibility: visible;
+                transform: translateY(0);
+            }
+        }
+    }
+
+    &.hasCategoryDropdown {
+        position: relative;
+
+        &:hover {
+            .categoryDropdown {
                 opacity: 1;
                 visibility: visible;
                 transform: translateY(0);
@@ -31,20 +49,28 @@
     }
 }
 
-.divider {
+// Vertical divider between top-level items
+.dividerVert {
     width: 1px;
     height: 1.5rem;
     background: rgba(0, 0, 0, 0.1);
     margin: 0 0.5rem;
 }
 
-// Mega Menu Dropdown
+// Horizontal divider inside mega menu columns
+.divider {
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 0.75rem 0;
+}
+
+// ─── Mega Menu Dropdown ──────────────────────────────────────────────────────
 .megaMenuDropdown {
-    position: absolute;
-    top: 100%;
+    position: fixed;
+    top: 0;
     left: 0;
     right: 0;
-    width: 100%;
+    width: 100vw;
     transform: translateY(-0.5rem);
     background: var(--color-background, white);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
@@ -63,20 +89,27 @@
     max-width: 1280px;
     margin: 0 auto;
     padding: 0 1rem;
-    display: flex;
-    gap: 1rem;
-
-    @include tablet-down {
-        padding: 0 1rem;
-    }
 }
 
-.megaMenuContent {
-    display: flex;
-    gap: 1rem;
+// ─── Category Dropdown (top-level category items with auto-populate) ─────────
+.categoryDropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: var(--color-background, white);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    min-width: 16rem;
+    max-width: 24rem;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-0.5rem);
+    transition: all 0.2s ease;
+    z-index: 100;
 }
 
-// Columns
+// ─── Columns ─────────────────────────────────────────────────────────────────
 .columns {
     display: flex;
     flex: 1;
@@ -84,17 +117,8 @@
 }
 
 .column {
-    flex: 1;
-}
-
-.columnTitle {
-    font-size: 0.875rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin: 0 0 1rem 0;
-    padding: 0 1rem;
-    color: var(--color-text, #333);
+    min-width: 0;
+    flex-shrink: 0;
 }
 
 .columnList {
@@ -104,12 +128,127 @@
 }
 
 .columnItem {
+    margin-bottom: 0.25rem;
+
     &:hover {
         background: var(--color-secondary, #f5f5f5);
+        border-radius: 4px;
     }
 }
 
-// Featured Content
+// ─── Category Section ────────────────────────────────────────────────────────
+.categorySection {
+    padding: 0.5rem 0;
+}
+
+.categoryLabel {
+    display: block;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--color-primary, #1976d2);
+    margin-bottom: 0.75rem;
+    text-decoration: none;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+.categoryLabelStatic {
+    display: block;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--color-text, #333);
+    margin-bottom: 0.75rem;
+}
+
+// ─── Product List (vertical) ─────────────────────────────────────────────────
+.productList {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+// ─── Product Grid (grid / compact modes) ─────────────────────────────────────
+// Column count is applied via inline style (gridTemplateColumns)
+.productGrid {
+    display: grid;
+    gap: 12px;
+}
+
+// ─── Product Section (manual product type) ───────────────────────────────────
+.productSection {
+    padding: 0.5rem 0;
+}
+
+.sectionLabel {
+    display: block;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--color-text, #333);
+    margin-bottom: 0.5rem;
+}
+
+.productLink {
+    display: block;
+    padding: 0.4rem 0.5rem;
+    color: var(--color-text-secondary, #666);
+    text-decoration: none;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background-color: rgba(0, 0, 0, 0.04);
+        color: var(--color-primary, #1976d2);
+    }
+}
+
+// ─── Image Type ──────────────────────────────────────────────────────────────
+.imageLink {
+    display: block;
+
+    img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 0.5rem;
+    }
+}
+
+// ─── Custom Link ─────────────────────────────────────────────────────────────
+.customLink {
+    display: block;
+    padding: 0.5rem 0;
+    color: var(--color-accent, #f60);
+    text-decoration: none;
+    font-weight: 500;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+// ─── Page Link ───────────────────────────────────────────────────────────────
+.pageLink {
+    display: block;
+    padding: 0.5rem 0;
+    color: var(--color-text-secondary, #555);
+    text-decoration: none;
+    font-size: 0.95rem;
+
+    &:hover {
+        color: var(--color-primary, #1976d2);
+    }
+}
+
+// ─── Loading ─────────────────────────────────────────────────────────────────
+.loading {
+    padding: 1rem;
+    text-align: center;
+    color: var(--color-text-secondary, #999);
+    font-size: 0.9rem;
+}
+
+// ─── Featured Content (legacy support) ───────────────────────────────────────
 .featured {
     width: 16rem;
     flex-shrink: 0;

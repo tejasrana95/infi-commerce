@@ -86,6 +86,13 @@ export interface MegaMenuItem {
     categorySlug?: string; // Store slug for proper URL generation
     productLimit?: number;
     autoAddProducts?: boolean;
+    showProductImage?: boolean;
+    showProductPrice?: boolean;
+    showProductRating?: boolean;
+    categoryDisplayMode?: 'list' | 'grid' | 'compact'; // How to display products
+    categoryColumns?: number; // Number of columns for grid/compact display
+    productImageSize?: 'small' | 'medium' | 'large';
+    imagePosition?: 'left' | 'top'; // Image position relative to product details
 
     // Product config
     products?: Array<{ _id: string; name: string; slug?: string }>; // Include slug for URLs
@@ -119,6 +126,7 @@ export interface MegaMenuSection {
 
 export interface MegaMenuData {
     sections: MegaMenuSection[];
+    maxHeight?: number; // Max height in px for the whole mega menu dropdown
 }
 
 interface MegaMenuBuilderProps {
@@ -201,7 +209,19 @@ function ItemConfigDialog({ open, item, onClose, onSave, onDelete, storeId }: It
     // Reset form data whenever dialog opens or item changes
     useEffect(() => {
         if (open && item) {
-            setFormData(item);
+            setFormData({
+                ...item,
+                // Ensure all fields have defaults if not present
+                categoryDisplayMode: item.categoryDisplayMode || 'list',
+                categoryColumns: item.categoryColumns || 2,
+                showProductImage: item.showProductImage ?? true,
+                showProductPrice: item.showProductPrice ?? true,
+                showProductRating: item.showProductRating ?? false,
+                productImageSize: item.productImageSize || 'small',
+                imagePosition: item.imagePosition || 'left',
+                autoAddProducts: item.autoAddProducts ?? true,
+                productLimit: item.productLimit || 10,
+            });
             // Reset selected products when opening dialog
             setSelectedProducts([]);
         } else if (open && !item) {
@@ -253,14 +273,7 @@ function ItemConfigDialog({ open, item, onClose, onSave, onDelete, storeId }: It
                                 storeId={storeId}
                                 label="Select Category"
                             />
-                            <TextField
-                                label="Product Limit"
-                                type="number"
-                                value={formData.productLimit || 10}
-                                onChange={(e) => setFormData(prev => ({ ...prev, productLimit: Number(e.target.value) }))}
-                                fullWidth
-                                helperText="Maximum number of products to display"
-                            />
+                            
                             <FormControlLabel
                                 control={
                                     <Switch
@@ -268,7 +281,103 @@ function ItemConfigDialog({ open, item, onClose, onSave, onDelete, storeId }: It
                                         onChange={(e) => setFormData(prev => ({ ...prev, autoAddProducts: e.target.checked }))}
                                     />
                                 }
-                                label="Auto-add products from category"
+                                label="Auto-populate products from category"
+                            />
+                            
+                            <TextField
+                                label="Product Limit"
+                                type="number"
+                                value={formData.productLimit || 10}
+                                onChange={(e) => setFormData(prev => ({ ...prev, productLimit: Number(e.target.value) }))}
+                                fullWidth
+                                helperText="Maximum number of products to display"
+                                inputProps={{ min: 1, max: 50 }}
+                            />
+                            
+                            <Divider sx={{ my: 2 }} />
+                            <Typography variant="subtitle2" gutterBottom>Display Options</Typography>
+                            
+                            <FormControl fullWidth>
+                                <InputLabel>Display Mode</InputLabel>
+                                <Select
+                                    value={formData.categoryDisplayMode || 'list'}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, categoryDisplayMode: e.target.value as any }))}
+                                    label="Display Mode"
+                                >
+                                    <MuiMenuItem value="list">List View</MuiMenuItem>
+                                    <MuiMenuItem value="grid">Grid View</MuiMenuItem>
+                                    <MuiMenuItem value="compact">Compact Grid</MuiMenuItem>
+                                </Select>
+                            </FormControl>
+                            
+                            {(formData.categoryDisplayMode === 'grid' || formData.categoryDisplayMode === 'compact') && (
+                                <TextField
+                                    label="Number of Columns"
+                                    type="number"
+                                    value={formData.categoryColumns || 2}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, categoryColumns: Number(e.target.value) }))}
+                                    fullWidth
+                                    inputProps={{ min: 1, max: 6 }}
+                                />
+                            )}
+                            
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={formData.showProductImage ?? true}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, showProductImage: e.target.checked }))}
+                                    />
+                                }
+                                label="Show product images"
+                            />
+                            
+                            {formData.showProductImage && (
+                                <FormControl fullWidth>
+                                    <InputLabel>Image Size</InputLabel>
+                                    <Select
+                                        value={formData.productImageSize || 'small'}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, productImageSize: e.target.value as any }))}
+                                        label="Image Size"
+                                    >
+                                        <MuiMenuItem value="small">Small (60px)</MuiMenuItem>
+                                        <MuiMenuItem value="medium">Medium (100px)</MuiMenuItem>
+                                        <MuiMenuItem value="large">Large (150px)</MuiMenuItem>
+                                    </Select>
+                                </FormControl>
+                            )}
+
+                            {formData.showProductImage && (
+                                <FormControl fullWidth>
+                                    <InputLabel>Image Position</InputLabel>
+                                    <Select
+                                        value={formData.imagePosition || 'left'}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, imagePosition: e.target.value as any }))}
+                                        label="Image Position"
+                                    >
+                                        <MuiMenuItem value="left">Left (Horizontal)</MuiMenuItem>
+                                        <MuiMenuItem value="top">Top (Vertical)</MuiMenuItem>
+                                    </Select>
+                                </FormControl>
+                            )}
+                            
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={formData.showProductPrice ?? true}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, showProductPrice: e.target.checked }))}
+                                    />
+                                }
+                                label="Show product prices"
+                            />
+                            
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={formData.showProductRating ?? false}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, showProductRating: e.target.checked }))}
+                                    />
+                                }
+                                label="Show product ratings"
                             />
                         </>
                     )}
@@ -1068,18 +1177,33 @@ export default function MegaMenuBuilder({ data, onChange, storeId }: MegaMenuBui
 
                 {/* Main Canvas */}
                 <Box sx={{ flex: 1, overflow: 'auto' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 2 }}>
                         <Typography variant="subtitle1" fontWeight={600}>
                             Mega Menu Sections ({data.sections.length})
                         </Typography>
-                        <Button
-                            startIcon={<AddIcon />}
-                            variant="outlined"
-                            size="small"
-                            onClick={() => setSectionTypeDialog(true)}
-                        >
-                            Add Section
-                        </Button>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <TextField
+                                size="small"
+                                type="number"
+                                label="Max Height (px)"
+                                value={data.maxHeight || ''}
+                                onChange={(e) => {
+                                    const val = e.target.value ? Number(e.target.value) : undefined;
+                                    onChange({ ...data, maxHeight: val });
+                                }}
+                                placeholder="Auto"
+                                sx={{ width: 150 }}
+                                inputProps={{ min: 100, step: 50 }}
+                            />
+                            <Button
+                                startIcon={<AddIcon />}
+                                variant="outlined"
+                                size="small"
+                                onClick={() => setSectionTypeDialog(true)}
+                            >
+                                Add Section
+                            </Button>
+                        </Box>
                     </Box>
 
                     {data.sections.length === 0 ? (

@@ -51,15 +51,25 @@ export interface HeaderTopBar {
 
 export interface HeaderElement {
   id: string;
-  type: 'logo' | 'menu' | 'search' | 'cart' | 'account' | 'wishlist' | 'html';
+  type: 'logo' | 'menu' | 'search' | 'cart' | 'account' | 'wishlist' | 'html' | 'currency' | 'custom';
   settings?: Record<string, unknown>;
+  menuId?: string;
+  order?: number;
 }
 
-export interface HeaderSection {
+export interface HeaderSectionPosition {
   id: string;
   position: 'left' | 'center' | 'right';
-  width?: number;
   items: HeaderElement[];
+}
+
+export interface HeaderRow {
+  id: string;
+  order: number;
+  backgroundColor?: string;
+  height?: number;
+  padding?: number;
+  sections: HeaderSectionPosition[];
 }
 
 export interface HeaderMainConfig {
@@ -67,8 +77,11 @@ export interface HeaderMainConfig {
   backgroundColor?: string;
   height?: number;
   sticky?: boolean;
+  stickyRow?: 'all' | 'first' | 'second' | 'none';
   transparent?: boolean;
-  sections: HeaderSection[];
+  rows?: HeaderRow[];
+  // Deprecated: kept for backward compatibility
+  sections?: HeaderSectionPosition[];
 }
 
 export interface HeaderConfig {

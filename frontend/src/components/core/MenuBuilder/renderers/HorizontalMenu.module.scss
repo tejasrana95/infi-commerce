@@ -2,7 +2,6 @@
 
 .horizontalMenu {
     width: 100%;
-    // No position:relative - allow mega menu to position relative to header
 }
 
 .menuList {
@@ -19,8 +18,8 @@
 
     &.hasChildren {
         &:hover {
-
-            .dropdown {
+            .dropdown,
+            .categoryDropdown {
                 opacity: 1;
                 visibility: visible;
                 transform: translateY(0);
@@ -29,11 +28,9 @@
     }
 
     &.hasMegaMenu {
-        position: static; // Allow mega menu to position relative to header
+        position: static;
 
         &:hover {
-
-
             .megaMenuDropdown {
                 opacity: 1;
                 visibility: visible;
@@ -50,7 +47,7 @@
     margin: 0 0.5rem;
 }
 
-// Regular Dropdown
+// ─── Regular Dropdown ────────────────────────────────────────────────────────
 .dropdown {
     position: absolute;
     top: 100%;
@@ -79,22 +76,40 @@
     }
 }
 
-// Mega Menu Dropdown - Full Width (positions relative to mainHeader)
-.megaMenuDropdown {
+// ─── Category Dropdown (top-level category items with auto-populate) ─────────
+.categoryDropdown {
     position: absolute;
     top: 100%;
     left: 0;
+    background: var(--color-background, white);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    min-width: 16rem;
+    max-width: 24rem;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-0.5rem);
+    transition: all 0.2s ease;
+    z-index: 100;
+}
+
+// ─── Mega Menu Dropdown ──────────────────────────────────────────────────────
+.megaMenuDropdown {
+    position: fixed;
+    top: 0;
+    left: 0;
     right: 0;
-    width: 100%;
+    width: 100vw;
+    transform: translateY(-0.5rem);
     background: var(--color-background, white);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     padding: 1rem 0;
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-0.5rem);
     transition: all 0.3s ease;
     z-index: 100;
-    border-radius: 0.5rem;
+    border-radius: 0 0 0.5rem 0.5rem;
 }
 
 .megaMenuSection {
@@ -110,6 +125,7 @@
 
 .megaMenuColumn {
     min-width: 0;
+    flex-shrink: 0;
 }
 
 .megaMenuList {
@@ -119,11 +135,10 @@
 }
 
 .megaMenuItem {
-
     margin-bottom: 0.5rem;
 
     a:not(.categoryLabel) {
-        display: block;
+        display: flex;
         padding: 0.5rem 0;
         color: #333;
         text-decoration: none;
@@ -135,10 +150,15 @@
     }
 }
 
+// ─── Mega Sub-Item Styles ────────────────────────────────────────────────────
 .megaDivider {
     border: none;
     border-top: 1px solid #eee;
     margin: 1rem 0;
+}
+
+.megaSubItem {
+    margin-bottom: 0.75rem;
 }
 
 .megaImageLink {
@@ -160,15 +180,21 @@
 
     &:hover {
         text-decoration: underline;
-
     }
 }
 
-// Internal MegaSubItem Styles
-.megaSubItem {
-    margin-bottom: 0.75rem;
+.megaPageLink {
+    color: #555;
+    text-decoration: none;
+    font-size: 0.95rem;
+    display: block;
+
+    &:hover {
+        color: var(--primary-color, #000);
+    }
 }
 
+// ─── Category Labels ─────────────────────────────────────────────────────────
 .categoryLabel {
     display: block;
     font-weight: 600;
@@ -191,12 +217,30 @@
     font-size: 1rem;
 }
 
+// ─── Product List (vertical / list mode) ─────────────────────────────────────
+.productList {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+// ─── Product Grid (grid / compact modes) ─────────────────────────────────────
+// Column count applied via inline style (gridTemplateColumns)
+.productGrid {
+    display: grid;
+    gap: 12px;
+}
+
+// ─── Manual Product List ─────────────────────────────────────────────────────
 .megaProductList {
     list-style: none;
     padding: 0;
     margin: 0;
 }
 
+.megaProductItem {
+    margin-bottom: 2px;
+}
 
 .megaProductLink {
     color: #666;
@@ -210,17 +254,7 @@
     }
 }
 
-.megaPageLink {
-    color: #555;
-    text-decoration: none;
-    font-size: 0.95rem;
-    display: block;
-
-    &:hover {
-        color: var(--primary-color, #000);
-    }
-}
-
+// ─── Loading / Empty State ───────────────────────────────────────────────────
 .loading {
     font-size: 0.85rem;
     color: #999;

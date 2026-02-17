@@ -16,13 +16,36 @@ export interface MenuItem {
     productSlug?: string;
     pageSlug?: string;
 
+    // Category display options (for top-level category items)
+    autoAddProducts?: boolean;
+    showProductImage?: boolean;
+    showProductPrice?: boolean;
+    imagePosition?: 'left' | 'top';
+    productLimit?: number;
+
     // Mega Menu specific fields (lifted from nested structure for easier access)
     categoryName?: string;
     pageName?: string;
-    productLimit?: number;
     productIds?: string[];
     productNames?: string[];
-    products?: Array<{ _id: string; name: string; slug?: string; price?: number; salePrice?: number; images?: string[] }>;
+    products?: Array<{ 
+        _id: string; 
+        name: string; 
+        slug?: string; 
+        price?: number; 
+        salePrice?: number; 
+        featuredImage?: string;
+        images?: string[];
+        rating?: number;
+        reviewCount?: number;
+    }>;
+    
+    // Category display options
+    showProductRating?: boolean;
+    categoryDisplayMode?: 'list' | 'grid' | 'compact';
+    categoryColumns?: number;
+    productImageSize?: 'small' | 'medium' | 'large';
+    
     imageUrl?: string;
     imageAlt?: string;
     imageLink?: string;
@@ -46,6 +69,7 @@ export interface MenuItem {
                 padding?: number;
             };
         }>;
+        maxHeight?: number;
     };
 
     icon?: string;

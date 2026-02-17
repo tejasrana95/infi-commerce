@@ -163,6 +163,14 @@ export interface MenuItem {
     pageSlug?: string;
     blogCategoryId?: string;
     blogCategorySlug?: string;
+
+    // Category display options (for type: 'category')
+    autoAddProducts?: boolean;
+    showProductImage?: boolean;
+    showProductPrice?: boolean;
+    imagePosition?: 'left' | 'top';
+    productLimit?: number;
+
     megaMenu?: {
         sections: Array<{
             id: string;
@@ -193,6 +201,7 @@ export interface MenuItem {
                 padding?: number;
             };
         }>;
+        maxHeight?: number;
     };
     icon?: string;
     badge?: {

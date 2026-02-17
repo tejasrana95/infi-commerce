@@ -169,6 +169,51 @@ $accent-color: var(--color-accent, #007185);
     min-height: 70px;
 }
 
+// Sticky row support - JS-driven fixed positioning
+.fixedRow {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+// Compact second row
+.compactRow {
+    .headerContent {
+        padding: 0.5rem 0 !important;
+        min-height: 50px;
+    }
+
+    .sectionLeft,
+    .sectionCenter,
+    .sectionRight {
+        font-size: 0.9rem;
+        
+        .menuElement {
+            font-size: 0.9rem;
+        }
+    }
+
+    .actionBtn {
+        width: 36px;
+        height: 36px;
+
+        svg {
+            width: 18px;
+            height: 18px;
+        }
+    }
+
+    @include mobile {
+        .headerContent {
+            padding: 0.4rem 0 !important;
+            min-height: 44px;
+        }
+    }
+}
+
 @keyframes slideBehindHeader {
     from {
         transform: translateY(-100%);
@@ -527,6 +572,45 @@ $accent-color: var(--color-accent, #007185);
 
     50% {
         transform: scale(1.1);
+    }
+}
+
+// Inline search container (expanded for desktop)
+.inlineSearchContainer {
+    flex: 1;
+  
+    display: flex;
+    position: relative;
+    z-index: 100;
+    
+    @include mobile {
+        display: none;
+    }
+}
+
+// Search wrapper for expanded desktop search
+.searchWrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+// Search button inside wrapper - hidden on desktop, visible on mobile
+.searchBtn {
+    @include mobile {
+        display: flex !important;
+    }
+    
+    @media (min-width: 769px) {
+        display: none !important;
+    }
+}
+
+// Mobile-only search button - only visible on mobile and tablet
+.mobileOnlyBtn {
+    @media (min-width: 769px) {
+        display: none !important;
     }
 }
 

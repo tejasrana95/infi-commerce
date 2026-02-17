@@ -275,6 +275,13 @@ export const updateMenu = asyncHandler(async (req: AuthRequest, res: Response) =
     delete updates.storeId;
 
     Object.assign(menu, updates);
+
+    // Mark items as modified so Mongoose detects deep nested changes
+    // (e.g. items[].megaMenu.maxHeight, items[].autoAddProducts, etc.)
+    if (updates.items) {
+        menu.markModified('items');
+    }
+
     await menu.save();
 
     // Invalidate cache

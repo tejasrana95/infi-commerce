@@ -41,10 +41,19 @@ export interface HeaderElement {
     order: number;
 }
 
-export interface HeaderSection {
+export interface HeaderSectionPosition {
     id: string;
     position: 'left' | 'center' | 'right';
     items: HeaderElement[];
+}
+
+export interface HeaderRow {
+    id: string;
+    order: number;
+    backgroundColor?: string;
+    height?: number;
+    padding?: number;
+    sections: HeaderSectionPosition[];
 }
 
 export interface HeaderMainConfig {
@@ -52,8 +61,11 @@ export interface HeaderMainConfig {
     backgroundColor?: string;
     height?: number;
     sticky?: boolean;
+    stickyRow?: 'all' | 'first' | 'second' | 'none';
     transparent?: boolean;
-    sections: HeaderSection[];
+    rows: HeaderRow[];
+    // Deprecated: kept for backward compatibility
+    sections?: HeaderSectionPosition[];
 }
 
 export interface FooterElement {

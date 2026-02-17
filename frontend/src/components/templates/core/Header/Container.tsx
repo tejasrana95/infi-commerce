@@ -1,7 +1,7 @@
 // Core Header Container - Processes API config into template-ready props
 // Server Component for SSR
 
-import { HeaderConfig, Store, HeaderSection, HeaderElement } from '@/types';
+import { HeaderConfig, Store, HeaderSectionPosition, HeaderElement } from '@/types';
 import { Menu } from '@/types/menu';
 import { getComponent } from '@/components/templates/registry';
 import ClientHeaderWrapper from './ClientWrapper';
@@ -72,7 +72,18 @@ async function processHeaderConfig(
         });
     }
 
-    // Process main header sections to determine what elements to show
+    // Migrate old sections to rows format if needed
+    if (config?.main && !config.main.rows && config.main.sections) {
+        config.main.rows = [
+            {
+                id: 'row-1',
+                order: 0,
+                sections: config.main.sections,
+            },
+        ];
+    }
+
+    // Process main header rows to determine what elements to show
     const headerElements = {
         showSearch: false,
         showLogo: true,
@@ -80,23 +91,28 @@ async function processHeaderConfig(
         showAccount: false,
         showWishlist: false,
         layout: config?.main?.layout || 'default',
+        rows: config?.main?.rows || [],
+        // Keep sections for backward compatibility
         sections: config?.main?.sections || [],
     };
 
     // Find menu element and fetch menu
     let headerMenu: Menu | null = null;
-    if (config?.main?.sections) {
-        for (const section of config.main.sections) {
-            for (const item of section.items) {
-                if (item.type === 'search') headerElements.showSearch = true;
-                if (item.type === 'cart') headerElements.showCart = true;
-                if (item.type === 'account') headerElements.showAccount = true;
-                if (item.type === 'wishlist') headerElements.showWishlist = true;
+    if (config?.main?.rows) {
+        for (const row of config.main.rows) {
+            for (const section of row.sections) {
+                for (const item of section.items || []) {
+                    if (!item) continue;
+                    if (item.type === 'search') headerElements.showSearch = true;
+                    if (item.type === 'cart') headerElements.showCart = true;
+                    if (item.type === 'account') headerElements.showAccount = true;
+                    if (item.type === 'wishlist') headerElements.showWishlist = true;
 
-                // Fetch menu if menuId is specified
-                if (item.type === 'menu' && (item.settings?.menuId || (item as any).menuId)) {
-                    const menuId = (item.settings?.menuId || (item as any).menuId) as string;
-                    headerMenu = await fetchMenuById(menuId);
+                    // Fetch menu if menuId is specified
+                    if (item.type === 'menu' && (item.settings?.menuId || (item as any).menuId)) {
+                        const menuId = (item.settings?.menuId || (item as any).menuId) as string;
+                        headerMenu = await fetchMenuById(menuId);
+                    }
                 }
             }
         }
@@ -110,13 +126,16 @@ async function processHeaderConfig(
     // Collect all menu IDs to fetch
     const menuIds = new Set<string>();
 
-    // Add header menus
-    if (config?.main?.sections) {
-        config.main.sections.forEach(section => {
-            section.items.forEach(item => {
-                if (item.type === 'menu' && (item.settings?.menuId || (item as any).menuId)) {
-                    menuIds.add((item.settings?.menuId || (item as any).menuId) as string);
-                }
+    // Add header menus from rows
+    if (config?.main?.rows) {
+        config.main.rows.forEach(row => {
+            row.sections.forEach(section => {
+                (section.items || []).forEach(item => {
+                    if (!item) return;
+                    if (item.type === 'menu' && (item.settings?.menuId || (item as any).menuId)) {
+                        menuIds.add((item.settings?.menuId || (item as any).menuId) as string);
+                    }
+                });
             });
         });
     }
@@ -175,6 +194,8 @@ async function processHeaderConfig(
         themeColors,
         // Pass header elements config
         headerElements,
+        // Pass full header config for sticky row behavior
+        headerConfig: config,
         // headerMenu and mobileMenu deprecated - use context
         headerMenu: headerMenu || undefined,
         mobileMenu: mobileMenu || undefined,

@@ -41,10 +41,16 @@ export const PRESET_TEMPLATES: ThemePreset[] = [
                     height: 80,
                     sticky: true,
                     transparent: false,
-                    sections: [
-                        { id: 'left', position: 'left', items: [{ id: 'logo', type: 'logo', order: 0 }] },
-                        { id: 'center', position: 'center', items: [{ id: 'menu', type: 'menu', order: 0 }] },
-                        { id: 'right', position: 'right', items: [{ id: 'search', type: 'search', order: 0 }, { id: 'cart', type: 'cart', order: 1 }] },
+                    rows: [
+                        {
+                            id: 'row-1',
+                            order: 0,
+                            sections: [
+                                { id: 'left', position: 'left', items: [{ id: 'logo', type: 'logo', order: 0 }] },
+                                { id: 'center', position: 'center', items: [{ id: 'menu', type: 'menu', order: 0 }] },
+                                { id: 'right', position: 'right', items: [{ id: 'search', type: 'search', order: 0 }, { id: 'cart', type: 'cart', order: 1 }] },
+                            ],
+                        },
                     ],
                 },
             },
@@ -100,10 +106,16 @@ export const PRESET_TEMPLATES: ThemePreset[] = [
                     height: 100,
                     sticky: false,
                     transparent: false,
-                    sections: [
-                        { id: 'left', position: 'left', items: [{ id: 'search', type: 'search', order: 0 }] },
-                        { id: 'center', position: 'center', items: [{ id: 'logo', type: 'logo', order: 0 }] },
-                        { id: 'right', position: 'right', items: [{ id: 'cart', type: 'cart', order: 0 }, { id: 'account', type: 'account', order: 1 }] },
+                    rows: [
+                        {
+                            id: 'row-1',
+                            order: 0,
+                            sections: [
+                                { id: 'left', position: 'left', items: [{ id: 'search', type: 'search', order: 0 }] },
+                                { id: 'center', position: 'center', items: [{ id: 'logo', type: 'logo', order: 0 }] },
+                                { id: 'right', position: 'right', items: [{ id: 'cart', type: 'cart', order: 0 }, { id: 'account', type: 'account', order: 1 }] },
+                            ],
+                        },
                     ],
                 },
             },
@@ -159,10 +171,16 @@ export const PRESET_TEMPLATES: ThemePreset[] = [
                     height: 90,
                     sticky: true,
                     transparent: false,
-                    sections: [
-                        { id: 'left', position: 'left', items: [{ id: 'logo', type: 'logo', order: 0 }] },
-                        { id: 'center', position: 'center', items: [] },
-                        { id: 'right', position: 'right', items: [{ id: 'menu', type: 'menu', order: 0 }, { id: 'cart', type: 'cart', order: 1 }] },
+                    rows: [
+                        {
+                            id: 'row-1',
+                            order: 0,
+                            sections: [
+                                { id: 'left', position: 'left', items: [{ id: 'logo', type: 'logo', order: 0 }] },
+                                { id: 'center', position: 'center', items: [] },
+                                { id: 'right', position: 'right', items: [{ id: 'menu', type: 'menu', order: 0 }, { id: 'cart', type: 'cart', order: 1 }] },
+                            ],
+                        },
                     ],
                 },
             },
