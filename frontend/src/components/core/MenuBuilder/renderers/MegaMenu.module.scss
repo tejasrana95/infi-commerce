@@ -1,124 +1,206 @@
-// Mega Menu Styles
+// MegaMenu Styles — Rewritten
+// Full-width mega dropdown — pure CSS positioning
 
 @use '@/styles/breakpoints' as *;
 
+// ─── Nav wrapper ─────────────────────────────────────────────────────────────
 .megaMenu {
     width: 100%;
 }
 
 .menuList {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     list-style: none;
     padding: 0;
     margin: 0;
-    gap: 0.5rem;
+    gap: 0.125rem;
 }
 
+// ─── Top-level item ──────────────────────────────────────────────────────────
 .menuItem {
-    position: static;
+    position: relative;
 
-    &.hasDropdown {
-        position: static;
-
-        &:hover {
-            .megaMenuDropdown {
-                opacity: 1;
-                visibility: visible;
-                transform: translateY(0);
-            }
-
-            .categoryDropdown {
-                opacity: 1;
-                visibility: visible;
-                transform: translateY(0);
-            }
-        }
+    > .trigger {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        cursor: pointer;
     }
 
-    &.hasCategoryDropdown {
-        position: relative;
+    .chevron {
+        width: 0.75rem;
+        height: 0.75rem;
+        flex-shrink: 0;
+        transition: transform 0.25s ease;
+        opacity: 0.5;
+    }
 
-        &:hover {
-            .categoryDropdown {
-                opacity: 1;
-                visibility: visible;
-                transform: translateY(0);
-            }
+    &:hover,
+    &:focus-within {
+        > .megaDropdown {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        > .categoryDropdown {
+            opacity: 1;
+            visibility: visible;
+            translate: 0 0;
+            pointer-events: auto;
+        }
+
+        > .trigger .chevron {
+            transform: rotate(180deg);
+            opacity: 1;
         }
     }
 }
 
-// Vertical divider between top-level items
+// Mega menu items break out to full-width
+.menuItem.hasMegaMenu {
+    position: static;
+}
+
+// Category items need relative for their own dropdown
+.menuItem.hasCategoryDropdown {
+    position: relative;
+}
+
+// Vertical divider
 .dividerVert {
     width: 1px;
-    height: 1.5rem;
-    background: rgba(0, 0, 0, 0.1);
-    margin: 0 0.5rem;
+    align-self: stretch;
+    margin: 0.5rem 0.25rem;
+    background: color-mix(in srgb, currentColor 12%, transparent);
 }
 
-// Horizontal divider inside mega menu columns
+// Horizontal divider inside mega panels
 .divider {
     border: none;
-    border-top: 1px solid #eee;
+    border-top: 1px solid color-mix(in srgb, currentColor 8%, transparent);
     margin: 0.75rem 0;
 }
 
-// ─── Mega Menu Dropdown ──────────────────────────────────────────────────────
-.megaMenuDropdown {
-    position: fixed;
-    top: 0;
+// ─── Mega dropdown ──────────────────────────────────────────────────────────
+// Full-width relative to positioned ancestor (header)
+.megaDropdown {
+    position: absolute;
+    top: 100%;
     left: 0;
     right: 0;
-    width: 100vw;
-    transform: translateY(-0.5rem);
-    background: var(--color-background, white);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    background: var(--color-background, #fff);
+    border-radius: 0 0 0.75rem 0.75rem;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05);
     padding: 2rem 0;
     opacity: 0;
     visibility: hidden;
-    transition: all 0.3s ease;
-    z-index: 100;
+    pointer-events: none;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+    z-index: 1001;
+    max-height: 75vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
 
-    @include tablet-down {
+    // Invisible bridge to prevent hover gap — extends full viewport height
+    &::before {
+        content: '';
+        position: absolute;
+        bottom: 100%;
+        left: 0;
+        right: 0;
+        height: 100vh;
+    }
+
+    @include mobile {
         padding: 1rem 0;
     }
 }
 
-.megaMenuContent {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 0 1rem;
+// ─── Slide-down animation when inside sticky header ─────────────────────────
+@keyframes megaSlideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-0.5rem);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-// ─── Category Dropdown (top-level category items with auto-populate) ─────────
+:global(.scrolled),
+:global(.fixedRow) {
+    .menuItem {
+        &:hover,
+        &:focus-within {
+            > .megaDropdown {
+                animation: megaSlideDown 0.3s ease forwards;
+            }
+        }
+    }
+}
+
+// ─── Category dropdown ──────────────────────────────────────────────────────
 .categoryDropdown {
     position: absolute;
     top: 100%;
     left: 0;
-    background: var(--color-background, white);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    border-radius: 0.5rem;
-    padding: 0.5rem;
     min-width: 16rem;
-    max-width: 24rem;
+    max-width: 26rem;
+    background: var(--color-background, #fff);
+    border-radius: 0.625rem;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.06);
+    padding: 0.75rem;
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-0.5rem);
-    transition: all 0.2s ease;
+    translate: 0 0.375rem;
+    pointer-events: none;
+    transition: opacity 0.22s ease, visibility 0.22s ease, translate 0.22s ease;
     z-index: 100;
+
+    // Invisible bridge to prevent hover gap — taller to ensure coverage
+    &::before {
+        content: '';
+        position: absolute;
+        bottom: 100%;
+        left: 0;
+        right: 0;
+        height: 3rem;
+        pointer-events: auto;
+    }
 }
 
-// ─── Columns ─────────────────────────────────────────────────────────────────
+// ─── Mega internals ─────────────────────────────────────────────────────────
+.megaContent {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+
+    @include mobile {
+        padding: 0 1rem;
+    }
+}
+
 .columns {
     display: flex;
     flex: 1;
     gap: 2rem;
+
+    @include mobile {
+        flex-direction: column;
+        gap: 1rem;
+    }
 }
 
 .column {
     min-width: 0;
     flex-shrink: 0;
+
+    @include mobile {
+        width: 100% !important;
+    }
 }
 
 .columnList {
@@ -129,14 +211,15 @@
 
 .columnItem {
     margin-bottom: 0.25rem;
+    border-radius: 0.375rem;
+    transition: background-color 0.15s ease;
 
     &:hover {
-        background: var(--color-secondary, #f5f5f5);
-        border-radius: 4px;
+        background-color: color-mix(in srgb, var(--color-accent, #f60) 5%, transparent);
     }
 }
 
-// ─── Category Section ────────────────────────────────────────────────────────
+// ─── Category section ───────────────────────────────────────────────────────
 .categorySection {
     padding: 0.5rem 0;
 }
@@ -144,39 +227,38 @@
 .categoryLabel {
     display: block;
     font-weight: 600;
-    font-size: 0.95rem;
-    color: var(--color-primary, #1976d2);
-    margin-bottom: 0.75rem;
+    font-size: 0.9375rem;
+    color: var(--color-text, #1a1a1a);
+    margin-bottom: 0.625rem;
     text-decoration: none;
+    transition: color 0.2s ease;
 
     &:hover {
-        text-decoration: underline;
+        color: var(--color-accent, #f60);
     }
 }
 
 .categoryLabelStatic {
     display: block;
     font-weight: 600;
-    font-size: 0.95rem;
-    color: var(--color-text, #333);
-    margin-bottom: 0.75rem;
+    font-size: 0.9375rem;
+    color: var(--color-text, #1a1a1a);
+    margin-bottom: 0.625rem;
 }
 
-// ─── Product List (vertical) ─────────────────────────────────────────────────
+// ─── Product list / grid ────────────────────────────────────────────────────
 .productList {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 0.25rem;
 }
 
-// ─── Product Grid (grid / compact modes) ─────────────────────────────────────
-// Column count is applied via inline style (gridTemplateColumns)
 .productGrid {
     display: grid;
-    gap: 12px;
+    gap: 0.75rem;
 }
 
-// ─── Product Section (manual product type) ───────────────────────────────────
+// ─── Product section (manual) ───────────────────────────────────────────────
 .productSection {
     padding: 0.5rem 0;
 }
@@ -184,71 +266,82 @@
 .sectionLabel {
     display: block;
     font-weight: 600;
-    font-size: 0.9rem;
-    color: var(--color-text, #333);
+    font-size: 0.875rem;
+    color: var(--color-text, #1a1a1a);
     margin-bottom: 0.5rem;
 }
 
 .productLink {
     display: block;
-    padding: 0.4rem 0.5rem;
+    padding: 0.375rem 0.5rem;
     color: var(--color-text-secondary, #666);
     text-decoration: none;
-    border-radius: 4px;
-    transition: all 0.2s ease;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    transition: color 0.2s ease, background-color 0.15s ease;
 
     &:hover {
-        background-color: rgba(0, 0, 0, 0.04);
-        color: var(--color-primary, #1976d2);
+        background-color: color-mix(in srgb, var(--color-accent, #f60) 5%, transparent);
+        color: var(--color-accent, #f60);
     }
 }
 
-// ─── Image Type ──────────────────────────────────────────────────────────────
+// ─── Image link ─────────────────────────────────────────────────────────────
 .imageLink {
     display: block;
+    border-radius: 0.5rem;
+    overflow: hidden;
 
     img {
         max-width: 100%;
         height: auto;
-        border-radius: 0.5rem;
+        display: block;
+        transition: transform 0.3s ease;
+    }
+
+    &:hover img {
+        transform: scale(1.02);
     }
 }
 
-// ─── Custom Link ─────────────────────────────────────────────────────────────
+// ─── Custom / Page links ────────────────────────────────────────────────────
 .customLink {
-    display: block;
-    padding: 0.5rem 0;
+    display: inline-block;
+    padding: 0.375rem 0;
     color: var(--color-accent, #f60);
     text-decoration: none;
     font-weight: 500;
+    font-size: 0.875rem;
+    transition: opacity 0.2s ease;
 
     &:hover {
+        opacity: 0.8;
         text-decoration: underline;
     }
 }
 
-// ─── Page Link ───────────────────────────────────────────────────────────────
 .pageLink {
     display: block;
-    padding: 0.5rem 0;
+    padding: 0.375rem 0;
     color: var(--color-text-secondary, #555);
     text-decoration: none;
-    font-size: 0.95rem;
+    font-size: 0.9375rem;
+    transition: color 0.2s ease;
 
     &:hover {
-        color: var(--color-primary, #1976d2);
+        color: var(--color-accent, #f60);
     }
 }
 
-// ─── Loading ─────────────────────────────────────────────────────────────────
+// ─── States ─────────────────────────────────────────────────────────────────
 .loading {
     padding: 1rem;
     text-align: center;
     color: var(--color-text-secondary, #999);
-    font-size: 0.9rem;
+    font-size: 0.875rem;
 }
 
-// ─── Featured Content (legacy support) ───────────────────────────────────────
+// ─── Featured content (legacy) ──────────────────────────────────────────────
 .featured {
     width: 16rem;
     flex-shrink: 0;
@@ -268,10 +361,8 @@
         display: block;
     }
 
-    &:hover {
-        .featuredTitle {
-            background: rgba(0, 0, 0, 0.8);
-        }
+    &:hover .featuredTitle {
+        background: rgba(0, 0, 0, 0.8);
     }
 }
 
@@ -282,8 +373,8 @@
     right: 0;
     padding: 1rem;
     background: rgba(0, 0, 0, 0.6);
-    color: white;
+    color: #fff;
     font-size: 0.875rem;
     font-weight: 500;
-    transition: background 0.2s;
+    transition: background 0.2s ease;
 }

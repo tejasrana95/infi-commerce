@@ -1,2 +1,3 @@
-// Flyout Menu - Simple renderer (reuses Horizontal for now)
+// FlyoutMenu — Rewritten
+// Reuses HorizontalMenu renderer (same behaviour)
 export { default } from './HorizontalMenu';

@@ -1,18 +1,18 @@
-// Horizontal Menu Renderer
-// Classic horizontal navigation bar with mega menu support
+// HorizontalMenu — Rewritten
+// Pure CSS dropdown positioning — no JS getBoundingClientRect / resize listeners
 
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { MenuRendererProps, MenuItem } from '@/types/menu';
-import api from '@/lib/api';
 import MenuLink from '../MenuLink';
 import MegaMenuProductCard from '../MegaMenuProductCard';
-import styles from './HorizontalMenu.module.scss';
 import DynamicIcon from '../../common/DynamicIcon';
+import api from '@/lib/api';
+import styles from './HorizontalMenu.module.scss';
 
-// ─── Category Products Sub-Component ────────────────────────────────────────
+// ─── CategoryProducts ───────────────────────────────────────────────────────
 function CategoryProducts({ item }: { item: MenuItem }) {
     const [products, setProducts] = useState<any[]>(item.products || []);
     const [loading, setLoading] = useState(false);
@@ -25,26 +25,23 @@ function CategoryProducts({ item }: { item: MenuItem }) {
 
     useEffect(() => {
         if (!shouldFetch) return;
-
         let cancelled = false;
-        const fetchProducts = async () => {
+
+        (async () => {
             try {
                 setLoading(true);
                 const params = new URLSearchParams({
                     categoryId: item.categoryId!,
                     limit: String(item.productLimit || 10),
                 });
-                const response = await api.get(`products?${params.toString()}`);
-                if (!cancelled) {
-                    setProducts(response.products || response.data || []);
-                }
-            } catch (err) {
-                console.error('Failed to fetch category products:', err);
+                const res = await api.get(`products?${params}`);
+                if (!cancelled) setProducts(res.products || res.data || []);
+            } catch {
+                /* silent */
             } finally {
                 if (!cancelled) setLoading(false);
             }
-        };
-        fetchProducts();
+        })();
 
         return () => { cancelled = true; };
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -59,78 +56,49 @@ function CategoryProducts({ item }: { item: MenuItem }) {
     const imagePosition = item.imagePosition || 'left';
     const showViewAll = item.showViewAll ?? false;
     const categorySlug = item.categorySlug || item.categoryId;
-    if (loading) {
-        return <div className={styles.loading}>Loading products...</div>;
-    }
 
-    if (!products || products.length === 0) {
-        return null;
-    }
+    if (loading) return <div className={styles.loading}>Loading products…</div>;
+    if (!products?.length) return null;
 
-    // List mode — vertical stack
-    if (displayMode === 'list') {
-        return (
-            <div className={styles.productList}>
-                {products.map((product) => (
-                    <MegaMenuProductCard
-                        key={product._id}
-                        product={product}
-                        showImage={showImage}
-                        showPrice={showPrice}
-                        showRating={showRating}
-                        imageSize={imageSize}
-                        displayMode="list"
-                        imagePosition={imagePosition}
-                    />
-                ))}
-                {showViewAll && item.categoryId && (
-                    <div className={styles.viewAllContainer}>
-                        <Link href={`/${categorySlug}`} className={styles.viewAllBtn}>
-                            View All Products <DynamicIcon name="move-right" size={16} />
-                        </Link>
-                    </div>
-                )}
-            </div>
-        );
-    }
+    const cards = products.map((p) => (
+        <MegaMenuProductCard
+            key={p._id}
+            product={p}
+            showImage={showImage}
+            showPrice={showPrice}
+            showRating={showRating}
+            imageSize={imageSize}
+            displayMode={displayMode === 'list' ? 'list' : displayMode}
+            imagePosition={imagePosition}
+        />
+    ));
 
-    // Grid / Compact mode — use inline gridTemplateColumns for dynamic column count
-    return (
-        <div
-            className={styles.productGrid}
-            style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}
-        >
-            {products.map((product) => (
-                <MegaMenuProductCard
-                    key={product._id}
-                    product={product}
-                    showImage={showImage}
-                    showPrice={showPrice}
-                    showRating={showRating}
-                    imageSize={imageSize}
-                    displayMode={displayMode}
-                    imagePosition={imagePosition}
-                />
-            ))}
-            {showViewAll && item.categoryId && (
-                <div className={styles.viewAllContainer}>
-                    <Link href={`/${categorySlug}`} className={styles.viewAllBtn}>
-                        View All Products <DynamicIcon name="move-right" size={16} />
-                    </Link>
-                </div>
-            )}
+    const viewAll = showViewAll && item.categoryId && (
+        <div className={styles.viewAllContainer}>
+            <Link href={`/${categorySlug}`} className={styles.viewAllBtn}>
+                View All Products <DynamicIcon name="move-right" size={16} />
+            </Link>
         </div>
+    );
+
+    if (displayMode === 'list') {
+        return <div className={styles.productList}>{cards}{viewAll}</div>;
+    }
+
+    return (
+        <>
+            <div className={styles.productGrid} style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}>
+                {cards}
+            </div>
+            {viewAll}
+        </>
     );
 }
 
-// ─── Mega Sub-Item Renderer ─────────────────────────────────────────────────
+// ─── MegaSubItem ────────────────────────────────────────────────────────────
 function MegaSubItem({ item }: { item: MenuItem }) {
-    // Divider
-    if (item.type === 'divider') {
-        return <hr className={styles.megaDivider} />;
-    }
+    if (item.type === 'divider') return <hr className={styles.megaDivider} />;
 
-    // Image
     if (item.type === 'image' && item.imageUrl) {
         return (
             <div className={styles.megaSubItem}>
@@ -141,7 +109,6 @@ function MegaSubItem({ item }: { item: MenuItem }) {
         );
     }
 
-    // Custom Link
     if (item.type === 'custom-link') {
         return (
             <div className={styles.megaSubItem}>
@@ -156,35 +123,27 @@ function MegaSubItem({ item }: { item: MenuItem }) {
         );
     }
 
-    // Page
     if (item.type === 'page') {
-        const pageSlug = item.pageSlug || item.pageId;
         return (
             <div className={styles.megaSubItem}>
-                <Link href={`/${pageSlug}`} className={styles.megaPageLink}>
+                <Link href={`/${item.pageSlug || item.pageId}`} className={styles.megaPageLink}>
                     {item.label || item.pageName || 'Page'}
                 </Link>
             </div>
         );
     }
 
-    // Product (manual selection)
     if (item.type === 'product') {
-        const productList = item.products || [];
+        const list = item.products || [];
         return (
             <div className={styles.megaSubItem}>
-                {item.label && (
-                    <span className={styles.categoryLabelStatic}>{item.label}</span>
-                )}
-                {productList.length > 0 && (
+                {item.label && <span className={styles.categoryLabelStatic}>{item.label}</span>}
+                {list.length > 0 && (
                     <ul className={styles.megaProductList}>
-                        {productList.map((product: any) => (
-                            <li key={product._id} className={styles.megaProductItem}>
-                                <Link
-                                    href={`/${product.slug || product._id}`}
-                                    className={styles.megaProductLink}
-                                >
-                                    {product.name}
+                        {list.map((p: any) => (
+                            <li key={p._id} className={styles.megaProductItem}>
+                                <Link href={`/${p.slug || p._id}`} className={styles.megaProductLink}>
+                                    {p.name}
                                 </Link>
                             </li>
                         ))}
@@ -194,21 +153,16 @@ function MegaSubItem({ item }: { item: MenuItem }) {
         );
     }
 
-    // Category — with auto-populated product cards
     if (item.type === 'category') {
-        const categorySlug = item.categorySlug || item.categoryId;
-        const categoryLabel = item.label || item.categoryName || 'Category';
-
+        const slug = item.categorySlug || item.categoryId;
+        const label = item.label || item.categoryName || 'Category';
         return (
             <div className={styles.megaSubItem}>
                 {item.categoryId ? (
-                    <Link href={`/${categorySlug}`} className={styles.categoryLabel}>
-                        {categoryLabel}
-                    </Link>
+                    <Link href={`/${slug}`} className={styles.categoryLabel}>{label}</Link>
                 ) : (
-                    <span className={styles.categoryLabelStatic}>{categoryLabel}</span>
+                    <span className={styles.categoryLabelStatic}>{label}</span>
                 )}
-
                 {item.productLimit != null && item.productLimit > 0 && (
                     <CategoryProducts item={item} />
                 )}
@@ -219,7 +173,14 @@ function MegaSubItem({ item }: { item: MenuItem }) {
     return null;
 }
 
-// ─── Main Component ─────────────────────────────────────────────────────────
+// ─── Chevron SVG ────────────────────────────────────────────────────────────
+const Chevron = () => (
+    <svg className={styles.chevron} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6 9l6 6 6-6" />
+    </svg>
+);
+
+// ─── Main HorizontalMenu ───────────────────────────────────────────────────
 export default function HorizontalMenu({
     items,
     className = '',
@@ -228,65 +189,37 @@ export default function HorizontalMenu({
     depth = 0,
     onItemClick,
 }: MenuRendererProps) {
-    const [activeItem, setActiveItem] = useState<string | null>(null);
-    const navRef = useRef<HTMLDivElement>(null);
-    const [megaMenuTop, setMegaMenuTop] = useState<number>(0);
 
-    // Calculate mega menu dropdown top position when nav mounts or window resizes
-    const updateMegaMenuPosition = () => {
-        if (navRef.current) {
-            const rect = navRef.current.getBoundingClientRect();
-            setMegaMenuTop(rect.bottom);
-        }
-    };
-
-    React.useEffect(() => {
-        updateMegaMenuPosition();
-        window.addEventListener('resize', updateMegaMenuPosition);
-        return () => window.removeEventListener('resize', updateMegaMenuPosition);
-    }, []);
-
-    // Render mega menu dropdown content
-    const renderMegaMenuContent = (item: MenuItem) => {
-        if (!item.megaMenu?.sections || item.megaMenu.sections.length === 0) return null;
+    const renderMegaContent = (item: MenuItem) => {
+        if (!item.megaMenu?.sections?.length) return null;
 
         return (
             <div
-                className={styles.megaMenuDropdown}
+                className={styles.megaDropdown}
                 style={{
-                    top: `${megaMenuTop}px`,
-                    maxHeight: item.megaMenu?.maxHeight
-                        ? `${item.megaMenu.maxHeight}px`
-                        : undefined,
-                    overflowY: item.megaMenu?.maxHeight
-                        ? 'auto'
-                        : undefined,
+                    maxHeight: item.megaMenu.maxHeight ? `${item.megaMenu.maxHeight}px` : undefined,
                 }}
             >
                 {item.megaMenu.sections.map((section) => (
                     <div
                         key={section.id}
-                        className={styles.megaMenuSection}
+                        className={styles.megaSection}
                         style={{
                             backgroundColor: section.settings?.backgroundColor,
-                            padding: section.settings?.padding
-                                ? `${section.settings.padding}px`
-                                : undefined,
+                            padding: section.settings?.padding ? `${section.settings.padding}px` : undefined,
                         }}
                     >
-                        <div className={styles.megaMenuColumns}>
-                            {section.columns.map((column) => (
+                        <div className={styles.megaColumns}>
+                            {section.columns.map((col) => (
                                 <div
-                                    key={column.id}
-                                    className={styles.megaMenuColumn}
-                                    style={{
-                                        width: `${(column.width / 12) * 100}%`,
-                                    }}
+                                    key={col.id}
+                                    className={styles.megaColumn}
+                                    style={{ width: `${(col.width / 12) * 100}%` }}
                                 >
-                                    <ul className={styles.megaMenuList}>
-                                        {column.items.map((subItem) => (
-                                            <li key={subItem.id} className={styles.megaMenuItem}>
-                                                <MegaSubItem item={subItem} />
+                                    <ul className={styles.megaColumnList}>
+                                        {col.items.map((sub) => (
+                                            <li key={sub.id} className={styles.megaColumnItem}>
+                                                <MegaSubItem item={sub} />
                                             </li>
                                         ))}
                                     </ul>
@@ -299,39 +232,37 @@ export default function HorizontalMenu({
         );
     };
 
-    const renderMenuItem = (item: MenuItem) => {
-        if (item.type === 'divider') {
-            return <li key={item.id} className={styles.divider} />;
-        }
+    const renderItem = (item: MenuItem) => {
+        if (item.type === 'divider') return <li key={item.id} className={styles.divider} />;
 
-        const hasChildren = item.children && item.children.length > 0;
-        const hasMegaMenu =
-            item.type === 'mega-menu' &&
-            item.megaMenu?.sections &&
-            item.megaMenu.sections.length > 0;
-        const hasCategoryProducts =
-            item.type === 'category' &&
-            item.autoAddProducts !== false &&
-            item.categoryId;
-        const isActive = activeItem === item.id;
+        const hasChildren = item.children?.length > 0;
+        const hasMega =
+            item.type === 'mega-menu' && (item.megaMenu?.sections?.length ?? 0) > 0;
+        const hasCatProducts =
+            item.type === 'category' && item.autoAddProducts !== false && !!item.categoryId;
+
+        const showChevron = hasChildren || hasMega || hasCatProducts;
+
+        const cls = [
+            styles.menuItem,
+            hasMega && styles.hasMegaMenu,
+        ].filter(Boolean).join(' ');
 
         return (
-            <li
-                key={item.id}
-                className={`${styles.menuItem} ${hasChildren ? styles.hasChildren : ''} ${hasMegaMenu ? styles.hasMegaMenu : ''} ${hasCategoryProducts ? styles.hasChildren : ''} ${isActive ? styles.active : ''}`}
-                onMouseEnter={() => setActiveItem(item.id)}
-                onMouseLeave={() => setActiveItem(null)}
-            >
-                <MenuLink
-                    item={item}
-                    showIcon={settings.showIcons}
-                    themeColors={themeColors}
-                    onClick={onItemClick}
-                />
+            <li key={item.id} className={cls}>
+                <div className={styles.trigger}>
+                    <MenuLink
+                        item={item}
+                        showIcon={settings.showIcons}
+                        themeColors={themeColors}
+                        onClick={onItemClick}
+                    />
+                    {showChevron && <Chevron />}
+                </div>
 
-                {hasMegaMenu ? (
-                    renderMegaMenuContent(item)
-                ) : hasCategoryProducts ? (
+                {hasMega ? (
+                    renderMegaContent(item)
+                ) : hasCatProducts ? (
                     <div className={styles.categoryDropdown}>
                         <CategoryProducts item={item} />
                     </div>
@@ -356,9 +287,9 @@ export default function HorizontalMenu({
     };
 
     return (
-        <nav className={`${styles.horizontalMenu} ${className}`} ref={navRef}>
+        <nav className={`${styles.horizontalMenu} ${className}`}>
             <ul className={styles.menuList}>
-                {items.map((item) => renderMenuItem(item))}
+                {items.map(renderItem)}
             </ul>
         </nav>
     );

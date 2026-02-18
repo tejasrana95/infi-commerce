@@ -1,13 +1,13 @@
-// Mini Product Card Component for Mega Menu
+// MegaMenuProductCard — Rewritten
 'use client';
 
 import React from 'react';
 import Link from 'next/link';
 import { FaStar, FaStarHalfAlt, FaRegStar } from 'react-icons/fa';
-import styles from './MegaMenuProductCard.module.scss';
 import Image from 'next/image';
 import { useCurrency } from '@/providers/CurrencyProvider';
 import { usePriceVisibility } from '@/hooks/usePriceVisibility';
+import styles from './MegaMenuProductCard.module.scss';
 
 interface Product {
     _id: string;
@@ -37,22 +37,18 @@ const IMAGE_SIZE_MAP: Record<string, number> = {
     large: 150,
 };
 
-function renderStars(rating: number) {
-    const stars: React.ReactNode[] = [];
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 >= 0.5;
+function Stars({ rating }: { rating: number }) {
+    const full = Math.floor(rating);
+    const half = rating % 1 >= 0.5;
+    const empty = 5 - full - (half ? 1 : 0);
 
-    for (let i = 0; i < fullStars; i++) {
-        stars.push(<FaStar key={`full-${i}`} />);
-    }
-    if (hasHalfStar) {
-        stars.push(<FaStarHalfAlt key="half" />);
-    }
-    const remaining = 5 - stars.length;
-    for (let i = 0; i < remaining; i++) {
-        stars.push(<FaRegStar key={`empty-${i}`} />);
-    }
-    return stars;
+    return (
+        <>
+            {Array.from({ length: full }, (_, i) => <FaStar key={`f${i}`} />)}
+            {half && <FaStarHalfAlt key="h" />}
+            {Array.from({ length: empty }, (_, i) => <FaRegStar key={`e${i}`} />)}
+        </>
+    );
 }
 
 export default function MegaMenuProductCard({
@@ -64,20 +60,16 @@ export default function MegaMenuProductCard({
     displayMode = 'list',
     imagePosition = 'left',
 }: MegaMenuProductCardProps) {
-    const productUrl = `/${product.slug || product._id}`;
     const { formatPriceWithExchange } = useCurrency();
     const { shouldShowPrice } = usePriceVisibility();
-    // Images from API are string[] (plain URLs), not objects
-    const imageUrl = product.featuredImage || product.images?.[0] || '';
 
+    const productUrl = `/${product.slug || product._id}`;
+    const imageUrl = product.featuredImage || product.images?.[0] || '';
     const currentPrice = product.salePrice || product.price;
     const hasDiscount =
-        product.salePrice != null &&
-        product.price != null &&
-        product.salePrice < product.price;
+        product.salePrice != null && product.price != null && product.salePrice < product.price;
     const size = IMAGE_SIZE_MAP[imageSize] || 60;
 
-    // imagePosition overrides layout: 'top' forces column, 'left' forces row
     const layoutClass = imagePosition === 'top' ? styles.imgTop : styles.imgLeft;
 
     const cardClasses = [
@@ -92,10 +84,7 @@ export default function MegaMenuProductCard({
     return (
         <Link href={productUrl} className={cardClasses}>
             {showImage && imageUrl && (
-                <div
-                    className={styles.imageWrapper}
-                    style={{ width: size, height: size }}
-                >
+                <div className={styles.imageWrapper} style={{ width: size, height: size }}>
                     <Image src={imageUrl} alt={product.name} width={size} height={size} loading="lazy" />
                 </div>
             )}
@@ -105,9 +94,7 @@ export default function MegaMenuProductCard({
 
                 {showPrice && shouldShowPrice && currentPrice != null && (
                     <div className={styles.priceWrapper}>
-                        <span className={styles.price}>
-                            {formatPriceWithExchange(currentPrice)}
-                        </span>
+                        <span className={styles.price}>{formatPriceWithExchange(currentPrice)}</span>
                         {hasDiscount && (
                             <span className={styles.originalPrice}>
                                 {formatPriceWithExchange(product.price!)}
@@ -119,12 +106,10 @@ export default function MegaMenuProductCard({
                 {showRating && product.rating != null && (
                     <div className={styles.rating}>
                         <div className={styles.stars}>
-                            {renderStars(product.rating)}
+                            <Stars rating={product.rating} />
                         </div>
                         {product.reviewCount != null && product.reviewCount > 0 && (
-                            <span className={styles.reviewCount}>
-                                ({product.reviewCount})
-                            </span>
+                            <span className={styles.reviewCount}>({product.reviewCount})</span>
                         )}
                     </div>
                 )}
