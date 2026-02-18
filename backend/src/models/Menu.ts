@@ -24,6 +24,7 @@ export interface IMenuItem {
     showProductImage?: boolean;
     showProductPrice?: boolean;
     imagePosition?: 'left' | 'top';
+    showViewAll?: boolean;
     productLimit?: number;
 
     // Mega menu content - Sections-based structure
@@ -46,6 +47,7 @@ export interface IMenuItem {
                     showProductImage?: boolean;
                     showProductPrice?: boolean;
                     showProductRating?: boolean;
+                    showViewAll?: boolean;
                     categoryDisplayMode?: 'list' | 'grid' | 'compact';
                     categoryColumns?: number;
                     productImageSize?: 'small' | 'medium' | 'large';
@@ -143,6 +145,7 @@ const MenuItemSchema = new Schema<IMenuItem>(
         showProductImage: { type: Boolean },
         showProductPrice: { type: Boolean },
         imagePosition: { type: String, enum: ['left', 'top'] },
+        showViewAll: { type: Boolean, default: false },
         productLimit: { type: Number },
 
         megaMenu: {
@@ -170,6 +173,7 @@ const MenuItemSchema = new Schema<IMenuItem>(
                         showProductImage: { type: Boolean, default: true },
                         showProductPrice: { type: Boolean, default: true },
                         showProductRating: { type: Boolean, default: false },
+                        showViewAll: { type: Boolean, default: false },
                         categoryDisplayMode: { type: String, enum: ['list', 'grid', 'compact'], default: 'list' },
                         categoryColumns: { type: Number, default: 2 },
                         productImageSize: { type: String, enum: ['small', 'medium', 'large'], default: 'small' },

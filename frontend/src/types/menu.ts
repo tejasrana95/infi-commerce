@@ -22,30 +22,30 @@ export interface MenuItem {
     showProductPrice?: boolean;
     imagePosition?: 'left' | 'top';
     productLimit?: number;
-
+    showViewAll?: boolean;
     // Mega Menu specific fields (lifted from nested structure for easier access)
     categoryName?: string;
     pageName?: string;
     productIds?: string[];
     productNames?: string[];
-    products?: Array<{ 
-        _id: string; 
-        name: string; 
-        slug?: string; 
-        price?: number; 
-        salePrice?: number; 
+    products?: Array<{
+        _id: string;
+        name: string;
+        slug?: string;
+        price?: number;
+        salePrice?: number;
         featuredImage?: string;
         images?: string[];
         rating?: number;
         reviewCount?: number;
     }>;
-    
+
     // Category display options
     showProductRating?: boolean;
     categoryDisplayMode?: 'list' | 'grid' | 'compact';
     categoryColumns?: number;
     productImageSize?: 'small' | 'medium' | 'large';
-    
+
     imageUrl?: string;
     imageAlt?: string;
     imageLink?: string;

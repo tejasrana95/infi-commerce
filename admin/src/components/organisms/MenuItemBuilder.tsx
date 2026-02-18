@@ -144,6 +144,7 @@ function EditItemDialog({ open, item, onClose, onSave, onDelete, storeId, isNew 
                     autoAddProducts: item.autoAddProducts ?? true,
                     showProductImage: item.showProductImage ?? true,
                     showProductPrice: item.showProductPrice ?? true,
+                    showViewAll: item.showViewAll ?? false,
                     imagePosition: item.imagePosition || 'left',
                     productLimit: item.productLimit || 10,
                 });
@@ -210,6 +211,7 @@ function EditItemDialog({ open, item, onClose, onSave, onDelete, storeId, isNew 
             showProductImage: formData.showProductImage,
             showProductPrice: formData.showProductPrice,
             imagePosition: formData.imagePosition,
+            showViewAll: formData.showViewAll,
             productLimit: formData.productLimit,
         };
         onSave(newItem);
@@ -334,6 +336,15 @@ function EditItemDialog({ open, item, onClose, onSave, onDelete, storeId, isNew 
                                             />
                                         }
                                         label="Show Price"
+                                    />
+                                    <FormControlLabel
+                                        control={
+                                            <Switch
+                                                checked={formData.showViewAll ?? false}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, showViewAll: e.target.checked }))}
+                                            />
+                                        }
+                                        label="Show 'View All' button"
                                     />
                                 </>
                             )}

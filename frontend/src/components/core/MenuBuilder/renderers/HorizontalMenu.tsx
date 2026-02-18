@@ -10,6 +10,7 @@ import api from '@/lib/api';
 import MenuLink from '../MenuLink';
 import MegaMenuProductCard from '../MegaMenuProductCard';
 import styles from './HorizontalMenu.module.scss';
+import DynamicIcon from '../../common/DynamicIcon';
 
 // ─── Category Products Sub-Component ────────────────────────────────────────
 function CategoryProducts({ item }: { item: MenuItem }) {
@@ -56,7 +57,8 @@ function CategoryProducts({ item }: { item: MenuItem }) {
     const showRating = item.showProductRating ?? false;
     const imageSize = item.productImageSize || 'small';
     const imagePosition = item.imagePosition || 'left';
-
+    const showViewAll = item.showViewAll ?? false;
+    const categorySlug = item.categorySlug || item.categoryId;
     if (loading) {
         return <div className={styles.loading}>Loading products...</div>;
     }
@@ -81,6 +83,13 @@ function CategoryProducts({ item }: { item: MenuItem }) {
                         imagePosition={imagePosition}
                     />
                 ))}
+                {showViewAll && item.categoryId && (
+                    <div className={styles.viewAllContainer}>
+                        <Link href={`/${categorySlug}`} className={styles.viewAllBtn}>
+                            View All Products <DynamicIcon name="move-right" size={16} />
+                        </Link>
+                    </div>
+                )}
             </div>
         );
     }
@@ -103,6 +112,13 @@ function CategoryProducts({ item }: { item: MenuItem }) {
                     imagePosition={imagePosition}
                 />
             ))}
+            {showViewAll && item.categoryId && (
+                <div className={styles.viewAllContainer}>
+                    <Link href={`/${categorySlug}`} className={styles.viewAllBtn}>
+                        View All Products <DynamicIcon name="move-right" size={16} />
+                    </Link>
+                </div>
+            )}
         </div>
     );
 }

@@ -89,6 +89,7 @@ export interface MegaMenuItem {
     showProductImage?: boolean;
     showProductPrice?: boolean;
     showProductRating?: boolean;
+    showViewAll?: boolean;
     categoryDisplayMode?: 'list' | 'grid' | 'compact'; // How to display products
     categoryColumns?: number; // Number of columns for grid/compact display
     productImageSize?: 'small' | 'medium' | 'large';
@@ -220,6 +221,7 @@ function ItemConfigDialog({ open, item, onClose, onSave, onDelete, storeId }: It
                 productImageSize: item.productImageSize || 'small',
                 imagePosition: item.imagePosition || 'left',
                 autoAddProducts: item.autoAddProducts ?? true,
+                showViewAll: item.showViewAll ?? false,
                 productLimit: item.productLimit || 10,
             });
             // Reset selected products when opening dialog
@@ -273,7 +275,7 @@ function ItemConfigDialog({ open, item, onClose, onSave, onDelete, storeId }: It
                                 storeId={storeId}
                                 label="Select Category"
                             />
-                            
+
                             <FormControlLabel
                                 control={
                                     <Switch
@@ -283,7 +285,7 @@ function ItemConfigDialog({ open, item, onClose, onSave, onDelete, storeId }: It
                                 }
                                 label="Auto-populate products from category"
                             />
-                            
+
                             <TextField
                                 label="Product Limit"
                                 type="number"
@@ -293,10 +295,10 @@ function ItemConfigDialog({ open, item, onClose, onSave, onDelete, storeId }: It
                                 helperText="Maximum number of products to display"
                                 inputProps={{ min: 1, max: 50 }}
                             />
-                            
+
                             <Divider sx={{ my: 2 }} />
                             <Typography variant="subtitle2" gutterBottom>Display Options</Typography>
-                            
+
                             <FormControl fullWidth>
                                 <InputLabel>Display Mode</InputLabel>
                                 <Select
@@ -309,7 +311,7 @@ function ItemConfigDialog({ open, item, onClose, onSave, onDelete, storeId }: It
                                     <MuiMenuItem value="compact">Compact Grid</MuiMenuItem>
                                 </Select>
                             </FormControl>
-                            
+
                             {(formData.categoryDisplayMode === 'grid' || formData.categoryDisplayMode === 'compact') && (
                                 <TextField
                                     label="Number of Columns"
@@ -320,7 +322,7 @@ function ItemConfigDialog({ open, item, onClose, onSave, onDelete, storeId }: It
                                     inputProps={{ min: 1, max: 6 }}
                                 />
                             )}
-                            
+
                             <FormControlLabel
                                 control={
                                     <Switch
@@ -330,7 +332,7 @@ function ItemConfigDialog({ open, item, onClose, onSave, onDelete, storeId }: It
                                 }
                                 label="Show product images"
                             />
-                            
+
                             {formData.showProductImage && (
                                 <FormControl fullWidth>
                                     <InputLabel>Image Size</InputLabel>
@@ -359,7 +361,7 @@ function ItemConfigDialog({ open, item, onClose, onSave, onDelete, storeId }: It
                                     </Select>
                                 </FormControl>
                             )}
-                            
+
                             <FormControlLabel
                                 control={
                                     <Switch
@@ -369,7 +371,7 @@ function ItemConfigDialog({ open, item, onClose, onSave, onDelete, storeId }: It
                                 }
                                 label="Show product prices"
                             />
-                            
+
                             <FormControlLabel
                                 control={
                                     <Switch
@@ -378,6 +380,16 @@ function ItemConfigDialog({ open, item, onClose, onSave, onDelete, storeId }: It
                                     />
                                 }
                                 label="Show product ratings"
+                            />
+
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={formData.showViewAll ?? false}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, showViewAll: e.target.checked }))}
+                                    />
+                                }
+                                label="Show 'View All' button"
                             />
                         </>
                     )}

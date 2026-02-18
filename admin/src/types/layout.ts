@@ -168,6 +168,7 @@ export interface MenuItem {
     autoAddProducts?: boolean;
     showProductImage?: boolean;
     showProductPrice?: boolean;
+    showViewAll?: boolean;
     imagePosition?: 'left' | 'top';
     productLimit?: number;
 
