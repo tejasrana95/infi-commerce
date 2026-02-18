@@ -163,7 +163,7 @@
     left: 0;
     right: 0;
     background: var(--color-background, #fff);
-    border-radius: 0;
+    border-radius: 0 0 0.75rem 0.75rem;
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05);
     padding: 1.5rem 0;
     opacity: 0;
@@ -175,6 +175,7 @@
     overflow-y: auto;
     overscroll-behavior: contain;
     margin-top: -8px;
+
     // Invisible bridge to prevent hover gap — extends full viewport height
     &::before {
         content: '';
@@ -183,6 +184,27 @@
         left: 0;
         right: 0;
         height: 100vh;
+    }
+
+    // Scroll styling — thin scrollbar with proper appearance
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
+
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 3px;
+
+        &:hover {
+            background: rgba(0, 0, 0, 0.2);
+        }
     }
 
     @include mobile {

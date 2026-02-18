@@ -11,6 +11,7 @@ import MegaMenuProductCard from '../MegaMenuProductCard';
 import DynamicIcon from '../../common/DynamicIcon';
 import api from '@/lib/api';
 import styles from './HorizontalMenu.module.scss';
+import Image from 'next/image';
 
 // ─── CategoryProducts ───────────────────────────────────────────────────────
 function CategoryProducts({ item }: { item: MenuItem }) {
@@ -103,7 +104,7 @@ function MegaSubItem({ item }: { item: MenuItem }) {
         return (
             <div className={styles.megaSubItem}>
                 <Link href={item.imageLink || item.linkUrl || '#!'} className={styles.megaImageLink}>
-                    <img src={item.imageUrl} alt={item.label || item.imageAlt || ''} />
+                    <Image width={300} height={200} src={item.imageUrl} alt={item.label || item.imageAlt || ''} />
                 </Link>
             </div>
         );

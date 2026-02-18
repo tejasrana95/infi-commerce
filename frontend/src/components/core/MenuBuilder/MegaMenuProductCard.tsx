@@ -70,6 +70,11 @@ export default function MegaMenuProductCard({
         product.salePrice != null && product.price != null && product.salePrice < product.price;
     const size = IMAGE_SIZE_MAP[imageSize] || 60;
 
+    // Check if both price and rating are hidden
+    const isPriceHidden = !showPrice || !shouldShowPrice;
+    const isRatingHidden = !showRating || !product.rating;
+    const bothHidden = isPriceHidden && isRatingHidden;
+
     const layoutClass = imagePosition === 'top' ? styles.imgTop : styles.imgLeft;
 
     const cardClasses = [
@@ -90,7 +95,7 @@ export default function MegaMenuProductCard({
             )}
 
             <div className={styles.details}>
-                <h4 className={styles.productName}>{product.name}</h4>
+                <h4 className={`${styles.productName} ${bothHidden ? styles.multiLine : ''}`}>{product.name}</h4>
 
                 {showPrice && shouldShowPrice && currentPrice != null && (
                     <div className={styles.priceWrapper}>
