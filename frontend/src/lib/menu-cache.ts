@@ -25,6 +25,10 @@ const memoryCache = new Map<string, MemoryCacheEntry>();
 let fileCache: Record<string, CachedMenuConfig> | null = null;
 let fileCacheLoaded = false;
 
+function isFileCacheEnabled(): boolean {
+    return process.env.USE_CACHE_JSON !== 'false';
+}
+
 async function loadFileCache(): Promise<Record<string, CachedMenuConfig> | null> {
     if (fileCacheLoaded) return fileCache;
 
@@ -37,7 +41,7 @@ async function loadFileCache(): Promise<Record<string, CachedMenuConfig> | null>
             const path = pathModule.default || pathModule;
             const CACHE_FILE_PATH = path.join(process.cwd(), '.next/cache/menu-config.json');
 
-            if (fs.existsSync(CACHE_FILE_PATH) && process.env.USE_CACHE_JSON === 'true') {
+            if (fs.existsSync(CACHE_FILE_PATH) && isFileCacheEnabled()) {
                 const content = fs.readFileSync(CACHE_FILE_PATH, 'utf-8');
                 fileCache = JSON.parse(content);
             }

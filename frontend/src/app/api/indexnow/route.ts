@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
         const payload = {
             host,
             key: INDEXNOW_KEY,
-            keyLocation: `https://${domain}/${INDEXNOW_KEY}.txt`,
+            keyLocation: `https://${domain}/api/indexnow`,
             urlList: urls,
         };
 

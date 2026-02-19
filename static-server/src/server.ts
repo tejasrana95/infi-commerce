@@ -17,7 +17,7 @@ const app: Express = express();
 const PORT = parseInt(process.env.STATIC_PORT || '3003', 10);
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '..', '..', 'uploads');
 const CORS_ORIGINS = process.env.STATIC_CORS_ORIGINS?.split(',').map(o => o.trim()) || ['*'];
-const RATE_LIMIT = parseInt(process.env.STATIC_RATE_LIMIT || '100', 10);
+const RATE_LIMIT = parseInt(process.env.STATIC_RATE_LIMIT || '2000', 10);
 const CACHE_MAX_AGE = parseInt(process.env.STATIC_CACHE_MAX_AGE || '31536000', 10);
 
 // Resolve absolute path for uploads directory

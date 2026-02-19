@@ -1,8 +1,12 @@
 'use client';
 
 import React from 'react';
+import dynamic from 'next/dynamic';
 import ClientWidgets from './ClientWidgets';
-import AIAssistant from './AIAssistant/AIAssistant';
+
+const AIAssistant = dynamic(() => import('./AIAssistant/AIAssistant'), {
+    ssr: false,
+});
 
 interface ClientOnlyWidgetsProps {
     showCompare?: boolean;

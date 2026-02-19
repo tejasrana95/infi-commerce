@@ -32,7 +32,7 @@ npm run dev
 | `STATIC_PORT` | `3003` | Server port |
 | `UPLOAD_DIR` | `../uploads` | Path to uploads directory |
 | `STATIC_CORS_ORIGINS` | `*` | Comma-separated allowed origins |
-| `STATIC_RATE_LIMIT` | `100` | Max requests per minute per IP |
+| `STATIC_RATE_LIMIT` | `2000` | Max requests per minute per IP |
 | `STATIC_CACHE_MAX_AGE` | `31536000` | Cache max-age in seconds |
 
 ## Endpoints

@@ -119,7 +119,7 @@ export async function fetchCategoryProducts(
 ): Promise<{ products: any[]; pagination: any }> {
     const { limit = 24, sort = 'featured' } = options;
     try {
-        let url = `${API_BASE}/products?storeId=${storeId}&limit=${limit}&sort=${sort}`;
+        let url = `${API_BASE}/products?storeId=${storeId}&limit=${limit}&sort=${sort}&view=listing`;
         if (categoryId) {
             url += `&categoryId=${categoryId}`;
         }
@@ -262,7 +262,7 @@ export async function fetchSearchProducts(
 ): Promise<{ products: any[]; pagination: any; didYouMean?: string }> {
     const { limit = 24, sort = 'featured' } = options;
     try {
-        const url = `${API_BASE}/products?storeId=${storeId}&limit=${limit}&sort=${sort}&search=${encodeURIComponent(searchQuery)}`;
+        const url = `${API_BASE}/products?storeId=${storeId}&limit=${limit}&sort=${sort}&search=${encodeURIComponent(searchQuery)}&view=listing`;
 
         const res = await fetch(url, {
             ...getCacheOptions('search'),
@@ -464,5 +464,4 @@ export async function fetchPageBySlug(storeId: string, slug: string): Promise<an
         return null;
     }
 }
-
 

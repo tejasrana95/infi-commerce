@@ -373,9 +373,9 @@ export const getStoreByDomain = asyncHandler(async (req: Request, res: Response)
     }
 
     // MongoDB automatically matches if domain is in the domains array
-    const store = await Store.findOne({ domains: domain });
+    const store = await Store.findOne({ domains: domain }).lean();
 
-    if (store && store.settings?.aiSettings?.openaiKey) {
+    if (store?.settings?.aiSettings?.openaiKey) {
         store.settings.aiSettings.openaiKey = '••••••••••••••••••••';
     }
 
@@ -387,16 +387,15 @@ export const getStoreByDomain = asyncHandler(async (req: Request, res: Response)
     let enrichedMenus = {};
     if (store.theme?.header && store._id) {
         try {
-            enrichedMenus = await getEnrichedMenus(store.theme, store._id.toString());
+            enrichedMenus = await getEnrichedMenus(store.theme, String(store._id));
         } catch (error) {
             console.error('Failed to enrich menus:', error);
             // Continue without menus rather than failing the entire request
         }
     }
 
-    // Convert store to plain object and add menus
     const storeWithMenus = {
-        ...store.toObject(),
+        ...store,
         menus: enrichedMenus,
     };
 
@@ -609,7 +608,7 @@ export const getStores = asyncHandler(async (req: AuthRequest, res: Response) =>
 
     // Get stores with pagination
     const [stores, total] = await Promise.all([
-        Store.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 }),
+        Store.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 }).lean(),
         Store.countDocuments(filter),
     ]);
 
@@ -668,17 +667,18 @@ export const getStoreById = asyncHandler(async (req: AuthRequest, res: Response)
     if (!bypassCache) {
         const cachedStore = await redisService.get<any>(cacheKey);
         if (cachedStore) {
+            res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300');
             return res.json({ store: cachedStore });
         }
     }
 
-    const store = await Store.findById(id);
+    const store = await Store.findById(id).lean();
 
     if (!store) {
         throw new AppError('Store not found', 404);
     }
 
-    if (store.settings?.aiSettings?.openaiKey) {
+    if (store?.settings?.aiSettings?.openaiKey) {
         store.settings.aiSettings.openaiKey = '••••••••••••••••••••';
     }
 
@@ -686,6 +686,7 @@ export const getStoreById = asyncHandler(async (req: AuthRequest, res: Response)
         await redisService.set(cacheKey, store, CACHE_TTL.STORE);
     }
 
+    res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300');
     return res.json({ store });
 });
 
@@ -722,21 +723,23 @@ export const getStoreBySlug = asyncHandler(async (req: AuthRequest, res: Respons
 
     const cachedStore = await redisService.get<any>(cacheKey);
     if (cachedStore) {
+        res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300');
         return res.json({ store: cachedStore });
     }
 
-    const store = await Store.findOne({ slug });
+    const store = await Store.findOne({ slug }).lean();
 
     if (!store) {
         throw new AppError('Store not found', 404);
     }
 
-    if (store.settings?.aiSettings?.openaiKey) {
+    if (store?.settings?.aiSettings?.openaiKey) {
         store.settings.aiSettings.openaiKey = '••••••••••••••••••••';
     }
 
     await redisService.set(cacheKey, store, CACHE_TTL.STORE);
 
+    res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300');
     return res.json({ store });
 });
 

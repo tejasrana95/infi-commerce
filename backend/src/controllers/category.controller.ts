@@ -222,12 +222,14 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
 
     // Build filter
     const filter: any = {};
+    let idsFilterCount = 0;
 
     // Support comma-separated IDs filter
     if (req.query.ids) {
         const ids = (req.query.ids as string).split(',').map(id => id.trim()).filter(id => id);
         if (ids.length > 0) {
             filter._id = { $in: ids };
+            idsFilterCount = ids.length;
         }
     }
 
@@ -296,23 +298,31 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
     }
 
     // Get categories with pagination
+    const canSkipCountForIds =
+        idsFilterCount > 0 &&
+        page === 1 &&
+        limit >= idsFilterCount &&
+        !req.query.search;
+
     const [categories, total] = await Promise.all([
         Category.find(filter)
             .populate('storeId', 'name slug')
             .populate('parentCategory', 'title slug')
             .skip(skip)
             .limit(limit)
-            .sort({ sortOrder: 1, title: 1 }),
-        Category.countDocuments(filter),
+            .sort({ sortOrder: 1, title: 1 })
+            .lean(),
+        canSkipCountForIds ? Promise.resolve(0) : Category.countDocuments(filter),
     ]);
+    const totalCount = canSkipCountForIds ? categories.length : total;
 
     return res.json({
         categories,
         pagination: {
-            total,
+            total: totalCount,
             page,
             limit,
-            pages: Math.ceil(total / limit),
+            pages: Math.ceil(totalCount / limit),
         },
     });
 });
@@ -349,7 +359,7 @@ export const getCategoryTree = asyncHandler(async (req: AuthRequest, res: Respon
     }
 
     // Get all categories for the store
-    const categories = await Category.find({ storeId, status: 'active' }).sort({ sortOrder: 1, title: 1 });
+    const categories = await Category.find({ storeId, status: 'active' }).sort({ sortOrder: 1, title: 1 }).lean();
 
     // Build tree structure
     const buildTree = (parentId: any = null): any[] => {
@@ -403,7 +413,8 @@ export const getCategoryTree = asyncHandler(async (req: AuthRequest, res: Respon
 export const getCategoryById = asyncHandler(async (req: AuthRequest, res: Response) => {
     const category = await Category.findById(req.params.id)
         .populate('storeId', 'name slug')
-        .populate('parentCategory', 'title slug');
+        .populate('parentCategory', 'title slug')
+        .lean();
 
     if (!category) {
         throw new AppError('Category not found', 404);
@@ -446,7 +457,8 @@ export const getCategoryBySlug = asyncHandler(async (req: AuthRequest, res: Resp
 
     const category = await Category.findOne({ storeId, slug })
         .populate('storeId', 'name slug')
-        .populate('parentCategory', 'title slug');
+        .populate('parentCategory', 'title slug')
+        .lean();
 
     if (!category) {
         throw new AppError('Category not found', 404);

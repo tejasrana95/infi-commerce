@@ -380,11 +380,15 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
     const removeProductCost = !isAdmin ? '-costPrice -variants.costPrice' : '';
 
     const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 100;
+    const requestedLimit = parseInt(req.query.limit as string) || 24;
+    const limit = Math.min(Math.max(requestedLimit, 1), 100);
     const skip = (page - 1) * limit;
+    const isListingView = req.query.view === 'listing' || req.query.fields === 'listing';
+    let textSearchMode = false;
 
     // Build filter
     const filter: any = { isActive: true };
+    let idsFilterCount = 0;
 
     // Handle isActive filter
     if (req.query.isActive === 'all') {
@@ -400,6 +404,7 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         const ids = (req.query.ids as string).split(',').map(id => id.trim()).filter(id => id);
         if (ids.length > 0) {
             filter._id = { $in: ids };
+            idsFilterCount = ids.length;
         }
     }
 
@@ -594,44 +599,50 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         const searchQuery = (req.query.search as string).trim();
 
         if (searchQuery.length > 0) {
-            const strictRegex = new RegExp(escapeRegExp(searchQuery), 'i');
-
-            // Tier 1: Strict conditions - full phrase match
-            const searchConditions: any[] = [
-                { name: strictRegex },
-                { sku: strictRegex },
-                { barcode: strictRegex },
-                { description: strictRegex },
-                { shortDescription: strictRegex },
-                { 'variants.sku': strictRegex },
-                { 'variants.barcode': strictRegex },
-                { tags: strictRegex },
-            ];
-
-            // Tier 2: Broad conditions - individual word matching
-            // Only add if query has multiple words (single word is already covered by strict)
-            const words = searchQuery.split(/\s+/).filter(w => w.length >= 2);
-            if (words.length > 1) {
-                words.forEach(word => {
-                    const wordRegex = new RegExp(escapeRegExp(word), 'i');
-                    searchConditions.push(
-                        { name: wordRegex },
-                        { sku: wordRegex },
-                        { barcode: wordRegex },
-                        { tags: wordRegex },
-                        { 'variants.sku': wordRegex },
-                        { 'variants.barcode': wordRegex },
-                    );
-                });
-            }
-
-            // Use $or to match in ANY field (strict or broad)
-            if (filter.$or) {
-                // If there's already an $or from brand filter, use $and to combine
-                filter.$and = filter.$and || [];
-                filter.$and.push({ $or: searchConditions });
+            const canUseTextSearch = searchQuery.length >= 3 && !/[^\w\s-]/.test(searchQuery);
+            if (canUseTextSearch) {
+                filter.$text = { $search: searchQuery };
+                textSearchMode = true;
             } else {
-                filter.$or = searchConditions;
+                const strictRegex = new RegExp(escapeRegExp(searchQuery), 'i');
+
+                // Tier 1: Strict conditions - full phrase match
+                const searchConditions: any[] = [
+                    { name: strictRegex },
+                    { sku: strictRegex },
+                    { barcode: strictRegex },
+                    { description: strictRegex },
+                    { shortDescription: strictRegex },
+                    { 'variants.sku': strictRegex },
+                    { 'variants.barcode': strictRegex },
+                    { tags: strictRegex },
+                ];
+
+                // Tier 2: Broad conditions - individual word matching
+                // Only add if query has multiple words (single word is already covered by strict)
+                const words = searchQuery.split(/\s+/).filter(w => w.length >= 2);
+                if (words.length > 1) {
+                    words.forEach(word => {
+                        const wordRegex = new RegExp(escapeRegExp(word), 'i');
+                        searchConditions.push(
+                            { name: wordRegex },
+                            { sku: wordRegex },
+                            { barcode: wordRegex },
+                            { tags: wordRegex },
+                            { 'variants.sku': wordRegex },
+                            { 'variants.barcode': wordRegex },
+                        );
+                    });
+                }
+
+                // Use $or to match in ANY field (strict or broad)
+                if (filter.$or) {
+                    // If there's already an $or from brand filter, use $and to combine
+                    filter.$and = filter.$and || [];
+                    filter.$and.push({ $or: searchConditions });
+                } else {
+                    filter.$or = searchConditions;
+                }
             }
         }
     }
@@ -707,46 +718,48 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
     }
 
     // Build sort - support SEO-friendly sort names
-    let sort: any = { createdAt: -1 };
+    let sort: any = textSearchMode ? { score: { $meta: 'textScore' } } : { createdAt: -1 };
     const sortParam = (req.query.sort as string) || 'newest';
-    switch (sortParam) {
-        case 'newest':
-        case 'new':
-            sort = { createdAt: -1 };
-            break;
-        case 'oldest':
-        case 'old':
-            sort = { createdAt: 1 };
-            break;
-        case 'price_asc':
-        case 'price-asc':
-        case 'price-low':
-            sort = { price: 1 };
-            break;
-        case 'price_desc':
-        case 'price-desc':
-        case 'price-high':
-            sort = { price: -1 };
-            break;
-        case 'popular':
-        case 'bestselling':
-        case 'best-selling':
-            sort = { salesCount: -1 };
-            break;
-        case 'rating':
-        case 'top-rated':
-            sort = { averageRating: -1 };
-            break;
-        case 'alphabetical':
-        case 'name-asc':
-            sort = { name: 1 };
-            break;
-        case 'name-desc':
-            sort = { name: -1 };
-            break;
-        case 'featured':
-            sort = { isFeatured: -1, salesCount: -1 };
-            break;
+    if (!textSearchMode) {
+        switch (sortParam) {
+            case 'newest':
+            case 'new':
+                sort = { createdAt: -1 };
+                break;
+            case 'oldest':
+            case 'old':
+                sort = { createdAt: 1 };
+                break;
+            case 'price_asc':
+            case 'price-asc':
+            case 'price-low':
+                sort = { price: 1 };
+                break;
+            case 'price_desc':
+            case 'price-desc':
+            case 'price-high':
+                sort = { price: -1 };
+                break;
+            case 'popular':
+            case 'bestselling':
+            case 'best-selling':
+                sort = { salesCount: -1 };
+                break;
+            case 'rating':
+            case 'top-rated':
+                sort = { averageRating: -1 };
+                break;
+            case 'alphabetical':
+            case 'name-asc':
+                sort = { name: 1 };
+                break;
+            case 'name-desc':
+                sort = { name: -1 };
+                break;
+            case 'featured':
+                sort = { isFeatured: -1, salesCount: -1 };
+                break;
+        }
     }
 
     // Always add _id as a tiebreaker for stable pagination.
@@ -755,21 +768,38 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
     sort._id = -1;
 
     // Get products with pagination
-    const [products, total] = await Promise.all([
-        Product.find(filter)
-            .select('-__v ' + removeProductCost)
+    const productQuery = Product.find(filter)
+        .select(`-__v ${removeProductCost}`)
+        .skip(skip)
+        .limit(limit)
+        .sort(sort);
+
+    if (isListingView) {
+        productQuery
+            .populate('categoryIds', 'title slug')
+            .populate('taxClassId', 'name rate isSplit subTaxes')
+            .populate('brand', 'name slug logo');
+    } else {
+        productQuery
             .populate('storeId', 'name slug domain')
             .populate('categoryIds', 'title slug')
             .populate('attributes.attributeId', 'name slug type values')
             .populate('productOptions.optionId', 'name slug type values')
             .populate('taxClassId', 'name rate isSplit subTaxes')
-            .populate('brand', 'name slug logo')
-            .skip(skip)
-            .limit(limit)
-            .sort(sort)
-            .lean(),
-        Product.countDocuments(filter),
+            .populate('brand', 'name slug logo');
+    }
+
+    const canSkipCountForIds =
+        idsFilterCount > 0 &&
+        page === 1 &&
+        limit >= idsFilterCount &&
+        !req.query.search;
+
+    const [products, total] = await Promise.all([
+        productQuery.lean(),
+        canSkipCountForIds ? Promise.resolve(0) : Product.countDocuments(filter),
     ]);
+    const totalCount = canSkipCountForIds ? products.length : total;
 
     // Determine timezone for the response
     let storeTimezone = 'UTC';
@@ -788,7 +818,7 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
 
     // Did you mean logic? - Only if 0 results and search query was provided
     let didYouMean: string | null = null;
-    if (total === 0 && req.query.search && effectiveStoreId) {
+    if (totalCount === 0 && req.query.search && effectiveStoreId) {
         didYouMean = await getSearchSuggestions(effectiveStoreId, req.query.search as string);
     }
 
@@ -800,7 +830,7 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
     });
 
     // Re-sort by search relevance: strict (full phrase) matches first, then broad (word) matches
-    if (req.query.search) {
+    if (req.query.search && !textSearchMode) {
         const searchQuery = (req.query.search as string).trim();
         if (searchQuery.length > 0) {
             const strictRegex = new RegExp(escapeRegExp(searchQuery), 'i');
@@ -879,10 +909,10 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
     return res.json({
         products: productsWithPricing,
         pagination: {
-            total,
+            total: totalCount,
             page,
             limit,
-            pages: Math.ceil(total / limit),
+            pages: Math.ceil(totalCount / limit),
         },
         activeFilters: Object.keys(activeFilters).length > 0 ? activeFilters : undefined,
         sort: sortParam,

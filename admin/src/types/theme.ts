@@ -37,6 +37,9 @@ export interface HeaderElement {
         registerText?: string;
         wishlistIconStyle?: 'default' | 'heart' | 'star';
         customHtml?: string;
+        expandedForDesktop?: boolean;
+        visibleOnMobile?: boolean; // For search
+        showMobileOnly?: boolean; // For search
     };
     order: number;
 }
@@ -53,6 +56,7 @@ export interface HeaderRow {
     backgroundColor?: string;
     height?: number;
     padding?: number;
+    visibleOn?: Array<'desktop' | 'tablet' | 'mobile'>;
     sections: HeaderSectionPosition[];
 }
 

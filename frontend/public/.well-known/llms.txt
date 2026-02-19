@@ -3,10 +3,9 @@
 # Similar to robots.txt but specifically for AI understanding.
 
 User-agent: *
-Allow: /product/
-Allow: /category/
+Allow: /
 Allow: /blog/
-Allow: /page/
+Allow: /products
 Allow: /ai/products.json
 Allow: /sitemap.xml
 
@@ -25,7 +24,7 @@ Feed: /ai/products.json
 Sitemap: /sitemap.xml
 
 # Store contact and policies (trust signals)
-About: /page/about-us
-Contact: /page/contact-us
-Privacy: /page/privacy-policy
-Returns: /page/return-policy
+About: /about-us
+Contact: /contact-us
+Privacy: /privacy-policy
+Returns: /return-policy

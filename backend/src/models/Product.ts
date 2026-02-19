@@ -580,12 +580,17 @@ ProductSchema.index({ storeId: 1, slug: 1 }, { unique: true });
 ProductSchema.index({ storeId: 1, isActive: 1, isFeatured: 1 });
 ProductSchema.index({ storeId: 1, isOnSale: 1 });
 ProductSchema.index({ categoryIds: 1, isActive: 1 });
+ProductSchema.index({ storeId: 1, categoryIds: 1, isActive: 1 });
 ProductSchema.index({ 'attributes.attributeId': 1 });
 ProductSchema.index({ brand: 1 });
 ProductSchema.index({ price: 1 });
 ProductSchema.index({ salesCount: -1 });
 ProductSchema.index({ averageRating: -1 });
 ProductSchema.index({ createdAt: -1 });
+ProductSchema.index({ storeId: 1, isActive: 1, createdAt: -1, _id: -1 });
+ProductSchema.index({ storeId: 1, isActive: 1, price: 1, _id: -1 });
+ProductSchema.index({ storeId: 1, isActive: 1, salesCount: -1, _id: -1 });
+ProductSchema.index({ storeId: 1, isActive: 1, averageRating: -1, _id: -1 });
 
 // Text index for search
 ProductSchema.index({ name: 'text', description: 'text', tags: 'text', brand: 'text' });

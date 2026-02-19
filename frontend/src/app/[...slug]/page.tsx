@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { fetchLayout, getServerStore } from '@/lib/api/server-store';
+import { headers } from 'next/headers';
 
 // Product Imports
 import ProductPageClient from '@/components/slug-pages/product/ProductPageClient';
@@ -53,7 +54,7 @@ async function getProduct(storeId: string, slug: string) {
     try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
         const response = await fetch(`${apiUrl}/products/slug/${storeId}/${slug}`, {
-            cache: 'no-store',
+            next: { revalidate: 120 },
             headers: { 'Content-Type': 'application/json' },
         });
         if (!response.ok) return null;
@@ -93,11 +94,14 @@ export async function generateMetadata({ params }: UniversalPageProps): Promise<
     const resolved = await resolveSlug(store._id, slug);
     if (!resolved) return { title: 'Not Found' };
 
+    const headersList = await headers();
+    const requestHost = headersList.get('host');
+    const domain = requestHost || ((store?.domains && store.domains.length > 0) ? store.domains[0] : 'localhost:3002');
+
     if (resolved.entityType === 'product') {
         const product = await getProduct(store._id, slug);
         if (!product) return { title: 'Product Not Found' };
 
-        const domain = (store?.domains && store.domains.length > 0) ? store.domains[0] : 'localhost:3002';
         const title = product.seo?.metaTitle || product.name;
         const description = product.seo?.metaDescription || product.shortDescription || product.description?.replace(/<[^>]*>/g, '').substring(0, 160);
         const image = product.seo?.ogImage || product.featuredImage || product.images?.[0];
@@ -134,6 +138,7 @@ export async function generateMetadata({ params }: UniversalPageProps): Promise<
             title: catData.seo?.metaTitle || `${catData.title} | ${store.name}`,
             description: catData.seo?.metaDescription || catData.description || `Browse ${catData.title} products`,
             keywords: catData.seo?.metaKeywords?.join(', '),
+            alternates: { canonical: `https://${domain}/${slug}` },
             openGraph: {
                 title: catData.seo?.metaTitle || catData.title,
                 description: catData.seo?.metaDescription || catData.description,
@@ -154,7 +159,7 @@ export async function generateMetadata({ params }: UniversalPageProps): Promise<
                 type: 'website',
                 images: page.seo?.ogImage || page.featuredImage ? [page.seo?.ogImage || page.featuredImage] : [],
             },
-            alternates: { canonical: page.seo?.canonicalUrl || `/${slug}` },
+            alternates: { canonical: page.seo?.canonicalUrl || `https://${domain}/${slug}` },
         };
     }
 

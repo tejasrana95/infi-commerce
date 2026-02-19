@@ -7,6 +7,7 @@ import Product from '../models/Product';
 import Store from '../models/Store';
 import { addPricingToProduct, transformProductOptions } from './product.controller';
 import { addTimezoneAwareDates } from '../utils/date.utils';
+import { escapeRegExp } from '../utils/search.utils';
 
 /**
  * Track user interest event (view, search, purchase)
@@ -144,16 +145,7 @@ export const getRecommendations = asyncHandler(async (req: AuthRequest, res: Res
     const exclusionDaysNum = Math.min(parseInt(exclusionDays as string) || 30, 90);
     const retentionDaysNum = Math.min(parseInt(retentionDays as string) || 30, 90);
 
-    // Determine timezone for the response
-    let storeTimezone = 'UTC';
-    if (storeId) {
-        const store = await Store.findById(storeId).select('timezone').lean();
-        if (store && store.timezone) {
-            storeTimezone = store.timezone;
-        }
-    }
-
-    // Get user interest data
+    // Build user interest query
     const query: any = { storeId };
     if (userId) {
         query.userId = userId;
@@ -161,7 +153,15 @@ export const getRecommendations = asyncHandler(async (req: AuthRequest, res: Res
         query.sessionId = sessionId;
     }
 
-    const interest = userId || sessionId ? await UserInterest.findOne(query) : null;
+    // Fetch timezone + interest in parallel to reduce request latency
+    const [store, interest] = await Promise.all([
+        Store.findById(storeId).select('timezone').lean(),
+        (userId || sessionId)
+            ? UserInterest.findOne(query).select('viewedProducts searchQueries purchasedProducts').lean()
+            : Promise.resolve(null),
+    ]);
+
+    const storeTimezone = store?.timezone || 'UTC';
 
     // Calculate cutoff dates
     const viewCutoff = new Date();
@@ -231,7 +231,6 @@ export const getRecommendations = asyncHandler(async (req: AuthRequest, res: Res
 
     // Strategy 1: Products matching search keywords (highest priority)
     if (searchKeywords.size > 0 && products.length < limitNum) {
-        const { escapeRegExp } = require('../utils/search.utils');
         const searchRegexes = Array.from(searchKeywords).map(kw => new RegExp(escapeRegExp(kw), 'i'));
         const searchQuery = {
             ...baseQuery,

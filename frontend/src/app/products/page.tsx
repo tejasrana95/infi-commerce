@@ -4,7 +4,7 @@ import { getServerStore } from '@/lib/api/server-store';
 import CategoryPageClient from '@/components/slug-pages/category/CategoryPageClient';
 import CategoryPageSkeleton from '@/components/slug-pages/category/CategoryPageSkeleton';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 120;
 
 interface ProductsPageProps {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -44,8 +44,10 @@ async function fetchProductsPageData(storeId: string, searchParams: Record<strin
             }
         });
 
+        params.append('view', 'listing');
+
         const response = await fetch(`${apiUrl}/products?${params.toString()}`, {
-            cache: 'no-store',
+            next: { revalidate: 120 },
             headers: { 'Content-Type': 'application/json' },
         });
 

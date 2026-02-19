@@ -17,11 +17,18 @@ export async function GET(request: NextRequest) {
                 'Content-Type': 'application/json',
                 'X-Store-ID': storeId,
             },
-            cache: 'no-store',
+            next: { revalidate: 120 },
         });
 
         const data = await res.json();
-        return NextResponse.json({ success: true, ...data });
+        return NextResponse.json(
+            { success: true, ...data },
+            {
+                headers: {
+                    'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
+                },
+            }
+        );
     } catch (error) {
         console.error('Error fetching blog posts:', error);
         return NextResponse.json({ success: false, data: [], error: 'Failed to fetch posts' }, { status: 500 });

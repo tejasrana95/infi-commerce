@@ -4,17 +4,13 @@ import withBundleAnalyzer from '@next/bundle-analyzer';
 const nextConfig: NextConfig = {
   /* config options here */
   output: 'standalone',
-  generateBuildId: async () => {
-    // This will force the client to clear cache by providing a new build ID every time
-    return `build-${Date.now()}`;
-  },
   reactStrictMode: true,
   reactCompiler: true,
   experimental: {
     optimizePackageImports: ['lucide-react', 'react-icons', 'framer-motion'],
   },
-  // Disable compression temporarily to debug "transformAlgorithm is not a function" error
-  compress: false,
+  // Enable compression for smaller transfer sizes and faster TTFB.
+  compress: true,
   images: {
     remotePatterns: [
       {
@@ -104,4 +100,3 @@ const nextConfig: NextConfig = {
 export default withBundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
 })(nextConfig);
-

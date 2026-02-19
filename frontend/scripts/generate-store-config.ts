@@ -13,6 +13,7 @@ loadEnvConfig(process.cwd());
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 const STORE_DOMAIN_MAP = process.env.STORE_DOMAIN_MAP;
 const OUTPUT_PATH = path.join(process.cwd(), '.next/cache/store-config.json');
+const MENU_CACHE_PATH = path.join(process.cwd(), '.next/cache/menu-config.json');
 
 // Sensitive fields to exclude from cached config
 const SENSITIVE_PATHS = [
@@ -27,6 +28,12 @@ interface StoreConfig {
     storeId: string;
     generatedAt: string;
     storeData: Record<string, any>;
+}
+
+interface MenuCacheEntry {
+    menuId: string;
+    generatedAt: string;
+    menuData: Record<string, any>;
 }
 
 function removeSensitiveFields(obj: any): any {
@@ -64,6 +71,37 @@ async function fetchStoreByDomain(domain: string): Promise<any | null> {
     }
 }
 
+function loadMenuCache(): Record<string, MenuCacheEntry> {
+    try {
+        if (!fs.existsSync(MENU_CACHE_PATH)) {
+            return {};
+        }
+        const raw = fs.readFileSync(MENU_CACHE_PATH, 'utf-8');
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (error) {
+        console.warn('Failed to read menu cache, continuing with API menus only');
+        return {};
+    }
+}
+
+function mergeEnrichedMenusIntoStore(
+    store: Record<string, any>,
+    menuCache: Record<string, MenuCacheEntry>
+): Record<string, any> {
+    if (!store || typeof store !== 'object') return store;
+    if (!store.menus || typeof store.menus !== 'object') return store;
+
+    const mergedMenus: Record<string, any> = { ...store.menus };
+    for (const menuId of Object.keys(mergedMenus)) {
+        if (menuCache[menuId]?.menuData) {
+            mergedMenus[menuId] = menuCache[menuId].menuData;
+        }
+    }
+
+    return { ...store, menus: mergedMenus };
+}
+
 async function main() {
     if (!STORE_DOMAIN_MAP) {
         return;
@@ -92,6 +130,7 @@ async function main() {
 
     const generatedAt = new Date().toISOString();
     const configs: Record<string, StoreConfig> = {};
+    const menuCache = loadMenuCache();
 
     // Fetch store for each domain directly (this includes embedded menus)
     for (const [domain, storeId] of Object.entries(domainToStoreId)) {
@@ -99,12 +138,13 @@ async function main() {
         const store = await fetchStoreByDomain(domain);
 
         if (store) {
+            const storeWithEnrichedMenus = mergeEnrichedMenusIntoStore(store, menuCache);
             configs[domain] = {
                 storeId,
                 generatedAt,
-                storeData: removeSensitiveFields(store),
+                storeData: removeSensitiveFields(storeWithEnrichedMenus),
             };
-            console.log(`  Cached store: ${store.name || store._id} (with ${Object.keys(store.menus || {}).length} menus)`);
+            console.log(`  Cached store: ${store.name || store._id} (with ${Object.keys(storeWithEnrichedMenus.menus || {}).length} menus)`);
         } else {
             console.warn(`  Failed to fetch store for domain: ${domain}`);
         }
@@ -122,4 +162,3 @@ async function main() {
 }
 
 main();
-

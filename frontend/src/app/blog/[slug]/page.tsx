@@ -4,6 +4,7 @@ import { getServerStore, fetchBlogPostBySlug } from '@/lib/api/server-store';
 import { fetchBlogPosts } from '@/lib/api';
 import BlogPostContainer from '@/components/templates/core/BlogPost/Container';
 import BlogPostSeoShell from '@/components/seo/BlogPostSeoShell';
+import { headers } from 'next/headers';
 
 interface BlogPostPageProps {
     params: Promise<{
@@ -86,6 +87,9 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
         return { title: 'Blog Post Not Found' };
     }
     const post = data.data;
+    const headersList = await headers();
+    const requestHost = headersList.get('host');
+    const domain = requestHost || ((store?.domains && store.domains.length > 0) ? store.domains[0] : 'localhost:3002');
     return {
         title: post.seo?.metaTitle || post.title,
         description: post.seo?.metaDescription || post.excerpt,
@@ -105,7 +109,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
             images: post.seo?.ogImage || post.featuredImage ? [post.seo?.ogImage || post.featuredImage] : [],
         },
         alternates: {
-            canonical: post.seo?.canonicalUrl,
+            canonical: post.seo?.canonicalUrl || `https://${domain}/blog/${slug}`,
         },
     };
 }

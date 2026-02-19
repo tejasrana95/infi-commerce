@@ -13,11 +13,18 @@ export async function GET(request: NextRequest) {
                 'Content-Type': 'application/json',
                 'X-Store-ID': storeId,
             },
-            cache: 'no-store',
+            next: { revalidate: 300 },
         });
 
         const data = await res.json();
-        return NextResponse.json({ success: true, ...data });
+        return NextResponse.json(
+            { success: true, ...data },
+            {
+                headers: {
+                    'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+                },
+            }
+        );
     } catch (error) {
         console.error('Error fetching blog categories:', error);
         return NextResponse.json({ success: false, data: [], error: 'Failed to fetch categories' }, { status: 500 });

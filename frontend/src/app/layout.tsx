@@ -124,6 +124,7 @@ export async function generateMetadata() {
   const selectedCurrency = currencies.find(c => c.code === currencyCode) || currencies[0];
 
   return {
+    metadataBase: new URL(`https://${domain}`),
     title: {
       default: store.seo?.metaTitle || store.name || "Store",
       template: `%s | ${store.name || "Store"}`

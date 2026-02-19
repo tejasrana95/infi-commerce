@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next';
 import { getServerStore } from '@/lib/api/server-store';
+import { headers } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 3600; // Revalidate every hour
@@ -74,7 +75,9 @@ async function fetchPages(storeId: string): Promise<any[]> {
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const store = await getServerStore();
-    const domain = (store?.domains && store.domains.length > 0) ? store.domains[0] : 'localhost:3002';
+    const headersList = await headers();
+    const requestHost = headersList.get('host');
+    const domain = requestHost || ((store?.domains && store.domains.length > 0) ? store.domains[0] : 'localhost:3002');
     const baseUrl = `https://${domain}`;
 
     const entries: SitemapEntry[] = [];
