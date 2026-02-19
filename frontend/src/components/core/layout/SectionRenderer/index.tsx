@@ -148,7 +148,7 @@ export default function SectionRenderer({ section, moduleData, renderModule, ind
 
     // Sort modules by order
     const sortedModules = [...(section.modules || [])].sort((a, b) => a.order - b.order);
-
+    console.log('sortedModules', sortedModules);
     const isLazy = index > 1; // Lazy load everything after the first 2 sections
 
     const columnCount = section.columns?.length || 0;
@@ -225,6 +225,7 @@ export default function SectionRenderer({ section, moduleData, renderModule, ind
                     renderModuleFn(module, moduleData?.[module.id], index === 0)
                 )}
             </div>
+
         </section>
     );
 

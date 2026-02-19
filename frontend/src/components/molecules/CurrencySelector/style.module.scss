@@ -30,6 +30,15 @@
     display: flex;
     align-items: center;
     gap: 0.25rem;
+
+    .code {
+        display: none;
+
+        @include tablet {
+            display: inline;
+        }
+
+    }
 }
 
 .symbol {

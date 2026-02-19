@@ -18,7 +18,7 @@ interface MenuLinkProps {
         background: string;
         text: string;
     };
-    onClick?: (item: MenuItem) => void;
+    onClick?: (item: MenuItem, event?: React.MouseEvent<HTMLElement>) => void;
     menuPosition?: 'header' | 'mobile' | 'footer' | 'sidebar';
     className?: string;
 }
@@ -53,7 +53,7 @@ export default function MenuLink({
     menuPosition = 'header',
     className,
 }: MenuLinkProps) {
-    const handleClick = () => onClick?.(item);
+    const handleClick = (event: React.MouseEvent<HTMLElement>) => onClick?.(item, event);
 
     const url = resolveUrl(item);
     const target = item.openInNewTab ? '_blank' : undefined;

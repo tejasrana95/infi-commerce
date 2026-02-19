@@ -18,6 +18,12 @@ export default function VerticalMenu({
 }: MenuRendererProps) {
     const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
+    const shouldToggleOnLinkClick = (item: MenuItem, hasChildren: boolean) => {
+        if (!hasChildren || item.type !== 'link') return false;
+        const rawUrl = (item.url || '').trim();
+        return rawUrl === '' || rawUrl === '#' || rawUrl === '#!';
+    };
+
     const toggleItem = (id: string) => {
         setExpandedItems((prev) => {
             const next = new Set(prev);
@@ -34,23 +40,49 @@ export default function VerticalMenu({
 
         const hasChildren = item.children?.length > 0 && currentDepth < settings.maxDepth;
         const isExpanded = expandedItems.has(item.id);
+        const canToggleFromLink = shouldToggleOnLinkClick(item, hasChildren);
 
         return (
             <li
                 key={item.id}
                 className={`${styles.menuItem} ${hasChildren ? styles.hasChildren : ''}`}
             >
-                <div className={styles.itemWrapper}>
+                <div
+                    className={styles.itemWrapper}
+                    role={canToggleFromLink ? 'button' : undefined}
+                    tabIndex={canToggleFromLink ? 0 : undefined}
+                    onClick={(event) => {
+                        if (!canToggleFromLink) return;
+                        event.preventDefault();
+                        toggleItem(item.id);
+                    }}
+                    onKeyDown={(event) => {
+                        if (!canToggleFromLink) return;
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            toggleItem(item.id);
+                        }
+                    }}
+                >
                     <MenuLink
                         item={item}
                         showIcon={settings.showIcons}
                         themeColors={themeColors}
-                        onClick={onItemClick}
+                        onClick={(clickedItem, event) => {
+                            if (canToggleFromLink) {
+                                event?.preventDefault();
+                                return;
+                            }
+                            onItemClick?.(clickedItem);
+                        }}
                     />
                     {hasChildren && (
                         <button
                             className={`${styles.toggleBtn} ${isExpanded ? styles.expanded : ''}`}
-                            onClick={() => toggleItem(item.id)}
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                toggleItem(item.id);
+                            }}
                             aria-label="Toggle submenu"
                             aria-expanded={isExpanded}
                         >

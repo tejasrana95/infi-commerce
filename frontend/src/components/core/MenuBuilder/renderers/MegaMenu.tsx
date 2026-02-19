@@ -155,12 +155,25 @@ function SubItem({
     if (subItem.type === 'category') {
         const slug = subItem.categorySlug || subItem.categoryId;
         const label = subItem.label || subItem.categoryName || 'Category';
+        const hasChildren = subItem.children && subItem.children.length > 0;
         return (
             <div className={styles.categorySection}>
                 {subItem.categoryId ? (
                     <Link href={`/${slug}`} className={styles.categoryLabel}>{label}</Link>
                 ) : (
                     <span className={styles.categoryLabelStatic}>{label}</span>
+                )}
+                {hasChildren && (
+                    <ul className={styles.categoryLinks}>
+                        {subItem.children.map((child) => (
+                            <li key={child.id} className={styles.categoryLinkItem}>
+                                <MenuLink
+                                    item={child}
+                                    showIcon={false}
+                                />
+                            </li>
+                        ))}
+                    </ul>
                 )}
                 {subItem.productLimit != null && subItem.productLimit > 0 && (
                     <CategoryProducts item={subItem} />
@@ -250,8 +263,9 @@ export default function MegaMenu({
         const hasChildren = item.children?.length > 0;
         const hasCatProducts =
             item.type === 'category' && item.autoAddProducts !== false && !!item.categoryId;
+        const hasCategoryChildren = item.type === 'category' && hasChildren;
 
-        const showChevron = hasMega || hasChildren || hasCatProducts;
+        const showChevron = hasMega || hasChildren || hasCatProducts || hasCategoryChildren;
 
         const cls = [
             styles.menuItem,
@@ -272,8 +286,22 @@ export default function MegaMenu({
 
                 {hasMega ? (
                     renderMegaContent(item)
-                ) : hasCatProducts ? (
+                ) : (hasCatProducts || hasCategoryChildren) ? (
                     <div className={styles.categoryDropdown}>
+                        {hasCategoryChildren && (
+                            <ul className={styles.categoryLinks}>
+                                {item.children.map((child) => (
+                                    <li key={child.id} className={styles.categoryLinkItem}>
+                                        <MenuLink
+                                            item={child}
+                                            showIcon={settings.showIcons}
+                                            themeColors={themeColors}
+                                            onClick={onItemClick}
+                                        />
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                         <CategoryProducts item={item} />
                     </div>
                 ) : null}

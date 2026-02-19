@@ -669,78 +669,73 @@ export default function ModernCleanCategoryPageTemplate({
         <div className={styles.categoryPage}>
             {/* Category Header - Always rendered first */}
             <header className={styles.header}>
-                {/* Background with gradient and optional image */}
-                <div className={styles.headerBackground}>
-                    {config.header?.showImage && category.image && (
-                        <Image
-                            src={category.image}
-                            alt={category.title}
-                            fill
-                            style={{ objectFit: 'cover' }}
-                            priority
-                            className={styles.headerBgImage}
-                        />
-                    )}
-                    {/* Gradient overlay */}
-                    <div className={styles.gradientOverlay} />
-                    {/* Decorative floating shapes */}
-                    <div className={styles.decorativeShapes}>
-                        <div className={styles.shape1} />
-                        <div className={styles.shape2} />
-                        <div className={styles.shape3} />
-                    </div>
-                </div>
-
-                {/* Header Content - Inside Container */}
                 <div className={styles.headerContainer}>
-                    <div className={styles.categoryInfo}>
-                        {/* Breadcrumbs at top */}
-                        <nav className={styles.breadcrumbs}>
-                            {breadcrumbs.map((crumb, i) => (
-                                <React.Fragment key={i}>
-                                    {i > 0 && (
-                                        <svg className={styles.breadcrumbSeparator} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    <div className={styles.headerShell}>
+                        <div className={styles.headerTop}>
+                            <nav className={styles.breadcrumbs}>
+                                {breadcrumbs.map((crumb, i) => (
+                                    <React.Fragment key={i}>
+                                        {i > 0 && (
+                                            <svg className={styles.breadcrumbSeparator} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        )}
+                                        {crumb.href ? (
+                                            <Link href={crumb.href} className={styles.breadcrumbLink}>{crumb.label}</Link>
+                                        ) : (
+                                            <span className={styles.breadcrumbCurrent}>{crumb.label}</span>
+                                        )}
+                                    </React.Fragment>
+                                ))}
+                            </nav>
+                            <span className={styles.headerTag}>Collection</span>
+                        </div>
+
+                        <div className={styles.headerGrid}>
+                            <div className={styles.categoryInfo}>
+                                <div className={styles.titleRow}>
+                                    <div className={styles.titleWrapper}>
+                                        <h1>{category.title}</h1>
+                                        <div className={styles.titleDecoration} />
+                                    </div>
+
+                                    {config.header?.showImage && category.image && (
+                                        <div className={styles.visualThumb}>
+                                            <Image
+                                                src={category.image}
+                                                alt={category.title}
+                                                fill
+                                                style={{ objectFit: 'cover' }}
+                                                priority
+                                                className={styles.headerBgImage}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className={styles.headerMeta}>
+                                    <span className={styles.productBadge}>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                                         </svg>
+                                        {pagination.total} Products
+                                    </span>
+
+                                    {didYouMean && (
+                                        <div className={styles.didYouMean}>
+                                            Did you mean: <Link href={`/search?q=${encodeURIComponent(didYouMean)}`}><strong>{didYouMean}</strong></Link>?
+                                        </div>
                                     )}
-                                    {crumb.href ? (
-                                        <Link href={crumb.href} className={styles.breadcrumbLink}>{crumb.label}</Link>
-                                    ) : (
-                                        <span className={styles.breadcrumbCurrent}>{crumb.label}</span>
+                                </div>
+
+                                {(config.header.descriptionPosition === 'top' || config.header.descriptionPosition === 'below-image') &&
+                                    config.header?.showDescription && category.description && (
+                                        <div className={styles.descriptionWrapper}>
+                                            {renderDescription()}
+                                        </div>
                                     )}
-                                </React.Fragment>
-                            ))}
-                        </nav>
-
-                        {/* Title with animated underline */}
-                        <div className={styles.titleWrapper}>
-                            <h1>{category.title}</h1>
-                            <div className={styles.titleDecoration} />
+                            </div>
                         </div>
-
-                        {/* Product count badge */}
-                        <div className={styles.headerMeta}>
-                            <span className={styles.productBadge}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                                </svg>
-                                {pagination.total} Products
-                            </span>
-
-                            {didYouMean && (
-                                <div className={styles.didYouMean}>
-                                    Did you mean: <Link href={`/search?q=${encodeURIComponent(didYouMean)}`}><strong>{didYouMean}</strong></Link>?
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Description */}
-                        {(config.header.descriptionPosition === 'top' || config.header.descriptionPosition === 'below-image') &&
-                            config.header?.showDescription && category.description && (
-                                <div className={styles.descriptionWrapper}>
-                                    {renderDescription()}
-                                </div>
-                            )}
                     </div>
                 </div>
             </header>

@@ -1,7 +1,9 @@
 @use '@/styles/breakpoints' as *;
 
 .container {
-    margin-top: 28px;
+    --auth-primary: var(--color-primary, #1d4ed8);
+
+    margin-top: 20px;
     width: 100%;
 }
 
@@ -9,33 +11,33 @@
     display: flex;
     align-items: center;
     text-align: center;
-    color: #9ca3af;
-    font-size: 0.8rem;
-    font-weight: 500;
+    color: #97a7c6;
+    font-size: 0.76rem;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 
     &::before,
     &::after {
         content: '';
         flex: 1;
-        border-bottom: 1px solid #e5e7eb;
+        border-bottom: 1px solid #dbe4f5;
     }
 
     &::before {
-        margin-right: 16px;
+        margin-right: 12px;
     }
 
     &::after {
-        margin-left: 16px;
+        margin-left: 12px;
     }
 }
 
 .buttons {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    gap: 10px;
 
     @include small-mobile {
         grid-template-columns: 1fr;
@@ -43,19 +45,19 @@
 }
 
 .socialBtn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    padding: 12px 16px;
-    border-radius: 12px;
-    font-size: 0.875rem;
-    font-weight: 500;
+    gap: 8px;
+    border-radius: 11px;
+    border: 1px solid #d6e0f3;
+    background: #f9fbff;
+    color: #314a79;
+    padding: 11px 12px;
     cursor: pointer;
+    font-size: 0.87rem;
+    font-weight: 600;
     transition: all 0.2s ease;
-    background: white;
-    border: 1.5px solid #e5e7eb;
-    color: #374151;
 
     svg {
         width: 20px;
@@ -63,32 +65,20 @@
         flex-shrink: 0;
     }
 
-    span {
-        font-weight: 500;
-    }
-
     &:hover {
-        background: #f9fafb;
-        border-color: #d1d5db;
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        border-color: color-mix(in srgb, var(--auth-primary) 40%, #c4d1ea);
+        background: #fff;
+        box-shadow: 0 8px 18px rgba(30, 56, 108, 0.08);
     }
 
-    &:active {
-        transform: translateY(0);
+    &.google:hover {
+        border-color: #f3cccc;
+        background: #fff5f5;
     }
 
-    &.google {
-        &:hover {
-            border-color: #ea4335;
-            background: #fef2f2;
-        }
-    }
-
-    &.facebook {
-        &:hover {
-            border-color: #1877f2;
-            background: #eff6ff;
-        }
+    &.facebook:hover {
+        border-color: #cddcfb;
+        background: #f3f7ff;
     }
 }

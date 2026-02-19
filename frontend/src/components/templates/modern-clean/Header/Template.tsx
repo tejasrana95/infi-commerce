@@ -31,7 +31,9 @@ export default function ModernCleanHeaderTemplate({
     menus,
     mobileBreakpoint = 768,
 }: HeaderTemplateProps) {
+    const MOBILE_MENU_ANIMATION_MS = 240;
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [mobileMenuClosing, setMobileMenuClosing] = useState(false);
     const [searchOpen, setSearchOpen] = useState(false);
     const [cartOpen, setCartOpen] = useState(false);
     const [accountOpen, setAccountOpen] = useState(false);
@@ -51,6 +53,8 @@ export default function ModernCleanHeaderTemplate({
     // Dynamic styles for configurable breakpoint
     const dynamicStyles = `
         @media (max-width: ${mobileBreakpoint}px) {
+            .${styles.mainHeader}:not([data-visible-on~="mobile"]) { display: none !important; }
+
             /* Only hide center section where desktop menu usually lives */
             .${styles.sectionCenter} { display: none !important; }
             
@@ -61,20 +65,27 @@ export default function ModernCleanHeaderTemplate({
             .${styles.mobileMenuBtn} { display: flex !important; }
             
             /* Ensure mobile menu drawer is visible when rendered */
-            .${styles.mobileMenu} { display: block !important; }
+            .${styles.mobileMenuOverlay} { display: flex !important; }
             
             /* Adjust logo size */
             .${styles.logo} img { height: 32px !important; }
             .${styles.logo} { min-height: 32px !important; }
         }
         
-        @media (min-width: ${mobileBreakpoint + 1}px) {
+        @media (min-width: ${mobileBreakpoint + 1}px) and (max-width: 1024px) {
+            .${styles.mainHeader}:not([data-visible-on~="tablet"]) { display: none !important; }
+
             .${styles.mobileMenuBtn} { display: none !important; }
             /* Restore desktop sections */
             .${styles.sectionCenter} { display: flex !important; }
             .${styles.menuElement} { display: block !important; }
             /* Hide mobile menu drawer even if state thinks it's open (edge case) */
-            .${styles.mobileMenu} { display: none !important; }
+            .${styles.mobileMenuOverlay} { display: none !important; }
+        }
+
+        @media (min-width: 1025px) {
+            .${styles.mainHeader}:not([data-visible-on~="desktop"]) { display: none !important; }
+            .${styles.mobileMenuOverlay} { display: none !important; }
         }
     `;
     const cartTotal = 0;
@@ -86,6 +97,34 @@ export default function ModernCleanHeaderTemplate({
     const searchBtnRef = useRef<HTMLButtonElement>(null);
     const mobileMenuRef = useRef<HTMLDivElement>(null);
     const mobileMenuBtnRef = useRef<HTMLButtonElement>(null);
+    const mobileMenuCloseTimerRef = useRef<number | null>(null);
+
+    const openMobileMenu = () => {
+        if (mobileMenuCloseTimerRef.current) {
+            window.clearTimeout(mobileMenuCloseTimerRef.current);
+            mobileMenuCloseTimerRef.current = null;
+        }
+        setMobileMenuClosing(false);
+        setMobileMenuOpen(true);
+    };
+
+    const closeMobileMenu = () => {
+        if (!mobileMenuOpen || mobileMenuClosing) return;
+        setMobileMenuClosing(true);
+        mobileMenuCloseTimerRef.current = window.setTimeout(() => {
+            setMobileMenuOpen(false);
+            setMobileMenuClosing(false);
+            mobileMenuCloseTimerRef.current = null;
+        }, MOBILE_MENU_ANIMATION_MS);
+    };
+
+    const toggleMobileMenu = () => {
+        if (mobileMenuOpen && !mobileMenuClosing) {
+            closeMobileMenu();
+            return;
+        }
+        openMobileMenu();
+    };
 
     useClickOutside(accountRef, () => setAccountOpen(false));
     useClickOutside(cartRef, () => setCartOpen(false));
@@ -93,7 +132,7 @@ export default function ModernCleanHeaderTemplate({
     // Close mobile menu only if click is outside menu AND outside the toggle button
     useClickOutside(mobileMenuRef, () => {
         if (!mobileMenuBtnRef.current?.contains(document.activeElement)) {
-            setMobileMenuOpen(false);
+            closeMobileMenu();
         }
     });
 
@@ -130,7 +169,7 @@ export default function ModernCleanHeaderTemplate({
                 mobileMenuBtnRef.current &&
                 !mobileMenuBtnRef.current.contains(event.target as Node)
             ) {
-                setMobileMenuOpen(false);
+                closeMobileMenu();
             }
         };
 
@@ -145,22 +184,37 @@ export default function ModernCleanHeaderTemplate({
         };
     }, [mobileMenuOpen]);
 
+    // Prevent background scroll when mobile drawer is open
+    useEffect(() => {
+        if (!mobileMenuOpen) return;
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = previousOverflow;
+        };
+    }, [mobileMenuOpen]);
+
+    useEffect(() => {
+        return () => {
+            if (mobileMenuCloseTimerRef.current) {
+                window.clearTimeout(mobileMenuCloseTimerRef.current);
+            }
+        };
+    }, []);
+
     // Handle scroll for sticky behavior
     const stickyRowSetting = headerConfig?.main?.stickyRow;
     const needsHeaderSticky = isSticky && !stickyRowSetting;
     const needsRowSticky = !!stickyRowSetting && stickyRowSetting !== 'none';
 
     useEffect(() => {
-        if (!needsHeaderSticky) {
-            setIsScrolled(false);
-        }
-
-        if (!needsHeaderSticky && !needsRowSticky) return;
-
         const handleScroll = () => {
             // Header-level sticky (old behavior)
             if (needsHeaderSticky) {
-                setIsScrolled(window.scrollY > 10);
+                const nextIsScrolled = window.scrollY > 10;
+                setIsScrolled(prev => (prev === nextIsScrolled ? prev : nextIsScrolled));
+            } else {
+                setIsScrolled(prev => (prev ? false : prev));
             }
 
             // Row-level sticky: fix the target row when it reaches viewport top
@@ -173,24 +227,41 @@ export default function ModernCleanHeaderTemplate({
                     ? placeholder.getBoundingClientRect().top + window.scrollY
                     : el.getBoundingClientRect().top + window.scrollY;
 
-                if (window.scrollY >= originalTop) {
-                    if (!stickyRowFixed) {
-                        setStickyRowHeight(el.offsetHeight);
-                        setStickyRowFixed(true);
-                    }
-                } else {
-                    if (stickyRowFixed) {
-                        setStickyRowFixed(false);
-                    }
+                const shouldFixRow = window.scrollY >= originalTop;
+                if (shouldFixRow) {
+                    const nextHeight = el.offsetHeight;
+                    setStickyRowHeight(prev => (prev === nextHeight ? prev : nextHeight));
                 }
+                setStickyRowFixed(prev => (prev === shouldFixRow ? prev : shouldFixRow));
+            } else {
+                setStickyRowFixed(prev => (prev ? false : prev));
+                setStickyRowHeight(prev => (prev === 0 ? prev : 0));
             }
         };
+
+        if (!needsHeaderSticky && !needsRowSticky) {
+            handleScroll();
+            return;
+        }
 
         window.addEventListener('scroll', handleScroll, { passive: true });
         handleScroll();
 
         return () => window.removeEventListener('scroll', handleScroll);
-    }, [needsHeaderSticky, needsRowSticky, stickyRowFixed]);
+    }, [needsHeaderSticky, needsRowSticky]);
+
+    useEffect(() => {
+        if (!needsRowSticky) {
+            setStickyRowFixed(prev => (prev ? false : prev));
+            setStickyRowHeight(prev => (prev === 0 ? prev : 0));
+        }
+    }, [needsRowSticky]);
+
+    useEffect(() => {
+        if (!needsHeaderSticky) {
+            setIsScrolled(prev => (prev ? false : prev));
+        }
+    }, [needsHeaderSticky]);
 
     // Measure header height to prevent layout shift when it becomes fixed
     useEffect(() => {
@@ -541,10 +612,11 @@ export default function ModernCleanHeaderTemplate({
                     const rowContent = (
                         <div
                             ref={isTargetSticky ? stickyRowRef : undefined}
+                            data-visible-on={(row.visibleOn && row.visibleOn.length > 0 ? row.visibleOn : ['desktop', 'tablet', 'mobile']).join(' ')}
                             className={`${styles.mainHeader} ${isSecondRow ? styles.compactRow : ''} ${isTargetSticky && stickyRowFixed ? styles.fixedRow : ''}`}
                             style={{
                                 backgroundColor: row.backgroundColor || 'var(--color-header-bg, white)',
-                                minHeight: isSecondRow ? '50px' : (row.height ? `${row.height}px` : undefined),
+                                minHeight: row.height ? `${row.height}px` : (isSecondRow ? '50px' : undefined),
                                 zIndex: hasExpandedSearch ? 1001 : undefined,
                             }}
                         >
@@ -557,7 +629,7 @@ export default function ModernCleanHeaderTemplate({
                                             className={styles.mobileMenuBtn}
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                setMobileMenuOpen(!mobileMenuOpen);
+                                                toggleMobileMenu();
                                             }}
                                             aria-label="Toggle menu"
                                         >
@@ -632,16 +704,54 @@ export default function ModernCleanHeaderTemplate({
 
                 {/* ========== MOBILE MENU ========== */}
                 {mobileMenuOpen && (
-                    <div className={styles.mobileMenu}>
-                        <div className={styles.mobileMenuContent} ref={mobileMenuRef}>
-                            {/* Mobile Menu Builder */}
-                            {mobileMenuId && (
-                                <MenuBuilder
-                                    menuId={mobileMenuId}
-                                    themeColors={themeColors}
-                                    className={styles.mobileNav}
-                                />
-                            )}
+                    <div
+                        className={`${styles.mobileMenuOverlay} ${mobileMenuClosing ? styles.closing : ''}`}
+                        onClick={closeMobileMenu}
+                    >
+                        <div className={styles.mobileMenu} ref={mobileMenuRef} onClick={(e) => e.stopPropagation()}>
+                            <div className={styles.mobileMenuHeader}>
+                                <div>
+                                    <p className={styles.mobileMenuEyebrow}>Navigation</p>
+                                    <h3 className={styles.mobileMenuTitle}>{storeName}</h3>
+                                </div>
+                                <button
+                                    className={styles.mobileMenuClose}
+                                    onClick={closeMobileMenu}
+                                    aria-label="Close menu"
+                                >
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M6 6l12 12M18 6l-12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div className={styles.mobileMenuContent}>
+                                {mobileMenuId ? (
+                                    <MenuBuilder
+                                        menuId={mobileMenuId}
+                                        themeColors={themeColors}
+                                        className={styles.mobileNav}
+                                    />
+                                ) : (
+                                    <div className={styles.mobileMenuFallback}>
+                                        <p>No mobile menu configured yet.</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className={styles.mobileMenuFooter}>
+                                <div className={styles.mobileMenuQuickActions}>
+                                    <Link href={isAuthenticated ? '/account' : '/login'} className={styles.mobileQuickAction} onClick={closeMobileMenu}>
+                                        <span>Account</span>
+                                    </Link>
+                                    <Link href="/wishlist" className={styles.mobileQuickAction} onClick={closeMobileMenu}>
+                                        <span>Wishlist {wishlistCount > 0 ? `(${wishlistCount})` : ''}</span>
+                                    </Link>
+                                    <Link href="/cart" className={styles.mobileQuickAction} onClick={closeMobileMenu}>
+                                        <span>Cart {cartCount > 0 ? `(${cartCount})` : ''}</span>
+                                    </Link>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}

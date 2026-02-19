@@ -227,6 +227,86 @@ class RestoreService {
     }
 
     /**
+     * Deep merge objects, preserving existing values when source values are undefined
+     * This ensures SEO and other nested fields are not wiped out during import
+     */
+    private deepMergePreserve(existing: any, incoming: any): any {
+        if (incoming === undefined || incoming === null) {
+            return existing;
+        }
+
+        if (typeof incoming !== 'object' || Array.isArray(incoming)) {
+            return incoming;
+        }
+
+        if (typeof existing !== 'object' || existing === null || Array.isArray(existing)) {
+            return incoming;
+        }
+
+        const result = { ...existing };
+
+        for (const [key, value] of Object.entries(incoming)) {
+            if (value === undefined) {
+                // Keep existing value when import value is undefined
+                continue;
+            }
+
+            if (typeof value === 'object' && !Array.isArray(value) && value !== null) {
+                // Recursively merge nested objects
+                result[key] = this.deepMergePreserve(existing[key], value);
+            } else {
+                result[key] = value;
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Clean up empty enum fields to prevent validation errors
+     * Recursively removes fields with empty string values that would fail enum validation
+     * Modifies object in place
+     */
+    private cleanupEmptyEnumFieldsInPlace(obj: any): void {
+        if (!obj || typeof obj !== 'object') {
+            return;
+        }
+
+        // Define which fields have enum constraints
+        const enumFields = {
+            googleMerchant: ['ageGroup', 'gender']
+        };
+
+        // Recursively clean empty enum fields
+        const cleanObject = (current: any, parentKey: string = '') => {
+            if (!current || typeof current !== 'object') return;
+
+            for (const key of Object.keys(current)) {
+                const value = current[key];
+
+                // Check if this is an enum field
+                if (enumFields[parentKey as keyof typeof enumFields]?.includes(key)) {
+                    // This is an enum field
+                    if (value === '' || value === null) {
+                        delete current[key];
+                    }
+                }
+
+                // Recurse into nested objects and arrays
+                if (value && typeof value === 'object') {
+                    if (Array.isArray(value)) {
+                        value.forEach(item => cleanObject(item, key));
+                    } else {
+                        cleanObject(value, key);
+                    }
+                }
+            }
+        };
+
+        cleanObject(obj);
+    }
+
+    /**
      * Unflatten Excel row back to nested object
      * Converts { 'address.city': 'NYC' } back to { address: { city: 'NYC' } }
      */
@@ -1356,6 +1436,9 @@ class RestoreService {
                     .filter((item: any) => item && typeof item === 'object' && item.attributeId);
             }
 
+            // Clean up empty enum fields to prevent validation errors
+            this.cleanupEmptyEnumFieldsInPlace(sanitized);
+
             if (rowErrors.length > 0) {
                 result.errors.push({
                     row: rowNumber,
@@ -1373,7 +1456,18 @@ class RestoreService {
                     // Use save() to trigger slug registry hooks
                     const doc = await Product.findById(productId);
                     if (doc) {
-                        doc.set(sanitized);
+                        // Deep merge to preserve nested fields like SEO when not provided in import
+                        const existingData = doc.toObject();
+                        const mergedData = this.deepMergePreserve(existingData, sanitized);
+                        
+                        // Clean up empty enum fields after merge
+                        this.cleanupEmptyEnumFieldsInPlace(mergedData);
+                        
+                        // Remove _id and __v from merged data
+                        delete mergedData._id;
+                        delete mergedData.__v;
+                        
+                        doc.set(mergedData);
                         await doc.save();
                         result.updated++;
                     } else {
@@ -1715,7 +1809,18 @@ class RestoreService {
                     if (['Category', 'Brand'].includes(Model.modelName)) {
                         const doc = await Model.findById(id);
                         if (doc) {
-                            doc.set(sanitized);
+                            // Deep merge to preserve nested fields like SEO when not provided in import
+                            const existingData = doc.toObject();
+                            const mergedData = this.deepMergePreserve(existingData, sanitized);
+                            
+                            // Clean up empty enum fields after merge
+                            this.cleanupEmptyEnumFieldsInPlace(mergedData);
+                            
+                            // Remove _id and __v from merged data
+                            delete mergedData._id;
+                            delete mergedData.__v;
+                            
+                            doc.set(mergedData);
                             await doc.save();
                             result.updated++;
                         } else {

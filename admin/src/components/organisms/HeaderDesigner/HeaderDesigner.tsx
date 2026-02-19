@@ -17,6 +17,10 @@ import {
     MenuItem as MuiMenuItem,
     ListItemIcon,
     ListItemText,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
 } from '@mui/material';
 import { ColorPicker } from '@/components/atoms';
 import {
@@ -42,7 +46,7 @@ import { DndContext, DragEndEvent, DragOverlay, closestCenter, useSensor, useSen
 import { SortableContext, horizontalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { v4 as uuidv4 } from 'uuid';
-import { ThemeConfig, HeaderElement, HeaderTopBarItem, Menu as MenuType } from '@/types';
+import { ThemeConfig, HeaderElement, HeaderTopBarItem, Menu as MenuType, HeaderRow } from '@/types';
 import HeaderElementConfig from './HeaderElementConfig';
 import PreviewContainer from '@/components/molecules/PreviewContainer';
 import api from '@/lib/api';
@@ -52,6 +56,8 @@ interface HeaderDesignerProps {
     onChange: (config: ThemeConfig) => void;
     storeId: string;
 }
+
+const ALL_VIEWPORTS: Array<'desktop' | 'tablet' | 'mobile'> = ['desktop', 'tablet', 'mobile'];
 
 // Element info
 const elementInfo: Record<string, { label: string; icon: React.ReactNode; description: string }> = {
@@ -271,6 +277,7 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
     const [settingsExpanded, setSettingsExpanded] = useState(true);
     const [topBarExpanded, setTopBarExpanded] = useState(false);
     const [addMenuAnchor, setAddMenuAnchor] = useState<{ anchor: HTMLElement; section: string; rowId: string } | null>(null);
+    const [settingsRowId, setSettingsRowId] = useState<string | null>(null);
     const [menus, setMenus] = useState<MenuType[]>([]);
     const [topBarText, setTopBarText] = useState('Free shipping on orders over $50 | Call us: 1-800-123-4567');
 
@@ -372,11 +379,19 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
 
     // Update main header settings
     const handleUpdateMainHeader = (updates: Partial<typeof headerConfig.main>) => {
+        const normalizedUpdates = { ...updates };
+        if (normalizedUpdates.rows) {
+            normalizedUpdates.rows = normalizedUpdates.rows.map(row => ({
+                ...row,
+                visibleOn: row.visibleOn && row.visibleOn.length > 0 ? row.visibleOn : [...ALL_VIEWPORTS],
+            }));
+        }
+
         onChange({
             ...config,
             header: {
                 ...headerConfig,
-                main: { ...headerConfig.main, ...updates },
+                main: { ...headerConfig.main, ...normalizedUpdates },
             },
         });
     };
@@ -390,6 +405,32 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
                 mobileMenu: { ...mobileMenu, ...updates },
             },
         });
+    };
+
+    // Update a single row in main header
+    const handleUpdateRow = (rowId: string, updates: Partial<HeaderRow>) => {
+        const updatedRows = headerConfig.main.rows.map(row =>
+            row.id === rowId ? { ...row, ...updates } : row
+        );
+        handleUpdateMainHeader({ rows: updatedRows });
+    };
+
+    // Toggle row visibility for a specific viewport
+    const handleToggleRowViewport = (rowId: string, viewport: 'desktop' | 'tablet' | 'mobile') => {
+        const row = headerConfig.main.rows.find(r => r.id === rowId);
+        if (!row) return;
+
+        const currentVisibleOn = row.visibleOn && row.visibleOn.length > 0 ? row.visibleOn : ALL_VIEWPORTS;
+        const isEnabled = currentVisibleOn.includes(viewport);
+
+        const nextVisibleOn = isEnabled
+            ? currentVisibleOn.filter(v => v !== viewport)
+            : [...currentVisibleOn, viewport];
+
+        // Keep at least one viewport enabled
+        if (nextVisibleOn.length === 0) return;
+
+        handleUpdateRow(rowId, { visibleOn: nextVisibleOn });
     };
 
     // Add element to section in a row
@@ -468,6 +509,7 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
         const newRow = {
             id: uuidv4(),
             order: headerConfig.main.rows.length,
+            visibleOn: [...ALL_VIEWPORTS],
             sections: [
                 { id: 'left', position: 'left' as const, items: [] },
                 { id: 'center', position: 'center' as const, items: [] },
@@ -586,6 +628,10 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
         );
     };
 
+    const activeSettingsRow = settingsRowId
+        ? headerConfig.main.rows.find(row => row.id === settingsRowId) || null
+        : null;
+
     return (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <Box>
@@ -681,19 +727,28 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
                                 {renderSection(row.id, 'right', 'flex-end')}
 
                                 {/* Row Actions */}
-                                {headerConfig.main.rows.length > 1 && (
-                                    <Box
-                                        className="row-actions"
-                                        sx={{
-                                            position: 'absolute',
-                                            top: 8,
-                                            right: 8,
-                                            opacity: 0,
-                                            transition: 'opacity 0.2s',
-                                            display: 'flex',
-                                            gap: 1,
-                                        }}
-                                    >
+                                <Box
+                                    className="row-actions"
+                                    sx={{
+                                        position: 'absolute',
+                                        top: 8,
+                                        right: 8,
+                                        opacity: 0,
+                                        transition: 'opacity 0.2s',
+                                        display: 'flex',
+                                        gap: 1,
+                                    }}
+                                >
+                                    <Tooltip title="Row settings">
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => setSettingsRowId(row.id)}
+                                            sx={{ color: 'primary.main' }}
+                                        >
+                                            <SettingsIcon fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
+                                    {headerConfig.main.rows.length > 1 && (
                                         <Tooltip title="Delete row">
                                             <IconButton
                                                 size="small"
@@ -703,8 +758,8 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
                                                 <DeleteIcon fontSize="small" />
                                             </IconButton>
                                         </Tooltip>
-                                    </Box>
-                                )}
+                                    )}
+                                </Box>
                             </Box>
                         ))}
 
@@ -891,6 +946,56 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
                         </Box>
                     </Collapse>
                 </Paper>
+
+                <Dialog open={!!activeSettingsRow} onClose={() => setSettingsRowId(null)} maxWidth="xs" fullWidth>
+                    <DialogTitle>Row Settings</DialogTitle>
+                    <DialogContent>
+                        {activeSettingsRow && (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+                                <TextField
+                                    label="Row Height (px)"
+                                    type="number"
+                                    size="small"
+                                    value={activeSettingsRow.height ?? ''}
+                                    placeholder={`${headerConfig.main.height || 80}`}
+                                    onChange={(e) => {
+                                        const value = e.target.value.trim();
+                                        const parsed = parseInt(value, 10);
+                                        handleUpdateRow(activeSettingsRow.id, {
+                                            height: value === '' || Number.isNaN(parsed) ? undefined : parsed,
+                                        });
+                                    }}
+                                    inputProps={{ min: 0 }}
+                                    fullWidth
+                                    helperText="Leave empty to use main header height"
+                                />
+
+                                <Typography variant="subtitle2">Show Row On</Typography>
+                                <Box sx={{ display: 'flex', gap: 1 }}>
+                                    {ALL_VIEWPORTS.map((viewport) => {
+                                        const visibleOn = activeSettingsRow.visibleOn && activeSettingsRow.visibleOn.length > 0
+                                            ? activeSettingsRow.visibleOn
+                                            : ALL_VIEWPORTS;
+                                        const isActive = visibleOn.includes(viewport);
+                                        return (
+                                            <Button
+                                                key={viewport}
+                                                size="small"
+                                                variant={isActive ? 'contained' : 'outlined'}
+                                                onClick={() => handleToggleRowViewport(activeSettingsRow.id, viewport)}
+                                            >
+                                                {viewport.charAt(0).toUpperCase() + viewport.slice(1)}
+                                            </Button>
+                                        );
+                                    })}
+                                </Box>
+                            </Box>
+                        )}
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setSettingsRowId(null)}>Close</Button>
+                    </DialogActions>
+                </Dialog>
 
                 {/* Element Configuration Dialog */}
                 <HeaderElementConfig

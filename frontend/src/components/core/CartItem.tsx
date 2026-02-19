@@ -27,7 +27,7 @@ interface CartItemProps {
 }
 
 export default function CartItem({ item, onUpdateQuantity, onRemove, compact = false }: CartItemProps) {
-    const {formatPriceWithExchange} = useCurrency();
+    const { formatPriceWithExchange } = useCurrency();
     const themeConfig = useThemeConfig();
     const toast = useToast();
     const [isUpdating, setIsUpdating] = useState(false);
@@ -74,7 +74,7 @@ export default function CartItem({ item, onUpdateQuantity, onRemove, compact = f
             } else {
                 toast.success('Item removed from cart');
             }
-        } catch (error) {
+        } catch {
             setIsRemoving(false);
         }
     };
@@ -99,9 +99,12 @@ export default function CartItem({ item, onUpdateQuantity, onRemove, compact = f
 
             {/* Product Details */}
             <div className={styles.details}>
-                <Link href={productUrl} className={styles.name}>
-                    {item.name}
-                </Link>
+                <div className={styles.nameRow}>
+                    <Link href={productUrl} className={styles.name}>
+                        {item.name}
+                    </Link>
+                    {item.sku && <span className={styles.skuTag}>{item.sku}</span>}
+                </div>
 
                 {/* Variant Attributes */}
                 {item.attributes && Object.keys(item.attributes).length > 0 && (
@@ -114,37 +117,26 @@ export default function CartItem({ item, onUpdateQuantity, onRemove, compact = f
                     </div>
                 )}
 
-                {/* SKU */}
-                {!compact && item.sku && (
-                    <div className={styles.sku}>SKU: {item.sku}</div>
-                )}
-
                 {/* Stock Status */}
                 {isOutOfStock && (
                     <div className={styles.stockWarning}>Out of Stock</div>
                 )}
-                {isLowStock && !compact && (
+                {isLowStock && (
                     <div className={styles.stockWarning}>Only {availableStock} left in stock</div>
                 )}
-
-                {/* Price (Mobile) */}
-                <div className={styles.priceMobile}>
-                    {formatPriceWithExchange(priceToDisplay)}
-                    {item.quantity > 1 && (
-                        <span className={styles.quantity}> × {item.quantity}</span>
-                    )}
-                </div>
             </div>
 
             {/* Price (Desktop) */}
             {!compact && (
                 <div className={styles.price}>
+                    <span className={styles.metaLabel}>Price</span>
                     {formatPriceWithExchange(priceToDisplay)}
                 </div>
             )}
 
             {/* Quantity Controls */}
             <div className={styles.quantityWrapper}>
+                <span className={styles.metaLabel}>Qty</span>
                 <div className={styles.quantityControls}>
                     <button
                         onClick={() => handleQuantityChange(item.quantity - 1)}
@@ -180,9 +172,18 @@ export default function CartItem({ item, onUpdateQuantity, onRemove, compact = f
             {/* Total (Desktop) */}
             {!compact && (
                 <div className={styles.total}>
+                    <span className={styles.metaLabel}>Total</span>
                     {formatPriceWithExchange(itemTotal)}
                 </div>
             )}
+
+            {/* Price (Mobile / Compact) */}
+            <div className={styles.priceMobile}>
+                <span>{formatPriceWithExchange(itemTotal)}</span>
+                {item.quantity > 1 && (
+                    <small>{formatPriceWithExchange(priceToDisplay)} each</small>
+                )}
+            </div>
 
             {/* Remove Button */}
             <button
@@ -191,7 +192,11 @@ export default function CartItem({ item, onUpdateQuantity, onRemove, compact = f
                 className={styles.removeBtn}
                 aria-label="Remove item"
             >
-                {isRemoving ? '...' : '×'}
+                {isRemoving ? '...' : (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                )}
             </button>
         </div>
     );

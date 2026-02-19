@@ -96,6 +96,59 @@ function CategoryProducts({ item }: { item: MenuItem }) {
     );
 }
 
+function ConfigurableProductItem({ item }: { item: MenuItem }) {
+    const [resolvedProduct, setResolvedProduct] = useState<any | null>(item.products?.[0] || null);
+
+    useEffect(() => {
+        if (resolvedProduct || !item.productId) return;
+        let cancelled = false;
+
+        (async () => {
+            try {
+                const res = await api.get(`products/${item.productId}`);
+                const product = res.product || res.data?.product || res.data || null;
+                if (!cancelled && product) {
+                    setResolvedProduct(product);
+                }
+            } catch {
+                /* silent */
+            }
+        })();
+
+        return () => { cancelled = true; };
+    }, [item.productId, resolvedProduct]);
+
+    const showImage = item.showProductImage ?? false;
+    const showPrice = item.showProductPrice ?? false;
+    const showRating = item.showProductRating ?? false;
+    const imageSize = item.productImageSize || 'small';
+    const imagePosition = item.imagePosition || 'left';
+    const shouldRenderCard = showImage || showPrice || showRating || imagePosition !== 'left';
+
+    if (!shouldRenderCard) {
+        const productHref = `/${item.productSlug || item.productId || '#!'}`;
+        return (
+            <Link href={productHref} className={styles.megaProductLink}>
+                {item.label || resolvedProduct?.name || 'Product'}
+            </Link>
+        );
+    }
+
+    if (!resolvedProduct) return null;
+
+    return (
+        <MegaMenuProductCard
+            product={resolvedProduct}
+            showImage={showImage}
+            showPrice={showPrice}
+            showRating={showRating}
+            imageSize={imageSize}
+            displayMode="list"
+            imagePosition={imagePosition}
+        />
+    );
+}
+
 // ─── MegaSubItem ────────────────────────────────────────────────────────────
 function MegaSubItem({ item }: { item: MenuItem }) {
     if (item.type === 'divider') return <hr className={styles.megaDivider} />;
@@ -136,19 +189,45 @@ function MegaSubItem({ item }: { item: MenuItem }) {
 
     if (item.type === 'product') {
         const list = item.products || [];
+        const showImage = item.showProductImage ?? false;
+        const showPrice = item.showProductPrice ?? false;
+        const showRating = item.showProductRating ?? false;
+        const imageSize = item.productImageSize || 'small';
+        const imagePosition = item.imagePosition || 'left';
+        const shouldRenderCards = showImage || showPrice || showRating || imagePosition !== 'left';
+
         return (
             <div className={styles.megaSubItem}>
                 {item.label && <span className={styles.categoryLabelStatic}>{item.label}</span>}
-                {list.length > 0 && (
-                    <ul className={styles.megaProductList}>
-                        {list.map((p: any) => (
-                            <li key={p._id} className={styles.megaProductItem}>
-                                <Link href={`/${p.slug || p._id}`} className={styles.megaProductLink}>
-                                    {p.name}
-                                </Link>
-                            </li>
-                        ))}
-                    </ul>
+                {list.length > 0 ? (
+                    shouldRenderCards ? (
+                        <div className={styles.productList}>
+                            {list.map((product) => (
+                                <MegaMenuProductCard
+                                    key={product._id}
+                                    product={product}
+                                    showImage={showImage}
+                                    showPrice={showPrice}
+                                    showRating={showRating}
+                                    imageSize={imageSize}
+                                    displayMode="list"
+                                    imagePosition={imagePosition}
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <ul className={styles.megaProductList}>
+                            {list.map((p) => (
+                                <li key={p._id} className={styles.megaProductItem}>
+                                    <Link href={`/${p.slug || p._id}`} className={styles.megaProductLink}>
+                                        {p.name}
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    )
+                ) : (
+                    <ConfigurableProductItem item={item} />
                 )}
             </div>
         );
@@ -157,12 +236,25 @@ function MegaSubItem({ item }: { item: MenuItem }) {
     if (item.type === 'category') {
         const slug = item.categorySlug || item.categoryId;
         const label = item.label || item.categoryName || 'Category';
+        const hasChildren = item.children && item.children.length > 0;
         return (
             <div className={styles.megaSubItem}>
                 {item.categoryId ? (
                     <Link href={`/${slug}`} className={styles.categoryLabel}>{label}</Link>
                 ) : (
                     <span className={styles.categoryLabelStatic}>{label}</span>
+                )}
+                {hasChildren && (
+                    <ul className={styles.categoryLinks}>
+                        {item.children.map((child) => (
+                            <li key={child.id} className={styles.categoryLinkItem}>
+                                <MenuLink
+                                    item={child}
+                                    showIcon={false}
+                                />
+                            </li>
+                        ))}
+                    </ul>
                 )}
                 {item.productLimit != null && item.productLimit > 0 && (
                     <CategoryProducts item={item} />
@@ -241,8 +333,9 @@ export default function HorizontalMenu({
             item.type === 'mega-menu' && (item.megaMenu?.sections?.length ?? 0) > 0;
         const hasCatProducts =
             item.type === 'category' && item.autoAddProducts !== false && !!item.categoryId;
+        const hasCategoryChildren = item.type === 'category' && hasChildren;
 
-        const showChevron = hasChildren || hasMega || hasCatProducts;
+        const showChevron = hasChildren || hasMega || hasCatProducts || hasCategoryChildren;
 
         const cls = [
             styles.menuItem,
@@ -263,8 +356,56 @@ export default function HorizontalMenu({
 
                 {hasMega ? (
                     renderMegaContent(item)
-                ) : hasCatProducts ? (
+                ) : (hasCatProducts || hasCategoryChildren) ? (
                     <div className={styles.categoryDropdown}>
+                        {hasCategoryChildren && (
+                            <ul className={styles.categoryLinks}>
+                                {item.children.map((child) => {
+                                    const isProductWithConfig =
+                                        child.type === 'product' &&
+                                        ((child.showProductImage ?? false) ||
+                                            (child.showProductPrice ?? false) ||
+                                            (child.showProductRating ?? false) ||
+                                            child.imagePosition === 'top');
+
+                                    if (isProductWithConfig) {
+                                        return (
+                                            <li key={child.id} className={styles.categoryLinkItem}>
+                                                {child.products?.length ? (
+                                                    <div className={styles.productList}>
+                                                        {child.products.map((product) => (
+                                                            <MegaMenuProductCard
+                                                                key={product._id}
+                                                                product={product}
+                                                                showImage={child.showProductImage ?? false}
+                                                                showPrice={child.showProductPrice ?? false}
+                                                                showRating={child.showProductRating ?? false}
+                                                                imageSize={child.productImageSize || 'small'}
+                                                                displayMode="list"
+                                                                imagePosition={child.imagePosition || 'left'}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <ConfigurableProductItem item={child} />
+                                                )}
+                                            </li>
+                                        );
+                                    }
+
+                                    return (
+                                        <li key={child.id} className={styles.categoryLinkItem}>
+                                            <MenuLink
+                                                item={child}
+                                                showIcon={settings.showIcons}
+                                                themeColors={themeColors}
+                                                onClick={onItemClick}
+                                            />
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        )}
                         <CategoryProducts item={item} />
                     </div>
                 ) : hasChildren ? (

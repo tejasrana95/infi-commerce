@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import {
     Box,
     Paper,
@@ -8,11 +8,9 @@ import {
     Button,
     IconButton,
     TextField,
-    Slider,
     Collapse,
     Chip,
     Tooltip,
-    Divider,
     Dialog,
     DialogTitle,
     DialogContent,
@@ -24,12 +22,14 @@ import {
     FormControl,
     InputLabel,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import SettingsIcon from '@mui/icons-material/Settings';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import CategoryIcon from '@mui/icons-material/Category';
 import StarIcon from '@mui/icons-material/Star';
 import LinkIcon from '@mui/icons-material/Link';
@@ -200,41 +200,32 @@ interface ItemConfigDialogProps {
     storeId: string;
 }
 
-function ItemConfigDialog({ open, item, onClose, onSave, onDelete, storeId }: ItemConfigDialogProps) {
-    const [formData, setFormData] = useState<MegaMenuItem>({
-        id: uuidv4(),
-        type: 'custom-link',
-    });
-    const [selectedProducts, setSelectedProducts] = useState<ProductOption[]>([]);
+const getInitialMegaItem = (item: MegaMenuItem | null): MegaMenuItem => {
+    if (!item) {
+        return {
+            id: uuidv4(),
+            type: 'custom-link',
+        };
+    }
 
-    // Reset form data whenever dialog opens or item changes
-    useEffect(() => {
-        if (open && item) {
-            setFormData({
-                ...item,
-                // Ensure all fields have defaults if not present
-                categoryDisplayMode: item.categoryDisplayMode || 'list',
-                categoryColumns: item.categoryColumns || 2,
-                showProductImage: item.showProductImage ?? true,
-                showProductPrice: item.showProductPrice ?? true,
-                showProductRating: item.showProductRating ?? false,
-                productImageSize: item.productImageSize || 'small',
-                imagePosition: item.imagePosition || 'left',
-                autoAddProducts: item.autoAddProducts ?? true,
-                showViewAll: item.showViewAll ?? false,
-                productLimit: item.productLimit || 10,
-            });
-            // Reset selected products when opening dialog
-            setSelectedProducts([]);
-        } else if (open && !item) {
-            // New item - default to custom-link
-            setFormData({
-                id: uuidv4(),
-                type: 'custom-link',
-            });
-            setSelectedProducts([]);
-        }
-    }, [open, item]);
+    return {
+        ...item,
+        categoryDisplayMode: item.categoryDisplayMode || 'list',
+        categoryColumns: item.categoryColumns || 2,
+        showProductImage: item.showProductImage ?? true,
+        showProductPrice: item.showProductPrice ?? true,
+        showProductRating: item.showProductRating ?? false,
+        productImageSize: item.productImageSize || 'small',
+        imagePosition: item.imagePosition || 'left',
+        autoAddProducts: item.autoAddProducts ?? true,
+        showViewAll: item.showViewAll ?? false,
+        productLimit: item.productLimit || 10,
+    };
+};
+
+function ItemConfigDialog({ open, item, onClose, onSave, onDelete, storeId }: ItemConfigDialogProps) {
+    const [formData, setFormData] = useState<MegaMenuItem>(() => getInitialMegaItem(item));
+    const [selectedProducts, setSelectedProducts] = useState<ProductOption[]>([]);
 
     const handleSave = () => {
         onSave(formData);
@@ -248,149 +239,199 @@ function ItemConfigDialog({ open, item, onClose, onSave, onDelete, storeId }: It
     };
 
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-            <DialogTitle>Configure {item?.type || 'Item'}</DialogTitle>
-            <DialogContent>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+        <Dialog
+            open={open}
+            onClose={onClose}
+            maxWidth="sm"
+            fullWidth
+            PaperProps={{
+                sx: {
+                    borderRadius: 3,
+                    overflow: 'hidden',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                },
+            }}
+        >
+            <DialogTitle sx={(theme) => ({ py: 1, px: 2.25, bgcolor: alpha(theme.palette.primary.main, 0.06) })}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 0.5 }}>
+                    <Box>
+                        <Typography variant="subtitle1" fontWeight={800}>
+                            Configure {item?.type || 'Item'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                            Fine-tune content, layout and display behavior.
+                        </Typography>
+                    </Box>
+                    <IconButton size="small" onClick={onClose}>
+                        <CloseRoundedIcon fontSize="small" />
+                    </IconButton>
+                </Box>
+            </DialogTitle>
+            <DialogContent sx={{ px: 2, py: 1.25 }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 0.75 }}>
                     {/* Category Config */}
                     {formData.type === 'category' && (
                         <>
-                            <TextField
-                                label="Label"
-                                value={formData.label || ''}
-                                onChange={(e) => setFormData(prev => ({ ...prev, label: e.target.value }))}
-                                fullWidth
-                            />
-                            <CategoryAutocomplete
-                                value={formData.categoryId || null}
-                                onChange={(value, category) => {
-                                    const cat = Array.isArray(category) ? category[0] : category;
-                                    setFormData(prev => ({
-                                        ...prev,
-                                        categoryId: value || undefined,
-                                        categoryName: cat?.title || undefined,
-                                        categorySlug: cat?.slug || undefined
-                                    }));
-                                }}
-                                storeId={storeId}
-                                label="Select Category"
-                            />
-
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        checked={formData.autoAddProducts ?? true}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, autoAddProducts: e.target.checked }))}
+                            <Paper variant="outlined" sx={{ p: 1.25, borderRadius: 1.5 }}>
+                                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2 }}>
+                                    Configure Category
+                                </Typography>
+                                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+                                    <TextField
+                                        size="small"
+                                        label="Block Label"
+                                        value={formData.label || ''}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, label: e.target.value }))}
+                                        fullWidth
+                                        placeholder="Optional"
+                                        sx={{ gridColumn: { xs: '1 / -1', sm: '1 / -1' } }}
                                     />
-                                }
-                                label="Auto-populate products from category"
-                            />
+                                    <Box sx={{ gridColumn: { xs: '1 / -1', sm: '1 / -1' } }}>
+                                        <CategoryAutocomplete
+                                            value={formData.categoryId || null}
+                                            onChange={(value, category) => {
+                                                const cat = Array.isArray(category) ? category[0] : category;
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    categoryId: value || undefined,
+                                                    categoryName: cat?.title || undefined,
+                                                    categorySlug: cat?.slug || undefined
+                                                }));
+                                            }}
+                                            storeId={storeId}
+                                            label="Select Category"
+                                        />
+                                    </Box>
+                                    <FormControl fullWidth>
+                                        <InputLabel>Display Mode</InputLabel>
+                                        <Select
+                                            size="small"
+                                            value={formData.categoryDisplayMode || 'list'}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, categoryDisplayMode: e.target.value as MegaMenuItem['categoryDisplayMode'] }))}
+                                            label="Display Mode"
+                                        >
+                                            <MuiMenuItem value="list">List</MuiMenuItem>
+                                            <MuiMenuItem value="grid">Grid</MuiMenuItem>
+                                            <MuiMenuItem value="compact">Compact</MuiMenuItem>
+                                        </Select>
+                                    </FormControl>
 
-                            <TextField
-                                label="Product Limit"
-                                type="number"
-                                value={formData.productLimit || 10}
-                                onChange={(e) => setFormData(prev => ({ ...prev, productLimit: Number(e.target.value) }))}
-                                fullWidth
-                                helperText="Maximum number of products to display"
-                                inputProps={{ min: 1, max: 50 }}
-                            />
-
-                            <Divider sx={{ my: 2 }} />
-                            <Typography variant="subtitle2" gutterBottom>Display Options</Typography>
-
-                            <FormControl fullWidth>
-                                <InputLabel>Display Mode</InputLabel>
-                                <Select
-                                    value={formData.categoryDisplayMode || 'list'}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, categoryDisplayMode: e.target.value as any }))}
-                                    label="Display Mode"
-                                >
-                                    <MuiMenuItem value="list">List View</MuiMenuItem>
-                                    <MuiMenuItem value="grid">Grid View</MuiMenuItem>
-                                    <MuiMenuItem value="compact">Compact Grid</MuiMenuItem>
-                                </Select>
-                            </FormControl>
-
-                            {(formData.categoryDisplayMode === 'grid' || formData.categoryDisplayMode === 'compact') && (
-                                <TextField
-                                    label="Number of Columns"
-                                    type="number"
-                                    value={formData.categoryColumns || 2}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, categoryColumns: Number(e.target.value) }))}
-                                    fullWidth
-                                    inputProps={{ min: 1, max: 6 }}
-                                />
-                            )}
-
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        checked={formData.showProductImage ?? true}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, showProductImage: e.target.checked }))}
+                                    {(formData.categoryDisplayMode === 'grid' || formData.categoryDisplayMode === 'compact') ? (
+                                        <TextField
+                                            size="small"
+                                            label="Grid Columns"
+                                            type="number"
+                                            value={formData.categoryColumns || 2}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, categoryColumns: Number(e.target.value) }))}
+                                            inputProps={{ min: 1, max: 6 }}
+                                            fullWidth
+                                        />
+                                    ) : (
+                                        <TextField
+                                            size="small"
+                                            label="Grid Columns"
+                                            disabled
+                                            value="-"
+                                            fullWidth
+                                        />
+                                    )}
+                                    <TextField
+                                        size="small"
+                                        label="Products to Show"
+                                        type="number"
+                                        value={formData.productLimit || 10}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, productLimit: Number(e.target.value) }))}
+                                        inputProps={{ min: 1, max: 50 }}
+                                        fullWidth
                                     />
-                                }
-                                label="Show product images"
-                            />
-
-                            {formData.showProductImage && (
-                                <FormControl fullWidth>
-                                    <InputLabel>Image Size</InputLabel>
-                                    <Select
-                                        value={formData.productImageSize || 'small'}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, productImageSize: e.target.value as any }))}
-                                        label="Image Size"
-                                    >
-                                        <MuiMenuItem value="small">Small (60px)</MuiMenuItem>
-                                        <MuiMenuItem value="medium">Medium (100px)</MuiMenuItem>
-                                        <MuiMenuItem value="large">Large (150px)</MuiMenuItem>
-                                    </Select>
-                                </FormControl>
-                            )}
-
-                            {formData.showProductImage && (
-                                <FormControl fullWidth>
-                                    <InputLabel>Image Position</InputLabel>
-                                    <Select
-                                        value={formData.imagePosition || 'left'}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, imagePosition: e.target.value as any }))}
-                                        label="Image Position"
-                                    >
-                                        <MuiMenuItem value="left">Left (Horizontal)</MuiMenuItem>
-                                        <MuiMenuItem value="top">Top (Vertical)</MuiMenuItem>
-                                    </Select>
-                                </FormControl>
-                            )}
-
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        checked={formData.showProductPrice ?? true}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, showProductPrice: e.target.checked }))}
+                                    <FormControlLabel
+                                        sx={{ m: 0 }}
+                                        control={
+                                            <Switch
+                                                size="small"
+                                                checked={formData.autoAddProducts ?? true}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, autoAddProducts: e.target.checked }))}
+                                            />
+                                        }
+                                        label="Auto populate"
                                     />
-                                }
-                                label="Show product prices"
-                            />
 
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        checked={formData.showProductRating ?? false}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, showProductRating: e.target.checked }))}
+                                    <FormControlLabel
+                                        sx={{ m: 0 }}
+                                        control={
+                                            <Switch
+                                                size="small"
+                                                checked={formData.showProductImage ?? true}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, showProductImage: e.target.checked }))}
+                                            />
+                                        }
+                                        label="Show product images"
                                     />
-                                }
-                                label="Show product ratings"
-                            />
-
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        checked={formData.showViewAll ?? false}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, showViewAll: e.target.checked }))}
+                                    <FormControlLabel
+                                        sx={{ m: 0 }}
+                                        control={
+                                            <Switch
+                                                size="small"
+                                                checked={formData.showProductPrice ?? true}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, showProductPrice: e.target.checked }))}
+                                            />
+                                        }
+                                        label="Show prices"
                                     />
-                                }
-                                label="Show 'View All' button"
-                            />
+                                    <FormControlLabel
+                                        sx={{ m: 0 }}
+                                        control={
+                                            <Switch
+                                                size="small"
+                                                checked={formData.showProductRating ?? false}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, showProductRating: e.target.checked }))}
+                                            />
+                                        }
+                                        label="Show ratings"
+                                    />
+                                    <FormControlLabel
+                                        sx={{ m: 0 }}
+                                        control={
+                                            <Switch
+                                                size="small"
+                                                checked={formData.showViewAll ?? false}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, showViewAll: e.target.checked }))}
+                                            />
+                                        }
+                                        label="Show View All action"
+                                    />
+                                    {formData.showProductImage && (
+                                        <>
+                                            <FormControl fullWidth>
+                                                <InputLabel>Image Size</InputLabel>
+                                                <Select
+                                                    size="small"
+                                                    value={formData.productImageSize || 'small'}
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, productImageSize: e.target.value as MegaMenuItem['productImageSize'] }))}
+                                                    label="Image Size"
+                                                >
+                                                    <MuiMenuItem value="small">Small (60px)</MuiMenuItem>
+                                                    <MuiMenuItem value="medium">Medium (100px)</MuiMenuItem>
+                                                    <MuiMenuItem value="large">Large (150px)</MuiMenuItem>
+                                                </Select>
+                                            </FormControl>
+                                            <FormControl fullWidth>
+                                                <InputLabel>Image Position</InputLabel>
+                                                <Select
+                                                    size="small"
+                                                    value={formData.imagePosition || 'left'}
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, imagePosition: e.target.value as MegaMenuItem['imagePosition'] }))}
+                                                    label="Image Position"
+                                                >
+                                                    <MuiMenuItem value="left">Left (Horizontal)</MuiMenuItem>
+                                                    <MuiMenuItem value="top">Top (Vertical)</MuiMenuItem>
+                                                </Select>
+                                            </FormControl>
+                                        </>
+                                    )}
+                                </Box>
+                            </Paper>
                         </>
                     )}
 
@@ -524,12 +565,21 @@ function ItemConfigDialog({ open, item, onClose, onSave, onDelete, storeId }: It
                     {/* Divider - No config needed */}
                     {formData.type === 'divider' && (
                         <Typography variant="body2" color="text.secondary">
-                            Dividers don't require configuration.
+                            Dividers do not require configuration.
                         </Typography>
                     )}
                 </Box>
             </DialogContent>
-            <DialogActions sx={{ justifyContent: 'space-between', px: 3, pb: 2 }}>
+            <DialogActions
+                sx={{
+                    justifyContent: 'space-between',
+                    px: 2.25,
+                    py: 1.5,
+                    borderTop: '1px solid',
+                    borderColor: 'divider',
+                    bgcolor: 'background.default',
+                }}
+            >
                 <Box>
                     <Button
                         color="error"
@@ -556,11 +606,13 @@ function ItemConfigDialog({ open, item, onClose, onSave, onDelete, storeId }: It
 
 interface SortableMegaMenuItemProps {
     item: MegaMenuItem;
+    sectionId: string;
+    columnId: string;
     onEdit: (item: MegaMenuItem) => void;
     onDelete: (itemId: string) => void;
 }
 
-function SortableMegaMenuItem({ item, onEdit, onDelete }: SortableMegaMenuItemProps) {
+function SortableMegaMenuItem({ item, sectionId, columnId, onEdit, onDelete }: SortableMegaMenuItemProps) {
     const {
         attributes,
         listeners,
@@ -568,7 +620,10 @@ function SortableMegaMenuItem({ item, onEdit, onDelete }: SortableMegaMenuItemPr
         transform,
         transition,
         isDragging,
-    } = useSortable({ id: item.id });
+    } = useSortable({
+        id: item.id,
+        data: { type: 'mega-item', sectionId, columnId, itemId: item.id },
+    });
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -667,14 +722,15 @@ function SortableMegaMenuItem({ item, onEdit, onDelete }: SortableMegaMenuItemPr
 // ============ COLUMN DROP ZONE ============
 
 interface ColumnDropZoneProps {
+    sectionId: string;
     columnId: string;
     children: React.ReactNode;
 }
 
-function ColumnDropZone({ columnId, children }: ColumnDropZoneProps) {
+function ColumnDropZone({ sectionId, columnId, children }: ColumnDropZoneProps) {
     const { setNodeRef, isOver } = useDroppable({
         id: `drop-${columnId}`,
-        data: { type: 'column-drop', columnId },
+        data: { type: 'column-drop', sectionId, columnId },
     });
 
     return (
@@ -700,7 +756,6 @@ function ColumnDropZone({ columnId, children }: ColumnDropZoneProps) {
 interface MegaMenuColumnComponentProps {
     column: MegaMenuColumn;
     columnIndex: number;
-    section: MegaMenuSection;
     sectionId: string;
     onUpdate: (sectionId: string, column: MegaMenuColumn) => void;
     onDelete: (sectionId: string, columnId: string) => void;
@@ -711,7 +766,6 @@ interface MegaMenuColumnComponentProps {
 function MegaMenuColumnComponent({
     column,
     columnIndex,
-    section,
     sectionId,
     onUpdate,
     onDelete,
@@ -810,7 +864,7 @@ function MegaMenuColumnComponent({
                         items={column.items.map(i => i.id)}
                         strategy={verticalListSortingStrategy}
                     >
-                        <ColumnDropZone columnId={column.id}>
+                        <ColumnDropZone sectionId={sectionId} columnId={column.id}>
                             {column.items.length === 0 ? (
                                 <Typography variant="body2" color="text.secondary" textAlign="center" py={2}>
                                     Empty
@@ -820,6 +874,8 @@ function MegaMenuColumnComponent({
                                     <SortableMegaMenuItem
                                         key={item.id}
                                         item={item}
+                                        sectionId={sectionId}
+                                        columnId={column.id}
                                         onEdit={(item) => onEditItem(sectionId, column.id, item)}
                                         onDelete={(itemId) => onDeleteItem(sectionId, column.id, itemId)}
                                     />
@@ -969,7 +1025,6 @@ function MegaMenuSectionComponent({
                                         key={column.id}
                                         column={column}
                                         columnIndex={index}
-                                        section={section}
                                         sectionId={section.id}
                                         onUpdate={onUpdateColumn}
                                         onDelete={onDeleteColumn}
@@ -990,7 +1045,7 @@ function MegaMenuSectionComponent({
 
 export default function MegaMenuBuilder({ data, onChange, storeId }: MegaMenuBuilderProps) {
     const [activeId, setActiveId] = useState<string | null>(null);
-    const [activeDragData, setActiveDragData] = useState<any>(null);
+    const [activeDragData, setActiveDragData] = useState<{ type?: string; itemType?: string } | null>(null);
     const [editingItem, setEditingItem] = useState<{ sectionId: string; columnId: string; item: MegaMenuItem } | null>(null);
     const [sectionTypeDialog, setSectionTypeDialog] = useState(false);
     const { confirm } = useConfirm();
@@ -1083,7 +1138,12 @@ export default function MegaMenuBuilder({ data, onChange, storeId }: MegaMenuBui
     // Handle drag start
     const handleDragStart = (event: DragStartEvent) => {
         setActiveId(event.active.id as string);
-        setActiveDragData(event.active.data.current);
+        const currentData = event.active.data.current;
+        setActiveDragData(
+            currentData
+                ? { type: currentData.type as string | undefined, itemType: currentData.itemType as string | undefined }
+                : null
+        );
     };
 
     // Handle drag end
@@ -1096,6 +1156,81 @@ export default function MegaMenuBuilder({ data, onChange, storeId }: MegaMenuBui
 
         const activeData = active.data.current;
         const overData = over.data.current;
+
+        // Move/reorder items inside and across columns
+        if (activeData?.type === 'mega-item') {
+            const sourceSectionId = activeData.sectionId as string;
+            const sourceColumnId = activeData.columnId as string;
+            const sourceItemId = activeData.itemId as string;
+
+            let targetSectionId: string | undefined;
+            let targetColumnId: string | undefined;
+            let targetItemId: string | undefined;
+
+            if (overData?.type === 'mega-item') {
+                targetSectionId = overData.sectionId as string;
+                targetColumnId = overData.columnId as string;
+                targetItemId = overData.itemId as string;
+            } else if (overData?.type === 'column-drop') {
+                targetSectionId = overData.sectionId as string;
+                targetColumnId = overData.columnId as string;
+            }
+
+            if (!targetSectionId || !targetColumnId) return;
+
+            const sourceSection = data.sections.find((s) => s.id === sourceSectionId);
+            const sourceColumn = sourceSection?.columns.find((c) => c.id === sourceColumnId);
+            const movingItem = sourceColumn?.items.find((i) => i.id === sourceItemId);
+            if (!movingItem) return;
+
+            const updatedSections = data.sections.map((section) => {
+                if (section.id !== sourceSectionId && section.id !== targetSectionId) return section;
+
+                return {
+                    ...section,
+                    columns: section.columns.map((column) => {
+                        const isSource = section.id === sourceSectionId && column.id === sourceColumnId;
+                        const isTarget = section.id === targetSectionId && column.id === targetColumnId;
+                        if (!isSource && !isTarget) return column;
+
+                        // Same column reorder
+                        if (isSource && isTarget) {
+                            const oldIndex = column.items.findIndex((i) => i.id === sourceItemId);
+                            if (oldIndex < 0) return column;
+                            const newIndex = targetItemId
+                                ? column.items.findIndex((i) => i.id === targetItemId)
+                                : column.items.length - 1;
+                            if (newIndex < 0 || newIndex === oldIndex) return column;
+                            return { ...column, items: arrayMove(column.items, oldIndex, newIndex) };
+                        }
+
+                        // Remove from source column
+                        if (isSource) {
+                            return { ...column, items: column.items.filter((i) => i.id !== sourceItemId) };
+                        }
+
+                        // Insert into target column
+                        if (isTarget) {
+                            if (targetItemId) {
+                                const targetIndex = column.items.findIndex((i) => i.id === targetItemId);
+                                if (targetIndex < 0) {
+                                    return { ...column, items: [...column.items, movingItem] };
+                                }
+                                const nextItems = [...column.items];
+                                nextItems.splice(targetIndex, 0, movingItem);
+                                return { ...column, items: nextItems };
+                            }
+                            return { ...column, items: [...column.items, movingItem] };
+                        }
+
+                        return column;
+                    }),
+                };
+            });
+
+            onChange({ ...data, sections: updatedSections });
+            return;
+        }
 
         // Dropping from palette to column
         if (activeData?.type === 'palette-item' && overData?.type === 'column-drop') {
@@ -1189,22 +1324,23 @@ export default function MegaMenuBuilder({ data, onChange, storeId }: MegaMenuBui
 
                 {/* Main Canvas */}
                 <Box sx={{ flex: 1, overflow: 'auto' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' }, mb: 2, gap: 2, flexWrap: 'wrap' }}>
                         <Typography variant="subtitle1" fontWeight={600}>
                             Mega Menu Sections ({data.sections.length})
                         </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mt: { xs: 1 } }}>
                             <TextField
                                 size="small"
                                 type="number"
-                                label="Max Height (px)"
+                                label="Max Panel Height (px)"
                                 value={data.maxHeight || ''}
                                 onChange={(e) => {
                                     const val = e.target.value ? Number(e.target.value) : undefined;
                                     onChange({ ...data, maxHeight: val });
                                 }}
                                 placeholder="Auto"
-                                sx={{ width: 150 }}
+                                sx={{ minWidth: 210 }}
+                                InputLabelProps={{ shrink: true }}
                                 inputProps={{ min: 100, step: 50 }}
                             />
                             <Button
@@ -1285,150 +1421,99 @@ export default function MegaMenuBuilder({ data, onChange, storeId }: MegaMenuBui
             </DragOverlay>
 
             {/* Section Type Dialog */}
-            <Dialog open={sectionTypeDialog} onClose={() => setSectionTypeDialog(false)} maxWidth="sm" fullWidth>
-                <DialogTitle>Select Section Type</DialogTitle>
-                <DialogContent>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-                        <Paper
-                            variant="outlined"
-                            sx={{
-                                p: 3,
-                                cursor: 'pointer',
-                                textAlign: 'center',
-                                transition: 'all 0.2s',
-                                '&:hover': {
-                                    borderColor: 'primary.main',
-                                    bgcolor: 'primary.50',
-                                },
-                            }}
-                            onClick={() => handleAddSection('full-width')}
-                        >
-                            <Typography variant="h6" color="primary" fontWeight={600} gutterBottom>
-                                Full Width
+            <Dialog
+                open={sectionTypeDialog}
+                onClose={() => setSectionTypeDialog(false)}
+                maxWidth="md"
+                fullWidth
+                PaperProps={{
+                    sx: {
+                        borderRadius: 3,
+                        overflow: 'hidden',
+                        border: '1px solid',
+                        borderColor: 'divider',
+                    },
+                }}
+            >
+                <DialogTitle sx={(theme) => ({ py: 1.5, px: 2.25, bgcolor: alpha(theme.palette.primary.main, 0.06) })}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                        <Box>
+                            <Typography variant="subtitle1" fontWeight={800}>
+                                Add Section Type
                             </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                Single column spanning full width
+                            <Typography variant="caption" color="text.secondary">
+                                Pick a layout preset to start building this mega-menu block.
                             </Typography>
-                        </Paper>
-
-                        <Paper
-                            variant="outlined"
-                            sx={{
-                                p: 3,
-                                cursor: 'pointer',
-                                textAlign: 'center',
-                                transition: 'all 0.2s',
-                                '&:hover': {
-                                    borderColor: 'primary.main',
-                                    bgcolor: 'primary.50',
-                                },
-                            }}
-                            onClick={() => handleAddSection('container')}
-                        >
-                            <Typography variant="h6" color="primary" fontWeight={600} gutterBottom>
-                                Container
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                Centered container with max width
-                            </Typography>
-                        </Paper>
-
-                        <Paper
-                            variant="outlined"
-                            sx={{
-                                p: 3,
-                                cursor: 'pointer',
-                                textAlign: 'center',
-                                transition: 'all 0.2s',
-                                '&:hover': {
-                                    borderColor: 'primary.main',
-                                    bgcolor: 'primary.50',
-                                },
-                            }}
-                            onClick={() => handleAddSection('split-2')}
-                        >
-                            <Typography variant="h6" color="primary" fontWeight={600} gutterBottom>
-                                2 Columns
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                Two equal columns (6/6)
-                            </Typography>
-                        </Paper>
-
-                        <Paper
-                            variant="outlined"
-                            sx={{
-                                p: 3,
-                                cursor: 'pointer',
-                                textAlign: 'center',
-                                transition: 'all 0.2s',
-                                '&:hover': {
-                                    borderColor: 'primary.main',
-                                    bgcolor: 'primary.50',
-                                },
-                            }}
-                            onClick={() => handleAddSection('split-3')}
-                        >
-                            <Typography variant="h6" color="primary" fontWeight={600} gutterBottom>
-                                3 Columns
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                Three equal columns (4/4/4)
-                            </Typography>
-                        </Paper>
-
-                        <Paper
-                            variant="outlined"
-                            sx={{
-                                p: 3,
-                                cursor: 'pointer',
-                                textAlign: 'center',
-                                transition: 'all 0.2s',
-                                '&:hover': {
-                                    borderColor: 'primary.main',
-                                    bgcolor: 'primary.50',
-                                },
-                            }}
-                            onClick={() => handleAddSection('split-4')}
-                        >
-                            <Typography variant="h6" color="primary" fontWeight={600} gutterBottom>
-                                4 Columns
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                Four equal columns (3/3/3/3)
-                            </Typography>
-                        </Paper>
-
-                        <Paper
-                            variant="outlined"
-                            sx={{
-                                p: 3,
-                                cursor: 'pointer',
-                                textAlign: 'center',
-                                transition: 'all 0.2s',
-                                '&:hover': {
-                                    borderColor: 'primary.main',
-                                    bgcolor: 'primary.50',
-                                },
-                            }}
-                            onClick={() => handleAddSection('custom')}
-                        >
-                            <Typography variant="h6" color="primary" fontWeight={600} gutterBottom>
-                                Custom
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                Start with one column, add more as needed
-                            </Typography>
-                        </Paper>
+                        </Box>
+                        <IconButton size="small" onClick={() => setSectionTypeDialog(false)}>
+                            <CloseRoundedIcon fontSize="small" />
+                        </IconButton>
+                    </Box>
+                </DialogTitle>
+                <DialogContent sx={{ px: 2.25, py: 2 }}>
+                    <Box
+                        sx={{
+                            display: 'grid',
+                            gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+                            gap: 1.25,
+                            mt: 1,
+                        }}
+                    >
+                        {[
+                            { type: 'full-width' as SectionType, title: 'Full Width', desc: 'Single full-width column', chips: ['1 col', '12/12'] },
+                            { type: 'container' as SectionType, title: 'Container', desc: 'Centered container section', chips: ['1 col', '12/12'] },
+                            { type: 'split-2' as SectionType, title: '2 Columns', desc: 'Two balanced columns', chips: ['2 cols', '6/6'] },
+                            { type: 'split-3' as SectionType, title: '3 Columns', desc: 'Three equal columns', chips: ['3 cols', '4/4/4'] },
+                            { type: 'split-4' as SectionType, title: '4 Columns', desc: 'Four equal columns', chips: ['4 cols', '3/3/3/3'] },
+                            { type: 'custom' as SectionType, title: 'Custom', desc: 'Start with one and add columns', chips: ['Flexible'] },
+                        ].map((option) => (
+                            <Paper
+                                key={option.type}
+                                variant="outlined"
+                                sx={{
+                                    p: 2,
+                                    cursor: 'pointer',
+                                    borderRadius: 2,
+                                    transition: 'all 0.2s ease',
+                                    '&:hover': {
+                                        borderColor: 'primary.main',
+                                        bgcolor: 'primary.50',
+                                        transform: 'translateY(-1px)',
+                                    },
+                                }}
+                                onClick={() => handleAddSection(option.type)}
+                            >
+                                <Typography variant="subtitle2" color="primary" fontWeight={700} gutterBottom>
+                                    {option.title}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                    {option.desc}
+                                </Typography>
+                                <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+                                    {option.chips.map((chip) => (
+                                        <Chip key={chip} size="small" label={chip} variant="outlined" />
+                                    ))}
+                                </Box>
+                            </Paper>
+                        ))}
                     </Box>
                 </DialogContent>
-                <DialogActions>
+                <DialogActions
+                    sx={{
+                        px: 2.25,
+                        py: 1.5,
+                        borderTop: '1px solid',
+                        borderColor: 'divider',
+                        bgcolor: 'background.default',
+                    }}
+                >
                     <Button onClick={() => setSectionTypeDialog(false)}>Cancel</Button>
                 </DialogActions>
             </Dialog>
 
             {/* Item Config Dialog */}
             <ItemConfigDialog
+                key={editingItem ? `${editingItem.sectionId}-${editingItem.columnId}-${editingItem.item.id}` : 'new-item-dialog'}
                 open={!!editingItem}
                 item={editingItem?.item || null}
                 onClose={() => setEditingItem(null)}

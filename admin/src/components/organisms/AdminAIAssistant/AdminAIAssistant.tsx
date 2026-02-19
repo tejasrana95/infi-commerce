@@ -55,6 +55,11 @@ export default function AdminAIAssistant({ entityType, getValues, setValue }: Ad
     });
     const { showNotification } = useNotification();
 
+    // logical field mapping
+    const isPageLike = ['page', 'blog_post'].includes(entityType);
+    const titleField = isPageLike ? 'title' : 'name';
+    const descriptionField = isPageLike ? 'content' : 'description';
+
     const handleOpen = () => setOpen(true);
     const handleClose = () => setOpen(false);
 
@@ -62,21 +67,21 @@ export default function AdminAIAssistant({ entityType, getValues, setValue }: Ad
         setLoading(true);
         try {
             // Gather context
-            const productName = getValues('name') || getValues('title');
+            const entityTitle = getValues(titleField);
 
-            if (!productName) {
-                showNotification('Please enter a product name first', 'warning');
+            if (!entityTitle) {
+                showNotification(`Please enter a ${isPageLike ? 'title' : 'name'} first`, 'warning');
                 setLoading(false);
                 return;
             }
 
             const context = {
                 entityType,
-                productName,
-                primaryKeyword: productName, // Use product name as primary keyword for SEO/GEO
-                title: productName,
+                entityTitle,
+                primaryKeyword: entityTitle, // Use title as primary keyword for SEO/GEO
+                title: entityTitle,
                 images: getValues('images') || [],
-                existingDescription: getValues('description'),
+                existingDescription: getValues(descriptionField),
                 brand: getValues('brand'),
                 category: getValues('categoryIds')?.[0],
                 specifications: getValues('specifications') || [], // Pass all specifications
@@ -121,9 +126,13 @@ export default function AdminAIAssistant({ entityType, getValues, setValue }: Ad
                 const data = response.data.data;
 
                 // Map API response to form fields - ONLY if that field was requested
-                if (fieldsToGenerate.includes('productName') && data.productName) setValue('name', data.productName, { shouldDirty: true });
-                if (fieldsToGenerate.includes('description') && data.description) setValue('description', data.description, { shouldDirty: true });
-                if (fieldsToGenerate.includes('shortDescription') && data.shortDescription) setValue('shortDescription', data.shortDescription, { shouldDirty: true });
+                if (fieldsToGenerate.includes('productName') && data.productName) setValue(titleField, data.productName, { shouldDirty: true });
+                if (fieldsToGenerate.includes('description') && data.description) setValue(descriptionField, data.description, { shouldDirty: true });
+                if (fieldsToGenerate.includes('shortDescription') && data.shortDescription) {
+                    // Only set if the field exists in the form (a rough check, or based on entity type)
+                    // For pages, we might map shortDescription to excerpt if it exists, or ignore
+                    if (!isPageLike) setValue('shortDescription', data.shortDescription, { shouldDirty: true });
+                }
                 if (fieldsToGenerate.includes('tags') && data.tags) setValue('tags', data.tags, { shouldDirty: true });
 
                 if (fieldsToGenerate.includes('metaTitle')) setValue('seo.metaTitle', data.metaTitle, { shouldDirty: true, shouldValidate: true });
@@ -183,7 +192,7 @@ export default function AdminAIAssistant({ entityType, getValues, setValue }: Ad
                         <Box>
                             <Typography variant="h6">AI Content Assistant</Typography>
                             <Typography variant="caption" color="text.secondary">
-                                {getValues('name') || getValues('title') || 'Untitled'}
+                                {getValues(titleField) || 'Untitled'}
                             </Typography>
                         </Box>
                     </Box>
@@ -219,7 +228,7 @@ export default function AdminAIAssistant({ entityType, getValues, setValue }: Ad
                                 <Grid size={12}>
                                     <FormControlLabel
                                         control={<Checkbox checked={options.productName} onChange={(e) => setOptions({ ...options, productName: e.target.checked })} />}
-                                        label="Product Name (Optimized for SEO)"
+                                        label="Name/Title (Optimized for SEO)"
                                     />
                                 </Grid>
                                 <Grid size={12}>

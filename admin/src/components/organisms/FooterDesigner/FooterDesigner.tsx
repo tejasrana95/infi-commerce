@@ -15,6 +15,10 @@ import {
     ListItemIcon,
     ListItemText,
     Tooltip,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -39,7 +43,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { DndContext, DragEndEvent, DragOverlay, closestCenter, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ThemeConfig, FooterElement, FooterColumn, Menu as MenuType } from '@/types';
+import { ThemeConfig, FooterElement, FooterColumn, FooterRow, FooterRowSettings, Menu as MenuType } from '@/types';
 import FooterElementConfig from './FooterElementConfig';
 import PreviewContainer from '@/components/molecules/PreviewContainer';
 import { SortableFooterElement, SortableFooterColumn } from './SortableComponents';
@@ -53,12 +57,6 @@ interface FooterDesignerProps {
     storeId: string;
 }
 
-// Footer Row interface
-interface FooterRow {
-    id: string;
-    columns: FooterColumn[];
-}
-
 // Element info
 const elementInfo: Record<string, { label: string; icon: React.ReactNode; description: string }> = {
     'menu': { label: 'Menu', icon: <MenuIcon fontSize="small" />, description: 'Footer menu links' },
@@ -69,6 +67,18 @@ const elementInfo: Record<string, { label: string; icon: React.ReactNode; descri
     'contact': { label: 'Contact', icon: <ContactIcon fontSize="small" />, description: 'Contact information' },
     'payment-methods': { label: 'Payment', icon: <PaymentIcon fontSize="small" />, description: 'Payment method icons' },
 };
+
+const defaultRowSettings: Required<FooterRowSettings> = {
+    position: 'left',
+    headingFontFamily: '',
+    headingFontSize: 16,
+    headingAlign: 'left',
+};
+
+const getRowSettings = (row: FooterRow): Required<FooterRowSettings> => ({
+    ...defaultRowSettings,
+    ...(row.settings || {}),
+});
 
 // Utility function to get contrasting colors based on background
 function getContrastColor(hexColor: string): { text: string; textLight: string; overlay: string; border: string } {
@@ -131,9 +141,7 @@ function ElementPreview({ element, onClick, onDelete, menus }: { element: Footer
                 );
             case 'text':
                 return (
-                    <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                        {element.content || 'Your text content here...'}
-                    </Typography>
+                    <Typography variant="body2" sx={{ opacity: 0.8 }} dangerouslySetInnerHTML={{ __html: element.content || 'Your text content here...' }} />
                 );
             case 'html':
                 return (
@@ -226,9 +234,12 @@ function ElementPreview({ element, onClick, onDelete, menus }: { element: Footer
                 const methodsToShow = paymentMethods.length > 0
                     ? paymentMethods.map(m => m.name).filter(Boolean)
                     : defaultMethods;
+                const paymentTitle = element.settings?.paymentMethodsTitle;
                 return (
                     <Box>
-                        <Typography variant="subtitle2" sx={{ mb: 0.5 }}>We Accept</Typography>
+                        {paymentTitle ? (
+                            <Typography variant="subtitle2" sx={{ mb: 0.5 }}>{paymentTitle}</Typography>
+                        ) : null}
                         <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                             {methodsToShow.length > 0 ? (
                                 methodsToShow.map((m, i) => (
@@ -291,6 +302,16 @@ function ElementPreview({ element, onClick, onDelete, menus }: { element: Footer
 
 export default function FooterDesigner({ config, onChange, storeId }: FooterDesignerProps) {
     const [editingElement, setEditingElement] = useState<{ rowId: string; columnId: string; element: FooterElement } | null>(null);
+    const [editingRowSettings, setEditingRowSettings] = useState<{ rowId: string; settings: Required<FooterRowSettings> } | null>(null);
+    const [editingColumnSettings, setEditingColumnSettings] = useState<{
+        rowId: string;
+        columnId: string;
+        settings: {
+            desktop: 'left' | 'center' | 'right';
+            tablet: 'left' | 'center' | 'right';
+            mobile: 'left' | 'center' | 'right';
+        };
+    } | null>(null);
     const [settingsExpanded, setSettingsExpanded] = useState(true);
     const [addMenuAnchor, setAddMenuAnchor] = useState<{ anchor: HTMLElement; rowId: string; columnId: string } | null>(null);
     const { confirm } = useConfirm();
@@ -462,6 +483,16 @@ export default function FooterDesigner({ config, onChange, storeId }: FooterDesi
 
     const rows = getRows();
 
+    const handleUpdateRowSettings = (rowId: string, updates: Partial<FooterRowSettings>) => {
+        updateFooter({
+            rows: rows.map((row) => (
+                row.id === rowId
+                    ? { ...row, settings: { ...getRowSettings(row), ...updates } }
+                    : row
+            )),
+        });
+    };
+
     const bottomBarSection = footerConfig.sections.find(s => s.type === 'bottom-bar') || {
         id: 'bottom-bar',
         type: 'bottom-bar' as const,
@@ -522,6 +553,7 @@ export default function FooterDesigner({ config, onChange, storeId }: FooterDesi
         const newRow: FooterRow = {
             id: uuidv4(),
             columns: [{ id: uuidv4(), title: 'New Column', width: 12, items: [] }],
+            settings: { ...defaultRowSettings },
         };
         updateFooter({ rows: [...rows, newRow] });
     };
@@ -564,6 +596,12 @@ export default function FooterDesigner({ config, onChange, storeId }: FooterDesi
             ),
         });
     };
+
+    const getColumnAlignSettings = (column: FooterColumn) => ({
+        desktop: column.settings?.contentAlign?.desktop || 'left',
+        tablet: column.settings?.contentAlign?.tablet || column.settings?.contentAlign?.desktop || 'left',
+        mobile: column.settings?.contentAlign?.mobile || column.settings?.contentAlign?.tablet || column.settings?.contentAlign?.desktop || 'left',
+    });
 
     // Add element
     const handleAddElement = (rowId: string, columnId: string, elementType: string) => {
@@ -653,6 +691,15 @@ export default function FooterDesigner({ config, onChange, storeId }: FooterDesi
                                                             <AddIcon sx={{ fontSize: 14 }} />
                                                         </IconButton>
                                                     </Tooltip>
+                                                    <Tooltip title="Row settings">
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={() => setEditingRowSettings({ rowId: row.id, settings: getRowSettings(row) })}
+                                                            sx={{ color: contrast.text, opacity: 0.8, width: 20, height: 20, '&:hover': { opacity: 1 } }}
+                                                        >
+                                                            <SettingsIcon sx={{ fontSize: 14 }} />
+                                                        </IconButton>
+                                                    </Tooltip>
                                                     <Tooltip title="Delete row">
                                                         <IconButton size="small" onClick={() => handleDeleteRow(row.id)} sx={{ color: contrast.text, opacity: 0.7, width: 20, height: 20, '&:hover': { color: 'error.main', opacity: 1 } }}>
                                                             <DeleteIcon sx={{ fontSize: 14 }} />
@@ -663,7 +710,19 @@ export default function FooterDesigner({ config, onChange, storeId }: FooterDesi
                                         })()}
 
                                         {/* Columns */}
-                                        <Box sx={{ display: 'flex', p: 3, pt: 5, gap: 2 }}>
+                                        <Box
+                                            sx={{
+                                                display: 'flex',
+                                                p: 3,
+                                                pt: 5,
+                                                gap: 2,
+                                                justifyContent: getRowSettings(row).position === 'center'
+                                                    ? 'center'
+                                                    : getRowSettings(row).position === 'right'
+                                                        ? 'flex-end'
+                                                        : 'flex-start',
+                                            }}
+                                        >
                                             {row.columns.map((column) => (
                                                 <Box
                                                     key={column.id}
@@ -672,6 +731,7 @@ export default function FooterDesigner({ config, onChange, storeId }: FooterDesi
                                                         minWidth: 120,
                                                         position: 'relative',
                                                         p: 1,
+                                                        textAlign: getColumnAlignSettings(column).desktop,
                                                         borderRadius: 1,
                                                         border: '1px solid transparent',
                                                         '&:hover': {
@@ -682,6 +742,25 @@ export default function FooterDesigner({ config, onChange, storeId }: FooterDesi
                                                 >
                                                     {/* Column Header */}
                                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                                        <Tooltip title="Column position settings">
+                                                            <IconButton
+                                                                size="small"
+                                                                onClick={() => setEditingColumnSettings({
+                                                                    rowId: row.id,
+                                                                    columnId: column.id,
+                                                                    settings: getColumnAlignSettings(column),
+                                                                })}
+                                                                sx={{
+                                                                    color: columnsSection.textColor || '#ffffff',
+                                                                    opacity: 0.8,
+                                                                    width: 22,
+                                                                    height: 22,
+                                                                    '&:hover': { opacity: 1 },
+                                                                }}
+                                                            >
+                                                                <SettingsIcon sx={{ fontSize: 14 }} />
+                                                            </IconButton>
+                                                        </Tooltip>
                                                         <TextField
                                                             value={column.title || ''}
                                                             onChange={(e) => handleUpdateColumn(row.id, column.id, { title: e.target.value })}
@@ -693,7 +772,9 @@ export default function FooterDesigner({ config, onChange, storeId }: FooterDesi
                                                                 '& .MuiInputBase-input': {
                                                                     color: columnsSection.textColor || '#ffffff',
                                                                     fontWeight: 600,
-                                                                    fontSize: 14,
+                                                                    fontSize: getRowSettings(row).headingFontSize || 16,
+                                                                    fontFamily: getRowSettings(row).headingFontFamily || 'inherit',
+                                                                    textAlign: getColumnAlignSettings(column).desktop,
                                                                     // Ensure placeholder is visible too if needed, though usually automatic with opacity
                                                                 },
                                                                 '& .MuiInput-underline:before': { borderBottomColor: columnsSection.textColor || '#ffffff !important' },
@@ -873,6 +954,191 @@ export default function FooterDesigner({ config, onChange, storeId }: FooterDesi
                         </Box>
                     </Collapse>
                 </Paper>
+
+                {/* Row Settings Dialog */}
+                <Dialog
+                    open={!!editingRowSettings}
+                    onClose={() => setEditingRowSettings(null)}
+                    maxWidth="sm"
+                    fullWidth
+                >
+                    <DialogTitle>Row Settings</DialogTitle>
+                    <DialogContent>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+                            <TextField
+                                select
+                                fullWidth
+                                label="Row Position"
+                                value={editingRowSettings?.settings.position || 'left'}
+                                onChange={(e) => setEditingRowSettings((prev) => prev ? {
+                                    ...prev,
+                                    settings: { ...prev.settings, position: e.target.value as 'left' | 'center' | 'right' }
+                                } : null)}
+                                helperText="Uses flex alignment for row content distribution."
+                            >
+                                <MuiMenuItem value="left">Left</MuiMenuItem>
+                                <MuiMenuItem value="center">Center</MuiMenuItem>
+                                <MuiMenuItem value="right">Right</MuiMenuItem>
+                            </TextField>
+
+                            <Typography variant="subtitle2" sx={{ mt: 1 }}>Heading Typography</Typography>
+
+                            <TextField
+                                select
+                                fullWidth
+                                label="Font Family"
+                                value={editingRowSettings?.settings.headingFontFamily || ''}
+                                onChange={(e) => setEditingRowSettings((prev) => prev ? {
+                                    ...prev,
+                                    settings: { ...prev.settings, headingFontFamily: e.target.value }
+                                } : null)}
+                            >
+                                <MuiMenuItem value="">Theme Default</MuiMenuItem>
+                                <MuiMenuItem value="inherit">Inherit</MuiMenuItem>
+                                <MuiMenuItem value="Arial, sans-serif">Arial</MuiMenuItem>
+                                <MuiMenuItem value="'Helvetica Neue', Helvetica, Arial, sans-serif">Helvetica Neue</MuiMenuItem>
+                                <MuiMenuItem value="'Times New Roman', Times, serif">Times New Roman</MuiMenuItem>
+                                <MuiMenuItem value="'Georgia', serif">Georgia</MuiMenuItem>
+                                <MuiMenuItem value="'Poppins', sans-serif">Poppins</MuiMenuItem>
+                                <MuiMenuItem value="'Roboto', sans-serif">Roboto</MuiMenuItem>
+                            </TextField>
+
+                            <TextField
+                                type="number"
+                                fullWidth
+                                label="Heading Font Size (px)"
+                                value={editingRowSettings?.settings.headingFontSize || 16}
+                                onChange={(e) => {
+                                    const nextValue = parseInt(e.target.value, 10);
+                                    setEditingRowSettings((prev) => prev ? {
+                                        ...prev,
+                                        settings: {
+                                            ...prev.settings,
+                                            headingFontSize: Number.isNaN(nextValue) ? 16 : Math.max(10, Math.min(48, nextValue)),
+                                        }
+                                    } : null);
+                                }}
+                                inputProps={{ min: 10, max: 48 }}
+                            />
+
+                            <TextField
+                                select
+                                fullWidth
+                                label="Heading Align"
+                                value={editingRowSettings?.settings.headingAlign || 'left'}
+                                onChange={(e) => setEditingRowSettings((prev) => prev ? {
+                                    ...prev,
+                                    settings: { ...prev.settings, headingAlign: e.target.value as 'left' | 'center' | 'right' }
+                                } : null)}
+                            >
+                                <MuiMenuItem value="left">Left</MuiMenuItem>
+                                <MuiMenuItem value="center">Center</MuiMenuItem>
+                                <MuiMenuItem value="right">Right</MuiMenuItem>
+                            </TextField>
+                        </Box>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setEditingRowSettings(null)}>Cancel</Button>
+                        <Button
+                            variant="contained"
+                            onClick={() => {
+                                if (!editingRowSettings) return;
+                                handleUpdateRowSettings(editingRowSettings.rowId, editingRowSettings.settings);
+                                setEditingRowSettings(null);
+                            }}
+                        >
+                            Save
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+
+                {/* Column Settings Dialog */}
+                <Dialog
+                    open={!!editingColumnSettings}
+                    onClose={() => setEditingColumnSettings(null)}
+                    maxWidth="sm"
+                    fullWidth
+                >
+                    <DialogTitle>Column Position Settings</DialogTitle>
+                    <DialogContent>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+                            <Typography variant="body2" color="text.secondary">
+                                Configure content position per breakpoint for this column.
+                            </Typography>
+
+                            <TextField
+                                select
+                                fullWidth
+                                label="Desktop Position"
+                                value={editingColumnSettings?.settings.desktop || 'left'}
+                                onChange={(e) => setEditingColumnSettings((prev) => prev ? {
+                                    ...prev,
+                                    settings: { ...prev.settings, desktop: e.target.value as 'left' | 'center' | 'right' }
+                                } : null)}
+                            >
+                                <MuiMenuItem value="left">Left</MuiMenuItem>
+                                <MuiMenuItem value="center">Center</MuiMenuItem>
+                                <MuiMenuItem value="right">Right</MuiMenuItem>
+                            </TextField>
+
+                            <TextField
+                                select
+                                fullWidth
+                                label="Tablet Position"
+                                value={editingColumnSettings?.settings.tablet || 'left'}
+                                onChange={(e) => setEditingColumnSettings((prev) => prev ? {
+                                    ...prev,
+                                    settings: { ...prev.settings, tablet: e.target.value as 'left' | 'center' | 'right' }
+                                } : null)}
+                            >
+                                <MuiMenuItem value="left">Left</MuiMenuItem>
+                                <MuiMenuItem value="center">Center</MuiMenuItem>
+                                <MuiMenuItem value="right">Right</MuiMenuItem>
+                            </TextField>
+
+                            <TextField
+                                select
+                                fullWidth
+                                label="Mobile Position"
+                                value={editingColumnSettings?.settings.mobile || 'left'}
+                                onChange={(e) => setEditingColumnSettings((prev) => prev ? {
+                                    ...prev,
+                                    settings: { ...prev.settings, mobile: e.target.value as 'left' | 'center' | 'right' }
+                                } : null)}
+                            >
+                                <MuiMenuItem value="left">Left</MuiMenuItem>
+                                <MuiMenuItem value="center">Center</MuiMenuItem>
+                                <MuiMenuItem value="right">Right</MuiMenuItem>
+                            </TextField>
+                        </Box>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setEditingColumnSettings(null)}>Cancel</Button>
+                        <Button
+                            variant="contained"
+                            onClick={() => {
+                                if (!editingColumnSettings) return;
+                                const { rowId, columnId, settings } = editingColumnSettings;
+                                const row = rows.find((r) => r.id === rowId);
+                                const currentColumn = row?.columns.find((c) => c.id === columnId);
+                                if (!currentColumn) return;
+                                handleUpdateColumn(rowId, columnId, {
+                                    settings: {
+                                        ...currentColumn.settings,
+                                        contentAlign: {
+                                            desktop: settings.desktop,
+                                            tablet: settings.tablet,
+                                            mobile: settings.mobile,
+                                        },
+                                    },
+                                });
+                                setEditingColumnSettings(null);
+                            }}
+                        >
+                            Save
+                        </Button>
+                    </DialogActions>
+                </Dialog>
 
                 {/* Element Config Dialog */}
                 <FooterElementConfig

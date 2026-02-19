@@ -6,6 +6,7 @@ import { FooterElement } from '@/types/store';
 import MenuBuilder from '@/components/core/MenuBuilder';
 import styles from './Footer.module.scss';
 import NewsletterForm from './NewsletterForm';
+import DynamicIcon from '@/components/core/common/DynamicIcon';
 
 // Social Media Icon Components
 const FacebookIcon = ({ className }: { className?: string }) => (
@@ -73,9 +74,7 @@ interface FooterTextElementProps {
 
 export function FooterTextElement({ element }: FooterTextElementProps) {
     return (
-        <div className={styles.elementText}>
-            {element.content || ''}
-        </div>
+        <div className={styles.elementText} dangerouslySetInnerHTML={{ __html: element.content || '' }} />
     );
 }
 
@@ -209,6 +208,7 @@ interface FooterPaymentMethodsElementProps {
 
 export function FooterPaymentMethodsElement({ element }: FooterPaymentMethodsElementProps) {
     const paymentMethods = element.settings?.paymentMethods || [];
+    const paymentMethodsTitle = element.settings?.paymentMethodsTitle;
 
     // Default payment methods if none configured
     const defaultMethods = [
@@ -222,11 +222,11 @@ export function FooterPaymentMethodsElement({ element }: FooterPaymentMethodsEle
 
     return (
         <div className={styles.elementPayment}>
-            <h4>We Accept</h4>
+            {paymentMethodsTitle?.trim() ? <h4>{paymentMethodsTitle}</h4> : null}
             <div className={styles.paymentMethods}>
                 {methods.map((method) => (
                     <div key={method.id} className={styles.method}>
-                        {method.icon ? (
+                        {method.icon && /^(https?:\/\/|\/|data:image)/i.test(method.icon) ? (
                             <img
                                 src={method.icon}
                                 alt={method.name}
@@ -235,6 +235,8 @@ export function FooterPaymentMethodsElement({ element }: FooterPaymentMethodsEle
                                     (e.target as HTMLImageElement).parentElement!.textContent = method.name;
                                 }}
                             />
+                        ) : method.icon ? (
+                            <DynamicIcon name={method.icon} size={18} />
                         ) : (
                             method.name
                         )}

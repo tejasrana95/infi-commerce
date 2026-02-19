@@ -22,6 +22,7 @@ import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { FooterElement } from '@/types';
 import MenuAutocomplete from '@/components/molecules/MenuAutocomplete';
 import RichTextEditor from '@/components/molecules/RichTextEditor';
+import IconPicker from '@/components/atoms/IconPicker';
 
 interface FooterElementConfigProps {
     open: boolean;
@@ -460,6 +461,22 @@ export default function FooterElementConfig({
                     {/* Payment Methods Configuration */}
                     {formData.type === 'payment-methods' && (
                         <>
+                            <TextField
+                                label="Section Heading (optional)"
+                                value={formData.settings?.paymentMethodsTitle || ''}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        settings: {
+                                            ...formData.settings,
+                                            paymentMethodsTitle: e.target.value,
+                                        },
+                                    })
+                                }
+                                fullWidth
+                                placeholder="We Accept"
+                                helperText="Leave empty to hide the heading."
+                            />
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <Typography variant="subtitle2">Payment Methods</Typography>
                                 <Button size="small" startIcon={<AddIcon />} onClick={handleAddPaymentMethod}>
@@ -489,13 +506,15 @@ export default function FooterElementConfig({
                                             onChange={(e) => handleUpdatePaymentMethod(method.id, 'name', e.target.value)}
                                             sx={{ flex: 1 }}
                                         />
-                                        <TextField
-                                            size="small"
-                                            placeholder="Icon URL"
-                                            value={method.icon}
-                                            onChange={(e) => handleUpdatePaymentMethod(method.id, 'icon', e.target.value)}
-                                            sx={{ flex: 1 }}
-                                        />
+                                        <Box sx={{ flex: 1 }}>
+                                            <IconPicker
+                                                value={method.icon || ''}
+                                                onChange={(iconName) => handleUpdatePaymentMethod(method.id, 'icon', iconName)}
+                                                label="Icon"
+                                                size="small"
+                                                fullWidth
+                                            />
+                                        </Box>
                                     </ListItem>
                                 ))}
                             </List>

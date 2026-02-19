@@ -79,6 +79,7 @@ export interface FooterElement {
         newsletterButtonText?: string;
         newsletterDescription?: string;
         socialTitle?: string;
+        paymentMethodsTitle?: string;
         socialLinks?: Array<{
             id: string;
             platform: 'facebook' | 'twitter' | 'instagram' | 'linkedin' | 'youtube' | 'pinterest' | 'tiktok';
@@ -104,6 +105,26 @@ export interface FooterColumn {
     title?: string;
     width: number;
     items: FooterElement[];
+    settings?: {
+        contentAlign?: {
+            desktop?: 'left' | 'center' | 'right';
+            tablet?: 'left' | 'center' | 'right';
+            mobile?: 'left' | 'center' | 'right';
+        };
+    };
+}
+
+export interface FooterRowSettings {
+    position?: 'left' | 'center' | 'right';
+    headingFontFamily?: string;
+    headingFontSize?: number;
+    headingAlign?: 'left' | 'center' | 'right';
+}
+
+export interface FooterRow {
+    id: string;
+    columns: FooterColumn[];
+    settings?: FooterRowSettings;
 }
 
 export interface FooterSection {
@@ -113,7 +134,7 @@ export interface FooterSection {
     textColor?: string;
     padding?: number;
     columns?: FooterColumn[];
-    rows?: Array<{ id: string; columns: FooterColumn[] }>;
+    rows?: FooterRow[];
     bottomBarContent?: string;
 }
 

@@ -3,84 +3,58 @@
 import Link from 'next/link';
 import styles from './not-found.module.scss';
 
+const quickLinks = [
+    { label: 'Marble Ganesh Ji', href: '/search?q=ganesh' },
+    { label: 'Radha Krishna', href: '/search?q=radha+krishna' },
+    { label: 'Garlands', href: '/search?q=garland' }
+];
+
 export default function NotFound() {
     return (
-        <div className={styles.container}>
-            <div className={styles.content}>
-                {/* Animated 404 Number */}
-                <div className={styles.errorNumber}>
-                    <span className={styles.digit}>4</span>
-                    <span className={styles.zero}>
-                        <div className={styles.planet}>
-                            <div className={styles.ring}></div>
-                            <div className={styles.crater}></div>
-                            <div className={styles.crater}></div>
-                            <div className={styles.crater}></div>
-                        </div>
-                    </span>
-                    <span className={styles.digit}>4</span>
-                </div>
+        <section className={styles.wrap}>
+            <div className={styles.card}>
+                <div className={styles.leftPanel}>
+                    <p className={styles.eyebrow}>Error 404</p>
+                    <div className={styles.code}>404</div>
+                    <h1>We couldn&apos;t find that page</h1>
+                    <p>
+                        The page may have moved or the link may be outdated. Try going back,
+                        start from home, or search the catalog.
+                    </p>
 
-                {/* Stars Background */}
-                <div className={styles.stars}>
-                    {[...Array(50)].map((_, i) => (
-                        <div key={i} className={styles.star} style={{
-                            left: `${Math.random() * 100}%`,
-                            top: `${Math.random() * 100}%`,
-                            animationDelay: `${Math.random() * 3}s`,
-                            animationDuration: `${1 + Math.random() * 2}s`
-                        }}></div>
-                    ))}
-                </div>
-
-                {/* Astronaut */}
-                <div className={styles.astronaut}>
-                    <div className={styles.helmet}>
-                        <div className={styles.visor}></div>
+                    <div className={styles.actions}>
+                        <Link href="/" className={styles.primaryBtn}>
+                            Back to Home
+                        </Link>
+                        <button type="button" className={styles.secondaryBtn} onClick={() => window.history.back()}>
+                            Go Back
+                        </button>
                     </div>
-                    <div className={styles.body}></div>
-                    <div className={styles.armLeft}></div>
-                    <div className={styles.armRight}></div>
-                    <div className={styles.legLeft}></div>
-                    <div className={styles.legRight}></div>
                 </div>
 
-                {/* Message */}
-                <h1 className={styles.title}>Houston, we have a problem!</h1>
-                <p className={styles.message}>
-                    The page you're looking for has floated off into space.
-                    Don't worry, we'll help you find your way back home.
-                </p>
-
-                {/* Actions */}
-                <div className={styles.actions}>
-                    <Link href="/" className={styles.primaryBtn}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                        </svg>
-                        Back to Home
-                    </Link>
-                    <button onClick={() => window.history.back()} className={styles.secondaryBtn}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 17l-5-5m0 0l5-5m-5 5h12" />
-                        </svg>
-                        Go Back
-                    </button>
-                </div>
-
-                {/* Search */}
-                <div className={styles.searchSection}>
-                    <p>Or try searching for what you need:</p>
+                <aside className={styles.rightPanel}>
+                    <h2>Find what you need</h2>
                     <form className={styles.searchForm} action="/search">
                         <input type="text" name="q" placeholder="Search products, categories..." />
-                        <button type="submit">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                        </button>
+                        <button type="submit">Search</button>
                     </form>
-                </div>
+
+                    <div className={styles.quickLinks}>
+                        {quickLinks.map((item) => (
+                            <Link key={item.href} href={item.href} className={styles.quickLink}>
+                                {item.label}
+                            </Link>
+                        ))}
+                    </div>
+
+                    <div className={styles.noteBox}>
+                        <strong>Tip</strong>
+                        <p>
+                            If you typed the URL manually, check for spelling mistakes and try again.
+                        </p>
+                    </div>
+                </aside>
             </div>
-        </div>
+        </section>
     );
 }

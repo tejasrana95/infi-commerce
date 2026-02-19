@@ -1,71 +1,73 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { ReactNode, useMemo, useState } from 'react';
 import {
     DndContext,
-    closestCenter,
+    DragEndEvent,
     KeyboardSensor,
     PointerSensor,
+    closestCorners,
+    useDroppable,
     useSensor,
     useSensors,
-    DragEndEvent,
 } from '@dnd-kit/core';
 import {
-    arrayMove,
     SortableContext,
+    arrayMove,
     sortableKeyboardCoordinates,
     useSortable,
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
+    Alert,
     Box,
     Button,
-    IconButton,
-    Typography,
-    Paper,
-    List,
-    ListItem,
-    ListItemText,
-    ListItemIcon,
-    ListItemSecondaryAction,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    TextField,
-    MenuItem,
-    FormControlLabel,
-    Switch,
-    Collapse,
+    Card,
+    CardContent,
     Chip,
-    Tooltip,
-    Alert,
+    Collapse,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
     Divider,
-    Select,
     FormControl,
+    FormControlLabel,
+    IconButton,
     InputLabel,
+    MenuItem,
+    Paper,
+    Select,
+    Stack,
+    Switch,
+    TextField,
+    Tooltip,
+    Typography,
 } from '@mui/material';
-import { MenuItem as MuiMenuItem } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import LinkIcon from '@mui/icons-material/Link';
-import CategoryIcon from '@mui/icons-material/Category';
-import InventoryIcon from '@mui/icons-material/Inventory';
-import DescriptionIcon from '@mui/icons-material/Description';
-import ArticleIcon from '@mui/icons-material/Article';
-import ViewModuleIcon from '@mui/icons-material/ViewModule';
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
-import RemoveIcon from '@mui/icons-material/Remove';
+import { alpha } from '@mui/material/styles';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
+import CategoryOutlinedIcon from '@mui/icons-material/CategoryOutlined';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
+import DragIndicatorRoundedIcon from '@mui/icons-material/DragIndicatorRounded';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
+import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
+import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
+import KeyboardArrowRightRoundedIcon from '@mui/icons-material/KeyboardArrowRightRounded';
+import LinkRoundedIcon from '@mui/icons-material/LinkRounded';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import RemoveRoundedIcon from '@mui/icons-material/RemoveRounded';
+import SplitscreenOutlinedIcon from '@mui/icons-material/SplitscreenOutlined';
+import UnfoldMoreRoundedIcon from '@mui/icons-material/UnfoldMoreRounded';
+import ViewModuleOutlinedIcon from '@mui/icons-material/ViewModuleOutlined';
+import { v4 as uuidv4 } from 'uuid';
 import { MenuItem as MenuItemType } from '@/types';
 import CategoryAutocomplete from '@/components/molecules/CategoryAutocomplete';
 import PageAutocomplete from '@/components/molecules/PageAutocomplete';
 import BlogCategoryAutocomplete from '@/components/molecules/BlogCategoryAutocomplete';
-import { v4 as uuidv4 } from 'uuid';
 import { ProductAutoComplete } from '../molecules';
 import { ProductOption } from '../molecules/ProductAutoComplete';
 import { MegaMenuBuilder, MegaMenuData } from './MegaMenuBuilder';
@@ -78,25 +80,105 @@ interface MenuItemBuilderProps {
     maxDepth?: number;
 }
 
-const menuItemTypes = [
-    { value: 'link', label: 'Custom Link', icon: <LinkIcon fontSize="small" /> },
-    { value: 'category', label: 'Product Category', icon: <CategoryIcon fontSize="small" /> },
-    { value: 'product', label: 'Product', icon: <InventoryIcon fontSize="small" /> },
-    { value: 'page', label: 'Static Page', icon: <DescriptionIcon fontSize="small" /> },
-    { value: 'blog-category', label: 'Blog Category', icon: <ArticleIcon fontSize="small" /> },
-    { value: 'mega-menu', label: 'Mega Menu', icon: <ViewModuleIcon fontSize="small" /> },
-    { value: 'dropdown', label: 'Dropdown Group', icon: <ArrowDropDownIcon fontSize="small" /> },
-    { value: 'divider', label: 'Divider', icon: <RemoveIcon fontSize="small" /> },
-];
+const ROOT_CONTAINER = '__root__';
 
-const getTypeIcon = (type: string) => {
-    const typeConfig = menuItemTypes.find(t => t.value === type);
-    return typeConfig?.icon || <LinkIcon fontSize="small" />;
+const menuItemTypes = [
+    { value: 'link', label: 'Custom Link', icon: <LinkRoundedIcon fontSize="small" /> },
+    { value: 'category', label: 'Product Category', icon: <CategoryOutlinedIcon fontSize="small" /> },
+    { value: 'product', label: 'Product', icon: <Inventory2OutlinedIcon fontSize="small" /> },
+    { value: 'page', label: 'Static Page', icon: <DescriptionOutlinedIcon fontSize="small" /> },
+    { value: 'blog-category', label: 'Blog Category', icon: <ArticleOutlinedIcon fontSize="small" /> },
+    { value: 'mega-menu', label: 'Mega Menu', icon: <ViewModuleOutlinedIcon fontSize="small" /> },
+    { value: 'dropdown', label: 'Dropdown Group', icon: <SplitscreenOutlinedIcon fontSize="small" /> },
+    { value: 'divider', label: 'Divider', icon: <RemoveRoundedIcon fontSize="small" /> },
+] as const;
+
+type MenuItemTypeValue = MenuItemType['type'];
+
+const getTypeMeta = (type: string) => {
+    return menuItemTypes.find((item) => item.value === type) || menuItemTypes[0];
 };
 
-const getTypeLabel = (type: string) => {
-    const typeConfig = menuItemTypes.find(t => t.value === type);
-    return typeConfig?.label || type;
+const findItemById = (items: MenuItemType[], itemId: string): MenuItemType | null => {
+    for (const item of items) {
+        if (item.id === itemId) return item;
+        const found = findItemById(item.children || [], itemId);
+        if (found) return found;
+    }
+    return null;
+};
+
+const getChildrenForContainer = (items: MenuItemType[], containerId: string): MenuItemType[] => {
+    if (containerId === ROOT_CONTAINER) return items;
+    return findItemById(items, containerId)?.children || [];
+};
+
+const updateChildrenForContainer = (
+    items: MenuItemType[],
+    containerId: string,
+    updater: (children: MenuItemType[]) => MenuItemType[]
+): MenuItemType[] => {
+    if (containerId === ROOT_CONTAINER) {
+        return updater(items);
+    }
+
+    return items.map((item) => {
+        if (item.id === containerId) {
+            return { ...item, children: updater(item.children || []) };
+        }
+
+        if (!item.children?.length) return item;
+        return { ...item, children: updateChildrenForContainer(item.children, containerId, updater) };
+    });
+};
+
+const removeItemFromTree = (
+    items: MenuItemType[],
+    itemId: string
+): { nextItems: MenuItemType[]; removed: MenuItemType | null } => {
+    let removed: MenuItemType | null = null;
+
+    const walk = (nodes: MenuItemType[]): MenuItemType[] => {
+        const next: MenuItemType[] = [];
+
+        for (const node of nodes) {
+            if (node.id === itemId) {
+                removed = node;
+                continue;
+            }
+
+            if (node.children?.length) {
+                next.push({ ...node, children: walk(node.children) });
+            } else {
+                next.push(node);
+            }
+        }
+
+        return next;
+    };
+
+    return { nextItems: walk(items), removed };
+};
+
+const isDescendantContainer = (draggedItem: MenuItemType, containerId: string): boolean => {
+    if (containerId === ROOT_CONTAINER) return false;
+    if (draggedItem.id === containerId) return true;
+
+    return (draggedItem.children || []).some((child) => isDescendantContainer(child, containerId));
+};
+
+const getItemDepth = (items: MenuItemType[], itemId: string, depth = 0): number | null => {
+    for (const item of items) {
+        if (item.id === itemId) return depth;
+        const d = getItemDepth(item.children || [], itemId, depth + 1);
+        if (d !== null) return d;
+    }
+    return null;
+};
+
+const getSubtreeDepth = (item: MenuItemType): number => {
+    if (!item.children?.length) return 0;
+    return 1 + Math.max(...item.children.map(getSubtreeDepth));
 };
 
 interface EditItemDialogProps {
@@ -109,70 +191,61 @@ interface EditItemDialogProps {
     isNew?: boolean;
 }
 
+const getInitialFormData = (item: MenuItemType | null): Partial<MenuItemType> => {
+    if (!item) {
+        return {
+            label: '',
+            type: 'link',
+            url: '',
+            openInNewTab: false,
+            icon: '',
+        };
+    }
+
+    return {
+        label: item.label || '',
+        type: item.type || 'link',
+        url: item.url || '',
+        categoryId: item.categoryId,
+        categorySlug: item.categorySlug,
+        productId: item.productId,
+        productSlug: item.productSlug,
+        pageId: item.pageId,
+        pageSlug: item.pageSlug,
+        blogCategoryId: item.blogCategoryId,
+        blogCategorySlug: item.blogCategorySlug,
+        openInNewTab: item.openInNewTab || false,
+        icon: item.icon || '',
+        badge: item.badge,
+        autoAddProducts: item.autoAddProducts ?? true,
+        showProductImage: item.showProductImage ?? true,
+        showProductPrice: item.showProductPrice ?? true,
+        showViewAll: item.showViewAll ?? false,
+        imagePosition: item.imagePosition || 'left',
+        productLimit: item.productLimit || 10,
+    };
+};
+
+const getInitialSelectedProduct = (item: MenuItemType | null): ProductOption | null => {
+    if (!item || item.type !== 'product' || !item.productId) return null;
+
+    return {
+        _id: item.productId,
+        name: item.label || '',
+        slug: item.productSlug || '',
+        sku: '',
+        price: 0,
+    };
+};
+
 function EditItemDialog({ open, item, onClose, onSave, onDelete, storeId, isNew = false }: EditItemDialogProps) {
-    const [formData, setFormData] = useState<Partial<MenuItemType>>({
-        label: '',
-        type: 'link',
-        url: '',
-        openInNewTab: false,
-        icon: '',
-    });
-
-    const [selectedProduct, setSelectedProduct] = useState<ProductOption | null>(null);
-
-    // Reset form data whenever dialog opens or item changes
-    useEffect(() => {
-        if (open) {
-            if (item) {
-                // Editing existing item - populate form with item data
-                setFormData({
-                    label: item.label || '',
-                    type: item.type || 'link',
-                    url: item.url || '',
-                    categoryId: item.categoryId,
-                    categorySlug: item.categorySlug,
-                    productId: item.productId,
-                    productSlug: item.productSlug,
-                    pageId: item.pageId,
-                    pageSlug: item.pageSlug,
-                    blogCategoryId: item.blogCategoryId,
-                    blogCategorySlug: item.blogCategorySlug,
-                    openInNewTab: item.openInNewTab || false,
-                    icon: item.icon || '',
-                    badge: item.badge,
-                    // Category display options
-                    autoAddProducts: item.autoAddProducts ?? true,
-                    showProductImage: item.showProductImage ?? true,
-                    showProductPrice: item.showProductPrice ?? true,
-                    showViewAll: item.showViewAll ?? false,
-                    imagePosition: item.imagePosition || 'left',
-                    productLimit: item.productLimit || 10,
-                });
-
-                // If it's a product type, we should set selectedProduct
-                // Note: We don't have the full product data here, just the ID
-                // The ProductAutocomplete should handle loading by ID if needed
-                if (item.type === 'product' && item.productId) {
-                    setSelectedProduct({ _id: item.productId } as any);
-                }
-            } else {
-                // Creating new item - reset to defaults
-                setFormData({
-                    label: '',
-                    type: 'link',
-                    url: '',
-                    openInNewTab: false,
-                    icon: '',
-                });
-                setSelectedProduct(null);
-            }
-        }
-    }, [open, item]);
+    const [formData, setFormData] = useState<Partial<MenuItemType>>(() => getInitialFormData(item));
+    const [selectedProduct, setSelectedProduct] = useState<ProductOption | null>(() => getInitialSelectedProduct(item));
 
     const handleTypeChange = (newType: string) => {
-        setFormData(prev => ({
+        setFormData((prev) => ({
             ...prev,
-            type: newType as MenuItemType['type'],
+            type: newType as MenuItemTypeValue,
             url: '',
             categoryId: undefined,
             categorySlug: undefined,
@@ -187,10 +260,10 @@ function EditItemDialog({ open, item, onClose, onSave, onDelete, storeId, isNew 
     };
 
     const handleSave = () => {
-        const newItem: MenuItemType = {
+        const savedItem: MenuItemType = {
             id: item?.id || uuidv4(),
             label: formData.label || 'Menu Item',
-            type: formData.type || 'link',
+            type: (formData.type as MenuItemTypeValue) || 'link',
             url: formData.url,
             categoryId: formData.categoryId,
             categorySlug: formData.categorySlug,
@@ -205,8 +278,7 @@ function EditItemDialog({ open, item, onClose, onSave, onDelete, storeId, isNew 
             badge: formData.badge,
             children: item?.children || [],
             order: item?.order || 0,
-            megaMenu: item?.megaMenu, // Preserve mega menu data
-            // Category display options
+            megaMenu: item?.megaMenu,
             autoAddProducts: formData.autoAddProducts,
             showProductImage: formData.showProductImage,
             showProductPrice: formData.showProductPrice,
@@ -214,35 +286,56 @@ function EditItemDialog({ open, item, onClose, onSave, onDelete, storeId, isNew 
             showViewAll: formData.showViewAll,
             productLimit: formData.productLimit,
         };
-        onSave(newItem);
+        onSave(savedItem);
         onClose();
     };
 
-    const handleDelete = () => {
-        if (item) {
-            onDelete(item.id);
-            onClose();
-        }
-    };
-
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-            <DialogTitle>{isNew ? 'Add Menu' : 'Edit Menu'}</DialogTitle>
-            <DialogContent>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+        <Dialog
+            open={open}
+            onClose={onClose}
+            maxWidth="sm"
+            fullWidth
+            PaperProps={{
+                sx: {
+                    borderRadius: 3,
+                    overflow: 'hidden',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                },
+            }}
+        >
+            <DialogTitle sx={(theme) => ({ py: 1.5, px: 2.25, bgcolor: alpha(theme.palette.primary.main, 0.06) })}>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+                    <Box>
+                        <Typography variant="subtitle1" fontWeight={800}>
+                            {isNew ? 'Add Menu Item' : 'Edit Menu Item'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                            Configure item type, behavior, and destination.
+                        </Typography>
+                    </Box>
+                    <IconButton size="small" onClick={onClose}>
+                        <CloseRoundedIcon fontSize="small" />
+                    </IconButton>
+                </Stack>
+            </DialogTitle>
+            <DialogContent sx={{ px: 2, py: 1.25 }}>
+                <Stack spacing={2} sx={{ mt: 2 }}>
                     <TextField
                         select
                         label="Item Type"
                         value={formData.type || 'link'}
                         onChange={(e) => handleTypeChange(e.target.value)}
+                        size="small"
                         fullWidth
                     >
                         {menuItemTypes.map((type) => (
                             <MenuItem key={type.value} value={type.value}>
-                                <Box display="flex" alignItems="center" gap={1}>
+                                <Stack direction="row" spacing={1} alignItems="center">
                                     {type.icon}
-                                    {type.label}
-                                </Box>
+                                    <span>{type.label}</span>
+                                </Stack>
                             </MenuItem>
                         ))}
                     </TextField>
@@ -250,131 +343,225 @@ function EditItemDialog({ open, item, onClose, onSave, onDelete, storeId, isNew 
                     <TextField
                         label="Label"
                         value={formData.label || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, label: e.target.value }))}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, label: e.target.value }))}
+                        size="small"
                         fullWidth
                         required
-                        placeholder="e.g., About Us, Shop, Contact"
                     />
 
                     {formData.type === 'link' && (
                         <TextField
                             label="URL"
                             value={formData.url || ''}
-                            onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
+                            onChange={(e) => setFormData((prev) => ({ ...prev, url: e.target.value }))}
+                            size="small"
                             fullWidth
-                            placeholder="https://example.com or /relative/path"
+                            placeholder="https://example.com or /path"
                         />
                     )}
 
-                    {formData.type === 'category' && (
-                        <CategoryAutocomplete
-                            value={formData.categoryId || null}
-                            onChange={(value, category) => {
-                                const cat = Array.isArray(category) ? category[0] : category;
-                                setFormData(prev => ({
-                                    ...prev,
-                                    categoryId: value || undefined,
-                                    categorySlug: cat?.slug || undefined
-                                }));
-                            }}
-                            storeId={storeId}
-                            label="Select Category"
-                        />
-                    )}
-
-                    {/* Category display options */}
                     {formData.type === 'category' && (
                         <>
-                            <Divider sx={{ my: 1 }} />
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        checked={formData.autoAddProducts ?? true}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, autoAddProducts: e.target.checked }))}
-                                    />
-                                }
-                                label="Auto Populate Products"
+                            <CategoryAutocomplete
+                                value={formData.categoryId || null}
+                                onChange={(value, category) => {
+                                    const cat = Array.isArray(category) ? category[0] : category;
+                                    setFormData((prev) => ({
+                                        ...prev,
+                                        categoryId: value || undefined,
+                                        categorySlug: cat?.slug || undefined,
+                                    }));
+                                }}
+                                storeId={storeId}
+                                label="Select Category"
                             />
-                            {(formData.autoAddProducts ?? true) && (
-                                <>
-                                    <TextField
-                                        label="Max Product Limit"
-                                        type="number"
-                                        value={formData.productLimit || 10}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, productLimit: Number(e.target.value) }))}
-                                        fullWidth
-                                        inputProps={{ min: 1, max: 50 }}
-                                        helperText="Maximum products to display"
-                                    />
+
+                            <Paper variant="outlined" sx={{ p: 1.25, borderRadius: 1.5 }}>
+                                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.75 }}>
+                                    Category Product Display
+                                </Typography>
+                                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
                                     <FormControlLabel
                                         control={
                                             <Switch
-                                                checked={formData.showProductImage ?? true}
-                                                onChange={(e) => setFormData(prev => ({ ...prev, showProductImage: e.target.checked }))}
+                                                size="small"
+                                                checked={formData.autoAddProducts ?? true}
+                                                onChange={(e) =>
+                                                    setFormData((prev) => ({ ...prev, autoAddProducts: e.target.checked }))
+                                                }
                                             />
                                         }
-                                        label="Show Image"
+                                        label="Auto populate"
+                                    />
+                                    {(formData.autoAddProducts ?? true) && (
+                                        <>
+                                            <TextField
+                                                label="Max Product Limit"
+                                                type="number"
+                                                value={formData.productLimit || 10}
+                                                onChange={(e) =>
+                                                    setFormData((prev) => ({
+                                                        ...prev,
+                                                        productLimit: Number(e.target.value),
+                                                    }))
+                                                }
+                                                size="small"
+                                                inputProps={{ min: 1, max: 50 }}
+                                                fullWidth
+                                            />
+                                            <FormControlLabel
+                                                control={
+                                                    <Switch
+                                                        size="small"
+                                                        checked={formData.showProductImage ?? true}
+                                                        onChange={(e) =>
+                                                            setFormData((prev) => ({
+                                                                ...prev,
+                                                                showProductImage: e.target.checked,
+                                                            }))
+                                                        }
+                                                    />
+                                                }
+                                                label="Show image"
+                                            />
+                                            {(formData.showProductImage ?? true) && (
+                                                <FormControl fullWidth>
+                                                    <InputLabel>Image Position</InputLabel>
+                                                    <Select
+                                                        size="small"
+                                                        label="Image Position"
+                                                        value={formData.imagePosition || 'left'}
+                                                        onChange={(e) =>
+                                                            setFormData((prev) => ({
+                                                                ...prev,
+                                                                imagePosition: e.target.value as 'left' | 'top',
+                                                            }))
+                                                        }
+                                                    >
+                                                        <MenuItem value="left">Left</MenuItem>
+                                                        <MenuItem value="top">Top</MenuItem>
+                                                    </Select>
+                                                </FormControl>
+                                            )}
+                                            <FormControlLabel
+                                                control={
+                                                    <Switch
+                                                        size="small"
+                                                        checked={formData.showProductPrice ?? true}
+                                                        onChange={(e) =>
+                                                            setFormData((prev) => ({
+                                                                ...prev,
+                                                                showProductPrice: e.target.checked,
+                                                            }))
+                                                        }
+                                                    />
+                                                }
+                                                label="Show price"
+                                            />
+                                            <FormControlLabel
+                                                control={
+                                                    <Switch
+                                                        size="small"
+                                                        checked={formData.showViewAll ?? false}
+                                                        onChange={(e) =>
+                                                            setFormData((prev) => ({ ...prev, showViewAll: e.target.checked }))
+                                                        }
+                                                    />
+                                                }
+                                                label="Show View All"
+                                            />
+                                        </>
+                                    )}
+                                </Box>
+                            </Paper>
+                        </>
+                    )}
+
+                    {formData.type === 'product' && (
+                        <>
+                            <ProductAutoComplete
+                                storeId={storeId}
+                                value={selectedProduct}
+                                onChange={(product: ProductOption | null) => {
+                                    setSelectedProduct(product);
+                                    setFormData((prev) => ({
+                                        ...prev,
+                                        productId: product?._id,
+                                        productSlug: product?.slug,
+                                    }));
+                                }}
+                                label="Select Product"
+                            />
+                            <Paper variant="outlined" sx={{ p: 1.25, borderRadius: 1.5 }}>
+                                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.75 }}>
+                                    Product Display
+                                </Typography>
+                                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+
+                                    <FormControlLabel
+                                        control={
+                                            <Switch
+                                                size="small"
+                                                checked={formData.showProductImage ?? true}
+                                                onChange={(e) =>
+                                                    setFormData((prev) => ({
+                                                        ...prev,
+                                                        showProductImage: e.target.checked,
+                                                    }))
+                                                }
+                                            />
+                                        }
+                                        label="Show image"
                                     />
                                     {(formData.showProductImage ?? true) && (
                                         <FormControl fullWidth>
                                             <InputLabel>Image Position</InputLabel>
                                             <Select
-                                                value={formData.imagePosition || 'left'}
-                                                onChange={(e) => setFormData(prev => ({ ...prev, imagePosition: e.target.value as any }))}
+                                                size="small"
                                                 label="Image Position"
+                                                value={formData.imagePosition || 'left'}
+                                                onChange={(e) =>
+                                                    setFormData((prev) => ({
+                                                        ...prev,
+                                                        imagePosition: e.target.value as 'left' | 'top',
+                                                    }))
+                                                }
                                             >
-                                                <MuiMenuItem value="left">Left (Horizontal)</MuiMenuItem>
-                                                <MuiMenuItem value="top">Top (Vertical)</MuiMenuItem>
+                                                <MenuItem value="left">Left</MenuItem>
+                                                <MenuItem value="top">Top</MenuItem>
                                             </Select>
                                         </FormControl>
                                     )}
                                     <FormControlLabel
                                         control={
                                             <Switch
+                                                size="small"
                                                 checked={formData.showProductPrice ?? true}
-                                                onChange={(e) => setFormData(prev => ({ ...prev, showProductPrice: e.target.checked }))}
+                                                onChange={(e) =>
+                                                    setFormData((prev) => ({
+                                                        ...prev,
+                                                        showProductPrice: e.target.checked,
+                                                    }))
+                                                }
                                             />
                                         }
-                                        label="Show Price"
+                                        label="Show price"
                                     />
-                                    <FormControlLabel
-                                        control={
-                                            <Switch
-                                                checked={formData.showViewAll ?? false}
-                                                onChange={(e) => setFormData(prev => ({ ...prev, showViewAll: e.target.checked }))}
-                                            />
-                                        }
-                                        label="Show 'View All' button"
-                                    />
-                                </>
-                            )}
+                                </Box>
+                            </Paper>
                         </>
-                    )}
-
-                    {formData.type === 'product' && (
-                        <ProductAutoComplete
-                            storeId={storeId}
-                            value={selectedProduct}
-                            onChange={(product) => {
-                                setSelectedProduct(product);
-                                setFormData(prev => ({
-                                    ...prev,
-                                    productId: product?._id,
-                                    productSlug: product?.slug
-                                }));
-                            }}
-                            label="Select Product"
-                        />
                     )}
 
                     {formData.type === 'page' && (
                         <PageAutocomplete
                             value={formData.pageId || null}
-                            onChange={(value, page) => setFormData(prev => ({
-                                ...prev,
-                                pageId: value || undefined,
-                                pageSlug: page?.slug || undefined
-                            }))}
+                            onChange={(value, page) =>
+                                setFormData((prev) => ({
+                                    ...prev,
+                                    pageId: value || undefined,
+                                    pageSlug: page?.slug || undefined,
+                                }))
+                            }
                             storeId={storeId}
                             label="Select Page"
                         />
@@ -384,11 +571,11 @@ function EditItemDialog({ open, item, onClose, onSave, onDelete, storeId, isNew 
                         <BlogCategoryAutocomplete
                             value={formData.blogCategoryId || null}
                             onChange={(value, category) => {
-                                const cat = Array.isArray(category) ? category[0] : category;
-                                setFormData(prev => ({
+                                const selected = Array.isArray(category) ? category[0] : category;
+                                setFormData((prev) => ({
                                     ...prev,
                                     blogCategoryId: (value as string | null) || undefined,
-                                    blogCategorySlug: cat?.slug || undefined
+                                    blogCategorySlug: selected?.slug || undefined,
                                 }));
                             }}
                             storeId={storeId}
@@ -398,74 +585,85 @@ function EditItemDialog({ open, item, onClose, onSave, onDelete, storeId, isNew 
 
                     {formData.type !== 'divider' && (
                         <>
-                            <TextField
-                                label="Icon (optional)"
-                                value={formData.icon || ''}
-                                onChange={(e) => setFormData(prev => ({ ...prev, icon: e.target.value }))}
-                                fullWidth
-                                placeholder="Icon name or URL"
-                                helperText="Enter an icon name or URL"
-                            />
-
                             <FormControlLabel
                                 control={
                                     <Switch
+                                        size="small"
                                         checked={formData.openInNewTab || false}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, openInNewTab: e.target.checked }))}
+                                        onChange={(e) =>
+                                            setFormData((prev) => ({ ...prev, openInNewTab: e.target.checked }))
+                                        }
                                     />
                                 }
                                 label="Open in new tab"
                             />
                         </>
                     )}
-                </Box>
+                </Stack>
             </DialogContent>
-            <DialogActions sx={{ justifyContent: 'space-between', px: 3, pb: 2 }}>
+            <DialogActions
+                sx={{
+                    px: 2.25,
+                    py: 1,
+                    justifyContent: 'space-between',
+                    borderTop: '1px solid',
+                    borderColor: 'divider',
+                    bgcolor: 'background.default',
+                }}
+            >
                 <Box>
-                    {!isNew && (
-                        <Button color="error" onClick={handleDelete}>
+                    {!isNew && item && (
+                        <Button color="error" onClick={() => onDelete(item.id)}>
                             Delete
                         </Button>
                     )}
                 </Box>
-                <Box>
-                    <Button onClick={onClose} sx={{ mr: 1 }}>Cancel</Button>
-                    <Button onClick={handleSave} variant="contained" disabled={!formData.label}>
-                        {isNew ? 'Add Menu' : 'Save Changes'}
+                <Stack direction="row" spacing={1}>
+                    <Button onClick={onClose}>Cancel</Button>
+                    <Button variant="contained" onClick={handleSave} disabled={!formData.label}>
+                        {isNew ? 'Add Item' : 'Save'}
                     </Button>
-                </Box>
+                </Stack>
             </DialogActions>
         </Dialog>
     );
 }
 
-interface SortableMenuItemRowProps {
+interface DragData {
+    type: 'menu-item' | 'container';
+    itemId?: string;
+    containerId: string;
+}
+
+interface SortableMenuCardProps {
     item: MenuItemType;
     depth: number;
     maxDepth: number;
+    containerId: string;
+    expanded: boolean;
     storeId: string;
+    onToggleExpand: (id: string) => void;
     onEdit: (item: MenuItemType) => void;
     onDelete: (itemId: string) => void;
     onAddChild: (parentId: string) => void;
-    onReorderChildren: (parentId: string, oldIndex: number, newIndex: number) => void;
     onUpdateItem: (item: MenuItemType) => void;
+    renderChildren: (containerId: string, depth: number) => ReactNode;
 }
 
-function SortableMenuItemRow({
+function SortableMenuCard({
     item,
     depth,
     maxDepth,
+    containerId,
+    expanded,
     storeId,
+    onToggleExpand,
     onEdit,
     onDelete,
     onAddChild,
-    onReorderChildren,
     onUpdateItem,
-}: SortableMenuItemRowProps) {
-    const [expanded, setExpanded] = useState(true);
-    const hasChildren = item.children && item.children.length > 0;
-    const canAddChildren = depth < maxDepth - 1;
-
+    renderChildren,
+}: SortableMenuCardProps) {
     const {
         attributes,
         listeners,
@@ -473,203 +671,224 @@ function SortableMenuItemRow({
         transform,
         transition,
         isDragging,
-    } = useSortable({ id: item.id });
+    } = useSortable({
+        id: item.id,
+        data: {
+            type: 'menu-item',
+            itemId: item.id,
+            containerId,
+        } satisfies DragData,
+    });
 
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.5 : 1,
-    };
-
-    const sensors = useSensors(
-        useSensor(PointerSensor),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
-        })
-    );
-
-    const handleChildDragEnd = (event: DragEndEvent) => {
-        const { active, over } = event;
-        if (over && active.id !== over.id) {
-            const oldIndex = item.children.findIndex(c => c.id === active.id);
-            const newIndex = item.children.findIndex(c => c.id === over.id);
-            onReorderChildren(item.id, oldIndex, newIndex);
-        }
-    };
+    const meta = getTypeMeta(item.type);
+    const hasChildren = item.children?.length > 0;
+    const showChildren = item.type !== 'mega-menu' && depth < maxDepth - 1;
+    const canAddChild = item.type !== 'divider' && item.type !== 'mega-menu' && depth < maxDepth - 1;
 
     return (
-        <Box ref={setNodeRef} style={style}>
-            <ListItem
-                sx={{
-                    pl: depth * 3 + 1,
-                    borderLeft: depth > 0 ? '2px solid' : 'none',
-                    borderColor: 'divider',
-                    ml: depth > 0 ? 2 : 0,
-                    bgcolor: isDragging ? 'action.selected' : (depth % 2 === 0 ? 'background.paper' : 'action.hover'),
-                    borderRadius: 1,
-                    mb: 0.5,
-                    '&:hover': {
-                        bgcolor: 'action.hover',
-                    },
-                }}
-            >
-                <ListItemIcon sx={{ minWidth: 36 }}>
+        <Card
+            ref={setNodeRef}
+            variant="outlined"
+            sx={{
+                mb: 1.2,
+                borderRadius: 2,
+                borderColor: isDragging ? 'primary.main' : 'divider',
+                boxShadow: isDragging ? (theme) => `0 10px 28px ${alpha(theme.palette.primary.main, 0.2)}` : 'none',
+                transform: CSS.Transform.toString(transform),
+                transition,
+                opacity: isDragging ? 0.72 : 1,
+                ml: depth > 0 ? 1 : 0,
+            }}
+        >
+            <CardContent sx={{ px: 1.5, py: 1.25, '&:last-child': { pb: 1.25 } }}>
+                <Stack direction="row" spacing={1} alignItems="center">
                     <Box
                         {...attributes}
                         {...listeners}
                         sx={{
+                            display: 'grid',
+                            placeItems: 'center',
+                            width: 30,
+                            height: 30,
+                            borderRadius: 1,
                             cursor: 'grab',
-                            display: 'flex',
-                            alignItems: 'center',
-                            '&:active': { cursor: 'grabbing' }
+                            color: 'text.secondary',
+                            '&:hover': { bgcolor: 'action.hover' },
+                            '&:active': { cursor: 'grabbing' },
                         }}
                     >
-                        <DragIndicatorIcon fontSize="small" color="action" />
+                        <DragIndicatorRoundedIcon fontSize="small" />
                     </Box>
-                </ListItemIcon>
-                <ListItemIcon sx={{ minWidth: 36 }}>
-                    {getTypeIcon(item.type)}
-                </ListItemIcon>
-                <ListItemText
-                    primary={
-                        <Box display="flex" alignItems="center" gap={1}>
-                            <Typography variant="body2" fontWeight={500}>
-                                {item.label}
+
+                    <Box sx={{ color: 'text.secondary', display: 'grid', placeItems: 'center' }}>{meta.icon}</Box>
+
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                            <Typography variant="body2" fontWeight={700} noWrap>
+                                {item.label || 'Untitled Item'}
                             </Typography>
-                            <Chip label={getTypeLabel(item.type)} size="small" variant="outlined" sx={{ height: 20, fontSize: '0.65rem' }} />
-                            {item.openInNewTab && (
-                                <Chip label="New Tab" size="small" color="info" sx={{ height: 20, fontSize: '0.65rem' }} />
-                            )}
-                        </Box>
-                    }
-                    secondary={
-                        item.type === 'link' ? item.url :
-                            item.type === 'divider' ? '---' :
-                                `ID: ${item.categoryId || item.productId || item.pageId || item.blogCategoryId || '-'}`
-                    }
-                />
-                <ListItemSecondaryAction>
-                    {hasChildren && (
-                        <IconButton size="small" onClick={() => setExpanded(!expanded)}>
-                            {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                            <Chip label={meta.label} size="small" variant="outlined" sx={{ height: 20 }} />
+                            {item.openInNewTab && <Chip label="New Tab" size="small" color="info" sx={{ height: 20 }} />}
+                        </Stack>
+                        <Typography variant="caption" color="text.secondary" noWrap>
+                            {item.type === 'link'
+                                ? item.url || 'No URL'
+                                : item.type === 'divider'
+                                    ? 'Divider'
+                                    : `ID: ${item.categoryId || item.productId || item.pageId || item.blogCategoryId || '-'}`}
+                        </Typography>
+                    </Box>
+
+                    {(hasChildren || item.type === 'mega-menu') && (
+                        <IconButton size="small" onClick={() => onToggleExpand(item.id)}>
+                            {expanded ? <ExpandLessRoundedIcon fontSize="small" /> : <ExpandMoreRoundedIcon fontSize="small" />}
                         </IconButton>
                     )}
-                    {canAddChildren && item.type !== 'divider' && item.type !== 'mega-menu' && (
-                        <Tooltip title="Add child item">
-                            <IconButton size="small" onClick={() => onAddChild(item.id)} color="primary">
-                                <AddIcon fontSize="small" />
+
+                    {canAddChild && (
+                        <Tooltip title="Add nested item">
+                            <IconButton size="small" color="primary" onClick={() => onAddChild(item.id)}>
+                                <AddRoundedIcon fontSize="small" />
                             </IconButton>
                         </Tooltip>
                     )}
-                    <Tooltip title="Edit">
+
+                    <Tooltip title="Edit item">
                         <IconButton size="small" onClick={() => onEdit(item)}>
-                            <EditIcon fontSize="small" />
+                            <EditOutlinedIcon fontSize="small" />
                         </IconButton>
                     </Tooltip>
-                    <Tooltip title="Delete">
-                        <IconButton size="small" onClick={() => onDelete(item.id)} color="error">
-                            <DeleteIcon fontSize="small" />
+
+                    <Tooltip title="Delete item">
+                        <IconButton size="small" color="error" onClick={() => onDelete(item.id)}>
+                            <DeleteOutlineRoundedIcon fontSize="small" />
                         </IconButton>
                     </Tooltip>
-                </ListItemSecondaryAction>
-            </ListItem>
+                </Stack>
 
-            {/* For mega-menu type, show MegaMenuBuilder instead of children */}
-            {item.type === 'mega-menu' && (
-                <Collapse in={expanded}>
-                    <Box sx={{ pl: depth * 3 + 5, pr: 2, py: 2 }}>
-                        <MegaMenuBuilder
-                            data={{
-                                sections: item.megaMenu?.sections || [],
-                                maxHeight: (item.megaMenu as any)?.maxHeight,
-                            }}
-                            onChange={(megaData: MegaMenuData) => {
-                                onUpdateItem({
-                                    ...item,
-                                    megaMenu: {
-                                        sections: megaData.sections,
-                                        maxHeight: megaData.maxHeight,
-                                    },
-                                });
-                            }}
-                            storeId={storeId}
-                        />
-                    </Box>
-                </Collapse>
-            )}
+                {item.type === 'mega-menu' && (
+                    <Collapse in={expanded} timeout="auto" unmountOnExit>
+                        <Box sx={{ mt: 1.5, pl: 1.5, borderLeft: '2px solid', borderColor: 'divider' }}>
+                            <MegaMenuBuilder
+                                data={{
+                                    sections: item.megaMenu?.sections || [],
+                                    maxHeight: item.megaMenu?.maxHeight,
+                                }}
+                                onChange={(megaData: MegaMenuData) => {
+                                    onUpdateItem({
+                                        ...item,
+                                        megaMenu: {
+                                            sections: megaData.sections,
+                                            maxHeight: megaData.maxHeight,
+                                        },
+                                    });
+                                }}
+                                storeId={storeId}
+                            />
+                        </Box>
+                    </Collapse>
+                )}
 
-            {hasChildren && item.type !== 'mega-menu' && (
-                <Collapse in={expanded}>
-                    <DndContext
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={handleChildDragEnd}
-                    >
-                        <SortableContext
-                            items={item.children.map(c => c.id)}
-                            strategy={verticalListSortingStrategy}
-                        >
-                            <List disablePadding>
-                                {item.children.map((child) => (
-                                    <SortableMenuItemRow
-                                        key={child.id}
-                                        item={child}
-                                        depth={depth + 1}
-                                        maxDepth={maxDepth}
-                                        storeId={storeId}
-                                        onEdit={onEdit}
-                                        onDelete={onDelete}
-                                        onAddChild={onAddChild}
-                                        onReorderChildren={onReorderChildren}
-                                        onUpdateItem={onUpdateItem}
-                                    />
-                                ))}
-                            </List>
-                        </SortableContext>
-                    </DndContext>
-                </Collapse>
+                {showChildren && (
+                    <Collapse in={expanded} timeout="auto" unmountOnExit>
+                        <Box sx={{ pt: 1.25 }}>
+                            {renderChildren(item.id, depth + 1)}
+                        </Box>
+                    </Collapse>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+interface ContainerDropZoneProps {
+    containerId: string;
+    label: string;
+    depth: number;
+    itemCount: number;
+    children: React.ReactNode;
+}
+
+function ContainerDropZone({ containerId, label, depth, itemCount, children }: ContainerDropZoneProps) {
+    const { setNodeRef, isOver } = useDroppable({
+        id: `container-${containerId}`,
+        data: {
+            type: 'container',
+            containerId,
+        } satisfies DragData,
+    });
+
+    return (
+        <Box
+            ref={setNodeRef}
+            sx={(theme) => ({
+                border: '1px dashed',
+                borderColor: isOver ? theme.palette.primary.main : theme.palette.divider,
+                bgcolor: isOver ? alpha(theme.palette.primary.main, 0.06) : alpha(theme.palette.background.default, 0.22),
+                borderRadius: 2,
+                p: 1,
+            })}
+        >
+            <Stack
+                direction="row"
+                spacing={1}
+                alignItems="center"
+                sx={{ mb: itemCount > 0 ? 1 : 0, color: 'text.secondary' }}
+            >
+                <KeyboardArrowRightRoundedIcon fontSize="small" />
+                <Typography variant="caption" fontWeight={700}>
+                    {label}
+                </Typography>
+                <Chip size="small" label={`${itemCount}`} variant="outlined" sx={{ height: 18 }} />
+                {depth > 0 && (
+                    <Chip size="small" label={`Depth ${depth}`} sx={{ height: 18 }} />
+                )}
+            </Stack>
+
+            {itemCount === 0 ? (
+                <Box
+                    sx={{
+                        py: 2,
+                        textAlign: 'center',
+                        color: 'text.secondary',
+                        borderRadius: 1.5,
+                    }}
+                >
+                    <UnfoldMoreRoundedIcon fontSize="small" />
+                    <Typography variant="caption" display="block">
+                        Drop items here
+                    </Typography>
+                </Box>
+            ) : (
+                children
             )}
         </Box>
     );
 }
 
 export default function MenuItemBuilder({ items, onChange, storeId, maxDepth = 3 }: MenuItemBuilderProps) {
-    const [editDialog, setEditDialog] = useState<{ open: boolean; item: MenuItemType | null; isNew: boolean; parentId?: string }>({
-        open: false,
-        item: null,
-        isNew: false,
-    });
+    const [editDialog, setEditDialog] = useState<{ open: boolean; item: MenuItemType | null; isNew: boolean; parentId?: string }>(
+        {
+            open: false,
+            item: null,
+            isNew: false,
+        }
+    );
+    const [expandedState, setExpandedState] = useState<Record<string, boolean>>({});
     const { confirm } = useConfirm();
 
     const sensors = useSensors(
-        useSensor(PointerSensor),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
-        })
+        useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
-    const handleDragEnd = (event: DragEndEvent) => {
-        const { active, over } = event;
-        if (over && active.id !== over.id) {
-            const oldIndex = items.findIndex(i => i.id === active.id);
-            const newIndex = items.findIndex(i => i.id === over.id);
-            onChange(arrayMove(items, oldIndex, newIndex));
-        }
-    };
+    const itemCount = useMemo(() => {
+        const count = (nodes: MenuItemType[]): number => nodes.reduce((acc, n) => acc + 1 + count(n.children || []), 0);
+        return count(items);
+    }, [items]);
 
-    const handleReorderChildren = (parentId: string, oldIndex: number, newIndex: number) => {
-        const reorder = (items: MenuItemType[]): MenuItemType[] => {
-            return items.map(i => {
-                if (i.id === parentId) {
-                    return { ...i, children: arrayMove(i.children, oldIndex, newIndex) };
-                }
-                if (i.children && i.children.length > 0) {
-                    return { ...i, children: reorder(i.children) };
-                }
-                return i;
-            });
-        };
-        onChange(reorder(items));
+    const toggleExpanded = (id: string) => {
+        setExpandedState((prev) => ({ ...prev, [id]: !(prev[id] ?? true) }));
     };
 
     const handleAddItem = () => {
@@ -678,74 +897,181 @@ export default function MenuItemBuilder({ items, onChange, storeId, maxDepth = 3
 
     const handleAddChild = (parentId: string) => {
         setEditDialog({ open: true, item: null, isNew: true, parentId });
+        setExpandedState((prev) => ({ ...prev, [parentId]: true }));
     };
 
     const handleEditItem = (item: MenuItemType) => {
         setEditDialog({ open: true, item, isNew: false });
     };
 
-    const handleSaveItem = (item: MenuItemType) => {
+    const handleSaveItem = (savedItem: MenuItemType) => {
         if (editDialog.isNew) {
-            if (editDialog.parentId) {
-                const addToParent = (items: MenuItemType[]): MenuItemType[] => {
-                    return items.map(i => {
-                        if (i.id === editDialog.parentId) {
-                            return { ...i, children: [...(i.children || []), item] };
-                        }
-                        if (i.children && i.children.length > 0) {
-                            return { ...i, children: addToParent(i.children) };
-                        }
-                        return i;
-                    });
-                };
-                onChange(addToParent(items));
-            } else {
-                onChange([...items, item]);
-            }
-        } else {
-            const updateItem = (items: MenuItemType[]): MenuItemType[] => {
-                return items.map(i => {
-                    if (i.id === item.id) {
-                        return { ...item, children: i.children };
-                    }
-                    if (i.children && i.children.length > 0) {
-                        return { ...i, children: updateItem(i.children) };
-                    }
-                    return i;
-                });
-            };
-            onChange(updateItem(items));
+            const containerId = editDialog.parentId || ROOT_CONTAINER;
+            const nextItems = updateChildrenForContainer(items, containerId, (children) => [...children, savedItem]);
+            onChange(nextItems);
+            return;
         }
+
+        const updateItem = (nodes: MenuItemType[]): MenuItemType[] =>
+            nodes.map((node) => {
+                if (node.id === savedItem.id) {
+                    return { ...savedItem, children: node.children };
+                }
+                if (!node.children?.length) return node;
+                return { ...node, children: updateItem(node.children) };
+            });
+
+        onChange(updateItem(items));
     };
 
     const handleDeleteItem = async (itemId: string) => {
-        if (!await confirm({ title: 'Delete Menu Item', message: 'Delete this menu item?', severity: 'error' })) return;
+        const allowed = await confirm({
+            title: 'Delete Menu Item',
+            message: 'Delete this menu item and all nested children?',
+            severity: 'error',
+        });
+        if (!allowed) return;
 
-        const removeItem = (items: MenuItemType[]): MenuItemType[] => {
-            return items
-                .filter(i => i.id !== itemId)
-                .map(i => ({
-                    ...i,
-                    children: i.children ? removeItem(i.children) : [],
-                }));
-        };
-        onChange(removeItem(items));
+        const removeFromNodes = (nodes: MenuItemType[]): MenuItemType[] =>
+            nodes
+                .filter((node) => node.id !== itemId)
+                .map((node) => ({ ...node, children: removeFromNodes(node.children || []) }));
+
+        onChange(removeFromNodes(items));
     };
 
-    // Update a specific item (for mega menu builder)
     const handleUpdateItem = (updatedItem: MenuItemType) => {
-        const updateItem = (items: MenuItemType[]): MenuItemType[] => {
-            return items.map(i => {
-                if (i.id === updatedItem.id) {
-                    return updatedItem;
-                }
-                if (i.children && i.children.length > 0) {
-                    return { ...i, children: updateItem(i.children) };
-                }
-                return i;
+        const updateItem = (nodes: MenuItemType[]): MenuItemType[] =>
+            nodes.map((node) => {
+                if (node.id === updatedItem.id) return updatedItem;
+                if (!node.children?.length) return node;
+                return { ...node, children: updateItem(node.children) };
             });
-        };
+
         onChange(updateItem(items));
+    };
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const activeData = event.active.data.current as DragData | undefined;
+        const overData = event.over?.data.current as DragData | undefined;
+        if (!event.over || !activeData || !overData || activeData.type !== 'menu-item' || !activeData.itemId) {
+            return;
+        }
+
+        const sourceContainerId = activeData.containerId;
+        const sourceChildren = getChildrenForContainer(items, sourceContainerId);
+        const sourceIndex = sourceChildren.findIndex((child) => child.id === activeData.itemId);
+        if (sourceIndex < 0) return;
+
+        if (overData.type === 'menu-item' && overData.itemId) {
+            const destinationContainerId = overData.containerId;
+            const destinationChildren = getChildrenForContainer(items, destinationContainerId);
+            const destinationIndex = destinationChildren.findIndex((child) => child.id === overData.itemId);
+            if (destinationIndex < 0) return;
+
+            if (sourceContainerId === destinationContainerId) {
+                const reordered = updateChildrenForContainer(items, sourceContainerId, (children) =>
+                    arrayMove(children, sourceIndex, destinationIndex)
+                );
+                onChange(reordered);
+                return;
+            }
+
+            const draggedItem = findItemById(items, activeData.itemId);
+            if (!draggedItem || isDescendantContainer(draggedItem, destinationContainerId)) return;
+
+            const destinationDepth =
+                destinationContainerId === ROOT_CONTAINER
+                    ? 0
+                    : (getItemDepth(items, destinationContainerId) ?? 0) + 1;
+
+            if (destinationDepth + getSubtreeDepth(draggedItem) > maxDepth - 1) return;
+
+            const removed = removeItemFromTree(items, activeData.itemId);
+            if (!removed.removed) return;
+
+            const inserted = updateChildrenForContainer(
+                removed.nextItems,
+                destinationContainerId,
+                (children) => [
+                    ...children.slice(0, destinationIndex),
+                    removed.removed as MenuItemType,
+                    ...children.slice(destinationIndex),
+                ]
+            );
+            onChange(inserted);
+            setExpandedState((prev) => ({ ...prev, [destinationContainerId]: true }));
+            return;
+        }
+
+        if (overData.type === 'container') {
+            const destinationContainerId = overData.containerId;
+
+            if (sourceContainerId === destinationContainerId) {
+                const reordered = updateChildrenForContainer(items, sourceContainerId, (children) => {
+                    if (sourceIndex === children.length - 1) return children;
+                    return arrayMove(children, sourceIndex, children.length - 1);
+                });
+                onChange(reordered);
+                return;
+            }
+
+            const draggedItem = findItemById(items, activeData.itemId);
+            if (!draggedItem || isDescendantContainer(draggedItem, destinationContainerId)) return;
+
+            const destinationDepth =
+                destinationContainerId === ROOT_CONTAINER
+                    ? 0
+                    : (getItemDepth(items, destinationContainerId) ?? 0) + 1;
+
+            if (destinationDepth + getSubtreeDepth(draggedItem) > maxDepth - 1) return;
+
+            const removed = removeItemFromTree(items, activeData.itemId);
+            if (!removed.removed) return;
+
+            const inserted = updateChildrenForContainer(
+                removed.nextItems,
+                destinationContainerId,
+                (children) => [...children, removed.removed as MenuItemType]
+            );
+            onChange(inserted);
+            setExpandedState((prev) => ({ ...prev, [destinationContainerId]: true }));
+        }
+    };
+
+    const renderContainer = (containerId: string, depth: number): ReactNode => {
+        const children = getChildrenForContainer(items, containerId);
+
+        return (
+            <ContainerDropZone
+                containerId={containerId}
+                depth={depth}
+                label={containerId === ROOT_CONTAINER ? 'Root Menu Structure' : 'Nested Items'}
+                itemCount={children.length}
+            >
+                <SortableContext items={children.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+                    <Box>
+                        {children.map((child) => (
+                            <SortableMenuCard
+                                key={child.id}
+                                item={child}
+                                depth={depth}
+                                maxDepth={maxDepth}
+                                containerId={containerId}
+                                expanded={expandedState[child.id] ?? true}
+                                storeId={storeId}
+                                onToggleExpand={toggleExpanded}
+                                onEdit={handleEditItem}
+                                onDelete={handleDeleteItem}
+                                onAddChild={handleAddChild}
+                                onUpdateItem={handleUpdateItem}
+                                renderChildren={renderContainer}
+                            />
+                        ))}
+                    </Box>
+                </SortableContext>
+            </ContainerDropZone>
+        );
     };
 
     if (!storeId) {
@@ -757,73 +1083,80 @@ export default function MenuItemBuilder({ items, onChange, storeId, maxDepth = 3
     }
 
     return (
-        <Paper sx={{ p: 2, mt: 2 }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Paper
+            sx={(theme) => ({
+                mt: 2,
+                p: { xs: 1.5, md: 2 },
+                borderRadius: 3,
+                border: '1px solid',
+                borderColor: 'divider',
+                background: `linear-gradient(180deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${theme.palette.background.paper} 42%)`,
+            })}
+        >
+            <Stack
+                direction={{ xs: 'column', md: 'row' }}
+                spacing={1.5}
+                justifyContent="space-between"
+                alignItems={{ xs: 'flex-start', md: 'center' }}
+                sx={{ mb: 2 }}
+            >
                 <Box>
-                    <Typography variant="subtitle1" fontWeight={600}>
-                        Menu Items ({items.length})
+                    <Typography variant="h6" fontWeight={800}>
+                        Menu Structure Designer
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                        Drag items to reorder
-                    </Typography>
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.25 }}>
+                        <Typography variant="body2" color="text.secondary">
+                            Drag and drop between root and nested sections.
+                        </Typography>
+                        <Chip size="small" label={`${itemCount} total items`} variant="outlined" />
+                        <Chip size="small" label={`Max depth ${maxDepth}`} />
+                    </Stack>
                 </Box>
-                <Button
-                    startIcon={<AddIcon />}
-                    variant="outlined"
-                    size="small"
-                    onClick={handleAddItem}
-                >
-                    Add Menu
-                </Button>
-            </Box>
+
+                <Stack direction="row" spacing={1}>
+                    <Button startIcon={<AddRoundedIcon />} variant="contained" onClick={handleAddItem}>
+                        Add Item
+                    </Button>
+                </Stack>
+            </Stack>
+
+            <Divider sx={{ mb: 2 }} />
 
             {items.length === 0 ? (
-                <Box textAlign="center" py={4}>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                <Box
+                    sx={{
+                        py: 6,
+                        borderRadius: 3,
+                        border: '1px dashed',
+                        borderColor: 'divider',
+                        textAlign: 'center',
+                    }}
+                >
+                    <Typography variant="subtitle1" fontWeight={700}>
                         No menu items yet
                     </Typography>
-                    <Button startIcon={<AddIcon />} variant="contained" onClick={handleAddItem}>
-                        Add First Menu
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        Create your first item and build nested menu sections with drag and drop.
+                    </Typography>
+                    <Button startIcon={<AddRoundedIcon />} variant="contained" onClick={handleAddItem}>
+                        Add First Item
                     </Button>
                 </Box>
             ) : (
-                <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleDragEnd}
-                >
-                    <SortableContext
-                        items={items.map(i => i.id)}
-                        strategy={verticalListSortingStrategy}
-                    >
-                        <List disablePadding>
-                            {items.map((item) => (
-                                <SortableMenuItemRow
-                                    key={item.id}
-                                    item={item}
-                                    depth={0}
-                                    maxDepth={maxDepth}
-                                    storeId={storeId}
-                                    onEdit={handleEditItem}
-                                    onDelete={handleDeleteItem}
-                                    onAddChild={handleAddChild}
-                                    onReorderChildren={handleReorderChildren}
-                                    onUpdateItem={handleUpdateItem}
-                                />
-                            ))}
-                        </List>
-                    </SortableContext>
+                <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
+                    {renderContainer(ROOT_CONTAINER, 0)}
                 </DndContext>
             )}
 
             <EditItemDialog
+                key={`${editDialog.open ? 'open' : 'closed'}-${editDialog.item?.id || 'new'}-${editDialog.parentId || 'root'}`}
                 open={editDialog.open}
                 item={editDialog.item}
-                onClose={() => setEditDialog({ open: false, item: null, isNew: false })}
+                isNew={editDialog.isNew}
+                storeId={storeId}
                 onSave={handleSaveItem}
                 onDelete={handleDeleteItem}
-                storeId={storeId}
-                isNew={editDialog.isNew}
+                onClose={() => setEditDialog({ open: false, item: null, isNew: false })}
             />
         </Paper>
     );

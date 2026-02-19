@@ -6,12 +6,29 @@
 import React from 'react';
 // import { useStore } from '@/providers/StoreProvider';
 import { FooterElementRenderer } from './FooterElements';
-import { FooterSection, FooterColumn, FooterElement } from '@/types/store';
+import { FooterSection, FooterRow, FooterColumn, FooterElement } from '@/types/store';
 import styles from './Footer.module.scss';
 
-import { Menu } from '@/types/menu';
+interface ModernCleanFooterTemplateProps {
+    config?: {
+        sections?: FooterSection[];
+    } | null;
+    store?: {
+        theme?: {
+            footer?: {
+                sections?: FooterSection[];
+            } | null;
+            colors?: {
+                primary?: string;
+                secondary?: string;
+                accent?: string;
+                background?: string;
+            };
+        };
+    } | null;
+}
 
-export default function ModernCleanFooterTemplate(props: any) {
+export default function ModernCleanFooterTemplate(props: ModernCleanFooterTemplateProps) {
     const { config, store } = props;
     const footerConfig = config || store?.theme?.footer;
     const colors = store?.theme?.colors;
@@ -44,26 +61,52 @@ export default function ModernCleanFooterTemplate(props: any) {
             {columnsSection && rows.length > 0 && (
                 <div className={styles.footerMain}>
                     <div className={styles.container}>
-                        {rows.map((row: { id: string; columns: FooterColumn[] }, rowIndex: number) => (
+                        {rows.map((row: FooterRow, rowIndex: number) => (
                             <div
                                 key={row.id}
                                 className={styles.footerRow}
                                 style={{
                                     '--animation-delay': `${rowIndex * 0.1}s`,
+                                    '--row-justify': row.settings?.position === 'center'
+                                        ? 'center'
+                                        : row.settings?.position === 'right'
+                                            ? 'flex-end'
+                                            : 'flex-start',
+                                    '--row-heading-font-family': row.settings?.headingFontFamily || 'inherit',
+                                    '--row-heading-font-size': `${row.settings?.headingFontSize || 16}px`,
+                                    '--row-heading-align': row.settings?.headingAlign || 'left',
+                                    '--row-content-align': row.settings?.headingAlign === 'center'
+                                        ? 'center'
+                                        : row.settings?.headingAlign === 'right'
+                                            ? 'flex-end'
+                                            : 'flex-start',
                                 } as React.CSSProperties}
                             >
-                                <div className={styles.grid}>
+                                <div className={styles.footerFlexGrid}>
                                     {row.columns.map((column: FooterColumn, colIndex: number) => {
                                         // Calculate column span based on width (1-12)
                                         const colSpan = Math.max(1, Math.min(12, column.width));
+                                        const desktopAlign = column.settings?.contentAlign?.desktop || row.settings?.headingAlign || 'left';
+                                        const tabletAlign = column.settings?.contentAlign?.tablet || desktopAlign;
+                                        const mobileAlign = column.settings?.contentAlign?.mobile || tabletAlign;
+                                        const alignToJustify = (align: 'left' | 'center' | 'right') => (
+                                            align === 'center' ? 'center' : align === 'right' ? 'flex-end' : 'flex-start'
+                                        );
 
                                         return (
                                             <div
                                                 key={column.id}
                                                 className={styles.footerColumn}
                                                 style={{
-                                                    gridColumn: `span ${colSpan}`,
+                                                    flexBasis: `${(colSpan / 12) * 100}%`,
+                                                    maxWidth: `${(colSpan / 12) * 100}%`,
                                                     '--column-delay': `${(rowIndex * 0.1) + (colIndex * 0.05)}s`,
+                                                    '--col-align-desktop': desktopAlign,
+                                                    '--col-align-tablet': tabletAlign,
+                                                    '--col-align-mobile': mobileAlign,
+                                                    '--col-justify-desktop': alignToJustify(desktopAlign),
+                                                    '--col-justify-tablet': alignToJustify(tabletAlign),
+                                                    '--col-justify-mobile': alignToJustify(mobileAlign),
                                                 } as React.CSSProperties}
                                             >
                                                 {/* Column Title */}

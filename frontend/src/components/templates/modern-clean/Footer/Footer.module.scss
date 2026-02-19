@@ -8,6 +8,7 @@
     overflow: hidden;
     overflow: hidden;
     animation: fadeIn 0.6s ease-in-out;
+    box-shadow: 0px 0px 10px 10px #b7b7b752;
 
     // Main footer section with columns
     &Main {
@@ -36,10 +37,15 @@
         opacity: 0;
         animation: slideUp 0.8s ease-out forwards;
         animation-delay: var(--animation-delay, 0s);
+        --row-justify: flex-start;
+        --row-heading-font-family: inherit;
+        --row-heading-font-size: 16px;
+        --row-heading-align: left;
+        --row-content-align: flex-start;
 
         &:not(:first-child) {
             margin-top: 48px;
-            padding-top: 48px;
+
             border-top: 1px solid rgba(255, 255, 255, 0.1);
 
             @include mobile {
@@ -49,13 +55,49 @@
         }
     }
 
+    &FlexGrid {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: var(--row-justify, flex-start);
+        align-items: flex-start;
+        gap: 0;
+
+        @include mobile {
+            gap: 16px;
+        }
+    }
+
     // Column container
     &Column {
         animation: fadeInUp 0.6s ease-out forwards;
         animation-delay: var(--column-delay, 0s);
         color: var(--footer-text, currentColor);
+        flex-grow: 0;
+        flex-shrink: 0;
+        min-width: 0;
+        box-sizing: border-box;
+        padding: 0 10px;
+        --col-align-desktop: var(--row-heading-align, left);
+        --col-align-tablet: var(--col-align-desktop);
+        --col-align-mobile: var(--col-align-tablet);
+        --col-justify-desktop: var(--row-content-align, flex-start);
+        --col-justify-tablet: var(--col-justify-desktop);
+        --col-justify-mobile: var(--col-justify-tablet);
+        --col-align: var(--col-align-desktop);
+        --col-justify: var(--col-justify-desktop);
+        text-align: var(--col-align, left);
+
+        @include tablet-down {
+            --col-align: var(--col-align-tablet);
+            --col-justify: var(--col-justify-tablet);
+        }
 
         @include mobile {
+            --col-align: var(--col-align-mobile);
+            --col-justify: var(--col-justify-mobile);
+            min-width: 100%;
+            flex-basis: 100% !important;
+            max-width: 100% !important;
             margin-bottom: 32px;
 
             &:last-child {
@@ -67,18 +109,22 @@
             display: flex;
             flex-direction: column;
             gap: 16px;
+            align-items: var(--col-justify, flex-start);
         }
 
         // Column title
         h3 {
             position: relative;
             font-weight: 600;
-            font-size: 16px;
+            font-family: var(--row-heading-font-family, inherit);
+            font-size: var(--row-heading-font-size, 16px);
+            text-align: var(--row-heading-align, left);
             text-transform: uppercase;
             letter-spacing: 1.5px;
             margin-bottom: 20px;
             padding-bottom: 12px;
             display: inline-block;
+            width: auto;
 
             &::after {
                 content: '';
@@ -93,6 +139,12 @@
 
             &:hover::after {
                 width: 60px;
+            }
+        }
+
+        @include mobile {
+            h3 {
+                display: inline-block;
             }
         }
     }
@@ -293,10 +345,12 @@
             font-size: 16px;
             font-weight: 600;
             margin-bottom: 16px;
+            text-align: var(--col-align, left);
         }
 
         .socialLinks {
             display: flex;
+            justify-content: var(--col-justify, flex-start);
             gap: 12px;
             flex-wrap: wrap;
 
@@ -353,6 +407,7 @@
             font-size: 16px;
             font-weight: 600;
             margin-bottom: 16px;
+            text-align: var(--col-align, left);
         }
 
         p {
@@ -394,12 +449,14 @@
             font-size: 16px;
             font-weight: 600;
             margin-bottom: 16px;
+            text-align: var(--col-align, left);
         }
 
         .paymentMethods {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
+            justify-content: var(--col-justify, flex-start);
 
             .method {
                 padding: 8px 16px;

@@ -775,9 +775,10 @@ $star-color: #fbbf24;
     h4,
     h5,
     h6 {
-        color: $text-primary;
+        color: $text-secondary;
         margin-top: 24px;
         margin-bottom: 12px;
+        font-weight: 800;
     }
 
     p {
@@ -788,6 +789,7 @@ $star-color: #fbbf24;
     ol {
         margin-bottom: 16px;
         padding-left: 24px;
+        list-style: initial;
     }
 
     img {

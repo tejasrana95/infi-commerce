@@ -190,7 +190,7 @@ $accent-color: var(--color-accent, #007185);
     .sectionCenter,
     .sectionRight {
         font-size: 0.9rem;
-        
+
         .menuElement {
             font-size: 0.9rem;
         }
@@ -510,7 +510,7 @@ $accent-color: var(--color-accent, #007185);
     position: relative;
     background: transparent;
     border: none;
-    padding: 0.5rem;
+    padding: 0.2rem;
     cursor: pointer;
     color: var(--color-text, #111827);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -546,9 +546,9 @@ $accent-color: var(--color-accent, #007185);
 
 .badge {
     position: absolute;
-    top: -2px;
-    right: -2px;
-    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+    top: -10px;
+    right: -6px;
+    background: linear-gradient(135deg, $accent-color 0%, $accent-color 100%);
     color: white;
     font-size: 0.625rem;
     font-weight: 700;
@@ -561,6 +561,11 @@ $accent-color: var(--color-accent, #007185);
     box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
     border: 2px solid white;
     animation: badgePulse 2s ease-in-out infinite;
+
+    @include tablet {
+        top: -2px;
+        right: -2px;
+    }
 }
 
 @keyframes badgePulse {
@@ -578,11 +583,11 @@ $accent-color: var(--color-accent, #007185);
 // Inline search container (expanded for desktop)
 .inlineSearchContainer {
     flex: 1;
-  
+
     display: flex;
     position: relative;
     z-index: 100;
-    
+
     @include mobile {
         display: none;
     }
@@ -601,15 +606,15 @@ $accent-color: var(--color-accent, #007185);
     @include mobile {
         display: flex !important;
     }
-    
-    @media (min-width: 769px) {
+
+    @media (min-width: 1025px) {
         display: none !important;
     }
 }
 
 // Mobile-only search button - only visible on mobile and tablet
 .mobileOnlyBtn {
-    @media (min-width: 769px) {
+    @media (min-width: 1025px) {
         display: none !important;
     }
 }
@@ -782,55 +787,155 @@ $accent-color: var(--color-accent, #007185);
 }
 
 // ========== MOBILE MENU ==========
-.mobileMenu {
+.mobileMenuOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1400;
     display: none;
-    background: var(--color-background, white);
-    border-bottom: 1px solid var(--color-border, #f0f0f0);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    position: absolute;
-    top: 100%;
-    left: 0;
-    width: 100%;
-    animation: slideBehindHeader 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-    transition: all 0.2s;
-    z-index: -1;
+    justify-content: flex-start;
+    align-items: stretch;
+    background: rgba(15, 23, 42, 0.28);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+}
 
-    @include mobile {
+.mobileMenu {
+    width: min(380px, calc(100vw - 2rem));
+    height: 100dvh;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border-right: 1px solid #e2e8f0;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.24);
+    display: flex;
+    flex-direction: column;
+    animation: mobileDrawerIn 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes mobileDrawerIn {
+    from {
+        transform: translateX(-24px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes mobileDrawerOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    to {
+        transform: translateX(-24px);
+        opacity: 0;
+    }
+}
+
+.mobileMenuOverlay.closing {
+    .mobileMenu {
+        animation: mobileDrawerOut 0.24s cubic-bezier(0.4, 0, 0.8, 0.2) forwards;
+    }
+}
+
+.mobileMenuHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.6rem 1rem 0.9rem;
+    border-bottom: 1px solid #e2e8f0;
+    background: #ffffff;
+}
+
+.mobileMenuEyebrow {
+    margin: 0;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #64748b;
+}
+
+.mobileMenuTitle {
+    margin: 0.2rem 0 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.mobileMenuClose {
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    background: #fff;
+    color: #334155;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+
+    svg {
+        width: 1rem;
+        height: 1rem;
+    }
+}
+
+.mobileMenuQuickActions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.45rem;
+}
+
+.mobileQuickAction {
+    display: block;
+    text-decoration: none;
+    padding: 0.55rem 0.4rem;
+    border-radius: 0.5rem;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    color: #0f172a;
+    text-align: center;
+    line-height: 1.15;
+
+    span {
         display: block;
+        font-weight: 600;
+        font-size: 0.74rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 }
 
 .mobileMenuContent {
-    padding: 1rem;
+    padding: 0.75rem 1rem 1rem;
+    overflow-y: auto;
+    flex: 1;
 }
 
-.mobileSearch {
-    margin-bottom: 1rem;
-
-    input {
-        width: 100%;
-    }
+.mobileMenuFooter {
+    padding: 0.65rem 0.85rem max(0.65rem, env(safe-area-inset-bottom));
+    border-top: 1px solid #e2e8f0;
+    background: #f8fafc;
 }
 
 .mobileNav {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.35rem;
 }
 
-.mobileNavLink {
-    display: block;
-    padding: 0.875rem 1rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #333;
-    text-decoration: none;
-    border-radius: 0.5rem;
-    transition: background 0.2s;
-
-    &:hover {
-        background: #f5f5f5;
-    }
+.mobileMenuFallback {
+    padding: 1rem;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.65rem;
+    color: #64748b;
+    font-size: 0.88rem;
 }
 
 // ========== ACCOUNT DROPDOWN ==========
@@ -838,6 +943,11 @@ $accent-color: var(--color-accent, #007185);
     position: relative;
     display: flex;
     align-items: center;
+
+    @include mobile {
+        // Let dropdown position against headerContent so it aligns with screen edge on mobile
+        position: static;
+    }
 }
 
 .accountDropdown {
@@ -853,6 +963,13 @@ $accent-color: var(--color-accent, #007185);
     margin-top: 0.5rem;
     overflow: hidden;
     animation: fadeIn 0.2s ease-out;
+
+    @include mobile {
+        right: 0;
+        width: min(340px, calc(100vw - 1rem));
+        margin-top: 0.4rem;
+        border-radius: 0.65rem;
+    }
 }
 
 .accountHeader {
@@ -929,6 +1046,8 @@ $accent-color: var(--color-accent, #007185);
 
 .loginBtn {
     display: block;
+    width: 100%;
+    box-sizing: border-box;
     text-align: center;
     padding: 0.875rem;
     background: $accent-color;
@@ -952,6 +1071,8 @@ $accent-color: var(--color-accent, #007185);
 
 .registerBtn {
     display: block;
+    width: 100%;
+    box-sizing: border-box;
     text-align: center;
     padding: 0.875rem;
     border: 2px solid #e5e7eb;

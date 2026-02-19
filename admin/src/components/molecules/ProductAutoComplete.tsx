@@ -134,7 +134,7 @@ export default function ProductAutoComplete({
             searchProducts(trimmedInput);
         }, 500);
         return () => clearTimeout(timer);
-    }, [inputValue, searchProducts]);
+    }, [inputValue]);
 
     return (
         <Autocomplete
