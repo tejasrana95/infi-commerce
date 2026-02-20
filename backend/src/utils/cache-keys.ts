@@ -150,6 +150,8 @@ export const InvalidationPatterns = {
     allStore: (storeId: string) => `store:${storeId}*`,
     /** All categories for a store: categories:{storeId}* and category:{storeId}:* */
     allCategories: (storeId: string) => `categories:${storeId}*`,
+    /** All cached category list responses */
+    allCategoryLists: () => `categories:list:*`,
     /** Single category patterns */
     categoryById: (categoryId: string) => `category:${categoryId}*`,
     /** All menus for a store: menus:{storeId}* and menu:{storeId}:* */

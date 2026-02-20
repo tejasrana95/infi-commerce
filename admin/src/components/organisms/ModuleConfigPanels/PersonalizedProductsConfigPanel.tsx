@@ -14,9 +14,16 @@ import {
     Divider,
     Alert,
 } from '@mui/material';
+import { ColorPicker } from '@/components/atoms';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 
 export interface PersonalizedProductsConfig {
+    titleTypography?: {
+        fontFamily?: string;
+        fontSize?: number;
+        color?: string;
+        alignment?: 'left' | 'center' | 'right';
+    };
     title?: string;
     subtitle?: string;
     limit?: number;
@@ -31,6 +38,17 @@ export interface PersonalizedProductsConfig {
     autoplay?: boolean;
 }
 
+const COMMON_FONTS = [
+    { label: 'Default', value: '' },
+    { label: 'Inter', value: 'Inter, sans-serif' },
+    { label: 'Roboto', value: 'Roboto, sans-serif' },
+    { label: 'Open Sans', value: '"Open Sans", sans-serif' },
+    { label: 'Lato', value: 'Lato, sans-serif' },
+    { label: 'Montserrat', value: 'Montserrat, sans-serif' },
+    { label: 'Playfair Display', value: '"Playfair Display", serif' },
+    { label: 'Merriweather', value: 'Merriweather, serif' },
+];
+
 interface PersonalizedProductsConfigPanelProps {
     config: PersonalizedProductsConfig;
     onChange: (config: PersonalizedProductsConfig) => void;
@@ -40,6 +58,12 @@ interface PersonalizedProductsConfigPanelProps {
 export const defaultPersonalizedProductsConfig: PersonalizedProductsConfig = {
     title: 'Recommended For You',
     subtitle: '',
+    titleTypography: {
+        fontFamily: '',
+        fontSize: 28,
+        color: '#1a1a1a',
+        alignment: 'left',
+    },
     limit: 8,
     columns: { desktop: 4, tablet: 3, mobile: 2 },
     layout: 'grid',
@@ -59,6 +83,16 @@ export default function PersonalizedProductsConfigPanel({
 
     const handleChange = (key: string, value: any) => {
         onChange({ ...config, [key]: value });
+    };
+
+    const handleTitleTypographyChange = (key: string, value: any) => {
+        onChange({
+            ...config,
+            titleTypography: {
+                ...(config.titleTypography || {}),
+                [key]: value,
+            },
+        });
     };
 
     // Get columns value (normalize object to number for display)
@@ -100,6 +134,53 @@ export default function PersonalizedProductsConfigPanel({
                 placeholder="e.g., Products you might like"
                 fullWidth
             />
+
+            <Typography variant="subtitle2" fontWeight={600}>
+                Title Typography
+            </Typography>
+
+            <FormControl fullWidth>
+                <InputLabel>Title Font Family</InputLabel>
+                <Select
+                    value={config.titleTypography?.fontFamily || ''}
+                    label="Title Font Family"
+                    onChange={(e) => handleTitleTypographyChange('fontFamily', e.target.value)}
+                >
+                    {COMMON_FONTS.map(font => (
+                        <MenuItem key={font.value} value={font.value} style={{ fontFamily: font.value || 'inherit' }}>
+                            {font.label}
+                        </MenuItem>
+                    ))}
+                </Select>
+            </FormControl>
+
+            <TextField
+                label="Title Font Size (px)"
+                type="number"
+                value={config.titleTypography?.fontSize ?? 28}
+                onChange={(e) => handleTitleTypographyChange('fontSize', parseInt(e.target.value, 10) || 28)}
+                inputProps={{ min: 12, max: 80 }}
+                fullWidth
+            />
+
+            <ColorPicker
+                label="Title Color"
+                value={config.titleTypography?.color || '#1a1a1a'}
+                onChange={(color) => handleTitleTypographyChange('color', color)}
+            />
+
+            <FormControl fullWidth>
+                <InputLabel>Title Alignment</InputLabel>
+                <Select
+                    value={config.titleTypography?.alignment || 'left'}
+                    label="Title Alignment"
+                    onChange={(e) => handleTitleTypographyChange('alignment', e.target.value)}
+                >
+                    <MenuItem value="left">Left</MenuItem>
+                    <MenuItem value="center">Center</MenuItem>
+                    <MenuItem value="right">Right</MenuItem>
+                </Select>
+            </FormControl>
 
             <Divider sx={{ my: 1 }} />
 

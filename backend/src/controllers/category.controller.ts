@@ -12,6 +12,7 @@ import { triggerRevalidation } from '../utils/revalidation';
 import { escapeRegExp } from '../utils/search.utils';
 import { updateCategorySyncTimestamp } from '../utils/sync-timestamp.utils';
 import SlugRegistry from '../models/SlugRegistry';
+import { config } from '../config';
 
 // Validation rules
 export const createCategoryValidation = [
@@ -219,6 +220,8 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 50;
     const skip = (page - 1) * limit;
+    const cacheParam = String(req.query.cache || '').toLowerCase();
+    const bypassCache = ['0', 'false', 'off', 'no'].includes(cacheParam) || req.query.nocache === 'true';
 
     // Build filter
     const filter: any = {};
@@ -238,6 +241,27 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
 
     // Get store ID from multiple sources (header takes priority for API key requests)
     const effectiveStoreId = (req.headers['x-store-id'] || req.query.storeId || req.body?.storeId) as string | undefined;
+
+    const canUseCategoryListCache = config.categoryCache.enabled && !bypassCache && !req.user;
+    const categoryCacheTtlSeconds = config.categoryCache.ttlDays * 24 * 60 * 60;
+
+    const normalizedQueryForCache = Object.keys(req.query)
+        .filter((key) => key !== 'cache' && key !== 'nocache')
+        .sort()
+        .map((key) => {
+            const value = req.query[key];
+            if (Array.isArray(value)) return `${key}=${value.join(',')}`;
+            return `${key}=${String(value)}`;
+        })
+        .join('&');
+    const categoryListCacheKey = `categories:list:v1:store:${effectiveStoreId || 'all'}:channel:${req.channel || 'all'}:query:${normalizedQueryForCache || 'none'}`;
+
+    if (canUseCategoryListCache) {
+        const cachedResponse = await redisService.get<any>(categoryListCacheKey);
+        if (cachedResponse) {
+            return res.json(cachedResponse);
+        }
+    }
 
     if (isStoreAdmin) {
         if (assignedStoreIds.length === 0) {
@@ -316,7 +340,7 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
     ]);
     const totalCount = canSkipCountForIds ? categories.length : total;
 
-    return res.json({
+    const responsePayload = {
         categories,
         pagination: {
             total: totalCount,
@@ -324,7 +348,13 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
             limit,
             pages: Math.ceil(totalCount / limit),
         },
-    });
+    };
+
+    if (canUseCategoryListCache) {
+        await redisService.set(categoryListCacheKey, responsePayload, categoryCacheTtlSeconds);
+    }
+
+    return res.json(responsePayload);
 });
 
 /**

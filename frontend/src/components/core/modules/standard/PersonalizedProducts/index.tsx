@@ -15,6 +15,12 @@ interface ResponsiveColumns {
 }
 
 interface PersonalizedProductsConfig {
+    titleTypography?: {
+        fontFamily?: string;
+        fontSize?: number;
+        color?: string;
+        alignment?: 'left' | 'center' | 'right';
+    };
     title?: string;
     subtitle?: string;
     limit: number;
@@ -69,6 +75,7 @@ export default function PersonalizedProductsModule({ config }: ModuleProps) {
     const {
         title = 'Recommended For You',
         subtitle,
+        titleTypography,
         limit = 8,
         columns = { desktop: 4, tablet: 3, mobile: 2 },
         layout = 'grid',
@@ -201,6 +208,16 @@ export default function PersonalizedProductsModule({ config }: ModuleProps) {
     }, [store, limit, exclusionScope, exclusionDays, retentionDays, fallback, getLocalData]);
 
     const columnClass = styles[`columns${Math.min(Math.max(normalizedColumns.desktop, 2), 6)}`];
+    const titleAlignment = titleTypography?.alignment || 'left';
+    const headerStyle: React.CSSProperties = {
+        alignItems: titleAlignment === 'center' ? 'center' : titleAlignment === 'right' ? 'flex-end' : 'flex-start',
+        textAlign: titleAlignment,
+    };
+    const titleStyle: React.CSSProperties = {
+        fontFamily: titleTypography?.fontFamily || undefined,
+        fontSize: titleTypography?.fontSize ? `${titleTypography.fontSize}px` : undefined,
+        color: titleTypography?.color || undefined,
+    };
 
     if (loading) {
         return (
@@ -222,8 +239,8 @@ export default function PersonalizedProductsModule({ config }: ModuleProps) {
     return (
         <section className={styles.container}>
             {(title || subtitle) && (
-                <div className={styles.header}>
-                    {title && <h2 className={styles.title}>{title}</h2>}
+                <div className={styles.header} style={headerStyle}>
+                    {title && <h2 className={styles.title} style={titleStyle}>{title}</h2>}
                     {(subtitle || isPersonalized) && (
                         <span className={styles.personalizedBadge}>{subtitle || '✨ Personalized for you'}</span>
                     )}

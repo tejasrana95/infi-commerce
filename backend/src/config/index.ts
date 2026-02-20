@@ -69,5 +69,10 @@ export const config = {
         keyPrefix: process.env.REDIS_KEY_PREFIX || 'infi:',
     },
 
+    categoryCache: {
+        enabled: process.env.CATEGORY_API_CACHE_ENABLED !== 'false',
+        ttlDays: Math.min(Math.max(parseInt(process.env.CATEGORY_API_CACHE_TTL_DAYS || '7', 10) || 7, 1), 365),
+    },
+
     appName: 'Infi Commerce POS',
 };

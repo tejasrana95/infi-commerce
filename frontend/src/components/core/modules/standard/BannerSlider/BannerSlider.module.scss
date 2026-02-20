@@ -128,6 +128,13 @@
     }
 }
 
+.slideLink {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: block;
+}
+
 // =============================================================================
 // CONTENT STYLES
 // =============================================================================
@@ -170,6 +177,10 @@
             margin-left: auto;
         }
     }
+}
+
+.contentPassThrough {
+    pointer-events: none;
 }
 
 .contentInner {

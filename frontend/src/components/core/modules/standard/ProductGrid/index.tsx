@@ -16,6 +16,12 @@ interface ProductGridConfig {
     productIds?: string[];
     categoryIds?: string[];
     title?: string;
+    titleTypography?: {
+        fontFamily?: string;
+        fontSize?: number;
+        color?: string;
+        alignment?: 'left' | 'center' | 'right';
+    };
 }
 
 interface Product {
@@ -41,6 +47,7 @@ export default function ProductGridModule({ config, initialData }: ModuleProps) 
         productIds,
         categoryIds,
         title,
+        titleTypography,
     } = config as ProductGridConfig;
 
     const initialProducts = initialData as Product[];
@@ -90,6 +97,16 @@ export default function ProductGridModule({ config, initialData }: ModuleProps) 
     }, [source, limit, categoryIds, productIds]);
 
     const columnClass = styles[`columns${Math.min(Math.max(columns, 2), 6)}`];
+    const titleAlignment = titleTypography?.alignment || 'left';
+    const headerStyle: React.CSSProperties = {
+        justifyContent: titleAlignment === 'center' ? 'center' : titleAlignment === 'right' ? 'flex-end' : 'flex-start',
+    };
+    const titleStyle: React.CSSProperties = {
+        fontFamily: titleTypography?.fontFamily || undefined,
+        fontSize: titleTypography?.fontSize ? `${titleTypography.fontSize}px` : undefined,
+        color: titleTypography?.color || undefined,
+        textAlign: titleAlignment,
+    };
 
     if (loading) {
         return (
@@ -121,8 +138,8 @@ export default function ProductGridModule({ config, initialData }: ModuleProps) 
     return (
         <div className={styles.container}>
             {title && (
-                <div className={styles.header}>
-                    <h2 className={styles.title}>{title}</h2>
+                <div className={styles.header} style={headerStyle}>
+                    <h2 className={styles.title} style={titleStyle}>{title}</h2>
                 </div>
             )}
 

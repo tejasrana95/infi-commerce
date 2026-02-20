@@ -18,6 +18,12 @@ interface ProductCarouselConfig {
     categoryIds?: string[];
     productIds?: string[];
     title?: string;
+    titleTypography?: {
+        fontFamily?: string;
+        fontSize?: number;
+        color?: string;
+        alignment?: 'left' | 'center' | 'right';
+    };
     viewAllLink?: string;
 }
 
@@ -46,6 +52,7 @@ export default function ProductCarouselModule({ config, initialData }: ModulePro
         categoryIds,
         productIds,
         title,
+        titleTypography,
         viewAllLink,
     } = config as ProductCarouselConfig;
 
@@ -138,6 +145,16 @@ export default function ProductCarouselModule({ config, initialData }: ModulePro
     }, [autoplay, autoplayInterval, products.length, visibleCount, isPaused, nextSlide]);
 
     const columnClass = styles[`columns${Math.min(Math.max(columns, 2), 6)}`];
+    const titleAlignment = titleTypography?.alignment || 'left';
+    const headerStyle: React.CSSProperties | undefined = viewAllLink
+        ? undefined
+        : { justifyContent: titleAlignment === 'center' ? 'center' : titleAlignment === 'right' ? 'flex-end' : 'flex-start' };
+    const titleStyle: React.CSSProperties = {
+        fontFamily: titleTypography?.fontFamily || undefined,
+        fontSize: titleTypography?.fontSize ? `${titleTypography.fontSize}px` : undefined,
+        color: titleTypography?.color || undefined,
+        textAlign: titleAlignment,
+    };
 
     if (loading) {
         return (
@@ -173,8 +190,8 @@ export default function ProductCarouselModule({ config, initialData }: ModulePro
         <div className={styles.container}>
             {/* Header */}
             {title && (
-                <div className={styles.header}>
-                    <h2 className={styles.title}>{title}</h2>
+                <div className={styles.header} style={headerStyle}>
+                    <h2 className={styles.title} style={titleStyle}>{title}</h2>
                     {viewAllLink && (
                         <a href={viewAllLink} className={styles.viewAllLink}>
                             View All

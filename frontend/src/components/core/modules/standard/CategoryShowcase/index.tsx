@@ -9,6 +9,12 @@ import styles from './CategoryShowcase.module.scss';
 interface CategoryShowcaseConfig {
     categoryIds: string[];
     title?: string;
+    titleTypography?: {
+        fontFamily?: string;
+        fontSize?: number;
+        color?: string;
+        alignment?: 'left' | 'center' | 'right';
+    };
     layout?: 'grid' | 'carousel';
     style?: 'card' | 'banner' | 'minimal' | 'overlay';
     columns?: number;
@@ -29,6 +35,7 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
     const {
         categoryIds,
         title,
+        titleTypography,
         layout = 'grid',
         style = 'card',
         columns = 4,
@@ -70,6 +77,16 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
     }, [categoryIds]);
 
     const columnClass = styles[`columns${Math.min(Math.max(columns, 2), 6)}`];
+    const titleAlignment = titleTypography?.alignment || 'left';
+    const titleStyle: React.CSSProperties = {
+        fontFamily: titleTypography?.fontFamily || undefined,
+        fontSize: titleTypography?.fontSize ? `${titleTypography.fontSize}px` : undefined,
+        color: titleTypography?.color || undefined,
+        textAlign: titleAlignment,
+    };
+    const headerStyle: React.CSSProperties | undefined = layout === 'carousel'
+        ? undefined
+        : { justifyContent: titleAlignment === 'center' ? 'center' : titleAlignment === 'right' ? 'flex-end' : 'flex-start' };
 
     // Responsive columns for carousel
     const [visibleColumns, setVisibleColumns] = useState(columns);
@@ -78,7 +95,7 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
         const updateColumns = () => {
             const width = window.innerWidth;
             if (width < 768) {
-                setVisibleColumns(1);
+                setVisibleColumns(2);
             } else if (width < 1024) {
                 setVisibleColumns(Math.min(columns, 3)); // Max 3 on tablet
             } else {
@@ -105,8 +122,8 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
         return (
             <div className={containerClass}>
                 {title && <div className={styles.skeletonTitle} />}
-                <div className={styles.skeletonGrid}>
-                    {Array.from({ length: columns }).map((_, i) => (
+                <div className={`${styles.skeletonGrid} ${columnClass}`}>
+                    {Array.from({ length: visibleColumns }).map((_, i) => (
                         <div key={i} className={styles.skeleton} />
                     ))}
                 </div>
@@ -131,8 +148,8 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
     return (
         <div className={containerClass}>
             {title && (
-                <div className={styles.header}>
-                    <h2 className={styles.title}>{title}</h2>
+                <div className={styles.header} style={headerStyle}>
+                    <h2 className={styles.title} style={titleStyle}>{title}</h2>
                     {layout === 'carousel' && (
                         <div className={styles.navButtons}>
                             <button

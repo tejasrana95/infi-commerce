@@ -144,7 +144,7 @@
 }
 
 .columns5 {
-    grid-template-columns: repeat(1, 1fr);
+    grid-template-columns: repeat(2, 1fr);
 
     @include tablet {
         grid-template-columns: repeat(3, 1fr);
@@ -156,7 +156,7 @@
 }
 
 .columns6 {
-    grid-template-columns: repeat(1, 1fr);
+    grid-template-columns: repeat(2, 1fr);
 
     @include tablet {
         grid-template-columns: repeat(3, 1fr);
@@ -173,15 +173,59 @@
 
 .skeletonGrid {
     display: grid;
-    grid-template-columns: repeat(1, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
 
-    @include tablet {
-        grid-template-columns: repeat(3, 1fr);
+    &.columns2 {
+        grid-template-columns: repeat(1, 1fr);
+
+        @include tablet {
+            grid-template-columns: repeat(2, 1fr);
+        }
     }
 
-    @include desktop {
-        grid-template-columns: repeat(4, 1fr);
+    &.columns3 {
+        grid-template-columns: repeat(1, 1fr);
+
+        @include tablet {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    &.columns4 {
+        grid-template-columns: repeat(1, 1fr);
+
+        @include tablet {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        @include desktop {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+
+    &.columns5 {
+        grid-template-columns: repeat(2, 1fr);
+
+        @include tablet {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        @include desktop {
+            grid-template-columns: repeat(5, 1fr);
+        }
+    }
+
+    &.columns6 {
+        grid-template-columns: repeat(2, 1fr);
+
+        @include tablet {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        @include desktop {
+            grid-template-columns: repeat(6, 1fr);
+        }
     }
 }
 

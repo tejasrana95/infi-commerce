@@ -178,6 +178,8 @@ export default function BannerSliderModule({ config, initialData }: ModuleProps)
                         const mobileImage = slide.mobileImage || desktopImage;
                         const isActive = index === currentSlide;
                         const alignmentClass = styles[`align${(slide.alignment || 'center').charAt(0).toUpperCase() + (slide.alignment || 'center').slice(1)}`];
+                        const hasCtaText = !!slide.ctaText?.trim();
+                        const hasFullSlideLink = !!slide.ctaLink && !hasCtaText;
 
                         return (
                             <div
@@ -220,9 +222,18 @@ export default function BannerSliderModule({ config, initialData }: ModuleProps)
                                 {/* Gradient Overlay */}
                                 <div className={`${styles.overlay} ${alignmentClass}`} />
 
+                                {/* Full-slide link when CTA text is not set */}
+                                {hasFullSlideLink && (
+                                    <Link
+                                        href={slide.ctaLink!}
+                                        className={styles.slideLink}
+                                        aria-label={slide.title || slide.subtitle || `Open slide ${index + 1}`}
+                                    />
+                                )}
+
                                 {/* Content */}
                                 {(slide.title || slide.subtitle || slide.ctaText) && (
-                                    <div className={`${styles.content} ${alignmentClass}`}>
+                                    <div className={`${styles.content} ${alignmentClass} ${hasFullSlideLink ? styles.contentPassThrough : ''}`}>
                                         <div className={styles.contentInner}>
                                             {slide.title && (
                                                 <h2
@@ -242,7 +253,7 @@ export default function BannerSliderModule({ config, initialData }: ModuleProps)
                                                 </p>
                                             )}
 
-                                            {slide.ctaText && slide.ctaLink && (
+                                            {hasCtaText && slide.ctaLink && (
                                                 <Link href={slide.ctaLink} className={styles.ctaButton}>
                                                     {slide.ctaText}
                                                     <svg className={styles.ctaIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor">

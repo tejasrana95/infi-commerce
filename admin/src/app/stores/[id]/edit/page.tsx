@@ -567,7 +567,13 @@ export default function EditStorePage() {
 
             <Paper sx={{ width: '100%' }}>
                 <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                    <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}>
+                    <Tabs
+                        value={activeTab}
+                        onChange={(_, v) => setActiveTab(v)}
+                        variant="scrollable"
+                        scrollButtons="auto"
+                        allowScrollButtonsMobile
+                    >
                         <Tab label="General" />
                         <Tab label="Email Settings" />
                         <Tab label="SMS Settings" />

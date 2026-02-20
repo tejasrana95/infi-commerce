@@ -53,6 +53,7 @@ export const invalidateFullStoreCache = async (
 export const invalidateCategoryCache = async (storeId: string): Promise<void> => {
     await Promise.all([
         redisService.deleteByPattern(InvalidationPatterns.allCategories(storeId)),
+        redisService.deleteByPattern(InvalidationPatterns.allCategoryLists()),
         redisService.delete(CacheKeys.categoryTree(storeId)),
     ]);
 };

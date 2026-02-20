@@ -10,6 +10,12 @@ const STORAGE_KEY = 'recently_viewed_products';
 const MAX_STORED = 20;
 
 interface RecentlyViewedConfig {
+    titleTypography?: {
+        fontFamily?: string;
+        fontSize?: number;
+        color?: string;
+        alignment?: 'left' | 'center' | 'right';
+    };
     title?: string;
     limit?: number;
     columns?: number;
@@ -69,6 +75,7 @@ export default function RecentlyViewedModule({
 }: RecentlyViewedProps) {
     const {
         title = 'Recently Viewed',
+        titleTypography,
         limit = 8,
         columns = 4,
         layout = 'carousel',
@@ -165,6 +172,16 @@ export default function RecentlyViewedModule({
     }, [maxIndex]);
 
     const columnClass = styles[`columns${Math.min(Math.max(columns, 2), 6)}`];
+    const titleAlignment = titleTypography?.alignment || 'left';
+    const headerStyle: React.CSSProperties = {
+        justifyContent: titleAlignment === 'center' ? 'center' : titleAlignment === 'right' ? 'flex-end' : 'flex-start',
+    };
+    const titleStyle: React.CSSProperties = {
+        fontFamily: titleTypography?.fontFamily || undefined,
+        fontSize: titleTypography?.fontSize ? `${titleTypography.fontSize}px` : undefined,
+        color: titleTypography?.color || undefined,
+        textAlign: titleAlignment,
+    };
 
     if (loading) {
         return (
@@ -192,8 +209,8 @@ export default function RecentlyViewedModule({
         return (
             <div className={styles.container}>
                 {title && (
-                    <div className={styles.header}>
-                        <h2 className={styles.title}>{title}</h2>
+                    <div className={styles.header} style={headerStyle}>
+                        <h2 className={styles.title} style={titleStyle}>{title}</h2>
                     </div>
                 )}
                 <div className={`${styles.grid} ${columnClass}`}>
@@ -214,8 +231,8 @@ export default function RecentlyViewedModule({
     return (
         <div className={styles.container}>
             {title && (
-                <div className={styles.header}>
-                    <h2 className={styles.title}>{title}</h2>
+                <div className={styles.header} style={headerStyle}>
+                    <h2 className={styles.title} style={titleStyle}>{title}</h2>
                 </div>
             )}
 
