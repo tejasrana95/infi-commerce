@@ -206,7 +206,15 @@ export default function PageForm({ initialData, onSubmit, isSubmitting = false }
     };
 
     return (
-        <Box component="form" id="page-form" onSubmit={handleSubmit(onSubmit)}>
+        <Box
+            component="form"
+            id="page-form"
+            onSubmit={handleSubmit(onSubmit, (formErrors) => {
+                if (formErrors?.seo) {
+                    setActiveTab(1);
+                }
+            })}
+        >
             <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)} sx={{ mb: 3 }}>
                 <Tab label="Content" />
                 <Tab label="SEO" />
@@ -375,7 +383,8 @@ export default function PageForm({ initialData, onSubmit, isSubmitting = false }
                                     {...field}
                                     label="Meta Title"
                                     fullWidth
-                                    helperText={`${field.value?.length || 0}/60 characters`}
+                                    error={!!errors.seo?.metaTitle}
+                                    helperText={errors.seo?.metaTitle?.message || `${field.value?.length || 0}/60 characters`}
                                 />
                             )}
                         />
@@ -391,7 +400,8 @@ export default function PageForm({ initialData, onSubmit, isSubmitting = false }
                                     fullWidth
                                     multiline
                                     rows={3}
-                                    helperText={`${field.value?.length || 0}/160 characters`}
+                                    error={!!errors.seo?.metaDescription}
+                                    helperText={errors.seo?.metaDescription?.message || `${field.value?.length || 0}/160 characters`}
                                 />
                             )}
                         />
@@ -427,7 +437,8 @@ export default function PageForm({ initialData, onSubmit, isSubmitting = false }
                                     {...field}
                                     label="OG Title"
                                     fullWidth
-                                    helperText={`${field.value?.length || 0}/60 characters`}
+                                    error={!!errors.seo?.ogTitle}
+                                    helperText={errors.seo?.ogTitle?.message || `${field.value?.length || 0}/60 characters`}
                                 />
                             )}
                         />
@@ -441,7 +452,8 @@ export default function PageForm({ initialData, onSubmit, isSubmitting = false }
                                     {...field}
                                     label="OG Description"
                                     fullWidth
-                                    helperText={`${field.value?.length || 0}/160 characters`}
+                                    error={!!errors.seo?.ogDescription}
+                                    helperText={errors.seo?.ogDescription?.message || `${field.value?.length || 0}/160 characters`}
                                 />
                             )}
                         />

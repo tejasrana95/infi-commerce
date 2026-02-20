@@ -150,12 +150,12 @@ const schema = z.object({
 
     // SEO
     seo: z.object({
-        metaTitle: z.string().optional(),
-        metaDescription: z.string().optional(),
+        metaTitle: z.string().max(60, 'Meta title max 60 characters').optional(),
+        metaDescription: z.string().max(160, 'Meta description max 160 characters').optional(),
         metaKeywords: z.array(z.string()).optional(),
         focusKeyword: z.string().optional(),
-        ogTitle: z.string().optional(),
-        ogDescription: z.string().optional(),
+        ogTitle: z.string().max(60, 'OG title max 60 characters').optional(),
+        ogDescription: z.string().max(160, 'OG description max 160 characters').optional(),
         ogImage: z.string().url().optional().or(z.literal('')),
         score: z.number().min(0).max(100).optional(),
     }).optional(),
@@ -493,7 +493,16 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
     };
 
     return (
-        <Box component="form" id="product-form" onSubmit={handleSubmit(handleFormSubmit, (errors) => console.error('Form Errors:', errors))}>
+        <Box
+            component="form"
+            id="product-form"
+            onSubmit={handleSubmit(handleFormSubmit, (formErrors) => {
+                if (formErrors?.seo) {
+                    setActiveTab(5);
+                }
+                console.error('Form Errors:', formErrors);
+            })}
+        >
             <Paper sx={{ mb: 3 }}>
                 <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)} variant="scrollable" scrollButtons="auto">
                     <Tab label="Basic Info" />
@@ -1368,7 +1377,8 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
                                         {...field}
                                         label="Meta Title"
                                         fullWidth
-                                        helperText="Recommended: 50-60 characters"
+                                        error={!!errors.seo?.metaTitle}
+                                        helperText={errors.seo?.metaTitle?.message || `${field.value?.length || 0}/60 characters`}
                                     />
                                 )}
                             />
@@ -1385,7 +1395,8 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
                                         fullWidth
                                         multiline
                                         rows={3}
-                                        helperText="Recommended: 150-160 characters"
+                                        error={!!errors.seo?.metaDescription}
+                                        helperText={errors.seo?.metaDescription?.message || `${field.value?.length || 0}/160 characters`}
                                     />
                                 )}
                             />
@@ -1469,7 +1480,8 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
                                         {...field}
                                         label="OG Title"
                                         fullWidth
-                                        helperText="Open Graph title for social sharing"
+                                        error={!!errors.seo?.ogTitle}
+                                        helperText={errors.seo?.ogTitle?.message || `${field.value?.length || 0}/60 characters`}
                                     />
                                 )}
                             />
@@ -1486,7 +1498,8 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
                                         fullWidth
                                         multiline
                                         rows={2}
-                                        helperText="Open Graph description for social sharing"
+                                        error={!!errors.seo?.ogDescription}
+                                        helperText={errors.seo?.ogDescription?.message || `${field.value?.length || 0}/160 characters`}
                                     />
                                 )}
                             />

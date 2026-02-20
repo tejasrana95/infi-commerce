@@ -40,8 +40,8 @@ const schema = z.object({
         metaTitle: z.string().max(60, 'Meta title max 60 characters').optional(),
         metaDescription: z.string().max(160, 'Meta description max 160 characters').optional(),
         metaKeywords: z.array(z.string()).optional(),
-        ogTitle: z.string().optional(),
-        ogDescription: z.string().optional(),
+        ogTitle: z.string().max(60, 'OG title max 60 characters').optional(),
+        ogDescription: z.string().max(160, 'OG description max 160 characters').optional(),
         ogImage: z.string().url('Must be a valid URL').optional().or(z.literal('')),
         twitterCard: z.enum(['summary', 'summary_large_image', 'app', 'player']).optional(),
     }).optional(),
@@ -132,7 +132,15 @@ export default function BlogCategoryForm({ initialData, onSubmit, isSubmitting =
     }, [watchedName, initialData, setValue]);
 
     return (
-        <Box component="form" id="blog-category-form" onSubmit={handleSubmit(onSubmit)}>
+        <Box
+            component="form"
+            id="blog-category-form"
+            onSubmit={handleSubmit(onSubmit, (formErrors) => {
+                if (formErrors?.seo) {
+                    setActiveTab(1);
+                }
+            })}
+        >
             <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)} sx={{ mb: 3 }}>
                 <Tab label="Basic Info" />
                 <Tab label="SEO" />
@@ -313,6 +321,8 @@ export default function BlogCategoryForm({ initialData, onSubmit, isSubmitting =
                                     {...field}
                                     label="Meta Title"
                                     fullWidth
+                                    error={!!errors.seo?.metaTitle}
+                                    helperText={errors.seo?.metaTitle?.message || `${field.value?.length || 0}/60 characters`}
                                 />
                             )}
                         />
@@ -328,6 +338,8 @@ export default function BlogCategoryForm({ initialData, onSubmit, isSubmitting =
                                     fullWidth
                                     multiline
                                     rows={2}
+                                    error={!!errors.seo?.metaDescription}
+                                    helperText={errors.seo?.metaDescription?.message || `${field.value?.length || 0}/160 characters`}
                                 />
                             )}
                         />

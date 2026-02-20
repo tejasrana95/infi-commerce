@@ -52,8 +52,8 @@ const schema = z.object({
         metaTitle: z.string().max(60, 'Meta title max 60 characters').optional(),
         metaDescription: z.string().max(160, 'Meta description max 160 characters').optional(),
         metaKeywords: z.array(z.string()).optional(),
-        ogTitle: z.string().optional(),
-        ogDescription: z.string().optional(),
+        ogTitle: z.string().max(60, 'OG title max 60 characters').optional(),
+        ogDescription: z.string().max(160, 'OG description max 160 characters').optional(),
         ogImage: z.string().url('Must be a valid URL').optional().or(z.literal('')),
         twitterCard: z.enum(['summary', 'summary_large_image', 'app', 'player']).optional(),
         score: z.number().min(0).max(100).optional(),
@@ -232,7 +232,15 @@ export default function CategoryForm({ initialData, onSubmit, isSubmitting = fal
     };
 
     return (
-        <Box component="form" id="category-form" onSubmit={handleSubmit(onSubmit)}>
+        <Box
+            component="form"
+            id="category-form"
+            onSubmit={handleSubmit(onSubmit, (formErrors) => {
+                if (formErrors?.seo) {
+                    setActiveTab(1);
+                }
+            })}
+        >
             <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)} sx={{ mb: 3 }}>
                 <Tab label="Basic Info" />
                 <Tab label="SEO" />
@@ -525,7 +533,7 @@ export default function CategoryForm({ initialData, onSubmit, isSubmitting = fal
                                     label="Meta Title"
                                     fullWidth
                                     error={!!errors.seo?.metaTitle}
-                                    helperText={errors.seo?.metaTitle?.message || 'Recommended: 50-60 characters'}
+                                    helperText={errors.seo?.metaTitle?.message || `${field.value?.length || 0}/60 characters`}
                                     placeholder="Best Electronics - Shop Now"
                                 />
                             )}
@@ -542,7 +550,7 @@ export default function CategoryForm({ initialData, onSubmit, isSubmitting = fal
                                     label="Open Graph Title"
                                     fullWidth
                                     error={!!errors.seo?.ogTitle}
-                                    helperText={errors.seo?.ogTitle?.message || 'For social media sharing'}
+                                    helperText={errors.seo?.ogTitle?.message || `${field.value?.length || 0}/60 characters`}
                                 />
                             )}
                         />
@@ -560,7 +568,7 @@ export default function CategoryForm({ initialData, onSubmit, isSubmitting = fal
                                     multiline
                                     rows={3}
                                     error={!!errors.seo?.metaDescription}
-                                    helperText={errors.seo?.metaDescription?.message || 'Recommended: 150-160 characters'}
+                                    helperText={errors.seo?.metaDescription?.message || `${field.value?.length || 0}/160 characters`}
                                     placeholder="Discover amazing electronics at great prices..."
                                 />
                             )}
@@ -579,7 +587,7 @@ export default function CategoryForm({ initialData, onSubmit, isSubmitting = fal
                                     multiline
                                     rows={2}
                                     error={!!errors.seo?.ogDescription}
-                                    helperText={errors.seo?.ogDescription?.message || 'For social media sharing'}
+                                    helperText={errors.seo?.ogDescription?.message || `${field.value?.length || 0}/160 characters`}
                                 />
                             )}
                         />

@@ -191,7 +191,7 @@ export default function EditStorePage() {
     const [aiSettings, setAiSettings] = useState<AISettings>({
         enabled: false,
         openaiKey: '',
-        model: 'gpt-4o-mini',
+        model: 'gpt-5-mini',
     });
     const [savingAI, setSavingAI] = useState(false);
 
@@ -286,7 +286,7 @@ export default function EditStorePage() {
             if (currentStore?.settings?.aiSettings) {
                 setAiSettings({
                     ...currentStore.settings.aiSettings,
-                    model: currentStore.settings.aiSettings.model || 'gpt-4o-mini'
+                    model: currentStore.settings.aiSettings.model || 'gpt-5-mini'
                 });
             }
             if (currentStore?.pwaSettings) {
@@ -1579,20 +1579,21 @@ export default function EditStorePage() {
                                             fullWidth
                                             select
                                             label="AI Model"
-                                            value={aiSettings.model || 'gpt-4o-mini'}
+                                            value={aiSettings.model || 'gpt-5-mini'}
                                             onChange={(e) => setAiSettings({ ...aiSettings, model: e.target.value })}
                                             disabled={!aiSettings.enabled}
+                                            helperText="Recommended for chat support: GPT-5 Mini (best speed + response quality)."
                                         >
-                                            <MenuItem value="gpt-5.2">GPT-5.2 (Best for Coding & Agents)</MenuItem>
-                                            <MenuItem value="gpt-5.2-pro">GPT-5.2 Pro (Smart & Precise)</MenuItem>
-                                            <MenuItem value="gpt-5-mini">GPT-5 Mini (Fast & Cost-efficient)</MenuItem>
-                                            <MenuItem value="gpt-5-nano">GPT-5 Nano (Fastest)</MenuItem>
-                                            <MenuItem value="gpt-5">GPT-5 (Previous Reasoning Model)</MenuItem>
-                                            <MenuItem value="o1">o1 (High-tier Reasoning)</MenuItem>
-                                            <MenuItem value="o1-mini">o1-mini (Fast Reasoning)</MenuItem>
-                                            <MenuItem value="o3-mini">o3-mini (Advanced Small Reasoning)</MenuItem>
-                                            <MenuItem value="gpt-4o">GPT-4o (Modern Multimodal)</MenuItem>
-                                            <MenuItem value="gpt-4o-mini">GPT-4o Mini</MenuItem>
+                                            <MenuItem value="gpt-5-mini">★ GPT-5 Mini (Recommended - Best for Chat Support)</MenuItem>
+                                            <MenuItem value="gpt-5-nano">GPT-5 Nano (Fastest & Lowest Cost)</MenuItem>
+                                            <MenuItem value="gpt-5">GPT-5 (Highest Quality, Slower)</MenuItem>
+                                            <MenuItem value="gpt-4.1-mini">GPT-4.1 Mini (Fast Stable Fallback)</MenuItem>
+                                            <MenuItem value="gpt-4.1">GPT-4.1 (Stable Quality Fallback)</MenuItem>
+                                            <MenuItem value="o3-mini">o3-mini (Reasoning-heavy Queries)</MenuItem>
+                                            <MenuItem value="gpt-4o-mini">GPT-4o Mini (Legacy)</MenuItem>
+                                            <MenuItem value="gpt-4o">GPT-4o (Legacy High Quality)</MenuItem>
+                                            <MenuItem value="gpt-5.2">GPT-5.2 (Legacy)</MenuItem>
+                                            <MenuItem value="gpt-5.2-pro">GPT-5.2 Pro (Legacy)</MenuItem>
                                         </TextField>
                                     </Grid>
                                 </Grid>

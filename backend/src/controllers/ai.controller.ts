@@ -17,7 +17,27 @@ import { addTimezoneAwareDates } from '../utils/date.utils';
 import { addPricingToProduct } from './product.controller';
 
 // Maximum iterations for tool call loops to prevent infinite loops
-const MAX_TOOL_ITERATIONS = 5;
+const MAX_TOOL_ITERATIONS = 3;
+const DEFAULT_CHAT_MODEL = 'gpt-5-mini';
+const MAX_CHAT_RESPONSE_TOKENS = 1600;
+
+const CHAT_MODEL_ALIASES: Record<string, string> = {
+    'gpt-5.2': 'gpt-5',
+    'gpt-5.2-pro': 'gpt-5',
+};
+
+const SUPPORTED_CHAT_MODELS = new Set([
+    'gpt-5',
+    'gpt-5-mini',
+    'gpt-5-nano',
+    'gpt-4.1',
+    'gpt-4.1-mini',
+    'gpt-4o',
+    'gpt-4o-mini',
+    'o3-mini',
+    'o1',
+    'o1-mini',
+]);
 
 // ============================================================================
 // Types
@@ -37,6 +57,51 @@ interface ChatContext {
     exchangeRate: number;
     allCurrencies: any[];
     timezone: string;
+}
+
+function resolveChatModel(selectedModel?: string): string {
+    if (!selectedModel) return DEFAULT_CHAT_MODEL;
+
+    const normalizedModel = CHAT_MODEL_ALIASES[selectedModel] || selectedModel;
+    return SUPPORTED_CHAT_MODELS.has(normalizedModel) ? normalizedModel : DEFAULT_CHAT_MODEL;
+}
+
+function isReasoningModel(model: string): boolean {
+    return /^o\d/.test(model) || model.startsWith('gpt-5');
+}
+
+function isModelUnavailableError(error: any): boolean {
+    const code = error?.code || error?.error?.code;
+    const message = String(error?.message || error?.error?.message || '').toLowerCase();
+    return code === 'model_not_found'
+        || message.includes('model')
+        && (message.includes('not found') || message.includes('does not exist') || message.includes('access'));
+}
+
+function extractAssistantText(message: any): string {
+    const content = message?.content;
+
+    if (typeof content === 'string') {
+        return content;
+    }
+
+    if (Array.isArray(content)) {
+        return content
+            .map((part: any) => {
+                if (typeof part === 'string') return part;
+                if (typeof part?.text === 'string') return part.text;
+                if (typeof part?.content === 'string') return part.content;
+                return '';
+            })
+            .filter(Boolean)
+            .join('');
+    }
+
+    if (typeof message?.refusal === 'string') {
+        return message.refusal;
+    }
+
+    return '';
 }
 
 // ============================================================================
@@ -642,7 +707,7 @@ GUIDELINES:
 }
 
 function formatHistoryForOpenAI(messages: any[]): OpenAI.Chat.ChatCompletionMessageParam[] {
-    const recentMessages = messages.slice(-20);
+    const recentMessages = messages.slice(-12);
 
     // Ensure we don't start with a 'tool' message (orphan) which causes OpenAI 400 error
     // This happens if the slice cuts off the preceding assistant message requesting the tool
@@ -802,8 +867,10 @@ User Interests context:
 
     // Initialize OpenAI client
     const openai = new OpenAI({ apiKey: storeApiKey });
-    const model = store.settings?.aiSettings?.model || 'gpt-4o-mini';
-    const isReasoningModel = model.startsWith('o1') || model.startsWith('o3') || model.startsWith('gpt-5');
+    const model = resolveChatModel(store.settings?.aiSettings?.model);
+    let activeModel = model;
+    let reasoningModel = isReasoningModel(activeModel);
+    let didFallbackToDefaultModel = false;
     const tools = getToolDefinitions(userId);
     const systemPrompt = buildSystemPrompt(store, baseUrl, selectedCurrencyCode, currencySymbol, interestSummary, userId);
 
@@ -823,9 +890,10 @@ User Interests context:
     try {
         // Build messages for OpenAI
         let currentMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-            { role: isReasoningModel ? 'developer' : 'system', content: systemPrompt } as any,
+            { role: reasoningModel ? 'developer' : 'system', content: systemPrompt } as any,
             ...formatHistoryForOpenAI(chatHistory.messages)
         ];
+        let sentFinalResponse = false;
 
         // Tool call loop - iterate until we get a final response or hit max iterations
         for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration++) {
@@ -833,13 +901,21 @@ User Interests context:
             try {
                 // Make non-streaming call to detect tool calls
                 response = await openai.chat.completions.create({
-                    model,
+                    model: activeModel,
                     messages: currentMessages,
                     tools: tools.length > 0 ? tools : undefined,
                     tool_choice: tools.length > 0 ? 'auto' : undefined,
-                    ...(isReasoningModel ? { max_completion_tokens: 4096 } : { max_tokens: 4096, temperature: 0.7 })
+                    ...(reasoningModel
+                        ? { max_completion_tokens: MAX_CHAT_RESPONSE_TOKENS }
+                        : { max_tokens: MAX_CHAT_RESPONSE_TOKENS, temperature: 0.5 })
                 });
             } catch (apiError: any) {
+                if (!didFallbackToDefaultModel && activeModel !== DEFAULT_CHAT_MODEL && isModelUnavailableError(apiError)) {
+                    didFallbackToDefaultModel = true;
+                    activeModel = DEFAULT_CHAT_MODEL;
+                    reasoningModel = isReasoningModel(activeModel);
+                    continue;
+                }
                 console.error('OpenAI API call failed:', apiError.message);
                 res.write(`data: ${JSON.stringify({ type: 'error', message: apiError.message })}\n\n`);
                 res.end();
@@ -900,16 +976,15 @@ User Interests context:
             }
 
             // No tool calls - stream the final response
-            const finalContent = assistantMessage.content || '';
+            const finalContent = extractAssistantText(assistantMessage).trim()
+                || 'I could not generate a response right now. Please try again.';
 
-            // Stream content in chunks for better UX
-            const chunkSize = 10;
+            // Stream content in chunks (without artificial delay) for low-latency UX
+            const chunkSize = 120;
             for (let i = 0; i < finalContent.length; i += chunkSize) {
                 const chunk = finalContent.substring(i, i + chunkSize);
                 res.write(`data: ${JSON.stringify({ type: 'content', content: chunk })}\n\n`);
                 if ((res as any).flush) (res as any).flush();
-                // Small delay to simulate streaming effect
-                await new Promise(resolve => setTimeout(resolve, 20));
             }
 
             // Save final assistant response to history
@@ -919,8 +994,48 @@ User Interests context:
                 timestamp: new Date()
             });
 
+            sentFinalResponse = true;
+
             // Exit the loop
             break;
+        }
+
+        // If tool loop exhausted without a final response, force one final answer with tools disabled
+        if (!sentFinalResponse) {
+            const forcedFinalPrompt = 'Provide a final concise response to the user using the available tool results. Do not call any tools.';
+            const forceFinalMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+                ...currentMessages,
+                { role: reasoningModel ? 'developer' : 'system', content: forcedFinalPrompt } as any
+            ];
+
+            let forcedFinalContent = 'I could not generate a response right now. Please try again.';
+
+            try {
+                const forcedResponse = await openai.chat.completions.create({
+                    model: activeModel,
+                    messages: forceFinalMessages,
+                    ...(reasoningModel
+                        ? { max_completion_tokens: MAX_CHAT_RESPONSE_TOKENS }
+                        : { max_tokens: MAX_CHAT_RESPONSE_TOKENS, temperature: 0.5 })
+                });
+
+                forcedFinalContent = extractAssistantText(forcedResponse.choices[0]?.message).trim() || forcedFinalContent;
+            } catch (forcedError: any) {
+                console.error('Forced final response failed:', forcedError.message);
+            }
+
+            const chunkSize = 120;
+            for (let i = 0; i < forcedFinalContent.length; i += chunkSize) {
+                const chunk = forcedFinalContent.substring(i, i + chunkSize);
+                res.write(`data: ${JSON.stringify({ type: 'content', content: chunk })}\n\n`);
+                if ((res as any).flush) (res as any).flush();
+            }
+
+            chatHistory.messages.push({
+                role: 'assistant',
+                content: forcedFinalContent,
+                timestamp: new Date()
+            });
         }
 
         // Save chat history
