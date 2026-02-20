@@ -16,6 +16,7 @@ export const createShippingRuleValidation = [
     body('storeId').isMongoId().withMessage('Valid store ID is required'),
     body('rateType').isIn(['flat', 'per_kg', 'free', 'percentage']).withMessage('Invalid rate type'),
     body('rate').isFloat({ min: 0 }).withMessage('Rate must be a positive number'),
+    body('geoGroupIds').optional().isArray().withMessage('geoGroupIds must be an array'),
 ];
 
 export const updateShippingRuleValidation = [
@@ -37,7 +38,7 @@ export const calculateShippingValidation = [
  *       - bearerAuth: []
  */
 export const createShippingRule = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const ruleData = req.body;
+    const ruleData = { ...req.body };
 
     // Verify store exists
     const store = await Store.findById(ruleData.storeId);
@@ -45,13 +46,21 @@ export const createShippingRule = asyncHandler(async (req: AuthRequest, res: Res
         throw new AppError('Store not found', 404);
     }
 
-    // Verify geoGroup if provided
-    if (ruleData.geoGroupId) {
-        const geoGroup = await GeoGroup.findById(ruleData.geoGroupId);
-        if (!geoGroup) {
-            throw new AppError('GeoGroup not found', 404);
+    // Normalize multi-zone geo groups (backward compatible with geoGroupId)
+    const normalizedGeoGroupIds = Array.from(new Set([
+        ...(Array.isArray(ruleData.geoGroupIds) ? ruleData.geoGroupIds : []),
+        ...(ruleData.geoGroupId ? [ruleData.geoGroupId] : []),
+    ])).filter(Boolean);
+
+    if (normalizedGeoGroupIds.length > 0) {
+        const existingGeoGroups = await GeoGroup.find({ _id: { $in: normalizedGeoGroupIds } }).select('_id');
+        if (existingGeoGroups.length !== normalizedGeoGroupIds.length) {
+            throw new AppError('One or more GeoGroups not found', 404);
         }
     }
+
+    ruleData.geoGroupIds = normalizedGeoGroupIds;
+    ruleData.geoGroupId = normalizedGeoGroupIds[0] || undefined;
 
     const shippingRule = await ShippingRule.create(ruleData);
 
@@ -92,6 +101,7 @@ export const getShippingRules = asyncHandler(async (req: AuthRequest, res: Respo
         ShippingRule.find(filter)
             .populate('storeId', 'name slug')
             .populate('geoGroupId', 'name countries')
+            .populate('geoGroupIds', 'name countries')
             .populate('categoryIds', 'title')
             .sort({ priority: -1, createdAt: -1 })
             .skip((Number(page) - 1) * Number(limit))
@@ -122,6 +132,7 @@ export const getShippingRuleById = asyncHandler(async (req: AuthRequest, res: Re
     const shippingRule = await ShippingRule.findById(req.params.id)
         .populate('storeId', 'name slug')
         .populate('geoGroupId', 'name countries')
+        .populate('geoGroupIds', 'name countries')
         .populate('categoryIds', 'title');
 
     if (!shippingRule) {
@@ -142,12 +153,31 @@ export const getShippingRuleById = asyncHandler(async (req: AuthRequest, res: Re
  *     tags: [Shipping]
  */
 export const updateShippingRule = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const shippingRule = await ShippingRule.findByIdAndUpdate(req.params.id, req.body, {
+    const updateData = { ...req.body };
+    const normalizedGeoGroupIds = Array.from(new Set([
+        ...(Array.isArray(updateData.geoGroupIds) ? updateData.geoGroupIds : []),
+        ...(updateData.geoGroupId ? [updateData.geoGroupId] : []),
+    ])).filter(Boolean);
+
+    if (normalizedGeoGroupIds.length > 0) {
+        const existingGeoGroups = await GeoGroup.find({ _id: { $in: normalizedGeoGroupIds } }).select('_id');
+        if (existingGeoGroups.length !== normalizedGeoGroupIds.length) {
+            throw new AppError('One or more GeoGroups not found', 404);
+        }
+    }
+
+    if (updateData.geoGroupIds !== undefined || updateData.geoGroupId !== undefined) {
+        updateData.geoGroupIds = normalizedGeoGroupIds;
+        updateData.geoGroupId = normalizedGeoGroupIds[0] || undefined;
+    }
+
+    const shippingRule = await ShippingRule.findByIdAndUpdate(req.params.id, updateData, {
         new: true,
         runValidators: true,
     })
         .populate('storeId', 'name slug')
         .populate('geoGroupId', 'name countries')
+        .populate('geoGroupIds', 'name countries')
         .populate('categoryIds', 'title');
 
     if (!shippingRule) {
@@ -235,6 +265,20 @@ const calculateCartTotals = async (cartItems: any[]) => {
     return { totalWeight, totalValue, itemCategories };
 };
 
+const ruleHasMatchingGeo = (rule: any, country: string): boolean => {
+    const countryCode = String(country || '').toUpperCase();
+    const zoneGroups = [
+        ...(Array.isArray(rule.geoGroupIds) ? rule.geoGroupIds : []),
+        ...(rule.geoGroupId ? [rule.geoGroupId] : []),
+    ];
+
+    if (zoneGroups.length === 0) return true;
+
+    return zoneGroups.some((geoGroup: any) =>
+        geoGroup?.countries && Array.isArray(geoGroup.countries) && geoGroup.countries.includes(countryCode)
+    );
+};
+
 /**
  * @swagger
  * /api/shipping/calculate:
@@ -284,6 +328,7 @@ export const calculateShipping = asyncHandler(async (req: AuthRequest, res: Resp
         isActive: true,
     })
         .populate('geoGroupId')
+        .populate('geoGroupIds')
         .sort({ priority: -1 });
 
     const applicableRules: any[] = [];
@@ -292,13 +337,8 @@ export const calculateShipping = asyncHandler(async (req: AuthRequest, res: Resp
         let isApplicable = true;
 
         // Check GeoGroup (country matching)
-        if (rule.geoGroupId) {
-            const geoGroup = rule.geoGroupId as any;
-            if (geoGroup.countries && geoGroup.countries.length > 0) {
-                if (!geoGroup.countries.includes(country.toUpperCase())) {
-                    isApplicable = false;
-                }
-            }
+        if (!ruleHasMatchingGeo(rule, country)) {
+            isApplicable = false;
         }
 
         // Check category restrictions
@@ -595,6 +635,7 @@ export const calculateSmartShipping = asyncHandler(async (req: AuthRequest, res:
         isActive: true,
     })
         .populate('geoGroupId')
+        .populate('geoGroupIds')
         .sort({ priority: -1 });
 
     if (shippingRules.length === 0) {
@@ -622,16 +663,11 @@ export const calculateSmartShipping = asyncHandler(async (req: AuthRequest, res:
         let matchesGeo = true;
 
         // Check geo matching
-        if (rule.geoGroupId) {
-            const geoGroup = rule.geoGroupId as any;
-            if (geoGroup.countries && geoGroup.countries.length > 0) {
-                matchesGeo = geoGroup.countries.includes(country.toUpperCase());
-            }
-        }
+        matchesGeo = ruleHasMatchingGeo(rule, country);
 
         const ruleCategories = rule.categoryIds?.map((id: any) => id.toString()) || [];
         const hasCategories = ruleCategories.length > 0;
-        const hasGeo = !!rule.geoGroupId;
+        const hasGeo = !!rule.geoGroupId || (Array.isArray(rule.geoGroupIds) && rule.geoGroupIds.length > 0);
 
         // Only include rules that match geo (or have no geo restriction)
         if (!hasGeo || matchesGeo) {

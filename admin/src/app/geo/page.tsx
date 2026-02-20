@@ -36,6 +36,7 @@ export default function GeoPage() {
   const { confirm } = useConfirm();
   const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilters, setActiveFilters] = useState<Record<string, string | string[]>>({});
   const [open, setOpen] = useState(false);
 
   // Dialog State
@@ -50,6 +51,8 @@ export default function GeoPage() {
   });
   const [totalRows, setTotalRows] = useState(0);
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const selectedCountryId = typeof activeFilters.countryId === 'string' ? activeFilters.countryId : '';
+  const selectedStateId = typeof activeFilters.stateId === 'string' ? activeFilters.stateId : '';
 
   /* Debounce Search */
   useEffect(() => {
@@ -61,7 +64,7 @@ export default function GeoPage() {
 
   useEffect(() => {
     fetchGeos();
-  }, [paginationModel, debouncedSearch]);
+  }, [paginationModel, debouncedSearch, selectedCountryId, selectedStateId]);
 
   // Fetch only countries for the dropdowns (no pagination or high limit)
   useEffect(() => {
@@ -80,6 +83,33 @@ export default function GeoPage() {
     fetchCountries();
   }, []);
 
+  useEffect(() => {
+    const fetchStates = async () => {
+      try {
+        const params = new URLSearchParams({
+          type: 'state',
+          limit: '1000',
+        });
+
+        if (selectedCountryId) {
+          params.append('parentId', selectedCountryId);
+        }
+
+        const response = await api.get(`/geo?${params.toString()}`);
+        if (response.data.success) {
+          setStates(response.data.data || []);
+        } else {
+          setStates(response.data.data || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch states for filter", err);
+        setStates([]);
+      }
+    };
+
+    fetchStates();
+  }, [selectedCountryId]);
+
   const fetchGeos = async () => {
     try {
       setLoading(true);
@@ -88,6 +118,13 @@ export default function GeoPage() {
         limit: paginationModel.pageSize.toString(),
         search: debouncedSearch,
       });
+
+      if (selectedCountryId) {
+        params.append('countryId', selectedCountryId);
+      }
+      if (selectedStateId) {
+        params.append('stateId', selectedStateId);
+      }
 
       const response = await api.get(`/geo?${params.toString()}`);
 
@@ -271,7 +308,48 @@ export default function GeoPage() {
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
+    setPaginationModel(prev => ({ ...prev, page: 0 }));
   };
+
+  const handleFilterChange = (filters: Record<string, string | string[]>) => {
+    const nextFilters = { ...filters };
+    const countryChanged = (nextFilters.countryId || '') !== (selectedCountryId || '');
+
+    // Reset state filter whenever country changes to avoid invalid combinations
+    if (countryChanged) {
+      delete nextFilters.stateId;
+    }
+
+    setActiveFilters(nextFilters);
+    setPaginationModel(prev => ({ ...prev, page: 0 }));
+  };
+
+  const filterConfig = useMemo(() => {
+    const countryOptions = countries.map((country) => ({
+      value: country._id,
+      label: country.name,
+    }));
+
+    const stateOptions = states.map((state) => ({
+      value: state._id,
+      label: `${state.name}${state.code ? ` (${state.code})` : ''}`,
+    }));
+
+    return [
+      {
+        id: 'countryId',
+        label: 'Country',
+        type: 'select' as const,
+        options: countryOptions,
+      },
+      {
+        id: 'stateId',
+        label: 'State',
+        type: 'select' as const,
+        options: stateOptions,
+      },
+    ];
+  }, [countries, states]);
 
   // Removed filteredRows
 
@@ -336,7 +414,7 @@ export default function GeoPage() {
     return selectedGeo.original;
   };
 
-  if (!loading && flatGeos.length === 0 && !searchQuery && !open) {
+  if (!loading && flatGeos.length === 0 && !searchQuery && !selectedCountryId && !selectedStateId && !open) {
     return (
       <Box>
         <PageHeader
@@ -383,6 +461,9 @@ export default function GeoPage() {
         searchPlaceholder="Search locations..."
         searchValue={searchQuery}
         onSearchChange={handleSearchChange}
+        filters={filterConfig}
+        activeFilters={activeFilters}
+        onFilterChange={handleFilterChange}
       />
 
       <Box sx={{ width: '100%', position: 'relative' }}>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Autocomplete, TextField, CircularProgress } from '@mui/material';
 import api from '@/lib/api';
 
@@ -39,45 +39,124 @@ export default function CountryAutocomplete({
     minimal = false,
 }: CountryAutocompleteProps) {
     const [countries, setCountries] = useState<CountryOption[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [countryCache, setCountryCache] = useState<Record<string, CountryOption>>({});
+    const [loading, setLoading] = useState(false);
+    const [inputValue, setInputValue] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedInput, setDebouncedInput] = useState('');
 
     useEffect(() => {
-        const fetchCountries = async () => {
+        const timer = setTimeout(() => {
+            setDebouncedInput(searchTerm.trim());
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
+    const mapCountry = (country: { _id: string; name: string; code: string }): CountryOption => ({
+        label: `${country.name} (${country.code})`,
+        value: country.code,
+        _id: country._id,
+        code: country.code,
+        name: country.name,
+    });
+
+    useEffect(() => {
+        let mounted = true;
+        const fetchCountryCache = async () => {
             try {
-                const response = await api.get('/geo?type=country');
-                const countryData = response.data.data || [];
+                const response = await api.get('/geo?type=country&limit=1000');
+                const countryData = response.data?.data || [];
+                const formattedCountries: CountryOption[] = countryData.map(mapCountry);
+                const cache = Object.fromEntries(formattedCountries.map((country) => [country.value, country]));
+                if (mounted) {
+                    setCountryCache(cache);
+                }
+            } catch (error) {
+                console.error('Failed to build country cache:', error);
+            }
+        };
 
-                const formattedCountries: CountryOption[] = countryData.map((country: any) => ({
-                    label: `${country.name} (${country.code})`,
-                    value: country.code,
-                    _id: country._id,
-                    code: country.code,
-                    name: country.name,
-                }));
+        fetchCountryCache();
+        return () => {
+            mounted = false;
+        };
+    }, []);
 
-                setCountries(formattedCountries);
+    useEffect(() => {
+        let mounted = true;
+        const fetchCountries = async () => {
+            setLoading(true);
+            try {
+                const params = new URLSearchParams({
+                    type: 'country',
+                    limit: '100',
+                });
+
+                if (debouncedInput) {
+                    params.set('search', debouncedInput);
+                }
+
+                const response = await api.get(`/geo?${params.toString()}`);
+                const countryData = response.data?.data || [];
+                const formattedCountries: CountryOption[] = countryData.map(mapCountry);
+
+                if (mounted) {
+                    setCountries(formattedCountries);
+                }
             } catch (error) {
                 console.error('Failed to fetch countries:', error);
-                setCountries([]);
+                if (mounted) {
+                    setCountries([]);
+                }
             } finally {
-                setLoading(false);
+                if (mounted) {
+                    setLoading(false);
+                }
             }
         };
 
         fetchCountries();
-    }, []);
+        return () => {
+            mounted = false;
+        };
+    }, [debouncedInput]);
 
     const getSelectedValue = () => {
+        const allOptions = Array.from(
+            new Map([...countries, ...Object.values(countryCache)].map((country) => [country.value, country])).values()
+        );
+
+        const findByAnyKey = (raw: string) => {
+            const normalized = String(raw).trim().toLowerCase();
+            return allOptions.find((country) =>
+                country.value.toLowerCase() === normalized
+                || country.code.toLowerCase() === normalized
+                || country._id === raw
+                || country.name.toLowerCase() === normalized
+            );
+        };
+
+        const toFallbackOption = (raw: string): CountryOption => ({
+            label: raw,
+            value: raw,
+            _id: raw,
+            code: raw,
+            name: raw,
+        });
+
         if (multiple) {
             if (!value || !Array.isArray(value)) return [];
-            return countries.filter(c => value.includes(c.value));
+            return value
+                .map((raw) => findByAnyKey(String(raw)) || toFallbackOption(String(raw)))
+                .filter(Boolean);
         } else {
             if (!value || Array.isArray(value)) return null;
-            return countries.find(c => c.value === value) || null;
+            const raw = String(value);
+            return findByAnyKey(raw) || toFallbackOption(raw);
         }
     };
 
-    const handleChange = (_: any, newValue: CountryOption | CountryOption[] | null) => {
+    const handleChange = (_: unknown, newValue: CountryOption | CountryOption[] | null) => {
         if (multiple) {
             const values = (newValue as CountryOption[])?.map(v => v.value) || [];
             onChange(values);
@@ -87,16 +166,43 @@ export default function CountryAutocomplete({
         }
     };
 
+    const options = useMemo(() => {
+        const selectedCodes = multiple
+            ? (Array.isArray(value) ? value : []).filter(Boolean)
+            : (typeof value === 'string' && value ? [value] : []);
+
+        const selectedFromCache = selectedCodes
+            .map((raw) => {
+                const val = String(raw).trim().toLowerCase();
+                return Object.values(countryCache).find((country) =>
+                    country.value.toLowerCase() === val
+                    || country.code.toLowerCase() === val
+                    || country._id === raw
+                    || country.name.toLowerCase() === val
+                );
+            })
+            .filter((country): country is CountryOption => !!country);
+
+        return Array.from(new Map([...countries, ...selectedFromCache].map((country) => [country.value, country])).values());
+    }, [countries, countryCache, multiple, value]);
+
     return (
         <Autocomplete
             multiple={multiple}
             value={getSelectedValue()}
             onChange={handleChange}
-            options={countries}
+            options={options}
             loading={loading}
-            disabled={disabled || loading}
+            disabled={disabled}
+            inputValue={inputValue}
+            onInputChange={(_, newInputValue, reason) => {
+                if (reason === 'input' || reason === 'clear') {
+                    setInputValue(newInputValue);
+                    setSearchTerm(newInputValue);
+                }
+            }}
             getOptionLabel={(option) => option.label}
-
+            filterOptions={(x) => x}
             isOptionEqualToValue={(option, value) => option.value === value?.value}
             renderInput={(params) => (
                 <TextField

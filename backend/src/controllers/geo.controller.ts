@@ -133,6 +133,41 @@ export const getGeos = asyncHandler(async (req: AuthRequest, res: Response) => {
         ];
     }
 
+    const countryId = req.query.countryId as string | undefined;
+    const stateId = req.query.stateId as string | undefined;
+
+    const applyIdConstraint = (ids: string[]) => {
+        if (ids.length === 0) {
+            filter._id = { $in: [] };
+            return;
+        }
+
+        const existingIds = filter._id?.$in as string[] | undefined;
+        if (existingIds) {
+            filter._id = { $in: existingIds.filter((id) => ids.includes(String(id))) };
+        } else {
+            filter._id = { $in: ids };
+        }
+    };
+
+    if (countryId) {
+        const statesInCountry = await Geo.find({ type: 'state', parentId: countryId }).select('_id').lean();
+        const stateIds = statesInCountry.map((s) => String(s._id));
+        const citiesInCountry = stateIds.length > 0
+            ? await Geo.find({ type: 'city', parentId: { $in: stateIds } }).select('_id').lean()
+            : [];
+        const cityIds = citiesInCountry.map((c) => String(c._id));
+
+        applyIdConstraint([countryId, ...stateIds, ...cityIds]);
+    }
+
+    if (stateId) {
+        const citiesInState = await Geo.find({ type: 'city', parentId: stateId }).select('_id').lean();
+        const cityIds = citiesInState.map((c) => String(c._id));
+
+        applyIdConstraint([stateId, ...cityIds]);
+    }
+
     const [geos, total] = await Promise.all([
         Geo.find(filter)
             .populate('parentId', 'name type code')

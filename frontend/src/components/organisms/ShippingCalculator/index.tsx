@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { apiClient } from '@/services/api-client';
 import styles from './ShippingCalculator.module.scss';
 import { useCurrency } from '@/hooks/useCurrency';
@@ -11,7 +11,7 @@ interface ShippingCalculatorProps {
     variantId?: string;
     quantity: number;
     userDefaultCountry?: string;
-    onCalculate?: (zip: string, country: string) => Promise<any>;
+    onCalculate?: (zip: string, country: string) => Promise<unknown>;
     estimate?: {
         loading: boolean;
         error?: string;
@@ -36,45 +36,69 @@ const ShippingCalculator: React.FC<ShippingCalculatorProps> = ({
     estimate
 }) => {
     const [country, setCountry] = useState(userDefaultCountry || '');
+    const [countryInput, setCountryInput] = useState(userDefaultCountry || '');
     const [zip, setZip] = useState('');
     const [countries, setCountries] = useState<GeoCountry[]>([]);
     const [loadingCountries, setLoadingCountries] = useState(false);
+    const [hasLoadedCountries, setHasLoadedCountries] = useState(false);
+    const [showCountrySuggestions, setShowCountrySuggestions] = useState(false);
     const { formatPriceWithExchange } = useCurrency();
 
     const [isExpanded, setIsExpanded] = useState(false);
 
-    // Fetch countries on mount
-    useEffect(() => {
+    const ensureCountriesLoaded = async () => {
+        if (hasLoadedCountries || loadingCountries) return;
         setLoadingCountries(true);
-        apiClient.get('/geo?type=country&isActive=true')
-            .then((res: any) => {
-                setCountries(res.data || []);
-            })
-            .catch(err => console.error('Failed to load countries', err))
-            .finally(() => setLoadingCountries(false));
-    }, []);
-
-    // Update country if userDefaultCountry changes
-    useEffect(() => {
-        if (userDefaultCountry) {
-            setCountry(userDefaultCountry);
+        try {
+            const res = await apiClient.get('/geo?type=country&isActive=true&limit=200') as { data?: GeoCountry[] };
+            setCountries(res.data || []);
+            setHasLoadedCountries(true);
+        } catch (err) {
+            console.error('Failed to load countries', err);
+        } finally {
+            setLoadingCountries(false);
         }
-    }, [userDefaultCountry]);
+    };
 
     const handleCalculate = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!country) return;
+        let selectedCountryCode = country;
+
+        if (countryInput) {
+            const matched = countries.find(
+                c => c.name.toLowerCase() === countryInput.trim().toLowerCase() || c.code.toLowerCase() === countryInput.trim().toLowerCase()
+            );
+            selectedCountryCode = matched?.code || '';
+            setCountry(selectedCountryCode);
+            if (matched) {
+                setCountryInput(matched.name);
+            }
+        }
+
+        if (!selectedCountryCode) return;
         if (onCalculate) {
-            onCalculate(zip, country);
+            onCalculate(zip, selectedCountryCode);
         }
     };
+
+    const filteredCountries = countries
+        .filter((c) => {
+            const query = countryInput.trim().toLowerCase();
+            if (!query) return true;
+            return c.name.toLowerCase().includes(query) || c.code.toLowerCase().includes(query);
+        })
+        .slice(0, 12);
 
     return (
         <div className={`${styles.shippingCalculator} ${isExpanded ? styles.expanded : ''}`} data-ga-location="product_page" data-ga-widget="shipping_calculator">
             <div
                 className={`${styles.header} ${isExpanded ? styles.active : ''} infi-track`}
                 onClick={() => {
-                    setIsExpanded(!isExpanded);
+                    const nextExpanded = !isExpanded;
+                    setIsExpanded(nextExpanded);
+                    if (nextExpanded) {
+                        ensureCountriesLoaded();
+                    }
                 }}
                 data-ga-action={isExpanded ? 'collapse' : 'expand'}
                 data-ga-label="Shipping Calculator"
@@ -92,24 +116,55 @@ const ShippingCalculator: React.FC<ShippingCalculatorProps> = ({
                     <form className={styles.form} onSubmit={handleCalculate}>
                         <div className={styles.formGroup}>
                             <label>Country</label>
-                            <select
-                                value={country}
-                                onChange={(e) => setCountry(e.target.value)}
-                                disabled={loadingCountries}
-                            >
-                                <option value="">Select Country</option>
-                                {countries.map(c => (
-                                    <option key={c._id} value={c.code}>{c.name}</option>
-                                ))}
-                            </select>
+                            <div className={styles.autocomplete}>
+                                <input
+                                    type="text"
+                                    value={countryInput}
+                                    onChange={(e) => {
+                                        setCountryInput(e.target.value);
+                                        setShowCountrySuggestions(true);
+                                    }}
+                                    onFocus={() => {
+                                        setShowCountrySuggestions(true);
+                                        ensureCountriesLoaded();
+                                    }}
+                                    onBlur={() => {
+                                        // Delay close to allow option click
+                                        setTimeout(() => setShowCountrySuggestions(false), 120);
+                                    }}
+                                    placeholder={loadingCountries ? 'Loading countries...' : 'Search country'}
+                                    disabled={loadingCountries}
+                                />
+
+                                {showCountrySuggestions && isExpanded && !loadingCountries && filteredCountries.length > 0 && (
+                                    <div className={styles.suggestions}>
+                                        {filteredCountries.map((c) => (
+                                            <button
+                                                key={c._id}
+                                                type="button"
+                                                className={styles.suggestionItem}
+                                                onMouseDown={(e) => e.preventDefault()}
+                                                onClick={() => {
+                                                    setCountry(c.code);
+                                                    setCountryInput(c.name);
+                                                    setShowCountrySuggestions(false);
+                                                }}
+                                            >
+                                                <span className={styles.countryName}>{c.name}</span>
+                                                <span className={styles.countryCode}>{c.code}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         <button
                             type="submit"
                             className={`${styles.btnCalculate} infi-track`}
-                            disabled={estimate?.loading || !country}
+                            disabled={estimate?.loading || !countryInput.trim()}
                             data-ga-action="calculate_shipping"
-                            data-ga-label={`Calculate Shipping for ${country}`}
+                            data-ga-label={`Calculate Shipping for ${countryInput || country}`}
                         >
                             {estimate?.loading ? 'Calculating...' : 'Calculate'}
                         </button>

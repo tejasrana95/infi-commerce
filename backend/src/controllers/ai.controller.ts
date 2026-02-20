@@ -6,6 +6,7 @@ import Product from '../models/Product';
 import Store from '../models/Store';
 import Page from '../models/Page';
 import BlogPost from '../models/BlogPost';
+import Geo from '../models/Geo';
 import Currency from '../models/Currency';
 import ChatHistory from '../models/ChatHistory';
 import Cart from '../models/Cart';
@@ -15,6 +16,7 @@ import Customer from '../models/Customer';
 import ReturnRequest from '../models/ReturnRequest';
 import { addTimezoneAwareDates } from '../utils/date.utils';
 import { addPricingToProduct } from './product.controller';
+import smartShippingService from '../services/smart-shipping.service';
 
 // Maximum iterations for tool call loops to prevent infinite loops
 const MAX_TOOL_ITERATIONS = 3;
@@ -53,6 +55,7 @@ interface ChatContext {
     userId?: string;
     sessionId?: string;
     baseUrl: string;
+    currencyCode: string;
     currencySymbol: string;
     exchangeRate: number;
     allCurrencies: any[];
@@ -102,6 +105,66 @@ function extractAssistantText(message: any): string {
     }
 
     return '';
+}
+
+function escapeRegex(input: string): string {
+    return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function extractSkuCandidates(input: string): string[] {
+    if (!input) return [];
+    const matches = input.toUpperCase().match(/\b[A-Z0-9]+(?:-[A-Z0-9]+)+\b/g) || [];
+    return Array.from(new Set(matches));
+}
+
+async function resolveCountryCode(input?: string): Promise<string | null> {
+    const value = String(input || '').trim();
+    if (!value) return null;
+
+    // Country code (ISO2) direct
+    if (/^[A-Za-z]{2}$/.test(value)) {
+        return value.toUpperCase();
+    }
+
+    const exactName = new RegExp(`^${escapeRegex(value)}$`, 'i');
+
+    const country = await Geo.findOne({
+        type: 'country',
+        isActive: true,
+        $or: [{ name: exactName }, { code: value.toUpperCase() }]
+    }).lean();
+    if (country?.code) return String(country.code).toUpperCase();
+
+    const state = await Geo.findOne({
+        type: 'state',
+        isActive: true,
+        $or: [{ name: exactName }, { code: value.toUpperCase() }]
+    }).lean();
+    if (state?.parentId) {
+        const parentCountry = await Geo.findById(state.parentId).lean();
+        if (parentCountry?.type === 'country' && parentCountry?.code) {
+            return String(parentCountry.code).toUpperCase();
+        }
+    }
+
+    const city = await Geo.findOne({
+        type: 'city',
+        isActive: true,
+        name: exactName
+    }).lean();
+
+    if (city?.parentId) {
+        const parent = await Geo.findById(city.parentId).lean();
+        if (parent?.type === 'country' && parent?.code) return String(parent.code).toUpperCase();
+        if (parent?.type === 'state' && parent?.parentId) {
+            const stateCountry = await Geo.findById(parent.parentId).lean();
+            if (stateCountry?.type === 'country' && stateCountry?.code) {
+                return String(stateCountry.code).toUpperCase();
+            }
+        }
+    }
+
+    return null;
 }
 
 // ============================================================================
@@ -165,6 +228,21 @@ function getToolDefinitions(userId?: string): OpenAI.Chat.ChatCompletionTool[] {
                     properties: {
                         query: { type: "string", description: "Search query for blog post title or content" },
                         limit: { type: "number", description: "Number of results to return (default 5, max 10)" }
+                    }
+                }
+            }
+        },
+        {
+            type: "function",
+            function: {
+                name: "checkShippingAvailability",
+                description: "Check shipping availability for a country/state using store geo records. Use this for questions like 'do you ship to X'.",
+                parameters: {
+                    type: "object",
+                    properties: {
+                        country: { type: "string", description: "Country name or ISO code (e.g., Japan or JP)" },
+                        state: { type: "string", description: "State/province name or code (optional)" },
+                        locationQuery: { type: "string", description: "Free-form location text if country/state are not separate" }
                     }
                 }
             }
@@ -248,7 +326,7 @@ async function executeToolCall(
     toolCall: any,
     context: ChatContext
 ): Promise<ToolResult> {
-    const { storeId, userId, sessionId, baseUrl, currencySymbol, exchangeRate, allCurrencies, timezone } = context;
+    const { storeId, userId, sessionId, baseUrl, currencyCode, currencySymbol, exchangeRate, allCurrencies, timezone } = context;
     const functionName = toolCall.function?.name || '';
     const args = JSON.parse(toolCall.function?.arguments || '{}');
 
@@ -261,12 +339,24 @@ async function executeToolCall(
 
             if (args.query) {
                 // Search in product name, description, and variant attributes
-                const searchTerms = args.query.toLowerCase().split(' ');
+                const normalizedQuery = String(args.query).trim();
+                const upperQuery = normalizedQuery.toUpperCase();
+                const skuCandidates = extractSkuCandidates(normalizedQuery);
+                const searchTerms = normalizedQuery.toLowerCase().split(' ');
 
                 query.$or = [
+                    { sku: upperQuery },
+                    { 'variants.sku': upperQuery },
                     { name: { $regex: args.query, $options: 'i' } },
-                    { description: { $regex: args.query, $options: 'i' } }
+                    { description: { $regex: args.query, $options: 'i' } },
+                    { sku: { $regex: escapeRegex(normalizedQuery), $options: 'i' } },
+                    { 'variants.sku': { $regex: escapeRegex(normalizedQuery), $options: 'i' } }
                 ];
+
+                if (skuCandidates.length > 0) {
+                    query.$or.push({ sku: { $in: skuCandidates } });
+                    query.$or.push({ 'variants.sku': { $in: skuCandidates } });
+                }
 
                 // Add attribute search for each search term
                 // Searching in attributes.values and productOptions.values which are string arrays
@@ -293,7 +383,7 @@ async function executeToolCall(
                 .populate('brand', 'name')
                 .populate('taxClassId', 'name rate isSplit subTaxes')
                 .limit(limit)
-                .select('name slug price salePrice stockStatus brand description type variants')
+                .select('name slug sku price salePrice stockStatus brand description type variants')
                 .lean();
 
             data = products.map(p => {
@@ -331,6 +421,7 @@ async function executeToolCall(
 
                 return {
                     name: p.name,
+                    sku: p.sku,
                     price: `${currencySymbol}${finalPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${priceNote}`,
                     brand: (p.brand as any)?.name,
                     status: p.stockStatus,
@@ -342,11 +433,17 @@ async function executeToolCall(
         }
 
         case 'getProductDetails': {
+            const lookupValue = String(args.productSlug || '').trim();
+            const lookupUpper = lookupValue.toUpperCase();
+            const skuCandidates = extractSkuCandidates(lookupValue);
             const product = await Product.findOne({
                 storeId,
                 $or: [
-                    { slug: args.productSlug },
-                    { name: { $regex: args.productSlug, $options: 'i' } }
+                    { slug: lookupValue.toLowerCase() },
+                    { sku: lookupUpper },
+                    { 'variants.sku': lookupUpper },
+                    ...(skuCandidates.length > 0 ? [{ sku: { $in: skuCandidates } }, { 'variants.sku': { $in: skuCandidates } }] : []),
+                    { name: { $regex: lookupValue, $options: 'i' } }
                 ]
             })
                 .populate('brand', 'name')
@@ -414,7 +511,7 @@ async function executeToolCall(
                     categories: (product.categoryIds as any[])?.map(c => c.name).join(', '),
                     status: product.stockStatus,
                     description: product.description,
-                    url: `${baseUrl}/product/${product.slug}`,
+                    url: `${baseUrl}/${product.slug}`,
                     sku: product.sku,
                     images: product.images,
                     isOnSale: pricing.isOnSale,
@@ -475,12 +572,239 @@ async function executeToolCall(
             break;
         }
 
+        case 'checkShippingAvailability': {
+            const countryInput = (args.country || '').trim();
+            const stateInput = (args.state || '').trim();
+            const locationQuery = (args.locationQuery || '').trim();
+
+            const findCountry = async (value: string) => {
+                const exactName = new RegExp(`^${escapeRegex(value)}$`, 'i');
+                const upper = value.toUpperCase();
+                return Geo.findOne({
+                    type: 'country',
+                    isActive: true,
+                    $or: [
+                        { code: upper },
+                        { name: exactName }
+                    ]
+                }).lean();
+            };
+
+            const findState = async (value: string, parentId?: any) => {
+                const exactName = new RegExp(`^${escapeRegex(value)}$`, 'i');
+                const upper = value.toUpperCase();
+                const query: any = {
+                    type: 'state',
+                    isActive: true,
+                    $or: [
+                        { code: upper },
+                        { name: exactName }
+                    ]
+                };
+                if (parentId) query.parentId = parentId;
+                return Geo.findOne(query).lean();
+            };
+
+            let country: any = null;
+            let state: any = null;
+
+            if (!countryInput && !stateInput && !locationQuery) {
+                data = {
+                    shippingAvailable: null,
+                    requiresLocation: true,
+                    message: 'Please provide country or state so I can verify shipping coverage.'
+                };
+                break;
+            }
+
+            if (countryInput) {
+                country = await findCountry(countryInput);
+            }
+
+            if (stateInput) {
+                state = await findState(stateInput, country?._id);
+            }
+
+            if (!country && locationQuery) {
+                country = await findCountry(locationQuery);
+            }
+
+            if (!state && locationQuery) {
+                state = await findState(locationQuery, country?._id);
+            }
+
+            if (!country && state?.parentId) {
+                country = await Geo.findById(state.parentId).lean();
+            }
+
+            if (!country) {
+                data = {
+                    shippingAvailable: false,
+                    matched: null,
+                    reason: 'Location not found in geo coverage table.'
+                };
+                break;
+            }
+
+            if (stateInput && !state) {
+                data = {
+                    shippingAvailable: false,
+                    matched: {
+                        country: { name: country.name, code: country.code || null },
+                        state: null
+                    },
+                    reason: `State "${stateInput}" was not found under ${country.name}.`
+                };
+                break;
+            }
+
+            const countryShippingEnabled = country.isShippingAvailable !== false;
+
+            data = {
+                shippingAvailable: countryShippingEnabled,
+                matched: {
+                    country: { name: country.name, code: country.code || null },
+                    state: state ? { name: state.name, code: state.code || null } : null
+                },
+                reason: countryShippingEnabled
+                    ? 'Shipping is available for this location.'
+                    : 'Shipping is disabled for this country in geo settings.'
+            };
+            break;
+        }
+
+        case 'calculateSmartShippingCost': {
+            const quantity = Math.max(1, Number(args.quantity) || 1);
+            const rawCountryInput = (args.country || args.state || args.city || '').trim();
+            const countryCode = await resolveCountryCode(rawCountryInput);
+
+            if (!countryCode) {
+                data = {
+                    success: false,
+                    error: 'Could not resolve destination country. Please provide a valid country name/code (e.g., AE).'
+                };
+                break;
+            }
+
+            let product: any = null;
+            const productId = String(args.productId || '').trim();
+            const productSku = String(args.productSku || '').trim();
+            const productSlug = String(args.productSlug || '').trim();
+
+            if (productId) {
+                product = await Product.findOne({ _id: productId, storeId, isActive: true });
+            }
+
+            if (!product && productSku) {
+                const skuUpper = productSku.toUpperCase();
+                product = await Product.findOne({
+                    storeId,
+                    isActive: true,
+                    $or: [
+                        { sku: skuUpper },
+                        { 'variants.sku': skuUpper }
+                    ]
+                });
+            }
+
+            if (!product && productSlug) {
+                const lookupUpper = productSlug.toUpperCase();
+                const skuCandidates = extractSkuCandidates(productSlug);
+                product = await Product.findOne({
+                    storeId,
+                    isActive: true,
+                    $or: [
+                        { slug: productSlug.toLowerCase() },
+                        { sku: lookupUpper },
+                        { 'variants.sku': lookupUpper },
+                        ...(skuCandidates.length > 0 ? [{ sku: { $in: skuCandidates } }, { 'variants.sku': { $in: skuCandidates } }] : []),
+                        { name: { $regex: productSlug, $options: 'i' } }
+                    ]
+                });
+            }
+
+            if (!product) {
+                data = {
+                    success: false,
+                    error: 'Product not found. Please share product SKU or exact product name.'
+                };
+                break;
+            }
+
+            if (!product.canShipTo(countryCode, args.state, args.city)) {
+                data = {
+                    success: false,
+                    product: {
+                        id: product._id,
+                        name: product.name,
+                        sku: product.sku
+                    },
+                    destination: {
+                        country: countryCode,
+                        state: args.state || null,
+                        city: args.city || null,
+                        zip: args.zip || null
+                    },
+                    restricted: true,
+                    message: `${product.name} cannot be shipped to ${countryCode}.`
+                };
+                break;
+            }
+
+            const shippingResult = await smartShippingService.calculateSmartShipping({
+                storeId,
+                country: countryCode,
+                items: [{
+                    productId: product._id.toString(),
+                    quantity
+                }]
+            });
+
+            const allocation = shippingResult.itemAllocations.find(a => a.productId === product._id.toString());
+            const shippingCost = allocation?.shippingCostTotal ?? shippingResult.totalShippingCost ?? 0;
+
+            data = {
+                success: true,
+                endpoint: '/api/shipping/calculate-smart',
+                requestPayload: {
+                    storeId,
+                    country: countryCode,
+                    zip: args.zip || '',
+                    items: [{ productId: product._id.toString(), quantity }],
+                    currency: (args.currency || currencyCode || 'USD').toUpperCase()
+                },
+                product: {
+                    id: product._id,
+                    name: product.name,
+                    sku: product.sku
+                },
+                destination: {
+                    country: countryCode,
+                    state: args.state || null,
+                    city: args.city || null,
+                    zip: args.zip || null
+                },
+                quantity,
+                shippingCost,
+                totalShippingCost: shippingResult.totalShippingCost,
+                breakdown: shippingResult.breakdown,
+                allocation: allocation || null
+            };
+            break;
+        }
+
         case 'addToCart': {
+            const lookupValue = String(args.productSlug || '').trim();
+            const lookupUpper = lookupValue.toUpperCase();
+            const skuCandidates = extractSkuCandidates(lookupValue);
             const product = await Product.findOne({
                 storeId,
                 $or: [
-                    { slug: args.productSlug },
-                    { name: { $regex: args.productSlug, $options: 'i' } }
+                    { slug: lookupValue.toLowerCase() },
+                    { sku: lookupUpper },
+                    { 'variants.sku': lookupUpper },
+                    ...(skuCandidates.length > 0 ? [{ sku: { $in: skuCandidates } }, { 'variants.sku': { $in: skuCandidates } }] : []),
+                    { name: { $regex: lookupValue, $options: 'i' } }
                 ]
             });
 
@@ -670,8 +994,9 @@ ${userId ? 'The user is logged in.' : 'The user is a guest. Remind them gently t
 CORE CAPABILITIES:
 1. Product Discovery: Use searchProducts to find items based on any criteria.
 2. Product Details: Use getProductDetails to get full information for a specific product.
-34. User Data: Use getUserCart, getUserOrders, getUserWishlist, and getUserReturns to provide personalized service for logged-in users.
+3. User Data: Use getUserCart, getUserOrders, getUserWishlist, and getUserReturns to provide personalized service for logged-in users.
 4. Information: Use searchPages and searchBlogPosts to answer general questions about store policies, news, or advice.
+5. Shipping Coverage: Use checkShippingAvailability to verify country/state shipping support from geo records.
 
 URL PATTERNS (Use these exact formats when providing links):
 - Login: ${baseUrl}/login
@@ -699,11 +1024,13 @@ GUIDELINES:
 6. IMPORTANT: When using functions, always wait for the results before giving your final answer.
 7. Don't mention that you are an AI or that you're using functions unless it's necessary for clarity.
 8. CHECKOUT: You CANNOT perform checkout, shipping, or payment entry. If the user wants to checkout, provide the [Checkout Link](${baseUrl}/checkout) and wish them a smooth process. Do NOT ask for address or payment details instead say since this is important and for your privacy and data protect I can not perform checkout, shipping, or payment entry. It is always better to do it by yourself for your security and data protection.
-9. CATEGORIES: Do not guess category URLs. If the user asks for a category (e.g. "Accessories"), use searchProducts or category search to find relevant items or category instead of guessing a /category/accessories link that might not exist.
+9. CATEGORIES: Do not guess category URLs. If the user asks for a category (e.g. "Accessories"), use searchProducts or category search to find relevant items or category instead of guessing a /accessories link that might not exist.
 10. When you add anything in cart on behalf of user then just say after successful addition "Added to cart successfully. Please refresh the page to see the cart items." and suggest some more product related to what you add in cart or from userinterests but not the same which already added in cart.
 11. If variable product then do not add to cart instead give the link of product page and say that please feel free to explore product option and then add to cart by clicking on add to cart button.
 12. CRITICAL: Do NOT use paths like /page/login, /page/register, /page/cart, etc. incorrectly. Use exactly /login, /register, /cart, /account as defined in URL PATTERNS.
-13. TIMEZONES: When providing order status, always use the 'orderedAt' and 'lastUpdated' fields (which are in the store's local timezone) instead of the raw UTC 'date' field. Mention the timezone/offset (e.g., EST, IST) if helpful for clarity. Similarly, for products, use the localized date fields if available.`;
+13. TIMEZONES: When providing order status, always use the 'orderedAt' and 'lastUpdated' fields (which are in the store's local timezone) instead of the raw UTC 'date' field. Mention the timezone/offset (e.g., EST, IST) if helpful for clarity. Similarly, for products, use the localized date fields if available.
+14. SHIPPING QUESTIONS: For "do you ship", "can you deliver", or shipping-to-location questions, always call checkShippingAvailability first. Do not guess or say "might". If location is missing, ask for country/state.
+15. SHIPPING COST QUESTIONS: Do NOT calculate or estimate shipping cost in chat. Always reply: "Please add the product to cart and at checkout page you can see the shipping cost. Or on the product page, use the shipping calculator."`;
 }
 
 function formatHistoryForOpenAI(messages: any[]): OpenAI.Chat.ChatCompletionMessageParam[] {
@@ -792,8 +1119,11 @@ export const getHistory = asyncHandler(async (req: AuthRequest, res: Response) =
  * - Streaming for final content delivery
  */
 export const chat = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { message, storeId, sessionId } = req.body;
-    const selectedCurrencyCode = req.headers['x-currency'] as string || 'USD';
+    const { message, sessionId } = req.body;
+    const bodyStoreId = req.body?.storeId;
+    const headerStoreId = req.headers['x-store-id'] as string | undefined;
+    const storeId = String(bodyStoreId || headerStoreId || '').trim();
+    const selectedCurrencyCode = String((req.headers['x-currency'] as string) || req.body?.currency || 'USD').toUpperCase();
     const userId = req.user?.id;
 
     // Validate inputs
@@ -826,6 +1156,7 @@ export const chat = asyncHandler(async (req: AuthRequest, res: Response) => {
         userId,
         sessionId,
         baseUrl,
+        currencyCode: selectedCurrencyCode,
         currencySymbol,
         exchangeRate,
         allCurrencies,

@@ -11,7 +11,45 @@ export const createGeoGroupValidation = [
     body('name').trim().notEmpty().withMessage('Geo group name is required'),
     body('storeId').isMongoId().withMessage('Valid store ID is required'),
     body('countries').isArray().withMessage('Countries must be an array'),
+    body('includeAllCountries').optional().isBoolean().withMessage('includeAllCountries must be boolean'),
+    body('excludedCountries').optional().isArray().withMessage('excludedCountries must be an array'),
 ];
+
+const validateCountryCodesExist = async (codes: string[]) => {
+    if (!codes.length) return;
+    const existingCountries = await Geo.find({
+        code: { $in: codes },
+        type: 'country',
+    }).select('_id');
+
+    if (existingCountries.length !== codes.length) {
+        throw new AppError('One or more countries not found', 400);
+    }
+};
+
+const normalizeCountryCodes = (values?: string[]): string[] => {
+    const codes = (values || [])
+        .map((code) => String(code || '').trim().toUpperCase())
+        .filter(Boolean);
+    return Array.from(new Set(codes));
+};
+
+const resolveCountriesForGroup = async (params: {
+    includeAllCountries: boolean;
+    countries: string[];
+    excludedCountries: string[];
+}): Promise<string[]> => {
+    const { includeAllCountries, countries, excludedCountries } = params;
+    if (!includeAllCountries) {
+        return countries;
+    }
+
+    const allCountries = await Geo.find({ type: 'country' }).select('code').lean();
+    const excludedSet = new Set(excludedCountries);
+    return allCountries
+        .map((country) => (country.code || '').toUpperCase())
+        .filter((code) => code && !excludedSet.has(code));
+};
 
 /**
  * @swagger
@@ -49,7 +87,7 @@ export const createGeoGroupValidation = [
  *         description: Geo group created successfully
  */
 export const createGeoGroup = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { name, description, storeId, countries } = req.body;
+    const { name, description, storeId, countries, includeAllCountries, excludedCountries } = req.body;
 
     // Verify store exists
     const store = await Store.findById(storeId);
@@ -57,25 +95,27 @@ export const createGeoGroup = asyncHandler(async (req: AuthRequest, res: Respons
         throw new AppError('Store not found', 404);
     }
 
-    // Verify all countries exist
-    if (countries && countries.length > 0) {
-        const upperCountries = countries.map((c: string) => c.toUpperCase());
-        const existingCountries = await Geo.find({
-            code: { $in: upperCountries },
-            type: 'country'
-        });
+    const normalizedCountries = normalizeCountryCodes(countries);
+    const normalizedExcludedCountries = normalizeCountryCodes(excludedCountries);
+    const includeAll = !!includeAllCountries;
 
-        if (existingCountries.length !== countries.length) {
-            throw new AppError('One or more countries not found', 400);
-        }
-    }
+    await validateCountryCodesExist(normalizedCountries);
+    await validateCountryCodesExist(normalizedExcludedCountries);
+
+    const resolvedCountries = await resolveCountriesForGroup({
+        includeAllCountries: includeAll,
+        countries: normalizedCountries,
+        excludedCountries: normalizedExcludedCountries,
+    });
 
     // Create geo group
     const geoGroup = await GeoGroup.create({
         name,
         description,
         storeId,
-        countries: countries.map((c: string) => c.toUpperCase()),
+        countries: resolvedCountries,
+        includeAllCountries: includeAll,
+        excludedCountries: normalizedExcludedCountries,
     });
 
     res.status(201).json({
@@ -222,20 +262,30 @@ export const updateGeoGroup = asyncHandler(async (req: AuthRequest, res: Respons
         throw new AppError('Geo group not found', 404);
     }
 
-    // Verify countries if being updated
-    if (updates.countries && updates.countries.length > 0) {
-        const upperCountries = updates.countries.map((c: string) => c.toUpperCase());
-        const existingCountries = await Geo.find({
-            code: { $in: upperCountries },
-            type: 'country'
-        });
+    const includeAllCountries = updates.includeAllCountries !== undefined
+        ? !!updates.includeAllCountries
+        : !!geoGroup.includeAllCountries;
 
-        if (existingCountries.length !== updates.countries.length) {
-            throw new AppError('One or more countries not found', 400);
-        }
+    const normalizedCountries = updates.countries !== undefined
+        ? normalizeCountryCodes(updates.countries)
+        : normalizeCountryCodes(geoGroup.countries);
 
-        updates.countries = upperCountries;
-    }
+    const normalizedExcludedCountries = updates.excludedCountries !== undefined
+        ? normalizeCountryCodes(updates.excludedCountries)
+        : normalizeCountryCodes(geoGroup.excludedCountries || []);
+
+    await validateCountryCodesExist(normalizedCountries);
+    await validateCountryCodesExist(normalizedExcludedCountries);
+
+    const resolvedCountries = await resolveCountriesForGroup({
+        includeAllCountries,
+        countries: normalizedCountries,
+        excludedCountries: normalizedExcludedCountries,
+    });
+
+    updates.includeAllCountries = includeAllCountries;
+    updates.excludedCountries = normalizedExcludedCountries;
+    updates.countries = resolvedCountries;
 
     // Update geo group
     Object.assign(geoGroup, updates);

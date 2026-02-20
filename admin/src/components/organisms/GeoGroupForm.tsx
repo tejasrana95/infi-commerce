@@ -10,12 +10,7 @@ import {
     FormControlLabel,
     Switch,
     Grid,
-    MenuItem,
-    Select,
-    InputLabel,
-    FormControl,
-    Chip,
-    OutlinedInput,
+    Typography,
 } from '@mui/material';
 import { Geo, GeoGroup } from '@/types';
 import CountryAutocomplete from '@/components/molecules/CountryAutocomplete';
@@ -27,6 +22,8 @@ const schema = z.object({
     storeId: z.string().min(1, 'Store is required'),
     description: z.string().optional(),
     countries: z.array(z.string()),
+    includeAllCountries: z.boolean().default(false),
+    excludedCountries: z.array(z.string()).default([]),
     isActive: z.boolean(),
 });
 
@@ -44,31 +41,23 @@ const defaultValues: FormData = {
     storeId: '',
     description: '',
     countries: [],
+    includeAllCountries: false,
+    excludedCountries: [],
     isActive: true,
 };
 
-const ITEM_HEIGHT = 48;
-const ITEM_PADDING_TOP = 8;
-const MenuProps = {
-    PaperProps: {
-        style: {
-            maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
-            width: 250,
-        },
-    },
-};
-
 export default function GeoGroupForm({ initialData, onSubmit, availableCountries }: GeoGroupFormProps) {
-    const { control, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
+    const { control, handleSubmit, reset, watch, formState: { errors } } = useForm<FormData>({
         resolver: zodResolver(schema),
         defaultValues,
     });
+    const includeAllCountries = watch('includeAllCountries');
 
     useEffect(() => {
         if (initialData) {
             // Handle storeId - it might be populated as an object or just a string
             const storeId = typeof initialData.storeId === 'object' && initialData.storeId !== null
-                ? (initialData.storeId as any)._id
+                ? (initialData.storeId as { _id?: string })._id
                 : initialData.storeId || '';
 
             reset({
@@ -76,6 +65,8 @@ export default function GeoGroupForm({ initialData, onSubmit, availableCountries
                 storeId: storeId,
                 description: initialData.description || '',
                 countries: initialData.countries || initialData.geos || [],
+                includeAllCountries: initialData.includeAllCountries || false,
+                excludedCountries: initialData.excludedCountries || [],
                 isActive: initialData.isActive ?? true,
             });
         } else {
@@ -136,20 +127,63 @@ export default function GeoGroupForm({ initialData, onSubmit, availableCountries
                 </Grid>
                 <Grid size={{ xs: 12 }}>
                     <Controller
-                        name="countries"
+                        name="includeAllCountries"
                         control={control}
-                        render={({ field: { onChange, value } }) => (
-                            <CountryAutocomplete
-                                value={value || []}
-                                onChange={onChange}
-                                multiple
-                                label="Countries"
-                                error={!!errors.countries}
-                                helperText={errors.countries?.message}
+                        render={({ field }) => (
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={!!field.value}
+                                        onChange={(e) => field.onChange(e.target.checked)}
+                                    />
+                                }
+                                label="Include all countries"
                             />
                         )}
                     />
                 </Grid>
+                <Grid size={{ xs: 12 }}>
+                    <Typography variant="body2" color="text.secondary">
+                        {includeAllCountries
+                            ? 'All countries will be included except the excluded countries below.'
+                            : 'Select specific countries to include in this group.'}
+                    </Typography>
+                </Grid>
+                {!includeAllCountries && (
+                    <Grid size={{ xs: 12 }}>
+                        <Controller
+                            name="countries"
+                            control={control}
+                            render={({ field: { onChange, value } }) => (
+                                <CountryAutocomplete
+                                    value={value || []}
+                                    onChange={onChange}
+                                    multiple
+                                    label="Included Countries"
+                                    error={!!errors.countries}
+                                    helperText={errors.countries?.message}
+                                />
+                            )}
+                        />
+                    </Grid>
+                )}
+                {includeAllCountries && (
+                    <Grid size={{ xs: 12 }}>
+                        <Controller
+                            name="excludedCountries"
+                            control={control}
+                            render={({ field: { onChange, value } }) => (
+                                <CountryAutocomplete
+                                    value={value || []}
+                                    onChange={onChange}
+                                    multiple
+                                    label="Excluded Countries"
+                                    helperText="These countries will be excluded from the group."
+                                />
+                            )}
+                        />
+                    </Grid>
+                )}
                 <Grid size={{ xs: 12 }}>
                     <Controller
                         name="isActive"

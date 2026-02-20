@@ -194,9 +194,9 @@ function SubItem({
             item={subItem as any}
             showIcon={settings?.showIcons}
             themeColors={themeColors}
-            onClick={(item, event) => {
+            onClick={(item, _event) => {
                 onNavigate?.();
-                onItemClick?.(item, event);
+                onItemClick?.(item);
             }}
         />
     );
@@ -223,10 +223,10 @@ export default function MegaMenu({
     const [forceClosed, setForceClosed] = useState(false);
     const closeUntilRef = useRef(0);
 
-    const handleMenuNavigate = useCallback((item?: MenuItem, event?: React.MouseEvent<HTMLElement>) => {
+    const handleMenuNavigate = useCallback((item?: MenuItem, _event?: React.MouseEvent<HTMLElement>) => {
         closeUntilRef.current = Date.now() + 400;
         setForceClosed(true);
-        if (item) onItemClick?.(item, event);
+        if (item) onItemClick?.(item);
     }, [onItemClick]);
 
     // Re-enable hover behavior after actual route change

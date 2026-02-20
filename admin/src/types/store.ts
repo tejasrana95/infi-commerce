@@ -35,6 +35,8 @@ export interface GeoGroup {
     description?: string;
     geos: string[]; // Deprecated, use countries
     countries?: string[];
+    includeAllCountries?: boolean;
+    excludedCountries?: string[];
     isActive: boolean;
     createdAt: string;
     updatedAt: string;

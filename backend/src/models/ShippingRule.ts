@@ -9,6 +9,7 @@ export interface IShippingRule extends Document {
 
     // Conditions
     geoGroupId?: mongoose.Types.ObjectId; // Reference to GeoGroup for country matching
+    geoGroupIds?: mongoose.Types.ObjectId[]; // Multiple geo zones
     categoryIds?: mongoose.Types.ObjectId[]; // Specific categories this rule applies to
     minWeight?: number;
     maxWeight?: number;
@@ -55,6 +56,12 @@ const ShippingRuleSchema = new Schema<IShippingRule>(
             type: Schema.Types.ObjectId,
             ref: 'GeoGroup',
         },
+        geoGroupIds: [
+            {
+                type: Schema.Types.ObjectId,
+                ref: 'GeoGroup',
+            },
+        ],
         categoryIds: [
             {
                 type: Schema.Types.ObjectId,
@@ -96,6 +103,7 @@ const ShippingRuleSchema = new Schema<IShippingRule>(
 ShippingRuleSchema.index({ storeId: 1, isActive: 1 });
 ShippingRuleSchema.index({ priority: -1 });
 ShippingRuleSchema.index({ geoGroupId: 1 });
+ShippingRuleSchema.index({ geoGroupIds: 1 });
 
 const ShippingRule = mongoose.model<IShippingRule>('ShippingRule', ShippingRuleSchema);
 

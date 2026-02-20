@@ -8,6 +8,8 @@ export interface IGeoGroup extends Document {
     name: string;
     description?: string;
     countries: string[]; // Array of country codes
+    includeAllCountries?: boolean;
+    excludedCountries?: string[];
     storeId: mongoose.Types.ObjectId;
     isActive: boolean;
     createdAt: Date;
@@ -28,6 +30,14 @@ const GeoGroupSchema = new Schema<IGeoGroup>(
         countries: {
             type: [String],
             required: true,
+            default: [],
+        },
+        includeAllCountries: {
+            type: Boolean,
+            default: false,
+        },
+        excludedCountries: {
+            type: [String],
             default: [],
         },
         storeId: {

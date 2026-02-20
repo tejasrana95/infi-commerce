@@ -10,6 +10,10 @@ $accent-color: var(--color-accent, #3b82f6);
     overflow: hidden;
     transition: all 0.3s ease;
 
+    &.expanded {
+        overflow: visible;
+    }
+
     .header {
         width: 100%;
         display: flex;
@@ -54,6 +58,7 @@ $accent-color: var(--color-accent, #3b82f6);
             grid-template-rows: 1fr;
             opacity: 1;
             visibility: visible;
+            overflow: visible;
         }
     }
 
@@ -67,6 +72,7 @@ $accent-color: var(--color-accent, #3b82f6);
     .content.show .formContainer {
         padding-bottom: 16px;
         padding-top: 4px;
+        overflow: visible;
     }
 
     .form {
@@ -85,6 +91,7 @@ $accent-color: var(--color-accent, #3b82f6);
         display: flex;
         flex-direction: column;
         gap: 0.25rem;
+        position: relative;
 
         label {
             font-size: 0.7rem;
@@ -92,7 +99,8 @@ $accent-color: var(--color-accent, #3b82f6);
             color: var(--text-muted, #6b7280);
         }
 
-        select {
+        input {
+            width: 100%;
             padding: 0.4rem;
             border: 1px solid var(--border-color, #e5e7eb);
             border-radius: 6px;
@@ -106,6 +114,52 @@ $accent-color: var(--color-accent, #3b82f6);
                 background-color: #fff;
                 box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
             }
+        }
+
+        .autocomplete {
+            position: relative;
+        }
+
+        .suggestions {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            max-height: 220px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color, #e5e7eb);
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            z-index: 15;
+        }
+
+        .suggestionItem {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0.65rem;
+            border: none;
+            background: transparent;
+            text-align: left;
+            cursor: pointer;
+            font-size: 0.75rem;
+
+            &:hover {
+                background: #f8fafc;
+            }
+        }
+
+        .countryName {
+            color: var(--text-main, #111827);
+            font-weight: 500;
+        }
+
+        .countryCode {
+            color: var(--text-muted, #9ca3af);
+            font-size: 0.7rem;
+            margin-left: 0.6rem;
         }
     }
 

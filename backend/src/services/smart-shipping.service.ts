@@ -51,6 +51,20 @@ interface ItemDetails {
 }
 
 class SmartShippingService {
+    private ruleHasMatchingGeo(rule: any, country: string): boolean {
+        const countryCode = String(country || '').toUpperCase();
+        const zoneGroups = [
+            ...(Array.isArray(rule.geoGroupIds) ? rule.geoGroupIds : []),
+            ...(rule.geoGroupId ? [rule.geoGroupId] : []),
+        ];
+
+        if (zoneGroups.length === 0) return true;
+
+        return zoneGroups.some((geoGroup: any) =>
+            geoGroup?.countries && Array.isArray(geoGroup.countries) && geoGroup.countries.includes(countryCode)
+        );
+    }
+
     /**
      * Calculate shipping with category-specific rules
      */
@@ -126,6 +140,7 @@ class SmartShippingService {
             isActive: true,
         })
             .populate('geoGroupId')
+            .populate('geoGroupIds')
             .sort({ priority: -1 });
 
         if (shippingRules.length === 0) {
@@ -143,18 +158,11 @@ class SmartShippingService {
         const categorizedRules: RuleInfo[] = [];
 
         for (const rule of shippingRules) {
-            let matchesGeo = true;
-
-            if (rule.geoGroupId) {
-                const geoGroup = rule.geoGroupId as any;
-                if (geoGroup.countries && geoGroup.countries.length > 0) {
-                    matchesGeo = geoGroup.countries.includes(country.toUpperCase());
-                }
-            }
+            const matchesGeo = this.ruleHasMatchingGeo(rule, country);
 
             const ruleCategories = rule.categoryIds?.map((id: any) => id.toString()) || [];
             const hasCategories = ruleCategories.length > 0;
-            const hasGeo = !!rule.geoGroupId;
+            const hasGeo = !!rule.geoGroupId || (Array.isArray(rule.geoGroupIds) && rule.geoGroupIds.length > 0);
 
             if (!hasGeo || matchesGeo) {
                 categorizedRules.push({
@@ -189,6 +197,11 @@ class SmartShippingService {
                 case 'percentage':
                     cost = (groupValue * rule.rate) / 100;
                     break;
+            }
+
+            // Keep parity with calculate-smart controller behavior
+            if (rule.minCharge !== undefined && rule.minCharge > 0 && cost < rule.minCharge) {
+                cost = rule.minCharge;
             }
 
             return parseFloat(cost.toFixed(2));

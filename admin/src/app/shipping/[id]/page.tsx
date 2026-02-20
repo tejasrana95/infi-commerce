@@ -18,12 +18,13 @@ import {
   Typography,
   Alert,
   Chip,
+  Autocomplete,
+  SelectChangeEvent,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import api from '@/lib/api';
 import { useNotification } from '@/contexts/NotificationContext';
 import { LoadingSpinner } from '@/components/atoms';
-import { GeoGroupAutocomplete } from '@/components/molecules';
 import CategoryAutocomplete from '@/components/molecules/CategoryAutocomplete';
 
 interface Store {
@@ -36,6 +37,12 @@ interface CategoryItem {
   title: string;
 }
 
+interface GeoGroupOption {
+  _id: string;
+  name: string;
+  countries: string[];
+}
+
 export default function EditShippingRulePage() {
   const router = useRouter();
   const { id } = useParams();
@@ -43,12 +50,13 @@ export default function EditShippingRulePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [stores, setStores] = useState<Store[]>([]);
+  const [geoGroupOptions, setGeoGroupOptions] = useState<GeoGroupOption[]>([]);
 
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     storeId: '',
-    geoGroupId: '',
+    geoGroupIds: [] as string[],
     rateType: 'flat' as 'flat' | 'per_kg' | 'free' | 'percentage',
     rate: 0,
     minCharge: '',
@@ -69,11 +77,31 @@ export default function EditShippingRulePage() {
     if (id) fetchShippingRule();
   }, [id]);
 
+  useEffect(() => {
+    const fetchGeoGroups = async () => {
+      if (!formData.storeId) {
+        setGeoGroupOptions([]);
+        return;
+      }
+
+      try {
+        const response = await api.get('/geo-groups', {
+          params: { storeId: formData.storeId, isActive: true, limit: 200 },
+        });
+        setGeoGroupOptions(response.data.geoGroups || response.data.data || []);
+      } catch {
+        setGeoGroupOptions([]);
+      }
+    };
+
+    fetchGeoGroups();
+  }, [formData.storeId]);
+
   const fetchStores = async () => {
     try {
       const response = await api.get('/stores');
       setStores(response.data.stores || response.data.data || []);
-    } catch (err) {
+    } catch {
       console.error('Failed to fetch stores');
     }
   };
@@ -86,7 +114,11 @@ export default function EditShippingRulePage() {
         name: rule.name || '',
         description: rule.description || '',
         storeId: rule.storeId?._id || rule.storeId || '',
-        geoGroupId: rule.geoGroupId?._id || rule.geoGroupId || '',
+        geoGroupIds: Array.isArray(rule.geoGroupIds) && rule.geoGroupIds.length > 0
+          ? rule.geoGroupIds
+            .map((g: { _id?: string } | string) => (typeof g === 'string' ? g : g?._id || ''))
+            .filter(Boolean)
+          : (rule.geoGroupId ? [rule.geoGroupId?._id || rule.geoGroupId] : []),
         rateType: rule.rateType || 'flat',
         rate: rule.rate || 0,
         minCharge: rule.minCharge?.toString() || '',
@@ -100,12 +132,12 @@ export default function EditShippingRulePage() {
       });
       // Populate categories with names
       if (rule.categoryIds && Array.isArray(rule.categoryIds)) {
-        setSelectedCategories(rule.categoryIds.map((c: any) => ({
-          _id: c._id || c,
-          title: c.title || c._id || c,
+        setSelectedCategories(rule.categoryIds.map((c: { _id?: string; title?: string } | string) => ({
+          _id: typeof c === 'string' ? c : (c._id || ''),
+          title: typeof c === 'string' ? c : (c.title || c._id || ''),
         })));
       }
-    } catch (err: any) {
+    } catch {
       showNotification('Failed to load shipping rule', 'error');
       router.push('/shipping');
     } finally {
@@ -117,9 +149,9 @@ export default function EditShippingRulePage() {
     setFormData({ ...formData, [field]: e.target.value });
   };
 
-  const handleCategoryChange = (categoryId: string | null, category?: any) => {
+  const handleCategoryChange = (categoryId: string | null, category?: { title?: string }) => {
     if (categoryId && category && !selectedCategories.find(c => c._id === categoryId)) {
-      setSelectedCategories([...selectedCategories, { _id: categoryId, title: category.title }]);
+      setSelectedCategories([...selectedCategories, { _id: categoryId, title: category.title || categoryId }]);
     }
   };
 
@@ -134,7 +166,7 @@ export default function EditShippingRulePage() {
     try {
       const payload = {
         ...formData,
-        geoGroupId: formData.geoGroupId || undefined,
+        geoGroupIds: formData.geoGroupIds.length > 0 ? formData.geoGroupIds : undefined,
         categoryIds: selectedCategories.length > 0 ? selectedCategories.map(c => c._id) : undefined,
         minCharge: formData.minCharge ? parseFloat(formData.minCharge) : undefined,
         minWeight: formData.minWeight ? parseFloat(formData.minWeight) : undefined,
@@ -146,8 +178,9 @@ export default function EditShippingRulePage() {
       await api.put(`/shipping/rules/${id}`, payload);
       showNotification('Shipping rule updated successfully', 'success');
       router.push('/shipping');
-    } catch (err: any) {
-      showNotification(err.response?.data?.message || 'Failed to update shipping rule', 'error');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      showNotification(error.response?.data?.message || 'Failed to update shipping rule', 'error');
     } finally {
       setSaving(false);
     }
@@ -238,11 +271,31 @@ export default function EditShippingRulePage() {
             </Alert>
             <Grid container spacing={3}>
               <Grid size={{ xs: 12, md: 6 }}>
-                <GeoGroupAutocomplete
-                  storeId={formData.storeId}
-                  value={formData.geoGroupId || null}
-                  onChange={(value) => setFormData({ ...formData, geoGroupId: value || '' })}
-                  label="Geo Group (Countries)"
+                <Autocomplete
+                  multiple
+                  options={geoGroupOptions}
+                  value={geoGroupOptions.filter((option) => formData.geoGroupIds.includes(option._id))}
+                  onChange={(_, value) =>
+                    setFormData({
+                      ...formData,
+                      geoGroupIds: value.map((item) => item._id),
+                    })}
+                  getOptionLabel={(option) => option.name}
+                  isOptionEqualToValue={(option, value) => option._id === value._id}
+                  renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
+                      <Chip {...getTagProps({ index })} key={option._id} label={option.name} size="small" />
+                    ))
+                  }
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Geo Zones (Countries)"
+                      placeholder={formData.storeId ? 'Select one or more geo zones...' : 'Select store first'}
+                      helperText="You can select multiple geo zones. Leave empty to apply to all countries."
+                    />
+                  )}
+                  disabled={!formData.storeId}
                 />
               </Grid>
               <Grid size={{ xs: 12, md: 6 }}>
@@ -281,11 +334,12 @@ export default function EditShippingRulePage() {
               <Grid size={{ xs: 12, md: 6 }}>
                 <FormControl fullWidth required>
                   <InputLabel>Rate Type</InputLabel>
-                  <Select
-                    value={formData.rateType}
-                    label="Rate Type"
-                    onChange={(e) => setFormData({ ...formData, rateType: e.target.value as any })}
-                  >
+                <Select
+                  value={formData.rateType}
+                  label="Rate Type"
+                  onChange={(e: SelectChangeEvent<'flat' | 'per_kg' | 'free' | 'percentage'>) =>
+                    setFormData({ ...formData, rateType: e.target.value as 'flat' | 'per_kg' | 'free' | 'percentage' })}
+                >
                     <MenuItem value="flat">Flat Rate</MenuItem>
                     <MenuItem value="per_kg">Per KG</MenuItem>
                     <MenuItem value="percentage">Percentage of Order</MenuItem>

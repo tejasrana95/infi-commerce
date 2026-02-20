@@ -19,19 +19,20 @@ const DATA_URL =
 /**
  * ✅ ONLY these countries will be seeded
  */
-const ALLOWED_COUNTRY_CODES = ['IN', 'US', 'CA', 'AU'];
+const ALLOWED_COUNTRY_CODES = ['AR', 'BO', 'BR', 'CL', 'CO', 'EC', 'GY', 'PY', 'PE', 'SR', 'UY', 'VE', 'AL', 'AD', 'AT', 'BY', 'BE', 'BA', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IS', 'IE', 'IT', 'XK', 'LV', 'LI', 'LT', 'LU', 'MT', 'MD', 'MC', 'ME', 'NL', 'MK', 'NO', 'PL', 'PT', 'RO', 'SM', 'RS', 'SK', 'SI', 'ES', 'SE', 'CH', 'UA', 'GB', 'VA', 'BW', 'NA', 'MZ', 'KE', 'CD', 'ZM', 'RW', 'ZW', 'MU', 'ZA', 'RU', 'AE', 'LK', 'NP', 'TH', 'VN', 'KH', 'MY', 'SG', 'ID', 'PH', 'JP', 'KR', 'NZ', 'FJ', 'MX', 'GT', 'PR', 'GL'];
 
 const seedGeo = async () => {
     try {
         console.log('Connecting to database...');
+        process.exit(0);
         await connectDatabase();
 
         console.log('Connected DB:', mongoose.connection.name);
         console.log('Collection:', Geo.collection.name);
 
         // Optional clean start
-        await Geo.deleteMany({});
-        console.log('Existing geo data cleared');
+        // await Geo.deleteMany({});
+        //console.log('Existing geo data cleared');
 
         console.log('Fetching geo data...');
         const response = await axios.get(DATA_URL);
