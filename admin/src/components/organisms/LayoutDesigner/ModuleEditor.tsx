@@ -21,6 +21,7 @@ import {
     TestimonialsConfigPanel,
     BrandLogosConfigPanel,
     ProductCollectionConfigPanel,
+    CategoryHeaderConfigPanel,
     CategoryShowcaseConfigPanel,
     RelatedProductsConfigPanel,
     RecentlyViewedConfigPanel,
@@ -202,6 +203,14 @@ export default function ModuleEditor({ module, onChange, onDelete, storeId }: Mo
                         config={module.config as any}
                         onChange={updateConfig}
                         storeId={effectiveStoreId}
+                    />
+                );
+
+            case 'category-header':
+                return (
+                    <CategoryHeaderConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
                     />
                 );
 

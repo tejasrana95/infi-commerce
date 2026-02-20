@@ -70,7 +70,7 @@ function processProductData(product: Product, currency: import('@/types').Curren
             formattedCompareAtPrice: compareAtPrice
                 ? formatPrice(originalPrice, currency)
                 : undefined,
-            imageUrl: product.images?.[0],
+            imageUrl: product.featuredImage || product.images?.[0],
             imageAlt: product.name,
             rating: product.rating ?? (product as any).averageRating,
             reviewCount: product.reviewCount,
@@ -115,7 +115,7 @@ function processProductData(product: Product, currency: import('@/types').Curren
         formattedCompareAtPrice: displayCompareAt
             ? formatPrice(displayCompareAt / rate, currency)
             : undefined,
-        imageUrl: product.images?.[0],
+        imageUrl: product.featuredImage || product.images?.[0],
         imageAlt: product.name,
         rating: product.rating ?? (product as any).averageRating,
         reviewCount: product.reviewCount,
@@ -156,7 +156,7 @@ export default function ProductCardContainer({
         id: product._id,
         name: product.name,
         slug: product.slug,
-        image: product.images?.[0] || '',
+        image: product.featuredImage || product.images?.[0] || '',
         price: product.pricing?.finalPrice || product.price,
         categoryIds: (product as any).categoryIds || [],
     };

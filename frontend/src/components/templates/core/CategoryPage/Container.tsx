@@ -20,6 +20,39 @@ import {
     CategoryPageTemplateProps,
 } from './types';
 
+type LayoutModuleLike = {
+    type?: string;
+    config?: Record<string, unknown>;
+};
+
+type LayoutColumnLike = {
+    modules?: LayoutModuleLike[];
+};
+
+type LayoutSectionLike = {
+    modules?: LayoutModuleLike[];
+    columns?: LayoutColumnLike[];
+};
+
+function findModuleConfig(
+    layout: { sections?: LayoutSectionLike[] } | null | undefined,
+    moduleType: string
+): Partial<CategoryConfig['header']> | null {
+    if (!layout?.sections?.length) return null;
+
+    for (const section of layout.sections) {
+        const directModule = section.modules?.find((m) => m.type === moduleType);
+        if (directModule?.config) return directModule.config as Partial<CategoryConfig['header']>;
+
+        const columnModule = section.columns
+            ?.flatMap((col) => col.modules || [])
+            ?.find((m) => m.type === moduleType);
+        if (columnModule?.config) return columnModule.config as Partial<CategoryConfig['header']>;
+    }
+
+    return null;
+}
+
 interface CategoryPageContainerProps {
     category: Category;
     initialProducts?: ProductListItem[];
@@ -43,11 +76,20 @@ function CategoryPageInner({
     // Context for filter management
     const filters = useCategoryFilters();
 
-    // Get category config from theme - use deep merge for nested objects
+    const headerModuleConfig = useMemo(
+        () => findModuleConfig(initialLayout, 'category-header'),
+        [initialLayout]
+    );
+
+    // Get category config from theme and category header module - use deep merge for nested objects
     const config: CategoryConfig = useMemo(() => {
         const storeConfig: Partial<CategoryConfig> = store?.theme?.category || {};
         return {
-            header: { ...DEFAULT_CATEGORY_CONFIG.header, ...storeConfig.header },
+            header: {
+                ...DEFAULT_CATEGORY_CONFIG.header,
+                ...storeConfig.header,
+                ...headerModuleConfig,
+            },
             grid: {
                 ...DEFAULT_CATEGORY_CONFIG.grid,
                 ...storeConfig.grid,
@@ -70,7 +112,7 @@ function CategoryPageInner({
             emptyState: { ...DEFAULT_CATEGORY_CONFIG.emptyState, ...storeConfig.emptyState },
             seo: { ...DEFAULT_CATEGORY_CONFIG.seo, ...storeConfig.seo },
         };
-    }, [store?.theme?.category]);
+    }, [store?.theme?.category, headerModuleConfig]);
 
     const templateId = store?.theme?.templateId || 'modern-clean';
     const currencySymbol = currentCurrency?.symbol || (store?.currency === 'INR' ? '₹' : store?.currency === 'EUR' ? '€' : '$');

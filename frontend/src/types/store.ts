@@ -284,6 +284,7 @@ export const DEFAULT_PRODUCT_CARD_CONFIG: ProductCardConfig = {
 // ============================================
 
 export interface CategoryHeaderConfig {
+  showBreadcrumbs: boolean;
   showImage: boolean;
   showDescription: boolean;
   descriptionPosition: 'top' | 'bottom' | 'below-image';
@@ -374,6 +375,7 @@ export interface CategoryConfig {
 
 export const DEFAULT_CATEGORY_CONFIG: CategoryConfig = {
   header: {
+    showBreadcrumbs: true,
     showImage: true,
     showDescription: true,
     descriptionPosition: 'below-image',

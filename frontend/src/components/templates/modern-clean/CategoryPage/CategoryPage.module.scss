@@ -1145,7 +1145,7 @@
 // Product Grid Wrapper - for loading overlay positioning
 .productGridWrapper {
     position: relative;
-    min-height: 200px; // Ensure space for loading indicator
+    min-height: 100px; // Ensure space for loading indicator
 }
 
 .productGrid {
@@ -1200,7 +1200,7 @@
     background: rgba(248, 250, 252, 0.8);
     backdrop-filter: blur(4px);
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     z-index: 10;
     animation: fadeIn 0.2s ease;
@@ -1215,6 +1215,7 @@
     background: var(--category-sidebar-bg);
     border-radius: 16px;
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    margin-top: 2rem;
 
     span {
         font-size: 0.875rem;
@@ -1241,7 +1242,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 4rem 2rem;
+    padding: 1rem 2rem;
     gap: 1rem;
 
     span {
@@ -1273,7 +1274,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 6rem 2rem;
+    padding: 1rem 2rem;
     text-align: center;
 
     svg {

@@ -1,5 +1,12 @@
 import ProtectedRoute from '@/components/ProtectedRoute';
 import DashboardLayout from '@/components/DashboardLayout';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Pages | Admin',
+    description: 'Manage pages in admin',
+};
+
 
 export default function PagesLayout({
   children,

@@ -269,7 +269,7 @@ async function executeToolCall(
                     price: `${currencySymbol}${finalPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${priceNote}`,
                     brand: (p.brand as any)?.name,
                     status: p.stockStatus,
-                    url: `${baseUrl}/product/${p.slug}`,
+                    url: `${baseUrl}/${p.slug}`,
                     description: (p.description?.substring(0, 150) || '') + variantInfo + '...'
                 };
             });
@@ -618,9 +618,9 @@ URL PATTERNS (Use these exact formats when providing links):
 - Profile: ${baseUrl}/account/profile
 - Addresses: ${baseUrl}/account/addresses
 - Wishlist: ${baseUrl}/wishlist
-- Products: ${baseUrl}/product/[product-slug]
-- Categories: ${baseUrl}/category/[category-slug]
-- Static Pages: ${baseUrl}/page/[page-slug]
+- Products: ${baseUrl}/[product-slug]
+- Categories: ${baseUrl}/[category-slug]
+- Static Pages: ${baseUrl}/[page-slug]
 - Blog Posts: ${baseUrl}/blog/[post-slug]
 - Blog Categories: ${baseUrl}/blog/category/[category-slug]
 - Checkout: ${baseUrl}/checkout

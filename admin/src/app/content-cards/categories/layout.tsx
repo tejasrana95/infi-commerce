@@ -1,5 +1,12 @@
 import ProtectedRoute from '@/components/ProtectedRoute';
 import DashboardLayout from '@/components/DashboardLayout';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Content Card Categories | Admin',
+    description: 'Manage content card categories in admin',
+};
+
 
 export default function ContentCardCategoriesLayout({
   children,

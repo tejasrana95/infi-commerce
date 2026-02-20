@@ -3,8 +3,9 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { MenuRendererProps, MenuItem } from '@/types/menu';
 import MenuLink from '../MenuLink';
 import MegaMenuProductCard from '../MegaMenuProductCard';
@@ -14,7 +15,7 @@ import styles from './HorizontalMenu.module.scss';
 import Image from 'next/image';
 
 // ─── CategoryProducts ───────────────────────────────────────────────────────
-function CategoryProducts({ item }: { item: MenuItem }) {
+function CategoryProducts({ item, onNavigate }: { item: MenuItem; onNavigate?: () => void }) {
     const [products, setProducts] = useState<any[]>(item.products || []);
     const [loading, setLoading] = useState(false);
 
@@ -71,12 +72,13 @@ function CategoryProducts({ item }: { item: MenuItem }) {
             imageSize={imageSize}
             displayMode={displayMode === 'list' ? 'list' : displayMode}
             imagePosition={imagePosition}
+            onClick={onNavigate}
         />
     ));
 
     const viewAll = showViewAll && item.categoryId && (
         <div className={styles.viewAllContainer}>
-            <Link href={`/${categorySlug}`} className={styles.viewAllBtn}>
+            <Link href={`/${categorySlug}`} className={styles.viewAllBtn} onClick={onNavigate}>
                 View All Products <DynamicIcon name="move-right" size={16} />
             </Link>
         </div>
@@ -96,7 +98,7 @@ function CategoryProducts({ item }: { item: MenuItem }) {
     );
 }
 
-function ConfigurableProductItem({ item }: { item: MenuItem }) {
+function ConfigurableProductItem({ item, onNavigate }: { item: MenuItem; onNavigate?: () => void }) {
     const [resolvedProduct, setResolvedProduct] = useState<any | null>(item.products?.[0] || null);
 
     useEffect(() => {
@@ -128,7 +130,7 @@ function ConfigurableProductItem({ item }: { item: MenuItem }) {
     if (!shouldRenderCard) {
         const productHref = `/${item.productSlug || item.productId || '#!'}`;
         return (
-            <Link href={productHref} className={styles.megaProductLink}>
+            <Link href={productHref} className={styles.megaProductLink} onClick={onNavigate}>
                 {item.label || resolvedProduct?.name || 'Product'}
             </Link>
         );
@@ -145,18 +147,19 @@ function ConfigurableProductItem({ item }: { item: MenuItem }) {
             imageSize={imageSize}
             displayMode="list"
             imagePosition={imagePosition}
+            onClick={onNavigate}
         />
     );
 }
 
 // ─── MegaSubItem ────────────────────────────────────────────────────────────
-function MegaSubItem({ item }: { item: MenuItem }) {
+function MegaSubItem({ item, onNavigate }: { item: MenuItem; onNavigate?: () => void }) {
     if (item.type === 'divider') return <hr className={styles.megaDivider} />;
 
     if (item.type === 'image' && item.imageUrl) {
         return (
             <div className={styles.megaSubItem}>
-                <Link href={item.imageLink || item.linkUrl || '#!'} className={styles.megaImageLink}>
+                <Link href={item.imageLink || item.linkUrl || '#!'} className={styles.megaImageLink} onClick={onNavigate}>
                     <Image width={300} height={200} src={item.imageUrl} alt={item.label || item.imageAlt || ''} />
                 </Link>
             </div>
@@ -170,6 +173,7 @@ function MegaSubItem({ item }: { item: MenuItem }) {
                     href={item.linkUrl || '#!'}
                     className={styles.megaCustomLink}
                     target={item.openInNewTab ? '_blank' : undefined}
+                    onClick={onNavigate}
                 >
                     {item.label || item.linkLabel || item.linkUrl}
                 </Link>
@@ -180,7 +184,7 @@ function MegaSubItem({ item }: { item: MenuItem }) {
     if (item.type === 'page') {
         return (
             <div className={styles.megaSubItem}>
-                <Link href={`/${item.pageSlug || item.pageId}`} className={styles.megaPageLink}>
+                <Link href={`/${item.pageSlug || item.pageId}`} className={styles.megaPageLink} onClick={onNavigate}>
                     {item.label || item.pageName || 'Page'}
                 </Link>
             </div>
@@ -212,6 +216,7 @@ function MegaSubItem({ item }: { item: MenuItem }) {
                                     imageSize={imageSize}
                                     displayMode="list"
                                     imagePosition={imagePosition}
+                                    onClick={onNavigate}
                                 />
                             ))}
                         </div>
@@ -219,7 +224,7 @@ function MegaSubItem({ item }: { item: MenuItem }) {
                         <ul className={styles.megaProductList}>
                             {list.map((p) => (
                                 <li key={p._id} className={styles.megaProductItem}>
-                                    <Link href={`/${p.slug || p._id}`} className={styles.megaProductLink}>
+                                    <Link href={`/${p.slug || p._id}`} className={styles.megaProductLink} onClick={onNavigate}>
                                         {p.name}
                                     </Link>
                                 </li>
@@ -227,7 +232,7 @@ function MegaSubItem({ item }: { item: MenuItem }) {
                         </ul>
                     )
                 ) : (
-                    <ConfigurableProductItem item={item} />
+                    <ConfigurableProductItem item={item} onNavigate={onNavigate} />
                 )}
             </div>
         );
@@ -240,7 +245,7 @@ function MegaSubItem({ item }: { item: MenuItem }) {
         return (
             <div className={styles.megaSubItem}>
                 {item.categoryId ? (
-                    <Link href={`/${slug}`} className={styles.categoryLabel}>{label}</Link>
+                    <Link href={`/${slug}`} className={styles.categoryLabel} onClick={onNavigate}>{label}</Link>
                 ) : (
                     <span className={styles.categoryLabelStatic}>{label}</span>
                 )}
@@ -251,13 +256,14 @@ function MegaSubItem({ item }: { item: MenuItem }) {
                                 <MenuLink
                                     item={child}
                                     showIcon={false}
+                                    onClick={() => onNavigate?.()}
                                 />
                             </li>
                         ))}
                     </ul>
                 )}
                 {item.productLimit != null && item.productLimit > 0 && (
-                    <CategoryProducts item={item} />
+                    <CategoryProducts item={item} onNavigate={onNavigate} />
                 )}
             </div>
         );
@@ -282,6 +288,22 @@ export default function HorizontalMenu({
     depth = 0,
     onItemClick,
 }: MenuRendererProps) {
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const searchKey = searchParams.toString();
+    const [forceClosed, setForceClosed] = useState(false);
+    const closeUntilRef = useRef(0);
+
+    const handleMenuNavigate = useCallback((item?: MenuItem, event?: React.MouseEvent<HTMLElement>) => {
+        closeUntilRef.current = Date.now() + 400;
+        setForceClosed(true);
+        if (item) onItemClick?.(item, event);
+    }, [onItemClick]);
+
+    // Re-enable hover behavior after actual route change
+    useEffect(() => {
+        setForceClosed(false);
+    }, [pathname, searchKey]);
 
     const renderMegaContent = (item: MenuItem) => {
         if (!item.megaMenu?.sections?.length) return null;
@@ -312,7 +334,7 @@ export default function HorizontalMenu({
                                     <ul className={styles.megaColumnList}>
                                         {col.items.map((sub) => (
                                             <li key={sub.id} className={styles.megaColumnItem}>
-                                                <MegaSubItem item={sub} />
+                                                <MegaSubItem item={sub} onNavigate={() => handleMenuNavigate(item)} />
                                             </li>
                                         ))}
                                     </ul>
@@ -349,7 +371,7 @@ export default function HorizontalMenu({
                         item={item}
                         showIcon={settings.showIcons}
                         themeColors={themeColors}
-                        onClick={onItemClick}
+                        onClick={handleMenuNavigate}
                     />
                     {showChevron && <Chevron />}
                 </div>
@@ -383,11 +405,12 @@ export default function HorizontalMenu({
                                                                 imageSize={child.productImageSize || 'small'}
                                                                 displayMode="list"
                                                                 imagePosition={child.imagePosition || 'left'}
+                                                                onClick={() => handleMenuNavigate(item)}
                                                             />
                                                         ))}
                                                     </div>
                                                 ) : (
-                                                    <ConfigurableProductItem item={child} />
+                                                    <ConfigurableProductItem item={child} onNavigate={() => handleMenuNavigate(item)} />
                                                 )}
                                             </li>
                                         );
@@ -399,14 +422,14 @@ export default function HorizontalMenu({
                                                 item={child}
                                                 showIcon={settings.showIcons}
                                                 themeColors={themeColors}
-                                                onClick={onItemClick}
+                                                onClick={handleMenuNavigate}
                                             />
                                         </li>
                                     );
                                 })}
                             </ul>
                         )}
-                        <CategoryProducts item={item} />
+                        <CategoryProducts item={item} onNavigate={() => handleMenuNavigate(item)} />
                     </div>
                 ) : hasChildren ? (
                     <div className={styles.dropdown}>
@@ -417,7 +440,7 @@ export default function HorizontalMenu({
                                         item={child}
                                         showIcon={settings.showIcons}
                                         themeColors={themeColors}
-                                        onClick={onItemClick}
+                                        onClick={handleMenuNavigate}
                                     />
                                 </li>
                             ))}
@@ -429,7 +452,13 @@ export default function HorizontalMenu({
     };
 
     return (
-        <nav className={`${styles.horizontalMenu} ${className}`}>
+        <nav
+            className={`${styles.horizontalMenu} ${forceClosed ? styles.forceClosed : ''} ${className}`}
+            onMouseLeave={() => {
+                if (Date.now() < closeUntilRef.current) return;
+                setForceClosed(false);
+            }}
+        >
             <ul className={styles.menuList}>
                 {items.map(renderItem)}
             </ul>

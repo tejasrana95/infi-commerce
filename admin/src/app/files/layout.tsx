@@ -1,3 +1,10 @@
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Files | Admin',
+    description: 'Manage files in admin',
+};
+
 'use client';
 
 import DashboardLayout from '@/components/DashboardLayout';

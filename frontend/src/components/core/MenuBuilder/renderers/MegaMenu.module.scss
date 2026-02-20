@@ -8,6 +8,16 @@
     width: 100%;
 }
 
+.forceClosed {
+    .megaDropdown,
+    .categoryDropdown {
+        display: none !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+}
+
 .menuList {
     display: flex;
     align-items: stretch;

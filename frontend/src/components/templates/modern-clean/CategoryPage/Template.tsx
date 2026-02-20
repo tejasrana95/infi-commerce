@@ -59,7 +59,6 @@ export default function ModernCleanCategoryPageTemplate({
     // Filter state removed (handled by molecule)
     // Local state for slider values (for real-time visual feedback)
     // Local slider state removed (handled by molecule)
-
     // Currency config for formatting display prices (which are already converted)
     const priceCurrency = useMemo(() => {
         if (typeof currency === 'string') return currency;
@@ -304,7 +303,7 @@ export default function ModernCleanCategoryPageTemplate({
                     >
                         {isDescriptionExpanded
                             ? (config.header.collapseLabel || 'Show less')
-                            : (config.header.expandLabel || '...Read more')}
+                            : (config.header.expandLabel || 'Read more')}
                     </span>
                 )}
             </div>
@@ -391,30 +390,31 @@ export default function ModernCleanCategoryPageTemplate({
 
                         {/* Product grid with loading overlay */}
                         <div className={styles.productGridWrapper}>
-                            <div
-                                className={styles.productGrid}
-                                style={{
-                                    '--cols-desktop': gridColumns.desktop,
-                                    '--cols-tablet': gridColumns.tablet,
-                                    '--cols-mobile': gridColumns.mobile,
-                                } as React.CSSProperties}
-                            >
-                                {products.map((product, index) => (
-                                    <div
-                                        key={product._id}
-                                        className={styles.productItem}
-                                        style={{ '--index': index } as React.CSSProperties}
-                                    >
-                                        <ProductCard
-                                            product={product}
-                                            cardConfig={{
-                                                cardStyle: config.grid?.cardStyle || 'default'
-                                            }}
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-
+                            {products.length !== 0 && (
+                                <div
+                                    className={styles.productGrid}
+                                    style={{
+                                        '--cols-desktop': gridColumns.desktop,
+                                        '--cols-tablet': gridColumns.tablet,
+                                        '--cols-mobile': gridColumns.mobile,
+                                    } as React.CSSProperties}
+                                >
+                                    {products.map((product, index) => (
+                                        <div
+                                            key={product._id}
+                                            className={styles.productItem}
+                                            style={{ '--index': index } as React.CSSProperties}
+                                        >
+                                            <ProductCard
+                                                product={product}
+                                                cardConfig={{
+                                                    cardStyle: config.grid?.cardStyle || 'default'
+                                                }}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                             {/* Loading overlay - shows over products during filter/sort/page changes */}
                             {isLoading && products.length > 0 && (
                                 <div className={styles.loadingOverlay}>
@@ -432,23 +432,25 @@ export default function ModernCleanCategoryPageTemplate({
                                     <span>Loading products...</span>
                                 </div>
                             )}
+
+                            {/* Empty state */}
+                            {!isLoading && products.length === 0 && (
+                                <div className={styles.emptyState}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                                    </svg>
+                                    <h3>{config.emptyState?.message || 'No products found'}</h3>
+                                    <p>Try adjusting your filters or search criteria</p>
+                                    {activeFilterCount > 0 && config.emptyState?.showClearFilters && (
+                                        <button onClick={onClearAllFilters} className={styles.clearFiltersBtn}>
+                                            Clear All Filters
+                                        </button>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
-                        {/* Empty state */}
-                        {!isLoading && products.length === 0 && (
-                            <div className={styles.emptyState}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                                </svg>
-                                <h3>{config.emptyState?.message || 'No products found'}</h3>
-                                <p>Try adjusting your filters or search criteria</p>
-                                {activeFilterCount > 0 && config.emptyState?.showClearFilters && (
-                                    <button onClick={onClearAllFilters} className={styles.clearFiltersBtn}>
-                                        Clear All Filters
-                                    </button>
-                                )}
-                            </div>
-                        )}
+
                     </React.Fragment>
                 );
 
@@ -672,22 +674,24 @@ export default function ModernCleanCategoryPageTemplate({
                 <div className={styles.headerContainer}>
                     <div className={styles.headerShell}>
                         <div className={styles.headerTop}>
-                            <nav className={styles.breadcrumbs}>
-                                {breadcrumbs.map((crumb, i) => (
-                                    <React.Fragment key={i}>
-                                        {i > 0 && (
-                                            <svg className={styles.breadcrumbSeparator} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                            </svg>
-                                        )}
-                                        {crumb.href ? (
-                                            <Link href={crumb.href} className={styles.breadcrumbLink}>{crumb.label}</Link>
-                                        ) : (
-                                            <span className={styles.breadcrumbCurrent}>{crumb.label}</span>
-                                        )}
-                                    </React.Fragment>
-                                ))}
-                            </nav>
+                            {config.header?.showBreadcrumbs !== false && (
+                                <nav className={styles.breadcrumbs}>
+                                    {breadcrumbs.map((crumb, i) => (
+                                        <React.Fragment key={i}>
+                                            {i > 0 && (
+                                                <svg className={styles.breadcrumbSeparator} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                </svg>
+                                            )}
+                                            {crumb.href ? (
+                                                <Link href={crumb.href} className={styles.breadcrumbLink}>{crumb.label}</Link>
+                                            ) : (
+                                                <span className={styles.breadcrumbCurrent}>{crumb.label}</span>
+                                            )}
+                                        </React.Fragment>
+                                    ))}
+                                </nav>
+                            )}
                             <span className={styles.headerTag}>Collection</span>
                         </div>
 

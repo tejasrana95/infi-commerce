@@ -1,12 +1,8 @@
 'use client';
 
-import React from 'react';
-import dynamic from 'next/dynamic';
+import React, { useEffect, useState } from 'react';
 import ClientWidgets from './ClientWidgets';
-
-const AIAssistant = dynamic(() => import('./AIAssistant/AIAssistant'), {
-    ssr: false,
-});
+import AIAssistant from './AIAssistant/AIAssistant';
 
 interface ClientOnlyWidgetsProps {
     showCompare?: boolean;
@@ -18,10 +14,16 @@ interface ClientOnlyWidgetsProps {
  * but require client-side JavaScript for interactivity.
  */
 export default function ClientOnlyWidgets({ showCompare = true }: ClientOnlyWidgetsProps) {
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
     return (
         <>
             <ClientWidgets showCompare={showCompare} />
-            <AIAssistant />
+            {isMounted && <AIAssistant />}
         </>
     );
 }

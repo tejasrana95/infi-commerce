@@ -29,6 +29,8 @@ export { default as TestimonialsConfigPanel } from './TestimonialsConfigPanel';
 export { default as BrandLogosConfigPanel } from './BrandLogosConfigPanel';
 export { default as ProductCollectionConfigPanel } from './ProductCollectionConfigPanel';
 export { default as CategoryShowcaseConfigPanel } from './CategoryShowcaseConfigPanel';
+export { default as CategoryHeaderConfigPanel, defaultCategoryHeaderConfig } from './CategoryHeaderConfigPanel';
+export type { CategoryHeaderConfig } from './CategoryHeaderConfigPanel';
 export { default as RelatedProductsConfigPanel, defaultRelatedProductsConfig } from './RelatedProductsConfigPanel';
 export type { RelatedProductsConfig } from './RelatedProductsConfigPanel';
 export { default as RecentlyViewedConfigPanel, defaultRecentlyViewedConfig } from './RecentlyViewedConfigPanel';
@@ -64,4 +66,3 @@ export * from './PageHeroConfigPanel';
 // Checkout Config Panel
 export { default as CheckoutContentConfigPanel, defaultCheckoutContentConfig } from './CheckoutConfigPanels';
 export type { CheckoutContentConfig } from './CheckoutConfigPanels';
-

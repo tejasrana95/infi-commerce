@@ -1,3 +1,10 @@
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Forms | Admin',
+    description: 'Manage forms in admin',
+};
+
 'use client';
 
 import DashboardLayout from '@/components/DashboardLayout';

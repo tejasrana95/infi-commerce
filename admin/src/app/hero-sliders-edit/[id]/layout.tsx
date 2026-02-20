@@ -1,4 +1,11 @@
 import ProtectedRoute from '@/components/ProtectedRoute';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Hero Slider Editor | Admin',
+    description: 'Manage hero slider editor configuration',
+};
+
 
 export default function HeroSliderEditorLayout({
     children,

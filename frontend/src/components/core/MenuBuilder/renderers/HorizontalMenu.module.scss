@@ -8,6 +8,17 @@
     width: 100%;
 }
 
+.forceClosed {
+    .dropdown,
+    .categoryDropdown,
+    .megaDropdown {
+        display: none !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+}
+
 .menuList {
     display: flex;
     align-items: stretch;

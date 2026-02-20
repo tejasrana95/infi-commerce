@@ -3,9 +3,10 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { MenuRendererProps, MenuItem } from '@/types/menu';
 import MenuLink from '../MenuLink';
 import MegaMenuProductCard from '../MegaMenuProductCard';
@@ -13,7 +14,7 @@ import api from '@/lib/api';
 import styles from './MegaMenu.module.scss';
 
 // ─── CategoryProducts ───────────────────────────────────────────────────────
-function CategoryProducts({ item }: { item: MenuItem }) {
+function CategoryProducts({ item, onNavigate }: { item: MenuItem; onNavigate?: () => void }) {
     const [products, setProducts] = useState<any[]>(item.products || []);
     const [loading, setLoading] = useState(false);
 
@@ -68,6 +69,7 @@ function CategoryProducts({ item }: { item: MenuItem }) {
             imageSize={imageSize}
             displayMode={displayMode === 'list' ? 'list' : displayMode}
             imagePosition={imagePosition}
+            onClick={onNavigate}
         />
     ));
 
@@ -88,17 +90,19 @@ function SubItem({
     settings,
     themeColors,
     onItemClick,
+    onNavigate,
 }: {
     subItem: MenuItem;
     settings: any;
     themeColors: any;
     onItemClick: any;
+    onNavigate?: () => void;
 }) {
     if (subItem.type === 'divider') return <hr className={styles.divider} />;
 
     if (subItem.type === 'image' && subItem.imageUrl) {
         return (
-            <Link href={subItem.imageLink || subItem.linkUrl || '#!'} className={styles.imageLink}>
+            <Link href={subItem.imageLink || subItem.linkUrl || '#!'} className={styles.imageLink} onClick={onNavigate}>
                 <Image
                     src={subItem.imageUrl}
                     alt={subItem.label || subItem.imageAlt || ''}
@@ -116,6 +120,7 @@ function SubItem({
                 href={subItem.linkUrl || '#!'}
                 className={styles.customLink}
                 target={subItem.openInNewTab ? '_blank' : undefined}
+                onClick={onNavigate}
             >
                 {subItem.label || subItem.linkLabel || subItem.linkUrl}
             </Link>
@@ -124,7 +129,7 @@ function SubItem({
 
     if (subItem.type === 'page') {
         return (
-            <Link href={`/${subItem.pageSlug || subItem.pageId}`} className={styles.pageLink}>
+            <Link href={`/${subItem.pageSlug || subItem.pageId}`} className={styles.pageLink} onClick={onNavigate}>
                 {subItem.label || subItem.pageName || 'Page'}
             </Link>
         );
@@ -142,6 +147,7 @@ function SubItem({
                                 key={p._id}
                                 href={`/${p.slug || p._id}`}
                                 className={styles.productLink}
+                                onClick={onNavigate}
                             >
                                 {p.name}
                             </Link>
@@ -159,7 +165,7 @@ function SubItem({
         return (
             <div className={styles.categorySection}>
                 {subItem.categoryId ? (
-                    <Link href={`/${slug}`} className={styles.categoryLabel}>{label}</Link>
+                    <Link href={`/${slug}`} className={styles.categoryLabel} onClick={onNavigate}>{label}</Link>
                 ) : (
                     <span className={styles.categoryLabelStatic}>{label}</span>
                 )}
@@ -170,13 +176,14 @@ function SubItem({
                                 <MenuLink
                                     item={child}
                                     showIcon={false}
+                                    onClick={() => onNavigate?.()}
                                 />
                             </li>
                         ))}
                     </ul>
                 )}
                 {subItem.productLimit != null && subItem.productLimit > 0 && (
-                    <CategoryProducts item={subItem} />
+                    <CategoryProducts item={subItem} onNavigate={onNavigate} />
                 )}
             </div>
         );
@@ -187,7 +194,10 @@ function SubItem({
             item={subItem as any}
             showIcon={settings?.showIcons}
             themeColors={themeColors}
-            onClick={onItemClick}
+            onClick={(item, event) => {
+                onNavigate?.();
+                onItemClick?.(item, event);
+            }}
         />
     );
 }
@@ -207,6 +217,22 @@ export default function MegaMenu({
     settings,
     onItemClick,
 }: MenuRendererProps) {
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const searchKey = searchParams.toString();
+    const [forceClosed, setForceClosed] = useState(false);
+    const closeUntilRef = useRef(0);
+
+    const handleMenuNavigate = useCallback((item?: MenuItem, event?: React.MouseEvent<HTMLElement>) => {
+        closeUntilRef.current = Date.now() + 400;
+        setForceClosed(true);
+        if (item) onItemClick?.(item, event);
+    }, [onItemClick]);
+
+    // Re-enable hover behavior after actual route change
+    useEffect(() => {
+        setForceClosed(false);
+    }, [pathname, searchKey]);
 
     const renderMegaContent = (item: MenuItem) => {
         if (!item.megaMenu?.sections?.length) return null;
@@ -242,6 +268,7 @@ export default function MegaMenu({
                                                     settings={settings}
                                                     themeColors={themeColors}
                                                     onItemClick={onItemClick}
+                                                    onNavigate={() => handleMenuNavigate(item)}
                                                 />
                                             </li>
                                         ))}
@@ -279,7 +306,7 @@ export default function MegaMenu({
                         item={item}
                         showIcon={settings.showIcons}
                         themeColors={themeColors}
-                        onClick={onItemClick}
+                        onClick={handleMenuNavigate}
                     />
                     {showChevron && <Chevron className={styles.chevron} />}
                 </div>
@@ -296,13 +323,13 @@ export default function MegaMenu({
                                             item={child}
                                             showIcon={settings.showIcons}
                                             themeColors={themeColors}
-                                            onClick={onItemClick}
+                                            onClick={handleMenuNavigate}
                                         />
                                     </li>
                                 ))}
                             </ul>
                         )}
-                        <CategoryProducts item={item} />
+                        <CategoryProducts item={item} onNavigate={() => handleMenuNavigate(item)} />
                     </div>
                 ) : null}
             </li>
@@ -310,7 +337,13 @@ export default function MegaMenu({
     };
 
     return (
-        <nav className={`${styles.megaMenu} ${className}`}>
+        <nav
+            className={`${styles.megaMenu} ${forceClosed ? styles.forceClosed : ''} ${className}`}
+            onMouseLeave={() => {
+                if (Date.now() < closeUntilRef.current) return;
+                setForceClosed(false);
+            }}
+        >
             <ul className={styles.menuList}>
                 {items.map(renderItem)}
             </ul>

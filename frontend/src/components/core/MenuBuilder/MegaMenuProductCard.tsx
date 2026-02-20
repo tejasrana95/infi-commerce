@@ -29,6 +29,7 @@ interface MegaMenuProductCardProps {
     imageSize?: 'small' | 'medium' | 'large';
     displayMode?: 'list' | 'grid' | 'compact';
     imagePosition?: 'left' | 'top';
+    onClick?: () => void;
 }
 
 const IMAGE_SIZE_MAP: Record<string, number> = {
@@ -59,6 +60,7 @@ export default function MegaMenuProductCard({
     imageSize = 'small',
     displayMode = 'list',
     imagePosition = 'left',
+    onClick,
 }: MegaMenuProductCardProps) {
     const { formatPriceWithExchange } = useCurrency();
     const { shouldShowPrice } = usePriceVisibility();
@@ -87,7 +89,7 @@ export default function MegaMenuProductCard({
         .join(' ');
 
     return (
-        <Link href={productUrl} className={cardClasses}>
+        <Link href={productUrl} className={cardClasses} onClick={onClick}>
             {showImage && imageUrl && (
                 <div className={styles.imageWrapper} style={{ width: size, height: size }}>
                     <Image src={imageUrl} alt={product.name} width={size} height={size} loading="lazy" />

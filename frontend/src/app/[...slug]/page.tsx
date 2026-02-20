@@ -84,6 +84,38 @@ async function getProductReviews(productId: string) {
     } catch (err) { return null; }
 }
 
+async function getProductShippingDetails(storeId: string, productId: string, country = 'US') {
+    try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+        const response = await fetch(`${apiUrl}/shipping/calculate-smart`, {
+            method: 'POST',
+            next: { revalidate: 300 },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-store-id': storeId,
+            },
+            body: JSON.stringify({
+                storeId,
+                country,
+                items: [{ productId, quantity: 1 }],
+            }),
+        });
+
+        if (!response.ok) return null;
+        const data = await response.json();
+        if (!data?.success || typeof data?.shippingCost !== 'number') return null;
+
+        return {
+            country,
+            shippingCost: data.shippingCost,
+            name: data.name,
+            description: data.description,
+        };
+    } catch (err) {
+        return null;
+    }
+}
+
 export async function generateMetadata({ params }: UniversalPageProps): Promise<Metadata> {
     const { slug: slugParts } = await params;
     const slug = slugParts.join('/'); // Reconstruct slug from parts
@@ -208,9 +240,52 @@ export default async function UniversalPage({ params, searchParams }: UniversalP
             product.reviewCount = reviewStats.totalReviews;
         }
 
+        const shippingDetails = product.type !== 'digital'
+            ? await getProductShippingDetails(store._id, product._id, 'US')
+            : null;
+
         // Schema.org JSON-LD
         const domain = (store?.domains && store.domains.length > 0) ? store.domains[0] : 'localhost:3002';
         const productUrl = `https://${domain}/${slug}`;
+        const condition = product?.googleMerchant?.condition || 'new';
+        const conditionMap: Record<string, string> = {
+            new: 'https://schema.org/NewCondition',
+            refurbished: 'https://schema.org/RefurbishedCondition',
+            used: 'https://schema.org/UsedCondition',
+        };
+        const availabilityMap: Record<string, string> = {
+            in_stock: 'https://schema.org/InStock',
+            out_of_stock: 'https://schema.org/OutOfStock',
+            on_backorder: 'https://schema.org/BackOrder',
+            made_to_order: 'https://schema.org/PreOrder',
+            low_stock: 'https://schema.org/LimitedAvailability',
+        };
+        const priceValidUntil = product.salePriceEndDate
+            ? new Date(product.salePriceEndDate).toISOString().split('T')[0]
+            : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const offerShippingDetails = shippingDetails
+            ? {
+                '@type': 'OfferShippingDetails',
+                shippingDestination: {
+                    '@type': 'DefinedRegion',
+                    addressCountry: shippingDetails.country,
+                },
+                shippingRate: {
+                    '@type': 'MonetaryAmount',
+                    value: shippingDetails.shippingCost,
+                    currency: store.currency || 'USD',
+                },
+                name: shippingDetails.name,
+                description: shippingDetails.description,
+            }
+            : undefined;
+        const aggregateRating = (typeof product.averageRating === 'number' && (product.reviewCount || 0) > 0)
+            ? {
+                '@type': 'AggregateRating',
+                ratingValue: Number(product.averageRating.toFixed(1)),
+                reviewCount: product.reviewCount,
+            }
+            : undefined;
         const jsonLd = {
             '@context': 'https://schema.org',
             '@type': 'Product',
@@ -225,9 +300,13 @@ export default async function UniversalPage({ params, searchParams }: UniversalP
                 '@type': 'Offer',
                 priceCurrency: store.currency || 'USD',
                 price: product.isOnSale && product.salePrice ? product.salePrice : product.price,
-                availability: product.stockStatus === 'in_stock' ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-                seller: { '@type': 'Organization', name: store.name }
-            }
+                priceValidUntil,
+                itemCondition: conditionMap[condition] || 'https://schema.org/NewCondition',
+                availability: availabilityMap[product.stockStatus] || 'https://schema.org/OutOfStock',
+                shippingDetails: offerShippingDetails,
+                seller: { '@type': 'Organization', name: store.name },
+            },
+            aggregateRating,
         };
 
         return (

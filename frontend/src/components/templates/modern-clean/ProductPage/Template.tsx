@@ -3,7 +3,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -159,10 +159,23 @@ export default function ModernCleanProductPageTemplate({
     // Get current variant for display (either fully selected or partial match for preview)
     const displayVariant = selectedVariant || matchingVariant;
 
-    // Get current images (variant images or product images)
+    const productGalleryImages = useMemo(() => {
+        if (product.featuredImage) {
+            const remainingImages = (product.images || []).filter(
+                (image) => image && image !== product.featuredImage
+            );
+
+            return [product.featuredImage, ...remainingImages];
+        }
+
+        const firstImage = product.images?.[0];
+        return firstImage ? [firstImage] : [];
+    }, [product.featuredImage, product.images]);
+
+    // Get current images (variant images or featured image fallback)
     const currentImages = displayVariant?.images?.length
         ? displayVariant.images
-        : product.images;
+        : productGalleryImages;
 
     // Get current pricing (prefer variant pricing if available)
     const currentPricing = displayVariant?.pricing || product.pricing;

@@ -441,7 +441,16 @@ export const AVAILABLE_MODULES: ModuleDefinition[] = [
         icon: 'ViewAgenda',
         category: 'placeholder',
         description: 'Category title, image, breadcrumbs',
-        defaultConfig: { showImage: true, showDescription: true, showBreadcrumbs: true },
+        defaultConfig: {
+            showImage: true,
+            showDescription: true,
+            showBreadcrumbs: true,
+            descriptionPosition: 'below-image',
+            descriptionStyle: 'collapsed',
+            defaultExpanded: false,
+            expandLabel: 'Read more',
+            collapseLabel: 'Show less',
+        },
         allowedLayoutTypes: ['category'],
     },
     {

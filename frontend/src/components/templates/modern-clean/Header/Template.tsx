@@ -318,7 +318,7 @@ export default function ModernCleanHeaderTemplate({
             case 'search':
                 const isExpandedForDesktop = element.settings?.expandedForDesktop ?? false;
                 const showMobileOnly = element.settings?.showMobileOnly ?? false;
-                
+
                 // Mobile-only search
                 if (showMobileOnly) {
                     return (
@@ -340,7 +340,7 @@ export default function ModernCleanHeaderTemplate({
                         </button>
                     );
                 }
-                
+
                 // Not expanded for desktop - just show search button
                 if (!isExpandedForDesktop) {
                     return (
@@ -362,7 +362,7 @@ export default function ModernCleanHeaderTemplate({
                         </button>
                     );
                 }
-                
+
                 // Expanded for desktop - render both inline search (desktop) and button (mobile) via CSS
                 return (
                     <div key={element.id} className={styles.searchWrapper} ref={searchRef}>
@@ -601,10 +601,10 @@ export default function ModernCleanHeaderTemplate({
 
                     // Make second row more compact
                     const isSecondRow = row.order === 1;
-                    
+
                     // Check if this row contains an expanded search (for z-index)
                     const hasExpandedSearch = row.sections.some((section: any) =>
-                        (section.items || []).some((item: any) => 
+                        (section.items || []).some((item: any) =>
                             item && item.type === 'search' && item.settings?.expandedForDesktop
                         )
                     );

@@ -1,5 +1,12 @@
 import ProtectedRoute from '@/components/ProtectedRoute';
 import DashboardLayout from '@/components/DashboardLayout';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Customers | Admin',
+    description: 'Manage customers in admin',
+};
+
 
 export default function CustomersLayout({
     children,

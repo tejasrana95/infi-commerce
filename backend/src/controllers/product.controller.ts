@@ -599,7 +599,15 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         const searchQuery = (req.query.search as string).trim();
 
         if (searchQuery.length > 0) {
-            const canUseTextSearch = searchQuery.length >= 3 && !/[^\w\s-]/.test(searchQuery);
+            // SKU-like queries should not use text search because text indexes may not include SKU fields.
+            const isLikelySkuQuery =
+                /^[a-zA-Z0-9._-]+$/.test(searchQuery) &&
+                (/[0-9]/.test(searchQuery) || /[-_]/.test(searchQuery));
+
+            const canUseTextSearch =
+                searchQuery.length >= 3 &&
+                !/[^\w\s-]/.test(searchQuery) &&
+                !isLikelySkuQuery;
             if (canUseTextSearch) {
                 filter.$text = { $search: searchQuery };
                 textSearchMode = true;
@@ -649,10 +657,20 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
 
     if (req.query.sku) {
         const sku = (req.query.sku as string).trim();
-        filter.$or = [
-            { sku: sku },
-            { 'variants.sku': sku }
-        ];
+        if (sku.length > 0) {
+            const exactSkuRegex = new RegExp(`^${escapeRegExp(sku)}$`, 'i');
+            const skuConditions = [
+                { sku: exactSkuRegex },
+                { 'variants.sku': exactSkuRegex }
+            ];
+
+            if (filter.$or) {
+                filter.$and = filter.$and || [];
+                filter.$and.push({ $or: skuConditions });
+            } else {
+                filter.$or = skuConditions;
+            }
+        }
     }
 
     // Attribute filters - support multiple formats:

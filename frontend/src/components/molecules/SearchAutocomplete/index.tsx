@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useStore } from '@/providers/StoreProvider';
 import { useCurrency } from '@/hooks/useCurrency';
 import api from '@/lib/api';
@@ -107,8 +107,9 @@ export default function SearchAutocomplete({
     const router = useRouter();
     const { store } = useStore();
     const { formatPriceWithExchange } = useCurrency();
-
-    const [query, setQuery] = useState('');
+    const searchParams = useSearchParams();
+    const currentSearchQuery = searchParams.get('q') || '';
+    const [query, setQuery] = useState(currentSearchQuery);
     const [suggestions, setSuggestions] = useState<ProductSuggestion[]>([]);
     const [recentSearches, setRecentSearches] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -122,8 +123,13 @@ export default function SearchAutocomplete({
     const { shouldShowPrice, contactUsLink } = usePriceVisibility();
     // Load recent searches on mount
     useEffect(() => {
+        setQuery(debouncedQuery);
         setRecentSearches(getRecentSearches());
     }, []);
+
+    useEffect(() => {
+        setQuery(currentSearchQuery);
+    }, [currentSearchQuery])
 
     // Fetch suggestions when debounced query changes
     useEffect(() => {
@@ -239,23 +245,13 @@ export default function SearchAutocomplete({
                     className={styles.input}
                     autoComplete="off"
                 />
-                {query && (
-                    <button
-                        className={styles.clearBtn}
-                        onClick={() => {
-                            setQuery('');
-                            setSuggestions([]);
-                            inputRef.current?.focus();
-                        }}
-                        aria-label="Clear search"
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                            <path d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                )}
-                {onClose && (
-                    <button className={styles.closeBtn} onClick={onClose} aria-label="Close search">
+                {(query || onClose) && (
+                    <button className={styles.closeBtn} onClick={() => {
+                        setQuery('');
+                        setSuggestions([]);
+                        inputRef.current?.focus();
+                        onClose?.();
+                    }} aria-label={query ? "Clear search" : "Close search"}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                             <path d="M6 18L18 6M6 6l12 12" />
                         </svg>
