@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 import withBundleAnalyzer from '@next/bundle-analyzer';
 
+const nodeEnv = (globalThis as any)?.process?.env?.NODE_ENV;
+const analyzeEnabled = (globalThis as any)?.process?.env?.ANALYZE === 'true';
+
 const nextConfig: NextConfig = {
   /* config options here */
   output: 'standalone',
@@ -39,7 +42,7 @@ const nextConfig: NextConfig = {
       },
     ],
     // Allow unoptimized images in development to avoid issues with localhost
-    unoptimized: process.env.NODE_ENV === 'development',
+    unoptimized: nodeEnv === 'development',
   },
   async redirects() {
     return [
@@ -75,5 +78,5 @@ const nextConfig: NextConfig = {
 };
 
 export default withBundleAnalyzer({
-  enabled: process.env.ANALYZE === 'true',
+  enabled: analyzeEnabled,
 })(nextConfig);
