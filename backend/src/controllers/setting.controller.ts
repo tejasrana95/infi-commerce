@@ -10,28 +10,78 @@ interface SearchReplaceTableConfig {
     collection: string;
 }
 
-const SEARCH_REPLACE_TABLES: SearchReplaceTableConfig[] = [
-    { key: 'products', label: 'Products', collection: 'products' },
-    { key: 'categories', label: 'Categories', collection: 'categories' },
-    { key: 'pages', label: 'Pages', collection: 'pages' },
-    { key: 'blogPosts', label: 'Blog Posts', collection: 'blogposts' },
-    { key: 'blogCategories', label: 'Blog Categories', collection: 'blogcategories' },
-    { key: 'brands', label: 'Brands', collection: 'brands' },
-    { key: 'layouts', label: 'Layouts', collection: 'layouts' },
-    { key: 'menus', label: 'Menus', collection: 'menus' },
-    { key: 'forms', label: 'Forms', collection: 'forms' },
-    { key: 'bannerSliders', label: 'Banner Sliders', collection: 'bannersliders' },
-    { key: 'heroSliders', label: 'Hero Sliders', collection: 'herosliders' },
-    { key: 'contentCards', label: 'Content Cards', collection: 'contentcards' },
-    { key: 'contentCardCategories', label: 'Content Card Categories', collection: 'contentcardcategories' },
-    { key: 'productOptions', label: 'Product Options', collection: 'productoptions' },
-    { key: 'attributes', label: 'Attributes', collection: 'attributes' },
-    { key: 'coupons', label: 'Coupons', collection: 'coupons' },
-    { key: 'testimonials', label: 'Testimonials', collection: 'testimonials' },
-];
+const SEARCH_REPLACE_EXCLUDED_COLLECTIONS = new Set([
+    'apikey',
+    'apikeys',
+    'user',
+    'users',
+    'customer',
+    'customers',
+]);
 
 function escapeRegex(value: string): string {
     return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function toTitleCase(value: string): string {
+    return value
+        .split(' ')
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+}
+
+function humanizeCollectionName(name: string): string {
+    const spaced = name
+        .replace(/[_-]+/g, ' ')
+        .replace(/([a-z])([A-Z])/g, '$1 $2');
+    return toTitleCase(spaced);
+}
+
+async function getSearchReplaceTableConfigs(): Promise<SearchReplaceTableConfig[]> {
+    const db = mongoose.connection.db;
+    if (!db) {
+        throw new AppError('Database connection is not available', 500);
+    }
+
+    const collections = await db.listCollections({}, { nameOnly: true }).toArray();
+
+    return collections
+        .map((c) => c.name || '')
+        .filter(Boolean)
+        .filter((name) => !name.startsWith('system.'))
+        .filter((name) => !SEARCH_REPLACE_EXCLUDED_COLLECTIONS.has(name.toLowerCase()))
+        .sort((a, b) => a.localeCompare(b))
+        .map((name) => ({
+            key: name,
+            label: humanizeCollectionName(name),
+            collection: name,
+        }));
+}
+
+async function getCollectionQueryForStore(
+    collection: mongoose.mongo.Collection,
+    storeObjectId: mongoose.Types.ObjectId,
+    storeId: string
+): Promise<Record<string, any>> {
+    const [hasStoreIdField, hasStoreField] = await Promise.all([
+        collection.countDocuments({ storeId: { $exists: true } }, { limit: 1 }),
+        collection.countDocuments({ store: { $exists: true } }, { limit: 1 }),
+    ]);
+
+    if (!hasStoreIdField && !hasStoreField) {
+        // Collection is not store-scoped; ignore store filter as requested
+        return {};
+    }
+
+    return {
+        $or: [
+            { storeId: storeObjectId },
+            { storeId },
+            { store: storeObjectId },
+            { store: storeId },
+        ],
+    };
 }
 
 function isPlainObject(value: any): value is Record<string, any> {
@@ -306,9 +356,10 @@ export const updatePosPwaSettings = asyncHandler(async (req: AuthRequest, res: R
  *     tags: [Settings]
  */
 export const getSearchReplaceTables = asyncHandler(async (_req: AuthRequest, res: Response) => {
+    const tables = await getSearchReplaceTableConfigs();
     res.json({
         success: true,
-        tables: SEARCH_REPLACE_TABLES.map((t) => ({ key: t.key, label: t.label })),
+        tables: tables.map((t) => ({ key: t.key, label: t.label })),
     });
 });
 
@@ -338,9 +389,11 @@ export const runSearchReplace = asyncHandler(async (req: AuthRequest, res: Respo
         throw new AppError('Valid storeId is required', 400);
     }
 
+    const availableTables = await getSearchReplaceTableConfigs();
+
     const requestedTableKeys =
         tables === 'all'
-            ? SEARCH_REPLACE_TABLES.map((t) => t.key)
+            ? availableTables.map((t) => t.key)
             : Array.isArray(tables)
                 ? tables
                 : [];
@@ -349,7 +402,7 @@ export const runSearchReplace = asyncHandler(async (req: AuthRequest, res: Respo
         throw new AppError('Please select at least one table or use "all"', 400);
     }
 
-    const tableMap = new Map(SEARCH_REPLACE_TABLES.map((t) => [t.key, t]));
+    const tableMap = new Map(availableTables.map((t) => [t.key, t]));
     const selectedTables = requestedTableKeys
         .map((key: string) => tableMap.get(key))
         .filter(Boolean) as SearchReplaceTableConfig[];
@@ -360,15 +413,6 @@ export const runSearchReplace = asyncHandler(async (req: AuthRequest, res: Respo
 
     const regex = new RegExp(escapeRegex(find), caseSensitive ? 'g' : 'gi');
     const storeObjectId = new mongoose.Types.ObjectId(storeId);
-    const query = {
-        $or: [
-            { storeId: storeObjectId },
-            { storeId },
-            { store: storeObjectId },
-            { store: storeId },
-        ],
-    };
-
     const db = mongoose.connection.db;
     if (!db) {
         throw new AppError('Database connection is not available', 500);
@@ -385,6 +429,7 @@ export const runSearchReplace = asyncHandler(async (req: AuthRequest, res: Respo
 
     for (const table of selectedTables) {
         const collection = db.collection(table.collection);
+        const query = await getCollectionQueryForStore(collection, storeObjectId, storeId);
         const cursor = collection.find(query);
 
         let scanned = 0;
