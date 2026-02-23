@@ -23,6 +23,7 @@ import SecurityIcon from '@mui/icons-material/Security';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import CookieIcon from '@mui/icons-material/Cookie';
 import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
+import FindReplaceIcon from '@mui/icons-material/FindReplace';
 import PageHeader from '@/components/molecules/PageHeader';
 
 interface SettingCard {
@@ -114,6 +115,16 @@ export default function SettingsPage() {
             badge: 'Super Admin',
             badgeColor: 'warning',
             color: '#7c3aed',
+            enabled: true
+        },
+        {
+            title: 'Search & Replace',
+            description: 'Run store-scoped text find/replace across selected tables with dry-run and case-sensitive controls.',
+            icon: <FindReplaceIcon sx={{ fontSize: 32 }} />,
+            link: '/settings/search-replace',
+            badge: 'Super Admin',
+            badgeColor: 'warning',
+            color: '#f59e0b',
             enabled: true
         },
     ];

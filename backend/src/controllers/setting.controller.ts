@@ -1,7 +1,96 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import Setting from '../models/Setting';
-import { asyncHandler } from '../middleware/validation';
+import { asyncHandler, AppError } from '../middleware/validation';
 import { AuthRequest } from '../middleware/auth';
+
+interface SearchReplaceTableConfig {
+    key: string;
+    label: string;
+    collection: string;
+}
+
+const SEARCH_REPLACE_TABLES: SearchReplaceTableConfig[] = [
+    { key: 'products', label: 'Products', collection: 'products' },
+    { key: 'categories', label: 'Categories', collection: 'categories' },
+    { key: 'pages', label: 'Pages', collection: 'pages' },
+    { key: 'blogPosts', label: 'Blog Posts', collection: 'blogposts' },
+    { key: 'blogCategories', label: 'Blog Categories', collection: 'blogcategories' },
+    { key: 'brands', label: 'Brands', collection: 'brands' },
+    { key: 'layouts', label: 'Layouts', collection: 'layouts' },
+    { key: 'menus', label: 'Menus', collection: 'menus' },
+    { key: 'forms', label: 'Forms', collection: 'forms' },
+    { key: 'bannerSliders', label: 'Banner Sliders', collection: 'bannersliders' },
+    { key: 'heroSliders', label: 'Hero Sliders', collection: 'herosliders' },
+    { key: 'contentCards', label: 'Content Cards', collection: 'contentcards' },
+    { key: 'contentCardCategories', label: 'Content Card Categories', collection: 'contentcardcategories' },
+    { key: 'productOptions', label: 'Product Options', collection: 'productoptions' },
+    { key: 'attributes', label: 'Attributes', collection: 'attributes' },
+    { key: 'coupons', label: 'Coupons', collection: 'coupons' },
+    { key: 'testimonials', label: 'Testimonials', collection: 'testimonials' },
+];
+
+function escapeRegex(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function isPlainObject(value: any): value is Record<string, any> {
+    return Object.prototype.toString.call(value) === '[object Object]';
+}
+
+function replaceTextDeep(
+    value: any,
+    regex: RegExp,
+    replaceValue: string
+): { value: any; replacements: number } {
+    if (typeof value === 'string') {
+        const matches = value.match(regex);
+        const count = matches ? matches.length : 0;
+        if (count === 0) {
+            return { value, replacements: 0 };
+        }
+        return {
+            value: value.replace(regex, replaceValue),
+            replacements: count,
+        };
+    }
+
+    if (Array.isArray(value)) {
+        let replacements = 0;
+        let changed = false;
+        const next = value.map((item) => {
+            const result = replaceTextDeep(item, regex, replaceValue);
+            if (result.replacements > 0 || result.value !== item) {
+                changed = true;
+            }
+            replacements += result.replacements;
+            return result.value;
+        });
+        return { value: changed ? next : value, replacements };
+    }
+
+    if (value instanceof Date || value instanceof mongoose.Types.ObjectId || Buffer.isBuffer(value)) {
+        return { value, replacements: 0 };
+    }
+
+    if (!isPlainObject(value)) {
+        return { value, replacements: 0 };
+    }
+
+    let replacements = 0;
+    let changed = false;
+    const next: Record<string, any> = {};
+    for (const [key, val] of Object.entries(value)) {
+        const result = replaceTextDeep(val, regex, replaceValue);
+        if (result.replacements > 0 || result.value !== val) {
+            changed = true;
+        }
+        replacements += result.replacements;
+        next[key] = result.value;
+    }
+
+    return { value: changed ? next : value, replacements };
+}
 
 /**
  * @swagger
@@ -206,5 +295,151 @@ export const updatePosPwaSettings = asyncHandler(async (req: AuthRequest, res: R
         success: true,
         message: 'POS PWA settings updated successfully',
         settings: settings.value
+    });
+});
+
+/**
+ * @swagger
+ * /api/settings/search-replace/tables:
+ *   get:
+ *     summary: Get supported tables for search and replace
+ *     tags: [Settings]
+ */
+export const getSearchReplaceTables = asyncHandler(async (_req: AuthRequest, res: Response) => {
+    res.json({
+        success: true,
+        tables: SEARCH_REPLACE_TABLES.map((t) => ({ key: t.key, label: t.label })),
+    });
+});
+
+/**
+ * @swagger
+ * /api/settings/search-replace:
+ *   post:
+ *     summary: Run store-scoped search and replace
+ *     tags: [Settings]
+ *     security:
+ *       - bearerAuth: []
+ */
+export const runSearchReplace = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const {
+        find,
+        replace = '',
+        storeId,
+        tables = 'all',
+        dryRun = true,
+        caseSensitive = false,
+    } = req.body || {};
+
+    if (!find || typeof find !== 'string') {
+        throw new AppError('Find text is required', 400);
+    }
+    if (!storeId || typeof storeId !== 'string' || !mongoose.Types.ObjectId.isValid(storeId)) {
+        throw new AppError('Valid storeId is required', 400);
+    }
+
+    const requestedTableKeys =
+        tables === 'all'
+            ? SEARCH_REPLACE_TABLES.map((t) => t.key)
+            : Array.isArray(tables)
+                ? tables
+                : [];
+
+    if (requestedTableKeys.length === 0) {
+        throw new AppError('Please select at least one table or use "all"', 400);
+    }
+
+    const tableMap = new Map(SEARCH_REPLACE_TABLES.map((t) => [t.key, t]));
+    const selectedTables = requestedTableKeys
+        .map((key: string) => tableMap.get(key))
+        .filter(Boolean) as SearchReplaceTableConfig[];
+
+    if (selectedTables.length === 0) {
+        throw new AppError('No valid tables selected', 400);
+    }
+
+    const regex = new RegExp(escapeRegex(find), caseSensitive ? 'g' : 'gi');
+    const storeObjectId = new mongoose.Types.ObjectId(storeId);
+    const query = {
+        $or: [
+            { storeId: storeObjectId },
+            { storeId },
+            { store: storeObjectId },
+            { store: storeId },
+        ],
+    };
+
+    const db = mongoose.connection.db;
+    if (!db) {
+        throw new AppError('Database connection is not available', 500);
+    }
+
+    const tableResults: Array<{
+        table: string;
+        label: string;
+        scanned: number;
+        matchedRecords: number;
+        replacements: number;
+        updatedRecords: number;
+    }> = [];
+
+    for (const table of selectedTables) {
+        const collection = db.collection(table.collection);
+        const cursor = collection.find(query);
+
+        let scanned = 0;
+        let matchedRecords = 0;
+        let replacements = 0;
+        let updatedRecords = 0;
+
+        while (await cursor.hasNext()) {
+            const doc = await cursor.next();
+            if (!doc) continue;
+            scanned++;
+
+            const result = replaceTextDeep(doc, regex, String(replace));
+            if (result.replacements <= 0) continue;
+
+            matchedRecords++;
+            replacements += result.replacements;
+
+            if (!dryRun) {
+                const updatedDoc = result.value;
+                const { _id, ...updatePayload } = updatedDoc;
+                await collection.updateOne({ _id: doc._id }, { $set: updatePayload });
+                updatedRecords++;
+            }
+        }
+
+        tableResults.push({
+            table: table.key,
+            label: table.label,
+            scanned,
+            matchedRecords,
+            replacements,
+            updatedRecords,
+        });
+    }
+
+    const summary = tableResults.reduce(
+        (acc, item) => {
+            acc.scanned += item.scanned;
+            acc.matchedRecords += item.matchedRecords;
+            acc.replacements += item.replacements;
+            acc.updatedRecords += item.updatedRecords;
+            return acc;
+        },
+        { scanned: 0, matchedRecords: 0, replacements: 0, updatedRecords: 0 }
+    );
+
+    res.json({
+        success: true,
+        mode: dryRun ? 'dry-run' : 'live',
+        find,
+        replace: String(replace),
+        caseSensitive: Boolean(caseSensitive),
+        tableCount: selectedTables.length,
+        summary,
+        results: tableResults,
     });
 });

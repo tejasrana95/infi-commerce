@@ -3,7 +3,11 @@ import {
     getAdminBranding,
     updateAdminBranding,
     getAdminAiSettings,
-    updateAdminAiSettings
+    updateAdminAiSettings,
+    getPosPwaSettings,
+    updatePosPwaSettings,
+    getSearchReplaceTables,
+    runSearchReplace,
 } from '../controllers/setting.controller';
 import { authenticate, authorize } from '../middleware/auth';
 
@@ -36,8 +40,6 @@ router.put(
 );
 
 // POS PWA Settings - Public GET for POS app, protected PUT for admin
-import { getPosPwaSettings, updatePosPwaSettings } from '../controllers/setting.controller';
-
 router.get('/pos-pwa', getPosPwaSettings);
 
 router.put(
@@ -45,6 +47,21 @@ router.put(
     authenticate,
     authorize('super_admin'),
     updatePosPwaSettings
+);
+
+// Search and Replace - super admin only
+router.get(
+    '/search-replace/tables',
+    authenticate,
+    authorize('super_admin'),
+    getSearchReplaceTables
+);
+
+router.post(
+    '/search-replace',
+    authenticate,
+    authorize('super_admin'),
+    runSearchReplace
 );
 
 export default router;
