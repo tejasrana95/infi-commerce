@@ -1258,12 +1258,6 @@ User Interests context:
 
             // Check if we need to execute tool calls
             if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
-                // Notify client about function calls
-                for (const tc of assistantMessage.tool_calls) {
-                    res.write(`data: ${JSON.stringify({ type: 'function_call', name: (tc as any).function?.name })}\n\n`);
-                    if ((res as any).flush) (res as any).flush();
-                }
-
                 // Execute all tool calls in parallel
                 const toolResults = await Promise.all(
                     assistantMessage.tool_calls.map(tc => executeToolCall(tc, context))
