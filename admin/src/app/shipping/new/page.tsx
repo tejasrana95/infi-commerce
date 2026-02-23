@@ -24,7 +24,7 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import api from '@/lib/api';
 import { useNotification } from '@/contexts/NotificationContext';
-import CategoryAutocomplete from '@/components/molecules/CategoryAutocomplete';
+import CategoryAutocomplete, { CategoryOption } from '@/components/molecules/CategoryAutocomplete';
 
 interface Store {
   _id: string;
@@ -102,8 +102,12 @@ export default function NewShippingRulePage() {
     setFormData({ ...formData, [field]: e.target.value });
   };
 
-  const handleCategoryChange = (categoryId: string | null, category?: { title?: string }) => {
-    if (categoryId && category && !selectedCategories.find(c => c._id === categoryId)) {
+  const handleCategoryChange = (
+    categoryId: string | null,
+    category?: CategoryOption | CategoryOption[] | null
+  ) => {
+    if (!categoryId || !category || Array.isArray(category)) return;
+    if (!selectedCategories.find(c => c._id === categoryId)) {
       setSelectedCategories([...selectedCategories, { _id: categoryId, title: category.title || categoryId }]);
     }
   };

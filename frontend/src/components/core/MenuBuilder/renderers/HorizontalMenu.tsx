@@ -294,10 +294,10 @@ export default function HorizontalMenu({
     const [forceClosed, setForceClosed] = useState(false);
     const closeUntilRef = useRef(0);
 
-    const handleMenuNavigate = useCallback((item?: MenuItem, event?: React.MouseEvent<HTMLElement>) => {
+    const handleMenuNavigate = useCallback((item?: MenuItem) => {
         closeUntilRef.current = Date.now() + 400;
         setForceClosed(true);
-        if (item) onItemClick?.(item, event);
+        if (item) onItemClick?.(item);
     }, [onItemClick]);
 
     // Re-enable hover behavior after actual route change

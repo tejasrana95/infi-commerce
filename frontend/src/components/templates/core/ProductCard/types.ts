@@ -51,6 +51,7 @@ export interface Product {
     salePrice?: number;
     saleStartDate?: string;
     saleEndDate?: string;
+    featuredImage?: string;
     images?: string[];
     rating?: number;
     reviewCount?: number;

@@ -7,6 +7,7 @@
         "build": "next build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/",
         "start": "PORT=3011 node .next/standalone/server.js",
         "start-demo": "PORT=4011 node .next/standalone/server.js",
+        "start-murtiya": "PORT=5002 node .next/standalone/server.js",
         "lint": "eslint",
         "analyze": "cross-env ANALYZE=true next build"
     },
