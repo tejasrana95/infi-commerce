@@ -82,7 +82,7 @@ export default function PaymentGatewayForm({ initialData, onSubmit, isSubmitting
         handleSubmit,
         watch,
         setValue,
-        formState: { errors },
+        formState: { errors, dirtyFields },
     } = useForm<FormData>({
         resolver: zodResolver(schema),
         defaultValues: {
@@ -183,20 +183,26 @@ export default function PaymentGatewayForm({ initialData, onSubmit, isSubmitting
     const handleFormSubmit = (data: FormData) => {
         // Clean up credentials based on gateway type
         const cleanedCredentials: any = {};
+        const isEditMode = Boolean(initialData);
+        const dirtyCredentialFields: Record<string, boolean> = (dirtyFields as any)?.credentials || {};
+        const shouldIncludeCredential = (fieldName: string): boolean => {
+            if (!isEditMode) return true;
+            return Boolean(dirtyCredentialFields?.[fieldName]);
+        };
 
         if (data.gatewayType === 'razorpay') {
-            if (data.credentials.keyId) cleanedCredentials.keyId = data.credentials.keyId;
-            if (data.credentials.keySecret) cleanedCredentials.keySecret = data.credentials.keySecret;
+            if (data.credentials.keyId && shouldIncludeCredential('keyId')) cleanedCredentials.keyId = data.credentials.keyId;
+            if (data.credentials.keySecret && shouldIncludeCredential('keySecret')) cleanedCredentials.keySecret = data.credentials.keySecret;
         } else if (data.gatewayType === 'stripe') {
-            if (data.credentials.secretKey) cleanedCredentials.secretKey = data.credentials.secretKey;
-            if (data.credentials.publishableKey) cleanedCredentials.publishableKey = data.credentials.publishableKey;
+            if (data.credentials.secretKey && shouldIncludeCredential('secretKey')) cleanedCredentials.secretKey = data.credentials.secretKey;
+            if (data.credentials.publishableKey && shouldIncludeCredential('publishableKey')) cleanedCredentials.publishableKey = data.credentials.publishableKey;
         } else if (data.gatewayType === 'paypal') {
-            if (data.credentials.clientId) cleanedCredentials.clientId = data.credentials.clientId;
-            if (data.credentials.clientSecret) cleanedCredentials.clientSecret = data.credentials.clientSecret;
-            cleanedCredentials.mode = data.credentials.mode || 'sandbox';
+            if (data.credentials.clientId && shouldIncludeCredential('clientId')) cleanedCredentials.clientId = data.credentials.clientId;
+            if (data.credentials.clientSecret && shouldIncludeCredential('clientSecret')) cleanedCredentials.clientSecret = data.credentials.clientSecret;
+            if (shouldIncludeCredential('mode')) cleanedCredentials.mode = data.credentials.mode || 'sandbox';
         }
 
-        if (data.credentials.webhookSecret) {
+        if (data.credentials.webhookSecret && shouldIncludeCredential('webhookSecret')) {
             cleanedCredentials.webhookSecret = data.credentials.webhookSecret;
         }
 
@@ -220,7 +226,7 @@ export default function PaymentGatewayForm({ initialData, onSubmit, isSubmitting
     };
 
     return (
-        <Box component="form" id="payment-gateway-form" onSubmit={handleSubmit(handleFormSubmit)}>
+        <Box component="form" id="payment-gateway-form" autoComplete="off" onSubmit={handleSubmit(handleFormSubmit)}>
             {/* Basic Info */}
             <Paper sx={{ p: 3, mb: 3 }}>
                 <Typography variant="h6" gutterBottom>Basic Information</Typography>
@@ -411,6 +417,8 @@ export default function PaymentGatewayForm({ initialData, onSubmit, isSubmitting
                                             label="Publishable Key"
                                             fullWidth
                                             placeholder="pk_test_..."
+                                            autoComplete="new-password"
+                                            inputProps={{ autoComplete: 'new-password' }}
                                         />
                                     )}
                                 />
@@ -426,6 +434,8 @@ export default function PaymentGatewayForm({ initialData, onSubmit, isSubmitting
                                             fullWidth
                                             type="password"
                                             placeholder="sk_test_..."
+                                            autoComplete="new-password"
+                                            inputProps={{ autoComplete: 'new-password' }}
                                         />
                                     )}
                                 />
@@ -446,6 +456,8 @@ export default function PaymentGatewayForm({ initialData, onSubmit, isSubmitting
                                             label="Key ID"
                                             fullWidth
                                             placeholder="rzp_test_..."
+                                            autoComplete="new-password"
+                                            inputProps={{ autoComplete: 'new-password' }}
                                         />
                                     )}
                                 />
@@ -460,6 +472,8 @@ export default function PaymentGatewayForm({ initialData, onSubmit, isSubmitting
                                             label="Key Secret"
                                             fullWidth
                                             type="password"
+                                            autoComplete="new-password"
+                                            inputProps={{ autoComplete: 'new-password' }}
                                         />
                                     )}
                                 />
@@ -479,6 +493,8 @@ export default function PaymentGatewayForm({ initialData, onSubmit, isSubmitting
                                             {...field}
                                             label="Client ID"
                                             fullWidth
+                                            autoComplete="new-password"
+                                            inputProps={{ autoComplete: 'new-password' }}
                                         />
                                     )}
                                 />
@@ -493,6 +509,8 @@ export default function PaymentGatewayForm({ initialData, onSubmit, isSubmitting
                                             label="Client Secret"
                                             fullWidth
                                             type="password"
+                                            autoComplete="new-password"
+                                            inputProps={{ autoComplete: 'new-password' }}
                                         />
                                     )}
                                 />
@@ -527,6 +545,8 @@ export default function PaymentGatewayForm({ initialData, onSubmit, isSubmitting
                                     fullWidth
                                     type="password"
                                     helperText="For verifying webhook signatures"
+                                    autoComplete="new-password"
+                                    inputProps={{ autoComplete: 'new-password' }}
                                 />
                             )}
                         />
