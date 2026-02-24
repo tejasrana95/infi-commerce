@@ -127,8 +127,9 @@ export default function PaymentGatewayForm({ initialData, onSubmit, isSubmitting
                     const codes = currenciesRes.data.currencies.map((c: any) => c.code);
                     setAvailableCurrencies(codes);
 
-                    // If no initialData, set base currency as default supported
-                    if (!initialData) {
+                    // Set base currency default only on CREATE page.
+                    // Edit page initially passes null while loading, so avoid setting a wrong default there.
+                    if (initialData === undefined) {
                         try {
                             const baseRes = await api.get('/currencies/base');
                             if (baseRes.data?.currency?.code && codes.includes(baseRes.data.currency.code)) {
@@ -152,6 +153,10 @@ export default function PaymentGatewayForm({ initialData, onSubmit, isSubmitting
     // Initialize form with existing data
     useEffect(() => {
         if (initialData) {
+            const loadedCurrencies = Array.isArray(initialData?.features?.supportedCurrencies)
+                ? initialData.features.supportedCurrencies
+                : (Array.isArray(initialData?.supportedCurrencies) ? initialData.supportedCurrencies : []);
+
             setValue('storeId', typeof initialData.storeId === 'object' ? initialData.storeId._id : initialData.storeId || '');
             setValue('gatewayType', initialData.gatewayType || 'stripe');
             setValue('gatewayName', initialData.gatewayName || '');
@@ -167,8 +172,10 @@ export default function PaymentGatewayForm({ initialData, onSubmit, isSubmitting
                     supportsRefund: initialData.features.supportsRefund ?? true,
                     supportsPartialRefund: initialData.features.supportsPartialRefund ?? true,
                     supportsRecurring: initialData.features.supportsRecurring ?? false,
-                    supportedCurrencies: initialData.features.supportedCurrencies || [],
+                    supportedCurrencies: loadedCurrencies,
                 });
+            } else {
+                setValue('features.supportedCurrencies', loadedCurrencies);
             }
         }
     }, [initialData, setValue]);
