@@ -1463,6 +1463,7 @@ export const initializePayment = asyncHandler(
       const config = await PaymentService.getGatewayConfig({
         storeId,
         gatewayType: 'razorpay',
+        channel: req.channel || (order.isPOSOrder ? 'POS' : 'WEB'),
       });
 
       response.data.razorpay = {
@@ -1486,6 +1487,7 @@ export const initializePayment = asyncHandler(
           await PaymentService.getGatewayConfig({
             storeId,
             gatewayType: 'stripe',
+            channel: req.channel || (order.isPOSOrder ? 'POS' : 'WEB'),
           })
         ).credentials.publishableKey,
       };

@@ -9,6 +9,22 @@ import { decrypt } from '../../utils/encryption.utils';
  * Handles payment gateway selection and operations
  */
 export class PaymentService {
+    private static pickConfigByChannel(configs: any[], channel?: string) {
+        const normalizedChannel = channel?.toUpperCase();
+        const channelMatchedConfigs = normalizedChannel
+            ? configs.filter((c: any) => Array.isArray(c.channels) && c.channels.includes(normalizedChannel))
+            : [];
+        const channelNeutralConfigs = configs.filter(
+            (c: any) => !Array.isArray(c.channels) || c.channels.length === 0
+        );
+
+        return (
+            channelMatchedConfigs[0] ||
+            channelNeutralConfigs[0] ||
+            configs[0]
+        );
+    }
+
     /**
      * Get available payment gateways for a store and country
      */
@@ -107,18 +123,7 @@ export class PaymentService {
             isActive: true,
         }).sort({ priority: -1, isTestMode: 1, updatedAt: -1 });
 
-        const normalizedChannel = params.channel?.toUpperCase();
-        const channelMatchedConfigs = normalizedChannel
-            ? configs.filter((c: any) => Array.isArray(c.channels) && c.channels.includes(normalizedChannel))
-            : [];
-        const channelNeutralConfigs = configs.filter(
-            (c: any) => !Array.isArray(c.channels) || c.channels.length === 0
-        );
-
-        const config =
-            channelMatchedConfigs[0] ||
-            channelNeutralConfigs[0] ||
-            configs[0];
+        const config = this.pickConfigByChannel(configs as any[], params.channel);
 
         if (!config) {
             throw new Error(`Payment gateway ${params.gatewayType} not configured for this store`);
@@ -150,12 +155,15 @@ export class PaymentService {
     static async getGatewayConfig(params: {
         storeId: string;
         gatewayType: string;
+        channel?: string;
     }): Promise<any> {
-        const config = await PaymentGatewayConfig.findOne({
+        const configs = await PaymentGatewayConfig.find({
             storeId: params.storeId,
             gatewayType: params.gatewayType,
             isActive: true,
-        });
+        }).sort({ priority: -1, isTestMode: 1, updatedAt: -1 });
+
+        const config = this.pickConfigByChannel(configs as any[], params.channel);
 
         if (!config) {
             throw new Error(`Payment gateway ${params.gatewayType} not configured`);

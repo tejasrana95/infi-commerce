@@ -162,7 +162,33 @@ export class RazorpayService extends BasePaymentGateway implements IPosQRService
         reason?: string;
     }): Promise<RefundResponse> {
         try {
-            const refundResult = await this.razorpay.payments.refund(params.paymentId, {
+            let targetPaymentId = params.paymentId;
+
+            // Backward compatibility: some flows may store Razorpay order_id in paymentId.
+            // Refund API requires payment_id (pay_*), so resolve it from the order.
+            if (typeof targetPaymentId === 'string' && targetPaymentId.startsWith('order_')) {
+                const paymentsResponse: any = await (this.razorpay as any).orders.fetchPayments(targetPaymentId);
+                const payments: any[] = paymentsResponse?.items || [];
+                const capturedPayment =
+                    payments.find((p) => p.status === 'captured') ||
+                    payments.find((p) => p.status === 'authorized') ||
+                    payments[0];
+
+                if (!capturedPayment?.id) {
+                    return {
+                        success: false,
+                        amount: params.amount,
+                        status: 'failed',
+                        gatewayResponse: {
+                            message: `No refundable payment found for Razorpay order ${targetPaymentId}`,
+                        },
+                    };
+                }
+
+                targetPaymentId = capturedPayment.id;
+            }
+
+            const refundResult = await this.razorpay.payments.refund(targetPaymentId, {
                 amount: this.formatAmount(params.amount, 'INR'), // Razorpay uses INR by default
                 notes: {
                     reason: params.reason || null,
