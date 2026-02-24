@@ -1340,6 +1340,7 @@ export const initializePayment = asyncHandler(
       country: order.billingAddress.country,
       currency: order.currency,
       preferredGateway: order.paymentMethod,
+      channel: req.channel || (order.isPOSOrder ? 'POS' : 'WEB'),
     });
 
     // Get base currency from Currency table
@@ -1934,59 +1935,136 @@ export const updateOrderStatus = asyncHandler(
 export const processRefund = asyncHandler(
   async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
-    const { adminNote, notifyCustomer } = req.body; // Assuming refund details might come from req.body
+    const { adminNote, notifyCustomer } = req.body;
 
     const order = await Order.findById(id).populate('storeId customerId');
 
     if (!order) {
       throw new AppError('Order not found', 404);
     }
-
-    // Only allow refund for paid or processing orders
-    if (
-      !['paid', 'processing', 'shipped', 'delivered'].includes(
-        order.paymentStatus,
-      )
-    ) {
-      throw new AppError(
-        'Cannot refund an order that is not paid or processing',
-        400,
-      );
+    const previousStatus = order.status;
+    const storeId =
+      (order.storeId as any)?._id?.toString?.() || order.storeId?.toString();
+    if (!storeId) {
+      throw new AppError('Order store is missing', 400);
     }
 
-    // Update order status and payment status
-    order.status = 'refunded';
-    order.paymentStatus = 'refunded';
-    order.refundedAt = new Date();
-    if (adminNote) order.adminNote = adminNote;
+    // For cancelled/refund-request flow, we should only process paid orders.
+    if (order.paymentStatus !== 'paid') {
+      throw new AppError('Cannot process refund for unpaid order', 400);
+    }
+
+    // Process gateway refund to original payment method when available.
+    let gatewayRefundResponse: any = null;
+    if (
+      order.paymentMethod &&
+      ['razorpay', 'stripe', 'paypal'].includes(order.paymentMethod)
+    ) {
+      if (!order.paymentId) {
+        throw new AppError(
+          'No payment ID found for this order. Cannot process refund.',
+          400,
+        );
+      }
+
+      try {
+        if (!storeId || !mongoose.Types.ObjectId.isValid(storeId)) {
+          throw new AppError('Invalid store ID for refund processing', 400);
+        }
+
+        const { PaymentService } = await import(
+          '../services/payment/payment.service'
+        );
+        const paymentService = await PaymentService.getGatewayInstance({
+          storeId,
+          gatewayType: order.paymentMethod,
+          channel: req.channel || (order.isPOSOrder ? 'POS' : 'WEB'),
+        });
+
+        const exchangeRate = (order as any).exchangeRate || 1;
+        const refundAmountInGatewayCurrency = order.total * exchangeRate;
+        const currency = order.currency || 'USD';
+
+        gatewayRefundResponse = await paymentService.processRefund({
+          paymentId: order.paymentId,
+          amount: refundAmountInGatewayCurrency,
+          currency,
+          reason: `Refund for cancelled order #${order.orderNumber}`,
+        });
+
+        if (gatewayRefundResponse.status === 'failed') {
+          const errorMessage =
+            gatewayRefundResponse.gatewayResponse?.error?.description ||
+            gatewayRefundResponse.gatewayResponse?.error?.reason ||
+            gatewayRefundResponse.gatewayResponse?.description ||
+            gatewayRefundResponse.gatewayResponse?.message ||
+            gatewayRefundResponse.gatewayResponse?.error ||
+            'Unknown error';
+          throw new AppError(`Refund processing failed: ${errorMessage}`, 400);
+        }
+      } catch (error: any) {
+        console.error('Payment gateway refund error:', error);
+        throw new AppError(
+          `Failed to process refund via ${order.paymentMethod}: ${error.message}`,
+          400,
+        );
+      }
+    }
+
+    const isGatewayPending = gatewayRefundResponse?.status === 'pending';
+    const isManualOrSuccess =
+      !gatewayRefundResponse || gatewayRefundResponse?.status === 'success';
+
+    if (isGatewayPending) {
+      // Gateway accepted the refund request but final settlement is pending.
+      order.refundStatus = 'approved';
+    } else if (isManualOrSuccess) {
+      order.status = 'refunded';
+      order.paymentStatus = 'refunded';
+      order.refundStatus = 'processed';
+      order.refundedAt = new Date();
+    }
+
+    if (adminNote) {
+      order.adminNote = adminNote;
+    }
+    if (gatewayRefundResponse?.refundId) {
+      order.refundReferenceId = gatewayRefundResponse.refundId;
+    }
 
     await order.save();
 
     // Sync refund to accounting (mark entire order as returned)
-    try {
-      await AccountingService.syncReturnsToAccounting(id);
-    } catch (error) {
-      console.error('Failed to sync refund to accounting:', error);
-      // Don't fail the request if accounting sync fails
+    if (!isGatewayPending) {
+      try {
+        await AccountingService.syncReturnsToAccounting(id);
+      } catch (error) {
+        console.error('Failed to sync refund to accounting:', error);
+        // Don't fail the request if accounting sync fails
+      }
     }
 
-    // Emit order refund event
-    emitOrderEvent(
-      'orderRefund',
-      order,
-      order.storeId._id.toString(),
-      order._id.toString(),
-      order.customerId?.toString(),
-    );
+    if (!isGatewayPending) {
+      // Emit order refund event
+      emitOrderEvent(
+        'orderRefund',
+        order,
+        storeId,
+        order._id.toString(),
+        order.customerId?.toString(),
+      );
+    }
 
     // Restore product stock (if not already done by cancellation)
     // This logic might need to be more sophisticated depending on partial refunds, etc.
-    await InventoryService.restoreStock(order.items);
+    if (!isGatewayPending && previousStatus !== 'cancelled') {
+      await InventoryService.restoreStock(order.items);
+    }
 
     // Trigger notification for refunded
-    if (notifyCustomer !== false) {
+    if (!isGatewayPending && notifyCustomer !== false) {
       await transactionalNotificationService.sendOrderStatusUpdate(
-        order.storeId._id.toString(),
+        storeId,
         (order.storeId as any).name,
         order,
         'refunded',
@@ -1996,19 +2074,31 @@ export const processRefund = asyncHandler(
     // Notify Admin
     await notificationService.createAdminNotification({
       type: 'order',
-      title: 'Order Refunded',
-      message: `Order #${order.orderNumber} has been refunded`,
+      title: isGatewayPending ? 'Refund Initiated' : 'Order Refunded',
+      message: isGatewayPending
+        ? `Refund initiated for Order #${order.orderNumber}`
+        : `Order #${order.orderNumber} has been refunded`,
       data: {
         orderId: order._id.toString(),
         orderNumber: order.orderNumber,
-        status: 'refunded',
+        status: isGatewayPending ? 'refund_initiated' : 'refunded',
       },
     });
 
     res.json({
       success: true,
-      message: 'Order marked as refunded',
-      data: order,
+      message: isGatewayPending
+        ? 'Refund initiated successfully and is pending at gateway'
+        : 'Refund processed successfully',
+      data: {
+        order,
+        gatewayRefund: gatewayRefundResponse
+          ? {
+              refundId: gatewayRefundResponse.refundId,
+              status: gatewayRefundResponse.status,
+            }
+          : null,
+      },
     });
   },
 );

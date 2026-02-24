@@ -45,6 +45,9 @@ export const createGatewayConfig = asyncHandler(async (req: AuthRequest, res: Re
         features,
         description,
     } = req.body;
+    const parsedIsTestMode = typeof isTestMode === 'string'
+        ? isTestMode.toLowerCase() === 'true'
+        : Boolean(isTestMode);
 
     // Validate gateway type
     if (!PaymentGatewayFactory.isSupported(gatewayType)) {
@@ -64,7 +67,7 @@ export const createGatewayConfig = asyncHandler(async (req: AuthRequest, res: Re
         gatewayName,
         geoGroupId,
         credentials: encryptedCredentials,
-        isTestMode: isTestMode || false,
+        isTestMode: parsedIsTestMode,
         priority: priority || 0,
         features: features || {
             supportsRefund: true,
@@ -183,6 +186,12 @@ export const updateGatewayConfig = asyncHandler(async (req: AuthRequest, res: Re
     // Don't allow updating storeId or gatewayType
     delete updateData.storeId;
     delete updateData.gatewayType;
+
+    if (updateData.isTestMode !== undefined) {
+        updateData.isTestMode = typeof updateData.isTestMode === 'string'
+            ? updateData.isTestMode.toLowerCase() === 'true'
+            : Boolean(updateData.isTestMode);
+    }
 
     const config = await PaymentGatewayConfig.findById(id);
 

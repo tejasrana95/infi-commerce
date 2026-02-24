@@ -99,12 +99,26 @@ export class PaymentService {
     static async getGatewayInstance(params: {
         storeId: string;
         gatewayType: string;
+        channel?: string;
     }): Promise<IPaymentGateway> {
-        const config = await PaymentGatewayConfig.findOne({
+        const configs = await PaymentGatewayConfig.find({
             storeId: params.storeId,
             gatewayType: params.gatewayType,
             isActive: true,
-        });
+        }).sort({ priority: -1, isTestMode: 1, updatedAt: -1 });
+
+        const normalizedChannel = params.channel?.toUpperCase();
+        const channelMatchedConfigs = normalizedChannel
+            ? configs.filter((c: any) => Array.isArray(c.channels) && c.channels.includes(normalizedChannel))
+            : [];
+        const channelNeutralConfigs = configs.filter(
+            (c: any) => !Array.isArray(c.channels) || c.channels.length === 0
+        );
+
+        const config =
+            channelMatchedConfigs[0] ||
+            channelNeutralConfigs[0] ||
+            configs[0];
 
         if (!config) {
             throw new Error(`Payment gateway ${params.gatewayType} not configured for this store`);
@@ -115,10 +129,18 @@ export class PaymentService {
             ? decrypt(config.credentials)
             : config.credentials;
 
+        // Guard against mode/credential mismatch that causes "always test" behavior.
+        if (config.gatewayType === 'razorpay' && config.isTestMode === false) {
+            const keyId = decryptedCredentials?.keyId || decryptedCredentials?.key_id || decryptedCredentials?.apiKey || '';
+            if (typeof keyId === 'string' && keyId.startsWith('rzp_test_')) {
+                throw new Error('Razorpay gateway is set to Live mode, but test credentials are configured (rzp_test_*). Please update to live keys.');
+            }
+        }
+
         return PaymentGatewayFactory.create(
             config.gatewayType,
             decryptedCredentials,
-            config.isTestMode
+            Boolean(config.isTestMode)
         );
     }
 
@@ -159,6 +181,7 @@ export class PaymentService {
         country: string;
         currency: string;
         preferredGateway?: string;
+        channel?: string;
     }): Promise<{
         gatewayType: string;
         gatewayName: string;
@@ -168,6 +191,7 @@ export class PaymentService {
             storeId: params.storeId,
             country: params.country,
             currency: params.currency,
+            channel: params.channel,
         });
 
         if (availableGateways.length === 0) {
@@ -189,6 +213,7 @@ export class PaymentService {
         const instance = await this.getGatewayInstance({
             storeId: params.storeId,
             gatewayType: selectedGateway.gatewayType,
+            channel: params.channel,
         });
 
         return {

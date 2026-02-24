@@ -23,7 +23,7 @@ import {
     updateTrackingValidation,
     requestReturn,
     updateReturnStatus,
-    markOrderAsRefunded,
+    processRefund,
     requestRefund,
     updateRefundStatus,
 } from '../controllers/order.controller';
@@ -599,7 +599,7 @@ router.patch(
     '/:id/refund',
     authenticate,
     authorize('admin', 'store_admin', 'super_admin'),
-    markOrderAsRefunded
+    processRefund
 );
 
 router.patch(

@@ -153,14 +153,19 @@ export default function PaymentGatewayForm({ initialData, onSubmit, isSubmitting
     // Initialize form with existing data
     useEffect(() => {
         if (initialData) {
+            const getEntityId = (value: any): string => {
+                if (!value) return '';
+                if (typeof value === 'object') return value?._id || '';
+                return value;
+            };
             const loadedCurrencies = Array.isArray(initialData?.features?.supportedCurrencies)
                 ? initialData.features.supportedCurrencies
                 : (Array.isArray(initialData?.supportedCurrencies) ? initialData.supportedCurrencies : []);
 
-            setValue('storeId', typeof initialData.storeId === 'object' ? initialData.storeId._id : initialData.storeId || '');
+            setValue('storeId', getEntityId(initialData.storeId));
             setValue('gatewayType', initialData.gatewayType || 'stripe');
             setValue('gatewayName', initialData.gatewayName || '');
-            setValue('geoGroupId', typeof initialData.geoGroupId === 'object' ? initialData.geoGroupId._id : initialData.geoGroupId || '');
+            setValue('geoGroupId', getEntityId(initialData.geoGroupId));
             setValue('description', initialData.description || '');
             setValue('channels', initialData.channels || []);
             setValue('isActive', initialData.isActive !== undefined ? initialData.isActive : true);
