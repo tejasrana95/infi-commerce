@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { getComponent } from '@/components/templates/registry';
 import { ModuleProps } from '../..';
 import api from '@/lib/api';
+import { useStore } from '@/providers/StoreProvider';
 import styles from './CategoryShowcase.module.scss';
 
 interface CategoryShowcaseConfig {
@@ -47,6 +48,7 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const carouselRef = useRef<HTMLDivElement>(null);
+    const { store } = useStore();
 
     const CategoryCard = getComponent('CategoryCard');
 
@@ -59,7 +61,11 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
             try {
                 setLoading(true);
                 const ids = categoryIds.join(',');
-                const data = await api.get<{ categories: Category[] }>(`categories?ids=${ids}`);
+                const params = new URLSearchParams({ ids });
+                if (store?._id) {
+                    params.set('storeId', store._id);
+                }
+                const data = await api.get<{ categories: Category[] }>(`categories?${params.toString()}`);
                 setCategories(Array.isArray(data.categories) ? data.categories : []);
             } catch (err) {
                 console.error('Error fetching categories:', err);
@@ -69,12 +75,12 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
             }
         };
 
-        if (categoryIds && categoryIds.length > 0) {
+        if (categoryIds && categoryIds.length > 0 && store?._id) {
             fetchCategories();
         } else {
             setLoading(false);
         }
-    }, [categoryIds]);
+    }, [categoryIds, store?._id]);
 
     const columnClass = styles[`columns${Math.min(Math.max(columns, 2), 6)}`];
     const titleAlignment = titleTypography?.alignment || 'left';
