@@ -14,6 +14,36 @@ import { updateCategorySyncTimestamp } from '../utils/sync-timestamp.utils';
 import SlugRegistry from '../models/SlugRegistry';
 import { config } from '../config';
 
+const PRIVILEGED_CATEGORY_ROLES = new Set(['admin', 'store_admin', 'super_admin']);
+
+function hasPrivilegedCategoryAccess(req: AuthRequest): boolean {
+    return !!req.user?.role && PRIVILEGED_CATEGORY_ROLES.has(req.user.role);
+}
+
+function sanitizeCategoryParent(parentCategory: any): any {
+    if (!parentCategory) return parentCategory;
+    return {
+        _id: parentCategory._id,
+        title: parentCategory.title,
+        slug: parentCategory.slug,
+    };
+}
+
+function sanitizePublicCategory(category: any): any {
+    if (!category) return category;
+    return {
+        _id: category._id,
+        title: category.title,
+        slug: category.slug,
+        description: category.description,
+        image: category.image,
+        parentCategory: sanitizeCategoryParent(category.parentCategory),
+        seo: category.seo,
+        createdAt: category.createdAt,
+        updatedAt: category.updatedAt,
+    };
+}
+
 // Validation rules
 export const createCategoryValidation = [
     body('title').trim().notEmpty().withMessage('Category title is required'),
@@ -236,6 +266,7 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
         }
     }
 
+    const isPrivileged = hasPrivilegedCategoryAccess(req);
     const isStoreAdmin = req.user?.role === 'store_admin';
     const assignedStoreIds = req.user?.storeIds || [];
 
@@ -304,7 +335,9 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
         }
     }
 
-    if (req.query.status) {
+    if (!isPrivileged) {
+        filter.status = 'active';
+    } else if (req.query.status) {
         filter.status = req.query.status;
     }
 
@@ -341,7 +374,7 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
     const totalCount = canSkipCountForIds ? categories.length : total;
 
     const responsePayload = {
-        categories,
+        categories: isPrivileged ? categories : categories.map(sanitizePublicCategory),
         pagination: {
             total: totalCount,
             page,
@@ -441,6 +474,7 @@ export const getCategoryTree = asyncHandler(async (req: AuthRequest, res: Respon
  *         description: Category not found
  */
 export const getCategoryById = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const isPrivileged = hasPrivilegedCategoryAccess(req);
     const category = await Category.findById(req.params.id)
         .populate('storeId', 'name slug')
         .populate('parentCategory', 'title slug')
@@ -450,7 +484,11 @@ export const getCategoryById = asyncHandler(async (req: AuthRequest, res: Respon
         throw new AppError('Category not found', 404);
     }
 
-    res.json({ category });
+    if (!isPrivileged && category.status !== 'active') {
+        throw new AppError('Category not found', 404);
+    }
+
+    res.json({ category: isPrivileged ? category : sanitizePublicCategory(category) });
 });
 
 /**
@@ -478,14 +516,20 @@ export const getCategoryById = asyncHandler(async (req: AuthRequest, res: Respon
  */
 export const getCategoryBySlug = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { storeId, slug } = req.params;
-    const cacheKey = `categories:store:${storeId}:slug:${slug}`;
+    const isPrivileged = hasPrivilegedCategoryAccess(req);
+    const cacheKey = `categories:store:${storeId}:slug:${slug}:${isPrivileged ? 'admin' : 'public-v1'}`;
 
     const cachedCategory = await redisService.get<any>(cacheKey);
     if (cachedCategory) {
         return res.json({ category: cachedCategory });
     }
 
-    const category = await Category.findOne({ storeId, slug })
+    const filter: any = { storeId, slug };
+    if (!isPrivileged) {
+        filter.status = 'active';
+    }
+
+    const category = await Category.findOne(filter)
         .populate('storeId', 'name slug')
         .populate('parentCategory', 'title slug')
         .lean();
@@ -494,9 +538,10 @@ export const getCategoryBySlug = asyncHandler(async (req: AuthRequest, res: Resp
         throw new AppError('Category not found', 404);
     }
 
-    await redisService.set(cacheKey, category, CACHE_TTL.CATEGORIES);
+    const categoryResponse = isPrivileged ? category : sanitizePublicCategory(category);
+    await redisService.set(cacheKey, categoryResponse, CACHE_TTL.CATEGORIES);
 
-    return res.json({ category });
+    return res.json({ category: categoryResponse });
 });
 
 /**

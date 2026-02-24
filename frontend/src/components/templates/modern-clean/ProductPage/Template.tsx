@@ -81,7 +81,7 @@ export default function ModernCleanProductPageTemplate({
     const { currentCurrency, store } = useStore();
     const { formatPriceWithExchange } = useCurrency();
     const { shouldShowPrice, contactUsLink } = usePriceVisibility();
-    const { enabled = false, defaultExchangeWindow = 0, defaultReturnWindow = 0 } = store?.settings?.returnSettings || {};
+    const { enabled = false, defaultExchangeWindow = 0, defaultReturnWindow = 0 } = (store as any)?.returnSettings || {};
     // Get ProductCard component
     const ProductCard = getComponent('ProductCard', templateId);
     // Review form state
@@ -213,9 +213,9 @@ export default function ModernCleanProductPageTemplate({
     const effectiveStock = displayVariant?.stock ?? product.stock;
 
     // Determine effective status
-    // Determine effective status
+    const managesInventory = typeof product.stock === 'number';
     let effectiveStatus: string = product.stockStatus || 'in_stock';
-    if (product.manageStock) {
+    if (managesInventory) {
         if (effectiveStock <= 0) {
             effectiveStatus = ['on_backorder', 'pre_order'].includes(product.stockStatus || '')
                 ? product.stockStatus!
@@ -239,7 +239,7 @@ export default function ModernCleanProductPageTemplate({
     const canOrder = effectiveStatus !== 'out_of_stock';
 
     // Check if stock is limited (for quantity selector)
-    const hasLimitedStock = product.manageStock && ['in_stock', 'low_stock'].includes(effectiveStatus || '');
+    const hasLimitedStock = managesInventory && ['in_stock', 'low_stock'].includes(effectiveStatus || '');
     const maxQuantity = hasLimitedStock ? effectiveStock : 999;
 
     // Stock status display labels
@@ -253,7 +253,7 @@ export default function ModernCleanProductPageTemplate({
         'made_to_order': 'Made to Order',
     };
     const stockLabel = stockStatusLabels[effectiveStatus || ''] || 'In Stock';
-    const showStockCount = product.manageStock && ['in_stock', 'low_stock'].includes(effectiveStatus || '') && effectiveStock > 0;
+    const showStockCount = managesInventory && ['in_stock', 'low_stock'].includes(effectiveStatus || '') && effectiveStock > 0;
 
     // ============================================
     // Track product view for "Recently Viewed" module
@@ -572,10 +572,10 @@ export default function ModernCleanProductPageTemplate({
             )}
 
             {/* Return & Exchange Info */}
-            {product?.returnSettings?.isReturnable && enabled && <ProductReturnExchange
+            {enabled && <ProductReturnExchange
                 info={{
-                    returnWindow: product?.returnSettings && product?.returnSettings?.returnWindowDays !== undefined ? product?.returnSettings?.returnWindowDays : defaultReturnWindow || 0,
-                    exchangeWindow: product?.returnSettings && product?.returnSettings?.exchangeWindowDays !== undefined ? product?.returnSettings?.exchangeWindowDays : defaultExchangeWindow || 0,
+                    returnWindow: defaultReturnWindow || 0,
+                    exchangeWindow: defaultExchangeWindow || 0,
                 }}
             />}
 

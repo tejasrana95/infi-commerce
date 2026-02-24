@@ -60,8 +60,8 @@ export default function ProductPageContainer({
 
     const reviewSettings: ReviewSettings = useMemo(() => ({
         ...DEFAULT_REVIEW_SETTINGS,
-        ...store?.settings?.reviewSettings,
-    }), [store?.settings?.reviewSettings]);
+        ...(store as any)?.reviewSettings,
+    }), [(store as any)?.reviewSettings]);
 
     const templateId = store?.theme?.templateId || 'modern-clean';
 
@@ -260,8 +260,9 @@ export default function ProductPageContainer({
         // Check stock
         const currentStock = selectedVariant?.stock ?? product.stock;
 
-        // Only check stock level if stock management is enabled
-        if (product.manageStock && currentStock <= 0) {
+        const managesInventory = typeof currentStock === 'number';
+        // Only check stock level if inventory is quantifiable
+        if (managesInventory && currentStock <= 0) {
             warning('Product is out of stock');
             return;
         }
@@ -286,7 +287,7 @@ export default function ProductPageContainer({
         } finally {
             setIsAddingToCart(false);
         }
-    }, [product._id, product.type, product.stock, product.manageStock, selectedVariant, quantity, allOptionsSelected, addToCartAPI, store?._id]);
+    }, [product._id, product.type, product.stock, selectedVariant, quantity, allOptionsSelected, addToCartAPI, store?._id]);
 
     const handleBuyNow = useCallback(async () => {
         await handleAddToCart();

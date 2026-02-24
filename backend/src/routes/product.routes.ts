@@ -24,8 +24,8 @@ const router = Router();
 
 // Public routes
 router.get('/', optionalAuth, getProducts);
-router.get('/featured', getFeaturedProducts);
-router.get('/on-sale', getOnSaleProducts);
+router.get('/featured', optionalAuth, getFeaturedProducts);
+router.get('/on-sale', optionalAuth, getOnSaleProducts);
 router.get('/search/filters', getSearchFilters);
 router.get('/:id', optionalAuth, getProductById);
 router.get('/slug/:storeId/:slug', optionalAuth, getProductBySlug);

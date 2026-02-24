@@ -145,7 +145,7 @@ export function usePriceVisibility(): PriceVisibilityResult {
     const [geoData, setGeoData] = useState<GeoData | null>(geoCache);
     const [geoLoading, setGeoLoading] = useState(false);
 
-    const settings = store?.settings?.priceVisibility;
+    const settings = (store as any)?.priceVisibility;
 
     // Default message
     const hiddenMessage = settings?.hiddenPriceMessage || 'Login to View Price';
@@ -191,19 +191,19 @@ export function usePriceVisibility(): PriceVisibilityResult {
 
                 // Check matches only for filled fields
                 const countryMatch = hasCountry
-                    ? rule.countryCodes!.some(code =>
+                    ? rule.countryCodes!.some((code: string) =>
                         code.toUpperCase() === geoData.country_code?.toUpperCase()
                     )
                     : true; // If not specified, consider it a match
 
                 const stateMatch = hasState
-                    ? rule.stateCodes!.some(code =>
+                    ? rule.stateCodes!.some((code: string) =>
                         code.toUpperCase() === geoData.region_code?.toUpperCase()
                     )
                     : true; // If not specified, consider it a match
 
                 const cityMatch = hasCity
-                    ? rule.cityNames!.some(name =>
+                    ? rule.cityNames!.some((name: string) =>
                         name.toLowerCase() === geoData.city?.toLowerCase()
                     )
                     : true; // If not specified, consider it a match

@@ -14,7 +14,7 @@ interface SocialLoginButtonsProps {
 export default function SocialLoginButtons({ onSuccess, onError }: SocialLoginButtonsProps) {
     const router = useRouter();
     const { store } = useStore();
-    const socialConfig = store?.settings?.socialLogin;
+    const socialConfig = (store as any)?.socialLogin;
     const popupRef = useRef<Window | null>(null);
 
     // Listen for messages from popup
@@ -68,7 +68,7 @@ export default function SocialLoginButtons({ onSuccess, onError }: SocialLoginBu
         const left = window.screen.width / 2 - width / 2;
         const top = window.screen.height / 2 - height / 2;
 
-        const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${window.location.origin}/auth/callback/google&response_type=token&scope=email profile&state=${store._id}`;
+        const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${window.location.origin}/auth/callback/google&response_type=token&scope=email profile&state=${store?._id || ''}`;
 
         popupRef.current = window.open(
             url,
@@ -89,7 +89,7 @@ export default function SocialLoginButtons({ onSuccess, onError }: SocialLoginBu
         const left = window.screen.width / 2 - width / 2;
         const top = window.screen.height / 2 - height / 2;
 
-        const url = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${clientId}&redirect_uri=${window.location.origin}/auth/callback/facebook&response_type=token&scope=email,public_profile&state=${store._id}`;
+        const url = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${clientId}&redirect_uri=${window.location.origin}/auth/callback/facebook&response_type=token&scope=email,public_profile&state=${store?._id || ''}`;
 
         popupRef.current = window.open(
             url,

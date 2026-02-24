@@ -8,6 +8,24 @@ import { asyncHandler, AppError } from '../middleware/validation';
 import { invalidateBrandCache } from '../utils/cache-invalidation';
 import SlugRegistry from '../models/SlugRegistry';
 
+const PRIVILEGED_BRAND_ROLES = new Set(['admin', 'store_admin', 'super_admin']);
+
+function hasPrivilegedBrandAccess(req: AuthRequest): boolean {
+    return !!req.user?.role && PRIVILEGED_BRAND_ROLES.has(req.user.role);
+}
+
+function sanitizePublicBrand(brand: any): any {
+    if (!brand) return brand;
+    return {
+        _id: brand._id,
+        name: brand.name,
+        slug: brand.slug,
+        logo: brand.logo,
+        description: brand.description,
+        website: brand.website,
+    };
+}
+
 // Validation rules
 export const createBrandValidation = [
     body('name').trim().notEmpty().withMessage('Brand name is required'),
@@ -123,6 +141,7 @@ export const getBrands = asyncHandler(async (req: AuthRequest, res: Response) =>
 
     const filter: any = {};
 
+    const isPrivileged = hasPrivilegedBrandAccess(req);
     const isStoreAdmin = req.user?.role === 'store_admin';
     const assignedStoreIds = req.user?.storeIds || [];
 
@@ -137,6 +156,8 @@ export const getBrands = asyncHandler(async (req: AuthRequest, res: Response) =>
 
     if (req.query.isActive !== undefined) {
         filter.isActive = req.query.isActive === 'true';
+    } else if (!isPrivileged) {
+        filter.isActive = true;
     }
 
     // Channel filter
@@ -184,8 +205,10 @@ export const getBrands = asyncHandler(async (req: AuthRequest, res: Response) =>
         Brand.countDocuments(filter)
     ]);
 
+    const brandPayload = isPrivileged ? brands : brands.map((brand) => sanitizePublicBrand(brand.toObject()));
+
     res.json({
-        brands,
+        brands: brandPayload,
         pagination: {
             page,
             limit,
@@ -214,13 +237,18 @@ export const getBrands = asyncHandler(async (req: AuthRequest, res: Response) =>
  *         description: Brand not found
  */
 export const getBrandById = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const isPrivileged = hasPrivilegedBrandAccess(req);
     const brand = await Brand.findById(req.params.id).populate('storeId', 'name slug');
 
     if (!brand) {
         throw new AppError('Brand not found', 404);
     }
 
-    res.json({ brand });
+    if (!isPrivileged && !brand.isActive) {
+        throw new AppError('Brand not found', 404);
+    }
+
+    res.json({ brand: isPrivileged ? brand : sanitizePublicBrand(brand.toObject()) });
 });
 
 /**

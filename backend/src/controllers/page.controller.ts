@@ -6,6 +6,34 @@ import { asyncHandler, AppError } from '../middleware/validation';
 import { invalidatePageCache } from '../utils/cache-invalidation';
 import { triggerRevalidation } from '../utils/revalidation';
 
+const PRIVILEGED_PAGE_ROLES = new Set(['admin', 'store_admin', 'super_admin']);
+
+function hasPrivilegedPageAccess(req: AuthRequest): boolean {
+    return !!req.user?.role && PRIVILEGED_PAGE_ROLES.has(req.user.role);
+}
+
+function sanitizePublicPage(page: any): any {
+    if (!page) return page;
+    return {
+        _id: page._id,
+        storeId: page.storeId,
+        title: page.title,
+        slug: page.slug,
+        useLayout: page.useLayout,
+        layoutId: page.layoutId,
+        content: page.content,
+        featuredImage: page.featuredImage,
+        seo: page.seo,
+        showInFooter: page.showInFooter,
+        footerGroup: page.footerGroup,
+        showInHeader: page.showInHeader,
+        template: page.template,
+        sortOrder: page.sortOrder,
+        createdAt: page.createdAt,
+        updatedAt: page.updatedAt,
+    };
+}
+
 export const createPageValidation = [
     body('title').trim().notEmpty().withMessage('Title is required'),
     body('slug').trim().notEmpty().matches(/^[a-z0-9-]+$/).withMessage('Invalid slug format'),
@@ -93,6 +121,7 @@ export const createPage = asyncHandler(async (req: AuthRequest, res: Response) =
 export const getPages = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { page = 1, limit = 20, search, status } = req.query;
     const filter: any = {};
+    const isPrivileged = hasPrivilegedPageAccess(req);
 
     // Get store ID from multiple sources (header takes priority for API key requests)
     const effectiveStoreId = (req.headers['x-store-id'] || req.query.storeId || req.body?.storeId) as string | undefined;
@@ -107,8 +136,10 @@ export const getPages = asyncHandler(async (req: AuthRequest, res: Response) => 
         filter.storeId = req.user.storeIds[0];
     }
 
-    if (status) {
+    if (status && isPrivileged) {
         filter.status = status;
+    } else if (!isPrivileged) {
+        filter.status = 'published';
     }
 
     if (search) {
@@ -127,9 +158,11 @@ export const getPages = asyncHandler(async (req: AuthRequest, res: Response) => 
         Page.countDocuments(filter),
     ]);
 
+    const pagePayload = isPrivileged ? pages : pages.map((item) => sanitizePublicPage(item.toObject()));
+
     res.json({
         success: true,
-        pages,
+        pages: pagePayload,
         pagination: {
             total,
             page: Number(page),
@@ -275,6 +308,7 @@ export const deletePage = asyncHandler(async (req: AuthRequest, res: Response) =
  */
 export const getPageBySlug = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { slug } = req.params;
+    const isPrivileged = hasPrivilegedPageAccess(req);
 
     // Get store ID from header or query - MANDATORY now
     const storeId = req.headers['x-store-id'] || req.query.storeId;
@@ -286,8 +320,13 @@ export const getPageBySlug = asyncHandler(async (req: AuthRequest, res: Response
     const filter: any = {
         slug,
         storeId,
-        status: 'published'
     };
+
+    if (!isPrivileged) {
+        filter.status = 'published';
+    } else if (req.query.status) {
+        filter.status = req.query.status;
+    }
 
     const page = await Page.findOne(filter).populate('layoutId');
 
@@ -295,5 +334,5 @@ export const getPageBySlug = asyncHandler(async (req: AuthRequest, res: Response
         throw new AppError('Page not found', 404);
     }
 
-    res.json({ data: page });
+    res.json({ data: isPrivileged ? page : sanitizePublicPage(page.toObject()) });
 });

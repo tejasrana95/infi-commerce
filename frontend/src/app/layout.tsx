@@ -31,6 +31,7 @@ import InstallPrompt from "@/components/pwa/InstallPrompt";
 import PWARegistration from "@/components/pwa/PWARegistration";
 import { DynamicHeader } from "@/components/layout/DynamicHeader";
 import { DynamicFooter } from "@/components/layout/DynamicFooter";
+import { fetchMenusByIds } from "@/lib/api/server-menu";
 
 
 // Optimized font loading with display: swap to prevent FOIT
@@ -99,6 +100,23 @@ function generateGoogleFontsUrl(themeConfig: any): string | null {
   });
 
   return `https://fonts.googleapis.com/css2?${fontFamilies.join('&')}&display=swap`;
+}
+
+function extractMenuIds(obj: any, menuIds: Set<string>) {
+  if (!obj || typeof obj !== 'object') return;
+
+  if (typeof obj.menuId === 'string') {
+    menuIds.add(obj.menuId);
+  }
+
+  Object.keys(obj).forEach((key) => {
+    const value = obj[key];
+    if (Array.isArray(value)) {
+      value.forEach((item) => extractMenuIds(item, menuIds));
+    } else if (value && typeof value === 'object') {
+      extractMenuIds(value, menuIds);
+    }
+  });
 }
 
 // ============================================
@@ -172,11 +190,22 @@ export default async function RootLayout({
   const themeCSSVariables = generateThemeCSSVariables(store?.theme);
   const googleFontsUrl = generateGoogleFontsUrl(store?.theme);
 
-  // Fetch currencies (store now includes menus embedded)
+  // Fetch currencies
   const currencies = store ? await fetchCurrencies(store._id) : [];
 
-  // Extract menus from store data (now embedded in store response)
-  const menus = (store as any)?.menus || {};
+  // Fetch menus separately by menu IDs referenced in theme config
+  let menus: Record<string, any> = {};
+  if (store?.theme) {
+    const menuIds = new Set<string>();
+    extractMenuIds(store.theme, menuIds);
+    if (menuIds.size > 0) {
+      const menuList = await fetchMenusByIds(Array.from(menuIds));
+      menus = menuList.reduce((acc, menu) => {
+        acc[menu._id] = menu;
+        return acc;
+      }, {} as Record<string, any>);
+    }
+  }
 
   let selectedCurrency: Currency | undefined;
 
@@ -285,7 +314,7 @@ export default async function RootLayout({
                       <CompareProvider>
                         <ToastProvider>
                           <DialogProvider>
-                            {store?.settings?.maintenanceMode ? (
+                            {store?.maintenanceMode ? (
                               <Maintenance />
                             ) : (
                               <div className="flex flex-col min-h-screen">
@@ -301,7 +330,7 @@ export default async function RootLayout({
                                 <DynamicFooter config={store?.theme?.footer} store={store} templateId={templateId} />
                               </div>
                             )}
-                            <ClientOnlyWidgets showCompare={!store?.settings?.maintenanceMode} />
+                            <ClientOnlyWidgets showCompare={!store?.maintenanceMode} />
                             {/* Cookie Consent Banner */}
                             <CookieConsentWrapper />
                             {/* PWA Components */}

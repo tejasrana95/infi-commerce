@@ -16,6 +16,60 @@ const isValidDomain = (value: string): boolean => {
     return isLocalhost || isStandardDomain;
 };
 
+const PRIVILEGED_STORE_ROLES = new Set(['admin', 'store_admin', 'super_admin']);
+
+function hasPrivilegedStoreAccess(req: AuthRequest): boolean {
+    return !!req.user?.role && PRIVILEGED_STORE_ROLES.has(req.user.role);
+}
+
+function buildPublicStoreResponse(store: any): any {
+    const settings = store?.settings || {};
+    const socialLogin = settings.socialLogin || {};
+    const aiSettings = settings.aiSettings || {};
+
+    return {
+        _id: store._id,
+        name: store.name,
+        slug: store.slug,
+        domains: store.domains,
+        description: store.description,
+        logo: store.logo,
+        favicon: store.favicon,
+        currency: store.currency,
+        timezone: store.timezone,
+        isActive: store.isActive,
+        seo: store.seo,
+        maintenanceMode: settings.maintenanceMode,
+        allowGuestCheckout: settings.allowGuestCheckout,
+        allowCustomerLogin: settings.allowCustomerLogin,
+        allowCustomerSignup: settings.allowCustomerSignup,
+        requireEmailVerification: settings.requireEmailVerification,
+        shippingEnabled: settings.shippingEnabled,
+        reviewSettings: settings.reviewSettings,
+        socialLogin: {
+            google: {
+                enabled: !!socialLogin?.google?.enabled,
+                clientId: socialLogin?.google?.clientId || '',
+            },
+            facebook: {
+                enabled: !!socialLogin?.facebook?.enabled,
+                clientId: socialLogin?.facebook?.clientId || '',
+            },
+        },
+        googleAnalytics: settings.googleAnalytics,
+        aiSettings: {
+            enabled: !!aiSettings.enabled,
+            model: aiSettings.model,
+        },
+        contact: settings.contact,
+        theme: store.theme,
+        pwaSettings: store.pwaSettings,
+        cookieConsentSettings: store.cookieConsentSettings,
+        createdAt: store.createdAt,
+        updatedAt: store.updatedAt,
+    };
+}
+
 // Validation rules
 export const createStoreValidation = [
     body('name').trim().notEmpty().withMessage('Store name is required'),
@@ -355,9 +409,10 @@ async function getEnrichedMenus(themeConfig: any, storeId: string): Promise<Reco
  *       404:
  *         description: Store not found
  */
-export const getStoreByDomain = asyncHandler(async (req: Request, res: Response) => {
+export const getStoreByDomain = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { domain } = req.params;
-    const cacheKey = CacheKeys.storeByDomain(domain);
+    const isPrivileged = hasPrivilegedStoreAccess(req);
+    const cacheKey = `${CacheKeys.storeByDomain(domain)}:${isPrivileged ? 'admin' : 'public-v3'}`;
 
     // Check for cache bypass parameters (nocache or purge)
     const bypassCache = req.query.nocache === 'true' || req.query.purge === 'true';
@@ -375,39 +430,42 @@ export const getStoreByDomain = asyncHandler(async (req: Request, res: Response)
     // MongoDB automatically matches if domain is in the domains array
     const store = await Store.findOne({ domains: domain }).lean();
 
-    if (store?.settings?.aiSettings?.openaiKey) {
-        store.settings.aiSettings.openaiKey = '••••••••••••••••••••';
-    }
-
     if (!store) {
         throw new AppError('Store not found', 404);
     }
 
-    // Fetch and enrich menus from entire theme config (header, footer, etc.)
-    let enrichedMenus = {};
-    if (store.theme?.header && store._id) {
-        try {
-            enrichedMenus = await getEnrichedMenus(store.theme, String(store._id));
-        } catch (error) {
-            console.error('Failed to enrich menus:', error);
-            // Continue without menus rather than failing the entire request
-        }
+    if (store?.settings?.aiSettings?.openaiKey) {
+        store.settings.aiSettings.openaiKey = '••••••••••••••••••••';
     }
 
-    const storeWithMenus = {
-        ...store,
-        menus: enrichedMenus,
-    };
+    let storeResponse: any;
+    if (isPrivileged) {
+        // Keep admin payload as-is (with enriched menus)
+        let enrichedMenus = {};
+        if (store.theme?.header && store._id) {
+            try {
+                enrichedMenus = await getEnrichedMenus(store.theme, String(store._id));
+            } catch (error) {
+                console.error('Failed to enrich menus:', error);
+            }
+        }
+        storeResponse = {
+            ...store,
+            menus: enrichedMenus,
+        };
+    } else {
+        storeResponse = buildPublicStoreResponse(store);
+    }
 
     // Only cache if not bypassed
     if (!bypassCache) {
-        await redisService.set(cacheKey, storeWithMenus, CACHE_TTL.STORE);
+        await redisService.set(cacheKey, storeResponse, CACHE_TTL.STORE);
     }
 
     // Set cache headers for browser caching
     res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300');
 
-    return res.json(storeWithMenus);
+    return res.json(storeResponse);
 });
 
 /**
@@ -659,7 +717,8 @@ export const getStores = asyncHandler(async (req: AuthRequest, res: Response) =>
  */
 export const getStoreById = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
-    const cacheKey = `store:id:${id}`;
+    const isPrivileged = hasPrivilegedStoreAccess(req);
+    const cacheKey = `store:id:${id}:${isPrivileged ? 'admin' : 'public-v3'}`;
 
     // Check for cache bypass parameters
     const bypassCache = req.query.nocache === 'true' || req.query.purge === 'true';
@@ -682,12 +741,14 @@ export const getStoreById = asyncHandler(async (req: AuthRequest, res: Response)
         store.settings.aiSettings.openaiKey = '••••••••••••••••••••';
     }
 
+    const storeResponse = isPrivileged ? store : buildPublicStoreResponse(store);
+
     if (!bypassCache) {
-        await redisService.set(cacheKey, store, CACHE_TTL.STORE);
+        await redisService.set(cacheKey, storeResponse, CACHE_TTL.STORE);
     }
 
     res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300');
-    return res.json({ store });
+    return res.json({ store: storeResponse });
 });
 
 /**
@@ -719,7 +780,8 @@ export const getStoreById = asyncHandler(async (req: AuthRequest, res: Response)
  */
 export const getStoreBySlug = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { slug } = req.params;
-    const cacheKey = `store:slug:${slug}`;
+    const isPrivileged = hasPrivilegedStoreAccess(req);
+    const cacheKey = `store:slug:${slug}:${isPrivileged ? 'admin' : 'public-v3'}`;
 
     const cachedStore = await redisService.get<any>(cacheKey);
     if (cachedStore) {
@@ -737,10 +799,11 @@ export const getStoreBySlug = asyncHandler(async (req: AuthRequest, res: Respons
         store.settings.aiSettings.openaiKey = '••••••••••••••••••••';
     }
 
-    await redisService.set(cacheKey, store, CACHE_TTL.STORE);
+    const storeResponse = isPrivileged ? store : buildPublicStoreResponse(store);
+    await redisService.set(cacheKey, storeResponse, CACHE_TTL.STORE);
 
     res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300');
-    return res.json({ store });
+    return res.json({ store: storeResponse });
 });
 
 /**

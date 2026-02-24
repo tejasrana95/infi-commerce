@@ -49,7 +49,7 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
     const [isReady, setIsReady] = useState(false);
 
     // Get GA config from store settings
-    const gaConfig: AnalyticsConfig | undefined = store?.settings?.googleAnalytics;
+    const gaConfig: AnalyticsConfig | undefined = (store as any)?.googleAnalytics;
     const isEnabled = gaConfig?.enabled ?? false;
     const trackingId = gaConfig?.trackingId || null;
 

@@ -118,8 +118,8 @@ export default function AuthPageContainer({ type }: AuthPageContainerProps) {
     }
 
     // Check if the current auth type is disabled
-    const isLoginDisabled = store?.settings?.allowCustomerLogin === false;
-    const isSignupDisabled = store?.settings?.allowCustomerSignup === false;
+    const isLoginDisabled = (store as any)?.allowCustomerLogin === false;
+    const isSignupDisabled = (store as any)?.allowCustomerSignup === false;
 
     if (type === 'login' && isLoginDisabled) {
         title = 'Login Disabled';
@@ -179,4 +179,3 @@ export default function AuthPageContainer({ type }: AuthPageContainerProps) {
         </AuthPageTemplate>
     );
 }
-

@@ -715,7 +715,24 @@ export interface Store {
   timezone: string;
   isActive: boolean;
   theme?: ThemeConfig;
+  // Legacy nested settings (admin/internal); public storefront responses now flatten these fields.
   settings?: StoreSettings;
+  maintenanceMode?: boolean;
+  allowGuestCheckout?: boolean;
+  allowCustomerLogin?: boolean;
+  allowCustomerSignup?: boolean;
+  requireEmailVerification?: boolean;
+  shippingEnabled?: boolean;
+  reviewSettings?: StoreSettings['reviewSettings'];
+  returnSettings?: StoreSettings['returnSettings'];
+  priceVisibility?: StoreSettings['priceVisibility'];
+  socialLogin?: StoreSettings['socialLogin'];
+  googleAnalytics?: StoreSettings['googleAnalytics'];
+  aiSettings?: {
+    enabled?: boolean;
+    model?: string;
+  };
+  contact?: StoreSettings['contact'];
   seo?: StoreSEO;
   pwaSettings?: PWASettings;
   createdAt?: string;

@@ -201,8 +201,9 @@ export default function QuickViewModal({
     const effectiveStock = selectedVariant?.stock ?? displayProduct.stock ?? 999;
 
     // Determine effective status (same logic as ProductPage)
+    const managesInventory = typeof displayProduct.stock === 'number';
     let effectiveStatus: string = displayProduct.stockStatus || 'in_stock';
-    if (displayProduct.manageStock) {
+    if (managesInventory) {
         if (effectiveStock <= 0) {
             effectiveStatus = ['on_backorder', 'pre_order'].includes(displayProduct.stockStatus || '')
                 ? displayProduct.stockStatus!
@@ -225,7 +226,7 @@ export default function QuickViewModal({
         (displayProduct.type !== 'variable' || allOptionsSelected);
 
     // Check if stock is limited (for quantity selector)
-    const hasLimitedStock = displayProduct.manageStock && ['in_stock', 'low_stock'].includes(effectiveStatus || '');
+    const hasLimitedStock = managesInventory && ['in_stock', 'low_stock'].includes(effectiveStatus || '');
     const maxQuantity = hasLimitedStock ? effectiveStock : 999;
 
     // Stock status labels
@@ -238,7 +239,7 @@ export default function QuickViewModal({
         'made_to_order': 'Made to Order',
     };
     const stockLabel = stockStatusLabels[effectiveStatus || ''] || 'In Stock';
-    const showStockCount = displayProduct.manageStock &&
+    const showStockCount = managesInventory &&
         ['in_stock', 'low_stock'].includes(effectiveStatus || '') &&
         effectiveStock > 0;
 

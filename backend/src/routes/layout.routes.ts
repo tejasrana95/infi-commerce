@@ -10,15 +10,15 @@ import {
     createLayoutValidation,
     updateLayoutValidation
 } from '../controllers/layout.controller';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate, authorize, optionalAuth } from '../middleware/auth';
 import { validate } from '../middleware/validation';
 
 const router = express.Router();
 
 // Public routes for frontend
-router.get('/', getLayouts);
-router.get('/resolve', resolveLayout);  // Must be before /:id to avoid matching
-router.get('/:id', getLayoutById);
+router.get('/', optionalAuth, getLayouts);
+router.get('/resolve', optionalAuth, resolveLayout);  // Must be before /:id to avoid matching
+router.get('/:id', optionalAuth, getLayoutById);
 
 // Protected routes for admin
 router.post('/', authenticate, authorize('admin', 'super_admin'), validate(createLayoutValidation), createLayout);

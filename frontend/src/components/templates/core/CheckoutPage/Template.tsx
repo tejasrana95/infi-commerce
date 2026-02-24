@@ -27,7 +27,7 @@ export default function CheckoutTemplate({
     }
 
     // Check if guest checkout is allowed
-    const allowGuestCheckout = store?.settings?.allowGuestCheckout !== false;
+    const allowGuestCheckout = (store as any)?.allowGuestCheckout !== false;
 
     if (!isLoading && !isAuthenticated && !allowGuestCheckout) {
         return (

@@ -131,7 +131,7 @@ export default function LoginForm({ isModal = false, onSuccess }: LoginFormProps
                     />
                 </div>
 
-                {store?.settings?.allowCustomerLogin !== false && (
+                {(store as any)?.allowCustomerLogin !== false && (
                     <div className={styles.forgotPassword}>
                         <Link href="/forgot-password" className={styles.linkBtn}>
                             Forgot Password?
@@ -151,7 +151,7 @@ export default function LoginForm({ isModal = false, onSuccess }: LoginFormProps
                 onError={(err) => setError(err)}
             />
 
-            {store?.settings?.allowCustomerSignup !== false && (
+            {(store as any)?.allowCustomerSignup !== false && (
                 <div className={styles.footer}>
                     <p>
                         Don't have an account?{' '}
@@ -164,4 +164,3 @@ export default function LoginForm({ isModal = false, onSuccess }: LoginFormProps
         </div>
     );
 }
-

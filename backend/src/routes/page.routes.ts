@@ -9,14 +9,14 @@ import {
     createPageValidation,
     updatePageValidation
 } from '../controllers/page.controller';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate, authorize, optionalAuth } from '../middleware/auth';
 import { validate } from '../middleware/validation';
 
 const router = express.Router();
 
 // Public routes (no auth required)
-router.get('/slug/:slug', getPageBySlug);
-router.get('/', getPages); // Public for sitemap (filtered by status)
+router.get('/slug/:slug', optionalAuth, getPageBySlug);
+router.get('/', optionalAuth, getPages); // Public for sitemap (filtered by status)
 
 router.use(authenticate);
 

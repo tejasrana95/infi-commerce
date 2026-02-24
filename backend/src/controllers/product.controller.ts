@@ -52,6 +52,92 @@ function stripPriceFields(product: any): any {
     return product;
 }
 
+function pickDefined<T extends Record<string, any>>(obj: T, fields: string[]): Partial<T> {
+    const out: Partial<T> = {};
+    fields.forEach((field) => {
+        if (obj[field] !== undefined) {
+            (out as any)[field] = obj[field];
+        }
+    });
+    return out;
+}
+
+function sanitizePublicVariant(variant: any): any {
+    if (!variant) return variant;
+    const clean = pickDefined(variant, [
+        '_id',
+        'sku',
+        'attributes',
+        'price',
+        'salePrice',
+        'stock',
+        'images',
+        'weight',
+        'pricing',
+    ]);
+    return clean;
+}
+
+function sanitizePublicProduct(product: any, mode: 'listing' | 'detail' = 'detail'): any {
+    if (!product) return product;
+
+    const commonFields = [
+        '_id',
+        'storeId',
+        'name',
+        'slug',
+        'type',
+        'sku',
+        'price',
+        'salePrice',
+        'compareAtPrice',
+        'salePriceStartDate',
+        'salePriceEndDate',
+        'stock',
+        'stockStatus',
+        'lowStockThreshold',
+        'images',
+        'featuredImage',
+        'categoryIds',
+        'tags',
+        'brand',
+        'seo',
+        'isActive',
+        'isFeatured',
+        'isOnSale',
+        'averageRating',
+        'reviewCount',
+        'rating',
+        'pricing',
+        'createdAt',
+        'updatedAt',
+    ];
+
+    const detailOnlyFields = [
+        'description',
+        'shortDescription',
+        'taxClassId',
+        'weight',
+        'downloadable',
+        'downloadLimit',
+        'downloadExpiry',
+        'productOptions',
+        'attributes',
+        'specifications',
+        'videos',
+        'categoryBreadcrumbs',
+    ];
+
+    const fields = mode === 'detail' ? [...commonFields, ...detailOnlyFields] : commonFields;
+    const clean = pickDefined(product, fields) as any;
+
+    if (Array.isArray(product.variants)) {
+        clean.variants = product.variants.map(sanitizePublicVariant);
+    }
+
+    return clean;
+}
+
 // Helper function to transform product options for frontend
 export function transformProductOptions(product: any) {
     if (product.productOptions && product.productOptions.length > 0) {
@@ -924,8 +1010,12 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         productsWithPricing.forEach(stripPriceFields);
     }
 
+    const responseProducts = isAdmin
+        ? productsWithPricing
+        : productsWithPricing.map((product: any) => sanitizePublicProduct(product, isListingView ? 'listing' : 'detail'));
+
     return res.json({
-        products: productsWithPricing,
+        products: responseProducts,
         pagination: {
             total: totalCount,
             page,
@@ -1019,7 +1109,7 @@ export const getProductById = asyncHandler(async (req: AuthRequest, res: Respons
     }
 
     res.json({
-        product: productObj,
+        product: isAdmin ? productObj : sanitizePublicProduct(productObj, 'detail'),
         activeSales: hidePrice ? undefined : sales,
     });
 });
@@ -1049,8 +1139,12 @@ export const getProductById = asyncHandler(async (req: AuthRequest, res: Respons
  */
 export const getProductBySlug = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { storeId, slug } = req.params;
+    const userRole = req.user?.role;
+    const isAdmin = userRole && (userRole === 'admin' || userRole === 'store_admin' || userRole === 'super_admin');
+    const removeProductCost = !isAdmin ? '-costPrice -variants.costPrice' : '';
 
     const product = await Product.findOne({ storeId, slug, isActive: true })
+        .select(`-__v ${removeProductCost}`)
         .populate('storeId', 'name slug domain timezone')
         .populate('categoryIds', 'title slug path')
         .populate('attributes.attributeId', 'name slug type values')
@@ -1102,7 +1196,7 @@ export const getProductBySlug = asyncHandler(async (req: AuthRequest, res: Respo
         stripPriceFields(productObj);
     }
 
-    res.json({ product: productObj });
+    res.json({ product: isAdmin ? productObj : sanitizePublicProduct(productObj, 'detail') });
 });
 
 /**
@@ -1340,7 +1434,6 @@ export const checkShipping = asyncHandler(async (req: AuthRequest, res: Response
 
     res.json({
         canShip,
-        geoLimit: product.geoLimit,
         message: canShip ? 'Product can be shipped to this location' : 'Product cannot be shipped to this location',
     });
 });
@@ -1366,6 +1459,9 @@ export const checkShipping = asyncHandler(async (req: AuthRequest, res: Response
  *         description: Featured products retrieved
  */
 export const getFeaturedProducts = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const userRole = req.user?.role;
+    const isAdmin = userRole && (userRole === 'admin' || userRole === 'store_admin' || userRole === 'super_admin');
+    const removeProductCost = !isAdmin ? '-costPrice -variants.costPrice' : '';
     const limit = parseInt(req.query.limit as string) || 10;
     const filter: any = { isActive: true, isFeatured: true };
 
@@ -1374,6 +1470,7 @@ export const getFeaturedProducts = asyncHandler(async (req: AuthRequest, res: Re
     }
 
     const products = await Product.find(filter)
+        .select(removeProductCost)
         .populate('storeId', 'name slug')
         .populate('categoryIds', 'title slug')
         .limit(limit)
@@ -1386,7 +1483,9 @@ export const getFeaturedProducts = asyncHandler(async (req: AuthRequest, res: Re
         products.forEach((p: any) => stripPriceFields(p));
     }
 
-    res.json({ products });
+    res.json({
+        products: isAdmin ? products : products.map((product: any) => sanitizePublicProduct(product, 'listing')),
+    });
 });
 
 /**
@@ -1410,6 +1509,9 @@ export const getFeaturedProducts = asyncHandler(async (req: AuthRequest, res: Re
  *         description: Sale products retrieved
  */
 export const getOnSaleProducts = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const userRole = req.user?.role;
+    const isAdmin = userRole && (userRole === 'admin' || userRole === 'store_admin' || userRole === 'super_admin');
+    const removeProductCost = !isAdmin ? '-costPrice -variants.costPrice' : '';
     const limit = parseInt(req.query.limit as string) || 20;
     const filter: any = { isActive: true, isOnSale: true };
 
@@ -1418,6 +1520,7 @@ export const getOnSaleProducts = asyncHandler(async (req: AuthRequest, res: Resp
     }
 
     const products = await Product.find(filter)
+        .select(removeProductCost)
         .populate('storeId', 'name slug')
         .populate('categoryIds', 'title slug')
         .limit(limit)
@@ -1430,7 +1533,9 @@ export const getOnSaleProducts = asyncHandler(async (req: AuthRequest, res: Resp
         products.forEach((p: any) => stripPriceFields(p));
     }
 
-    res.json({ products });
+    res.json({
+        products: isAdmin ? products : products.map((product: any) => sanitizePublicProduct(product, 'listing')),
+    });
 });
 
 /**

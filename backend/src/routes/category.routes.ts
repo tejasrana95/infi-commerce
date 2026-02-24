@@ -12,17 +12,17 @@ import {
     updateCategoryValidation,
     bulkAction,
 } from '../controllers/category.controller';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate, authorize, optionalAuth } from '../middleware/auth';
 import { validate } from '../middleware/validation';
 
 const router = Router();
 
 // Public routes (anyone can view categories)
-router.get('/', getCategories);
-router.get('/tree/:storeId', getCategoryTree);
-router.get('/:id', getCategoryById);
-router.get('/:id/filters', getCategoryFilters);
-router.get('/slug/:storeId/:slug', getCategoryBySlug);
+router.get('/', optionalAuth, getCategories);
+router.get('/tree/:storeId', optionalAuth, getCategoryTree);
+router.get('/:id', optionalAuth, getCategoryById);
+router.get('/:id/filters', optionalAuth, getCategoryFilters);
+router.get('/slug/:storeId/:slug', optionalAuth, getCategoryBySlug);
 
 // Protected routes (require authentication AND admin role)
 // Only admin, store_admin, and super_admin can manage categories

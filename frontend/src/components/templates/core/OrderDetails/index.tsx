@@ -165,7 +165,7 @@ export default function OrderDetailsTemplate({ order, loading, onRefresh }: Orde
     const { addToast } = useToast();
     const { showConfirm } = useDialog();
     const { store } = useStore();
-    const { returnSettings } = store?.settings || {};
+    const returnSettings = (store as any)?.returnSettings || {};
     // State
     const [downloading, setDownloading] = useState(false);
     const [showReturnModal, setShowReturnModal] = useState(false);

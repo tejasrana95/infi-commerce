@@ -290,7 +290,7 @@ export default function AIAssistant() {
     if (!store) return null;
 
     // Only show if enabled and API key is configured
-    const aiEnabled = store.settings?.aiSettings?.enabled || false;
+    const aiEnabled = (store as any)?.aiSettings?.enabled || false;
 
     if (!aiEnabled) {
         return null;

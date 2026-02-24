@@ -40,7 +40,7 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { store } = useStore();
-    const { returnSettings } = store?.settings || {};
+    const returnSettings = (store as any)?.returnSettings || {};
     const { convertAndFormat } = useCurrency();
     // Form state
     const [type, setType] = useState<'return' | 'exchange'>('return');
@@ -66,7 +66,7 @@ export default function ReturnOrderModal({ isOpen, onClose, order, onSuccess }: 
     ];
 
     if (returnSettings?.refundMethods) {
-        REFUND_METHODS.splice(0, REFUND_METHODS.length, ...returnSettings.refundMethods.map(method => {
+        REFUND_METHODS.splice(0, REFUND_METHODS.length, ...returnSettings.refundMethods.map((method: string) => {
             if (method === 'original') {
                 return { value: 'original', label: 'Refund to Original Payment Method' };
             } else if (method === 'bank_transfer') {

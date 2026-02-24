@@ -247,7 +247,7 @@ export default async function UniversalPage({ params, searchParams }: UniversalP
         // Schema.org JSON-LD
         const domain = (store?.domains && store.domains.length > 0) ? store.domains[0] : 'localhost:3002';
         const productUrl = `https://${domain}/${slug}`;
-        const condition = product?.googleMerchant?.condition || 'new';
+        const condition = 'new';
         const conditionMap: Record<string, string> = {
             new: 'https://schema.org/NewCondition',
             refurbished: 'https://schema.org/RefurbishedCondition',

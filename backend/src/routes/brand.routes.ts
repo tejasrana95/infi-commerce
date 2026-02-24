@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate, authorize, optionalAuth } from '../middleware/auth';
 import { validate } from '../middleware/validation';
 import {
     createBrand,
@@ -15,8 +15,8 @@ import {
 const router = Router();
 
 // Public routes
-router.get('/', getBrands);
-router.get('/:id', getBrandById);
+router.get('/', optionalAuth, getBrands);
+router.get('/:id', optionalAuth, getBrandById);
 
 // Admin-only routes
 router.post('/bulk-action', authenticate, authorize('admin', 'super_admin'), bulkAction);

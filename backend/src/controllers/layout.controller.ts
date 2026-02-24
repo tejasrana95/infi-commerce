@@ -5,6 +5,36 @@ import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import { invalidateLayoutCache } from '../utils/cache-invalidation';
 
+const PRIVILEGED_LAYOUT_ROLES = new Set(['admin', 'store_admin', 'super_admin']);
+
+function hasPrivilegedLayoutAccess(req: AuthRequest): boolean {
+    return !!req.user?.role && PRIVILEGED_LAYOUT_ROLES.has(req.user.role);
+}
+
+function sanitizePublicLayout(layout: any): any {
+    if (!layout) return layout;
+    return {
+        _id: layout._id,
+        storeId: layout.storeId,
+        themeId: layout.themeId,
+        name: layout.name,
+        description: layout.description,
+        type: layout.type,
+        slug: layout.slug,
+        sections: layout.sections,
+        settings: {
+            backgroundColor: layout.settings?.backgroundColor,
+            customCSS: layout.settings?.customCSS,
+            bodyClass: layout.settings?.bodyClass,
+        },
+        seo: layout.seo,
+        isDefault: layout.isDefault,
+        status: layout.status,
+        createdAt: layout.createdAt,
+        updatedAt: layout.updatedAt,
+    };
+}
+
 // Validation rules
 export const createLayoutValidation = [
     body('name').trim().notEmpty().withMessage('Layout name is required'),
@@ -111,6 +141,7 @@ export const getLayouts = asyncHandler(async (req: AuthRequest, res: Response) =
     const skip = (page - 1) * limit;
 
     const filter: any = {};
+    const isPrivileged = hasPrivilegedLayoutAccess(req);
 
     // Get store ID from multiple sources (header takes priority for API key requests)
     const effectiveStoreId = (req.headers['x-store-id'] || req.query.storeId || req.body?.storeId) as string | undefined;
@@ -119,14 +150,18 @@ export const getLayouts = asyncHandler(async (req: AuthRequest, res: Response) =
     // If storeId is provided, filter by it; otherwise return all layouts (for admins)
     if (effectiveStoreId) {
         filter.storeId = effectiveStoreId;
+    } else if (!isPrivileged) {
+        throw new AppError('Store ID is required', 400);
     }
 
     if (req.query.type) {
         filter.type = req.query.type;
     }
 
-    if (req.query.status) {
+    if (req.query.status && isPrivileged) {
         filter.status = req.query.status;
+    } else if (!isPrivileged) {
+        filter.status = 'published';
     }
 
     // Filter by slug if provided
@@ -135,7 +170,7 @@ export const getLayouts = asyncHandler(async (req: AuthRequest, res: Response) =
     }
 
     // Support filtering by templates
-    if (req.query.isTemplate) {
+    if (req.query.isTemplate && isPrivileged) {
         filter.isTemplate = req.query.isTemplate === 'true';
     } else {
         filter.isTemplate = false; // Default to showing actual layouts, not templates
@@ -155,9 +190,11 @@ export const getLayouts = asyncHandler(async (req: AuthRequest, res: Response) =
         Layout.countDocuments(filter)
     ]);
 
+    const layoutPayload = isPrivileged ? layouts : layouts.map((item) => sanitizePublicLayout(item.toObject()));
+
     res.json({
         success: true,
-        data: layouts,
+        data: layoutPayload,
         pagination: {
             total,
             page,
@@ -186,13 +223,18 @@ export const getLayouts = asyncHandler(async (req: AuthRequest, res: Response) =
  *         description: Layout not found
  */
 export const getLayoutById = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const isPrivileged = hasPrivilegedLayoutAccess(req);
     const layout = await Layout.findById(req.params.id);
 
     if (!layout) {
         throw new AppError('Layout not found', 404);
     }
 
-    res.json({ layout });
+    if (!isPrivileged && (layout.status !== 'published' || layout.isTemplate)) {
+        throw new AppError('Layout not found', 404);
+    }
+
+    res.json({ layout: isPrivileged ? layout : sanitizePublicLayout(layout.toObject()) });
 });
 
 /**
@@ -359,6 +401,7 @@ export const duplicateLayout = asyncHandler(async (req: AuthRequest, res: Respon
  */
 export const resolveLayout = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { storeId, type, slug } = req.query;
+    const isPrivileged = hasPrivilegedLayoutAccess(req);
 
     if (!storeId || !type) {
         throw new AppError('storeId and type are required', 400);
@@ -368,24 +411,36 @@ export const resolveLayout = asyncHandler(async (req: AuthRequest, res: Response
 
     // Step 1: If slug is provided, try to find slug-specific layout
     if (slug) {
-        layout = await Layout.findOne({
+        const slugFilter: any = {
             storeId,
             type,
             slug: (slug as string).toLowerCase().trim(),
-            status: 'published',
             isTemplate: false,
-        });
+        };
+        if (!isPrivileged) {
+            slugFilter.status = 'published';
+        } else if (req.query.status) {
+            slugFilter.status = req.query.status;
+        }
+
+        layout = await Layout.findOne(slugFilter);
     }
 
     // Step 2: If no slug-specific layout found, fallback to default layout
     if (!layout) {
-        layout = await Layout.findOne({
+        const defaultFilter: any = {
             storeId,
             type,
             isDefault: true,
-            status: 'published',
             isTemplate: false,
-        });
+        };
+        if (!isPrivileged) {
+            defaultFilter.status = 'published';
+        } else if (req.query.status) {
+            defaultFilter.status = req.query.status;
+        }
+
+        layout = await Layout.findOne(defaultFilter);
     }
 
 
@@ -395,5 +450,5 @@ export const resolveLayout = asyncHandler(async (req: AuthRequest, res: Response
         return;
     }
 
-    res.json({ layout });
+    res.json({ layout: isPrivileged ? layout : sanitizePublicLayout(layout.toObject()) });
 });

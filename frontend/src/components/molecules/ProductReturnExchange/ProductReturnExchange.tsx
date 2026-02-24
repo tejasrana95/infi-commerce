@@ -34,7 +34,7 @@ export default function ProductReturnExchange({
 }: ProductReturnExchangeProps) {
     const [showDetails, setShowDetails] = useState(false);
     const { store } = useStore();
-    const { exchangeConditions = [], processSteps = [], returnConditions = [] } = store?.settings?.returnSettings || {};
+    const { exchangeConditions = [], processSteps = [], returnConditions = [] } = (store as any)?.returnSettings || {};
     const returnInfo = { ...defaultReturnExchangeInfo, ...info };
 
     const hasReturnPolicy = returnInfo?.returnWindow !== undefined && returnInfo?.returnWindow > 0;
@@ -96,7 +96,7 @@ export default function ProductReturnExchange({
                             Return Policy
                         </h4>
                         <ul className={styles.conditionsList}>
-                            {returnConditions?.length > 0 ? returnConditions.map((condition, idx) => (
+                            {returnConditions?.length > 0 ? returnConditions.map((condition: string, idx: number) => (
                                 <li key={idx}>
                                     <DynamicIcon name="MdCheck" size={14} />
                                     {condition}
@@ -117,7 +117,7 @@ export default function ProductReturnExchange({
                                 Exchange Policy
                             </h4>
                             <ul className={styles.conditionsList}>
-                                {exchangeConditions?.length > 0 ? exchangeConditions.map((condition, idx) => (
+                                {exchangeConditions?.length > 0 ? exchangeConditions.map((condition: string, idx: number) => (
                                     <li key={idx}>
                                         <DynamicIcon name="MdCheck" size={14} />
                                         {condition}
@@ -139,7 +139,7 @@ export default function ProductReturnExchange({
                                 How It Works
                             </h4>
                             <div className={styles.steps}>
-                                {processSteps.map((step, idx) => (
+                                {processSteps.map((step: { label?: string; description?: string }, idx: number) => (
                                     <div key={idx} className={styles.step}>
                                         <div className={styles.stepNumber}>{idx + 1}</div>
                                         <div className={styles.stepContent}>

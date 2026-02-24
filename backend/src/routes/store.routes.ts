@@ -25,7 +25,7 @@ import {
     getPosPaymentSettings,
     updatePosPaymentSettings,
 } from '../controllers/store.controller';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate, authorize, optionalAuth } from '../middleware/auth';
 import { validate } from '../middleware/validation';
 import { checkDemoMode } from '../middleware/checkDemoMode';
 
@@ -33,10 +33,15 @@ const router = Router();
 
 // Public routes (anyone can view stores)
 router.get('/:id/meta', getStoreMeta);
-router.get('/', getStores);
-router.get('/domain/:domain', getStoreByDomain);
-router.get('/slug/:slug', getStoreBySlug);
-router.get('/:id', getStoreById);
+router.get(
+    '/',
+    authenticate,
+    authorize('admin', 'store_admin', 'super_admin'),
+    getStores
+);
+router.get('/domain/:domain', optionalAuth, getStoreByDomain);
+router.get('/slug/:slug', optionalAuth, getStoreBySlug);
+router.get('/:id', optionalAuth, getStoreById);
 
 // Protected routes (require authentication AND admin role)
 // Only admin, store_admin, and super_admin can manage stores
