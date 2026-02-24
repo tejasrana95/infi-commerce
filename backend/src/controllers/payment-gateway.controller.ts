@@ -5,7 +5,7 @@ import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import { PaymentService } from '../services/payment/payment.service';
 import { PaymentGatewayFactory } from '../services/payment/payment-gateway.factory';
-import { encrypt } from '../utils/encryption.utils';
+import { decrypt, encrypt } from '../utils/encryption.utils';
 
 /**
  * Validation rules
@@ -158,7 +158,8 @@ export const getGatewayConfigById = asyncHandler(async (req: AuthRequest, res: R
 
     const config = await PaymentGatewayConfig.findById(id)
         .populate('geoGroupId', 'name countries')
-        .select('-credentials'); // Don't return credentials
+        .select('storeId gatewayType gatewayName displayName icon geoGroupId geoRestrictions minAmount maxAmount extraCharge order isActive isTestMode priority features description channels createdAt updatedAt')
+        .lean();
 
     if (!config) {
         throw new AppError('Payment gateway configuration not found', 404);
@@ -191,9 +192,17 @@ export const updateGatewayConfig = asyncHandler(async (req: AuthRequest, res: Re
 
     // Handle credentials merge
     if (updateData.credentials && Object.keys(updateData.credentials).length > 0) {
+        let existingCredentials: any = {};
+        if (typeof config.credentials === 'string') {
+            const decrypted = decrypt(config.credentials);
+            existingCredentials = (decrypted && typeof decrypted === 'object') ? decrypted : {};
+        } else if (config.credentials && typeof config.credentials === 'object') {
+            existingCredentials = config.credentials;
+        }
+
         // Merge with existing credentials to prevent data loss on partial updates
         const mergedCredentials = {
-            ...config.credentials,
+            ...existingCredentials,
             ...updateData.credentials
         };
         updateData.credentials = encryptCredentials(mergedCredentials);
