@@ -30,6 +30,7 @@ import { useStore } from '@/providers/StoreProvider';
 import { useCurrency } from '@/providers/CurrencyProvider';
 import PriceDisplay from '@/components/core/common/PriceDisplay';
 import { usePriceVisibility } from '@/hooks/usePriceVisibility';
+import { formatDate } from '@/lib/date';
 
 export default function ModernCleanProductPageTemplate({
     product,
@@ -967,7 +968,7 @@ export default function ModernCleanProductPageTemplate({
                                     </div>
                                 )}
                                 <div className={styles.reviewMeta}>
-                                    <span>{new Date(review.createdAt).toLocaleDateString()}</span>
+                                    <span> {formatDate(review.createdAt, 'medium')}</span>
 
                                     <div className={styles.helpfulAction}>
                                         <button
