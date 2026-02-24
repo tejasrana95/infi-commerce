@@ -17,7 +17,29 @@ interface AdminNotificationContextType {
 
 const AdminNotificationContext = createContext<AdminNotificationContextType | undefined>(undefined);
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
+const getSocketUrl = () => {
+    const rawApiUrl = (process.env.NEXT_PUBLIC_API_URL || '').trim();
+
+    // Prefer a valid absolute URL from env.
+    if (rawApiUrl) {
+        try {
+            const parsed = new URL(rawApiUrl);
+            return parsed.origin;
+        } catch {
+            // Allow values like "localhost:3001/api" (without protocol)
+            if (/^[^/]+:\d+(\/.*)?$/.test(rawApiUrl)) {
+                return `http://${rawApiUrl.replace(/\/api\/?$/, '')}`;
+            }
+        }
+    }
+
+    // Browser fallback (useful for misconfigured env like "https")
+    if (typeof window !== 'undefined') {
+        return window.location.origin;
+    }
+
+    return 'http://localhost:3001';
+};
 
 export function AdminNotificationProvider({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
@@ -116,9 +138,10 @@ export function AdminNotificationProvider({ children }: { children: React.ReactN
 
         const token = localStorage.getItem('accesstoken');
         if (!token) return;
+        const socketUrl = getSocketUrl();
 
         // Create socket connection
-        const socket = io(SOCKET_URL, {
+        const socket = io(socketUrl, {
             auth: {
                 token
             },
