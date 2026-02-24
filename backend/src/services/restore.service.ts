@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import mongoose from 'mongoose';
 
 import Product from '../models/Product';
 import Order from '../models/Order';
@@ -62,6 +63,28 @@ interface ProductWorkbookRows {
 }
 
 class RestoreService {
+    private async syncProductReviewStats(productId: string): Promise<void> {
+        if (!validateObjectId(productId)) return;
+
+        const objectId = new mongoose.Types.ObjectId(productId);
+        const stats = await Review.aggregate([
+            { $match: { productId: objectId, isApproved: true } },
+            {
+                $group: {
+                    _id: null,
+                    averageRating: { $avg: '$rating' },
+                    reviewCount: { $sum: 1 },
+                },
+            },
+        ]);
+
+        const result = stats[0] || { averageRating: 0, reviewCount: 0 };
+        await Product.findByIdAndUpdate(productId, {
+            averageRating: parseFloat((result.averageRating || 0).toFixed(1)),
+            reviewCount: result.reviewCount || 0,
+        });
+    }
+
     /**
      * Parse Excel file to JSON
      */
@@ -1677,20 +1700,32 @@ class RestoreService {
     /**
      * Import categories, brands, coupons, reviews - similar pattern
      */
-    async importCategories(buffer: Buffer, _filters: ImportFilters = {}): Promise<ImportResult> {
-        return this.genericImport(buffer, Category, ['title', 'slug', 'storeId'], { storeId: Store });
+    async importCategories(buffer: Buffer, filters: ImportFilters = {}): Promise<ImportResult> {
+        return this.genericImport(buffer, Category, ['title', 'slug', 'storeId'], { storeId: Store }, filters);
     }
 
-    async importBrands(buffer: Buffer, _filters: ImportFilters = {}): Promise<ImportResult> {
-        return this.genericImport(buffer, Brand, ['name', 'slug', 'storeId'], { storeId: Store });
+    async importBrands(buffer: Buffer, filters: ImportFilters = {}): Promise<ImportResult> {
+        return this.genericImport(buffer, Brand, ['name', 'slug', 'storeId'], { storeId: Store }, filters);
     }
 
-    async importCoupons(buffer: Buffer, _filters: ImportFilters = {}): Promise<ImportResult> {
-        return this.genericImport(buffer, Coupon, ['code', 'storeId', 'discountType', 'discountValue', 'startDate', 'endDate'], { storeId: Store });
+    async importCoupons(buffer: Buffer, filters: ImportFilters = {}): Promise<ImportResult> {
+        return this.genericImport(
+            buffer,
+            Coupon,
+            ['code', 'storeId', 'discountType', 'discountValue', 'startDate', 'endDate'],
+            { storeId: Store },
+            filters
+        );
     }
 
-    async importReviews(buffer: Buffer, _filters: ImportFilters = {}): Promise<ImportResult> {
-        return this.genericImport(buffer, Review, ['storeId', 'productId', 'rating', 'title', 'content'], { storeId: Store });
+    async importReviews(buffer: Buffer, filters: ImportFilters = {}): Promise<ImportResult> {
+        return this.genericImport(
+            buffer,
+            Review,
+            ['storeId', 'productId', 'rating', 'title', 'content'],
+            { storeId: Store, productId: Product },
+            filters
+        );
     }
 
     /**
@@ -1700,7 +1735,8 @@ class RestoreService {
         buffer: Buffer,
         Model: any,
         requiredFields: string[],
-        references: Record<string, any> = {}
+        references: Record<string, any> = {},
+        filters: ImportFilters = {}
     ): Promise<ImportResult> {
         const rows = await this.parseExcelFile(buffer);
         const result: ImportResult = {
@@ -1712,6 +1748,7 @@ class RestoreService {
         };
 
         const validatedRows: any[] = [];
+        const affectedReviewProductIds = new Set<string>();
 
         // Map model names to slug entity types for slug validation
         const slugEntityTypes: Record<string, 'product' | 'category' | 'page' | 'brand'> = {
@@ -1722,6 +1759,10 @@ class RestoreService {
         for (const { rowNumber, data } of rows) {
             const errors: string[] = [];
             const unflattened = this.unflattenObject(data);
+            const effectiveStoreId = filters.storeId || unflattened.storeId;
+            if (effectiveStoreId) {
+                unflattened.storeId = effectiveStoreId;
+            }
 
             errors.push(...validateRequiredFields(unflattened, requiredFields));
 
@@ -1744,6 +1785,17 @@ class RestoreService {
                 }
             }
 
+            // Review-specific validation: product must belong to selected/effective store.
+            if (Model.modelName === 'Review' && unflattened.productId && unflattened.storeId) {
+                const productExists = await Product.exists({
+                    _id: unflattened.productId,
+                    storeId: unflattened.storeId
+                });
+                if (!productExists) {
+                    errors.push('Product not found in the specified store');
+                }
+            }
+
             if (errors.length > 0) {
                 result.errors.push({ row: rowNumber, errors });
             } else {
@@ -1758,8 +1810,11 @@ class RestoreService {
         }
 
 
-        for (const { data } of validatedRows) {
+        for (const { rowNumber, data } of validatedRows) {
             const sanitized = sanitizeData(data);
+            if (filters.storeId) {
+                sanitized.storeId = filters.storeId;
+            }
 
             // Handle boolean fields for all entity types
             const booleanFieldsMap: Record<string, string[]> = {
@@ -1777,6 +1832,11 @@ class RestoreService {
                     sanitized[field] = parseBoolean(sanitized[field]);
                 }
             });
+
+            // Admin imports should be visible immediately unless explicitly marked otherwise.
+            if (modelName === 'Review' && sanitized.isApproved === undefined) {
+                sanitized.isApproved = true;
+            }
 
             // Handle array fields
             const arrayFields = ['categoryIds', 'images', 'votedBy'];
@@ -1801,6 +1861,11 @@ class RestoreService {
             }
 
             try {
+                if (modelName === 'Review' && sanitized.productId) {
+                    const pid = this.toIdString(sanitized.productId);
+                    if (pid) affectedReviewProductIds.add(pid);
+                }
+
                 if (sanitized._id && validateObjectId(sanitized._id)) {
                     const id = sanitized._id;
                     delete sanitized._id;
@@ -1825,13 +1890,21 @@ class RestoreService {
                             result.updated++;
                         } else {
                             result.errors.push({
-                                row: validatedRows.indexOf({ data } as any) + 2,
+                                row: rowNumber,
                                 errors: [`Record with ID ${id} not found`]
                             });
                         }
                     } else {
-                        await Model.findByIdAndUpdate(id, sanitized, { runValidators: true });
-                        result.updated++;
+                        const updatedDoc = await Model.findByIdAndUpdate(id, sanitized, { runValidators: true, new: true });
+                        if (updatedDoc) {
+                            result.updated++;
+                        } else {
+                            // If ID doesn't exist in this DB, import as new record.
+                            const createPayload = { ...sanitized };
+                            delete createPayload._id;
+                            await Model.create(createPayload);
+                            result.created++;
+                        }
                     }
                 } else {
                     delete sanitized._id;
@@ -1845,16 +1918,24 @@ class RestoreService {
                 }
             } catch (error: any) {
                 result.errors.push({
-                    row: validatedRows.indexOf({ data } as any) + 2,
+                    row: rowNumber,
                     errors: [`Database error: ${error.message} `]
                 });
             }
         }
 
+        if (Model.modelName === 'Review' && affectedReviewProductIds.size > 0) {
+            await Promise.all(
+                Array.from(affectedReviewProductIds).map((productId) =>
+                    this.syncProductReviewStats(productId)
+                )
+            );
+        }
+
         result.success = result.errors.length === 0;
         result.message = result.success
             ? `Successfully imported ${result.created} new records and updated ${result.updated} existing records.`
-            : `Import completed with errors.`;
+            : `Import completed with errors. Created: ${result.created}, Updated: ${result.updated}, Errors: ${result.errors.length}`;
 
         return result;
     }

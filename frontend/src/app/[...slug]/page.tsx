@@ -320,6 +320,10 @@ export default async function UniversalPage({ params, searchParams }: UniversalP
 
     // --- CATEGORY ---
     if (resolved.entityType === 'category') {
+        const pageParam = typeof resolvedSearchParams.page === 'string'
+            ? parseInt(resolvedSearchParams.page, 10)
+            : 1;
+        const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
         const sort = typeof resolvedSearchParams.sort === 'string'
             ? resolvedSearchParams.sort
             : store?.theme?.category?.sorting?.defaultSort || 'featured';
@@ -327,7 +331,7 @@ export default async function UniversalPage({ params, searchParams }: UniversalP
         const { category, products, filters, layout, pagination } = await fetchCategoryPageData(
             store._id,
             slug, // Slug is now passed directly (flat)
-            { sort }
+            { page, sort }
         );
 
         if (!category) notFound();

@@ -115,11 +115,11 @@ export async function fetchCategoryBySlug(storeId: string, slug: string): Promis
 export async function fetchCategoryProducts(
     storeId: string,
     categoryId: string | null,
-    options: { limit?: number; sort?: string } = {}
+    options: { page?: number; limit?: number; sort?: string } = {}
 ): Promise<{ products: any[]; pagination: any }> {
-    const { limit = 24, sort = 'featured' } = options;
+    const { page = 1, limit = 24, sort = 'featured' } = options;
     try {
-        let url = `${API_BASE}/products?storeId=${storeId}&limit=${limit}&sort=${sort}&view=listing`;
+        let url = `${API_BASE}/products?storeId=${storeId}&page=${page}&limit=${limit}&sort=${sort}&view=listing`;
         if (categoryId) {
             url += `&categoryId=${categoryId}`;
         }
@@ -198,7 +198,7 @@ export async function fetchLayout(storeId: string, type: string, slug?: string):
 export async function fetchCategoryPageData(
     storeId: string,
     slug: string | null,
-    options: { sort?: string } = {}
+    options: { page?: number; sort?: string } = {}
 ) {
     let category: CategoryData | null = null;
     let categoryId: string | null = null;
@@ -233,6 +233,7 @@ export async function fetchCategoryPageData(
     // 4. Fetch products and filters in parallel using the correct limit
     const [productData, filters] = await Promise.all([
         fetchCategoryProducts(storeId, categoryId, {
+            page: options.page,
             sort: options.sort,
             limit: limit
         }),
@@ -464,4 +465,3 @@ export async function fetchPageBySlug(storeId: string, slug: string): Promise<an
         return null;
     }
 }
-

@@ -300,7 +300,11 @@ function CategoryPageInner({
         if (!hasInitialFetchRef.current) {
             hasInitialFetchRef.current = true;
             if (initialProducts.length > 0) {
-                return;
+                const currentPage = parseInt(searchParams.get('page') || '1');
+                const initialPage = initialPagination?.page || 1;
+                if (currentPage === initialPage) {
+                    return;
+                }
             }
         }
         // Fetch products when filters change (via URL)
