@@ -731,6 +731,7 @@ export default function ModernCleanHeaderTemplate({
                                         menuId={mobileMenuId}
                                         themeColors={themeColors}
                                         className={styles.mobileNav}
+                                        onItemClick={closeMobileMenu}
                                     />
                                 ) : (
                                     <div className={styles.mobileMenuFallback}>

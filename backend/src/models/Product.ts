@@ -577,10 +577,14 @@ const ProductSchema = new Schema<IProduct>(
 
 // Compound indexes for better query performance
 ProductSchema.index({ storeId: 1, slug: 1 }, { unique: true });
-ProductSchema.index({ storeId: 1, isActive: 1, isFeatured: 1 });
+ProductSchema.index({ storeId: 1, isActive: 1, isFeatured: 1, createdAt: -1 });
 ProductSchema.index({ storeId: 1, isOnSale: 1 });
 ProductSchema.index({ categoryIds: 1, isActive: 1 });
 ProductSchema.index({ storeId: 1, categoryIds: 1, isActive: 1 });
+// Covers category listing with newest sort (most common query shape)
+ProductSchema.index({ storeId: 1, categoryIds: 1, isActive: 1, createdAt: -1, _id: -1 });
+// Covers recommendation queries sorted by popularity within categories
+ProductSchema.index({ storeId: 1, isActive: 1, categoryIds: 1, salesCount: -1, averageRating: -1 });
 ProductSchema.index({ 'attributes.attributeId': 1 });
 ProductSchema.index({ brand: 1 });
 ProductSchema.index({ price: 1 });

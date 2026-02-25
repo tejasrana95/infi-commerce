@@ -226,88 +226,96 @@ export const getRecommendations = asyncHandler(async (req: AuthRequest, res: Res
         baseQuery.categoryIds = { $nin: Array.from(excludeCategoryIds).map(id => new mongoose.Types.ObjectId(id)) };
     }
 
+    // Recommendation-specific field projection: exclude heavy fields not needed for cards
+    const recommendationSelect = '-description -shortDescription -specifications -geoLimit -digitalProduct -googleMerchant -returnSettings -dimensions -seo -channels -__v -costPrice -variants.costPrice';
+
+    // Precompute exclusion ObjectIds once to avoid repeated conversions
+    const excludeProductObjectIds = Array.from(excludeProductIds).map(id => new mongoose.Types.ObjectId(id));
+
     let products: any[] = [];
     let isPersonalized = false;
 
-    // Strategy 1: Products matching search keywords (highest priority)
-    if (searchKeywords.size > 0 && products.length < limitNum) {
-        const searchRegexes = Array.from(searchKeywords).map(kw => new RegExp(escapeRegExp(kw), 'i'));
-        const searchQuery = {
+    // Strategy 1 & 2: Run search-keyword and viewed-category queries in parallel
+    // Each requests limitNum results; we deduplicate and trim afterwards.
+    const hasSearchStrategy = searchKeywords.size > 0;
+    const hasCategoryStrategy = viewedCategoryIds.size > 0;
+
+    if (hasSearchStrategy || hasCategoryStrategy) {
+        const searchRegexes = hasSearchStrategy
+            ? Array.from(searchKeywords).map(kw => new RegExp(escapeRegExp(kw), 'i'))
+            : [];
+
+        const searchQueryFilter = hasSearchStrategy ? {
             ...baseQuery,
-            _id: {
-                $nin: [
-                    ...products.map(p => p._id),
-                    ...Array.from(excludeProductIds).map(id => new mongoose.Types.ObjectId(id))
-                ]
-            },
+            _id: { $nin: excludeProductObjectIds },
             $or: [
                 { name: { $in: searchRegexes } },
-                { description: { $in: searchRegexes } },
                 { tags: { $in: Array.from(searchKeywords) } },
                 { sku: { $in: searchRegexes } },
             ],
-        };
+        } : null;
 
-        const searchProducts = await Product.find(searchQuery)
-            .sort({ salesCount: -1, averageRating: -1 })
-            .limit(limitNum - products.length)
-            .populate('storeId', 'name slug domain')
-            .populate('categoryIds', 'title slug')
-            .populate('attributes.attributeId', 'name slug type values')
-            .populate('productOptions.optionId', 'name slug type values')
-            .populate('taxClassId', 'name rate isSplit subTaxes')
-            .populate('brand', 'name slug logo')
-            .lean();
-
-        if (searchProducts.length > 0) {
-            products = [...products, ...searchProducts];
-            isPersonalized = true;
-        }
-    }
-
-    // Strategy 2: Products from viewed categories
-    if (viewedCategoryIds.size > 0 && products.length < limitNum) {
-        const categoryQuery = {
+        const categoryQueryFilter = hasCategoryStrategy ? {
             ...baseQuery,
-            _id: {
-                $nin: [
-                    ...products.map(p => p._id),
-                    ...Array.from(excludeProductIds).map(id => new mongoose.Types.ObjectId(id))
-                ]
-            },
+            _id: { $nin: excludeProductObjectIds },
             categoryIds: {
                 $in: Array.from(viewedCategoryIds).map(id => new mongoose.Types.ObjectId(id)),
             },
-        };
+        } : null;
 
-        const categoryProducts = await Product.find(categoryQuery)
-            .sort({ salesCount: -1, averageRating: -1 })
-            .limit(limitNum - products.length)
-            .populate('storeId', 'name slug domain')
-            .populate('categoryIds', 'title slug')
-            .populate('attributes.attributeId', 'name slug type values')
-            .populate('productOptions.optionId', 'name slug type values')
-            .populate('taxClassId', 'name rate isSplit subTaxes')
-            .populate('brand', 'name slug logo')
-            .lean();
+        const [searchProducts, categoryProducts] = await Promise.all([
+            searchQueryFilter
+                ? Product.find(searchQueryFilter)
+                    .select(recommendationSelect)
+                    .sort({ salesCount: -1, averageRating: -1 })
+                    .limit(limitNum)
+                    .populate('categoryIds', 'title slug')
+                    .populate('taxClassId', 'name rate isSplit subTaxes')
+                    .populate('brand', 'name slug logo')
+                    .lean()
+                : Promise.resolve([]),
+            categoryQueryFilter
+                ? Product.find(categoryQueryFilter)
+                    .select(recommendationSelect)
+                    .sort({ salesCount: -1, averageRating: -1 })
+                    .limit(limitNum)
+                    .populate('categoryIds', 'title slug')
+                    .populate('taxClassId', 'name rate isSplit subTaxes')
+                    .populate('brand', 'name slug logo')
+                    .lean()
+                : Promise.resolve([]),
+        ]);
 
-        if (categoryProducts.length > 0) {
-            products = [...products, ...categoryProducts];
-            isPersonalized = true;
+        // Deduplicate: search results take priority, then category results
+        const seenIds = new Set<string>();
+        for (const p of searchProducts) {
+            const id = p._id.toString();
+            if (!seenIds.has(id)) {
+                seenIds.add(id);
+                products.push(p);
+            }
         }
+        for (const p of categoryProducts) {
+            if (products.length >= limitNum) break;
+            const id = p._id.toString();
+            if (!seenIds.has(id)) {
+                seenIds.add(id);
+                products.push(p);
+            }
+        }
+
+        products = products.slice(0, limitNum);
+        isPersonalized = products.length > 0;
     }
 
-    // Keep reference for exclusion in fallback
-    const productQuery = baseQuery;
-
-    // Fallback if no personalized results
+    // Fallback if no personalized results or still under limit
     if (products.length < limitNum) {
         const remainingLimit = limitNum - products.length;
         const existingIds = products.map(p => p._id);
 
         const fallbackQuery: any = {
-            ...productQuery,
-            _id: { $nin: [...existingIds, ...Array.from(excludeProductIds).map(id => new mongoose.Types.ObjectId(id))] },
+            ...baseQuery,
+            _id: { $nin: [...existingIds, ...excludeProductObjectIds] },
         };
 
         let sortOrder: any = { createdAt: -1 };
@@ -329,12 +337,10 @@ export const getRecommendations = asyncHandler(async (req: AuthRequest, res: Res
         }
 
         const fallbackProducts = await Product.find(fallbackQuery)
+            .select(recommendationSelect)
             .sort(sortOrder)
             .limit(remainingLimit)
-            .populate('storeId', 'name slug domain')
             .populate('categoryIds', 'title slug')
-            .populate('attributes.attributeId', 'name slug type values')
-            .populate('productOptions.optionId', 'name slug type values')
             .populate('taxClassId', 'name rate isSplit subTaxes')
             .populate('brand', 'name slug logo')
             .lean();

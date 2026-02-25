@@ -3,7 +3,6 @@
 
 import { HeaderConfig, Store, HeaderSectionPosition, HeaderElement } from '@/types';
 import { Menu } from '@/types/menu';
-import { getComponent } from '@/components/templates/registry';
 import ClientHeaderWrapper from './ClientWrapper';
 import { fetchMenuById } from '@/lib/api/server-menu';
 import {
@@ -215,13 +214,13 @@ export default async function HeaderContainer({
     // Process all the data from config
     const templateProps = await processHeaderConfig(config, store);
 
-    // Get the template-specific presenter component
-    const HeaderTemplate = getComponent('HeaderTemplate', templateId);
-
-    // Wrap with client component to inject cart count from context
+    // Pass templateId (a plain string) to the client wrapper.
+    // The client wrapper resolves the template component itself, avoiding
+    // the "Functions cannot be passed to Client Components" error that occurs
+    // when next/dynamic components cross the Server→Client boundary as props.
     return (
         <ClientHeaderWrapper
-            TemplateComponent={HeaderTemplate}
+            templateId={templateId}
             templateProps={templateProps}
         />
     );

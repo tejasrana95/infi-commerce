@@ -4,6 +4,7 @@ import { body, param } from 'express-validator';
 import Product from '../models/Product';
 import Store from '../models/Store';
 import Category from '../models/Category';
+import Brand from '../models/Brand';
 import Sale from '../models/Sale';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
@@ -12,6 +13,7 @@ import { addTimezoneAwareDates } from '../utils/date.utils';
 import { escapeRegExp, getSearchSuggestions } from '../utils/search.utils';
 import { updateProductSyncTimestamp } from '../utils/sync-timestamp.utils';
 import SlugRegistry from '../models/SlugRegistry';
+
 
 // ============================================
 // Price visibility helpers for WEB channel
@@ -545,14 +547,13 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
 
             if (includeSubcategories && validCategoryIds.length === 1) {
                 // Get the category and all its subcategories via path matching
-                const Category = require('../models/Category').default;
-                const category = await Category.findById(validCategoryIds[0]);
+                const category = await Category.findById(validCategoryIds[0]).select('path storeId').lean();
 
                 if (category && category.path) {
                     const subcategories = await Category.find({
                         storeId: category.storeId,
                         path: { $regex: new RegExp(`^${category.path}`) },
-                    }).select('_id');
+                    }).select('_id').lean();
 
                     const allCategoryIds = subcategories.map((c: any) => c._id.toString());
                     filter.categoryIds = { $in: allCategoryIds };
@@ -615,16 +616,12 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         }
         // Condition 2: Match by name/slug (requiring lookup)
         if (brandNames.length > 0) {
-            const Brand = require('../models/Brand').default;
-            // We need to await this, but we are in an async function so it's fine.
-            // Ideally we shouldn't do queries inside the filter builder if possible, but it's necessary here.
-            // To prevent slowing down too much, we'll do it.
             const foundBrands = await Brand.find({
                 $or: [
                     { name: { $in: brandNames.map(b => new RegExp(`^${escapeRegExp(b)}$`, 'i')) } },
                     { slug: { $in: brandNames.map(b => new RegExp(`^${escapeRegExp(b)}$`, 'i')) } }
                 ]
-            }).select('_id');
+            }).select('_id name slug').lean();
 
             if (foundBrands.length > 0) {
                 brandConditions.push({ brand: { $in: foundBrands.map((b: any) => b._id) } });
@@ -871,9 +868,15 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
     // between pages, causing some to be skipped or duplicated.
     sort._id = -1;
 
+    // Build field projection – listing view excludes heavy fields to reduce transfer size
+    const listingProjection = isListingView
+        ? '-__v -description -shortDescription -specifications -geoLimit -digitalProduct -googleMerchant -returnSettings -dimensions'
+        : `-__v`;
+    const selectFields = `${listingProjection} ${removeProductCost}`.trim();
+
     // Get products with pagination
     const productQuery = Product.find(filter)
-        .select(`-__v ${removeProductCost}`)
+        .select(selectFields)
         .skip(skip)
         .limit(limit)
         .sort(sort);
@@ -899,39 +902,51 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         limit >= idsFilterCount &&
         !req.query.search;
 
-    const [products, total] = await Promise.all([
-        productQuery.lean(),
-        canSkipCountForIds ? Promise.resolve(0) : Product.countDocuments(filter),
-    ]);
-    const totalCount = canSkipCountForIds ? products.length : total;
+    // When page=1 with a small limit (widget-style queries), fetch one extra
+    // to detect whether more results exist, eliminating the countDocuments call.
+    const useHasMoreStrategy =
+        !canSkipCountForIds &&
+        page === 1 &&
+        limit <= 24 &&
+        !req.query.search &&
+        !req.query.page; // Only skip count when page param is absent (widget queries)
 
-    // Determine timezone for the response
-    let storeTimezone = 'UTC';
-    if (effectiveStoreId) {
-        const store = await Store.findById(effectiveStoreId).select('timezone').lean();
-        if (store && store.timezone) {
-            storeTimezone = store.timezone;
-        }
-    } else if (isStoreAdmin && assignedStoreIds.length > 0) {
-        // For store admins, use their first assigned store's timezone as a reasonable default
-        const store = await Store.findById(assignedStoreIds[0]).select('timezone').lean();
-        if (store && store.timezone) {
-            storeTimezone = store.timezone;
-        }
+    if (useHasMoreStrategy) {
+        productQuery.limit(limit + 1);
     }
 
-    // Did you mean logic? - Only if 0 results and search query was provided
+    const [rawProducts, total] = await Promise.all([
+        productQuery.lean(),
+        canSkipCountForIds || useHasMoreStrategy ? Promise.resolve(0) : Product.countDocuments(filter),
+    ]);
+
+    let products: any[];
+    let totalCount: number;
+    if (canSkipCountForIds) {
+        products = rawProducts;
+        totalCount = products.length;
+    } else if (useHasMoreStrategy) {
+        const hasMore = rawProducts.length > limit;
+        products = hasMore ? rawProducts.slice(0, limit) : rawProducts;
+        // If all results fit within limit, total is exact; otherwise signal more exist
+        totalCount = hasMore ? skip + limit + 1 : skip + products.length;
+    } else {
+        products = rawProducts;
+        totalCount = total;
+    }
+
+    // Add computed pricing fields to each product (sale price, tax, variants)
+    // Note: isOnSale / salePrice are pre-calculated during product save — no timezone needed here.
+    const productsWithPricing = products.map((product: any) => {
+        const productWithOptions = transformProductOptions(product);
+        return addPricingToProduct(productWithOptions);
+    });
+
+    // Did you mean logic? — Only triggered when 0 results + search query (not on hot path)
     let didYouMean: string | null = null;
     if (totalCount === 0 && req.query.search && effectiveStoreId) {
         didYouMean = await getSearchSuggestions(effectiveStoreId, req.query.search as string);
     }
-
-    // Add computed pricing fields to each product (including variants) and localized dates
-    const productsWithPricing = products.map((product: any) => {
-        const productWithOptions = transformProductOptions(product);
-        const productWithPricing = addPricingToProduct(productWithOptions);
-        return addTimezoneAwareDates(productWithPricing, storeTimezone);
-    });
 
     // Re-sort by search relevance: strict (full phrase) matches first, then broad (word) matches
     if (req.query.search && !textSearchMode) {
@@ -972,7 +987,7 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
                 { slug: { $in: brandNames.map(b => new RegExp(`^${escapeRegExp(b)}$`, 'i')) } },
                 { name: { $in: brandNames.map(b => new RegExp(`^${escapeRegExp(b)}$`, 'i')) } }
             ]
-        }).select('_id name slug');
+        }).select('_id name slug').lean();
 
         // If we found brands, return them as objects. If not (unlikely if results were found), fallback to string 
         if (foundBrands.length > 0) {

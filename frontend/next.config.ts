@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   reactCompiler: true,
   experimental: {
-    optimizePackageImports: ['lucide-react', 'react-icons', 'framer-motion'],
+    optimizePackageImports: ['lucide-react', 'react-icons', 'framer-motion', 'swiper', 'react-fast-marquee', 'swr', '@stripe/stripe-js', '@stripe/react-stripe-js'],
   },
   // Enable compression for smaller transfer sizes and faster TTFB.
   compress: true,
@@ -58,34 +58,40 @@ const nextConfig: NextConfig = {
         ...config.optimization,
         splitChunks: {
           chunks: 'all',
-          maxSize: 500000,
-          minSize: 20000,
+          maxSize: 250000, // 250KB max per chunk for better parallelism
+          minSize: 30000,  // 30KB min to avoid micro-chunks
           cacheGroups: {
             default: false,
             vendors: false,
             framework: {
               name: 'framework',
               test: /[\\/]node_modules[\\/](react|react-dom|next)[\\/]/,
-              priority: 40,
+              priority: 50,
               enforce: true,
             },
-            // Group icons to reduce complexity during build
+            // Group icon libraries into a single chunk
             icons: {
               name: 'vendor-icons',
               test: /[\\/]node_modules[\\/](react-icons|lucide-react)[\\/]/,
-              priority: 30,
+              priority: 40,
             },
+            // Stripe — only loaded on checkout page
+            stripe: {
+              name: 'vendor-stripe',
+              test: /[\\/]node_modules[\\/]@stripe[\\/]/,
+              priority: 35,
+              enforce: true,
+            },
+            // Shared application code
             commons: {
               name: 'commons',
               minChunks: 2,
               priority: 20,
             },
-            lib: {
+            // All other vendor code in a single group
+            vendorMisc: {
               test: /[\\/]node_modules[\\/]/,
-              name(module: any) {
-                const packageName = module.context.match(/[\\/]node_modules[\\/](.*?)([\\/]|$)/)?.[1];
-                return `npm.${packageName?.replace('@', '').replace('/', '.')}`;
-              },
+              name: 'vendor-misc',
               priority: 10,
               minChunks: 2,
             },

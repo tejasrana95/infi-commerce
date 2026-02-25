@@ -24,14 +24,20 @@ import { InterestProvider } from "@/providers/InterestProvider";
 import AutoAnalytics from "@/components/analytics/AutoAnalytics";
 import NavigationProgress from '@/components/ui/NavigationProgress';
 import ClientOnlyWidgets from "@/components/core/ClientOnlyWidgets";
-import CookieConsentWrapper from "@/components/core/CookieBanner/CookieConsentWrapper";
+import dynamic from 'next/dynamic';
 import { formatFontFamily } from "@/lib/fonts";
-import OfflineIndicator from "@/components/pwa/OfflineIndicator";
-import InstallPrompt from "@/components/pwa/InstallPrompt";
-import PWARegistration from "@/components/pwa/PWARegistration";
 import { DynamicHeader } from "@/components/layout/DynamicHeader";
 import { DynamicFooter } from "@/components/layout/DynamicFooter";
 import { fetchMenusByIds } from "@/lib/api/server-menu";
+import FontLoader from "@/components/core/FontLoader";
+
+// Lazy-load components not needed for initial render / above-the-fold
+// Note: ssr: false is not used here because layout.tsx is a Server Component.
+// Code-splitting still happens via dynamic() — the components load as separate chunks.
+const CookieConsentWrapper = dynamic(() => import("@/components/core/CookieBanner/CookieConsentWrapper"));
+const OfflineIndicator = dynamic(() => import("@/components/pwa/OfflineIndicator"));
+const InstallPrompt = dynamic(() => import("@/components/pwa/InstallPrompt"));
+const PWARegistration = dynamic(() => import("@/components/pwa/PWARegistration"));
 
 
 // Optimized font loading with display: swap to prevent FOIT
@@ -240,7 +246,8 @@ export default async function RootLayout({
             <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
             <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
             <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
-            <link href={googleFontsUrl} rel="stylesheet" />
+            {/* Non-blocking font loading: preload + onload swap via client component */}
+            <FontLoader href={googleFontsUrl} />
           </>
         )}
         {/* Infi Commerce Identification for Tools (BuiltWith, etc.) */}

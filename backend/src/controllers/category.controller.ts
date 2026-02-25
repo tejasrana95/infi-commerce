@@ -361,14 +361,24 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
         limit >= idsFilterCount &&
         !req.query.search;
 
+    // Build optimised query – public users don't need storeId populated
+    // (sanitizePublicCategory strips it) so skip that overhead.
+    const categoryQuery = Category.find(filter)
+        .populate('parentCategory', 'title slug')
+        .skip(skip)
+        .limit(limit)
+        .sort({ sortOrder: 1, title: 1 })
+        .lean();
+
+    if (isPrivileged) {
+        categoryQuery.populate('storeId', 'name slug');
+    } else {
+        // Fetch only the fields needed by sanitizePublicCategory + sorting
+        categoryQuery.select('title slug description image parentCategory seo createdAt updatedAt sortOrder');
+    }
+
     const [categories, total] = await Promise.all([
-        Category.find(filter)
-            .populate('storeId', 'name slug')
-            .populate('parentCategory', 'title slug')
-            .skip(skip)
-            .limit(limit)
-            .sort({ sortOrder: 1, title: 1 })
-            .lean(),
+        categoryQuery,
         canSkipCountForIds ? Promise.resolve(0) : Category.countDocuments(filter),
     ]);
     const totalCount = canSkipCountForIds ? categories.length : total;

@@ -1089,7 +1089,11 @@ export const getHistory = asyncHandler(async (req: AuthRequest, res: Response) =
 
     const chatHistory = await ChatHistory.findOne(
         userId ? { storeId, userId } : { storeId, sessionId }
-    ).lean();
+    )
+        // Exclude internal orchestration fields — tool_calls can be large JSON arrays
+        // that are never sent to the client. This reduces deserialization overhead.
+        .select('-messages.tool_calls -messages.tool_call_id')
+        .lean();
 
     if (!chatHistory) {
         return res.json({
@@ -1098,10 +1102,10 @@ export const getHistory = asyncHandler(async (req: AuthRequest, res: Response) =
         });
     }
 
-    // Filter out tool messages and assistant messages with tool calls (internal steps)
+    // Filter out tool messages and assistant messages with no visible content
     const messages = chatHistory.messages.filter((m: any) =>
         m.role !== 'tool' &&
-        !(m.role === 'assistant' && (m.tool_calls?.length > 0 || !m.content))
+        !(m.role === 'assistant' && !m.content)
     );
 
     return res.json({

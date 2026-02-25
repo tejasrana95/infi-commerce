@@ -168,6 +168,10 @@ CategorySchema.index({ storeId: 1, slug: 1 }, { unique: true });
 CategorySchema.index({ storeId: 1, parentCategory: 1 });
 CategorySchema.index({ storeId: 1, status: 1 });
 CategorySchema.index({ storeId: 1, level: 1 });
+// Supports subcategory path-prefix regex: Category.find({ storeId, path: { $regex: '^...' } })
+CategorySchema.index({ storeId: 1, path: 1 });
+// Covers batch ?ids= lookup with status filter and sortOrder+title sort
+CategorySchema.index({ storeId: 1, status: 1, sortOrder: 1, _id: 1 });
 
 
 // Pre-save middleware to update level, path, and canonical URL
