@@ -117,6 +117,12 @@ self.addEventListener('fetch', (event) => {
                             });
                         }
                         return response;
+                    }).catch(() => {
+                        // Return offline response or generic error for static assets
+                        return new Response('Network error occurred', {
+                            status: 408,
+                            statusText: 'Network error occurred',
+                        });
                     });
                 })
         );

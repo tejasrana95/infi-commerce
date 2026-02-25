@@ -140,9 +140,19 @@ async function staleWhileRevalidate(request, cacheName) {
             cache.put(request, response.clone());
         }
         return response;
-    }).catch(() => null);
+    }).catch(() => {
+        // Return null for the background fetch promise if it fails
+        return null;
+    });
 
-    return cached || fetchPromise;
+    // Return cached response immediately if it exists, otherwise wait for network
+    if (cached) {
+        return cached;
+    }
+
+    // If not in cache, wait for network or return offline response
+    const response = await fetchPromise;
+    return response || new Response('Offline', { status: 503 });
 }
 
 // Network First with Offline Fallback

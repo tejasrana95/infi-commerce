@@ -705,7 +705,6 @@ export default function ModernCleanProductPageTemplate({
         if (!config.specifications?.show || !product.specifications || product.specifications.length === 0) {
             return null;
         }
-        console.log(product);
         return (
             <div className={styles.specificationsSection}>
                 <table className={styles.specTable}>
