@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   reactStrictMode: true,
   reactCompiler: true,
+  // Tell Next.js to never bundle these packages — they use Node.js built-ins
+  // (net, tls, dns) and must be required at runtime by the Node.js server only.
+  serverExternalPackages: ['ioredis', 'memjs'],
   experimental: {
     optimizePackageImports: ['lucide-react', 'react-icons', 'framer-motion', 'swiper', 'react-fast-marquee', 'swr', '@stripe/stripe-js', '@stripe/react-stripe-js'],
   },
@@ -49,6 +52,9 @@ const nextConfig: NextConfig = {
         fs: false,
         path: false,
         crypto: false,
+        net: false,
+        tls: false,
+        dns: false,
       };
     }
 

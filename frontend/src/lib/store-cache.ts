@@ -1,11 +1,35 @@
 /**
  * Store Cache Service
- * Implements: Memory → File → API fallback with freshness validation
+ * Cache chain: Memcached/Redis (L1, shared) → Memory (L2, per-instance) → File (L3) → API
  */
 
 import { Store } from '@/types';
 
-const MEMORY_CACHE_TTL = 3600; // 1 hour
+// ── Server-cache helpers ──────────────────────────────────────────────────────
+// We use dynamic imports with webpackIgnore so webpack never statically traces
+// into ioredis/memjs, which are Node.js-only packages. Without this, the browser
+// bundle breaks because store-cache.ts is indirectly imported by client components
+// (via api.ts → StoreProvider → layout).
+
+async function scGet<T>(key: string): Promise<T | null> {
+    if (typeof window !== 'undefined') return null; // browser guard
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { serverCacheGet } = await import(/* webpackIgnore: true */ '@/lib/server-cache');
+        return serverCacheGet<T>(key);
+    } catch { return null; }
+}
+async function scSet(key: string, value: unknown, ttl: number): Promise<void> {
+    if (typeof window !== 'undefined') return;
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { serverCacheSet } = await import(/* webpackIgnore: true */ '@/lib/server-cache');
+        await serverCacheSet(key, value, ttl);
+    } catch { /* ignore */ }
+}
+
+const MEMORY_CACHE_TTL_MS = 3600 * 1000; // 1 hour (in-process memory)
+const SHARED_CACHE_TTL_S = 3600;        // 1 hour (Memcached / Redis)
 
 interface CachedStoreConfig {
     storeId: string;
@@ -18,7 +42,7 @@ interface MemoryCacheEntry {
     timestamp: number;
 }
 
-// In-memory cache (per instance)
+// In-memory cache (per Next.js worker instance)
 const memoryCache = new Map<string, MemoryCacheEntry>();
 
 // File cache (loaded once per cold start)
@@ -33,7 +57,6 @@ async function loadFileCache(): Promise<Record<string, CachedStoreConfig> | null
     if (fileCacheLoaded) return fileCache;
 
     try {
-        // Dynamically import Node.js modules only on server
         if (typeof window === 'undefined') {
             const fsModule = await import('fs');
             const pathModule = await import('path');
@@ -57,34 +80,26 @@ async function loadFileCache(): Promise<Record<string, CachedStoreConfig> | null
 function getFromMemory(domain: string): Store | null {
     const entry = memoryCache.get(domain);
     if (!entry) return null;
-
-    // Check TTL
-    if (Date.now() - entry.timestamp > MEMORY_CACHE_TTL) {
+    if (Date.now() - entry.timestamp > MEMORY_CACHE_TTL_MS) {
         memoryCache.delete(domain);
         return null;
     }
-
     return entry.data;
 }
 
 function setInMemory(domain: string, store: Store): void {
-    memoryCache.set(domain, {
-        data: store,
-        timestamp: Date.now(),
-    });
+    memoryCache.set(domain, { data: store, timestamp: Date.now() });
 }
 
 function isConfigFresh(config: CachedStoreConfig): boolean {
     const generatedAt = new Date(config.generatedAt).getTime();
     const updatedAt = new Date(config.storeData.updatedAt || 0).getTime();
-
-    // Config is fresh if it was generated after the last store update
     return generatedAt >= updatedAt;
 }
 
 export interface StoreResolveResult {
     store: Store | null;
-    source: 'memory' | 'file' | 'api';
+    source: 'shared-cache' | 'memory' | 'file' | 'api';
     fresh: boolean;
 }
 
@@ -92,23 +107,30 @@ export async function resolveStoreByDomain(
     domain: string,
     apiFetcher: (domain: string) => Promise<Store | null>
 ): Promise<StoreResolveResult> {
-    // Layer 1: Memory cache
+
+    // Layer 0: Shared cache (Memcached → Redis) — fastest across workers
+    const sharedKey = `store:domain:${domain}`;
+    const sharedStore = await scGet<Store>(sharedKey);
+    if (sharedStore) {
+        setInMemory(domain, sharedStore);
+        return { store: sharedStore, source: 'shared-cache', fresh: true };
+    }
+
+    // Layer 1: In-process memory
     const memoryStore = getFromMemory(domain);
     if (memoryStore) {
         return { store: memoryStore, source: 'memory', fresh: true };
     }
+
     // Layer 2: File cache
     const cache = await loadFileCache();
     if (cache && cache[domain]) {
-        const config = cache[domain];
-
-        if (isConfigFresh(config)) {
-            // Cache is fresh, use it
-            setInMemory(domain, config.storeData);
-            return { store: config.storeData, source: 'file', fresh: true };
+        const cfg = cache[domain];
+        if (isConfigFresh(cfg)) {
+            setInMemory(domain, cfg.storeData);
+            await scSet(sharedKey, cfg.storeData, SHARED_CACHE_TTL_S);
+            return { store: cfg.storeData, source: 'file', fresh: true };
         }
-
-        // Cache is stale, fetch from API
         console.log(`Store config stale for ${domain}, fetching fresh...`);
     }
 
@@ -116,6 +138,7 @@ export async function resolveStoreByDomain(
     const apiStore = await apiFetcher(domain);
     if (apiStore) {
         setInMemory(domain, apiStore);
+        await scSet(sharedKey, apiStore, SHARED_CACHE_TTL_S);
     }
     return { store: apiStore, source: 'api', fresh: true };
 }
@@ -125,8 +148,8 @@ export function clearMemoryCache(): void {
 }
 
 /**
- * Returns a normalized map of domain -> storeId
- * Handles both classic {"domain": "id"} and grouped {"id": ["domain1", "domain2"]} formats
+ * Returns a normalized map of domain → storeId.
+ * Handles both classic {"domain": "id"} and grouped {"id": ["domain1", "domain2"]} formats.
  */
 export function getStoreDomainMap(): Record<string, string> | null {
     const envMap = process.env.STORE_DOMAIN_MAP;
@@ -138,14 +161,10 @@ export function getStoreDomainMap(): Record<string, string> | null {
 
         for (const [key, value] of Object.entries(rawMap)) {
             if (Array.isArray(value)) {
-                // Grouped format: "storeId": ["domain1", "domain2"]
                 value.forEach(domain => {
-                    if (typeof domain === 'string') {
-                        normalizedMap[domain] = key;
-                    }
+                    if (typeof domain === 'string') normalizedMap[domain] = key;
                 });
             } else if (typeof value === 'string') {
-                // Classic format: "domain": "storeId"
                 normalizedMap[key] = value;
             }
         }

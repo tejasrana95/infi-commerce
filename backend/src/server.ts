@@ -14,6 +14,7 @@ import { channelMiddleware } from './middleware/channel.middleware';
 import { optionalApiKeyAuth } from './middleware/apiKeyAuth';
 import { globalApiLimiter } from './middleware/rateLimit';
 import { socketService } from './services/socket.service';
+import cacheService from './services/cache.service';
 
 const app: Express = express();
 const httpServer = createServer(app);
@@ -47,10 +48,23 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Health check endpoint
 app.get('/health', (_req: Request, res: Response) => {
+    const cacheStats = cacheService.getStats();
     res.status(200).json({
         status: 'ok',
         timestamp: new Date().toISOString(),
         environment: config.env,
+        cache: {
+            backend: cacheStats.backend,
+            memcached: {
+                enabled: cacheStats.memcached.enabled,
+                connected: cacheStats.memcached.connected,
+            },
+            redis: {
+                enabled: cacheStats.redis.enabled,
+                connected: cacheStats.redis.connected,
+            },
+            memoryFallbackSize: cacheStats.memory.size,
+        },
     });
 });
 

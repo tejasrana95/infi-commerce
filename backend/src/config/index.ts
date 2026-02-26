@@ -69,6 +69,15 @@ export const config = {
         keyPrefix: process.env.REDIS_KEY_PREFIX || 'infi:',
     },
 
+    memcached: {
+        enabled: process.env.MEMCACHED_ENABLED === 'true',
+        // Comma-separated list of server:port pairs for cluster support
+        servers: process.env.MEMCACHED_SERVERS || '127.0.0.1:11211',
+        keyPrefix: process.env.MEMCACHED_KEY_PREFIX || 'infi:',
+        // Default item lifetime in seconds
+        lifetime: parseInt(process.env.MEMCACHED_LIFETIME || '300', 10),
+    },
+
     categoryCache: {
         enabled: process.env.CATEGORY_API_CACHE_ENABLED !== 'false',
         ttlDays: Math.min(Math.max(parseInt(process.env.CATEGORY_API_CACHE_TTL_DAYS || '7', 10) || 7, 1), 365),

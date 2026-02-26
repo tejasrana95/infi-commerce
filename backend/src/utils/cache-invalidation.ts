@@ -243,10 +243,10 @@ export const flushAllCache = async (): Promise<void> => {
  * Get cache statistics
  */
 export const getCacheStats = (): {
-    enabled: boolean;
-    connected: boolean;
-    memoryFallbackSize: number;
-    backend: 'redis' | 'memory';
+    memcached: { enabled: boolean; connected: boolean };
+    redis: { enabled: boolean; connected: boolean };
+    memory: { size: number };
+    backend: 'memcached' | 'redis' | 'memory';
 } => {
     return redisService.getStats();
 };

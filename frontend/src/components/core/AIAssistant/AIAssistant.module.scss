@@ -227,6 +227,20 @@
     }
 }
 
+.thinkingLabel {
+    font-size: 0.7rem;
+    color: #999;
+    margin-top: 4px;
+    margin-left: 4px;
+    letter-spacing: 0.02em;
+    animation: fadeInOut 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes fadeInOut {
+    from { opacity: 0.4; }
+    to   { opacity: 1;   }
+}
+
 .inputArea {
     padding: 1rem;
     background: white;

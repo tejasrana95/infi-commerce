@@ -1216,11 +1216,19 @@ User Interests context:
         timestamp: new Date()
     });
 
-    // Set up SSE headers for streaming
+    // Set up SSE headers for streaming — do this immediately so nginx/proxies don't buffer
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no');
+    // Flush headers right away so the client connection is established before any DB/AI work
+    if ((res as any).flush) (res as any).flush();
+
+    /** Small helper: write an SSE event and flush immediately */
+    const send = (payload: object) => {
+        res.write(`data: ${JSON.stringify(payload)}\n\n`);
+        if ((res as any).flush) (res as any).flush();
+    };
 
     try {
         // Build messages for OpenAI
@@ -1230,11 +1238,13 @@ User Interests context:
         ];
         let sentFinalResponse = false;
 
-        // Tool call loop - iterate until we get a final response or hit max iterations
+        // ── Tool call loop ────────────────────────────────────────────────────
+        // We use non-streaming here because we need the full message to know
+        // which tools to call and what arguments to pass. Streaming doesn't help
+        // when we have to wait for tool_calls to be complete before executing them.
         for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration++) {
             let response;
             try {
-                // Make non-streaming call to detect tool calls
                 response = await openai.chat.completions.create({
                     model: activeModel,
                     messages: currentMessages,
@@ -1242,7 +1252,8 @@ User Interests context:
                     tool_choice: tools.length > 0 ? 'auto' : undefined,
                     ...(reasoningModel
                         ? { max_completion_tokens: MAX_CHAT_RESPONSE_TOKENS }
-                        : { max_tokens: MAX_CHAT_RESPONSE_TOKENS, temperature: 0.5 })
+                        : { max_tokens: MAX_CHAT_RESPONSE_TOKENS, temperature: 0.5 }),
+                    stream: false, // Must be false to reliably detect tool_calls
                 });
             } catch (apiError: any) {
                 if (!didFallbackToDefaultModel && activeModel !== DEFAULT_CHAT_MODEL && isModelUnavailableError(apiError)) {
@@ -1252,7 +1263,7 @@ User Interests context:
                     continue;
                 }
                 console.error('OpenAI API call failed:', apiError.message);
-                res.write(`data: ${JSON.stringify({ type: 'error', message: apiError.message })}\n\n`);
+                send({ type: 'error', message: apiError.message });
                 res.end();
                 return;
             }
@@ -1260,21 +1271,23 @@ User Interests context:
             const choice = response.choices[0];
             const assistantMessage = choice.message;
 
-            // Check if we need to execute tool calls
+            // ── Tool calls detected ───────────────────────────────────────────
             if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
-                // Execute all tool calls in parallel
+                // Signal the client that we are fetching data (instant UX feedback)
+                send({ type: 'thinking' });
+
+                // Execute all tool calls in parallel for minimal latency
                 const toolResults = await Promise.all(
                     assistantMessage.tool_calls.map(tc => executeToolCall(tc, context))
                 );
 
-                // Add assistant message with tool_calls to conversation
+                // Append assistant tool-call message
                 currentMessages.push({
                     role: 'assistant',
                     content: null,
                     tool_calls: assistantMessage.tool_calls
                 } as any);
 
-                // Save to history
                 chatHistory.messages.push({
                     role: 'assistant',
                     content: '',
@@ -1282,7 +1295,7 @@ User Interests context:
                     tool_calls: assistantMessage.tool_calls
                 });
 
-                // Add tool results to conversation
+                // Append tool results
                 for (const result of toolResults) {
                     const toolMessage: OpenAI.Chat.ChatCompletionToolMessageParam = {
                         role: 'tool',
@@ -1291,7 +1304,6 @@ User Interests context:
                     };
                     currentMessages.push(toolMessage);
 
-                    // Save to history
                     chatHistory.messages.push({
                         role: 'tool',
                         tool_call_id: result.id,
@@ -1300,36 +1312,69 @@ User Interests context:
                     });
                 }
 
-                // Continue loop to get next response
+                // Continue to get the AI's next response (may be more tool calls or final text)
                 continue;
             }
 
-            // No tool calls - stream the final response
-            const finalContent = extractAssistantText(assistantMessage).trim()
-                || 'I could not generate a response right now. Please try again.';
+            // ── No tool calls → stream the final response ─────────────────────
+            // Switch to stream: true here. The first token will arrive in ~200ms
+            // (OpenAI TTFT) instead of waiting for the full completion.
+            try {
+                const stream = await openai.chat.completions.create({
+                    model: activeModel,
+                    messages: currentMessages,
+                    ...(reasoningModel
+                        ? { max_completion_tokens: MAX_CHAT_RESPONSE_TOKENS }
+                        : { max_tokens: MAX_CHAT_RESPONSE_TOKENS, temperature: 0.5 }),
+                    stream: true,
+                });
 
-            // Stream content in chunks (without artificial delay) for low-latency UX
-            const chunkSize = 120;
-            for (let i = 0; i < finalContent.length; i += chunkSize) {
-                const chunk = finalContent.substring(i, i + chunkSize);
-                res.write(`data: ${JSON.stringify({ type: 'content', content: chunk })}\n\n`);
-                if ((res as any).flush) (res as any).flush();
+                let fullContent = '';
+
+                for await (const chunk of stream) {
+                    const delta = chunk.choices[0]?.delta?.content;
+                    if (delta) {
+                        fullContent += delta;
+                        send({ type: 'content', content: delta });
+                    }
+                }
+
+                // Fallback if stream produced nothing
+                if (!fullContent) {
+                    fullContent = 'I could not generate a response right now. Please try again.';
+                    send({ type: 'content', content: fullContent });
+                }
+
+                chatHistory.messages.push({
+                    role: 'assistant',
+                    content: fullContent,
+                    timestamp: new Date()
+                });
+
+                sentFinalResponse = true;
+                break;
+
+            } catch (streamError: any) {
+                // If streaming fails for any reason, fall back to the buffered response
+                // we already have from the non-streaming call above
+                console.warn('Streaming failed, using buffered response:', streamError.message);
+                const fallbackContent = extractAssistantText(assistantMessage).trim()
+                    || 'I could not generate a response right now. Please try again.';
+
+                send({ type: 'content', content: fallbackContent });
+
+                chatHistory.messages.push({
+                    role: 'assistant',
+                    content: fallbackContent,
+                    timestamp: new Date()
+                });
+
+                sentFinalResponse = true;
+                break;
             }
-
-            // Save final assistant response to history
-            chatHistory.messages.push({
-                role: 'assistant',
-                content: finalContent,
-                timestamp: new Date()
-            });
-
-            sentFinalResponse = true;
-
-            // Exit the loop
-            break;
         }
 
-        // If tool loop exhausted without a final response, force one final answer with tools disabled
+        // ── Max iterations reached without a final response ───────────────────
         if (!sentFinalResponse) {
             const forcedFinalPrompt = 'Provide a final concise response to the user using the available tool results. Do not call any tools.';
             const forceFinalMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
@@ -1340,24 +1385,30 @@ User Interests context:
             let forcedFinalContent = 'I could not generate a response right now. Please try again.';
 
             try {
-                const forcedResponse = await openai.chat.completions.create({
+                const forcedStream = await openai.chat.completions.create({
                     model: activeModel,
                     messages: forceFinalMessages,
                     ...(reasoningModel
                         ? { max_completion_tokens: MAX_CHAT_RESPONSE_TOKENS }
-                        : { max_tokens: MAX_CHAT_RESPONSE_TOKENS, temperature: 0.5 })
+                        : { max_tokens: MAX_CHAT_RESPONSE_TOKENS, temperature: 0.5 }),
+                    stream: true,
                 });
 
-                forcedFinalContent = extractAssistantText(forcedResponse.choices[0]?.message).trim() || forcedFinalContent;
+                let fullForced = '';
+                for await (const chunk of forcedStream) {
+                    const delta = chunk.choices[0]?.delta?.content;
+                    if (delta) {
+                        fullForced += delta;
+                        send({ type: 'content', content: delta });
+                    }
+                }
+
+                if (fullForced) forcedFinalContent = fullForced;
+                else send({ type: 'content', content: forcedFinalContent });
+
             } catch (forcedError: any) {
                 console.error('Forced final response failed:', forcedError.message);
-            }
-
-            const chunkSize = 120;
-            for (let i = 0; i < forcedFinalContent.length; i += chunkSize) {
-                const chunk = forcedFinalContent.substring(i, i + chunkSize);
-                res.write(`data: ${JSON.stringify({ type: 'content', content: chunk })}\n\n`);
-                if ((res as any).flush) (res as any).flush();
+                send({ type: 'content', content: forcedFinalContent });
             }
 
             chatHistory.messages.push({
@@ -1367,12 +1418,11 @@ User Interests context:
             });
         }
 
-        // Save chat history
-        await chatHistory.save();
+        // Persist history asynchronously — no need to await this before closing the stream
+        chatHistory.save().catch(err => console.error('Failed to save chat history:', err));
 
-        // Send done signal
-        res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
-        if ((res as any).flush) (res as any).flush();
+        // Signal stream end
+        send({ type: 'done' });
         res.end();
 
     } catch (error: any) {

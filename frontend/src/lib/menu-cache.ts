@@ -1,11 +1,29 @@
 /**
  * Menu Cache Service
- * Implements: Memory → File → API fallback with freshness validation
+ * Cache chain: Memcached/Redis (L1, shared) → Memory (L2, per-instance) → File (L3) → API
  */
 
 import { Menu } from '@/types/menu';
 
-const MEMORY_CACHE_TTL = 1440 * 60 * 1000; // 24 hours
+// ── Server-cache helpers ──────────────────────────────────────────────────────
+// Dynamic imports with webpackIgnore keep ioredis/memjs out of the browser bundle.
+async function scGet<T>(key: string): Promise<T | null> {
+    if (typeof window !== 'undefined') return null;
+    try {
+        const { serverCacheGet } = await import(/* webpackIgnore: true */ '@/lib/server-cache');
+        return serverCacheGet<T>(key);
+    } catch { return null; }
+}
+async function scSet(key: string, value: unknown, ttl: number): Promise<void> {
+    if (typeof window !== 'undefined') return;
+    try {
+        const { serverCacheSet } = await import(/* webpackIgnore: true */ '@/lib/server-cache');
+        await serverCacheSet(key, value, ttl);
+    } catch { /* ignore */ }
+}
+
+const MEMORY_CACHE_TTL_MS = 1440 * 60 * 1000; // 24 hours (in-process memory)
+const SHARED_CACHE_TTL_S = 86400;             // 24 hours (Memcached / Redis)
 
 interface CachedMenuConfig {
     menuId: string;
@@ -18,7 +36,7 @@ interface MemoryCacheEntry {
     timestamp: number;
 }
 
-// In-memory cache (per instance)
+// In-memory cache (per Next.js worker instance)
 const memoryCache = new Map<string, MemoryCacheEntry>();
 
 // File cache (loaded once per cold start)
@@ -33,7 +51,6 @@ async function loadFileCache(): Promise<Record<string, CachedMenuConfig> | null>
     if (fileCacheLoaded) return fileCache;
 
     try {
-        // Dynamically import Node.js modules only on server
         if (typeof window === 'undefined') {
             const fsModule = await import('fs');
             const pathModule = await import('path');
@@ -58,34 +75,26 @@ async function loadFileCache(): Promise<Record<string, CachedMenuConfig> | null>
 function getFromMemory(menuId: string): Menu | null {
     const entry = memoryCache.get(menuId);
     if (!entry) return null;
-
-    // Check TTL
-    if (Date.now() - entry.timestamp > MEMORY_CACHE_TTL) {
+    if (Date.now() - entry.timestamp > MEMORY_CACHE_TTL_MS) {
         memoryCache.delete(menuId);
         return null;
     }
-
     return entry.data;
 }
 
 function setInMemory(menuId: string, menu: Menu): void {
-    memoryCache.set(menuId, {
-        data: menu,
-        timestamp: Date.now(),
-    });
+    memoryCache.set(menuId, { data: menu, timestamp: Date.now() });
 }
 
 function isConfigFresh(config: CachedMenuConfig): boolean {
     const generatedAt = new Date(config.generatedAt).getTime();
     const updatedAt = new Date(config.menuData.updatedAt || 0).getTime();
-
-    // Config is fresh if it was generated after the last menu update
     return generatedAt >= updatedAt;
 }
 
 export interface MenuResolveResult {
     menu: Menu | null;
-    source: 'memory' | 'file' | 'api';
+    source: 'shared-cache' | 'memory' | 'file' | 'api';
     fresh: boolean;
 }
 
@@ -93,7 +102,16 @@ export async function resolveMenuById(
     menuId: string,
     apiFetcher: (menuId: string) => Promise<Menu | null>
 ): Promise<MenuResolveResult> {
-    // Layer 1: Memory cache
+
+    // Layer 0: Shared cache (Memcached → Redis) — fastest across workers
+    const sharedKey = `menu:id:${menuId}`;
+    const sharedMenu = await scGet<Menu>(sharedKey);
+    if (sharedMenu) {
+        setInMemory(menuId, sharedMenu);
+        return { menu: sharedMenu, source: 'shared-cache', fresh: true };
+    }
+
+    // Layer 1: In-process memory
     const memoryMenu = getFromMemory(menuId);
     if (memoryMenu) {
         return { menu: memoryMenu, source: 'memory', fresh: true };
@@ -102,15 +120,12 @@ export async function resolveMenuById(
     // Layer 2: File cache
     const cache = await loadFileCache();
     if (cache && cache[menuId]) {
-        const config = cache[menuId];
-
-        if (isConfigFresh(config)) {
-            // Cache is fresh, use it
-            setInMemory(menuId, config.menuData);
-            return { menu: config.menuData, source: 'file', fresh: true };
+        const cfg = cache[menuId];
+        if (isConfigFresh(cfg)) {
+            setInMemory(menuId, cfg.menuData);
+            await scSet(sharedKey, cfg.menuData, SHARED_CACHE_TTL_S);
+            return { menu: cfg.menuData, source: 'file', fresh: true };
         }
-
-        // Cache is stale, fetch from API
         console.log(`Menu config stale for ${menuId}, fetching fresh...`);
     }
 
@@ -118,6 +133,7 @@ export async function resolveMenuById(
     const apiMenu = await apiFetcher(menuId);
     if (apiMenu) {
         setInMemory(menuId, apiMenu);
+        await scSet(sharedKey, apiMenu, SHARED_CACHE_TTL_S);
     }
     return { menu: apiMenu, source: 'api', fresh: true };
 }

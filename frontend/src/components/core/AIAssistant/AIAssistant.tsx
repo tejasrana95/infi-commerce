@@ -138,6 +138,7 @@ export default function AIAssistant() {
     const [message, setMessage] = useState('');
     const [history, setHistory] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [isThinking, setIsThinking] = useState(false); // true while tool calls execute
     const [isLoadingHistory, setIsLoadingHistory] = useState(true);
     const scrollRef = useRef<HTMLDivElement>(null);
     const sessionIdRef = useRef<string | null>(null);
@@ -249,7 +250,13 @@ export default function AIAssistant() {
                         try {
                             const data = JSON.parse(line.trim().slice(6));
 
-                            if (data.type === 'content') {
+                            if (data.type === 'thinking') {
+                                // Backend is executing tool calls — show searching state immediately
+                                setIsThinking(true);
+                            } else if (data.type === 'content') {
+                                // First content token arrived — stop all loading indicators
+                                setIsLoading(false);
+                                setIsThinking(false);
                                 streamedContent += data.content;
                                 // Update the assistant message in real-time
                                 setHistory(prev => {
@@ -284,6 +291,7 @@ export default function AIAssistant() {
             });
         } finally {
             setIsLoading(false);
+            setIsThinking(false);
         }
     };
 
@@ -329,13 +337,16 @@ export default function AIAssistant() {
                             )}
                         </div>
                     ))}
-                    {isLoading && (
+                    {(isLoading || isThinking) && (
                         <div className={`${styles.message} ${styles.assistant}`}>
                             <div className={`${styles.bubble} ${styles.typing}`}>
                                 <span />
                                 <span />
                                 <span />
                             </div>
+                            {isThinking && (
+                                <div className={styles.thinkingLabel}>Searching...</div>
+                            )}
                         </div>
                     )}
                 </div>
