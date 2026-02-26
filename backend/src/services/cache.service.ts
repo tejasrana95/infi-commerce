@@ -129,6 +129,23 @@ class CacheService {
         return config.redis.enabled && this.redisConnected && this.redisClient !== null;
     }
 
+    /**
+     * Memcached key rules:
+     *  - Must be non-empty
+     *  - Max 250 bytes
+     *  - No spaces or control characters (ASCII 0-32, 127)
+     * Returns null if the key is fundamentally invalid (empty after sanitization).
+     */
+    private memKey(rawKey: string): string | null {
+        if (!rawKey) return null;
+        // Replace whitespace / control chars with underscore
+        const sanitized = rawKey.replace(/[\x00-\x20\x7f]+/g, '_');
+        if (!sanitized) return null;
+        const full = `${config.memcached.keyPrefix}${sanitized}`;
+        // Truncate to 250 bytes (Memcached hard limit)
+        return full.length <= 250 ? full : full.slice(0, 250);
+    }
+
     // ─── Memory (L3) helpers ──────────────────────────────────────────────────
 
     private memGet(key: string): string | null {
@@ -164,15 +181,18 @@ class CacheService {
     private async getRaw(key: string): Promise<string | null> {
         // L1: Memcached
         if (this.memcachedOk) {
-            try {
-                const result = await new Promise<Buffer | null>((resolve) => {
-                    this.memcachedClient!.get(
-                        `${config.memcached.keyPrefix}${key}`,
-                        (err, val) => resolve(err ? null : val)
-                    );
-                });
-                if (result !== null) return result.toString('utf8');
-            } catch { /* fall through */ }
+            const mKey = this.memKey(key);
+            if (mKey) {
+                try {
+                    const result = await new Promise<Buffer | null>((resolve) => {
+                        this.memcachedClient!.get(
+                            mKey,
+                            (err, val) => resolve(err ? null : val)
+                        );
+                    });
+                    if (result !== null) return result.toString('utf8');
+                } catch { /* fall through */ }
+            }
         }
 
         // L2: Redis
@@ -184,12 +204,15 @@ class CacheService {
                     if (this.memcachedOk) {
                         const ttl = await this.redisClient!.ttl(key);
                         const remainingTtl = ttl > 0 ? ttl : config.memcached.lifetime;
-                        this.memcachedClient!.set(
-                            `${config.memcached.keyPrefix}${key}`,
-                            Buffer.from(val),
-                            { expires: remainingTtl },
-                            () => { }
-                        );
+                        const mKey = this.memKey(key);
+                        if (mKey) {
+                            this.memcachedClient!.set(
+                                mKey,
+                                Buffer.from(val),
+                                { expires: remainingTtl },
+                                () => { }
+                            );
+                        }
                     }
                     return val;
                 }
@@ -210,17 +233,20 @@ class CacheService {
 
         // L1: Memcached
         if (this.memcachedOk) {
-            writes.push(new Promise<void>((resolve) => {
-                this.memcachedClient!.set(
-                    `${config.memcached.keyPrefix}${key}`,
-                    Buffer.from(serialized),
-                    { expires: ttl },
-                    (err) => {
-                        if (err) console.error('Cache: Memcached set error –', err.message);
-                        resolve();
-                    }
-                );
-            }));
+            const mKey = this.memKey(key);
+            if (mKey) {
+                writes.push(new Promise<void>((resolve) => {
+                    this.memcachedClient!.set(
+                        mKey,
+                        Buffer.from(serialized),
+                        { expires: ttl },
+                        (err) => {
+                            if (err) console.error('Cache: Memcached set error –', err.message);
+                            resolve();
+                        }
+                    );
+                }));
+            }
         }
 
         // L2: Redis
@@ -245,15 +271,18 @@ class CacheService {
         const deletes: Promise<any>[] = [];
 
         if (this.memcachedOk) {
-            deletes.push(new Promise<void>((resolve) => {
-                this.memcachedClient!.delete(
-                    `${config.memcached.keyPrefix}${key}`,
-                    (err) => {
-                        if (err) console.error('Cache: Memcached delete error –', err.message);
-                        resolve();
-                    }
-                );
-            }));
+            const mKey = this.memKey(key);
+            if (mKey) {
+                deletes.push(new Promise<void>((resolve) => {
+                    this.memcachedClient!.delete(
+                        mKey,
+                        (err) => {
+                            if (err) console.error('Cache: Memcached delete error –', err.message);
+                            resolve();
+                        }
+                    );
+                }));
+            }
         }
 
         if (this.redisOk) {
@@ -291,10 +320,8 @@ class CacheService {
                         // Also delete from Memcached where possible
                         if (this.memcachedOk) {
                             for (const k of keysNoPrefix) {
-                                this.memcachedClient!.delete(
-                                    `${config.memcached.keyPrefix}${k}`,
-                                    () => { }
-                                );
+                                const mKey = this.memKey(k);
+                                if (mKey) this.memcachedClient!.delete(mKey, () => { });
                             }
                         }
                     }
@@ -316,15 +343,18 @@ class CacheService {
      */
     async exists(key: string): Promise<boolean> {
         if (this.memcachedOk) {
-            try {
-                const result = await new Promise<boolean>((resolve) => {
-                    this.memcachedClient!.get(
-                        `${config.memcached.keyPrefix}${key}`,
-                        (err, val) => resolve(!err && val !== null)
-                    );
-                });
-                if (result) return true;
-            } catch { /* fall through */ }
+            const mKey = this.memKey(key);
+            if (mKey) {
+                try {
+                    const result = await new Promise<boolean>((resolve) => {
+                        this.memcachedClient!.get(
+                            mKey,
+                            (err, val) => resolve(!err && val !== null)
+                        );
+                    });
+                    if (result) return true;
+                } catch { /* fall through */ }
+            }
         }
 
         if (this.redisOk) {
