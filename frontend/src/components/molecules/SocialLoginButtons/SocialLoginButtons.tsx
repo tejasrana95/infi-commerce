@@ -97,7 +97,7 @@ export default function SocialLoginButtons({ onSuccess, onError }: SocialLoginBu
             `width=${width},height=${height},top=${top},left=${left}`
         );
     };
-
+    console.log('socialConfig', socialConfig);
     const hasGoogle = socialConfig.google?.enabled;
     const hasFacebook = socialConfig.facebook?.enabled;
 

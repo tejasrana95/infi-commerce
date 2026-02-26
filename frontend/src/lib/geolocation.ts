@@ -251,32 +251,40 @@ export async function detectCurrency(
 
         let countryCode: string | null = null;
 
-        // Try primary API (ipapi.co)
+        // ── Priority 1: Backend /geo/detect ──────────────────────────────────
+        // On production behind Cloudflare this is instant (CF headers, no external
+        // call). Server-to-server fallback to ipapi.co avoids browser rate-limits.
         try {
-            const response = await fetch('https://ipapi.co/json/', {
-                signal: AbortSignal.timeout(3000), // 3 second timeout
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+            const response = await fetch(`${apiBase}/geo/detect`, {
+                signal: AbortSignal.timeout(4000),
             });
             if (response.ok) {
-                const data: GeolocationData = await response.json();
-                countryCode = data.country_code || null;
+                const data = await response.json();
+                const code = data.country_code;
+                if (code && code !== 'XX' && typeof code === 'string') {
+                    countryCode = code.toUpperCase();
+                }
             }
-        } catch (error) {
-            console.warn('Primary geolocation API failed, trying fallback...', error);
+        } catch {
+            // Backend unreachable — fall through
         }
 
-        // Fallback API (api.country.is) - free, no limits
+        // ── Priority 2: api.country.is (free, no limits) ─────────────────────
         if (!countryCode) {
             try {
                 const response = await fetch('https://api.country.is/', {
                     signal: AbortSignal.timeout(3000),
                 });
-
                 if (response.ok) {
                     const data: GeolocationData = await response.json();
-                    countryCode = data.country || null;
+                    const code = data.country || data.country_code;
+                    if (code && typeof code === 'string') {
+                        countryCode = code.toUpperCase();
+                    }
                 }
-            } catch (error) {
-                console.warn('Fallback geolocation API failed', error);
+            } catch {
+                // Fall through to USD default
             }
         }
 

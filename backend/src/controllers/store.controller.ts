@@ -964,13 +964,13 @@ export const updateStore = asyncHandler(async (req: AuthRequest, res: Response) 
         throw new AppError('Store not found', 404);
     }
 
-    // Invalidate caches using Redis service
+    // Invalidate caches — use patterns to catch all variants (:admin, :public-v3, bare)
     await Promise.all([
         invalidateStoreCache(id),
         invalidateStoreDomainCache(oldDomains),
         invalidateStoreDomainCache(store.domains),
-        redisService.delete(`store:id:${id}`),
-        redisService.delete(`store:slug:${store.slug}`),
+        redisService.deleteByPattern(`store:id:${id}*`),
+        redisService.deleteByPattern(`store:slug:${store.slug}*`),
     ]);
 
     res.json({

@@ -10,24 +10,29 @@ import { CacheKeys, InvalidationPatterns } from './cache-keys';
 
 /**
  * Invalidate store cache when store data changes
+ * Deletes all variants of the store key (:admin, :public-v3, bare, etc.)
  * @param storeId The store ID to invalidate
  */
 export const invalidateStoreCache = async (storeId: string): Promise<void> => {
     await Promise.all([
-        redisService.delete(CacheKeys.store(storeId)),
+        // Pattern-match to catch bare key + all suffixed variants (:admin, :public-v3)
+        redisService.deleteByPattern(`store:${storeId}*`),
         redisService.delete(CacheKeys.storeSettings(storeId)),
     ]);
 };
 
 /**
  * Invalidate store domain cache when domains change
+ * Deletes all variants of the domain key (bare, :admin, :public-v3, etc.)
  * @param domains Array of domains to invalidate
  */
 export const invalidateStoreDomainCache = async (domains: string[]): Promise<void> => {
     if (!domains || domains.length === 0) return;
 
     await Promise.all(
-        domains.map(domain => redisService.delete(CacheKeys.storeByDomain(domain)))
+        domains.map(domain =>
+            redisService.deleteByPattern(`store:domain:${domain}*`)
+        )
     );
 };
 
