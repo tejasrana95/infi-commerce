@@ -170,7 +170,7 @@ export default function AdminAIAssistant({ entityType, getValues, setValue }: Ad
                     typeof (error as { response?: { data?: { message?: unknown } } }).response?.data?.message === 'string'
                     ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
                     : 'Failed to generate content';
-            showNotification(message, 'error');
+            showNotification(message ?? 'Failed to generate content', 'error');
         } finally {
             setLoading(false);
         }
@@ -207,7 +207,7 @@ export default function AdminAIAssistant({ entityType, getValues, setValue }: Ad
                         <Box>
                             <Typography variant="h6">AI Content Assistant</Typography>
                             <Typography variant="caption" color="text.secondary">
-                                {getValues(titleField) || 'Untitled'}
+                                {String(getValues(titleField) || 'Untitled')}
                             </Typography>
                         </Box>
                     </Box>
