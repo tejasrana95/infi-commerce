@@ -2,7 +2,9 @@ import type { NextConfig } from "next";
 import withBundleAnalyzer from '@next/bundle-analyzer';
 
 const isProd = process.env.NODE_ENV === 'production';
-const apiOrigin = process.env.NEXT_PUBLIC_API_ORIGIN || 'http://localhost:3001';
+const apiOrigin = process.env.API_ORIGIN
+  || process.env.NEXT_PUBLIC_API_ORIGIN
+  || (!isProd ? 'http://localhost:3001' : '');
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -74,6 +76,9 @@ const nextConfig: NextConfig = {
     ];
   },
   async rewrites() {
+    if (!apiOrigin) {
+      return [];
+    }
     return [
       {
         source: '/api/:path*',
