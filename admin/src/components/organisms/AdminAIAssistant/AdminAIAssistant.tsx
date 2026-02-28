@@ -84,7 +84,7 @@ export default function AdminAIAssistant({ entityType, getValues, setValue }: Ad
                 existingDescription: getValues(descriptionField),
                 existingExcerpt: entityType === 'blog_post' ? getValues('excerpt') : undefined,
                 brand: getValues('brand'),
-                category: getValues('categoryIds')?.[0],
+                category: (getValues('categoryIds') as unknown[])?.[0],
                 specifications: getValues('specifications') || [], // Pass all specifications
                 specs: getValues('specs') || {}, // Alternative spec format
                 attributes: getValues('attributes') || [], // Product attributes if available
