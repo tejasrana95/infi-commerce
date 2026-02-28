@@ -47,8 +47,8 @@ interface Product {
     reviewCount?: number;
     isOnSale?: boolean;
     stockStatus?: string;
-    categories?: any[];
-    brand?: any;
+    categories?: Array<{ _id?: string } | string>;
+    brand?: unknown;
 }
 
 interface RecommendationResponse {
@@ -57,6 +57,23 @@ interface RecommendationResponse {
     fallback: string | null;
     total: number;
     products: Product[];
+}
+
+function ensureReadableColor(color?: string): string | undefined {
+    if (!color) return undefined;
+    const hex = color.trim().replace('#', '');
+    const normalized = hex.length === 3 ? hex.split('').map((c) => `${c}${c}`).join('') : hex;
+    if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return color;
+
+    const r = parseInt(normalized.slice(0, 2), 16) / 255;
+    const g = parseInt(normalized.slice(2, 4), 16) / 255;
+    const b = parseInt(normalized.slice(4, 6), 16) / 255;
+    const toLinear = (v: number) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+    const luminance = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+    const contrastOnWhite = 1.05 / (luminance + 0.05);
+
+    // Keep custom color if it has at least AA contrast against white backgrounds.
+    return contrastOnWhite >= 4.5 ? color : '#1a1a1a';
 }
 
 // Generate session ID for guests
@@ -78,7 +95,6 @@ export default function PersonalizedProductsModule({ config }: ModuleProps) {
         titleTypography,
         limit = 8,
         columns = { desktop: 4, tablet: 3, mobile: 2 },
-        layout = 'grid',
         exclusionScope = 'category',
         exclusionDays = 30,
         retentionDays = 30,
@@ -187,7 +203,9 @@ export default function PersonalizedProductsModule({ config }: ModuleProps) {
                     result.products = result.products.filter(product => {
                         if (excludeProductIds.has(product._id)) return false;
                         if (exclusionScope === 'category' && product.categories) {
-                            const productCategoryIds = product.categories.map((c: any) => c._id || c);
+                            const productCategoryIds = product.categories
+                                .map((c) => (typeof c === 'string' ? c : c._id || ''))
+                                .filter(Boolean);
                             if (productCategoryIds.some((id: string) => excludeCategoryIds.has(id))) {
                                 return false;
                             }
@@ -216,14 +234,18 @@ export default function PersonalizedProductsModule({ config }: ModuleProps) {
     const titleStyle: React.CSSProperties = {
         fontFamily: titleTypography?.fontFamily || undefined,
         fontSize: titleTypography?.fontSize ? `${titleTypography.fontSize}px` : undefined,
-        color: titleTypography?.color || undefined,
+        color: ensureReadableColor(titleTypography?.color),
     };
 
     if (loading) {
         return (
             <div className={styles.container}>
-                {title && <div className={styles.skeletonTitle} />}
-                <div className={styles.skeletonGrid}>
+                {title && (
+                    <div className={styles.header} style={headerStyle}>
+                        <h2 className={styles.title} style={titleStyle}>{title}</h2>
+                    </div>
+                )}
+                <div className={`${styles.skeletonGrid} ${styles.grid} ${columnClass}`}>
                     {Array.from({ length: Math.min(limit, 8) }).map((_, i) => (
                         <div key={i} className={styles.skeleton} />
                     ))}
@@ -241,6 +263,7 @@ export default function PersonalizedProductsModule({ config }: ModuleProps) {
             {(title || subtitle) && (
                 <div className={styles.header} style={headerStyle}>
                     {title && <h2 className={styles.title} style={titleStyle}>{title}</h2>}
+
                     {(subtitle || isPersonalized) && (
                         <span className={styles.personalizedBadge}>{subtitle || '✨ Personalized for you'}</span>
                     )}

@@ -15,6 +15,7 @@ export default function ModernCleanCategoryCardTemplate({
     description,
     imageUrl,
     imageAlt,
+    imagePriority = false,
     categoryUrl,
     productCount,
     style = 'card',
@@ -37,6 +38,9 @@ export default function ModernCleanCategoryCardTemplate({
                         alt={imageAlt || title}
                         aspectRatio="1x1" // Default for category cards, adjusted via CSS container
                         fill
+                        priority={imagePriority}
+                        fetchPriority={imagePriority ? 'high' : 'auto'}
+                        loading={imagePriority ? 'eager' : 'lazy'}
                         className={styles.image}
                         sizes="(max-width: 768px) 50vw, 25vw"
                     />

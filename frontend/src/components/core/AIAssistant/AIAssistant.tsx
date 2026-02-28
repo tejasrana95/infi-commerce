@@ -1,15 +1,39 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useAuth, useCustomer } from '@/providers/AuthProvider';
+import { useCustomer } from '@/providers/AuthProvider';
 import { useStore } from '@/providers/StoreProvider';
 import api from '@/lib/api';
 import styles from './AIAssistant.module.scss';
-import { IoCloseOutline, IoSendOutline, IoSparklesOutline } from 'react-icons/io5';
 
 interface Message {
     role: 'user' | 'assistant';
     content: string;
+}
+
+function SparklesIcon({ className, size = 24 }: { className?: string; size?: number }) {
+    return (
+        <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M18.5 14.5l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9.9-2.1zM4.8 14l.8 1.8 1.8.8-1.8.8-.8 1.8-.8-1.8-1.8-.8 1.8-.8.8-1.8z" />
+        </svg>
+    );
+}
+
+function CloseIcon({ size = 24 }: { size?: number }) {
+    return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 6L6 18M6 6l12 12" />
+        </svg>
+    );
+}
+
+function SendIcon({ size = 20 }: { size?: number }) {
+    return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 11.5l17.5-7.5-5.5 16-3.4-6.3L3 11.5z" />
+        </svg>
+    );
 }
 
 const MarkdownContent = ({ content }: { content: string }) => {
@@ -139,7 +163,6 @@ export default function AIAssistant() {
     const [history, setHistory] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isThinking, setIsThinking] = useState(false); // true while tool calls execute
-    const [isLoadingHistory, setIsLoadingHistory] = useState(true);
     const scrollRef = useRef<HTMLDivElement>(null);
     const sessionIdRef = useRef<string | null>(null);
 
@@ -154,23 +177,19 @@ export default function AIAssistant() {
             if (!store?._id || !sessionIdRef.current) return;
 
             try {
-                setIsLoadingHistory(true);
                 const response = await api.get(`ai/history?storeId=${store._id}&sessionId=${sessionIdRef.current}`);
 
                 if (response.success && response.messages && response.messages.length > 0) {
                     setHistory(response.messages);
-                    setIsLoadingHistory(false);
                 } else {
                     // No history, construct personalized greeting
                     const greeting = constructGreeting();
                     setHistory([{ role: 'assistant', content: greeting }]);
-                    setIsLoadingHistory(false);
                 }
             } catch (error) {
                 console.error('Failed to load chat history:', error);
                 const greeting = constructGreeting();
                 setHistory([{ role: 'assistant', content: greeting }]);
-                setIsLoadingHistory(false);
             }
         };
 
@@ -199,8 +218,6 @@ export default function AIAssistant() {
         setHistory(prev => [...prev, { role: 'user', content: userMessage }]);
         setIsLoading(true);
 
-        // Create placeholder for assistant's streaming message
-        const assistantMessageIndex = history.length + 1;
         setHistory(prev => [...prev, { role: 'assistant', content: '' }]);
 
         try {
@@ -298,7 +315,7 @@ export default function AIAssistant() {
     if (!store) return null;
 
     // Only show if enabled and API key is configured
-    const aiEnabled = (store as any)?.aiSettings?.enabled || false;
+    const aiEnabled = Boolean((store as { aiSettings?: { enabled?: boolean } })?.aiSettings?.enabled);
 
     if (!aiEnabled) {
         return null;
@@ -312,18 +329,18 @@ export default function AIAssistant() {
                 onClick={() => setIsOpen(true)}
                 aria-label="Ask AI Assistant"
             >
-                <IoSparklesOutline size={24} />
+                <SparklesIcon size={24} />
             </button>
 
             {/* Chat Window */}
             <div className={`${styles.chatWindow} ${isOpen ? styles.open : ''}`}>
                 <div className={styles.header}>
                     <div className={styles.headerTitle}>
-                        <IoSparklesOutline className={styles.icon} />
+                        <SparklesIcon className={styles.icon} />
                         <span>AI Shopping Assistant</span>
                     </div>
-                    <button className={styles.closeBtn} onClick={() => setIsOpen(false)}>
-                        <IoCloseOutline size={24} />
+                    <button className={styles.closeBtn} onClick={() => setIsOpen(false)} aria-label="Close AI Assistant" title="Close AI Assistant">
+                        <CloseIcon size={24} />
                     </button>
                 </div>
 
@@ -363,8 +380,10 @@ export default function AIAssistant() {
                         className={styles.sendBtn}
                         onClick={handleSend}
                         disabled={!message.trim() || isLoading}
+                        aria-label="Send message"
+                        title="Send message"
                     >
-                        <IoSendOutline size={20} />
+                        <SendIcon size={20} />
                     </button>
                 </div>
             </div>

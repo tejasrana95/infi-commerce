@@ -107,7 +107,8 @@
         border: none;
         color: rgba(255, 255, 255, 0.7);
         cursor: pointer;
-        padding: 4px;
+        width: 44px;
+        height: 44px;
         border-radius: 4px;
         display: flex;
         align-items: center;
@@ -263,8 +264,8 @@
     }
 
     .sendBtn {
-        width: 38px;
-        height: 38px;
+        width: 44px;
+        height: 44px;
         background: #0d0d0d;
         color: white;
         border: none;

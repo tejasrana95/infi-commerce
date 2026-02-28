@@ -258,7 +258,7 @@
 // Enable smooth transitions
 .animatable {
     transition: max-height 0.4s ease-in-out;
-    max-height: 2000px; // Large enough for expanded content
+    max-height: 4000px; // Large enough for expanded content
 }
 
 // Collapsed state with slide up animation
@@ -308,4 +308,37 @@
 
 .rotated {
     transform: rotate(180deg);
+}
+
+:global(.textBlock-small) {
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        font-size: 1.2rem;
+        line-height: 1.6rem;
+        margin: 0 0 .4em;
+    }
+
+    p {
+        font-size: 0.8rem;
+        line-height: 1rem;
+        margin: 0 0 0.4em;
+    }
+
+    ol,
+    ul {
+        margin: 0 0 0.4em;
+
+        li {
+            margin-bottom: 0;
+
+            &::marker {
+                font-size: 0.8rem;
+            }
+        }
+    }
 }

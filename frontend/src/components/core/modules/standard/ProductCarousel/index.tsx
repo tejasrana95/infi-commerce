@@ -159,7 +159,11 @@ export default function ProductCarouselModule({ config, initialData }: ModulePro
     if (loading) {
         return (
             <div className={styles.container}>
-                {title && <div className={styles.skeletonTitle} />}
+                {title && (
+                    <div className={styles.header} style={headerStyle}>
+                        <h2 className={styles.title} style={titleStyle}>{title}</h2>
+                    </div>
+                )}
                 <div className={styles.skeletonGrid}>
                     {Array.from({ length: 4 }).map((_, i) => (
                         <div key={i} className={styles.skeleton} />

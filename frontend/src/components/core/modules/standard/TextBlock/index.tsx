@@ -84,7 +84,7 @@ export default function TextBlockModule({ config }: ModuleProps) {
                     <button
                         className={styles.toggleButton}
                         onClick={() => setIsExpanded(!isExpanded)}
-                        style={{ color: textColor || undefined }}
+                        aria-expanded={isExpanded}
                     >
                         {isExpanded ? collapseLabel : expandLabel}
                         <svg

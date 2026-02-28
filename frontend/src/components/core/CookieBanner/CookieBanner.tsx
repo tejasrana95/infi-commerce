@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useSyncExternalStore } from 'react';
 import styles from './CookieBanner.module.scss';
 import DynamicIcon from '../common/DynamicIcon';
 
@@ -29,19 +29,24 @@ const renderIcon = (iconName: string) => {
 };
 
 export default function CookieBanner({ settings }: CookieBannerProps) {
-    const [dismissed, setDismissed] = useState(true);
-    const [hasAccepted, setHasAccepted] = useState(() => {
-        if (typeof window !== 'undefined') {
-            setDismissed(localStorage.getItem('cookieConsent') === 'accepted');
-            return localStorage.getItem('cookieConsent') === 'accepted';
-        }
-        return false;
-    }
+    const isClient = useSyncExternalStore(
+        () => () => { },
+        () => true,
+        () => false
     );
+    const [dismissed, setDismissed] = useState(false);
+
+    let hasAccepted = true;
+    if (isClient) {
+        try {
+            hasAccepted = localStorage.getItem('cookieConsent') === 'accepted';
+        } catch {
+            hasAccepted = false;
+        }
+    }
+
     // Check if cookie consent has been previously accepted
-    const shouldShow = !hasAccepted && !dismissed && settings.enabled;
-
-
+    const shouldShow = isClient && settings.enabled && !hasAccepted && !dismissed;
 
     const handleAccept = () => {
         // Set cookie consent in localStorage for 1 year

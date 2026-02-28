@@ -3,11 +3,11 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { FaStar, FaStarHalfAlt, FaRegStar } from 'react-icons/fa';
 import Image from 'next/image';
 import { useCurrency } from '@/providers/CurrencyProvider';
 import { usePriceVisibility } from '@/hooks/usePriceVisibility';
 import styles from './MegaMenuProductCard.module.scss';
+import { Star, StarHalf } from 'lucide-react';
 
 interface Product {
     _id: string;
@@ -45,9 +45,9 @@ function Stars({ rating }: { rating: number }) {
 
     return (
         <>
-            {Array.from({ length: full }, (_, i) => <FaStar key={`f${i}`} />)}
-            {half && <FaStarHalfAlt key="h" />}
-            {Array.from({ length: empty }, (_, i) => <FaRegStar key={`e${i}`} />)}
+            {Array.from({ length: full }, (_, i) => <Star key={`f${i}`} fill="currentColor" />)}
+            {half && <StarHalf key="h" fill="currentColor" />}
+            {Array.from({ length: empty }, (_, i) => <Star key={`e${i}`} />)}
         </>
     );
 }

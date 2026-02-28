@@ -22,6 +22,12 @@ interface ProductReturnExchangeProps {
     info: ReturnExchangeInfo;
 }
 
+interface ReturnSettings {
+    exchangeConditions?: string[];
+    processSteps?: Array<{ label?: string; description?: string }>;
+    returnConditions?: string[];
+}
+
 const defaultReturnExchangeInfo: ReturnExchangeInfo = {
     returnWindow: 7,
     exchangeWindow: 7,
@@ -34,7 +40,8 @@ export default function ProductReturnExchange({
 }: ProductReturnExchangeProps) {
     const [showDetails, setShowDetails] = useState(false);
     const { store } = useStore();
-    const { exchangeConditions = [], processSteps = [], returnConditions = [] } = (store as any)?.returnSettings || {};
+    const returnSettings = (store as { returnSettings?: ReturnSettings } | null)?.returnSettings;
+    const { exchangeConditions = [], processSteps = [], returnConditions = [] } = returnSettings || {};
     const returnInfo = { ...defaultReturnExchangeInfo, ...info };
 
     const hasReturnPolicy = returnInfo?.returnWindow !== undefined && returnInfo?.returnWindow > 0;

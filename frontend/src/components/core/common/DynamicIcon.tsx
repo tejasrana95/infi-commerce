@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import dynamic from 'next/dynamic';
 import dynamicIconImports from 'lucide-react/dynamicIconImports';
 
@@ -20,14 +20,24 @@ interface DynamicIconProps {
     size?: number;
 }
 
+const MATERIAL_ICON_ALIASES: Record<string, string> = {
+    MdClose: 'X',
+    MdCheck: 'Check',
+    MdOutlineCookie: 'Cookie',
+    MdOutlineSwapHoriz: 'ArrowRightLeft',
+    MdOutlineKeyboardReturn: 'Undo2',
+};
+
 export default function DynamicIcon({ name, className, size = 24 }: DynamicIconProps) {
     if (!name) return null;
 
+    const aliasedName = MATERIAL_ICON_ALIASES[name] || name;
+
     // Normalize name: Some icons might come as LucideGithub or just Github
     // Also remove 'Icon' suffix if it exists (e.g., ArrowDown01Icon -> ArrowDown01)
-    let normalizedName = name;
-    if (name.startsWith('Lucide')) {
-        normalizedName = name.replace('Lucide', '');
+    let normalizedName = aliasedName;
+    if (aliasedName.startsWith('Lucide')) {
+        normalizedName = aliasedName.replace('Lucide', '');
     }
     if (normalizedName.endsWith('Icon') && Object.keys(dynamicIconImports).includes(normalizedName.toLowerCase() as any) === false) {
         // Only strip 'Icon' if the version WITH 'Icon' isn't actually a valid key

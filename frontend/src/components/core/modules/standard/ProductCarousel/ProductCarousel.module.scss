@@ -218,21 +218,42 @@
     width: 8px;
     height: 8px;
     border: none;
-    border-radius: 50%;
-    background: #d1d5db;
+    border-radius: 999px;
+    background: transparent;
     cursor: pointer;
     padding: 0;
     transition: all 0.2s ease;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+
+
+    &::before {
+        content: '';
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #d1d5db;
+        transition: all 0.2s ease;
+    }
 
     &:hover {
-        background: #9ca3af;
+        &::before {
+            background: #9ca3af;
+        }
     }
 }
 
 .dotActive {
-    background: #374151;
     width: 24px;
-    border-radius: 8px;
+
+    &::before {
+        width: 24px;
+        border-radius: 8px;
+        background: #374151;
+    }
 }
 
 // =============================================================================

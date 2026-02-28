@@ -126,10 +126,14 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
 
     if (loading) {
         return (
-            <div className={containerClass}>
-                {title && <div className={styles.skeletonTitle} />}
+            <div className={`${containerClass}`}>
+                {title && (
+                    <div className={styles.header} style={headerStyle}>
+                        <h2 className={styles.title} style={titleStyle}>{title}</h2>
+                    </div>
+                )}
                 <div className={`${styles.skeletonGrid} ${columnClass}`}>
-                    {Array.from({ length: visibleColumns }).map((_, i) => (
+                    {Array.from({ length: categoryIds.length }).map((_, i) => (
                         <div key={i} className={styles.skeleton} />
                     ))}
                 </div>
@@ -187,7 +191,8 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
                     className={styles.carousel}
                     style={{ gap: `${gap}px` }}
                 >
-                    {categories.map((category) => (
+                    {categories.map((category, index) => (
+                        // Prioritize first visible cards to improve mobile LCP.
                         <div
                             key={category._id}
                             className={styles.carouselItem}
@@ -196,6 +201,7 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
                             <CategoryCard
                                 category={{ ...category, showDescription }}
                                 style={style}
+                                imagePriority={index < 2}
                             />
                         </div>
                     ))}
@@ -205,11 +211,12 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
                     className={`${styles.grid} ${columnClass}`}
                     style={{ gap: `${gap}px` }}
                 >
-                    {categories.map((category) => (
+                    {categories.map((category, index) => (
                         <CategoryCard
                             key={category._id}
                             category={{ ...category, showDescription }}
                             style={style}
+                            imagePriority={index < 2}
                         />
                     ))}
                 </div>

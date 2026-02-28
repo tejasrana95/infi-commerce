@@ -8,6 +8,7 @@ export default function CoreCategoryCardTemplate({
     title,
     imageUrl,
     imageAlt,
+    imagePriority = false,
     categoryUrl,
     productCount,
 }: CategoryTemplateProps) {
@@ -28,6 +29,8 @@ export default function CoreCategoryCardTemplate({
                         <img
                             src={imageUrl}
                             alt={imageAlt}
+                            loading={imagePriority ? 'eager' : 'lazy'}
+                            fetchPriority={imagePriority ? 'high' : 'auto'}
                             style={{
                                 position: 'absolute',
                                 inset: 0,

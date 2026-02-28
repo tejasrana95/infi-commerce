@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useStore } from '@/providers/StoreProvider';
-import { FaArrowUp } from 'react-icons/fa';
+import { ArrowUp } from 'lucide-react';
 
 export default function ScrollToTop() {
     const { store } = useStore();
@@ -71,13 +71,13 @@ export default function ScrollToTop() {
     };
 
     return (
-        <div
+        <button
             onClick={scrollToTop}
             style={styles}
             aria-label="Scroll to top"
-            role="button"
+            type="button"
         >
-            <FaArrowUp />
-        </div>
+            <ArrowUp size={18} aria-hidden="true" />
+        </button>
     );
 }

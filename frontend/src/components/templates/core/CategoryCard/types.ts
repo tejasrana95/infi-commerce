@@ -10,6 +10,7 @@ export interface CategoryTemplateProps {
     // Media
     imageUrl?: string;
     imageAlt: string;
+    imagePriority?: boolean;
 
     // Stats
     productCount?: number;
