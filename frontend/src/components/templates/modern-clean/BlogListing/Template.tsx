@@ -3,7 +3,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import ModuleRenderer from '@/components/core/layout/ModuleRenderer';
@@ -11,6 +11,16 @@ import SectionRenderer from '@/components/core/layout/SectionRenderer';
 import { BlogListingTemplateProps } from '@/components/templates/core/BlogListing/types';
 import styles from './BlogListing.module.scss';
 import { FiGrid, FiList, FiSearch, FiClock, FiEye, FiHeart, FiX } from 'react-icons/fi';
+
+interface LayoutModule {
+    id: string;
+    type?: string;
+}
+
+interface LayoutSection {
+    id: string;
+    type?: string;
+}
 
 export default function ModernCleanBlogListingTemplate({
     posts,
@@ -24,7 +34,6 @@ export default function ModernCleanBlogListingTemplate({
     searchQuery,
     viewMode,
     config,
-    templateId,
     layout,
     onPageChange,
     onCategoryFilter,
@@ -34,6 +43,26 @@ export default function ModernCleanBlogListingTemplate({
     onClearFilters,
 }: BlogListingTemplateProps) {
     const [searchInput, setSearchInput] = useState(searchQuery || '');
+    const sortedPosts = useMemo(() => {
+        return [...posts]
+            .map((post, index) => ({ post, index }))
+            .sort((a, b) => {
+                const aPinned = a.post.isPinned ? 1 : 0;
+                const bPinned = b.post.isPinned ? 1 : 0;
+                if (aPinned !== bPinned) return bPinned - aPinned;
+
+                const aFeatured = a.post.isFeatured ? 1 : 0;
+                const bFeatured = b.post.isFeatured ? 1 : 0;
+                if (aFeatured !== bFeatured) return bFeatured - aFeatured;
+
+                const aDate = a.post.publishedAt ? new Date(a.post.publishedAt).getTime() : 0;
+                const bDate = b.post.publishedAt ? new Date(b.post.publishedAt).getTime() : 0;
+                if (aDate !== bDate) return bDate - aDate;
+
+                return a.index - b.index;
+            })
+            .map(({ post }) => post);
+    }, [posts]);
 
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -43,7 +72,7 @@ export default function ModernCleanBlogListingTemplate({
     const hasActiveFilters = selectedCategory || selectedTag || searchQuery;
     const sections = layout?.sections || [];
     // Custom module rendering function for layout sections
-    const renderModule = (module: any) => {
+    const renderModule = (module: LayoutModule) => {
         // Handle special blog-specific modules
         switch (module.type) {
             case 'blog-posts-grid':
@@ -54,12 +83,12 @@ export default function ModernCleanBlogListingTemplate({
                 return renderHero();
             default:
                 // Use standard ModuleRenderer for other modules
-                return <ModuleRenderer key={module.id} module={module} />;
+                return <ModuleRenderer key={module.id} module={module as never} />;
         }
     };
 
     // Render section with custom module handling
-    const renderSection = (section: any) => {
+    const renderSection = (section: LayoutSection) => {
         // Handle special blog-layout sections
         if (section.type === 'blog-main') {
             return (
@@ -81,7 +110,7 @@ export default function ModernCleanBlogListingTemplate({
         return (
             <SectionRenderer
                 key={section.id}
-                section={section}
+                section={section as never}
                 renderModule={(module) => renderModule(module)}
             />
         );
@@ -202,7 +231,7 @@ export default function ModernCleanBlogListingTemplate({
                         )}
                         {searchQuery && (
                             <span className={styles.filterBadge}>
-                                Search: "{searchQuery}"
+                                Search: &quot;{searchQuery}&quot;
                                 <button onClick={() => onSearch('')}>
                                     <FiX />
                                 </button>
@@ -214,7 +243,7 @@ export default function ModernCleanBlogListingTemplate({
                     </div>
                 )}
                 <p className={styles.resultCount}>
-                    {isLoading ? 'Loading...' : `${posts.length} articles found`}
+                    {isLoading ? 'Loading...' : `${sortedPosts.length} articles found`}
                 </p>
             </div>
 
@@ -249,7 +278,7 @@ export default function ModernCleanBlogListingTemplate({
             );
         }
 
-        if (posts.length === 0) {
+        if (sortedPosts.length === 0) {
             return (
                 <div className={styles.emptyState}>
                     <h3>No articles found</h3>
@@ -263,77 +292,148 @@ export default function ModernCleanBlogListingTemplate({
             );
         }
 
+        const leadPost = sortedPosts[0];
+        const regularPosts = viewMode === 'grid' ? sortedPosts.slice(1) : sortedPosts;
+
         return (
-            <div className={`${styles.postsGrid} ${viewMode === 'list' ? styles.listView : ''}`}>
-                {posts.map((post) => (
-                    <article key={post._id} className={styles.postCard}>
-                        {post.isFeatured && (
-                            <span className={styles.featuredBadge}>Featured</span>
-                        )}
-
-                        {post.featuredImage && (
-                            <Link href={`/blog/${post.slug}`} className={styles.imageLink}>
-                                <div className={styles.imageWrapper}>
-                                    <Image
-                                        src={post.featuredImage}
-                                        alt={post.title}
-                                        fill
-                                        className={styles.image}
-                                    />
-                                </div>
-                            </Link>
-                        )}
-
-                        <div className={styles.cardContent}>
-                            {post.categoryIds.length > 0 && (
-                                <Link
-                                    href={`/blog?category=${post.categoryIds[0].slug}`}
-                                    className={styles.category}
-                                >
-                                    {post.categoryIds[0].name}
+            <>
+                {viewMode === 'grid' && leadPost && (
+                    <article className={styles.leadPostCard}>
+                        <div className={styles.leadImagePane}>
+                            {(leadPost.isPinned || leadPost.isFeatured) && (
+                                <span className={styles.priorityBadge}>{leadPost.isPinned ? 'Pinned' : 'Featured'}</span>
+                            )}
+                            {leadPost.featuredImage && (
+                                <Link href={`/blog/${leadPost.slug}`} className={styles.imageLink}>
+                                    <div className={styles.imageWrapper}>
+                                        <Image
+                                            src={leadPost.featuredImage}
+                                            alt={leadPost.title}
+                                            fill
+                                            className={styles.image}
+                                        />
+                                    </div>
                                 </Link>
                             )}
-
-                            <Link href={`/blog/${post.slug}`}>
-                                <h2 className={styles.title}>{post.title}</h2>
-                            </Link>
-
-                            {post.excerpt && (
-                                <p className={styles.excerpt}>{post.excerpt}</p>
+                        </div>
+                        <div className={styles.leadContent}>
+                            {leadPost.categoryIds.length > 0 && (
+                                <Link
+                                    href={`/blog?category=${leadPost.categoryIds[0].slug}`}
+                                    className={styles.category}
+                                >
+                                    {leadPost.categoryIds[0].name}
+                                </Link>
                             )}
-
+                            <Link href={`/blog/${leadPost.slug}`}>
+                                <h2 className={styles.leadTitle}>{leadPost.title}</h2>
+                            </Link>
+                            {leadPost.excerpt && (
+                                <p className={styles.leadExcerpt}>{leadPost.excerpt}</p>
+                            )}
                             <div className={styles.meta}>
                                 <div className={styles.author}>
-                                    {post.author.avatar && (
+                                    {leadPost.author.avatar && (
                                         <Image
-                                            src={post.author.avatar}
-                                            alt={post.author.name}
+                                            src={leadPost.author.avatar}
+                                            alt={leadPost.author.name}
                                             width={32}
                                             height={32}
                                             className={styles.avatar}
                                         />
                                     )}
-                                    <span>{post.author.name}</span>
+                                    <span>{leadPost.author.name}</span>
                                 </div>
 
                                 <div className={styles.stats}>
-                                    {post.readingTime && (
+                                    {leadPost.readingTime && (
                                         <span className={styles.stat}>
-                                            <FiClock /> {post.readingTime} min
+                                            <FiClock /> {leadPost.readingTime} min
                                         </span>
                                     )}
                                     <span className={styles.stat}>
-                                        <FiEye /> {post.viewCount}
+                                        <FiEye /> {leadPost.viewCount}
                                     </span>
                                     <span className={styles.stat}>
-                                        <FiHeart /> {post.likeCount}
+                                        <FiHeart /> {leadPost.likeCount}
                                     </span>
                                 </div>
                             </div>
                         </div>
                     </article>
-                ))}
-            </div>
+                )}
+
+                <div className={`${styles.postsGrid} ${viewMode === 'list' ? styles.listView : ''}`}>
+                    {regularPosts.map((post) => (
+                        <article key={post._id} className={`${styles.postCard} ${post.featuredImage ? '' : styles.noImage}`}>
+                            {(post.isPinned || post.isFeatured) && (
+                                <span className={styles.featuredBadge}>{post.isPinned ? 'Pinned' : 'Featured'}</span>
+                            )}
+
+                            {post.featuredImage && (
+                                <Link href={`/blog/${post.slug}`} className={styles.imageLink}>
+                                    <div className={styles.imageWrapper}>
+                                        <Image
+                                            src={post.featuredImage}
+                                            alt={post.title}
+                                            fill
+                                            className={styles.image}
+                                        />
+                                    </div>
+                                </Link>
+                            )}
+
+                            <div className={styles.cardContent}>
+                                {post.categoryIds.length > 0 && (
+                                    <Link
+                                        href={`/blog?category=${post.categoryIds[0].slug}`}
+                                        className={styles.category}
+                                    >
+                                        {post.categoryIds[0].name}
+                                    </Link>
+                                )}
+
+                                <Link href={`/blog/${post.slug}`}>
+                                    <h2 className={styles.title}>{post.title}</h2>
+                                </Link>
+
+                                {post.excerpt && (
+                                    <p className={styles.excerpt}>{post.excerpt}</p>
+                                )}
+
+                                <div className={styles.meta}>
+                                    <div className={styles.author}>
+                                        {post.author.avatar && (
+                                            <Image
+                                                src={post.author.avatar}
+                                                alt={post.author.name}
+                                                width={32}
+                                                height={32}
+                                                className={styles.avatar}
+                                            />
+                                        )}
+                                        <span>{post.author.name}</span>
+                                    </div>
+
+                                    <div className={styles.stats}>
+                                        {post.readingTime && (
+                                            <span className={styles.stat}>
+                                                <FiClock /> {post.readingTime} min
+                                            </span>
+                                        )}
+                                        <span className={styles.stat}>
+                                            <FiEye /> {post.viewCount}
+                                        </span>
+                                        <span className={styles.stat}>
+                                            <FiHeart /> {post.likeCount}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                    ))}
+                </div>
+            </>
         );
     };
 
@@ -393,7 +493,7 @@ export default function ModernCleanBlogListingTemplate({
 
             {/* If layout sections exist, render them. Otherwise render default layout */}
             {sections.length > 0 ? (
-                sections.map((section: any) => renderSection(section))
+                sections.map((section: LayoutSection) => renderSection(section))
             ) : (
                 <div className={styles.container}>
                     <div className={styles.layout}>

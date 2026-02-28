@@ -226,6 +226,8 @@ export default function BlogPostForm({ initialData, onSubmit, isSubmitting = fal
                                             error={!!errors.content}
                                             helperText={errors.content?.message}
                                             minHeight={400}
+                                            showSourceToggle
+                                            showFullscreen
                                         />
                                     )}
                                 />

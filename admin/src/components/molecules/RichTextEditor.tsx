@@ -1,4 +1,5 @@
 import { useEditor, EditorContent, Editor } from '@tiptap/react';
+import { Node, mergeAttributes } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
@@ -12,13 +13,82 @@ import {
     FormatBold, FormatItalic, FormatUnderlined, FormatStrikethrough,
     FormatListBulleted, FormatListNumbered, FormatQuote, Code,
     Undo, Redo, Image as ImageIcon, Link as LinkIcon,
-    FormatAlignLeft, FormatAlignCenter, FormatAlignRight, FormatAlignJustify, LinkOff, CodeOff,
+    FormatAlignLeft, FormatAlignCenter, FormatAlignRight, LinkOff,
     Fullscreen, FullscreenExit,
 } from '@mui/icons-material';
+import YouTubeIcon from '@mui/icons-material/YouTube';
 import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
 import { useEffect, useState, useCallback } from 'react';
 import FileManagerButton from './FileManagerButton';
 import { FileItem } from '@/types/file';
+
+// ---------------------------------------------------------------------------
+// Helper – extract YouTube video ID from any YouTube URL
+// ---------------------------------------------------------------------------
+function extractYouTubeId(url: string): string | null {
+    const patterns = [
+        /(?:youtube\.com\/watch\?.*v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]{11})/,
+    ];
+    for (const pattern of patterns) {
+        const match = url.match(pattern);
+        if (match) return match[1];
+    }
+    return null;
+}
+
+// ---------------------------------------------------------------------------
+// Custom Tiptap Node – YouTube iframe embed
+// ---------------------------------------------------------------------------
+const YouTubeNode = Node.create({
+    name: 'youtubeEmbed',
+    group: 'block',
+    atom: true,
+
+    addAttributes() {
+        return {
+            src: { default: null },
+            width: { default: '100%' },
+            height: { default: '360' },
+        };
+    },
+
+    parseHTML() {
+        return [
+            {
+                tag: 'div[data-youtube-embed]',
+                getAttrs: (node) => {
+                    const el = node as HTMLElement;
+                    const iframe = el.querySelector('iframe');
+                    return {
+                        src: iframe?.getAttribute('src') ?? null,
+                        width: iframe?.getAttribute('width') ?? '100%',
+                        height: iframe?.getAttribute('height') ?? '360',
+                    };
+                },
+            },
+        ];
+    },
+
+    renderHTML({ HTMLAttributes }) {
+        return [
+            'div',
+            { 'data-youtube-embed': '', class: 'youtube-embed-wrapper' },
+            [
+                'iframe',
+                mergeAttributes(
+                    {
+                        src: HTMLAttributes.src,
+                        width: HTMLAttributes.width,
+                        height: HTMLAttributes.height,
+                        frameborder: '0',
+                        allow: 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture',
+                        allowfullscreen: 'true',
+                    }
+                ),
+            ],
+        ];
+    },
+});
 
 export type RichTextEditorVariant = 'minimal' | 'standard' | 'full';
 
@@ -69,6 +139,56 @@ const LinkDialog = ({ open, onClose, onSave, initialUrl }: { open: boolean, onCl
     );
 };
 
+// ---------------------------------------------------------------------------
+// YouTube Dialog
+// ---------------------------------------------------------------------------
+const YouTubeDialog = ({ open, onClose, onEmbed }: { open: boolean; onClose: () => void; onEmbed: (videoId: string) => void }) => {
+    const [url, setUrl] = useState('');
+    const [error, setError] = useState('');
+
+    const handleEmbed = () => {
+        const id = extractYouTubeId(url.trim());
+        if (!id) {
+            setError('Please enter a valid YouTube URL');
+            return;
+        }
+        onEmbed(id);
+        setUrl('');
+        setError('');
+        onClose();
+    };
+
+    const handleClose = () => {
+        setUrl('');
+        setError('');
+        onClose();
+    };
+
+    return (
+        <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+            <DialogTitle>Embed YouTube Video</DialogTitle>
+            <DialogContent>
+                <TextField
+                    autoFocus
+                    margin="dense"
+                    label="YouTube URL"
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    fullWidth
+                    variant="outlined"
+                    value={url}
+                    onChange={(e) => { setUrl(e.target.value); setError(''); }}
+                    error={!!error}
+                    helperText={error || 'Paste any YouTube link (watch, youtu.be, or embed URL)'}
+                />
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={handleClose}>Cancel</Button>
+                <Button onClick={handleEmbed} variant="contained" disabled={!url}>Embed</Button>
+            </DialogActions>
+        </Dialog>
+    );
+};
+
 interface MenuBarProps {
     editor: Editor | null;
     variant: RichTextEditorVariant;
@@ -82,6 +202,7 @@ interface MenuBarProps {
 
 const MenuBar = ({ editor, variant, showSourceToggle, sourceMode, onSourceToggle, showFullscreen, isFullscreen, onFullscreenToggle }: MenuBarProps) => {
     const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+    const [youtubeDialogOpen, setYoutubeDialogOpen] = useState(false);
     const theme = useTheme();
 
     if (!editor) {
@@ -104,6 +225,15 @@ const MenuBar = ({ editor, variant, showSourceToggle, sourceMode, onSourceToggle
         if (files.length > 0) {
             editor.chain().focus().setImage({ src: files[0].url }).run();
         }
+    };
+
+    const handleYoutubeEmbed = (videoId: string) => {
+        const src = `https://www.youtube.com/embed/${videoId}`;
+        editor.commands.focus();
+        editor.commands.insertContent({
+            type: 'youtubeEmbed',
+            attrs: { src, width: '100%', height: '360' },
+        });
     };
 
     const handleHeadingChange = (event: SelectChangeEvent<string>) => {
@@ -300,6 +430,15 @@ const MenuBar = ({ editor, variant, showSourceToggle, sourceMode, onSourceToggle
                 }
             />
 
+            {/* YouTube Embed – Full variant only */}
+            {variant === 'full' && (
+                <Tooltip title="Embed YouTube Video">
+                    <IconButton size="small" onClick={() => setYoutubeDialogOpen(true)}>
+                        <YouTubeIcon fontSize="small" />
+                    </IconButton>
+                </Tooltip>
+            )}
+
             {variant !== 'minimal' && (
                 <>
                     <Tooltip title="Blockquote">
@@ -349,6 +488,12 @@ const MenuBar = ({ editor, variant, showSourceToggle, sourceMode, onSourceToggle
                 onClose={() => setLinkDialogOpen(false)}
                 onSave={setLink}
                 initialUrl={editor.getAttributes('link').href || ''}
+            />
+
+            <YouTubeDialog
+                open={youtubeDialogOpen}
+                onClose={() => setYoutubeDialogOpen(false)}
+                onEmbed={handleYoutubeEmbed}
             />
 
             {/* Source Code Toggle */}
@@ -423,6 +568,7 @@ export default function RichTextEditor({
             }),
             TextStyle,
             Color,
+            YouTubeNode,
         ],
         content: value,
         onUpdate: ({ editor }) => {
@@ -744,6 +890,25 @@ export default function RichTextEditor({
                         marginTop: '1em',
                         marginBottom: '1em',
                         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                    },
+                    '& .ProseMirror .youtube-embed-wrapper': {
+                        position: 'relative',
+                        width: '100%',
+                        paddingBottom: '56.25%',
+                        height: 0,
+                        marginTop: '1.2em',
+                        marginBottom: '1.2em',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                        '& iframe': {
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            border: 0,
+                        },
                     },
                     '& .ProseMirror pre': {
                         background: theme.palette.mode === 'dark' ? '#1e293b' : '#1e1e1e',

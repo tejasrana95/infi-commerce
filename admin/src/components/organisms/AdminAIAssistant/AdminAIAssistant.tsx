@@ -29,8 +29,8 @@ import { useNotification } from '@/contexts/NotificationContext';
 
 interface AdminAIAssistantProps {
     entityType: 'product' | 'category' | 'brand' | 'page' | 'blog_post';
-    getValues: (field?: string) => any;
-    setValue: (field: string, value: any, options?: any) => void;
+    getValues: (field?: string) => unknown;
+    setValue: (field: string, value: unknown, options?: Record<string, unknown>) => void;
 }
 
 interface GenerateOptions {
@@ -82,6 +82,7 @@ export default function AdminAIAssistant({ entityType, getValues, setValue }: Ad
                 title: entityTitle,
                 images: getValues('images') || [],
                 existingDescription: getValues(descriptionField),
+                existingExcerpt: entityType === 'blog_post' ? getValues('excerpt') : undefined,
                 brand: getValues('brand'),
                 category: getValues('categoryIds')?.[0],
                 specifications: getValues('specifications') || [], // Pass all specifications
@@ -106,6 +107,7 @@ export default function AdminAIAssistant({ entityType, getValues, setValue }: Ad
                     'productName',
                     'description',
                     'shortDescription',
+                    'excerpt',
                     'metaTitle',
                     'metaDescription',
                     'metaKeywords',
@@ -129,9 +131,15 @@ export default function AdminAIAssistant({ entityType, getValues, setValue }: Ad
                 if (fieldsToGenerate.includes('productName') && data.productName) setValue(titleField, data.productName, { shouldDirty: true });
                 if (fieldsToGenerate.includes('description') && data.description) setValue(descriptionField, data.description, { shouldDirty: true });
                 if (fieldsToGenerate.includes('shortDescription') && data.shortDescription) {
-                    // Only set if the field exists in the form (a rough check, or based on entity type)
-                    // For pages, we might map shortDescription to excerpt if it exists, or ignore
-                    if (!isPageLike) setValue('shortDescription', data.shortDescription, { shouldDirty: true });
+                    // Blog posts use `excerpt`; products/categories/brands/pages use shortDescription where present.
+                    if (entityType === 'blog_post') {
+                        setValue('excerpt', data.shortDescription, { shouldDirty: true, shouldValidate: true });
+                    } else if (!isPageLike) {
+                        setValue('shortDescription', data.shortDescription, { shouldDirty: true });
+                    }
+                }
+                if (entityType === 'blog_post' && data.excerpt) {
+                    setValue('excerpt', data.excerpt, { shouldDirty: true, shouldValidate: true });
                 }
                 if (fieldsToGenerate.includes('tags') && data.tags) setValue('tags', data.tags, { shouldDirty: true });
 
@@ -153,9 +161,16 @@ export default function AdminAIAssistant({ entityType, getValues, setValue }: Ad
                 showNotification('Content generated successfully', 'success');
                 handleClose();
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('AI Generation Failed:', error);
-            showNotification(error.response?.data?.message || 'Failed to generate content', 'error');
+            const message =
+                typeof error === 'object' &&
+                    error !== null &&
+                    'response' in error &&
+                    typeof (error as { response?: { data?: { message?: unknown } } }).response?.data?.message === 'string'
+                    ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+                    : 'Failed to generate content';
+            showNotification(message, 'error');
         } finally {
             setLoading(false);
         }

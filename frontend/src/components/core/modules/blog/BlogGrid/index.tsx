@@ -1,14 +1,42 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import ImageWithDimensions from '@/components/core/common/ImageWithDimensions';
 import api from '@/lib/api';
 import styles from './index.module.scss';
-import { FiClock, FiEye, FiGrid, FiList } from 'react-icons/fi';
+import { FiClock, FiEye, FiGrid, FiList, FiMapPin } from 'react-icons/fi';
 
 import { ModuleProps } from '../..';
+
+interface BlogGridPost {
+    _id: string;
+    slug: string;
+    title: string;
+    excerpt?: string;
+    featuredImage?: string;
+    isFeatured?: boolean;
+    isPinned?: boolean;
+    featured?: boolean;
+    pinned?: boolean;
+    publishedAt?: string;
+    readingTime?: number;
+    viewCount?: number;
+    categoryIds?: Array<{ name?: string }>;
+    author?: {
+        name?: string;
+        avatar?: string;
+    };
+}
+
+function getPriority(post: BlogGridPost): number {
+    const pinned = post.isPinned || post.pinned;
+    const featured = post.isFeatured || post.featured;
+    if (pinned) return 2;
+    if (featured) return 1;
+    return 0;
+}
 
 export default function BlogGrid({ config, initialData }: ModuleProps) {
     const searchParams = useSearchParams();
@@ -30,37 +58,19 @@ export default function BlogGrid({ config, initialData }: ModuleProps) {
         allowViewToggle = false,
     } = config;
 
-    // URL params override config settings
     const urlCategory = searchParams.get('category');
     const urlTag = searchParams.get('tag');
     const urlSearch = searchParams.get('search');
 
-    // Use URL params if available, fallback to config
     const activeCategory = urlCategory || filterByCategory;
     const activeTag = urlTag || filterByTag;
     const activeSearch = urlSearch;
 
-    // Use initialData if provided (SSR)
-    const [posts, setPosts] = useState<any[]>(initialData || []);
+    const [posts, setPosts] = useState<BlogGridPost[]>((initialData as BlogGridPost[]) || []);
     const [loading, setLoading] = useState(!initialData);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-    // Stabilize dependencies to prevent infinite loops - include URL params
-    const configKey = useMemo(() =>
-        JSON.stringify({
-            activeCategory,
-            activeTag,
-            activeSearch,
-            sortBy,
-            showFeaturedOnly,
-            numberOfPosts
-        }),
-        [activeCategory, activeTag, activeSearch, sortBy, showFeaturedOnly, numberOfPosts]
-    );
-
     useEffect(() => {
-        // Skip client-side fetch if we have initialData and no URL overrides are present
-        // (If there are URL overrides like search, we should re-fetch)
         if (initialData && !urlCategory && !urlTag && !urlSearch) return;
 
         const fetchPosts = async () => {
@@ -76,8 +86,7 @@ export default function BlogGrid({ config, initialData }: ModuleProps) {
                 if (showFeaturedOnly) params.append('featured', 'true');
                 if (sortBy) params.append('sortBy', sortBy);
 
-                // Use api client which includes X-Store-ID header automatically
-                const data = await api.get<{ success: boolean; data: any[] }>(`blog/posts?${params.toString()}`);
+                const data = await api.get<{ success: boolean; data: BlogGridPost[] }>(`blog/posts?${params.toString()}`);
                 setPosts(data.data || []);
             } catch (error) {
                 console.error('Error fetching posts:', error);
@@ -88,55 +97,79 @@ export default function BlogGrid({ config, initialData }: ModuleProps) {
         };
 
         fetchPosts();
-    }, [configKey, initialData, urlCategory, urlTag, urlSearch]);
+    }, [initialData, urlCategory, urlTag, urlSearch, activeCategory, activeTag, activeSearch, numberOfPosts, showFeaturedOnly, sortBy]);
 
-    // Generate dynamic title based on active filters
+    const sortedPosts = useMemo(() => {
+        return [...posts]
+            .map((post, index) => ({ post, index }))
+            .sort((a, b) => {
+                const priorityDiff = getPriority(b.post) - getPriority(a.post);
+                if (priorityDiff !== 0) return priorityDiff;
+
+                const aDate = a.post.publishedAt ? new Date(a.post.publishedAt).getTime() : 0;
+                const bDate = b.post.publishedAt ? new Date(b.post.publishedAt).getTime() : 0;
+                if (aDate !== bDate) return bDate - aDate;
+
+                return a.index - b.index;
+            })
+            .map((entry) => entry.post);
+    }, [posts]);
+
     const displayTitle = useMemo(() => {
         if (activeSearch) return `Search: "${activeSearch}"`;
         if (activeTag) return `Tag: ${activeTag}`;
-        // For category, we might want to show category name but we only have ID
-        // Keep the configured title or default
         return title;
     }, [title, activeSearch, activeTag]);
 
     if (loading) {
         return (
-            <div className={styles.blogGrid}>
-                {displayTitle && <h2 className={styles.title}>{displayTitle}</h2>}
+            <section className={styles.blogGrid}>
+                <div className={styles.topBar}>
+                    {displayTitle && <h2 className={styles.title}>{displayTitle}</h2>}
+                </div>
                 <div className={`${styles.grid} ${styles[`cols${columns}`]}`}>
                     {[...Array(numberOfPosts)].map((_, i) => (
                         <div key={i} className={styles.skeleton} />
                     ))}
                 </div>
-            </div>
+            </section>
         );
     }
 
-    if (posts.length === 0) {
+    if (sortedPosts.length === 0) {
         return (
-            <div className={styles.blogGrid}>
-                {displayTitle && <h2 className={styles.title}>{displayTitle}</h2>}
+            <section className={styles.blogGrid}>
+                <div className={styles.topBar}>
+                    {displayTitle && <h2 className={styles.title}>{displayTitle}</h2>}
+                </div>
                 <p className={styles.empty}>No posts found</p>
-            </div>
+            </section>
         );
     }
 
     return (
-        <div className={styles.blogGrid}>
-            <div className={styles.header}>
-                {displayTitle && <h2 className={styles.title}>{displayTitle}</h2>}
+        <section className={styles.blogGrid}>
+            <div className={styles.topBar}>
+                <div>
+                    {displayTitle && <h2 className={styles.title}>{displayTitle}</h2>}
+                    <p className={styles.countLabel}>{sortedPosts.length} articles found</p>
+                </div>
 
                 {allowViewToggle && (
                     <div className={styles.viewToggle}>
                         <button
                             className={viewMode === 'grid' ? styles.active : ''}
                             onClick={() => setViewMode('grid')}
+                            aria-label="Grid view"
+                            type="button"
                         >
                             <FiGrid />
                         </button>
                         <button
                             className={viewMode === 'list' ? styles.active : ''}
                             onClick={() => setViewMode('list')}
+                            aria-label="List view"
+                            type="button"
                         >
                             <FiList />
                         </button>
@@ -145,83 +178,86 @@ export default function BlogGrid({ config, initialData }: ModuleProps) {
             </div>
 
             <div className={`${styles.grid} ${styles[`cols${columns}`]} ${viewMode === 'list' ? styles.listView : ''}`}>
-                {posts.map((post) => (
-                    <Link
-                        key={post._id}
-                        href={`/blog/${post.slug}`}
-                        className={styles.card}
-                    >
-                        {post.isFeatured && (
-                            <span className={styles.featuredBadge}>Featured</span>
-                        )}
+                {sortedPosts.map((post) => {
+                    const pinned = Boolean(post.isPinned || post.pinned);
+                    const featured = Boolean(post.isFeatured || post.featured);
 
-                        {showImage && post.featuredImage && (
-                            <div className={styles.imageWrapper}>
-                                <ImageWithDimensions
-                                    src={post.featuredImage}
-                                    alt={post.title}
-                                    fill
-                                    aspectRatio="16x9"
-                                    className={styles.image}
-                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                />
-                            </div>
-                        )}
-
-                        <div className={styles.content}>
-                            {post.categoryIds?.length > 0 && (
-                                <span className={styles.category}>
-                                    {post.categoryIds[0].name}
+                    return (
+                        <Link key={post._id} href={`/blog/${post.slug}`} className={styles.card}>
+                            {(pinned || featured) && (
+                                <span className={styles.priorityBadge}>
+                                    {pinned ? <FiMapPin /> : null}
+                                    {pinned ? 'Pinned' : 'Featured'}
                                 </span>
                             )}
 
-                            <h3 className={styles.postTitle}>{post.title}</h3>
-
-                            {showExcerpt && post.excerpt && (
-                                <p className={styles.excerpt}>{post.excerpt}</p>
+                            {showImage && post.featuredImage && (
+                                <div className={styles.imageWrapper}>
+                                    <ImageWithDimensions
+                                        src={post.featuredImage}
+                                        alt={post.title}
+                                        fill
+                                        aspectRatio="16x9"
+                                        className={styles.image}
+                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                        priority={pinned || featured}
+                                        fetchPriority={pinned || featured ? 'high' : 'auto'}
+                                        loading={pinned || featured ? 'eager' : 'lazy'}
+                                    />
+                                </div>
                             )}
 
-                            <div className={styles.meta}>
-                                {showAuthor && post.author && (
-                                    <div className={styles.author}>
-                                        {post.author.avatar && (
-                                            <ImageWithDimensions
-                                                src={post.author.avatar}
-                                                alt={post.author.name}
-                                                width={24}
-                                                height={24}
-                                                className={styles.avatar}
-                                            />
-                                        )}
-                                        <span>{post.author.name}</span>
-                                    </div>
+                            <div className={styles.content}>
+                                {(post.categoryIds?.length ?? 0) > 0 && (
+                                    <span className={styles.category}>{post.categoryIds?.[0]?.name || 'Category'}</span>
                                 )}
 
-                                <div className={styles.stats}>
-                                    {showDate && post.publishedAt && (
-                                        <span>
-                                            {new Date(post.publishedAt).toLocaleDateString('en-US', {
-                                                month: 'short',
-                                                day: 'numeric',
-                                            })}
-                                        </span>
+                                <h3 className={styles.postTitle}>{post.title}</h3>
+
+                                {showExcerpt && post.excerpt && <p className={styles.excerpt}>{post.excerpt}</p>}
+
+                                <div className={styles.meta}>
+                                    {showAuthor && post.author && (
+                                        <div className={styles.author}>
+                                            {post.author.avatar && (
+                                                <ImageWithDimensions
+                                                    src={post.author.avatar}
+                                                    alt={post.author.name || 'Author'}
+                                                    width={24}
+                                                    height={24}
+                                                    className={styles.avatar}
+                                                />
+                                            )}
+                                            <span>{post.author.name || 'Author'}</span>
+                                        </div>
                                     )}
-                                    {showReadingTime && post.readingTime && (
-                                        <span>
-                                            <FiClock /> {post.readingTime} min
-                                        </span>
-                                    )}
-                                    {showViewCount && (
-                                        <span>
-                                            <FiEye /> {post.viewCount}
-                                        </span>
-                                    )}
+
+                                    <div className={styles.stats}>
+                                        {showDate && post.publishedAt && (
+                                            <span>
+                                                {new Date(post.publishedAt).toLocaleDateString('en-US', {
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                })}
+                                            </span>
+                                        )}
+                                        {showReadingTime && post.readingTime && (
+                                            <span>
+                                                <FiClock /> {post.readingTime} min
+                                            </span>
+                                        )}
+                                        {showViewCount && (
+                                            <span>
+                                                <FiEye /> {post.viewCount || 0}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </Link>
-                ))}
+                        </Link>
+                    );
+                })}
             </div>
-        </div>
+        </section>
     );
 }

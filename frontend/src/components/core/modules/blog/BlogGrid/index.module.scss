@@ -1,64 +1,108 @@
 @use '@/styles/breakpoints' as *;
 
 .blogGrid {
-    padding: 60px 0;
+    padding: 36px 0 56px;
+    --panel: var(--card-background, #ffffff);
+    --edge: color-mix(in srgb, var(--text-primary, #0f172a) 10%, transparent);
+    --ink: var(--text-primary, #0f172a);
+    --muted: var(--text-secondary, #64748b);
+    --brand: var(--color-primary, #4f46e5);
+    --brand-soft: color-mix(in srgb, var(--brand) 14%, transparent);
 }
 
-.header {
+.topBar {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 32px;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
 }
 
 .title {
-    font-size: 32px;
-    font-weight: 700;
-    color: var(--text-primary, #1a1a1a);
+    margin: 0;
+    color: var(--ink);
+    font-size: clamp(1.65rem, 2.2vw, 2.25rem);
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    font-weight: 820;
+}
+
+.countLabel {
+    margin: 8px 0 0;
+    font-size: 0.95rem;
+    color: var(--muted);
 }
 
 .viewToggle {
-    display: flex;
-    gap: 8px;
-    background: var(--card-background, white);
-    padding: 4px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    display: inline-flex;
+    gap: 6px;
+    border: 1px solid var(--edge);
+    border-radius: 14px;
+    padding: 5px;
+    background: var(--panel);
 
     button {
-        padding: 10px 14px;
-        background: none;
+        width: 38px;
+        height: 38px;
         border: none;
-        border-radius: 6px;
+        border-radius: 10px;
+        background: transparent;
+        color: var(--muted);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         cursor: pointer;
-        color: var(--text-secondary, #666);
-        transition: all 0.2s;
+        transition: all 0.2s ease;
 
         &:hover {
-            background: var(--background, #f8f9fa);
+            color: var(--ink);
+            background: color-mix(in srgb, var(--ink) 7%, transparent);
         }
 
         &.active {
-            background: #667eea;
-            color: white;
+            color: #fff;
+            background: linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 75%, #111827));
         }
     }
 }
 
 .grid {
     display: grid;
-    gap: 32px;
+    gap: 22px;
 
     &.cols2 {
-        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     &.cols3 {
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     &.cols4 {
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    @include large-down {
+        &.cols4 {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+
+    @include tablet-down {
+
+        &.cols3,
+        &.cols4 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @include mobile {
+
+        &.cols2,
+        &.cols3,
+        &.cols4 {
+            grid-template-columns: 1fr;
+        }
     }
 
     &.listView {
@@ -66,8 +110,8 @@
 
         .card {
             display: grid;
-            grid-template-columns: 300px 1fr;
-            gap: 24px;
+            grid-template-columns: 280px 1fr;
+            align-items: stretch;
 
             @include mobile {
                 grid-template-columns: 1fr;
@@ -75,84 +119,104 @@
         }
 
         .imageWrapper {
+            min-height: 210px;
             height: 100%;
-            min-height: 200px;
         }
     }
 }
 
 .card {
-    background: var(--card-background, white);
-    border-radius: 16px;
+    display: block;
+    text-decoration: none;
+    background: var(--panel);
+    border: 1px solid var(--edge);
+    border-radius: 18px;
     overflow: hidden;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05);
+    transition: transform 0.24s ease, box-shadow 0.24s ease;
 
     &:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+        transform: translateY(-4px);
+        box-shadow: 0 16px 36px rgba(15, 23, 42, 0.12);
 
         .image {
-            transform: scale(1.05);
+            transform: scale(1.04);
         }
     }
 }
 
-.featuredBadge {
+.priorityBadge {
     position: absolute;
-    top: 16px;
-    left: 16px;
+    top: 14px;
+    left: 14px;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     padding: 6px 12px;
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    color: white;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-    z-index: 2;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--brand) 30%, transparent);
+    background: color-mix(in srgb, #ffffff 72%, var(--brand-soft));
+    color: var(--brand);
+    font-size: 11px;
+    font-weight: 760;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
 .imageWrapper {
-    position: relative;
     width: 100%;
-    height: 240px;
+    height: 100%;
+    position: relative;
     overflow: hidden;
-    background: var(--background, #f8f9fa);
+    background: #f1f5f9;
+    display: contents;
 }
 
 .image {
     object-fit: cover;
-    transition: transform 0.5s;
+    transition: transform 0.45s ease;
 }
 
 .content {
-    padding: 24px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .category {
-    display: inline-block;
-    padding: 4px 12px;
-    background: rgba(102, 126, 234, 0.1);
-    color: #667eea;
-    border-radius: 12px;
-    font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 12px;
+    display: inline-flex;
+    align-self: flex-start;
+    border-radius: 999px;
+    padding: 5px 11px;
+    background: var(--brand-soft);
+    color: color-mix(in srgb, var(--brand) 88%, #111827);
+    font-size: 11px;
+    font-weight: 760;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
 }
 
 .postTitle {
-    font-size: 22px;
-    font-weight: 700;
-    line-height: 1.4;
-    margin-bottom: 12px;
-    color: var(--text-primary, #1a1a1a);
+    margin: 0;
+    color: var(--ink);
+    font-size: 1.05rem;
+    font-weight: 760;
+    line-height: 1.35;
+    letter-spacing: -0.015em;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .excerpt {
-    font-size: 15px;
-    line-height: 1.6;
-    color: var(--text-secondary, #666);
-    margin-bottom: 16px;
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.98rem;
+    line-height: 1.65;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
@@ -160,59 +224,67 @@
 }
 
 .meta {
+    margin-top: 4px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--edge);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-top: 16px;
-    border-top: 1px solid var(--border, #e0e0e0);
+    gap: 10px;
 }
 
 .author {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 14px;
-    color: var(--text-secondary, #666);
+    font-size: 0.88rem;
+    color: var(--muted);
 }
 
 .avatar {
-    border-radius: 50%;
+    border-radius: 999px;
 }
 
 .stats {
     display: flex;
-    gap: 16px;
-    font-size: 13px;
-    color: var(--text-secondary, #999);
+    align-items: center;
+    gap: 10px;
+    font-size: 0.8rem;
+    color: color-mix(in srgb, var(--muted) 92%, transparent);
 
     span {
-        display: flex;
+        display: inline-flex;
         align-items: center;
         gap: 4px;
     }
 }
 
 .empty {
+    margin: 0;
     text-align: center;
-    padding: 60px 20px;
-    color: var(--text-secondary, #666);
+    color: var(--muted);
+    border: 1px dashed var(--edge);
+    border-radius: 14px;
+    padding: 52px 18px;
 }
 
 .skeleton {
-    background: var(--card-background, white);
-    border-radius: 16px;
-    height: 400px;
-    animation: pulse 1.5s ease-in-out infinite;
+    min-height: 340px;
+    border-radius: 18px;
+    background: linear-gradient(90deg,
+            rgba(148, 163, 184, 0.14) 25%,
+            rgba(148, 163, 184, 0.26) 38%,
+            rgba(148, 163, 184, 0.14) 63%);
+    background-size: 400% 100%;
+    animation: shimmer 1.35s ease infinite;
 }
 
-@keyframes pulse {
-
-    0%,
-    100% {
-        opacity: 1;
+@keyframes shimmer {
+    0% {
+        background-position: 100% 0;
     }
 
-    50% {
-        opacity: 0.5;
+    100% {
+        background-position: 0 0;
     }
 }
