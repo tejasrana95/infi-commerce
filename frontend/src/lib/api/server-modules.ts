@@ -50,22 +50,27 @@ export async function fetchProductsForModule(
 ): Promise<Product[]> {
     try {
         const params = new URLSearchParams();
-        params.append('limit', (config.limit || 8).toString());
         params.append('isActive', 'true');
+        params.append('limit', (config.limit || 8).toString());
 
         if (config.source === 'custom' && config.productIds?.length) {
             params.append('ids', config.productIds.join(','));
         } else if (config.source === 'category' && config.categoryIds?.length) {
             params.append('categoryIds', config.categoryIds.join(','));
         } else if (config.source === 'best-sellers') {
-            params.append('sort', 'salesCount');
+            params.append('sort', 'best-selling');
         } else if (config.source === 'new-arrivals') {
-            params.append('sort', 'createdAt');
+            params.append('sort', 'newest');
+        } else if (config.source === 'random') {
+            params.append('sort', 'random');
         }
+
+        // Random source caches for a full day (matches backend's daily seed).
+        const revalidateSeconds = config.source === 'random' ? 86400 : 300;
 
         const response = await fetch(`${API_BASE}/products?${params.toString()}`, {
             headers: { 'x-store-id': storeId },
-            next: { revalidate: 300 } // Cache for 5 minutes
+            next: { revalidate: revalidateSeconds }
         });
 
         if (!response.ok) return [];

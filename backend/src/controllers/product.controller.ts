@@ -477,6 +477,7 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
     // Build filter
     const filter: any = { isActive: true };
     let idsFilterCount = 0;
+    let requestedIds: string[] = [];
 
     // Handle isActive filter
     if (req.query.isActive === 'all') {
@@ -489,10 +490,10 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
     }
     // Support comma-separated IDs filter
     if (req.query.ids) {
-        const ids = (req.query.ids as string).split(',').map(id => id.trim()).filter(id => id);
-        if (ids.length > 0) {
-            filter._id = { $in: ids };
-            idsFilterCount = ids.length;
+        requestedIds = (req.query.ids as string).split(',').map(id => id.trim()).filter(id => id);
+        if (requestedIds.length > 0) {
+            filter._id = { $in: requestedIds };
+            idsFilterCount = requestedIds.length;
         }
     }
 
@@ -821,6 +822,7 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
     // Build sort - support SEO-friendly sort names
     let sort: any = textSearchMode ? { score: { $meta: 'textScore' } } : { createdAt: -1 };
     const sortParam = (req.query.sort as string) || 'newest';
+    let isRandomSort = false;
     if (!textSearchMode) {
         switch (sortParam) {
             case 'newest':
@@ -860,6 +862,20 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
             case 'featured':
                 sort = { isFeatured: -1, salesCount: -1 };
                 break;
+            case 'random': {
+                // Use a daily seed so results are deterministic within 24 hours (cache-friendly).
+                // The seed changes once per day (UTC midnight), so caching with a 24-hour TTL
+                // will always serve the same random ordering for the day.
+                isRandomSort = true;
+                const today = new Date();
+                const dailySeed = `${today.getUTCFullYear()}-${today.getUTCMonth()}-${today.getUTCDate()}`;
+                // Simple numeric hash of the seed string used to offset the sort field.
+                const seedHash = dailySeed.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+                // We fetch more documents and then sort on the JS side for true pseudo-randomness.
+                // MongoDB $sample is not cache-friendly (different results per request).
+                sort = { _id: seedHash % 2 === 0 ? 1 : -1 };
+                break;
+            }
         }
     }
 
@@ -874,11 +890,14 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         : `-__v`;
     const selectFields = `${listingProjection} ${removeProductCost}`.trim();
 
+    // For random sort we need a larger pool to shuffle from; handle that here.
+    const randomPoolLimit = isRandomSort ? Math.min(limit * 5, 100) : limit;
+
     // Get products with pagination
     const productQuery = Product.find(filter)
         .select(selectFields)
         .skip(skip)
-        .limit(limit)
+        .limit(randomPoolLimit)
         .sort(sort);
 
     if (isListingView) {
@@ -935,6 +954,24 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         totalCount = total;
     }
 
+    // For random sort: shuffle the pool using a deterministic daily seed so the
+    // same order is returned all day (cache-friendly), then slice back to the
+    // original requested limit (not the inflated pool size).
+    if (isRandomSort) {
+        const today = new Date();
+        const dailySeed = `${today.getUTCFullYear()}-${today.getUTCMonth()}-${today.getUTCDate()}`;
+        let seedVal = dailySeed.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+        // Simple seeded pseudo-random shuffle (Fisher–Yates with LCG)
+        const lcg = () => { seedVal = (seedVal * 1664525 + 1013904223) & 0xffffffff; return (seedVal >>> 0) / 0xffffffff; };
+        for (let i = products.length - 1; i > 0; i--) {
+            const j = Math.floor(lcg() * (i + 1));
+            [products[i], products[j]] = [products[j], products[i]];
+        }
+        // Slice back to the original requested limit (pool was larger for shuffle variety)
+        products = products.slice(0, limit);
+        totalCount = products.length;
+    }
+
     // Add computed pricing fields to each product (sale price, tax, variants)
     // Note: isOnSale / salePrice are pre-calculated during product save — no timezone needed here.
     const productsWithPricing = products.map((product: any) => {
@@ -970,6 +1007,23 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
                 return scoreProduct(b) - scoreProduct(a);
             });
         }
+    }
+
+    // Preserve explicit IDs order for manual/custom selections (e.g., module builders).
+    // Mongo $in does not guarantee order, and default sorting would otherwise scramble it.
+    if (requestedIds.length > 0) {
+        const positionMap = new Map<string, number>(
+            requestedIds.map((id, index) => [id, index])
+        );
+
+        productsWithPricing.sort((a: any, b: any) => {
+            const aPos = positionMap.get(String(a._id));
+            const bPos = positionMap.get(String(b._id));
+            if (aPos === undefined && bPos === undefined) return 0;
+            if (aPos === undefined) return 1;
+            if (bPos === undefined) return -1;
+            return aPos - bPos;
+        });
     }
 
     // Build active filters metadata for frontend URL reconstruction

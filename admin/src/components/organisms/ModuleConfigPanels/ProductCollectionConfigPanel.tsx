@@ -9,7 +9,7 @@ import api from '@/lib/api';
 
 interface ProductCollectionConfigPanelProps {
     config: {
-        source?: 'new-arrivals' | 'best-sellers' | 'most-viewed' | 'category' | 'custom';
+        source?: 'new-arrivals' | 'best-sellers' | 'most-viewed' | 'category' | 'custom' | 'random';
         title?: string;
         titleTypography?: {
             fontFamily?: string;
@@ -171,6 +171,7 @@ export default function ProductCollectionConfigPanel({ config, onChange, storeId
                     <MenuItem value="new-arrivals">New Arrivals</MenuItem>
                     <MenuItem value="best-sellers">Best Sellers</MenuItem>
                     <MenuItem value="most-viewed">Most Viewed</MenuItem>
+                    <MenuItem value="random">Random (refreshes daily)</MenuItem>
                     <MenuItem value="category">Category Products</MenuItem>
                     <MenuItem value="custom">Custom Selection</MenuItem>
                 </Select>

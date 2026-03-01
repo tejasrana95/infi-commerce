@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { getComponent } from '@/components/templates/registry';
 import { ModuleProps } from '../..';
 import { useStore } from '@/providers/StoreProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import api from '@/lib/api';
 import styles from './PersonalizedProducts.module.scss';
+import carouselStyles from '../ProductCarousel/ProductCarousel.module.scss';
 
 interface ResponsiveColumns {
     desktop: number;
@@ -95,11 +96,13 @@ export default function PersonalizedProductsModule({ config }: ModuleProps) {
         titleTypography,
         limit = 8,
         columns = { desktop: 4, tablet: 3, mobile: 2 },
+        layout = 'grid',
         exclusionScope = 'category',
         exclusionDays = 30,
         retentionDays = 30,
         fallback = 'featured',
         showRating = true,
+        autoplay = false,
     } = config as PersonalizedProductsConfig;
 
     const { store } = useStore();
@@ -108,6 +111,13 @@ export default function PersonalizedProductsModule({ config }: ModuleProps) {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [isPersonalized, setIsPersonalized] = useState(false);
+
+    // Carousel state
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [isPaused, setIsPaused] = useState(false);
+    const [visibleCount, setVisibleCount] = useState(
+        typeof columns === 'number' ? columns : (columns as { desktop: number }).desktop
+    );
 
     const ProductCard = getComponent('ProductCard');
 
@@ -118,6 +128,41 @@ export default function PersonalizedProductsModule({ config }: ModuleProps) {
         }
         return columns;
     }, [columns]);
+
+    // Responsive visible count for carousel
+    useEffect(() => {
+        if (layout !== 'carousel') return;
+        const update = () => {
+            if (window.innerWidth < 768) setVisibleCount(1);
+            else if (window.innerWidth < 1024) setVisibleCount(Math.min(normalizedColumns.tablet, 3));
+            else setVisibleCount(normalizedColumns.desktop);
+        };
+        update();
+        window.addEventListener('resize', update);
+        return () => window.removeEventListener('resize', update);
+    }, [layout, normalizedColumns]);
+
+    const maxIndex = Math.max(0, products.length - visibleCount);
+
+    const nextSlide = useCallback(() => {
+        setCurrentIndex(prev => prev >= maxIndex ? 0 : prev + 1);
+    }, [maxIndex]);
+
+    const prevSlide = useCallback(() => {
+        setCurrentIndex(prev => prev <= 0 ? maxIndex : prev - 1);
+    }, [maxIndex]);
+
+    const goToSlide = useCallback((index: number) => {
+        setCurrentIndex(Math.max(0, Math.min(index, maxIndex)));
+    }, [maxIndex]);
+
+    // Auto-play for carousel
+    useEffect(() => {
+        if (layout === 'carousel' && autoplay && products.length > visibleCount && !isPaused) {
+            const timer = setInterval(nextSlide, 4000);
+            return () => clearInterval(timer);
+        }
+    }, [layout, autoplay, products.length, visibleCount, isPaused, nextSlide]);
 
     useEffect(() => {
         const fetchRecommendations = async () => {
@@ -226,6 +271,7 @@ export default function PersonalizedProductsModule({ config }: ModuleProps) {
     }, [store, limit, exclusionScope, exclusionDays, retentionDays, fallback, getLocalData]);
 
     const columnClass = styles[`columns${Math.min(Math.max(normalizedColumns.desktop, 2), 6)}`];
+    const carouselColumnClass = carouselStyles[`columns${Math.min(Math.max(normalizedColumns.desktop, 2), 6)}`];
     const titleAlignment = titleTypography?.alignment || 'left';
     const headerStyle: React.CSSProperties = {
         alignItems: titleAlignment === 'center' ? 'center' : titleAlignment === 'right' ? 'flex-end' : 'flex-start',
@@ -258,18 +304,90 @@ export default function PersonalizedProductsModule({ config }: ModuleProps) {
         return null; // Don't show empty section
     }
 
-    return (
-        <section className={styles.container}>
-            {(title || subtitle) && (
-                <div className={styles.header} style={headerStyle}>
-                    {title && <h2 className={styles.title} style={titleStyle}>{title}</h2>}
+    const header = (
+        (title || subtitle) && (
+            <div className={styles.header} style={headerStyle}>
+                {title && <h2 className={styles.title} style={titleStyle}>{title}</h2>}
+                {(subtitle || isPersonalized) && (
+                    <span className={styles.personalizedBadge}>{subtitle || '✨ Personalized for you'}</span>
+                )}
+            </div>
+        )
+    );
 
-                    {(subtitle || isPersonalized) && (
-                        <span className={styles.personalizedBadge}>{subtitle || '✨ Personalized for you'}</span>
+    // ── Carousel layout ────────────────────────────────────────────────────────
+    if (layout === 'carousel') {
+        const slideWidth = 100 / visibleCount;
+        const translateX = currentIndex * slideWidth;
+
+        return (
+            <section className={styles.container}>
+                {header}
+
+                <div
+                    className={carouselStyles.carouselWrapper}
+                    onMouseEnter={() => setIsPaused(true)}
+                    onMouseLeave={() => setIsPaused(false)}
+                >
+                    <div className={carouselStyles.carouselViewport}>
+                        <div
+                            className={`${carouselStyles.carouselTrack} ${carouselColumnClass}`}
+                            style={{ transform: `translateX(-${translateX}%)` }}
+                        >
+                            {products.map((product) => (
+                                <div key={product._id} className={carouselStyles.carouselSlide}>
+                                    <ProductCard product={product} showRating={showRating} />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {products.length > visibleCount && (
+                        <>
+                            <button
+                                className={`${carouselStyles.navButton} ${carouselStyles.navPrev}`}
+                                onClick={prevSlide}
+                                disabled={currentIndex === 0 && !autoplay}
+                                aria-label="Previous products"
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                </svg>
+                            </button>
+                            <button
+                                className={`${carouselStyles.navButton} ${carouselStyles.navNext}`}
+                                onClick={nextSlide}
+                                disabled={currentIndex >= maxIndex && !autoplay}
+                                aria-label="Next products"
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                            </button>
+                        </>
                     )}
                 </div>
-            )}
 
+                {products.length > visibleCount && (
+                    <div className={carouselStyles.dots}>
+                        {Array.from({ length: maxIndex + 1 }).map((_, index) => (
+                            <button
+                                key={index}
+                                className={`${carouselStyles.dot} ${index === currentIndex ? carouselStyles.dotActive : ''}`}
+                                onClick={() => goToSlide(index)}
+                                aria-label={`Go to slide ${index + 1}`}
+                            />
+                        ))}
+                    </div>
+                )}
+            </section>
+        );
+    }
+
+    // ── Grid layout (default) ──────────────────────────────────────────────────
+    return (
+        <section className={styles.container}>
+            {header}
             <div className={`${styles.grid} ${columnClass}`}>
                 {products.map((product) => (
                     <ProductCard
@@ -282,3 +400,4 @@ export default function PersonalizedProductsModule({ config }: ModuleProps) {
         </section>
     );
 }
+

@@ -8,7 +8,7 @@ import styles from './ProductGrid.module.scss';
 import { Box } from 'lucide-react';
 
 interface ProductGridConfig {
-    source: 'best-sellers' | 'new-arrivals' | 'custom' | 'category';
+    source: 'best-sellers' | 'new-arrivals' | 'custom' | 'category' | 'random';
     limit: number;
     columns: number;
     showPrice: boolean;
@@ -74,12 +74,15 @@ export default function ProductGridModule({ config, initialData }: ModuleProps) 
 
                 if (source === 'custom' && productIds && productIds.length > 0) {
                     params.append('ids', productIds.join(','));
+                    params.append('sort', 'false');
                 } else if (source === 'category' && categoryIds && categoryIds.length > 0) {
                     params.append('categoryIds', categoryIds.join(','));
                 } else if (source === 'best-sellers') {
-                    params.append('sort', 'salesCount');
+                    params.append('sort', 'best-selling');
                 } else if (source === 'new-arrivals') {
-                    params.append('sort', 'createdAt');
+                    params.append('sort', 'newest');
+                } else if (source === 'random') {
+                    params.append('sort', 'random');
                 }
 
                 const data = await api.get<Product[] | { products: Product[] }>(`products?${params.toString()}`);

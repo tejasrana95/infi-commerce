@@ -62,10 +62,12 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
                 setLoading(true);
                 const ids = categoryIds.join(',');
                 const params = new URLSearchParams({ ids });
+                params.set('sort', 'false');
                 if (store?._id) {
                     params.set('storeId', store._id);
                 }
                 const data = await api.get<{ categories: Category[] }>(`categories?${params.toString()}`);
+                console.log('data', `categories?${params.toString()}`)
                 setCategories(Array.isArray(data.categories) ? data.categories : []);
             } catch (err) {
                 console.error('Error fetching categories:', err);
@@ -74,7 +76,6 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
                 setLoading(false);
             }
         };
-
         if (categoryIds && categoryIds.length > 0 && store?._id) {
             fetchCategories();
         } else {

@@ -252,7 +252,7 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
     const skip = (page - 1) * limit;
     const cacheParam = String(req.query.cache || '').toLowerCase();
     const bypassCache = ['0', 'false', 'off', 'no'].includes(cacheParam) || req.query.nocache === 'true';
-
+    const sort = req.query.sort === 'false' ? false : true;
     // Build filter
     const filter: any = {};
     let idsFilterCount = 0;
@@ -367,7 +367,7 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
         .populate('parentCategory', 'title slug')
         .skip(skip)
         .limit(limit)
-        .sort({ sortOrder: 1, title: 1 })
+        .sort({ sortOrder: sort ? 1 : -1, title: sort ? 1 : -1 })
         .lean();
 
     if (isPrivileged) {

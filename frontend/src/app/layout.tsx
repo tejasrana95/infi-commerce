@@ -24,20 +24,12 @@ import { InterestProvider } from "@/providers/InterestProvider";
 import AutoAnalytics from "@/components/analytics/AutoAnalytics";
 import NavigationProgress from '@/components/ui/NavigationProgress';
 import ClientOnlyWidgets from "@/components/core/ClientOnlyWidgets";
-import dynamic from 'next/dynamic';
+import DeferredGlobalWidgets from "@/components/core/DeferredGlobalWidgets";
 import { formatFontFamily } from "@/lib/fonts";
 import { DynamicHeader } from "@/components/layout/DynamicHeader";
 import { DynamicFooter } from "@/components/layout/DynamicFooter";
 import { fetchMenusByIds } from "@/lib/api/server-menu";
 import FontLoader from "@/components/core/FontLoader";
-
-// Lazy-load components not needed for initial render / above-the-fold
-// Note: ssr: false is not used here because layout.tsx is a Server Component.
-// Code-splitting still happens via dynamic() — the components load as separate chunks.
-const CookieConsentWrapper = dynamic(() => import("@/components/core/CookieBanner/CookieConsentWrapper"));
-const OfflineIndicator = dynamic(() => import("@/components/pwa/OfflineIndicator"));
-const InstallPrompt = dynamic(() => import("@/components/pwa/InstallPrompt"));
-const PWARegistration = dynamic(() => import("@/components/pwa/PWARegistration"));
 
 
 // Optimized font loading with display: swap to prevent FOIT
@@ -338,16 +330,7 @@ export default async function RootLayout({
                               </div>
                             )}
                             <ClientOnlyWidgets showCompare={!store?.maintenanceMode} />
-                            {/* Cookie Consent Banner */}
-                            <CookieConsentWrapper />
-                            {/* PWA Components */}
-                            {store?.pwaSettings?.enabled && (
-                              <>
-                                <OfflineIndicator />
-                                <InstallPrompt />
-                                <PWARegistration />
-                              </>
-                            )}
+                            <DeferredGlobalWidgets pwaEnabled={!!store?.pwaSettings?.enabled} />
                           </DialogProvider>
                         </ToastProvider>
                       </CompareProvider>

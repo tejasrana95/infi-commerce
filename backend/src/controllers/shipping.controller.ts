@@ -10,6 +10,31 @@ import { asyncHandler, AppError } from '../middleware/validation';
 import { invalidateShippingCache } from '../utils/cache-invalidation';
 import { addPricingToProduct } from './product.controller';
 
+const preserveRefArrayOrder = (doc: any, field: string) => {
+    if (!doc || !doc[field] || !Array.isArray(doc[field])) return doc;
+
+    const depopulated = typeof doc.toObject === 'function'
+        ? doc.toObject({ depopulate: true })
+        : doc;
+
+    const originalIds = Array.isArray(depopulated[field])
+        ? depopulated[field].map((id: any) => id?.toString())
+        : [];
+
+    if (originalIds.length === 0) return doc;
+
+    const current = doc[field] as any[];
+    const map = new Map<string, any>(
+        current.map((item: any) => [String(item?._id || item), item])
+    );
+
+    doc[field] = originalIds
+        .map((id: string) => map.get(id))
+        .filter(Boolean);
+
+    return doc;
+};
+
 // Validation rules
 export const createShippingRuleValidation = [
     body('name').trim().notEmpty().withMessage('Shipping rule name is required'),
@@ -108,6 +133,7 @@ export const getShippingRules = asyncHandler(async (req: AuthRequest, res: Respo
             .limit(Number(limit)),
         ShippingRule.countDocuments(filter),
     ]);
+    shippingRules.forEach((rule: any) => preserveRefArrayOrder(rule, 'categoryIds'));
 
     res.json({
         success: true,
@@ -138,6 +164,7 @@ export const getShippingRuleById = asyncHandler(async (req: AuthRequest, res: Re
     if (!shippingRule) {
         throw new AppError('Shipping rule not found', 404);
     }
+    preserveRefArrayOrder(shippingRule, 'categoryIds');
 
     res.json({
         success: true,
@@ -183,6 +210,7 @@ export const updateShippingRule = asyncHandler(async (req: AuthRequest, res: Res
     if (!shippingRule) {
         throw new AppError('Shipping rule not found', 404);
     }
+    preserveRefArrayOrder(shippingRule, 'categoryIds');
 
     // Invalidate shipping cache for this store
     await invalidateShippingCache(shippingRule.storeId.toString());
