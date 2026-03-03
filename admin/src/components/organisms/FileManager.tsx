@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     Box,
     Button,
@@ -9,7 +9,6 @@ import {
     Typography,
     Grid,
     Card,
-    CardMedia,
     CardContent,
     Breadcrumbs,
     Link,
@@ -26,6 +25,16 @@ import {
     DialogContent,
     DialogActions,
     DialogContentText,
+    Paper,
+    Stack,
+    Divider,
+    FormControl,
+    InputLabel,
+    Select,
+    ToggleButton,
+    ToggleButtonGroup,
+    Skeleton,
+    InputAdornment,
 } from '@mui/material';
 import {
     CloudUpload,
@@ -33,16 +42,21 @@ import {
     GridView,
     ViewList,
     Folder,
-    InsertDriveFile,
     MoreVert,
     Edit,
     Delete,
-    DriveFileMove,
     Home,
     Image as ImageIcon,
     PictureAsPdf,
     Description,
     Sync,
+    Search,
+    Visibility,
+    OpenInNew,
+    ContentCopy,
+    Clear,
+    SelectAll,
+    FilterList,
 } from '@mui/icons-material';
 import api from '@/lib/api';
 import { FileItem } from '@/types/file';
@@ -57,6 +71,19 @@ interface FileManagerProps {
     initialFolder?: string;
 }
 
+type FileTypeFilter = 'all' | 'folders' | 'images' | 'documents' | 'other';
+type SortOption = 'newest' | 'oldest' | 'name-asc' | 'name-desc' | 'size-asc' | 'size-desc';
+
+const SEARCHABLE_MIME_DOCUMENT_PREFIXES = ['application/', 'text/'];
+
+interface ApiErrorLike {
+    response?: {
+        data?: {
+            message?: string;
+        };
+    };
+}
+
 export default function FileManager({
     mode = 'embedded',
     onSelect,
@@ -65,7 +92,6 @@ export default function FileManager({
     category,
     initialFolder = '/',
 }: FileManagerProps) {
-    // Load last visited path from localStorage
     const getInitialFolder = () => {
         if (typeof window === 'undefined') return initialFolder;
         const savedPath = localStorage.getItem('fileManagerLastPath');
@@ -83,9 +109,12 @@ export default function FileManager({
     const [syncing, setSyncing] = useState(false);
     const [pathInput, setPathInput] = useState(getInitialFolder());
     const [clickTimer, setClickTimer] = useState<NodeJS.Timeout | null>(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const [typeFilter, setTypeFilter] = useState<FileTypeFilter>('all');
+    const [sortBy, setSortBy] = useState<SortOption>('newest');
+    const [previewFile, setPreviewFile] = useState<FileItem | null>(null);
     const { showNotification } = useNotification();
 
-    // Dialog states
     const [confirmDialog, setConfirmDialog] = useState<{
         open: boolean;
         title: string;
@@ -103,17 +132,19 @@ export default function FileManager({
 
     const [promptValue, setPromptValue] = useState('');
 
-    // Fetch files
+    const getErrorMessage = (error: unknown, fallback: string) =>
+        (error as ApiErrorLike)?.response?.data?.message || fallback;
+
     const fetchFiles = useCallback(async () => {
         setLoading(true);
         try {
-            const params: any = { folder: currentFolder };
+            const params: { folder: string; search?: string; category?: string } = { folder: currentFolder };
             if (searchQuery) params.search = searchQuery;
             if (category) params.category = category;
 
             const response = await api.get('/files', { params });
             setFiles(response.data.files || []);
-        } catch (error) {
+        } catch {
             showNotification('Failed to load files', 'error');
             setFiles([]);
         } finally {
@@ -125,68 +156,98 @@ export default function FileManager({
         fetchFiles();
     }, [fetchFiles]);
 
-    // Handle folder navigation
+    const selectedFileIds = useMemo(() => new Set(selectedFiles.map((f) => f._id)), [selectedFiles]);
+
+    const visibleFiles = useMemo(() => {
+        const filtered = files.filter((file) => {
+            if (typeFilter === 'all') return true;
+            if (typeFilter === 'folders') return file.type === 'folder';
+            if (file.type === 'folder') return false;
+
+            if (typeFilter === 'images') return file.mimeType?.startsWith('image/');
+            if (typeFilter === 'documents') {
+                return !!file.mimeType && SEARCHABLE_MIME_DOCUMENT_PREFIXES.some((prefix) => file.mimeType?.startsWith(prefix));
+            }
+            return !!file.mimeType && !file.mimeType.startsWith('image/') && !SEARCHABLE_MIME_DOCUMENT_PREFIXES.some((prefix) => file.mimeType?.startsWith(prefix));
+        });
+
+        return [...filtered].sort((a, b) => {
+            switch (sortBy) {
+                case 'name-asc':
+                    return a.originalName.localeCompare(b.originalName);
+                case 'name-desc':
+                    return b.originalName.localeCompare(a.originalName);
+                case 'oldest':
+                    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+                case 'size-asc':
+                    return (a.size || 0) - (b.size || 0);
+                case 'size-desc':
+                    return (b.size || 0) - (a.size || 0);
+                case 'newest':
+                default:
+                    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            }
+        });
+    }, [files, sortBy, typeFilter]);
+
+    const fileStats = useMemo(() => {
+        const folderCount = files.filter((f) => f.type === 'folder').length;
+        const fileCount = files.length - folderCount;
+        const totalSize = files.reduce((acc, f) => acc + (f.size || 0), 0);
+        return { folderCount, fileCount, totalSize };
+    }, [files]);
+
     const navigateToFolder = (folderPath: string) => {
         setCurrentFolder(folderPath);
         setPathInput(folderPath);
         setSelectedFiles([]);
-        // Save to localStorage
         if (typeof window !== 'undefined') {
             localStorage.setItem('fileManagerLastPath', folderPath);
         }
     };
 
-    // Handle path input change
-    const handlePathInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setPathInput(e.target.value);
+    const normalizePath = (value: string) => {
+        let path = value.trim();
+        if (!path.startsWith('/')) path = `/${path}`;
+        if (path !== '/' && path.endsWith('/')) path = path.slice(0, -1);
+        return path;
     };
 
-    // Handle path input submit (Enter key)
     const handlePathInputSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
-            let path = pathInput.trim();
-            // Ensure path starts with /
-            if (!path.startsWith('/')) {
-                path = '/' + path;
-            }
-            // Remove trailing slash unless it's root
-            if (path !== '/' && path.endsWith('/')) {
-                path = path.slice(0, -1);
-            }
-            navigateToFolder(path);
+            navigateToFolder(normalizePath(pathInput));
         }
     };
 
-    // Handle file selection
+    const toggleFileSelection = (file: FileItem) => {
+        if (multiple) {
+            setSelectedFiles((prev) =>
+                prev.find((f) => f._id === file._id)
+                    ? prev.filter((f) => f._id !== file._id)
+                    : [...prev, file]
+            );
+            return;
+        }
+        setSelectedFiles([file]);
+    };
+
     const handleFileClick = (file: FileItem) => {
-        // Clear any existing timer
         if (clickTimer) {
             clearTimeout(clickTimer);
         }
 
-        // Delay single-click action to allow double-click to cancel it
         const timer = setTimeout(() => {
             if (file.type === 'folder') {
                 navigateToFolder(file.path);
-            } else {
-                if (multiple) {
-                    setSelectedFiles(prev =>
-                        prev.find(f => f._id === file._id)
-                            ? prev.filter(f => f._id !== file._id)
-                            : [...prev, file]
-                    );
-                } else {
-                    setSelectedFiles([file]);
-                }
+                return;
             }
+            toggleFileSelection(file);
         }, 200);
 
         setClickTimer(timer);
     };
 
-    // Handle double-click on file
     const handleFileDoubleClick = (file: FileItem) => {
-        // Cancel the single-click timer
         if (clickTimer) {
             clearTimeout(clickTimer);
             setClickTimer(null);
@@ -194,25 +255,24 @@ export default function FileManager({
 
         if (file.type === 'folder') {
             navigateToFolder(file.path);
-        } else {
-            // Immediately select the file and trigger onSelect callback
-            if (onSelect) {
-                onSelect([file]);
-            }
+            return;
         }
+
+        if (onSelect) {
+            onSelect([file]);
+            return;
+        }
+
+        setPreviewFile(file);
     };
 
-    // State for drag and drop
-    const [isDragging, setIsDragging] = useState(false);
-
-    // Reusable upload logic
-    const processUpload = async (files: FileList | File[]) => {
-        if (!files || files.length === 0) return;
+    const processUpload = async (uploadFiles: FileList | File[]) => {
+        if (!uploadFiles || uploadFiles.length === 0) return;
 
         setUploading(true);
         const formData = new FormData();
 
-        Array.from(files).forEach(file => {
+        Array.from(uploadFiles).forEach((file) => {
             formData.append('files', file);
         });
         formData.append('folder', currentFolder);
@@ -223,14 +283,13 @@ export default function FileManager({
             });
             showNotification('Files uploaded successfully', 'success');
             fetchFiles();
-        } catch (error: any) {
-            showNotification(error.response?.data?.message || 'Upload failed', 'error');
+        } catch (error: unknown) {
+            showNotification(getErrorMessage(error, 'Upload failed'), 'error');
         } finally {
             setUploading(false);
         }
     };
 
-    // Handle file upload input
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files) {
             await processUpload(event.target.files);
@@ -238,30 +297,6 @@ export default function FileManager({
         event.target.value = '';
     };
 
-    // Drag and drop handlers
-    const handleDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(true);
-    };
-
-    const handleDragLeave = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(false);
-    };
-
-    const handleDrop = async (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(false);
-
-        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-            await processUpload(e.dataTransfer.files);
-        }
-    };
-
-    // Handle create folder
     const handleCreateFolder = async () => {
         setPromptDialog({
             open: true,
@@ -277,15 +312,14 @@ export default function FileManager({
                     });
                     showNotification('Folder created successfully', 'success');
                     fetchFiles();
-                } catch (error: any) {
-                    showNotification(error.response?.data?.message || 'Failed to create folder', 'error');
+                } catch (error: unknown) {
+                    showNotification(getErrorMessage(error, 'Failed to create folder'), 'error');
                 }
             },
         });
         setPromptValue('');
     };
 
-    // Handle rename
     const handleRename = async (file: FileItem) => {
         setPromptDialog({
             open: true,
@@ -302,15 +336,14 @@ export default function FileManager({
                     }
                     showNotification(`${file.type === 'folder' ? 'Folder' : 'File'} renamed successfully`, 'success');
                     fetchFiles();
-                } catch (error: any) {
-                    showNotification(error.response?.data?.message || 'Rename failed', 'error');
+                } catch (error: unknown) {
+                    showNotification(getErrorMessage(error, 'Rename failed'), 'error');
                 }
             },
         });
         setPromptValue(file.originalName);
     };
 
-    // Handle delete
     const handleDelete = async (file: FileItem) => {
         setConfirmDialog({
             open: true,
@@ -325,14 +358,39 @@ export default function FileManager({
                     }
                     showNotification(`${file.type === 'folder' ? 'Folder' : 'File'} deleted successfully`, 'success');
                     fetchFiles();
-                } catch (error: any) {
-                    showNotification(error.response?.data?.message || 'Delete failed', 'error');
+                    setSelectedFiles((prev) => prev.filter((item) => item._id !== file._id));
+                } catch (error: unknown) {
+                    showNotification(getErrorMessage(error, 'Delete failed'), 'error');
                 }
             },
         });
     };
 
-    // Handle sync
+    const handleBulkDelete = async () => {
+        const targets = selectedFiles.filter((f) => f.type === 'file');
+        if (targets.length === 0) {
+            showNotification('Select file(s) to delete', 'info');
+            return;
+        }
+
+        setConfirmDialog({
+            open: true,
+            title: `Delete ${targets.length} File(s)`,
+            message: `This will permanently delete ${targets.length} selected file(s). Continue?`,
+            onConfirm: async () => {
+                try {
+                    await Promise.all(targets.map((f) => api.delete(`/files/${f._id}`)));
+                    showNotification(`${targets.length} file(s) deleted successfully`, 'success');
+                    setSelectedFiles([]);
+                    fetchFiles();
+                } catch {
+                    showNotification('Some files could not be deleted', 'error');
+                    fetchFiles();
+                }
+            },
+        });
+    };
+
     const handleSync = async () => {
         setConfirmDialog({
             open: true,
@@ -361,8 +419,8 @@ export default function FileManager({
 
                     showNotification(message, 'success');
                     fetchFiles();
-                } catch (error: any) {
-                    showNotification(error.response?.data?.message || 'Sync failed', 'error');
+                } catch (error: unknown) {
+                    showNotification(getErrorMessage(error, 'Sync failed'), 'error');
                 } finally {
                     setSyncing(false);
                 }
@@ -370,7 +428,24 @@ export default function FileManager({
         });
     };
 
-    // Context menu handlers
+    const handleSelectVisibleFiles = () => {
+        const selectable = visibleFiles.filter((f) => f.type === 'file');
+        setSelectedFiles(selectable);
+    };
+
+    const handleCopyLink = async (file: FileItem) => {
+        try {
+            await navigator.clipboard.writeText(file.url);
+            showNotification('File URL copied', 'success');
+        } catch {
+            showNotification('Failed to copy URL', 'error');
+        }
+    };
+
+    const handleOpenExternal = (file: FileItem) => {
+        window.open(file.url, '_blank', 'noopener,noreferrer');
+    };
+
     const handleContextMenu = (event: React.MouseEvent, file: FileItem) => {
         event.preventDefault();
         setContextMenu({
@@ -380,11 +455,6 @@ export default function FileManager({
         });
     };
 
-    const handleCloseContextMenu = () => {
-        setContextMenu(null);
-    };
-
-    // Get breadcrumb paths
     const getBreadcrumbs = () => {
         if (currentFolder === '/') return [{ label: 'Home', path: '/' }];
 
@@ -392,7 +462,7 @@ export default function FileManager({
         const breadcrumbs = [{ label: 'Home', path: '/' }];
 
         let path = '';
-        parts.forEach(part => {
+        parts.forEach((part) => {
             path += `/${part}`;
             breadcrumbs.push({ label: part, path });
         });
@@ -400,319 +470,440 @@ export default function FileManager({
         return breadcrumbs;
     };
 
-    // Get file icon
     const getFileIcon = (file: FileItem) => {
         if (file.type === 'folder') return <Folder color="primary" />;
-
         if (file.mimeType?.startsWith('image/')) return <ImageIcon color="action" />;
         if (file.mimeType === 'application/pdf') return <PictureAsPdf color="error" />;
         return <Description color="action" />;
     };
 
-    // Format file size
     const formatFileSize = (bytes?: number) => {
-        if (!bytes) return '';
+        if (!bytes) return '0 B';
         if (bytes < 1024) return `${bytes} B`;
         if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
         return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     };
 
-    // Handle select button
     const handleSelectFiles = () => {
         if (onSelect) {
             onSelect(selectedFiles);
         }
     };
 
+    const gridColumns = mode === 'dialog' ? { xs: 6, sm: 4, md: 3 } : { xs: 6, sm: 4, md: 3, lg: 2.4 };
+
     return (
-        <Box
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
+        <Paper
+            elevation={0}
+            onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDragging(true);
+            }}
+            onDragLeave={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDragging(false);
+            }}
+            onDrop={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDragging(false);
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    await processUpload(e.dataTransfer.files);
+                }
+            }}
             sx={{
                 position: 'relative',
-                minHeight: 400,
-                outline: isDragging ? '2px dashed' : 'none',
-                outlineColor: 'primary.main',
-                outlineOffset: -2,
-                bgcolor: isDragging ? 'action.hover' : 'transparent',
-                borderRadius: 1,
-                transition: 'all 0.2s',
+                minHeight: 460,
+                border: '1px solid',
+                borderColor: isDragging ? 'primary.main' : 'divider',
+                borderStyle: isDragging ? 'dashed' : 'solid',
+                borderRadius: 2,
+                background: 'linear-gradient(180deg, rgba(25,118,210,0.04) 0%, rgba(25,118,210,0.01) 130px, transparent 320px)',
+                transition: 'all 0.2s ease',
+                overflow: 'hidden',
             }}
         >
             {isDragging && (
                 <Box
                     sx={{
                         position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        bgcolor: 'rgba(25, 118, 210, 0.08)',
-                        zIndex: 10,
+                        inset: 0,
+                        bgcolor: 'rgba(25, 118, 210, 0.1)',
+                        zIndex: 20,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         pointerEvents: 'none',
                     }}
                 >
-                    <Box textAlign="center">
-                        <CloudUpload sx={{ fontSize: 60, color: 'primary.main', opacity: 0.5, mb: 1 }} />
-                        <Typography variant="h5" color="primary">
-                            Drop files here to upload
+                    <Stack alignItems="center" spacing={1}>
+                        <CloudUpload sx={{ fontSize: 54, color: 'primary.main' }} />
+                        <Typography variant="h6" color="primary.main">
+                            Drop files to upload
                         </Typography>
-                    </Box>
+                    </Stack>
                 </Box>
             )}
 
-            {/* Toolbar */}
-            <Box display="flex" gap={2} mb={2} flexWrap="wrap" alignItems="center">
-                <Button
-                    variant="outlined"
-                    startIcon={<CreateNewFolder />}
-                    onClick={handleCreateFolder}
-                    size="small"
-                >
-                    New Folder
-                </Button>
+            <Box p={{ xs: 1.5, sm: 2 }}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} justifyContent="space-between" mb={2}>
+                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                        <Typography variant="h6" fontWeight={700}>File Manager</Typography>
+                        <Chip size="small" variant="outlined" label={`${fileStats.fileCount} files`} />
+                        <Chip size="small" variant="outlined" label={`${fileStats.folderCount} folders`} />
+                        <Chip size="small" color="primary" label={formatFileSize(fileStats.totalSize)} />
+                    </Stack>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                        <Tooltip title="Grid View">
+                            <IconButton
+                                size="small"
+                                color={viewMode === 'grid' ? 'primary' : 'default'}
+                                onClick={() => setViewMode('grid')}
+                            >
+                                <GridView />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title="List View">
+                            <IconButton
+                                size="small"
+                                color={viewMode === 'list' ? 'primary' : 'default'}
+                                onClick={() => setViewMode('list')}
+                            >
+                                <ViewList />
+                            </IconButton>
+                        </Tooltip>
+                    </Stack>
+                </Stack>
 
-                <Button
-                    variant="contained"
-                    component="label"
-                    startIcon={uploading ? <CircularProgress size={20} /> : <CloudUpload />}
-                    disabled={uploading}
-                    size="small"
-                >
-                    Upload
-                    <input
-                        type="file"
-                        hidden
-                        multiple
-                        accept={accept}
-                        onChange={handleFileUpload}
+                <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} mb={2}>
+                    <Button variant="outlined" startIcon={<CreateNewFolder />} onClick={handleCreateFolder} size="small">
+                        New Folder
+                    </Button>
+
+                    <Button
+                        variant="contained"
+                        component="label"
+                        startIcon={uploading ? <CircularProgress size={16} /> : <CloudUpload />}
+                        disabled={uploading}
+                        size="small"
+                    >
+                        Upload
+                        <input type="file" hidden multiple accept={accept} onChange={handleFileUpload} />
+                    </Button>
+
+                    <Button
+                        variant="outlined"
+                        startIcon={syncing ? <CircularProgress size={16} /> : <Sync />}
+                        onClick={handleSync}
+                        disabled={syncing}
+                        size="small"
+                    >
+                        Sync
+                    </Button>
+
+                    {multiple && (
+                        <Button variant="outlined" startIcon={<SelectAll />} size="small" onClick={handleSelectVisibleFiles}>
+                            Select Visible
+                        </Button>
+                    )}
+
+                    <Button
+                        variant="text"
+                        size="small"
+                        startIcon={<Clear />}
+                        disabled={selectedFiles.length === 0}
+                        onClick={() => setSelectedFiles([])}
+                    >
+                        Clear Selection
+                    </Button>
+                </Stack>
+
+                <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} mb={2}>
+                    <TextField
+                        size="small"
+                        placeholder="Search files..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        sx={{ flex: 1 }}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <Search fontSize="small" />
+                                </InputAdornment>
+                            ),
+                        }}
                     />
-                </Button>
 
-                <Button
-                    variant="outlined"
-                    startIcon={syncing ? <CircularProgress size={20} /> : <Sync />}
-                    onClick={handleSync}
-                    disabled={syncing}
-                    size="small"
-                    color="secondary"
-                >
-                    Sync
-                </Button>
+                    <FormControl size="small" sx={{ minWidth: 160 }}>
+                        <InputLabel id="type-filter-label">Type</InputLabel>
+                        <Select
+                            labelId="type-filter-label"
+                            label="Type"
+                            value={typeFilter}
+                            onChange={(e) => setTypeFilter(e.target.value as FileTypeFilter)}
+                            startAdornment={<FilterList sx={{ mr: 1, color: 'action.active' }} />}
+                        >
+                            <MenuItem value="all">All</MenuItem>
+                            <MenuItem value="folders">Folders</MenuItem>
+                            <MenuItem value="images">Images</MenuItem>
+                            <MenuItem value="documents">Documents</MenuItem>
+                            <MenuItem value="other">Other Files</MenuItem>
+                        </Select>
+                    </FormControl>
+
+                    <ToggleButtonGroup
+                        value={sortBy}
+                        exclusive
+                        size="small"
+                        onChange={(_, value: SortOption | null) => {
+                            if (value) setSortBy(value);
+                        }}
+                    >
+                        <ToggleButton value="newest">Newest</ToggleButton>
+                        <ToggleButton value="name-asc">A-Z</ToggleButton>
+                        <ToggleButton value="size-desc">Size</ToggleButton>
+                    </ToggleButtonGroup>
+                </Stack>
 
                 <TextField
                     size="small"
-                    placeholder="Search files..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    sx={{ flexGrow: 1, maxWidth: 300 }}
+                    fullWidth
+                    placeholder="Enter path (example: /catalog/products)"
+                    value={pathInput}
+                    onChange={(e) => setPathInput(e.target.value)}
+                    onKeyDown={handlePathInputSubmit}
+                    sx={{ mb: 1.5 }}
                 />
 
-                <Box display="flex" gap={1}>
-                    <Tooltip title="Grid View">
-                        <IconButton
-                            size="small"
-                            color={viewMode === 'grid' ? 'primary' : 'default'}
-                            onClick={() => setViewMode('grid')}
+                <Breadcrumbs sx={{ mb: 2 }}>
+                    {getBreadcrumbs().map((crumb, index) => (
+                        <Link
+                            key={crumb.path}
+                            component="button"
+                            variant="body2"
+                            onClick={() => navigateToFolder(crumb.path)}
+                            sx={{
+                                cursor: 'pointer',
+                                textDecoration: 'none',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 0.5,
+                            }}
                         >
-                            <GridView />
-                        </IconButton>
-                    </Tooltip>
-                    <Tooltip title="List View">
-                        <IconButton
-                            size="small"
-                            color={viewMode === 'list' ? 'primary' : 'default'}
-                            onClick={() => setViewMode('list')}
-                        >
-                            <ViewList />
-                        </IconButton>
-                    </Tooltip>
-                </Box>
-            </Box>
+                            {index === 0 ? <Home sx={{ fontSize: 18 }} /> : null}
+                            {crumb.label}
+                        </Link>
+                    ))}
+                </Breadcrumbs>
 
-            {/* Path Input Field */}
-            <TextField
-                size="small"
-                fullWidth
-                placeholder="Enter path (e.g., catalog/murtiya-products/Iskcon-Radha-Krishna/15-Inch)"
-                value={pathInput}
-                onChange={handlePathInputChange}
-                onKeyDown={handlePathInputSubmit}
-                sx={{ mb: 2 }}
-                InputProps={{
-                    startAdornment: (
-                        <Typography variant="body2" sx={{ mr: 1, color: 'text.secondary' }}>
-                            /
-                        </Typography>
-                    ),
-                }}
-            />
-
-            {/* Breadcrumbs */}
-            <Breadcrumbs sx={{ mb: 2 }}>
-                {getBreadcrumbs().map((crumb, index) => (
-                    <Link
-                        key={index}
-                        component="button"
-                        variant="body2"
-                        onClick={() => navigateToFolder(crumb.path)}
-                        sx={{ cursor: 'pointer', textDecoration: 'none' }}
+                {selectedFiles.length > 0 && (
+                    <Alert
+                        severity="info"
+                        sx={{ mb: 2 }}
+                        action={
+                            <Stack direction="row" spacing={1}>
+                                {selectedFiles.length === 1 && selectedFiles[0].type === 'file' && (
+                                    <>
+                                        <Button
+                                            size="small"
+                                            onClick={() => setPreviewFile(selectedFiles[0])}
+                                            startIcon={<Visibility />}
+                                        >
+                                            Preview
+                                        </Button>
+                                        <Button
+                                            size="small"
+                                            onClick={() => handleCopyLink(selectedFiles[0])}
+                                            startIcon={<ContentCopy />}
+                                        >
+                                            Copy URL
+                                        </Button>
+                                    </>
+                                )}
+                                {selectedFiles.length > 0 && (
+                                    <Button size="small" color="error" onClick={handleBulkDelete} startIcon={<Delete />}>
+                                        Delete
+                                    </Button>
+                                )}
+                                {onSelect && (
+                                    <Button size="small" variant="contained" onClick={handleSelectFiles}>
+                                        Select ({selectedFiles.length})
+                                    </Button>
+                                )}
+                            </Stack>
+                        }
                     >
-                        {index === 0 ? <Home sx={{ mr: 0.5, fontSize: 20 }} /> : null}
-                        {crumb.label}
-                    </Link>
-                ))}
-            </Breadcrumbs>
+                        {selectedFiles.length} item(s) selected
+                    </Alert>
+                )}
 
-            {/* Selected files info */}
-            {selectedFiles.length > 0 && (
-                <Alert severity="info" sx={{ mb: 2 }}>
-                    {selectedFiles.length} file(s) selected
-                    {onSelect && (
-                        <Button size="small" onClick={handleSelectFiles} sx={{ ml: 2 }}>
-                            Select
-                        </Button>
-                    )}
-                </Alert>
-            )}
+                {loading && (
+                    <Grid container spacing={1.5}>
+                        {Array.from({ length: 8 }).map((_, index) => (
+                            <Grid key={index} size={gridColumns}>
+                                <Skeleton variant="rounded" height={130} />
+                                <Skeleton sx={{ mt: 1 }} />
+                                <Skeleton width="60%" />
+                            </Grid>
+                        ))}
+                    </Grid>
+                )}
 
-            {/* Loading */}
-            {loading && (
-                <Box display="flex" justifyContent="center" py={4}>
-                    <CircularProgress />
-                </Box>
-            )}
+                {!loading && viewMode === 'grid' && (
+                    <Grid container spacing={1.5}>
+                        {visibleFiles.map((file) => {
+                            const selected = selectedFileIds.has(file._id);
 
-            {/* Files Grid View */}
-            {!loading && viewMode === 'grid' && (
-                <Grid container spacing={2}>
-                    {files.map((file) => (
-                        <Grid key={file._id} size={{ xs: 6, sm: 4, md: 3, lg: 2 }}>
-                            <Card
-                                sx={{
-                                    cursor: 'pointer',
-                                    border: selectedFiles.find(f => f._id === file._id) ? 2 : 0,
-                                    borderColor: 'primary.main',
-                                    position: 'relative',
+                            return (
+                                <Grid key={file._id} size={gridColumns}>
+                                    <Card
+                                        sx={{
+                                            cursor: 'pointer',
+                                            border: '1px solid',
+                                            borderColor: selected ? 'primary.main' : 'divider',
+                                            boxShadow: selected ? '0 0 0 1px rgba(25,118,210,0.25)' : 'none',
+                                            transition: 'all 0.18s ease',
+                                            '&:hover': {
+                                                transform: 'translateY(-2px)',
+                                                boxShadow: '0 8px 20px rgba(15,23,42,0.08)',
+                                            },
+                                            position: 'relative',
+                                        }}
+                                        onClick={() => handleFileClick(file)}
+                                        onDoubleClick={() => handleFileDoubleClick(file)}
+                                        onContextMenu={(e) => handleContextMenu(e, file)}
+                                    >
+                                        <Box
+                                            display="flex"
+                                            alignItems="center"
+                                            justifyContent="center"
+                                            height={130}
+                                            bgcolor="grey.100"
+                                            sx={{ overflow: 'hidden' }}
+                                        >
+                                            {file.type === 'file' && file.mimeType?.startsWith('image/') ? (
+                                                <Box
+                                                    component="img"
+                                                    src={file.url}
+                                                    alt={file.originalName}
+                                                    loading="lazy"
+                                                    sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                />
+                                            ) : (
+                                                getFileIcon(file)
+                                            )}
+                                        </Box>
 
-                                }}
-                                onClick={() => handleFileClick(file)}
-                                onDoubleClick={() => handleFileDoubleClick(file)}
-                                onContextMenu={(e) => handleContextMenu(e, file)}
-                            >
+                                        <CardContent sx={{ p: 1.2 }}>
+                                            <Typography variant="body2" noWrap title={file.originalName} fontWeight={500}>
+                                                {file.originalName}
+                                            </Typography>
+                                            <Typography variant="caption" color="text.secondary" display="block" noWrap>
+                                                {file.type === 'folder' ? 'Folder' : formatFileSize(file.size)}
+                                            </Typography>
+                                        </CardContent>
+
+                                        <IconButton
+                                            size="small"
+                                            sx={{
+                                                position: 'absolute',
+                                                top: 6,
+                                                right: 6,
+                                                backgroundColor: 'rgba(0,0,0,0.5)',
+                                                color: '#fff',
+                                                '&:hover': { backgroundColor: 'rgba(0,0,0,0.7)' },
+                                            }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleContextMenu(e, file);
+                                            }}
+                                        >
+                                            <MoreVert fontSize="small" />
+                                        </IconButton>
+                                    </Card>
+                                </Grid>
+                            );
+                        })}
+                    </Grid>
+                )}
+
+                {!loading && viewMode === 'list' && (
+                    <Paper variant="outlined">
+                        {visibleFiles.map((file, index) => (
+                            <Box key={file._id}>
                                 <Box
                                     display="flex"
                                     alignItems="center"
-                                    justifyContent="center"
-                                    height={140}
-                                    bgcolor="grey.100"
-                                    sx={{ overflow: 'hidden' }}
-                                >
-                                    {file.type === 'file' && file.mimeType?.startsWith('image/') ? (
-                                        <Box
-                                            component="img"
-                                            src={file.url}
-                                            alt={file.originalName}
-                                            loading="lazy"
-                                            sx={{
-                                                width: '100%',
-                                                height: '100%',
-                                                objectFit: 'cover',
-                                            }}
-                                        />
-                                    ) : (
-                                        getFileIcon(file)
-                                    )}
-                                </Box>
-                                <CardContent sx={{ p: 1 }}>
-                                    <Typography variant="caption" noWrap title={file.originalName}>
-                                        {file.originalName}
-                                    </Typography>
-                                    {file.size && (
-                                        <Typography variant="caption" color="text.secondary" display="block">
-                                            {formatFileSize(file.size)}
-                                        </Typography>
-                                    )}
-                                </CardContent>
-                                <IconButton
-                                    size="small"
+                                    gap={1.5}
+                                    p={1.25}
                                     sx={{
-                                        position: 'absolute', top: 4, right: 4, backgroundColor: 'primary.main', color: 'primary.contrastText', borderRadius: 50,
-                                        '&:hover': { backgroundColor: 'primary.dark' }
+                                        cursor: 'pointer',
+                                        bgcolor: selectedFileIds.has(file._id) ? 'action.selected' : 'transparent',
+                                        '&:hover': { bgcolor: 'action.hover' },
                                     }}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleContextMenu(e, file);
-                                    }}
+                                    onClick={() => handleFileClick(file)}
+                                    onDoubleClick={() => handleFileDoubleClick(file)}
+                                    onContextMenu={(e) => handleContextMenu(e, file)}
                                 >
-                                    <MoreVert fontSize="small" />
-                                </IconButton>
-                            </Card>
-                        </Grid>
-                    ))}
-                </Grid>
-            )}
+                                    {getFileIcon(file)}
+                                    <Box flex={1} minWidth={0}>
+                                        <Typography noWrap fontWeight={500}>{file.originalName}</Typography>
+                                        <Typography variant="caption" color="text.secondary" noWrap>
+                                            {file.type === 'folder' ? 'Folder' : file.mimeType || 'File'}
+                                        </Typography>
+                                    </Box>
 
-            {/* Files List View */}
-            {!loading && viewMode === 'list' && (
-                <Box>
-                    {files.map((file) => (
-                        <Box
-                            key={file._id}
-                            display="flex"
-                            alignItems="center"
-                            gap={2}
-                            p={1}
-                            sx={{
-                                cursor: 'pointer',
-                                '&:hover': { bgcolor: 'grey.100' },
-                                bgcolor: selectedFiles.find(f => f._id === file._id) ? 'primary.50' : 'transparent',
-                            }}
-                            onClick={() => handleFileClick(file)}
-                            onDoubleClick={() => handleFileDoubleClick(file)}
-                            onContextMenu={(e) => handleContextMenu(e, file)}
-                        >
-                            {getFileIcon(file)}
-                            <Typography flexGrow={1}>{file.originalName}</Typography>
-                            {file.size && (
-                                <Typography variant="body2" color="text.secondary">
-                                    {formatFileSize(file.size)}
-                                </Typography>
-                            )}
-                            <IconButton
-                                size="small"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleContextMenu(e, file);
-                                }}
-                            >
-                                <MoreVert fontSize="small" />
-                            </IconButton>
-                        </Box>
-                    ))}
-                </Box>
-            )}
+                                    <Typography variant="body2" color="text.secondary" sx={{ minWidth: 70, textAlign: 'right' }}>
+                                        {file.type === 'folder' ? '-' : formatFileSize(file.size)}
+                                    </Typography>
 
-            {/* Empty state */}
-            {!loading && files.length === 0 && (
-                <Box textAlign="center" py={8}>
-                    <Typography variant="h6" color="text.secondary">
-                        No files found
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                        Upload files, or drag and drop to get started
-                    </Typography>
-                </Box>
-            )}
+                                    {file.type === 'file' && (
+                                        <Tooltip title="Open">
+                                            <IconButton
+                                                size="small"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleOpenExternal(file);
+                                                }}
+                                            >
+                                                <OpenInNew fontSize="small" />
+                                            </IconButton>
+                                        </Tooltip>
+                                    )}
 
-            {/* Context Menu */}
+                                    <IconButton
+                                        size="small"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleContextMenu(e, file);
+                                        }}
+                                    >
+                                        <MoreVert fontSize="small" />
+                                    </IconButton>
+                                </Box>
+                                {index < visibleFiles.length - 1 && <Divider />}
+                            </Box>
+                        ))}
+                    </Paper>
+                )}
+
+                {!loading && visibleFiles.length === 0 && (
+                    <Box textAlign="center" py={8}>
+                        <Typography variant="h6" color="text.secondary">
+                            No files found
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                            Try changing filters, searching less, or upload files here.
+                        </Typography>
+                    </Box>
+                )}
+            </Box>
+
             <Menu
                 open={contextMenu !== null}
-                onClose={handleCloseContextMenu}
+                onClose={() => setContextMenu(null)}
                 anchorReference="anchorPosition"
                 anchorPosition={
                     contextMenu !== null
@@ -720,23 +911,44 @@ export default function FileManager({
                         : undefined
                 }
             >
+                {contextMenu?.file.type === 'file' && (
+                    <MenuItem
+                        onClick={() => {
+                            if (contextMenu) setPreviewFile(contextMenu.file);
+                            setContextMenu(null);
+                        }}
+                    >
+                        <ListItemIcon><Visibility fontSize="small" /></ListItemIcon>
+                        <ListItemText>Preview</ListItemText>
+                    </MenuItem>
+                )}
+                {contextMenu?.file.type === 'file' && (
+                    <MenuItem
+                        onClick={() => {
+                            if (contextMenu) handleCopyLink(contextMenu.file);
+                            setContextMenu(null);
+                        }}
+                    >
+                        <ListItemIcon><ContentCopy fontSize="small" /></ListItemIcon>
+                        <ListItemText>Copy URL</ListItemText>
+                    </MenuItem>
+                )}
                 <MenuItem onClick={() => {
                     if (contextMenu) handleRename(contextMenu.file);
-                    handleCloseContextMenu();
+                    setContextMenu(null);
                 }}>
                     <ListItemIcon><Edit fontSize="small" /></ListItemIcon>
                     <ListItemText>Rename</ListItemText>
                 </MenuItem>
                 <MenuItem onClick={() => {
                     if (contextMenu) handleDelete(contextMenu.file);
-                    handleCloseContextMenu();
+                    setContextMenu(null);
                 }}>
                     <ListItemIcon><Delete fontSize="small" /></ListItemIcon>
                     <ListItemText>Delete</ListItemText>
                 </MenuItem>
             </Menu>
 
-            {/* Confirm Dialog */}
             <Dialog
                 open={confirmDialog.open}
                 onClose={() => setConfirmDialog({ ...confirmDialog, open: false })}
@@ -748,9 +960,7 @@ export default function FileManager({
                     <DialogContentText>{confirmDialog.message}</DialogContentText>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setConfirmDialog({ ...confirmDialog, open: false })}>
-                        Cancel
-                    </Button>
+                    <Button onClick={() => setConfirmDialog({ ...confirmDialog, open: false })}>Cancel</Button>
                     <Button
                         onClick={() => {
                             confirmDialog.onConfirm();
@@ -764,7 +974,6 @@ export default function FileManager({
                 </DialogActions>
             </Dialog>
 
-            {/* Prompt Dialog */}
             <Dialog
                 open={promptDialog.open}
                 onClose={() => setPromptDialog({ ...promptDialog, open: false })}
@@ -782,7 +991,7 @@ export default function FileManager({
                         variant="outlined"
                         value={promptValue}
                         onChange={(e) => setPromptValue(e.target.value.replace(/\s/g, '-'))}
-                        onKeyPress={(e) => {
+                        onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                                 promptDialog.onConfirm(promptValue);
                                 setPromptDialog({ ...promptDialog, open: false });
@@ -807,6 +1016,53 @@ export default function FileManager({
                     </Button>
                 </DialogActions>
             </Dialog>
-        </Box>
+
+            <Dialog
+                open={!!previewFile}
+                onClose={() => setPreviewFile(null)}
+                maxWidth="md"
+                fullWidth
+            >
+                <DialogTitle sx={{ pr: 8 }}>{previewFile?.originalName}</DialogTitle>
+                <DialogContent dividers>
+                    {previewFile?.mimeType?.startsWith('image/') ? (
+                        <Box
+                            component="img"
+                            src={previewFile.url}
+                            alt={previewFile.originalName}
+                            sx={{ width: '100%', maxHeight: '70vh', objectFit: 'contain', display: 'block' }}
+                        />
+                    ) : (
+                        <Box py={4} textAlign="center">
+                            <Typography variant="body1" sx={{ mb: 1 }}>
+                                Preview not available for this file type.
+                            </Typography>
+                            <Button
+                                variant="contained"
+                                startIcon={<OpenInNew />}
+                                onClick={() => previewFile && handleOpenExternal(previewFile)}
+                            >
+                                Open File
+                            </Button>
+                        </Box>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button
+                        startIcon={<ContentCopy />}
+                        onClick={() => previewFile && handleCopyLink(previewFile)}
+                    >
+                        Copy URL
+                    </Button>
+                    <Button
+                        variant="contained"
+                        startIcon={<OpenInNew />}
+                        onClick={() => previewFile && handleOpenExternal(previewFile)}
+                    >
+                        Open
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        </Paper>
     );
 }
