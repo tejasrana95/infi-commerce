@@ -109,6 +109,14 @@ export default function ProductCardSettings({ config, onChange }: ProductCardSet
                             <MenuItem value="overlay">Overlay</MenuItem>
                             <MenuItem value="horizontal">Horizontal</MenuItem>
                             <MenuItem value="bordered">Bordered</MenuItem>
+                            <MenuItem value="glassmorphism">Glassmorphism</MenuItem>
+                            <MenuItem value="neon">Neon</MenuItem>
+                            <MenuItem value="magazine">Magazine</MenuItem>
+                            <MenuItem value="polaroid">Polaroid</MenuItem>
+                            <MenuItem value="gradient">Gradient</MenuItem>
+                            <MenuItem value="elegant">Elegant</MenuItem>
+                            <MenuItem value="brutalist">Brutalist</MenuItem>
+                            <MenuItem value="floating">Floating</MenuItem>
                         </TextField>
 
                         <TextField

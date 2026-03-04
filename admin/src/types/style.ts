@@ -1,5 +1,5 @@
 export interface ProductCardConfig {
-    cardStyle: 'default' | 'minimal' | 'overlay' | 'horizontal' | 'bordered';
+    cardStyle: 'default' | 'minimal' | 'overlay' | 'horizontal' | 'bordered' | 'glassmorphism' | 'neon' | 'magazine' | 'polaroid' | 'gradient' | 'elegant' | 'brutalist' | 'floating';
     imageAspectRatio: '1:1' | '3:4' | '4:3' | '16:9' | 'auto';
     imageSize: 'small' | 'medium' | 'large';
     imageFit: 'cover' | 'contain';

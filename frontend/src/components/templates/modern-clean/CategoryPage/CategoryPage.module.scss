@@ -1172,12 +1172,12 @@
     height: 100%; // Ensure all items take full height of grid cell
     display: flex; // Make it a flex container
     flex-direction: column; // Stack content vertically
+    min-width: 0; // Prevent grid blowout
 
     // Ensure the product card inside takes full height
     >* {
         height: 100%;
-        display: flex;
-        flex-direction: column;
+        min-width: 0;
     }
 }
 

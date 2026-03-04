@@ -1,5 +1,5 @@
 @use '@/styles/breakpoints' as *;
-
+$accent: var(--color-accent, #007185);
 // =============================================================================
 // MODERN CLEAN PRODUCT CARD - Premium E-commerce Design
 // =============================================================================
@@ -519,26 +519,76 @@
 }
 
 .styleOverlay {
+    position: relative;
+
+    .imageContainer {
+        aspect-ratio: 3 / 4;
+    }
+
     .content {
         position: absolute;
         bottom: 0;
         left: 0;
         right: 0;
-        background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
-        padding: 24px 16px 16px;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.7) 40%, rgba(0, 0, 0, 0.3) 70%, transparent 100%);
+        padding: 40px 16px 16px;
         color: #ffffff;
     }
 
     .name a {
         color: #ffffff;
+        background: none;
+        -webkit-text-fill-color: #ffffff;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 
         &:hover {
-            color: rgba(255, 255, 255, 0.8);
+            -webkit-text-fill-color: rgba(255, 255, 255, 0.85);
         }
+    }
+
+    .brand {
+        color: rgba(255, 255, 255, 0.8);
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
     }
 
     .price {
         color: #ffffff;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .priceOnSale {
+        background: none;
+        -webkit-text-fill-color: #fca5a5;
+        color: #fca5a5;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .comparePrice {
+        color: rgba(255, 255, 255, 0.6);
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .rating {
+        .ratingValue {
+            color: #ffffff;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+        }
+
+        .reviewCount {
+            color: rgba(255, 255, 255, 0.6);
+        }
+    }
+
+    .stockStatus {
+        color: rgba(255, 255, 255, 0.8);
+
+        &.inStock {
+            color: #86efac;
+
+            &::before {
+                background: #86efac;
+            }
+        }
     }
 }
 
@@ -556,12 +606,38 @@
     }
 }
 
+.imageLink {
+    display: block;
+}
+
 .styleHorizontal {
-    flex-direction: row;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    min-height: 180px;
+    align-items: stretch;
+
+    .imageLink {
+        width: 40% !important;
+        min-width: 40% !important;
+        max-width: 40% !important;
+        flex-shrink: 0 !important;
+        display: block !important;
+        height: auto;
+    }
 
     .imageContainer {
-        width: 40%;
-        aspect-ratio: 1 / 1;
+        width: 100% !important;
+        aspect-ratio: unset !important;
+        height: 100% !important;
+    }
+
+    .imageInner {
+        height: 100%;
+    }
+
+    .image {
+        height: 100%;
+        object-fit: cover;
     }
 
     .sku {
@@ -569,8 +645,31 @@
     }
 
     .content {
-        flex: 1;
+        flex: 1 1 0% !important;
         justify-content: center;
+        padding: 16px;
+        min-width: 0;
+        width: 60%;
+    }
+
+    .badges {
+        top: 8px;
+        left: 8px;
+
+        .badge {
+            font-size: 0.6rem;
+            padding: 4px 8px;
+        }
+    }
+
+    .quickIcons {
+        top: 8px;
+        right: 8px;
+        left: auto;
+    }
+
+    .contentActions {
+        margin-top: 8px;
     }
 }
 
@@ -695,6 +794,1334 @@
     .quickActions,
     .badges {
         display: none;
+    }
+}
+
+// =============================================================================
+// GLASSMORPHISM STYLE - Frosted glass with blur & transparency
+// =============================================================================
+
+.styleGlassmorphism {
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: var(--card-border-radius, 20px);
+    box-shadow:
+        0 8px 32px rgba(31, 38, 135, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+
+    &::before {
+        background: linear-gradient(90deg, rgba(99, 102, 241, 0.6), rgba(168, 85, 247, 0.6), rgba(236, 72, 153, 0.6));
+    }
+
+    &:hover {
+        box-shadow:
+            0 16px 48px rgba(31, 38, 135, 0.25),
+            inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        border-color: rgba(255, 255, 255, 0.6);
+        transform: translateY(-6px);
+
+        .imageInner {
+            transform: scale(1.04);
+        }
+    }
+
+    .imageContainer {
+        border-radius: calc(var(--card-border-radius, 20px) - 4px);
+        margin: 8px 8px 0;
+        overflow: hidden;
+    }
+
+    .content {
+        padding: 16px;
+    }
+
+    .badges {
+        .badge {
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .badgeSale {
+            background: rgba(239, 68, 68, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ffffff;
+        }
+
+        .badgeNew {
+            background: rgba(59, 130, 246, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #ffffff;
+        }
+    }
+
+    .iconBtn {
+        background: rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+
+        &:hover {
+            background: rgba(99, 102, 241, 0.7);
+            border-color: rgba(99, 102, 241, 0.5);
+        }
+    }
+
+    .contentBtn {
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .brand {
+        color: #6366f1;
+    }
+}
+
+// =============================================================================
+// NEON STYLE - Dark card with vibrant neon glow effects
+// =============================================================================
+
+.styleNeon {
+    background: #13111c;
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: var(--card-border-radius, 12px);
+    box-shadow: 0 4px 20px rgba(139, 92, 246, 0.08);
+    overflow: hidden;
+
+    &::before {
+        height: 2px;
+        background: linear-gradient(90deg, #8b5cf6, #a78bfa, #c4b5fd);
+        opacity: 0.5;
+    }
+
+    &:hover {
+        border-color: rgba(139, 92, 246, 0.45);
+        box-shadow:
+            0 8px 30px rgba(139, 92, 246, 0.2),
+            0 0 0 1px rgba(139, 92, 246, 0.1);
+        transform: translateY(-4px);
+
+        &::before {
+            opacity: 1;
+        }
+
+        .imageInner {
+            transform: scale(1.03);
+        }
+    }
+
+    .imageContainer {
+        border-bottom: 1px solid rgba(139, 92, 246, 0.12);
+    }
+
+    .content {
+        padding: 16px;
+        background: #13111c;
+    }
+
+    .name a {
+        color: #e8e4f0;
+        background: none;
+        -webkit-text-fill-color: #e8e4f0;
+
+        &:hover {
+            -webkit-text-fill-color: #c4b5fd;
+        }
+    }
+
+    .brand {
+        color: #a78bfa;
+    }
+
+    .price {
+        color: #f3f0ff;
+    }
+
+    .priceOnSale {
+        background: linear-gradient(135deg, #a78bfa, #c4b5fd);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: none;
+    }
+
+    .comparePrice {
+        color: #5b5675;
+    }
+
+    .rating {
+        .ratingValue {
+            color: #e8e4f0;
+        }
+
+        .starFilled {
+            color: #a78bfa;
+        }
+
+        .starEmpty {
+            color: #3b3556;
+        }
+    }
+
+    .sku {
+        color: #5b5675;
+    }
+
+    .stockStatus {
+        &.inStock {
+            color: #86efac;
+
+            &::before {
+                background: #86efac;
+            }
+        }
+    }
+
+    .badges {
+        .badgeSale {
+            background: rgba(139, 92, 246, 0.2);
+            color: #c4b5fd;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .badgeNew {
+            background: rgba(96, 165, 250, 0.2);
+            color: #93c5fd;
+            border: 1px solid rgba(96, 165, 250, 0.3);
+        }
+
+        .badgeOutOfStock {
+            background: rgba(100, 100, 120, 0.3);
+            border: 1px solid rgba(100, 100, 120, 0.3);
+        }
+    }
+
+    .iconBtn {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+
+        svg {
+            color: #c4b5fd;
+        }
+
+        &:hover {
+            background: rgba(139, 92, 246, 0.2);
+            border-color: rgba(139, 92, 246, 0.5);
+
+            svg {
+                color: #e8e4f0;
+            }
+        }
+
+        &.wishlisted {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: rgba(239, 68, 68, 0.4);
+
+            svg {
+                color: #fca5a5;
+            }
+        }
+    }
+
+    .contentActions {
+        .contentBtn {
+            &.addToCart {
+                background: rgba(139, 92, 246, 0.15);
+                color: #c4b5fd;
+                border: 1px solid rgba(139, 92, 246, 0.3);
+
+                &:hover {
+                    background: rgba(139, 92, 246, 0.25);
+                    border-color: rgba(139, 92, 246, 0.5);
+                }
+            }
+
+            &.buyNow {
+                background: transparent;
+                color: #93c5fd;
+                border: 1px solid rgba(96, 165, 250, 0.3);
+
+                &:hover {
+                    background: rgba(96, 165, 250, 0.1);
+                }
+            }
+        }
+    }
+
+    .wishlistBtn {
+        background: rgba(19, 17, 28, 0.8);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+
+        svg {
+            color: #c4b5fd;
+        }
+    }
+}
+
+// =============================================================================
+// MAGAZINE STYLE - Editorial, full-bleed, bold typography
+// =============================================================================
+
+.styleMagazine {
+    border-radius: 0;
+    box-shadow: none;
+    overflow: hidden;
+    position: relative;
+
+    &::before {
+        display: none;
+    }
+
+    &:hover {
+        transform: none;
+        box-shadow: none;
+
+        .imageInner {
+            transform: scale(1.06);
+        }
+
+        .content {
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.6) 60%, transparent 100%);
+        }
+    }
+
+    .imageContainer {
+        aspect-ratio: 3 / 4;
+    }
+
+    .content {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 50%, transparent 100%);
+        padding: 32px 20px 20px;
+        color: #ffffff;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        transition: background 0.4s ease;
+    }
+
+    .brand {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.65rem;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+    }
+
+    .name {
+        font-size: 1.25rem;
+        font-weight: 800;
+        line-height: 1.2;
+        letter-spacing: -0.03em;
+        text-transform: uppercase;
+
+        a {
+            color: #ffffff;
+            background: none;
+            -webkit-text-fill-color: #ffffff;
+
+            &:hover {
+                -webkit-text-fill-color: rgba(255, 255, 255, 0.8);
+            }
+        }
+    }
+
+    .price {
+        color: #ffffff;
+        font-size: 1.125rem;
+        font-weight: 700;
+    }
+
+    .priceOnSale {
+        background: none;
+        -webkit-text-fill-color: #ff6b6b;
+        color: #ff6b6b;
+    }
+
+    .comparePrice {
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .rating {
+        .ratingValue {
+            color: #ffffff;
+        }
+
+        .reviewCount {
+            color: rgba(255, 255, 255, 0.5);
+        }
+    }
+
+    .badges {
+        top: 16px;
+        left: 16px;
+
+        .badge {
+            font-size: 0.625rem;
+            letter-spacing: 0.12em;
+            border-radius: 2px;
+            padding: 5px 10px;
+        }
+    }
+
+    .iconBtn {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+
+        svg {
+            color: #ffffff;
+        }
+
+        &:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    }
+
+    .quickActions {
+        background: none;
+        padding: 0;
+        position: relative;
+        opacity: 1;
+        transform: none;
+        margin-top: 8px;
+    }
+
+    .addToCartBtn {
+        background: #ffffff;
+        color: #000000;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-radius: 0;
+        font-size: 0.75rem;
+        padding: 12px;
+
+        &:hover {
+            background: #f0f0f0;
+        }
+    }
+
+    .buyNowBtn {
+        border-radius: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-size: 0.75rem;
+    }
+}
+
+// =============================================================================
+// POLAROID STYLE - Photo-frame with white border, shadow
+// =============================================================================
+
+.stylePolaroid {
+    background: #ffffff;
+    border-radius: var(--card-border-radius, 4px);
+    padding: 12px 12px 0;
+    box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.06),
+        0 8px 24px rgba(0, 0, 0, 0.08);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &::before {
+        display: none;
+    }
+
+    &:hover {
+        transform: translateY(-8px) rotate(-1deg);
+        box-shadow:
+            0 16px 48px rgba(0, 0, 0, 0.12),
+            0 4px 12px rgba(0, 0, 0, 0.08);
+
+        .imageInner {
+            transform: scale(1.02);
+        }
+    }
+
+    .imageContainer {
+        aspect-ratio: 1 / 1;
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .content {
+        padding: 16px 4px;
+        text-align: center;
+    }
+
+    .name {
+        font-size: 0.9rem;
+        font-weight: 500;
+        text-align: center;
+        line-height: 1.4;
+
+        a {
+            background: none;
+            -webkit-text-fill-color: #374151;
+            color: #374151;
+
+            &:hover {
+                -webkit-text-fill-color: #111827;
+                color: #111827;
+            }
+        }
+    }
+
+    .brand {
+        text-align: center;
+        display: block;
+        color: #9ca3af;
+    }
+
+    .pricing {
+        justify-content: center;
+    }
+
+    .rating {
+        justify-content: center;
+    }
+
+    .badges {
+        top: 20px;
+        left: 20px;
+
+        .badge {
+            border-radius: 4px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+    }
+
+    .iconBtn {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    }
+
+    .contentActions {
+        justify-content: center;
+        padding: 0 0 4px;
+    }
+
+    .contentBtn {
+        border-radius: 6px;
+        font-size: 0.8rem;
+
+        &.addToCart {
+            background: #374151;
+            color: #ffffff;
+            border: none;
+
+            &:hover {
+                background: #1f2937;
+            }
+        }
+    }
+
+    .stockStatus {
+        text-align: center;
+        display: block;
+    }
+}
+
+// =============================================================================
+// GRADIENT STYLE - Vibrant colorful gradient backgrounds
+// =============================================================================
+
+.styleGradient {
+    background: linear-gradient(145deg, #ffffff 0%, #f8f9fc 100%);
+    border-radius: var(--card-border-radius, 16px);
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    position: relative;
+
+    &::before {
+        height: 3px;
+        background: linear-gradient(90deg, var(--color-primary, #3b82f6), var(--accent-color, #8b5cf6));
+        opacity: 0;
+    }
+
+    &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(var(--color-primary-rgb, 59, 130, 246), 0.02) 0%, transparent 50%);
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    &:hover {
+        transform: translateY(-6px);
+        border-color: var(--color-primary, #3b82f6);
+        box-shadow:
+            0 12px 32px rgba(0, 0, 0, 0.08),
+            0 4px 12px rgba(var(--color-primary-rgb, 59, 130, 246), 0.08);
+
+        &::before {
+            opacity: 1;
+        }
+
+        .imageInner {
+            transform: scale(1.05);
+        }
+    }
+
+    .imageContainer {
+        margin: 10px;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        position: relative;
+        z-index: 1;
+    }
+
+    .content {
+        padding: 4px 14px 14px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .brand {
+        color: var(--color-primary, #6366f1);
+    }
+
+    .name a {
+        color: #111827;
+        background: none;
+        -webkit-text-fill-color: #111827;
+
+        &:hover {
+            -webkit-text-fill-color: var(--color-primary, #3b82f6);
+        }
+    }
+
+    .price {
+        color: #111827;
+        font-weight: 700;
+    }
+
+    .priceOnSale {
+        background: none;
+        -webkit-text-fill-color: var(--color-primary, #ef4444);
+        color: var(--color-primary, #ef4444);
+    }
+
+    .comparePrice {
+        color: #9ca3af;
+    }
+
+    .rating {
+        .ratingValue {
+            color: #111827;
+        }
+
+        .reviewCount {
+            color: #9ca3af;
+        }
+    }
+
+    .badges {
+        top: 18px;
+        left: 18px;
+
+        .badge {
+            border-radius: 6px;
+        }
+
+        .badgeSale {
+            background: var(--color-primary, #ef4444);
+            color: #ffffff;
+        }
+    }
+
+    .iconBtn {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+
+        svg {
+            color: #374151;
+        }
+
+        &:hover {
+            background: var(--color-primary, #3b82f6);
+            border-color: var(--color-primary, #3b82f6);
+
+            svg {
+                color: #ffffff;
+            }
+        }
+
+        &.wishlisted {
+            background: #fef2f2;
+            border-color: #fecaca;
+
+            svg {
+                color: #ef4444;
+            }
+        }
+    }
+
+    .contentActions {
+        .contentBtn {
+            &.addToCart {
+                background: var(--color-primary, #111827);
+                color: #ffffff;
+                border: none;
+                font-weight: 600;
+
+                &:hover {
+                    opacity: 0.9;
+                }
+            }
+
+            &.buyNow {
+                background: transparent;
+                color: var(--color-primary, #111827);
+                border: 2px solid var(--color-primary, #111827);
+
+                &:hover {
+                    background: var(--color-primary, #111827);
+                    color: #ffffff;
+                }
+            }
+        }
+    }
+
+    .wishlistBtn {
+        background: #ffffff;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    }
+
+    .stockStatus {
+        color: #6b7280;
+
+        &.inStock {
+            color: #10b981;
+
+            &::before {
+                background: #10b981;
+            }
+        }
+    }
+}
+
+// =============================================================================
+// ELEGANT STYLE - Luxury/fashion, gold accents, refined spacing
+// =============================================================================
+
+.styleElegant {
+    background: #ffffff;
+    border-radius: var(--card-border-radius, 2px);
+    border: 1px solid #e8e3dc;
+    box-shadow: none;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+
+    &::before {
+        height: 1px;
+        background: linear-gradient(90deg, transparent, #c9a96e, transparent);
+        opacity: 0;
+    }
+
+    &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, #c9a96e, transparent);
+        opacity: 0;
+        transition: opacity 0.4s ease;
+    }
+
+    &:hover {
+        transform: none;
+        border-color: #c9a96e;
+        box-shadow: 0 8px 24px rgba(201, 169, 110, 0.12);
+
+        &::before {
+            opacity: 1;
+        }
+
+        &::after {
+            opacity: 1;
+        }
+
+        .imageInner {
+            transform: scale(1.03);
+        }
+    }
+
+    .imageContainer {
+        border-bottom: 1px solid #f0ebe4;
+    }
+
+    .content {
+        padding: 20px;
+        gap: 10px;
+        flex: 1;
+    }
+
+    // Hide default contentActions since elegant uses its own footer
+    .contentActions {
+        display: none;
+    }
+
+    .brand {
+        color: #c9a96e;
+        font-size: 0.6875rem;
+        letter-spacing: 0.2em;
+        font-weight: 600;
+    }
+
+    .name {
+        font-weight: 400;
+        letter-spacing: 0.02em;
+        line-height: 1.5;
+
+        a {
+            color: #1a1a1a;
+            background: none;
+            -webkit-text-fill-color: #1a1a1a;
+            transition: color 0.3s ease;
+
+            &:hover {
+                -webkit-text-fill-color: #c9a96e;
+                color: #c9a96e;
+            }
+        }
+    }
+
+    .price {
+        color: #1a1a1a;
+        font-weight: 500;
+        letter-spacing: 0.03em;
+    }
+
+    .priceOnSale {
+        background: none;
+        -webkit-text-fill-color: #b91c1c;
+        color: #b91c1c;
+    }
+
+    .comparePrice {
+        color: #b5ad9e;
+    }
+
+    .rating {
+        .starFilled {
+            color: #c9a96e;
+        }
+
+        .reviewCount {
+            color: #b5ad9e;
+        }
+    }
+
+    .badges {
+        .badge {
+            border-radius: 0;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            box-shadow: none;
+            backdrop-filter: none;
+        }
+
+        .badgeSale {
+            background: #b91c1c;
+            color: #ffffff;
+        }
+
+        .badgeNew {
+            background: #1a1a1a;
+            color: #ffffff;
+        }
+    }
+
+    .iconBtn {
+        border-radius: 0;
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid #e8e3dc;
+
+        svg {
+            color: #1a1a1a;
+        }
+
+        &:hover {
+            background: #1a1a1a;
+            border-color: #1a1a1a;
+
+            svg {
+                color: #ffffff;
+            }
+        }
+
+        &.wishlisted {
+            background: #1a1a1a;
+            border-color: #1a1a1a;
+
+            svg {
+                color: #c9a96e;
+            }
+        }
+    }
+
+    .stockStatus {
+        font-size: 0.6875rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    .sku {
+        color: #b5ad9e;
+        letter-spacing: 0.05em;
+    }
+}
+
+.elegantFooter {
+    padding: 16px 20px;
+    background: #faf8f5;
+    border-top: 1px solid #f0ebe4;
+    display: flex;
+    gap: 12px;
+    margin-top: auto;
+}
+
+.elegantBtn {
+    flex: 1;
+    padding: 11px;
+    border-radius: 0;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-family: inherit;
+}
+
+.elegantBtnCart {
+    background: #1a1a1a;
+    color: #ffffff;
+    border: 1px solid #1a1a1a;
+
+    &:hover {
+        background: #c9a96e;
+        border-color: #c9a96e;
+    }
+}
+
+.elegantBtnBuy {
+    background: #ffffff;
+    border: 1px solid #e8e3dc;
+    color: #1a1a1a;
+
+    &:hover {
+        background: #1a1a1a;
+        color: #ffffff;
+        border-color: #1a1a1a;
+    }
+}
+
+// =============================================================================
+// BRUTALIST STYLE - Bold, raw, thick borders, stark typography
+// =============================================================================
+
+.styleBrutalist {
+    background: #ffffff;
+    border: 3px solid #000000;
+    border-radius: 0;
+    box-shadow: 6px 6px 0 #000000;
+    overflow: hidden;
+
+    &::before {
+        display: none;
+    }
+
+    &:hover {
+        transform: translate(-3px, -3px);
+        box-shadow: 9px 9px 0 #000000;
+
+        .imageInner {
+            transform: none;
+            filter: contrast(1.1);
+        }
+    }
+
+    .imageContainer {
+        border-bottom: 3px solid #000000;
+    }
+
+    .content {
+        padding: 16px;
+        gap: 6px;
+    }
+
+    .brand {
+        color: #000000;
+        font-size: 0.625rem;
+        font-weight: 900;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        background: #ffeb3b;
+        display: inline-block;
+        padding: 2px 8px;
+    }
+
+    .name {
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: -0.02em;
+        line-height: 1.15;
+
+        a {
+            color: #000000;
+            background: none;
+            -webkit-text-fill-color: #000000;
+
+            &:hover {
+                -webkit-text-fill-color: #000000;
+                text-decoration: underline;
+                text-decoration-thickness: 3px;
+            }
+        }
+    }
+
+    .price {
+        color: #000000;
+        font-weight: 900;
+        font-size: 1.25rem;
+    }
+
+    .priceOnSale {
+        background: none;
+        -webkit-text-fill-color: #ff0000;
+        color: #ff0000;
+    }
+
+    .comparePrice {
+        color: #999999;
+        text-decoration-thickness: 2px;
+    }
+
+    .rating {
+        .starFilled {
+            color: #000000;
+        }
+
+        .starEmpty {
+            color: #cccccc;
+        }
+
+        .ratingValue {
+            color: #000000;
+            font-weight: 900;
+        }
+    }
+
+    .badges {
+        .badge {
+            border-radius: 0;
+            border: 2px solid #000000;
+            box-shadow: 2px 2px 0 #000000;
+            backdrop-filter: none;
+        }
+
+        .badgeSale {
+            background: #ff0000;
+            color: #ffffff;
+        }
+
+        .badgeNew {
+            background: #000000;
+            color: #ffffff;
+        }
+    }
+
+    .iconBtn {
+        border-radius: 0;
+        border: 2px solid #000000;
+        background: #ffffff;
+        box-shadow: 2px 2px 0 #000000;
+
+        &:hover {
+            background: #ffeb3b;
+            transform: translate(-2px, -2px);
+            box-shadow: 4px 4px 0 #000000;
+        }
+
+        &.wishlisted {
+            background: #ff0000;
+            border-color: #000000;
+
+            svg {
+                color: #ffffff;
+            }
+        }
+    }
+
+    // Hide default contentActions since brutalist uses its own footer
+    .contentActions {
+        display: none;
+    }
+
+    .stockStatus {
+        font-weight: 900;
+        text-transform: uppercase;
+        font-size: 0.6875rem;
+        letter-spacing: 0.1em;
+    }
+
+    .sku {
+        color: #666666;
+        font-weight: 700;
+        font-family: monospace;
+        letter-spacing: 0.05em;
+    }
+}
+
+.brutalistFooter {
+    display: flex;
+    border-top: 3px solid #000000;
+}
+
+.brutalistBtn {
+    flex: 1;
+    padding: 14px;
+    font-size: 0.75rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: none;
+    font-family: inherit;
+
+    &:active {
+        transform: translateY(1px);
+    }
+}
+
+.brutalistBtnCart {
+    background: #000000;
+    color: #ffffff;
+
+    &:hover {
+        background: #ffeb3b;
+        color: #000000;
+    }
+}
+
+.brutalistBtnBuy {
+    background: #ffffff;
+    color: #000000;
+    border-left: 3px solid #000000;
+
+    &:hover {
+        background: #000000;
+        color: #ffffff;
+    }
+}
+
+// =============================================================================
+// FLOATING STYLE - Deep layered shadows, floating appearance
+// =============================================================================
+
+.styleFloating {
+    background: #ffffff;
+    border-radius: var(--card-border-radius, 24px);
+    border: none;
+    box-shadow:
+        0 4px 6px rgba(0, 0, 0, 0.02),
+        0 12px 24px rgba(0, 0, 0, 0.04),
+        0 24px 48px rgba(0, 0, 0, 0.06);
+    overflow: visible;
+    position: relative;
+
+    &::before {
+        display: none;
+    }
+
+    &::after {
+        content: '';
+        position: absolute;
+        bottom: -12px;
+        left: 15%;
+        right: 15%;
+        height: 24px;
+        background: radial-gradient(ellipse, rgba(0, 0, 0, 0.08) 0%, transparent 70%);
+        border-radius: 50%;
+        z-index: -1;
+        transition: all 0.4s ease;
+    }
+
+    &:hover {
+        transform: translateY(-12px);
+        box-shadow:
+            0 8px 12px rgba(0, 0, 0, 0.03),
+            0 20px 40px rgba(0, 0, 0, 0.06),
+            0 40px 80px rgba(0, 0, 0, 0.08);
+
+        &::after {
+            bottom: -20px;
+            left: 10%;
+            right: 10%;
+            background: radial-gradient(ellipse, rgba(0, 0, 0, 0.12) 0%, transparent 70%);
+        }
+
+        .imageInner {
+            transform: scale(1.04);
+        }
+    }
+
+    .imageContainer {
+        border-radius: var(--card-border-radius, 24px) var(--card-border-radius, 24px) 0 0;
+        overflow: hidden;
+    }
+
+    .content {
+        padding: 20px;
+        gap: 8px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .brand {
+        color: var(--color-primary, #6366f1);
+        font-weight: 600;
+    }
+
+    .name a {
+        color: #1e1b4b;
+        background: none;
+        -webkit-text-fill-color: #1e1b4b;
+
+        &:hover {
+            -webkit-text-fill-color: $accent;
+        }
+    }
+
+    .price {
+        color: #1e1b4b;
+    }
+
+    .priceOnSale {
+        background: linear-gradient(135deg, var(--color-primary, #6366f1), var(--accent-color, #a78bfa));
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .badges {
+        top: 16px;
+        left: 16px;
+
+        .badge {
+            border-radius: 20px;
+            padding: 6px 14px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .badgeSale {
+            background: linear-gradient(135deg, #f43f5e, #ec4899);
+        }
+
+        .badgeNew {
+            background: linear-gradient(135deg, var(--color-primary, #6366f1), var(--accent-color, #a78bfa));
+        }
+    }
+
+    .iconBtn {
+        background: #ffffff;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        border: none;
+
+        &:hover {
+            background: var(--color-primary, #6366f1);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
+
+            svg {
+                color: #ffffff;
+            }
+        }
+
+        &.wishlisted {
+            background: linear-gradient(135deg, #f43f5e, #ec4899);
+            box-shadow: 0 4px 12px rgba(244, 63, 94, 0.3);
+
+            svg {
+                color: #ffffff;
+            }
+        }
+    }
+
+    .contentActions {
+        margin-top: auto;
+    }
+
+    .contentBtn {
+        border-radius: 14px;
+        padding: 0;
+        font-weight: 700;
+
+        &.addToCart {
+            background: $accent;
+            color: #ffffff;
+            border: none;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+
+            &:hover {
+                box-shadow: 0 6px 16px rgba(99, 102, 241, 0.3);
+                opacity: 0.92;
+            }
+        }
+
+        &.buyNow {
+            background: #ffffff;
+            color: var(--color-primary, #6366f1);
+            border: 2px solid #e0e7ff;
+
+            svg {
+                color: var(--color-primary, #6366f1);
+            }
+
+            &:hover {
+                border-color: var(--color-primary, #6366f1);
+                background: #f5f3ff;
+            }
+        }
+    }
+
+    .quickActions {
+        border-radius: 0 0 var(--card-border-radius, 24px) var(--card-border-radius, 24px);
+    }
+
+    .rating {
+        .starFilled {
+            color: #f59e0b;
+        }
+    }
+
+    .stockStatus {
+        &.inStock {
+            color: #10b981;
+        }
     }
 }
 
@@ -1064,7 +2491,7 @@
 
 .buyNowBtn {
     flex: 1;
-    padding: 12px 16px;
+    padding: 0;
     font-size: 0.875rem;
     font-weight: 600;
     border-radius: 8px;
@@ -1273,11 +2700,11 @@
     background: transparent;
 
     &.addToCart {
-        color: var(--color-primary, #111827);
-        border: 2px solid var(--color-primary, #111827);
+        color: $accent;
+        border: 2px solid $accent;
 
         &:hover {
-            background: var(--color-primary, #111827);
+            background: $accent;
             color: #ffffff;
         }
     }

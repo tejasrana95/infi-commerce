@@ -88,6 +88,86 @@ export default function ModernCleanProductCardTemplate({
                     showStock: false,
                     showSku: false
                 };
+            case 'glassmorphism':
+                return {
+                    cardBorderRadius: 20,
+                    cardPadding: 16,
+                    titleFontSize: 'medium' as const,
+                    showStock: false,
+                    showSku: false,
+                    addToCartStyle: 'filled' as const,
+                    showRating: true
+                };
+            case 'neon':
+                return {
+                    cardBorderRadius: 12,
+                    cardPadding: 16,
+                    titleFontSize: 'medium' as const,
+                    showStock: false,
+                    showSku: false,
+                    addToCartStyle: 'filled' as const,
+                    showRating: true
+                };
+            case 'magazine':
+                return {
+                    cardBorderRadius: 0,
+                    cardPadding: 0,
+                    titleFontSize: 'large' as const,
+                    showStock: false,
+                    showSku: false,
+                    addToCartStyle: 'filled' as const,
+                    showRating: false
+                };
+            case 'polaroid':
+                return {
+                    cardBorderRadius: 4,
+                    cardPadding: 12,
+                    titleFontSize: 'medium' as const,
+                    showStock: false,
+                    showSku: false,
+                    addToCartStyle: 'filled' as const,
+                    showRating: true
+                };
+            case 'gradient':
+                return {
+                    cardBorderRadius: 16,
+                    cardPadding: 16,
+                    titleFontSize: 'medium' as const,
+                    showStock: false,
+                    showSku: false,
+                    addToCartStyle: 'filled' as const,
+                    showRating: true
+                };
+            case 'elegant':
+                return {
+                    cardBorderRadius: 2,
+                    cardPadding: 20,
+                    titleFontSize: 'large' as const,
+                    showStock: true,
+                    showSku: false,
+                    addToCartStyle: 'outlined' as const,
+                    showRating: true
+                };
+            case 'brutalist':
+                return {
+                    cardBorderRadius: 0,
+                    cardPadding: 0,
+                    titleFontSize: 'large' as const,
+                    showStock: true,
+                    showSku: true,
+                    addToCartStyle: 'filled' as const,
+                    showRating: true
+                };
+            case 'floating':
+                return {
+                    cardBorderRadius: 24,
+                    cardPadding: 16,
+                    titleFontSize: 'medium' as const,
+                    showStock: false,
+                    showSku: false,
+                    addToCartStyle: 'filled' as const,
+                    showRating: true
+                };
             default:
                 return {
                     cardBorderRadius: 12,
@@ -211,22 +291,27 @@ export default function ModernCleanProductCardTemplate({
         );
     };
 
+    const isHorizontal = cardStyle === 'horizontal';
+
     return (
         <div
             className={cardClasses}
             style={{
                 '--card-border-radius': `${cardBorderRadius}px`,
                 '--card-padding': `${cardPadding}px`,
+                ...(isHorizontal ? { flexDirection: 'row' as const, flexWrap: 'nowrap' as const } : {}),
             } as React.CSSProperties}
             data-ga-location="product_card"
             data-ga-category="product"
             data-ga-value={id}
         >
+
             {/* Image Container */}
             <Link
                 href={productUrl}
                 title={name}
-                className="infi-track"
+                className={`${styles.imageLink} infi-track`}
+                style={isHorizontal ? { width: '40%', minWidth: '40%', maxWidth: '40%', flexShrink: 0, display: 'block' } : undefined}
                 data-ga-label={name}
             >
                 <div className={`${styles.imageContainer} ${aspectRatioClass}`}>
@@ -361,10 +446,10 @@ export default function ModernCleanProductCardTemplate({
                         </button>
                     )}
 
-                    {/* Quick Actions Overlay - Only show cart/buy now buttons for overlay style */}
-                    {((cardStyle === 'overlay' && (showAddToCart || showBuyNow)) || (showQuickView && quickViewPosition === 'overlay')) && inStock && shouldShowPrice && (
-                        <div className={`${styles.quickActions} ${(cardStyle === 'overlay' && showAddToCart && showBuyNow) ? styles.stacked : ''}`}>
-                            {cardStyle === 'overlay' && (
+                    {/* Quick Actions Overlay - For overlay and magazine styles */}
+                    {(((cardStyle === 'overlay' || cardStyle === 'magazine') && (showAddToCart || showBuyNow)) || (showQuickView && quickViewPosition === 'overlay')) && inStock && shouldShowPrice && (
+                        <div className={`${styles.quickActions} ${((cardStyle === 'overlay' || cardStyle === 'magazine') && showAddToCart && showBuyNow) ? styles.stacked : ''}`}>
+                            {(cardStyle === 'overlay' || cardStyle === 'magazine') && (
                                 <div className={styles.actionButtons}>
                                     {showAddToCart && (
                                         <button
@@ -434,7 +519,7 @@ export default function ModernCleanProductCardTemplate({
                 </div>
             </Link>
             {/* Content */}
-            <div className={styles.content}>
+            <div className={styles.content} style={isHorizontal ? { flex: '1 1 0%', minWidth: 0, width: '60%' } : undefined}>
                 {/* Brand */}
                 {showBrand && brand && (
                     <span className={styles.brand}>{brand}</span>
@@ -475,7 +560,7 @@ export default function ModernCleanProductCardTemplate({
                 )}
 
                 {/* Action Buttons - For non-overlay card styles */}
-                {cardStyle !== 'overlay' && (cardStyle as any) !== 'detailed' && (showAddToCart || showBuyNow) && inStock && shouldShowPrice && (
+                {cardStyle !== 'overlay' && cardStyle !== 'magazine' && (cardStyle as any) !== 'detailed' && cardStyle !== 'brutalist' && cardStyle !== 'elegant' && (showAddToCart || showBuyNow) && inStock && shouldShowPrice && (
                     <div className={`${styles.contentActions} ${(addToCartStyle === 'icon-only' && buyNowStyle === 'icon-only') ? styles.centeredActions : ''}`}>
                         {showAddToCart && (
                             <button
@@ -540,6 +625,70 @@ export default function ModernCleanProductCardTemplate({
                     {showBuyNow && (
                         <button
                             className={`${styles.footerBtn} ${styles.footerBtnBuy} infi-track`}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                onBuyNow?.();
+                            }}
+                            data-ga-action="buy_now"
+                            data-ga-label={name}
+                        >
+                            Buy Now
+                        </button>
+                    )}
+                </div>
+            )}
+
+            {/* Brutalist Style Footer */}
+            {cardStyle === 'brutalist' && (showAddToCart || showBuyNow) && inStock && shouldShowPrice && (
+                <div className={styles.brutalistFooter}>
+                    {showAddToCart && (
+                        <button
+                            className={`${styles.brutalistBtn} ${styles.brutalistBtnCart} infi-track`}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                onAddToCart?.();
+                            }}
+                            data-ga-action="add_to_cart"
+                            data-ga-label={name}
+                        >
+                            ADD TO CART
+                        </button>
+                    )}
+                    {showBuyNow && (
+                        <button
+                            className={`${styles.brutalistBtn} ${styles.brutalistBtnBuy} infi-track`}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                onBuyNow?.();
+                            }}
+                            data-ga-action="buy_now"
+                            data-ga-label={name}
+                        >
+                            BUY NOW
+                        </button>
+                    )}
+                </div>
+            )}
+
+            {/* Elegant Style Footer */}
+            {cardStyle === 'elegant' && (showAddToCart || showBuyNow) && inStock && shouldShowPrice && (
+                <div className={styles.elegantFooter}>
+                    {showAddToCart && (
+                        <button
+                            className={`${styles.elegantBtn} ${styles.elegantBtnCart} infi-track`}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                onAddToCart?.();
+                            }}
+                            data-ga-action="add_to_cart"
+                            data-ga-label={name}
+                        >
+                            Add to Cart
+                        </button>
+                    )}
+                    {showBuyNow && (
+                        <button
+                            className={`${styles.elegantBtn} ${styles.elegantBtnBuy} infi-track`}
                             onClick={(e) => {
                                 e.preventDefault();
                                 onBuyNow?.();
