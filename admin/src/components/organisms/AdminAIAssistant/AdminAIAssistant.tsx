@@ -186,7 +186,7 @@ export default function AdminAIAssistant({ entityType, getValues, setValue }: Ad
                         onClick={handleOpen}
                         sx={{
                             position: 'fixed',
-                            bottom: 32,
+                            bottom: 92,
                             right: 32,
                             zIndex: 1000,
                             background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',

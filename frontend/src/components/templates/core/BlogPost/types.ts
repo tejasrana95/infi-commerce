@@ -1,5 +1,33 @@
 // BlogPost Types - Shared interfaces for single blog post page
 
+export interface LinkedProduct {
+    _id: string;
+    name: string;
+    slug: string;
+    price: number;
+    salePrice?: number;
+    compareAtPrice?: number;
+    images?: string[];
+    averageRating?: number;
+    reviewCount?: number;
+    isNew?: boolean;
+    inStock?: boolean;
+    brand?: string;
+    sku?: string;
+}
+
+export interface LinkedProductsConfig {
+    enabled: boolean;
+    sourceType: 'category' | 'products';
+    categoryId?: string;
+    productIds?: string[];
+    limit?: number;
+    order?: 'latest' | 'random' | 'best-selling' | 'most-viewed';
+    layout?: 'carousel' | 'grid';
+    columns?: number;
+    title?: string;
+}
+
 export interface BlogPost {
     _id: string;
     title: string;
@@ -26,6 +54,8 @@ export interface BlogPost {
         metaKeywords?: string[];
         ogImage?: string;
     };
+    linkedProductsConfig?: LinkedProductsConfig;
+    linkedProducts?: LinkedProduct[];
 }
 
 export interface RelatedPost {

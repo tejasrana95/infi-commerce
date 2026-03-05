@@ -28,6 +28,19 @@ export interface IBlogPost extends Document {
     // Related products (for product-related blog posts)
     relatedProducts?: mongoose.Types.ObjectId[];
 
+    // Linked products config (admin-configured product linking)
+    linkedProductsConfig?: {
+        enabled: boolean;
+        sourceType: 'category' | 'products';
+        categoryId?: mongoose.Types.ObjectId;
+        productIds?: mongoose.Types.ObjectId[];
+        limit?: number;
+        order?: 'latest' | 'random' | 'best-selling' | 'most-viewed';
+        layout?: 'carousel' | 'grid';
+        columns?: number;
+        title?: string;
+    };
+
     // Custom layout (optional)
     layoutId?: mongoose.Types.ObjectId;
 
@@ -118,6 +131,30 @@ const BlogPostSchema = new Schema<IBlogPost>(
             type: Schema.Types.ObjectId,
             ref: 'Product',
         }],
+
+        linkedProductsConfig: {
+            enabled: { type: Boolean, default: false },
+            sourceType: {
+                type: String,
+                enum: ['category', 'products'],
+                default: 'products',
+            },
+            categoryId: { type: Schema.Types.ObjectId, ref: 'Category' },
+            productIds: [{ type: Schema.Types.ObjectId, ref: 'Product' }],
+            limit: { type: Number, default: 8 },
+            order: {
+                type: String,
+                enum: ['latest', 'random', 'best-selling', 'most-viewed'],
+                default: 'latest',
+            },
+            layout: {
+                type: String,
+                enum: ['carousel', 'grid'],
+                default: 'grid',
+            },
+            columns: { type: Number, default: 4 },
+            title: { type: String, trim: true },
+        },
 
         layoutId: {
             type: Schema.Types.ObjectId,

@@ -42,7 +42,6 @@ export default function EditBlogPostPage({ params }: { params: Promise<{ id: str
         try {
             await api.put(`/blog/posts/${id}`, data);
             showNotification('Post updated successfully', 'success');
-            router.push('/blog/posts');
         } catch (error: any) {
             showNotification(error.response?.data?.message || 'Failed to update post', 'error');
         } finally {

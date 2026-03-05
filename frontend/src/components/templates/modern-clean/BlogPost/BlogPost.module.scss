@@ -188,7 +188,7 @@
     aspect-ratio: 16 / 9;
 
     .image {
-        object-fit: cover;
+        object-fit: contain;
         border-radius: 16px;
     }
 
@@ -204,7 +204,7 @@
 
 // Content Wrapper
 .contentWrapper {
-    padding: 48px 0 80px;
+    padding: 18px 0 80px;
 }
 
 .contentContainer {
@@ -571,3 +571,118 @@
         align-items: flex-start;
     }
 }
+
+// ─── Linked Products Section ───────────────────────────────────────────────
+
+.linkedProducts {
+    padding: 60px 0;
+    background: var(--background, #f9f9f9);
+    border-top: 1px solid var(--border, #eee);
+}
+
+.linkedProductsInner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+.linkedProductsTitle {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary, #111);
+    margin-bottom: 28px;
+}
+
+// Grid layout — columns driven by CSS variable --lp-columns (1-5)
+.linkedProductsGrid {
+    display: grid;
+    gap: 20px;
+    // Desktop: use the configured column count
+    grid-template-columns: repeat(var(--lp-columns, 4), 1fr);
+
+    // Tablet: max 2 columns (unless configured to 1)
+    @media (max-width: 1024px) {
+        grid-template-columns: repeat(min(var(--lp-columns, 4), 2),
+                1fr);
+    }
+
+    // Mobile: always 1 column
+    @include mobile {
+        grid-template-columns: 1fr;
+    }
+}
+
+// Carousel layout
+.carouselWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.carousel {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 4px 4px 12px;
+    flex: 1;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.carouselItem {
+    scroll-snap-align: start;
+    flex: 0 0 calc(25% - 12px);
+    min-width: 220px;
+
+    @media (max-width: 1024px) {
+        flex: 0 0 calc(50% - 8px);
+    }
+
+    @include mobile {
+        flex: 0 0 75vw;
+        min-width: 240px;
+    }
+}
+
+.carouselArrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--border, #e5e5e5);
+    background: white;
+    color: var(--text-primary, #333);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    z-index: 1;
+
+    svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    &:hover {
+        background: var(--primary, #4f46e5);
+        border-color: var(--primary, #4f46e5);
+        color: white;
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    }
+
+    @include mobile {
+        display: none;
+    }
+}
+
+.carouselArrowLeft {}
+
+.carouselArrowRight {}

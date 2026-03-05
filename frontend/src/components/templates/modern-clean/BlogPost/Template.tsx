@@ -11,6 +11,7 @@ import SectionRenderer from '@/components/core/layout/SectionRenderer';
 import { BlogPostTemplateProps } from '@/components/templates/core/BlogPost/types';
 import styles from './BlogPost.module.scss';
 import { FiClock, FiCalendar, FiArrowLeft, FiTwitter, FiFacebook, FiLinkedin, FiLink } from 'react-icons/fi';
+import BlogPostLinkedProducts from './BlogPostLinkedProducts';
 
 export default function ModernCleanBlogPostTemplate({
     post,
@@ -239,6 +240,14 @@ export default function ModernCleanBlogPostTemplate({
                         {renderAuthorCard()}
                     </div>
                 </div>
+            )}
+
+            {/* Linked Products Section */}
+            {post.linkedProductsConfig?.enabled && post.linkedProducts && post.linkedProducts.length > 0 && (
+                <BlogPostLinkedProducts
+                    products={post.linkedProducts}
+                    config={post.linkedProductsConfig}
+                />
             )}
         </div>
     );

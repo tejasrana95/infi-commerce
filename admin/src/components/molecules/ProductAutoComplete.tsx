@@ -183,30 +183,86 @@ export default function ProductAutoComplete({
 
     // Fetch product by ID if value is just an ID or missing details
     useEffect(() => {
-        if (!storeId || !value || multiple) return;
+        if (!storeId || !value) return;
 
-        const currentVal = value as ProductOption;
-        if (currentVal._id && !currentVal.name) {
-            const fetchProduct = async () => {
-                try {
-                    setLoading(true);
-                    const response = await api.get(`/products/${currentVal._id}`);
-                    // Backend returns { product: { ... } }
-                    const product = response.data.product || response.data.data || response.data;
-                    if (product && product._id && product.name) {
-                        setOptions([product]);
-                        // Update the parent's value so it shows the label
-                        onChange(product);
+        // ── Single mode ──────────────────────────────────────────────
+        if (!multiple) {
+            const currentVal = value as ProductOption;
+            if (currentVal._id && !currentVal.name) {
+                const fetchProduct = async () => {
+                    try {
+                        setLoading(true);
+                        const response = await api.get(`/products/${currentVal._id}`);
+                        const product = response.data.product || response.data.data || response.data;
+                        if (product && product._id && product.name) {
+                            setOptions([product]);
+                            onChange(product);
+                        }
+                    } catch (error) {
+                        console.error('Failed to fetch initial product:', error);
+                    } finally {
+                        setLoading(false);
                     }
-                } catch (error) {
-                    console.error('Failed to fetch initial product:', error);
-                } finally {
-                    setLoading(false);
-                }
-            };
-            fetchProduct();
+                };
+                fetchProduct();
+            }
+            return;
         }
-    }, [storeId, value, multiple, onChange]);
+
+        // ── Multiple mode — bulk hydration ───────────────────────────
+        // When values are stub objects (have _id but no name), fetch full data
+        const items = value as ProductOption[];
+        if (!Array.isArray(items) || items.length === 0) return;
+
+        const stubs = items.filter((p: any) => p && p._id && !p.name);
+        if (stubs.length === 0) return; // All items already have full data
+
+        const fetchMissingProducts = async () => {
+            try {
+                setLoading(true);
+                const ids = stubs.map((p: any) => p._id).join(',');
+                const response = await api.get(`/products`, {
+                    params: { ids, sort: 'false', limit: stubs.length },
+                });
+                const fetched: ProductOption[] = response.data.products || response.data.data || [];
+
+                if (fetched.length === 0) return;
+
+                // Build a map for fast lookup
+                const fetchedMap = new Map(fetched.map((p) => [p._id, p]));
+
+                // Merge: preserve original order, replace stubs with full data
+                const merged = items.map((item: any) => {
+                    if (item._id && !item.name && fetchedMap.has(item._id)) {
+                        return fetchedMap.get(item._id)!;
+                    }
+                    return item;
+                });
+
+                setOptions(fetched);
+                onChange(merged);
+            } catch (error) {
+                console.error('Failed to fetch initial products (multiple):', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchMissingProducts();
+        // Depend on a stable key built from stub IDs so we re-run whenever
+        // react-hook-form's reset() delivers stub objects (but not on every render)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+        storeId,
+        multiple,
+        // derive a stable key from the stub IDs — only changes when stubs arrive
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        multiple
+            ? Array.isArray(value)
+                ? (value as any[]).filter((p: any) => p?._id && !p?.name).map((p: any) => p._id).join(',')
+                : ''
+            : '',
+    ]);
 
     useEffect(() => {
         const timer = setTimeout(() => {

@@ -18,14 +18,26 @@ import {
     Button,
     Typography,
     CircularProgress,
+    Checkbox,
+    Divider,
+    ToggleButton,
+    ToggleButtonGroup,
+    Paper,
+    InputAdornment,
+    Alert,
+    Stack,
 } from '@mui/material';
 import AssessmentIcon from '@mui/icons-material/Assessment';
+import GridViewIcon from '@mui/icons-material/GridView';
+import ViewCarouselIcon from '@mui/icons-material/ViewCarousel';
 import AdminAIAssistant from '../organisms/AdminAIAssistant/AdminAIAssistant';
 import SeoSuggestions from '../molecules/SeoSuggestions';
 import api from '@/lib/api';
 import { BlogPost } from '@/types';
 import StoreAutocomplete from '@/components/molecules/StoreAutocomplete';
 import BlogCategoryAutocomplete from '@/components/molecules/BlogCategoryAutocomplete';
+import CategoryAutocomplete from '@/components/molecules/CategoryAutocomplete';
+import ProductAutoComplete, { ProductOption } from '@/components/molecules/ProductAutoComplete';
 import FileManagerButton from '@/components/molecules/FileManagerButton';
 import RichTextEditor from '@/components/molecules/RichTextEditor';
 import { FileItem } from '@/types/file';
@@ -45,6 +57,19 @@ const schema = z.object({
     allowComments: z.boolean(),
     isFeatured: z.boolean(),
     isPinned: z.boolean(),
+
+    // Linked products config
+    linkedProductsConfig: z.object({
+        enabled: z.boolean(),
+        sourceType: z.enum(['category', 'products']),
+        categoryId: z.string().optional().nullable(),
+        productIds: z.array(z.any()).optional(),
+        limit: z.number().optional(),
+        order: z.enum(['latest', 'random', 'best-selling', 'most-viewed']).optional(),
+        layout: z.enum(['carousel', 'grid']).optional(),
+        columns: z.number().optional(),
+        title: z.string().optional(),
+    }).optional(),
 
     // SEO
     seo: z.object({
@@ -80,6 +105,17 @@ const defaultValues: FormData = {
     allowComments: true,
     isFeatured: false,
     isPinned: false,
+    linkedProductsConfig: {
+        enabled: false,
+        sourceType: 'products',
+        categoryId: null,
+        productIds: [],
+        limit: 8,
+        order: 'latest',
+        layout: 'grid',
+        columns: 4,
+        title: '',
+    },
     seo: {
         metaTitle: '',
         metaDescription: '',
@@ -103,6 +139,13 @@ export default function BlogPostForm({ initialData, onSubmit, isSubmitting = fal
     const watchedTitle = watch('title');
     const watchedStoreId = watch('storeId');
     const seoScore = watch('seo.score') || 0;
+    const linkedEnabled = watch('linkedProductsConfig.enabled');
+    const linkedSourceType = watch('linkedProductsConfig.sourceType');
+    const linkedLayout = watch('linkedProductsConfig.layout');
+    const linkedColumns = watch('linkedProductsConfig.columns') ?? 4;
+    const linkedProducts = watch('linkedProductsConfig.productIds');
+    const linkedProductsCount = Array.isArray(linkedProducts) ? linkedProducts.length : 0;
+    const hasStore = Boolean(watchedStoreId);
 
     useEffect(() => {
         if (initialData) {
@@ -114,6 +157,24 @@ export default function BlogPostForm({ initialData, onSubmit, isSubmitting = fal
             const categoryIds = Array.isArray(initialData.categoryIds)
                 ? initialData.categoryIds.map((c: any) => typeof c === 'object' ? c._id : c)
                 : [];
+
+            // Hydrate linkedProductsConfig
+            const lpc = (initialData as any).linkedProductsConfig;
+            const linkedProductsConfig: FormData['linkedProductsConfig'] = {
+                enabled: lpc?.enabled ?? false,
+                sourceType: lpc?.sourceType ?? 'products',
+                categoryId: typeof lpc?.categoryId === 'object' && lpc?.categoryId?._id
+                    ? lpc.categoryId._id
+                    : lpc?.categoryId || null,
+                productIds: Array.isArray(lpc?.productIds)
+                    ? lpc.productIds.map((p: any) => typeof p === 'object' ? p : { _id: p })
+                    : [],
+                limit: lpc?.limit ?? 8,
+                order: lpc?.order ?? 'latest',
+                layout: lpc?.layout ?? 'grid',
+                columns: lpc?.columns ?? 4,
+                title: lpc?.title ?? '',
+            };
 
             reset({
                 title: initialData.title || '',
@@ -129,6 +190,7 @@ export default function BlogPostForm({ initialData, onSubmit, isSubmitting = fal
                 allowComments: initialData.allowComments ?? true,
                 isFeatured: initialData.isFeatured ?? false,
                 isPinned: initialData.isPinned ?? false,
+                linkedProductsConfig,
                 seo: {
                     metaTitle: initialData.seo?.metaTitle || '',
                     metaDescription: initialData.seo?.metaDescription || '',
@@ -176,11 +238,29 @@ export default function BlogPostForm({ initialData, onSubmit, isSubmitting = fal
         }
     };
 
+    // Normalize form data before submission: extract _id from ProductOption objects
+    const handleFormSubmit = async (data: FormData) => {
+        const normalized = { ...data };
+        if (normalized.linkedProductsConfig) {
+            normalized.linkedProductsConfig = {
+                ...normalized.linkedProductsConfig,
+                // Convert ProductOption[] → string[] of _id values
+                productIds: (normalized.linkedProductsConfig.productIds || []).map(
+                    (p: any) => (typeof p === 'object' && p._id ? p._id : p)
+                ),
+                // Ensure null categoryId is stripped
+                categoryId: normalized.linkedProductsConfig.categoryId || undefined,
+            };
+        }
+        await onSubmit(normalized);
+    };
+
+
     return (
         <Box
             component="form"
             id="blog-post-form"
-            onSubmit={handleSubmit(onSubmit, (formErrors) => {
+            onSubmit={handleSubmit(handleFormSubmit, (formErrors) => {
                 if (formErrors?.seo) {
                     setActiveTab(2);
                 }
@@ -382,53 +462,310 @@ export default function BlogPostForm({ initialData, onSubmit, isSubmitting = fal
             {/* Tab 1: Settings */}
             {activeTab === 1 && (
                 <Grid container spacing={3}>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <Controller
-                            name="slug"
-                            control={control}
-                            render={({ field }) => (
-                                <TextField
-                                    {...field}
-                                    label="Slug"
-                                    fullWidth
-                                    required
-                                    error={!!errors.slug}
-                                    helperText={errors.slug?.message}
-                                />
-                            )}
-                        />
-                    </Grid>
                     <Grid size={{ xs: 12 }}>
-                        <Controller
-                            name="allowComments"
-                            control={control}
-                            render={({ field }) => (
-                                <FormControlLabel
-                                    control={<Switch checked={field.value} onChange={field.onChange} />}
-                                    label="Allow Comments"
+                        <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+                            <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                                Post Settings
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                Control publish URL and visibility behavior for this post.
+                            </Typography>
+
+                            <Grid container spacing={2}>
+                                <Grid size={{ xs: 12, md: 6 }}>
+                                    <Controller
+                                        name="slug"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <TextField
+                                                {...field}
+                                                label="Slug"
+                                                fullWidth
+                                                required
+                                                error={!!errors.slug}
+                                                helperText={errors.slug?.message || 'Used in URL: /blog/your-slug'}
+                                            />
+                                        )}
+                                    />
+                                </Grid>
+                                <Grid size={{ xs: 12 }}>
+                                    <Stack
+                                        direction={{ xs: 'column', sm: 'row' }}
+                                        spacing={1}
+                                        sx={{ alignItems: { xs: 'flex-start', sm: 'center' }, flexWrap: 'wrap' }}
+                                    >
+                                        <Controller
+                                            name="allowComments"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <FormControlLabel
+                                                    control={<Switch checked={field.value} onChange={field.onChange} />}
+                                                    label="Allow Comments"
+                                                />
+                                            )}
+                                        />
+                                        <Controller
+                                            name="isFeatured"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <FormControlLabel
+                                                    control={<Switch checked={field.value} onChange={field.onChange} />}
+                                                    label="Featured Post"
+                                                />
+                                            )}
+                                        />
+                                        <Controller
+                                            name="isPinned"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <FormControlLabel
+                                                    control={<Switch checked={field.value} onChange={field.onChange} />}
+                                                    label="Pin to Top"
+                                                />
+                                            )}
+                                        />
+                                    </Stack>
+                                </Grid>
+                            </Grid>
+                        </Paper>
+                    </Grid>
+
+                    {/* Link Products Section */}
+                    <Grid size={{ xs: 12 }}>
+                        <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+                                <Box>
+                                    <Typography variant="subtitle1" fontWeight={600}>
+                                        Linked Products
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                        Show relevant products below the blog content.
+                                    </Typography>
+                                </Box>
+                                <Controller
+                                    name="linkedProductsConfig.enabled"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <FormControlLabel
+                                            sx={{ mr: 0 }}
+                                            control={
+                                                <Checkbox
+                                                    checked={field.value ?? false}
+                                                    onChange={field.onChange}
+                                                />
+                                            }
+                                            label="Link products"
+                                        />
+                                    )}
                                 />
+                            </Box>
+
+                            {linkedEnabled && (
+                                <Box sx={{ mt: 2 }}>
+                                    {!hasStore && (
+                                        <Alert severity="warning" sx={{ mb: 2 }}>
+                                            Select a store in the Content tab to configure product/category source.
+                                        </Alert>
+                                    )}
+                                <Grid container spacing={3}>
+                                    {/* Source type toggle */}
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="subtitle2" gutterBottom>
+                                            Product Source
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                                            Pick products manually or auto-populate from a single category.
+                                        </Typography>
+                                        <Controller
+                                            name="linkedProductsConfig.sourceType"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <ToggleButtonGroup
+                                                    value={field.value}
+                                                    exclusive
+                                                    onChange={(_, val) => { if (val) field.onChange(val); }}
+                                                    size="small"
+                                                >
+                                                    <ToggleButton value="category" disabled={!hasStore}>By Category</ToggleButton>
+                                                    <ToggleButton value="products" disabled={!hasStore}>By Products</ToggleButton>
+                                                </ToggleButtonGroup>
+                                            )}
+                                        />
+                                    </Grid>
+
+                                    {/* ── By Category ── */}
+                                    {linkedSourceType === 'category' && (
+                                        <>
+                                            <Grid size={{ xs: 12 }}>
+                                                <Controller
+                                                    name="linkedProductsConfig.categoryId"
+                                                    control={control}
+                                                    render={({ field: { onChange, value } }) => (
+                                                        <CategoryAutocomplete
+                                                            label="Product Category"
+                                                            storeId={watchedStoreId}
+                                                            value={value || null}
+                                                            onChange={(val) => onChange(val)}
+                                                            multiple={false}
+                                                            disabled={!hasStore}
+                                                        />
+                                                    )}
+                                                />
+                                            </Grid>
+                                            <Grid size={{ xs: 12, sm: 6 }}>
+                                                <Controller
+                                                    name="linkedProductsConfig.limit"
+                                                    control={control}
+                                                    render={({ field }) => (
+                                                        <TextField
+                                                            label="Limit"
+                                                            type="number"
+                                                            fullWidth
+                                                            value={field.value ?? 8}
+                                                            onChange={(e) => field.onChange(parseInt(e.target.value) || 8)}
+                                                            slotProps={{ htmlInput: { min: 1, max: 50 } }}
+                                                            disabled={!hasStore}
+                                                        />
+                                                    )}
+                                                />
+                                            </Grid>
+                                            <Grid size={{ xs: 12, sm: 6 }}>
+                                                <Controller
+                                                    name="linkedProductsConfig.order"
+                                                    control={control}
+                                                    render={({ field }) => (
+                                                        <TextField
+                                                            {...field}
+                                                            select
+                                                            label="Order"
+                                                            fullWidth
+                                                            disabled={!hasStore}
+                                                        >
+                                                            <MenuItem value="latest">Latest</MenuItem>
+                                                            <MenuItem value="random">Random</MenuItem>
+                                                            <MenuItem value="best-selling">Best Selling</MenuItem>
+                                                            <MenuItem value="most-viewed">Most Viewed</MenuItem>
+                                                        </TextField>
+                                                    )}
+                                                />
+                                            </Grid>
+                                        </>
+                                    )}
+
+                                    {/* ── By Products ── */}
+                                    {linkedSourceType === 'products' && (
+                                        <Grid size={{ xs: 12 }}>
+                                            <Controller
+                                                name="linkedProductsConfig.productIds"
+                                                control={control}
+                                                render={({ field: { onChange, value } }) => (
+                                                    <ProductAutoComplete
+                                                        storeId={watchedStoreId}
+                                                        multiple
+                                                        label="Search & Add Products"
+                                                        value={value as ProductOption[] || []}
+                                                        onChange={onChange}
+                                                        disabled={!hasStore}
+                                                        helperText={hasStore ? 'Drag selected products below search to set exact order.' : undefined}
+                                                    />
+                                                )}
+                                            />
+                                            {hasStore && (
+                                                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: 'block' }}>
+                                                    {linkedProductsCount} product{linkedProductsCount === 1 ? '' : 's'} selected
+                                                </Typography>
+                                            )}
+                                        </Grid>
+                                    )}
+
+                                    {/* ── Layout Options ── */}
+                                    <Grid size={{ xs: 12 }}>
+                                        <Divider sx={{ mb: 2 }} />
+                                        <Typography variant="subtitle2" gutterBottom>
+                                            Layout
+                                        </Typography>
+                                        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                                            <Controller
+                                                name="linkedProductsConfig.layout"
+                                                control={control}
+                                                render={({ field }) => (
+                                                    <ToggleButtonGroup
+                                                        value={field.value ?? 'grid'}
+                                                        exclusive
+                                                        onChange={(_, val) => { if (val) field.onChange(val); }}
+                                                        size="small"
+                                                    >
+                                                        <ToggleButton value="grid" sx={{ gap: 0.5 }} disabled={!hasStore}>
+                                                            <GridViewIcon fontSize="small" /> Grid
+                                                        </ToggleButton>
+                                                        <ToggleButton value="carousel" sx={{ gap: 0.5 }} disabled={!hasStore}>
+                                                            <ViewCarouselIcon fontSize="small" /> Carousel
+                                                        </ToggleButton>
+                                                    </ToggleButtonGroup>
+                                                )}
+                                            />
+
+                                            {linkedLayout === 'grid' && (
+                                                <Controller
+                                                    name="linkedProductsConfig.columns"
+                                                    control={control}
+                                                    render={({ field }) => (
+                                                        <TextField
+                                                            select
+                                                            label="Products per row"
+                                                            size="small"
+                                                            value={field.value ?? 4}
+                                                            onChange={(e) => field.onChange(parseInt(e.target.value))}
+                                                            sx={{ minWidth: 160 }}
+                                                            helperText={`Mobile: 1 col · Tablet: ${linkedColumns === 1 ? 1 : 2} col`}
+                                                            disabled={!hasStore}
+                                                        >
+                                                            <MenuItem value={1}>1</MenuItem>
+                                                            <MenuItem value={2}>2</MenuItem>
+                                                            <MenuItem value={3}>3</MenuItem>
+                                                            <MenuItem value={4}>4</MenuItem>
+                                                            <MenuItem value={5}>5</MenuItem>
+                                                        </TextField>
+                                                    )}
+                                                />
+                                            )}
+                                            {linkedLayout === 'carousel' && (
+                                                <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
+                                                    Carousel uses horizontal swipe/scroll on all devices.
+                                                </Typography>
+                                            )}
+                                        </Box>
+                                    </Grid>
+
+                                    {/* Optional title */}
+                                    <Grid size={{ xs: 12 }}>
+                                        <Controller
+                                            name="linkedProductsConfig.title"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <TextField
+                                                    {...field}
+                                                    label="Section Title (optional)"
+                                                    fullWidth
+                                                    placeholder="Related Products"
+                                                    slotProps={{
+                                                        input: {
+                                                            startAdornment: (
+                                                                <InputAdornment position="start">
+                                                                    <Typography variant="caption" color="text.secondary">Title:</Typography>
+                                                                </InputAdornment>
+                                                            ),
+                                                        },
+                                                    }}
+                                                    disabled={!hasStore}
+                                                />
+                                            )}
+                                        />
+                                    </Grid>
+                                </Grid>
+                                </Box>
                             )}
-                        />
-                        <Controller
-                            name="isFeatured"
-                            control={control}
-                            render={({ field }) => (
-                                <FormControlLabel
-                                    control={<Switch checked={field.value} onChange={field.onChange} />}
-                                    label="Featured Post"
-                                />
-                            )}
-                        />
-                        <Controller
-                            name="isPinned"
-                            control={control}
-                            render={({ field }) => (
-                                <FormControlLabel
-                                    control={<Switch checked={field.value} onChange={field.onChange} />}
-                                    label="Pin to Top"
-                                />
-                            )}
-                        />
+                        </Paper>
                     </Grid>
                 </Grid>
             )}
