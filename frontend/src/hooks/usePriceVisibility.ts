@@ -12,6 +12,7 @@ interface GeoData {
     country_code?: string;
     region_code?: string;  // state/province code
     city?: string;
+    source?: string; // e.g. 'cloudflare', 'ipapi', etc.
 }
 
 interface PriceVisibilityResult {
@@ -101,7 +102,8 @@ async function detectGeo(): Promise<GeoData> {
         try {
             // Use our backend endpoint which checks Cloudflare headers first
             // This provides instant response when behind Cloudflare
-            const response = await fetch('/api/geo/detect', {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+            const response = await fetch(`${apiUrl}/geo/detect`, {
                 signal: AbortSignal.timeout(5000),
             });
             if (!response.ok) throw new Error('Geo detection failed');
