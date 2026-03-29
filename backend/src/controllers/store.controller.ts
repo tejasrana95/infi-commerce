@@ -61,6 +61,7 @@ function buildPublicStoreResponse(store: any): any {
             enabled: !!aiSettings.enabled,
             model: aiSettings.model,
         },
+        priceVisibility: settings.priceVisibility,
         contact: settings.contact,
         theme: store.theme,
         pwaSettings: store.pwaSettings,
