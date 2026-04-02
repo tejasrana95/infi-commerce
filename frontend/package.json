@@ -6,7 +6,7 @@
     "dev": "next dev -p 3002",
     "prebuild": "npx tsx scripts/generate-menu-config.ts && npx tsx scripts/generate-store-config.ts",
     "build": "next build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/",
-    "start": "PORT=${PORT:-6101} node .next/standalone/server.js",
+    "start": "set -a; [ -f .env ] && . ./.env; set +a; PORT=${PORT:-6101} node .next/standalone/server.js",
     "lint": "eslint",
     "analyze": "cross-env ANALYZE=true next build"
   },

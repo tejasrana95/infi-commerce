@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3004",
     "build": "next build",
-    "start": "cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/ && PORT=${PORT:-6106} node .next/standalone/server.js",
+    "start": "cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/ && set -a; [ -f .env ] && . ./.env; set +a; PORT=${PORT:-6106} node .next/standalone/server.js",
     "lint": "eslint"
   },
   "dependencies": {
