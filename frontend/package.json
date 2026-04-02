@@ -6,7 +6,7 @@
     "dev": "next dev -p 3002",
     "prebuild": "npx tsx scripts/generate-menu-config.ts && npx tsx scripts/generate-store-config.ts",
     "build": "next build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/",
-    "start": "PORT=6101 node .next/standalone/server.js",
+    "start": "PORT=${PORT:-6101} node .next/standalone/server.js",
     "start-demo": "PORT=6201 node .next/standalone/server.js",
     "start-murtiya": "PORT=6301 node .next/standalone/server.js",
     "start-old": "next start -p 3012",
