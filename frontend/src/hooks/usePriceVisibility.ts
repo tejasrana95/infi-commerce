@@ -170,6 +170,13 @@ export function usePriceVisibility(): PriceVisibilityResult {
         });
     }, [hasGeoRestrictions, settings?.showPrice]);
 
+    const hasStoredAuthToken = useMemo(() => {
+        if (typeof window === 'undefined') return false;
+        return !!localStorage.getItem('authToken');
+    }, []);
+
+    const isUserAuthenticated = isAuthenticated || hasStoredAuthToken;
+
     const shouldShowPrice = useMemo(() => {
         // If no settings configured, default to showing price
         if (!settings) return true;
@@ -178,7 +185,7 @@ export function usePriceVisibility(): PriceVisibilityResult {
         if (!settings.showPrice) return false;
 
         // 2. Authentication check
-        if (settings.hideForUnauthenticated && !isAuthenticated) return false;
+        if (settings.hideForUnauthenticated && !isUserAuthenticated) return false;
         // 3. Geo restriction check
         if (hasGeoRestrictions && geoData) {
             const restrictions = settings.geoRestrictions!;
@@ -226,7 +233,7 @@ export function usePriceVisibility(): PriceVisibilityResult {
         }
 
         return true;
-    }, [settings, isAuthenticated, geoData, hasGeoRestrictions]);
+    }, [settings, isUserAuthenticated, geoData, hasGeoRestrictions]);
 
     // Contact link
     const contactUsLink = settings?.contactUsLink || '/contact';
