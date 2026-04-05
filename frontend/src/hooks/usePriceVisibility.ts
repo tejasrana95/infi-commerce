@@ -236,7 +236,7 @@ export function usePriceVisibility(): PriceVisibilityResult {
     }, [settings, isUserAuthenticated, geoData, hasGeoRestrictions]);
 
     // Contact link
-    const contactUsLink = settings?.contactUsLink || '/contact';
+    const contactUsLink = settings?.contactUsLink || '/contact-us';
 
     return {
         shouldShowPrice,
