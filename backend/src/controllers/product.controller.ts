@@ -469,7 +469,7 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
 
     const page = parseInt(req.query.page as string) || 1;
     const requestedLimit = parseInt(req.query.limit as string) || 24;
-    const limit = Math.min(Math.max(requestedLimit, 1), 100);
+    const limit = Math.min(Math.max(requestedLimit, 1), 1000);
     const skip = (page - 1) * limit;
     const isListingView = req.query.view === 'listing' || req.query.fields === 'listing';
     let textSearchMode = false;
