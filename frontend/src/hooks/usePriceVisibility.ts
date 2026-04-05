@@ -170,10 +170,7 @@ export function usePriceVisibility(): PriceVisibilityResult {
         });
     }, [hasGeoRestrictions, settings?.showPrice]);
 
-    const hasStoredAuthToken = useMemo(() => {
-        if (typeof window === 'undefined') return false;
-        return !!localStorage.getItem('authToken');
-    }, []);
+    const hasStoredAuthToken = typeof window !== 'undefined' && !!localStorage.getItem('authToken');
 
     const isUserAuthenticated = isAuthenticated || hasStoredAuthToken;
 
@@ -186,6 +183,10 @@ export function usePriceVisibility(): PriceVisibilityResult {
 
         // 2. Authentication check
         if (settings.hideForUnauthenticated && !isUserAuthenticated) return false;
+
+        // If user is authenticated, always show price regardless of geo restrictions.
+        if (isUserAuthenticated) return true;
+
         // 3. Geo restriction check
         if (hasGeoRestrictions && geoData) {
             const restrictions = settings.geoRestrictions!;
