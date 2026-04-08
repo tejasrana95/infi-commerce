@@ -1,9 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction } from 'express';
 
 /**
  * Middleware to restrict access to local IPs only (cron jobs, internal cleanup)
  */
-export const localIpOnly = (req: Request, res: Response, next: NextFunction) => {
+export const localIpOnly = (next: NextFunction) => {
     // const clientIp = req.ip || req.socket.remoteAddress || '';
 
     // // Allow localhost IPv4, IPv6, and loopback addresses
