@@ -26,8 +26,8 @@
         "@aws-sdk/client-ses": "^3.958.0",
         "@types/express-rate-limit": "^6.0.2",
         "@types/pdfkit": "^0.17.4",
-        "aws-sdk": "^1.18.0",
-        "axios": "^1.6.2",
+        "aws-sdk": "^2.1693.0",
+        "axios": "^1.15.2",
         "bcryptjs": "^2.4.3",
         "bwip-js": "^4.8.0",
         "compression": "^1.7.4",
@@ -45,7 +45,7 @@
         "mongoose": "^8.0.3",
         "morgan": "^1.10.0",
         "multer": "^1.4.5-lts.1",
-        "nodemailer": "^8.0.4",
+        "nodemailer": "^8.0.6",
         "openai": "^6.15.0",
         "otplib": "^12.0.1",
         "pdfkit": "^0.17.2",
@@ -57,7 +57,7 @@
         "stripe": "^14.7.0",
         "swagger-jsdoc": "^6.2.8",
         "swagger-ui-express": "^5.0.1",
-        "uuid": "^13.0.0"
+        "uuid": "^14.0.0"
     },
     "devDependencies": {
         "@types/bcryptjs": "^2.4.6",

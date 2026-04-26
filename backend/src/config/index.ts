@@ -2,6 +2,20 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const resolveMongoUri = (): string => {
+    const mongoUri = process.env.MONGODB_URI?.trim();
+
+    if (mongoUri) {
+        return mongoUri;
+    }
+
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error('MONGODB_URI is required in production. Set a full authenticated MongoDB connection string.');
+    }
+
+    return 'mongodb://localhost:27017/infi_commerce';
+};
+
 export const config = {
     env: process.env.NODE_ENV || 'development',
     port: parseInt(process.env.PORT || '3001', 10),
@@ -11,7 +25,7 @@ export const config = {
     mfaIssuer: process.env.MFA_ISSUER || 'InfiCommerce',
 
     database: {
-        mongoUri: process.env.MONGODB_URI || 'mongodb://localhost:27017/infi_commerce',
+        mongoUri: resolveMongoUri(),
     },
 
     jwt: {

@@ -89,7 +89,7 @@ const StripBanner: React.FC<StripBannerProps> = ({
     // If color is present, render.
     // If opacity is present (>0) but no color, default to black and render.
     let safeColor = overlayColor;
-    let safeOpacity = (overlayOpacity !== undefined && !isNaN(overlayOpacity)) ? overlayOpacity : 0.5;
+    const safeOpacity = (overlayOpacity !== undefined && !isNaN(overlayOpacity)) ? overlayOpacity : 0.5;
 
     // Default to black if opacity is explicitly set but no color provided
     if (!safeColor && overlayOpacity !== undefined && overlayOpacity > 0) {

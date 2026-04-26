@@ -66,7 +66,7 @@ function setCookie(name: string, value: string, days: number): void {
     document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Lax`;
 }
 
-function getGeoCookie(): GeoData | null {
+export function getGeoCookie(): GeoData | null {
     const encoded = getCookie(GEO_COOKIE_NAME);
     if (!encoded) return null;
     return decodeData(encoded);

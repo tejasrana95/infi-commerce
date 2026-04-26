@@ -45,7 +45,7 @@ function CategoryProducts({ item, onNavigate }: { item: MenuItem; onNavigate?: (
         })();
 
         return () => { cancelled = true; };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, [item.categoryId, item.productLimit, shouldFetch]);
 
     const displayMode = item.categoryDisplayMode || 'list';

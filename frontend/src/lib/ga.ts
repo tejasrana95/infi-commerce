@@ -541,7 +541,7 @@ function sendAutoTrackEvent(data: AutoTrackData): void {
 // SCROLL TRACKING
 // ============================================
 
-let scrollMilestones = new Set<number>();
+const scrollMilestones = new Set<number>();
 const SCROLL_THRESHOLDS = [25, 50, 75, 90, 100];
 
 function initScrollTracking(): void {

@@ -14,7 +14,7 @@ import { Store } from '@/types';
 async function scGet<T>(key: string): Promise<T | null> {
     if (typeof window !== 'undefined') return null; // browser guard
     try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+         
         const { serverCacheGet } = await import(/* webpackIgnore: true */ '@/lib/server-cache');
         return serverCacheGet<T>(key);
     } catch { return null; }
@@ -22,7 +22,7 @@ async function scGet<T>(key: string): Promise<T | null> {
 async function scSet(key: string, value: unknown, ttl: number): Promise<void> {
     if (typeof window !== 'undefined') return;
     try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+         
         const { serverCacheSet } = await import(/* webpackIgnore: true */ '@/lib/server-cache');
         await serverCacheSet(key, value, ttl);
     } catch { /* ignore */ }

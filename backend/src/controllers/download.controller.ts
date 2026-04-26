@@ -254,11 +254,11 @@ export const downloadFile = asyncHandler(async (req: AuthRequest, res: Response)
             res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
 
             if (externalResponse.headers['content-type']) {
-                res.setHeader('Content-Type', externalResponse.headers['content-type']);
+                res.setHeader('Content-Type', externalResponse.headers['content-type'] as string);
             }
 
             if (externalResponse.headers['content-length']) {
-                res.setHeader('Content-Length', externalResponse.headers['content-length']);
+                res.setHeader('Content-Length', externalResponse.headers['content-length'] as string);
             }
 
             externalResponse.data.pipe(res);

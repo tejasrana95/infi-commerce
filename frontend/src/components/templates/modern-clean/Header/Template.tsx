@@ -291,14 +291,16 @@ export default function ModernCleanHeaderTemplate({
                 return (
                     <Link key={element.id} href="/" className={styles.logo}>
                         {(element.settings && element.settings?.logoUrl) ? (
-                            <Image
-                                src={element.settings?.logoUrl}
-                                alt={element.settings?.logoAlt || storeName}
-                                width={150}
-                                height={40}
-                                priority
-                                style={{ objectFit: 'contain', width: 'auto', height: '40px' }}
-                            />
+                            <span className={styles.logoImageWrapper}>
+                                <Image
+                                    src={element.settings?.logoUrl}
+                                    alt={element.settings?.logoAlt || storeName}
+                                    fill
+                                    priority
+                                    sizes="150px"
+                                    style={{ objectFit: 'contain' }}
+                                />
+                            </span>
                         ) : (
                             <span className={styles.logoText}>{storeName}</span>
                         )}

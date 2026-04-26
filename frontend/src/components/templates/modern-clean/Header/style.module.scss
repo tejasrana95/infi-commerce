@@ -302,19 +302,22 @@ $accent-color: var(--color-accent, #007185);
     display: flex;
     align-items: center;
 
-    img {
-        height: 40px;
-        width: auto;
-
-        @include mobile {
-            height: 32px;
-        }
-    }
-
     @include mobile {
         position: static;
         transform: none;
         min-height: 32px;
+    }
+}
+
+.logoImageWrapper {
+    position: relative;
+    display: block;
+    width: 150px;
+    height: 40px;
+
+    @include mobile {
+        width: 120px;
+        height: 32px;
     }
 }
 

@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiClient } from '@/services/api-client';
 import styles from './ShippingCalculator.module.scss';
 import { useCurrency } from '@/hooks/useCurrency';
-import { Plus, Minus } from 'lucide-react';
+import { MapPin, ChevronDown, ChevronUp, Search, Truck } from 'lucide-react';
+import { getGeoCookie } from '@/hooks/usePriceVisibility';
 
 interface ShippingCalculatorProps {
     productId: string;
@@ -28,25 +29,48 @@ interface GeoCountry {
 }
 
 const ShippingCalculator: React.FC<ShippingCalculatorProps> = ({
-    productId,
-    variantId,
-    quantity,
     userDefaultCountry,
     onCalculate,
     estimate
 }) => {
-    const [country, setCountry] = useState(userDefaultCountry || '');
+    const cookieCountryCode = (getGeoCookie()?.country_code || '').trim().toUpperCase();
+    const [country, setCountry] = useState(userDefaultCountry || cookieCountryCode || '');
     const [countryInput, setCountryInput] = useState(userDefaultCountry || '');
-    const [zip, setZip] = useState('');
     const [countries, setCountries] = useState<GeoCountry[]>([]);
     const [loadingCountries, setLoadingCountries] = useState(false);
     const [hasLoadedCountries, setHasLoadedCountries] = useState(false);
     const [showCountrySuggestions, setShowCountrySuggestions] = useState(false);
     const { formatPriceWithExchange } = useCurrency();
-
     const [isExpanded, setIsExpanded] = useState(false);
+    const isUserInteracted = React.useRef(false);
 
-    const ensureCountriesLoaded = async () => {
+    const normalizedCountryInput = countryInput.trim().toLowerCase();
+    const countriesByCode = useMemo(() => {
+        const codeMap = new Map<string, GeoCountry>();
+        for (const c of countries) {
+            codeMap.set(c.code.toUpperCase(), c);
+        }
+        return codeMap;
+    }, [countries]);
+
+    const syncCountryFromCookie = useCallback(() => {
+        if (isUserInteracted.current) return;
+        if (country.trim() || countryInput.trim()) return;
+        if (!cookieCountryCode) return;
+        setCountry(cookieCountryCode);
+        if (hasLoadedCountries) {
+            const matchedCountry = countriesByCode.get(cookieCountryCode);
+            if (matchedCountry) {
+                setCountryInput(matchedCountry.name);
+            }
+        }
+    }, [country, countryInput, cookieCountryCode, hasLoadedCountries, countriesByCode]);
+
+    useEffect(() => {
+        syncCountryFromCookie();
+    }, [syncCountryFromCookie]);
+
+    const ensureCountriesLoaded = useCallback(async () => {
         if (hasLoadedCountries || loadingCountries) return;
         setLoadingCountries(true);
         try {
@@ -58,17 +82,43 @@ const ShippingCalculator: React.FC<ShippingCalculatorProps> = ({
         } finally {
             setLoadingCountries(false);
         }
-    };
+    }, [hasLoadedCountries, loadingCountries]);
 
-    const handleCalculate = (e: React.FormEvent) => {
+    useEffect(() => {
+        if (!cookieCountryCode || hasLoadedCountries) return;
+        ensureCountriesLoaded();
+    }, [cookieCountryCode, hasLoadedCountries, ensureCountriesLoaded]);
+
+    useEffect(() => {
+        if (isUserInteracted.current) return;
+        if (!hasLoadedCountries || !countries.length || !country) return;
+
+        const normalizedCountryCode = country.trim().toUpperCase();
+        const normalizedInput = countryInput.trim().toUpperCase();
+
+        if (normalizedInput && normalizedInput !== normalizedCountryCode) return;
+
+        const matchedCountry = countriesByCode.get(normalizedCountryCode);
+        if (!matchedCountry) return;
+
+        if (countryInput !== matchedCountry.name) {
+            setCountryInput(matchedCountry.name);
+        }
+    }, [hasLoadedCountries, countries.length, country, countryInput, countriesByCode]);
+
+    const handleCalculate = useCallback((e: React.FormEvent) => {
         e.preventDefault();
-        let selectedCountryCode = country;
+        syncCountryFromCookie();
 
-        if (countryInput) {
+        let selectedCountryCode = (country || cookieCountryCode || '').trim().toUpperCase();
+        const trimmedInput = countryInput.trim();
+
+        if (trimmedInput) {
             const matched = countries.find(
-                c => c.name.toLowerCase() === countryInput.trim().toLowerCase() || c.code.toLowerCase() === countryInput.trim().toLowerCase()
+                c => c.name.toLowerCase() === trimmedInput.toLowerCase() || c.code.toLowerCase() === trimmedInput.toLowerCase()
             );
-            selectedCountryCode = matched?.code || '';
+            // If countries are not loaded yet, keep an existing country/code instead of clearing it.
+            selectedCountryCode = (matched?.code || selectedCountryCode || trimmedInput).toUpperCase();
             setCountry(selectedCountryCode);
             if (matched) {
                 setCountryInput(matched.name);
@@ -77,127 +127,144 @@ const ShippingCalculator: React.FC<ShippingCalculatorProps> = ({
 
         if (!selectedCountryCode) return;
         if (onCalculate) {
-            onCalculate(zip, selectedCountryCode);
+            onCalculate('', selectedCountryCode);
         }
-    };
+    }, [country, cookieCountryCode, countryInput, countries, onCalculate, syncCountryFromCookie]);
 
-    const filteredCountries = countries
-        .filter((c) => {
-            const query = countryInput.trim().toLowerCase();
-            if (!query) return true;
-            return c.name.toLowerCase().includes(query) || c.code.toLowerCase().includes(query);
-        })
-        .slice(0, 12);
+    const filteredCountries = useMemo(() => {
+        if (!normalizedCountryInput) {
+            return countries.slice(0, 12);
+        }
+        return countries
+            .filter((c) => c.name.toLowerCase().includes(normalizedCountryInput) || c.code.toLowerCase().includes(normalizedCountryInput))
+            .slice(0, 12);
+    }, [countries, normalizedCountryInput]);
+
+    const hasCountrySelection = Boolean(countryInput.trim() || country.trim() || cookieCountryCode);
+
+    const handleHeaderClick = useCallback(() => {
+        const nextExpanded = !isExpanded;
+        setIsExpanded(nextExpanded);
+        if (nextExpanded) {
+            syncCountryFromCookie();
+            ensureCountriesLoaded();
+        }
+    }, [isExpanded, syncCountryFromCookie, ensureCountriesLoaded]);
+
+    const handleCountryFocus = useCallback(() => {
+        setShowCountrySuggestions(true);
+        ensureCountriesLoaded();
+    }, [ensureCountriesLoaded]);
 
     return (
-        <div className={`${styles.shippingCalculator} ${isExpanded ? styles.expanded : ''}`} data-ga-location="product_page" data-ga-widget="shipping_calculator">
-            <div
-                className={`${styles.header} ${isExpanded ? styles.active : ''} infi-track`}
-                onClick={() => {
-                    const nextExpanded = !isExpanded;
-                    setIsExpanded(nextExpanded);
-                    if (nextExpanded) {
-                        ensureCountriesLoaded();
-                    }
-                }}
+        <div className={`${styles.modernShippingWrapper} ${isExpanded ? styles.expanded : ''}`} data-ga-location="product_page" data-ga-widget="shipping_calculator">
+            <button
+                type="button"
+                className={`${styles.locationHeader} infi-track`}
+                onClick={handleHeaderClick}
                 data-ga-action={isExpanded ? 'collapse' : 'expand'}
                 data-ga-label="Shipping Calculator"
             >
-                <div className={styles.title}>
-                    Shipping Calculator
+                <div className={styles.locationInfo}>
+                    <MapPin className={styles.locIcon} size={18} />
+                    <span className={styles.locText}>
+                        {hasCountrySelection ? `Deliver to ${countryInput || country}` : 'Estimate Shipping'}
+                    </span>
                 </div>
-                <span className={styles.toggleIcon}>
-                    {isExpanded ? <Minus size={16} /> : <Plus size={16} />}
-                </span>
-            </div>
+                <div className={styles.headerRight}>
+                    {estimate?.cost !== undefined && !estimate?.loading && (
+                        <span className={styles.costPreview}>{formatPriceWithExchange(estimate.cost)}</span>
+                    )}
+                    {isExpanded ? <ChevronUp className={styles.chevron} size={16} /> : <ChevronDown className={styles.chevron} size={16} />}
+                </div>
+            </button>
 
-            <div className={`${styles.content} ${isExpanded ? styles.show : ''}`}>
-                <div className={styles.formContainer}>
-                    <form className={styles.form} onSubmit={handleCalculate}>
-                        <div className={styles.formGroup}>
-                            <label>Country</label>
-                            <div className={styles.autocomplete}>
+            <div className={`${styles.collapseContent} ${isExpanded ? styles.show : ''}`}>
+                <div className={styles.contentBody}>
+                    <form className={styles.formArea} onSubmit={handleCalculate}>
+                        <div className={styles.inputGroup}>
+                            <div className={styles.searchWrapper}>
+                                <Search className={styles.searchIcon} size={14} />
                                 <input
                                     type="text"
+                                    className={styles.countryInput}
                                     value={countryInput}
                                     onChange={(e) => {
-                                        setCountryInput(e.target.value);
+                                        isUserInteracted.current = true;
+                                        const val = e.target.value;
+                                        setCountryInput(val);
+                                        if (!val.trim()) {
+                                            setCountry('');
+                                        }
                                         setShowCountrySuggestions(true);
                                     }}
-                                    onFocus={() => {
-                                        setShowCountrySuggestions(true);
-                                        ensureCountriesLoaded();
-                                    }}
+                                    onFocus={handleCountryFocus}
                                     onBlur={() => {
-                                        // Delay close to allow option click
-                                        setTimeout(() => setShowCountrySuggestions(false), 120);
+                                        setTimeout(() => setShowCountrySuggestions(false), 150);
                                     }}
-                                    placeholder={loadingCountries ? 'Loading countries...' : 'Search country'}
+                                    placeholder={loadingCountries ? 'Loading regions...' : 'Search for your country...'}
                                     disabled={loadingCountries}
+                                    autoComplete="off"
                                 />
-
-                                {showCountrySuggestions && isExpanded && !loadingCountries && filteredCountries.length > 0 && (
-                                    <div className={styles.suggestions}>
-                                        {filteredCountries.map((c) => (
-                                            <button
-                                                key={c._id}
-                                                type="button"
-                                                className={styles.suggestionItem}
-                                                onMouseDown={(e) => e.preventDefault()}
-                                                onClick={() => {
-                                                    setCountry(c.code);
-                                                    setCountryInput(c.name);
-                                                    setShowCountrySuggestions(false);
-                                                }}
-                                            >
-                                                <span className={styles.countryName}>{c.name}</span>
-                                                <span className={styles.countryCode}>{c.code}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
                             </div>
+
+                            {showCountrySuggestions && isExpanded && !loadingCountries && filteredCountries.length > 0 && (
+                                <div className={styles.autocompleteList}>
+                                    {filteredCountries.map((c) => (
+                                        <button
+                                            key={c._id}
+                                            type="button"
+                                            className={styles.autocompleteItem}
+                                            onMouseDown={(e) => e.preventDefault()}
+                                            onClick={() => {
+                                                setCountry(c.code);
+                                                setCountryInput(c.name);
+                                                setShowCountrySuggestions(false);
+                                            }}
+                                        >
+                                            <MapPin className={styles.itemIcon} size={14} />
+                                            <span className={styles.itemName}>{c.name}</span>
+                                            <span className={styles.itemCode}>{c.code}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         <button
                             type="submit"
-                            className={`${styles.btnCalculate} infi-track`}
-                            disabled={estimate?.loading || !countryInput.trim()}
+                            className={`${styles.updateBtn} infi-track`}
+                            disabled={Boolean(estimate?.loading) || !hasCountrySelection}
                             data-ga-action="calculate_shipping"
-                            data-ga-label={`Calculate Shipping for ${countryInput || country}`}
                         >
-                            {estimate?.loading ? 'Calculating...' : 'Calculate'}
+                            {estimate?.loading ? 'Calculating...' : 'Update'}
                         </button>
                     </form>
 
                     {estimate?.loading && (
-                        <div className={styles.loading}>
+                        <div className={styles.statusBox}>
                             <div className={styles.spinner} />
-                            Calculating shipping rates...
+                            Fetching latest rates...
                         </div>
                     )}
 
                     {estimate?.error && (
-                        <div className={styles.error}>
+                        <div className={`${styles.statusBox} ${styles.errorBox}`}>
                             {estimate.error}
                         </div>
                     )}
 
                     {!estimate?.loading && estimate?.cost !== undefined && (
-                        <div className={styles.results}>
-                            <div className={styles.resultItem}>
-                                <span className={styles.label}>Shipping Method:</span>
-                                <span className={styles.value}>{estimate.name || 'Standard Shipping'}</span>
-                            </div>
-                            {estimate.description && (
-                                <div className={styles.resultItem}>
-                                    <span className={styles.label}>Description:</span>
-                                    <span className={styles.value}>{estimate.description}</span>
+                        <div className={styles.estimateCard}>
+                            <div className={styles.estimateHeader}>
+                                <Truck className={styles.truckIcon} size={24} />
+                                <div className={styles.estimateTitles}>
+                                    <h4 className={styles.methodName}>{estimate.name || 'Standard Delivery'}</h4>
+                                    {estimate.description && <p className={styles.methodDesc}>{estimate.description}</p>}
                                 </div>
-                            )}
-                            <div className={`${styles.resultItem} ${styles.total}`}>
-                                <span className={styles.label}>Shipping Cost:</span>
-                                <span className={styles.value}>{formatPriceWithExchange(estimate.cost)}</span>
+                            </div>
+                            <div className={styles.estimatePrice}>
+                                {formatPriceWithExchange(estimate.cost)}
                             </div>
                         </div>
                     )}
