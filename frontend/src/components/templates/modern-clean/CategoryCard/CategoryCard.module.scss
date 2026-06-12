@@ -91,7 +91,7 @@
 .styleMinimal {
     background: transparent;
     text-align: center;
-    padding: 1rem;
+    padding: var(--category-showcase-card-padding, 1rem) 0.25rem;
 
     &:hover {
         background: #f9fafb;
@@ -99,16 +99,11 @@
     }
 
     .imageContainer {
-        width: 100px;
-        height: 100px;
-        margin: 0 auto 1rem;
+        width: var(--category-showcase-image-size, 100px);
+        height: var(--category-showcase-image-size, 100px);
+        margin: 0 auto var(--category-showcase-label-gap, 1rem);
         border-radius: 50%;
         aspect-ratio: 1;
-
-        @include tablet {
-            width: 120px;
-            height: 120px;
-        }
     }
 
     .content {
@@ -116,7 +111,7 @@
     }
 
     .name {
-        font-size: 1rem;
+        font-size: var(--category-showcase-label-size, 1rem);
     }
 }
 
@@ -203,14 +198,11 @@
 
 .name {
     margin: 0;
-    font-size: 1.125rem;
+    font-size: var(--category-showcase-label-size, 1.125rem);
     font-weight: 600;
-    color: #111827;
+    color: var(--category-showcase-label-color, #111827);
     line-height: 1.3;
-
-    @include tablet {
-        font-size: 1.25rem;
-    }
+    overflow-wrap: anywhere;
 }
 
 .description {

@@ -9,7 +9,7 @@ export interface ModuleDefinition {
     icon: string; // MUI icon name
     category: 'standard' | 'product' | 'placeholder' | 'account';
     description: string;
-    defaultConfig: Record<string, any>;
+    defaultConfig: Record<string, unknown>;
     allowedLayoutTypes?: string[]; // Restrict to certain layout types
 }
 
@@ -303,7 +303,14 @@ export const AVAILABLE_MODULES: ModuleDefinition[] = [
         icon: 'Category',
         category: 'product',
         description: 'Featured category cards',
-        defaultConfig: { categoryIds: [], style: 'card', columns: 4 },
+        defaultConfig: {
+            categoryIds: [],
+            style: 'card',
+            columns: 4,
+            showAllCollections: false,
+            allCollectionsLabel: 'All Collections',
+            labelColor: '#111827',
+        },
     },
     {
         type: 'related-products',

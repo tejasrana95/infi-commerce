@@ -23,6 +23,8 @@ import {
     DialogActions,
 } from '@mui/material';
 import { ColorPicker } from '@/components/atoms';
+import IconPicker from '@/components/atoms/IconPicker';
+import DynamicIcon from '@/components/atoms/DynamicIcon';
 import {
     Add as AddIcon,
     Delete as DeleteIcon,
@@ -42,7 +44,7 @@ import {
     Edit as EditIcon,
     AttachMoney as CurrencyIcon,
 } from '@mui/icons-material';
-import { DndContext, DragEndEvent, DragOverlay, closestCenter, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
+import { DndContext, DragEndEvent, closestCenter, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { v4 as uuidv4 } from 'uuid';
@@ -58,6 +60,7 @@ interface HeaderDesignerProps {
 }
 
 const ALL_VIEWPORTS: Array<'desktop' | 'tablet' | 'mobile'> = ['desktop', 'tablet', 'mobile'];
+const MAX_TOP_BAR_ITEMS = 5;
 
 // Element info
 const elementInfo: Record<string, { label: string; icon: React.ReactNode; description: string }> = {
@@ -276,10 +279,9 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
     const [editingElement, setEditingElement] = useState<{ sectionId: string; element: HeaderElement; rowId: string } | null>(null);
     const [settingsExpanded, setSettingsExpanded] = useState(true);
     const [topBarExpanded, setTopBarExpanded] = useState(false);
-    const [addMenuAnchor, setAddMenuAnchor] = useState<{ anchor: HTMLElement; section: string; rowId: string } | null>(null);
+    const [addMenuAnchor, setAddMenuAnchor] = useState<{ anchor: HTMLElement; section: 'left' | 'center' | 'right'; rowId: string } | null>(null);
     const [settingsRowId, setSettingsRowId] = useState<string | null>(null);
     const [menus, setMenus] = useState<MenuType[]>([]);
-    const [topBarText, setTopBarText] = useState('Free shipping on orders over $50 | Call us: 1-800-123-4567');
 
     // Fetch menus
     useEffect(() => {
@@ -303,7 +305,7 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
         })
     );
 
-    const headerConfig = config.header || {
+    const rawHeaderConfig = config.header || {
         main: {
             layout: 'default',
             rows: [
@@ -319,17 +321,23 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
             ],
         },
     };
-
-    // Migrate old sections to rows format if needed
-    if (headerConfig.main && !headerConfig.main.rows && headerConfig.main.sections) {
-        headerConfig.main.rows = [
-            {
-                id: uuidv4(),
-                order: 0,
-                sections: headerConfig.main.sections,
-            },
-        ];
-    }
+    const headerConfig = {
+        ...rawHeaderConfig,
+        main: {
+            ...rawHeaderConfig.main,
+            rows: rawHeaderConfig.main.rows || [
+                {
+                    id: uuidv4(),
+                    order: 0,
+                    sections: rawHeaderConfig.main.sections || [
+                        { id: 'left', position: 'left' as const, items: [] },
+                        { id: 'center', position: 'center' as const, items: [] },
+                        { id: 'right', position: 'right' as const, items: [] },
+                    ],
+                },
+            ],
+        },
+    };
 
     const topBar = headerConfig.topBar || {
         enabled: false,
@@ -338,6 +346,25 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
         height: 40,
         items: [],
     };
+    const defaultTopBarItem: HeaderTopBarItem = {
+        id: 'topbar-text',
+        type: 'block',
+        content: 'Free shipping on orders over $50',
+        icon: '',
+        position: 'center',
+        order: 0,
+        visibleOn: [...ALL_VIEWPORTS],
+    };
+    const topBarItems: HeaderTopBarItem[] = (topBar.items?.length ? topBar.items : [defaultTopBarItem])
+        .slice(0, MAX_TOP_BAR_ITEMS)
+        .map((item, index) => ({
+            ...item,
+            type: item.type === 'text' ? 'block' : item.type,
+            content: item.content || item.label || '',
+            position: item.position || 'center',
+            order: item.order ?? index,
+            visibleOn: item.visibleOn && item.visibleOn.length > 0 ? item.visibleOn : [...ALL_VIEWPORTS],
+        }));
 
     const mobileMenu = headerConfig.mobileMenu || {
         enabled: false,
@@ -346,22 +373,11 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
 
     // Toggle top bar
     const handleToggleTopBar = (enabled: boolean) => {
-        // Build top bar items from text
-        const items = enabled && topBarText ? [
-            {
-                id: 'topbar-text',
-                type: 'text' as const,
-                content: topBarText,
-                position: 'center' as const,
-                order: 0,
-            }
-        ] : [];
-
         onChange({
             ...config,
             header: {
                 ...headerConfig,
-                topBar: { ...topBar, enabled, items },
+                topBar: { ...topBar, enabled, items: topBarItems },
             },
         });
     };
@@ -375,6 +391,56 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
                 topBar: { ...topBar, ...updates },
             },
         });
+    };
+
+    const handleUpdateTopBarItems = (items: HeaderTopBarItem[]) => {
+        handleUpdateTopBar({
+            items: items
+                .slice(0, MAX_TOP_BAR_ITEMS)
+                .map((item, index) => ({ ...item, order: index })),
+        });
+    };
+
+    const handleAddTopBarItem = () => {
+        if (topBarItems.length >= MAX_TOP_BAR_ITEMS) return;
+
+        handleUpdateTopBarItems([
+            ...topBarItems,
+            {
+                id: uuidv4(),
+                type: 'block',
+                content: '',
+                icon: '',
+                position: 'center',
+                order: topBarItems.length,
+                visibleOn: [...ALL_VIEWPORTS],
+            },
+        ]);
+        setTopBarExpanded(true);
+    };
+
+    const handleUpdateTopBarItem = (itemId: string, updates: Partial<HeaderTopBarItem>) => {
+        handleUpdateTopBarItems(
+            topBarItems.map(item => item.id === itemId ? { ...item, ...updates } : item)
+        );
+    };
+
+    const handleRemoveTopBarItem = (itemId: string) => {
+        const nextItems = topBarItems.filter(item => item.id !== itemId);
+        handleUpdateTopBarItems(nextItems.length > 0 ? nextItems : [defaultTopBarItem]);
+    };
+
+    const handleToggleTopBarItemViewport = (itemId: string, viewport: 'desktop' | 'tablet' | 'mobile') => {
+        const item = topBarItems.find(topBarItem => topBarItem.id === itemId);
+        if (!item) return;
+
+        const visibleOn = item.visibleOn && item.visibleOn.length > 0 ? item.visibleOn : ALL_VIEWPORTS;
+        const nextVisibleOn = visibleOn.includes(viewport)
+            ? visibleOn.filter(value => value !== viewport)
+            : [...visibleOn, viewport];
+
+        if (nextVisibleOn.length === 0) return;
+        handleUpdateTopBarItem(itemId, { visibleOn: nextVisibleOn });
     };
 
     // Update main header settings
@@ -434,10 +500,10 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
     };
 
     // Add element to section in a row
-    const handleAddElement = (rowId: string, sectionPosition: 'left' | 'center' | 'right', elementType: string) => {
+    const handleAddElement = (rowId: string, sectionPosition: 'left' | 'center' | 'right', elementType: HeaderElement['type']) => {
         const newElement: HeaderElement = {
             id: uuidv4(),
-            type: elementType as any,
+            type: elementType,
             order: 0,
         };
 
@@ -651,14 +717,27 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
+                                    gap: 3,
                                     px: 3,
                                     position: 'relative',
                                     '&:hover .topbar-edit': { opacity: 1 },
                                 }}
                             >
-                                <Typography variant="caption">
-                                    {topBar.items?.find((item: any) => item.type === 'text')?.content || topBarText}
-                                </Typography>
+                                {topBarItems.map((item) => (
+                                    <Box
+                                        key={item.id}
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 0.75,
+                                            whiteSpace: 'nowrap',
+                                            opacity: item.visibleOn?.length ? 1 : 0.5,
+                                        }}
+                                    >
+                                        {item.icon && <DynamicIcon name={item.icon} size={14} color={topBar.textColor} />}
+                                        <Typography variant="caption">{item.content || 'Top bar block'}</Typography>
+                                    </Box>
+                                ))}
                                 <IconButton
                                     className="topbar-edit"
                                     size="small"
@@ -679,27 +758,67 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
                         {/* Top Bar Editor */}
                         <Collapse in={topBarExpanded && topBar.enabled}>
                             <Box sx={{ p: 2, bgcolor: 'grey.50', borderBottom: 1, borderColor: 'divider' }}>
-                                <TextField
-                                    label="Top Bar Content"
-                                    value={topBarText}
-                                    onChange={(e) => setTopBarText(e.target.value)}
-                                    onBlur={() => {
-                                        // Save topBarText to items array when user stops editing
-                                        const items = topBarText ? [
-                                            {
-                                                id: 'topbar-text',
-                                                type: 'text' as const,
-                                                content: topBarText,
-                                                position: 'center' as const,
-                                                order: 0,
-                                            }
-                                        ] : [];
-                                        handleUpdateTopBar({ items });
-                                    }}
-                                    fullWidth
-                                    size="small"
-                                    placeholder="Free shipping on orders over $50"
-                                />
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                    <Typography variant="subtitle2">Top Bar Blocks</Typography>
+                                    <Button
+                                        size="small"
+                                        startIcon={<AddIcon />}
+                                        onClick={handleAddTopBarItem}
+                                        disabled={topBarItems.length >= MAX_TOP_BAR_ITEMS}
+                                    >
+                                        Add Block
+                                    </Button>
+                                </Box>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                    {topBarItems.map((item, index) => {
+                                        const visibleOn = item.visibleOn && item.visibleOn.length > 0 ? item.visibleOn : ALL_VIEWPORTS;
+                                        return (
+                                            <Paper key={item.id} variant="outlined" sx={{ p: 2 }}>
+                                                <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                                                    <TextField
+                                                        label={`Block ${index + 1} Text`}
+                                                        value={item.content || ''}
+                                                        onChange={(e) => handleUpdateTopBarItem(item.id, { content: e.target.value })}
+                                                        size="small"
+                                                        sx={{ minWidth: 260, flex: 1 }}
+                                                    />
+                                                    <Box sx={{ minWidth: 220, flex: 1 }}>
+                                                        <IconPicker
+                                                            label="Icon"
+                                                            value={item.icon || ''}
+                                                            onChange={(icon) => handleUpdateTopBarItem(item.id, { icon })}
+                                                            fullWidth
+                                                        />
+                                                    </Box>
+                                                    <Tooltip title="Delete block">
+                                                        <span>
+                                                            <IconButton
+                                                                size="small"
+                                                                color="error"
+                                                                onClick={() => handleRemoveTopBarItem(item.id)}
+                                                                disabled={topBarItems.length <= 1}
+                                                            >
+                                                                <DeleteIcon fontSize="small" />
+                                                            </IconButton>
+                                                        </span>
+                                                    </Tooltip>
+                                                </Box>
+                                                <Box sx={{ display: 'flex', gap: 1, mt: 1.5, flexWrap: 'wrap' }}>
+                                                    {ALL_VIEWPORTS.map((viewport) => (
+                                                        <Button
+                                                            key={viewport}
+                                                            size="small"
+                                                            variant={visibleOn.includes(viewport) ? 'contained' : 'outlined'}
+                                                            onClick={() => handleToggleTopBarItemViewport(item.id, viewport)}
+                                                        >
+                                                            {viewport.charAt(0).toUpperCase() + viewport.slice(1)}
+                                                        </Button>
+                                                    ))}
+                                                </Box>
+                                            </Paper>
+                                        );
+                                    })}
+                                </Box>
                             </Box>
                         </Collapse>
 
@@ -785,7 +904,7 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
                     {Object.entries(elementInfo).map(([type, info]) => (
                         <MuiMenuItem
                             key={type}
-                            onClick={() => handleAddElement(addMenuAnchor?.rowId as string, addMenuAnchor?.section as any, type)}
+                            onClick={() => addMenuAnchor && handleAddElement(addMenuAnchor.rowId, addMenuAnchor.section, type as HeaderElement['type'])}
                         >
                             <ListItemIcon>{info.icon}</ListItemIcon>
                             <ListItemText>{info.label}</ListItemText>
@@ -887,7 +1006,7 @@ export default function HeaderDesigner({ config, onChange, storeId }: HeaderDesi
                                         select
                                         label="Sticky Behavior"
                                         value={headerConfig.main.stickyRow || 'all'}
-                                        onChange={(e) => handleUpdateMainHeader({ stickyRow: e.target.value as any })}
+                                        onChange={(e) => handleUpdateMainHeader({ stickyRow: e.target.value as typeof headerConfig.main.stickyRow })}
                                         size="small"
                                         fullWidth
                                         helperText="Choose which part of the header should stick when scrolling"

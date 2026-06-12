@@ -50,10 +50,15 @@
 
 .grid {
     display: grid;
-    gap: 1rem;
+    gap: var(--category-showcase-gap, 1rem);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 
     @include tablet {
-        gap: 1.5rem;
+        grid-template-columns: repeat(var(--category-showcase-tablet-columns, 4), minmax(0, 1fr));
+    }
+
+    @include desktop {
+        grid-template-columns: repeat(var(--category-showcase-columns, 4), minmax(0, 1fr));
     }
 }
 
@@ -114,57 +119,45 @@
     }
 }
 
-// Column variations
-.columns2 {
-    grid-template-columns: repeat(1, 1fr);
+.allCollectionsTile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--category-showcase-label-gap, 0.75rem);
+    min-height: 100%;
+    padding: var(--category-showcase-card-padding, 1rem) 0.25rem;
+    text-align: center;
+    text-decoration: none;
+    color: var(--category-showcase-label-color, #111827);
+}
 
-    @include tablet {
-        grid-template-columns: repeat(2, 1fr);
+.allCollectionsIcon {
+    width: var(--category-showcase-image-size, 88px);
+    height: var(--category-showcase-image-size, 88px);
+    border-radius: 50%;
+    background: #f8f4ec;
+    border: 1px solid rgba(120, 86, 42, 0.08);
+    display: grid;
+    grid-template-columns: repeat(2, max(7px, calc(var(--category-showcase-image-size, 88px) * 0.11)));
+    grid-template-rows: repeat(2, max(7px, calc(var(--category-showcase-image-size, 88px) * 0.11)));
+    gap: max(5px, calc(var(--category-showcase-image-size, 88px) * 0.09));
+    align-content: center;
+    justify-content: center;
+    color: currentColor;
+
+    span {
+        border: 2px solid currentColor;
+        border-radius: 3px;
     }
 }
 
-.columns3 {
-    grid-template-columns: repeat(1, 1fr);
-
-    @include tablet {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
-
-.columns4 {
-    grid-template-columns: repeat(1, 1fr);
-
-    @include tablet {
-        grid-template-columns: repeat(3, 1fr);
-    }
-
-    @include desktop {
-        grid-template-columns: repeat(4, 1fr);
-    }
-}
-
-.columns5 {
-    grid-template-columns: repeat(2, 1fr);
-
-    @include tablet {
-        grid-template-columns: repeat(3, 1fr);
-    }
-
-    @include desktop {
-        grid-template-columns: repeat(5, 1fr);
-    }
-}
-
-.columns6 {
-    grid-template-columns: repeat(2, 1fr);
-
-    @include tablet {
-        grid-template-columns: repeat(3, 1fr);
-    }
-
-    @include desktop {
-        grid-template-columns: repeat(6, 1fr);
-    }
+.allCollectionsLabel {
+    color: var(--category-showcase-label-color, #111827);
+    font-size: var(--category-showcase-label-size, 0.875rem);
+    font-weight: 600;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
 }
 
 // =============================================================================
@@ -174,58 +167,14 @@
 .skeletonGrid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
+    gap: var(--category-showcase-gap, 1rem);
 
-    &.columns2 {
-        grid-template-columns: repeat(1, 1fr);
-
-        @include tablet {
-            grid-template-columns: repeat(2, 1fr);
-        }
+    @include tablet {
+        grid-template-columns: repeat(var(--category-showcase-tablet-columns, 4), 1fr);
     }
 
-    &.columns3 {
-        grid-template-columns: repeat(1, 1fr);
-
-        @include tablet {
-            grid-template-columns: repeat(3, 1fr);
-        }
-    }
-
-    &.columns4 {
-        grid-template-columns: repeat(1, 1fr);
-
-        @include tablet {
-            grid-template-columns: repeat(3, 1fr);
-        }
-
-        @include desktop {
-            grid-template-columns: repeat(4, 1fr);
-        }
-    }
-
-    &.columns5 {
-        grid-template-columns: repeat(2, 1fr);
-
-        @include tablet {
-            grid-template-columns: repeat(3, 1fr);
-        }
-
-        @include desktop {
-            grid-template-columns: repeat(5, 1fr);
-        }
-    }
-
-    &.columns6 {
-        grid-template-columns: repeat(2, 1fr);
-
-        @include tablet {
-            grid-template-columns: repeat(3, 1fr);
-        }
-
-        @include desktop {
-            grid-template-columns: repeat(6, 1fr);
-        }
+    @include desktop {
+        grid-template-columns: repeat(var(--category-showcase-columns, 4), 1fr);
     }
 }
 

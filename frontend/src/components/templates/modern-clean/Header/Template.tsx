@@ -13,6 +13,7 @@ import { useStore } from '@/providers/StoreProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import CurrencySelector from '@/components/molecules/CurrencySelector';
 import SearchAutocomplete from '@/components/molecules/SearchAutocomplete';
+import DynamicIcon from '@/components/core/common/DynamicIcon';
 import { useClickOutside } from '@/hooks/useClickOutside';
 import styles from './style.module.scss';
 
@@ -54,6 +55,7 @@ export default function ModernCleanHeaderTemplate({
     const dynamicStyles = `
         @media (max-width: ${mobileBreakpoint}px) {
             .${styles.mainHeader}:not([data-visible-on~="mobile"]) { display: none !important; }
+            .${styles.topBarBlock}:not([data-visible-on~="mobile"]) { display: none !important; }
 
             /* Only hide center section where desktop menu usually lives */
             .${styles.sectionCenter} { display: none !important; }
@@ -74,6 +76,7 @@ export default function ModernCleanHeaderTemplate({
         
         @media (min-width: ${mobileBreakpoint + 1}px) and (max-width: 1024px) {
             .${styles.mainHeader}:not([data-visible-on~="tablet"]) { display: none !important; }
+            .${styles.topBarBlock}:not([data-visible-on~="tablet"]) { display: none !important; }
 
             .${styles.mobileMenuBtn} { display: none !important; }
             /* Restore desktop sections */
@@ -85,6 +88,7 @@ export default function ModernCleanHeaderTemplate({
 
         @media (min-width: 1025px) {
             .${styles.mainHeader}:not([data-visible-on~="desktop"]) { display: none !important; }
+            .${styles.topBarBlock}:not([data-visible-on~="desktop"]) { display: none !important; }
             .${styles.mobileMenuOverlay} { display: none !important; }
         }
     `;
@@ -570,7 +574,12 @@ export default function ModernCleanHeaderTemplate({
                             {/* Center - Message */}
                             <div className={styles.topBarCenter}>
                                 {topBar.items.center.map((item) => (
-                                    <span key={item.id} className={styles.topBarText}>
+                                    <span
+                                        key={item.id}
+                                        className={`${styles.topBarText} ${styles.topBarBlock}`}
+                                        data-visible-on={(item.visibleOn && item.visibleOn.length > 0 ? item.visibleOn : ['desktop', 'tablet', 'mobile']).join(' ')}
+                                    >
+                                        {item.icon && <DynamicIcon name={item.icon} size={12} />}
                                         {item.content}
                                     </span>
                                 ))}
@@ -579,7 +588,12 @@ export default function ModernCleanHeaderTemplate({
                             {/* Right - Contact */}
                             <div className={styles.topBarRight}>
                                 {topBar.items.right.map((item) => (
-                                    <span key={item.id} className={styles.topBarText}>
+                                    <span
+                                        key={item.id}
+                                        className={`${styles.topBarText} ${styles.topBarBlock}`}
+                                        data-visible-on={(item.visibleOn && item.visibleOn.length > 0 ? item.visibleOn : ['desktop', 'tablet', 'mobile']).join(' ')}
+                                    >
+                                        {item.icon && <DynamicIcon name={item.icon} size={12} />}
                                         {item.content}
                                     </span>
                                 ))}

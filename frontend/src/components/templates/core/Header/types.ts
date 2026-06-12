@@ -9,10 +9,12 @@ export interface NavLink {
 
 export interface TopBarItem {
     id: string;
-    type: 'text' | 'link' | 'phone' | 'email' | 'social' | 'currency' | 'language';
+    type: 'text' | 'link' | 'phone' | 'email' | 'social' | 'currency' | 'language' | 'block';
     content?: string;
     label?: string;
     url?: string;
+    icon?: string;
+    visibleOn?: Array<'desktop' | 'tablet' | 'mobile'>;
 }
 
 export interface SocialLink {

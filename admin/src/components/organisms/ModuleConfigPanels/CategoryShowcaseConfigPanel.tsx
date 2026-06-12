@@ -1,27 +1,31 @@
 'use client';
 
-import { Box, Typography, TextField, FormControl, InputLabel, Select, MenuItem, FormControlLabel, Switch, Slider } from '@mui/material';
+import { Box, Typography, TextField, FormControl, InputLabel, Select, MenuItem, FormControlLabel, Switch, Slider, Checkbox } from '@mui/material';
 import { ColorPicker } from '@/components/atoms';
 import CategoryAutocomplete from '@/components/molecules/CategoryAutocomplete';
 
-interface CategoryShowcaseConfigPanelProps {
-    config: {
-        categoryIds?: string[];
-        title?: string;
-        titleTypography?: {
-            fontFamily?: string;
-            fontSize?: number;
-            color?: string;
-            alignment?: 'left' | 'center' | 'right';
-        };
-        layout?: 'grid' | 'carousel';
-        columns?: number;
-        gap?: number;
-        showDescription?: boolean;
-        style?: 'card' | 'banner' | 'minimal' | 'overlay';
-        [key: string]: any;
+interface CategoryShowcaseConfig {
+    categoryIds?: string[];
+    title?: string;
+    titleTypography?: {
+        fontFamily?: string;
+        fontSize?: number;
+        color?: string;
+        alignment?: 'left' | 'center' | 'right';
     };
-    onChange: (config: any) => void;
+    layout?: 'grid' | 'carousel';
+    columns?: number;
+    gap?: number;
+    showDescription?: boolean;
+    showAllCollections?: boolean;
+    allCollectionsLabel?: string;
+    labelColor?: string;
+    style?: 'card' | 'banner' | 'minimal' | 'overlay';
+}
+
+interface CategoryShowcaseConfigPanelProps {
+    config: CategoryShowcaseConfig;
+    onChange: (config: CategoryShowcaseConfig) => void;
     storeId?: string;
 }
 
@@ -37,7 +41,7 @@ const COMMON_FONTS = [
 ];
 
 export default function CategoryShowcaseConfigPanel({ config, onChange, storeId }: CategoryShowcaseConfigPanelProps) {
-    const handleChange = (key: string, value: any) => {
+    const handleChange = <Key extends keyof CategoryShowcaseConfig>(key: Key, value: CategoryShowcaseConfig[Key]) => {
         onChange({ ...config, [key]: value });
     };
 
@@ -46,7 +50,10 @@ export default function CategoryShowcaseConfigPanel({ config, onChange, storeId 
         onChange({ ...config, categoryIds });
     };
 
-    const handleTitleTypographyChange = (key: string, value: any) => {
+    const handleTitleTypographyChange = <Key extends keyof NonNullable<CategoryShowcaseConfig['titleTypography']>>(
+        key: Key,
+        value: NonNullable<CategoryShowcaseConfig['titleTypography']>[Key]
+    ) => {
         onChange({
             ...config,
             titleTypography: {
@@ -125,6 +132,31 @@ export default function CategoryShowcaseConfigPanel({ config, onChange, storeId 
                 multiple
             />
 
+            <FormControlLabel
+                control={
+                    <Checkbox
+                        checked={config.showAllCollections ?? false}
+                        onChange={(e) => handleChange('showAllCollections', e.target.checked)}
+                    />
+                }
+                label="Add All Collections"
+            />
+
+            {config.showAllCollections && (
+                <TextField
+                    label="All Collections Label"
+                    value={config.allCollectionsLabel || 'All Collections'}
+                    onChange={(e) => handleChange('allCollectionsLabel', e.target.value)}
+                    fullWidth
+                />
+            )}
+
+            <ColorPicker
+                label="Category Label Color"
+                value={config.labelColor || '#111827'}
+                onChange={(color) => handleChange('labelColor', color)}
+            />
+
             <FormControl fullWidth>
                 <InputLabel>Layout</InputLabel>
                 <Select
@@ -159,7 +191,7 @@ export default function CategoryShowcaseConfigPanel({ config, onChange, storeId 
                     value={config.columns || 4}
                     onChange={(_, value) => handleChange('columns', value)}
                     min={2}
-                    max={6}
+                    max={12}
                     step={1}
                     marks
                     valueLabelDisplay="auto"

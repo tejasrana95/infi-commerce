@@ -66,6 +66,10 @@ async function processHeaderConfig(
                     content: item.content || item.label,
                     label: item.label,
                     url: item.url,
+                    icon: item.icon,
+                    visibleOn: item.visibleOn && item.visibleOn.length > 0
+                        ? item.visibleOn
+                        : ['desktop', 'tablet', 'mobile'],
                 });
             }
         });

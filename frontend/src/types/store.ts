@@ -32,13 +32,15 @@ export interface HeaderTopBarItem {
   | 'email'
   | 'social'
   | 'language'
-  | 'currency';
+  | 'currency'
+  | 'block';
   content?: string;
   label?: string;
   url?: string;
   icon?: string;
   position: 'left' | 'center' | 'right';
   order: number;
+  visibleOn?: Array<'desktop' | 'tablet' | 'mobile'>;
 }
 
 export interface HeaderTopBar {

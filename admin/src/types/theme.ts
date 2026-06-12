@@ -2,13 +2,14 @@ import { ProductCardConfig, CategoryConfig, ProductPageConfig, CompareConfig } f
 
 export interface HeaderTopBarItem {
     id: string;
-    type: 'text' | 'link' | 'phone' | 'email' | 'social' | 'language' | 'currency';
+    type: 'text' | 'link' | 'phone' | 'email' | 'social' | 'language' | 'currency' | 'block';
     content?: string;
     label?: string;
     url?: string;
     icon?: string;
     position: 'left' | 'center' | 'right';
     order: number;
+    visibleOn?: Array<'desktop' | 'tablet' | 'mobile'>;
 }
 
 export interface HeaderTopBar {

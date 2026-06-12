@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
+import Link from 'next/link';
 import { getComponent } from '@/components/templates/registry';
 import { ModuleProps } from '../..';
 import api from '@/lib/api';
@@ -21,6 +22,9 @@ interface CategoryShowcaseConfig {
     columns?: number;
     gap?: number;
     showDescription?: boolean;
+    showAllCollections?: boolean;
+    allCollectionsLabel?: string;
+    labelColor?: string;
 }
 
 interface Category {
@@ -34,7 +38,7 @@ interface Category {
 
 export default function CategoryShowcaseModule({ config, sectionType }: ModuleProps) {
     const {
-        categoryIds,
+        categoryIds = [],
         title,
         titleTypography,
         layout = 'grid',
@@ -42,6 +46,9 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
         columns = 4,
         gap = 16,
         showDescription = true,
+        showAllCollections = false,
+        allCollectionsLabel = 'All Collections',
+        labelColor,
     } = config as CategoryShowcaseConfig;
 
     const [categories, setCategories] = useState<Category[]>([]);
@@ -82,7 +89,22 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
         }
     }, [categoryIds, store?._id]);
 
-    const columnClass = styles[`columns${Math.min(Math.max(columns, 2), 6)}`];
+    const normalizedColumns = Math.min(Math.max(columns, 2), 12);
+    const compactRatio = normalizedColumns <= 6 ? 1 : Math.max(0.58, 1 - ((normalizedColumns - 6) * 0.07));
+    const imageSize = Math.round(120 * compactRatio);
+    const labelFontSize = Math.max(11, Math.round(16 * compactRatio));
+    const cardPadding = Math.max(4, Math.round(16 * compactRatio));
+    const labelGap = Math.max(6, Math.round(12 * compactRatio));
+    const showcaseStyle = {
+        '--category-showcase-columns': normalizedColumns,
+        '--category-showcase-tablet-columns': Math.min(normalizedColumns, 4),
+        '--category-showcase-gap': `${gap}px`,
+        '--category-showcase-label-color': labelColor || undefined,
+        '--category-showcase-image-size': `${imageSize}px`,
+        '--category-showcase-label-size': `${labelFontSize}px`,
+        '--category-showcase-card-padding': `${cardPadding}px`,
+        '--category-showcase-label-gap': `${labelGap}px`,
+    } as React.CSSProperties;
     const titleAlignment = titleTypography?.alignment || 'left';
     const titleStyle: React.CSSProperties = {
         fontFamily: titleTypography?.fontFamily || undefined,
@@ -103,16 +125,16 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
             if (width < 768) {
                 setVisibleColumns(2);
             } else if (width < 1024) {
-                setVisibleColumns(Math.min(columns, 3)); // Max 3 on tablet
+                setVisibleColumns(Math.min(normalizedColumns, 4));
             } else {
-                setVisibleColumns(columns);
+                setVisibleColumns(normalizedColumns);
             }
         };
 
         updateColumns();
         window.addEventListener('resize', updateColumns);
         return () => window.removeEventListener('resize', updateColumns);
-    }, [columns]);
+    }, [normalizedColumns]);
 
     // Carousel navigation handlers
     const scrollCarousel = (direction: 'left' | 'right') => {
@@ -132,8 +154,8 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
                         <h2 className={styles.title} style={titleStyle}>{title}</h2>
                     </div>
                 )}
-                <div className={`${styles.skeletonGrid} ${columnClass}`}>
-                    {Array.from({ length: categoryIds.length }).map((_, i) => (
+                <div className={styles.skeletonGrid} style={showcaseStyle}>
+                    {Array.from({ length: Math.max(categoryIds.length + (showAllCollections ? 1 : 0), 1) }).map((_, i) => (
                         <div key={i} className={styles.skeleton} />
                     ))}
                 </div>
@@ -141,7 +163,7 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
         );
     }
 
-    if (error || categories.length === 0) {
+    if (error || (categories.length === 0 && !showAllCollections)) {
         if (process.env.NODE_ENV === 'development') {
             return (
                 <div className={containerClass}>
@@ -155,8 +177,20 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
         return null;
     }
 
+    const allCollectionsTile = showAllCollections ? (
+        <Link href="/products" className={styles.allCollectionsTile}>
+            <span className={styles.allCollectionsIcon} aria-hidden="true">
+                <span />
+                <span />
+                <span />
+                <span />
+            </span>
+            <span className={styles.allCollectionsLabel}>{allCollectionsLabel || 'All Collections'}</span>
+        </Link>
+    ) : null;
+
     return (
-        <div className={containerClass}>
+        <div className={containerClass} style={showcaseStyle}>
             {title && (
                 <div className={styles.header} style={headerStyle}>
                     <h2 className={styles.title} style={titleStyle}>{title}</h2>
@@ -205,11 +239,18 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
                             />
                         </div>
                     ))}
+                    {allCollectionsTile && (
+                        <div
+                            className={styles.carouselItem}
+                            style={{ minWidth: `calc((100% - ${gap * (visibleColumns - 1)}px) / ${visibleColumns})` }}
+                        >
+                            {allCollectionsTile}
+                        </div>
+                    )}
                 </div>
             ) : (
                 <div
-                    className={`${styles.grid} ${columnClass}`}
-                    style={{ gap: `${gap}px` }}
+                    className={styles.grid}
                 >
                     {categories.map((category, index) => (
                         <CategoryCard
@@ -219,6 +260,7 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
                             imagePriority={index < 2}
                         />
                     ))}
+                    {allCollectionsTile}
                 </div>
             )}
         </div>
