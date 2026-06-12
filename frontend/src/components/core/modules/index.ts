@@ -14,6 +14,7 @@ import CategoryShowcaseModule from './standard/CategoryShowcase';
 import HeadingModule from './standard/Heading';
 import TextBlockModule from './standard/TextBlock';
 import IconBoxModule from './standard/IconBox';
+import IconGroupModule from './standard/IconGroup';
 import AccordionModule from './standard/Accordion';
 import PricingTableModule from './standard/PricingTable';
 import ImageModule from './standard/Image';
@@ -38,6 +39,7 @@ import IconModule from './standard/Icon';
 import TableModule from './standard/Table';
 import ContentCardGridModule from './standard/ContentCardGrid';
 import HeroSliderModule from './standard/HeroSlider';
+import IconListModule from './standard/IconList';
 import CheckoutContentModule from './checkout/CheckoutContent';
 import CartModule from './cart/CartModule';
 import FormModule from './form/FormModule';
@@ -83,6 +85,7 @@ export const moduleRegistry: Record<string, ModuleComponent> = {
     'heading': HeadingModule,
     'accordion': AccordionModule,
     'icon-box': IconBoxModule,
+    'icon-group': IconGroupModule,
     'pricing-table': PricingTableModule,
     'image': ImageModule,
     'image-gallery': ImageGalleryModule,
@@ -120,6 +123,7 @@ export const moduleRegistry: Record<string, ModuleComponent> = {
     'table': TableModule,
     'content-card-grid': ContentCardGridModule,
     'hero-slider': HeroSliderModule,
+    'icon-list': IconListModule,
     // Checkout module
     'checkout-content': CheckoutContentModule,
     // Cart module
@@ -142,4 +146,3 @@ export const moduleRegistry: Record<string, ModuleComponent> = {
 export function registerModule(type: string, component: ModuleComponent) {
     moduleRegistry[type] = component;
 }
-

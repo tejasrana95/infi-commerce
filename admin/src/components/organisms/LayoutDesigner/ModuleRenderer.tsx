@@ -19,6 +19,8 @@ import SearchIcon from '@mui/icons-material/Search';
 import ArticleIcon from '@mui/icons-material/Article';
 import RecommendIcon from '@mui/icons-material/Recommend';
 import HistoryIcon from '@mui/icons-material/History';
+import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
+import ExtensionIcon from '@mui/icons-material/Extension';
 import { LayoutModule, ModuleType } from '@/types';
 import { getModuleDefinition } from './types';
 
@@ -41,6 +43,8 @@ const iconMap: Record<string, React.ElementType> = {
     Article: ArticleIcon,
     Recommend: RecommendIcon,
     History: HistoryIcon,
+    FormatListBulleted: FormatListBulletedIcon,
+    Extension: ExtensionIcon,
 };
 
 interface ModuleRendererProps {
@@ -231,16 +235,19 @@ export default function ModuleRenderer({ module, isSelected, onClick }: ModuleRe
                 );
 
             case 'icon-box':
+            case 'icon-group':
+            case 'icon-list':
                 return (
                     <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                             <IconComponent sx={{ fontSize: 24, color: 'primary.main' }} />
                             <Typography variant="body2" fontWeight={600}>
-                                Features or services with icons
+                                {module.type === 'icon-list' ? 'Icon List' : module.type === 'icon-group' ? 'Compact icon group' : 'Features or services with icons'}
                             </Typography>
                         </Box>
                         <Typography variant="caption" color="text.secondary">
-                            {module.config.items?.length || 0} item(s) • {module.config.columns || 3} columns
+                            {module.config.items?.length || 0} item(s)
+                            {module.type === 'icon-box' ? ` • ${module.config.columns || 3} columns` : ''}
                         </Typography>
                     </Box>
                 );

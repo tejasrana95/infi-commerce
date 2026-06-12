@@ -30,6 +30,7 @@ import {
     StripBannerConfigPanel,
     CardGroupConfigPanel,
     IconBoxConfigPanel,
+    IconGroupConfigPanel,
     PricingTableConfigPanel,
     AccordionConfigPanel,
     HeadingConfigPanel,
@@ -53,6 +54,7 @@ import {
     IconConfigPanel,
     TableConfigPanel,
     ContentCardGridConfigPanel,
+    IconListConfigPanel,
 } from '@/components/organisms/ModuleConfigPanels';
 import FormModuleEditor from './ModuleEditors/FormModuleEditor';
 
@@ -265,6 +267,14 @@ export default function ModuleEditor({ module, onChange, onDelete, storeId }: Mo
                     />
                 );
 
+            case 'icon-group':
+                return (
+                    <IconGroupConfigPanel
+                        config={module.config}
+                        onChange={updateConfig}
+                    />
+                );
+
             case 'pricing-table':
                 return (
                     <PricingTableConfigPanel
@@ -441,6 +451,14 @@ export default function ModuleEditor({ module, onChange, onDelete, storeId }: Mo
             case 'content-card-grid':
                 return (
                     <ContentCardGridConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
+                    />
+                );
+
+            case 'icon-list':
+                return (
+                    <IconListConfigPanel
                         config={module.config as any}
                         onChange={updateConfig}
                     />

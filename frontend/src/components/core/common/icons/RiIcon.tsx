@@ -2,6 +2,7 @@
 
 import React, { lazy, Suspense } from 'react';
 import dynamic from 'next/dynamic';
+import IconSkeleton from './IconSkeleton';
 
 // Cache for dynamically loaded icons to avoid re-importing
 const iconCache = new Map<string, React.ComponentType<any>>();
@@ -22,7 +23,7 @@ export default function RiIcon({ name, size = 24, ...props }: { name: string; si
                 return Icon;
             }),
             {
-                loading: () => <div style={{ width: size, height: size, display: 'inline-block' }} />,
+                loading: () => <IconSkeleton size={size} className={props.className} />,
                 ssr: false
             }
         );

@@ -1,0 +1,211 @@
+.iconList {
+    display: flex;
+    width: 100%;
+    margin: 0 auto;
+    box-sizing: border-box;
+
+    &.vertical {
+        flex-direction: column;
+        gap: 1.25rem;
+
+        &.hasBorder {
+            gap: 0;
+
+            .item {
+                padding-top: 1.25rem;
+                padding-bottom: 1.25rem;
+                border-bottom: var(--icon-list-border-width, 1px) solid var(--icon-list-border-color, #e5e7eb);
+
+                &:first-child {
+                    padding-top: 0;
+                }
+
+                &:last-child {
+                    border-bottom: none;
+                    padding-bottom: 0;
+                }
+            }
+        }
+    }
+
+    &.horizontal {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 1.5rem 2rem;
+
+        &.hasBorder {
+            gap: 1.5rem 0;
+
+            .item {
+                padding-left: 1.5rem;
+                padding-right: 1.5rem;
+                border-right: var(--icon-list-border-width, 1px) solid var(--icon-list-border-color, #e5e7eb);
+
+                &:first-child {
+                    padding-left: 0;
+                }
+
+                &:last-child {
+                    border-right: none;
+                    padding-right: 0;
+                }
+            }
+        }
+    }
+}
+
+.item {
+    display: flex;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    align-items: center;
+    box-sizing: border-box;
+
+    &[href] {
+        cursor: pointer;
+
+        &:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+
+            .iconContainer.roundBackground {
+                transform: scale(1.05);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            }
+        }
+    }
+}
+
+.iconContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+
+    &.roundBackground {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background-color: color-mix(in srgb, var(--icon-list-icon-color) 10%, transparent);
+        border: 1px solid color-mix(in srgb, var(--icon-list-icon-color) 15%, transparent);
+    }
+}
+
+.iconWrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--icon-list-icon-color, #3b82f6);
+}
+
+.copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    text-align: var(--icon-list-text-align, left);
+}
+
+.title {
+    margin: 0;
+    color: var(--icon-list-title-color, #1f2937);
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.description {
+    margin: 0;
+    color: var(--icon-list-desc-color, #4b5563);
+    font-size: 0.875rem;
+    line-height: 1.45;
+}
+
+/* Icon Positions relative to the copy container */
+.icon-left {
+    flex-direction: row;
+    gap: 1rem;
+}
+
+.icon-right {
+    flex-direction: row-reverse;
+    gap: 1rem;
+}
+
+.icon-top {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: var(--icon-list-text-align, left);
+
+    .copy {
+        align-items: var(--icon-list-text-align, left);
+    }
+
+    &[style*='center'],
+    .iconList[style*='center'] & {
+        align-items: center;
+        .copy {
+            align-items: center;
+        }
+    }
+}
+
+.icon-bottom {
+    flex-direction: column-reverse;
+    gap: 0.75rem;
+    align-items: var(--icon-list-text-align, left);
+
+    .copy {
+        align-items: var(--icon-list-text-align, left);
+    }
+
+    &[style*='center'],
+    .iconList[style*='center'] & {
+        align-items: center;
+        .copy {
+            align-items: center;
+        }
+    }
+}
+
+/* Align adjustments for left/right positions */
+.icon-left, .icon-right {
+    &[style*='center'],
+    .iconList[style*='center'] & {
+        align-items: center;
+    }
+    
+    &[style*='right'],
+    .iconList[style*='right'] & {
+        .copy {
+            align-items: flex-end;
+        }
+    }
+}
+
+@media (max-width: 767px) {
+    .iconList.horizontal {
+        flex-direction: column;
+        gap: 1.25rem;
+
+        &.hasBorder {
+            gap: 0;
+
+            .item {
+                border-right: none;
+                border-bottom: var(--icon-list-border-width, 1px) solid var(--icon-list-border-color, #e5e7eb);
+                padding: 1.25rem 0;
+
+                &:first-child {
+                    padding-top: 0;
+                }
+
+                &:last-child {
+                    border-bottom: none;
+                    padding-bottom: 0;
+                }
+            }
+        }
+    }
+}

@@ -25,6 +25,7 @@ const schema = z.object({
     storeId: z.string().min(1, 'Store is required'),
     customerTitle: z.string().optional(),
     customerImage: z.string().optional(),
+    productPurchased: z.string().optional(),
     content: z.string().min(10, 'Testimonial content is required (min 10 characters)'),
     rating: z.number().min(1).max(5).optional(),
     isActive: z.boolean(),
@@ -38,6 +39,7 @@ const defaultValues: FormData = {
     storeId: '',
     customerTitle: '',
     customerImage: '',
+    productPurchased: '',
     content: '',
     rating: 5,
     isActive: true,
@@ -67,6 +69,7 @@ export default function TestimonialForm({ initialData, onSubmit, isSubmitting = 
                 storeId: storeId || '',
                 customerTitle: initialData.customerTitle || '',
                 customerImage: initialData.customerImage || '',
+                productPurchased: initialData.productPurchased || '',
                 content: initialData.content || '',
                 rating: initialData.rating || 5,
                 isActive: initialData.isActive ?? true,
@@ -92,7 +95,7 @@ export default function TestimonialForm({ initialData, onSubmit, isSubmitting = 
                         </Typography>
 
                         <Grid container spacing={2}>
-                            <Grid size={{ xs: 12, md: 6 }}>
+                            <Grid size={{ xs: 12, md: 4 }}>
                                 <Controller
                                     name="customerName"
                                     control={control}
@@ -110,7 +113,7 @@ export default function TestimonialForm({ initialData, onSubmit, isSubmitting = 
                                 />
                             </Grid>
 
-                            <Grid size={{ xs: 12, md: 6 }}>
+                            <Grid size={{ xs: 12, md: 4 }}>
                                 <Controller
                                     name="customerTitle"
                                     control={control}
@@ -126,6 +129,23 @@ export default function TestimonialForm({ initialData, onSubmit, isSubmitting = 
                                 />
                             </Grid>
 
+                            <Grid size={{ xs: 12, md: 4 }}>
+                                <Controller
+                                    name="productPurchased"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            label="Product Purchased"
+                                            fullWidth
+                                            placeholder="Standard Widget"
+                                            helperText="Optional verified product"
+                                        />
+                                    )}
+                                />
+                            </Grid>
+                        </Grid>
+                        <Grid container spacing={2} sx={{ mt: 1 }}>
                             <Grid size={{ xs: 12 }}>
                                 <Box>
                                     <Typography variant="subtitle2" gutterBottom>

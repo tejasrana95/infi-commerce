@@ -12,6 +12,16 @@
     @include tablet {
         padding: 5rem 2rem;
     }
+
+    &.multiCarouselContainer {
+        background: transparent !important;
+        background-image: none !important;
+        padding: 0rem 1rem;
+
+        @include tablet {
+            padding: 0rem 2rem;
+        }
+    }
 }
 
 // =============================================================================
@@ -624,6 +634,7 @@
     }
 }
 
+
 @keyframes progress {
     from {
         width: 0%;
@@ -632,4 +643,159 @@
     to {
         width: 100%;
     }
+}
+
+// =============================================================================
+// MULTI-CAROUSEL AND CUSTOM CARD CUSTOMIZATION
+// =============================================================================
+
+.multiCarouselWrapper {
+    position: relative;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0;
+}
+
+.multiCarouselViewport {
+    overflow: hidden;
+    width: 100%;
+    padding: 1.6rem 0;
+}
+
+.multiCarouselTrack {
+    display: flex;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    gap: var(--card-gap, 1.5rem);
+}
+
+.multiCarouselSlide {
+    // Default (mobile)
+    flex: 0 0 100%;
+    min-width: 100%;
+
+    @include tablet {
+        flex: 0 0 calc((100% - var(--card-gap, 1.5rem)) / 2);
+        min-width: calc((100% - var(--card-gap, 1.5rem)) / 2);
+    }
+
+    @include desktop {
+        flex: 0 0 calc((100% - (var(--visible-cards) - 1) * var(--card-gap, 1.5rem)) / var(--visible-cards));
+        min-width: calc((100% - (var(--visible-cards) - 1) * var(--card-gap, 1.5rem)) / var(--visible-cards));
+    }
+}
+
+.multiCard {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    padding: 2rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    background-color: var(--card-bg-color, #fffaf2);
+    border: 1px solid var(--card-border-color, #e8d8bd);
+
+    &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 10px rgba(0, 0, 0, 0.06);
+    }
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.cardQuote {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--theme-color, #e8d8bd);
+    opacity: 0.8;
+
+    svg {
+        width: 100%;
+        height: 100%;
+    }
+}
+
+.cardContent {
+    font-size: 1rem;
+    line-height: 1.75;
+    color: #374151;
+    margin: 0 0 1.5rem;
+    flex-grow: 1;
+}
+
+.cardDivider {
+    height: 1px;
+    background-color: var(--card-border-color, #e8d8bd);
+    opacity: 0.6;
+    margin-bottom: 1.5rem;
+}
+
+.cardFooter {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.cardAvatar {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.cardAvatarInitial {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: white;
+    background-color: var(--theme-color, #6f5330);
+}
+
+.cardAuthorInfo {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+.cardAuthorName {
+    margin: 0;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--customer-name-color, #1f2937);
+}
+
+.cardAuthorTitle {
+    margin: 0.125rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--customer-title-color, #6b7280);
+}
+
+.cardPurchased {
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--product-purchased-color, #b45309);
+}
+
+// Ensure starFilled color is overridden by theme variable if provided
+.starFilled {
+    color: var(--theme-color, #fbbf24) !important;
 }

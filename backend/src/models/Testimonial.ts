@@ -5,6 +5,7 @@ export interface ITestimonial extends Document {
     customerName: string;
     customerTitle?: string;
     customerImage?: string;
+    productPurchased?: string;
     content: string;
     rating?: number;
     isActive: boolean;
@@ -34,6 +35,11 @@ const TestimonialSchema = new Schema<ITestimonial>(
         },
         customerImage: {
             type: String,
+        },
+        productPurchased: {
+            type: String,
+            trim: true,
+            maxlength: 200,
         },
         content: {
             type: String,

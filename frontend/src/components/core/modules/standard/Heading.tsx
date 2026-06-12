@@ -10,18 +10,23 @@ interface HeadingConfig {
     subheading?: string;
     tag?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'div';
     align?: 'left' | 'center' | 'right';
+    headingStyle?: 'plain' | 'bottom-accent' | 'double-line' | 'background-ribbon';
+    subheadingFirst?: boolean;
     styles?: {
         fontFamily?: string;
         fontSize?: number;
         fontWeight?: number;
         color?: string;
+        textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
 
         subFontFamily?: string;
         subFontSize?: number;
         subFontWeight?: number;
         subColor?: string;
+        subTextTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
 
         backgroundColor?: string;
+        decorationColor?: string;
 
         borderStyle?: string;
         borderColor?: string;
@@ -45,6 +50,8 @@ export default function Heading({ config, sectionType }: ModuleProps) {
         subheading,
         tag = 'h2',
         align = 'center',
+        headingStyle = 'plain',
+        subheadingFirst = false,
         styles = {}
     } = config as HeadingConfig;
 
@@ -82,13 +89,14 @@ export default function Heading({ config, sectionType }: ModuleProps) {
     };
 
     // Heading specific styles
-    const headingStyle: React.CSSProperties = {
+    const baseHeadingStyle: React.CSSProperties = {
         fontFamily: formatFontFamily(styles.fontFamily),
         fontSize: styles.fontSize ? `${styles.fontSize}px` : undefined,
         fontWeight: styles.fontWeight,
         color: styles.color,
         margin: 0,
         lineHeight: 1.2,
+        textTransform: styles.textTransform || 'none',
     };
 
     // Subheading styles
@@ -97,24 +105,95 @@ export default function Heading({ config, sectionType }: ModuleProps) {
         fontSize: styles.subFontSize ? `${styles.subFontSize}px` : (styles.fontSize ? `${Math.max(14, styles.fontSize * 0.6)}px` : '18px'),
         fontWeight: styles.subFontWeight || 400,
         color: styles.subColor || styles.color,
-        marginTop: '0.5em',
+        marginTop: subheadingFirst ? 0 : '0.5em',
+        marginBottom: subheadingFirst ? '0.5em' : 0,
         lineHeight: 1.4,
+        textTransform: styles.subTextTransform || 'none',
     };
 
     const containerClass = sectionType === 'full-width' ? 'container mx-auto px-4' : '';
 
+    const renderHeadingText = () => {
+        if (!heading) return null;
+
+        const justify = align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center';
+        const decorColor = styles.decorationColor || styles.color || '#3b82f6';
+
+        switch (headingStyle) {
+            case 'bottom-accent':
+                return (
+                    <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center' }}>
+                        <Tag style={baseHeadingStyle}>
+                            {heading}
+                        </Tag>
+                        <div style={{ width: '48px', height: '3px', backgroundColor: decorColor, marginTop: '10px', borderRadius: '2px' }} />
+                    </div>
+                );
+
+            case 'double-line':
+                return (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: justify, gap: '12px', width: '100%' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: '0 1 60px' }}>
+                            <span style={{ height: '1px', backgroundColor: decorColor }} />
+                            <span style={{ height: '1px', backgroundColor: decorColor }} />
+                        </div>
+                        <Tag style={baseHeadingStyle}>
+                            {heading}
+                        </Tag>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: '0 1 60px' }}>
+                            <span style={{ height: '1px', backgroundColor: decorColor }} />
+                            <span style={{ height: '1px', backgroundColor: decorColor }} />
+                        </div>
+                    </div>
+                );
+
+            case 'background-ribbon':
+                return (
+                    <div style={{
+                        display: 'inline-flex',
+                        padding: '8px 20px',
+                        backgroundColor: decorColor ? `color-mix(in srgb, ${decorColor} 8%, #f8fafc)` : '#f1f5f9',
+                        borderLeft: `4px solid ${decorColor}`,
+                        borderRadius: '4px',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                    }}>
+                        <Tag style={baseHeadingStyle}>
+                            {heading}
+                        </Tag>
+                    </div>
+                );
+
+            case 'plain':
+            default:
+                return (
+                    <Tag style={baseHeadingStyle}>
+                        {heading}
+                    </Tag>
+                );
+        }
+    };
+
     return (
         <div className={containerClass}>
             <div style={containerStyle}>
-                {heading && (
-                    <Tag style={headingStyle}>
-                        {heading}
-                    </Tag>
-                )}
-                {subheading && (
-                    <div style={subheadingStyle}>
-                        {subheading}
-                    </div>
+                {subheadingFirst ? (
+                    <>
+                        {subheading && (
+                            <div style={subheadingStyle}>
+                                {subheading}
+                            </div>
+                        )}
+                        {renderHeadingText()}
+                    </>
+                ) : (
+                    <>
+                        {renderHeadingText()}
+                        {subheading && (
+                            <div style={subheadingStyle}>
+                                {subheading}
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </div>

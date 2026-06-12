@@ -4,7 +4,7 @@ export type ModuleType =
     | 'banner' | 'banner-slider' | 'hero-slider' | 'text-block' | 'image' | 'image-gallery'
     | 'video' | 'spacer' | 'divider' | 'html' | 'newsletter' | 'testimonials'
     | 'countdown' | 'brand-logos' | 'cta-button' | 'strip-banner' | 'card-group'
-    | 'icon-box' | 'pricing-table'
+    | 'icon-box' | 'icon-group' | 'pricing-table'
     | 'product-carousel' | 'product-grid' | 'category-showcase' | 'featured-product'
     | 'related-products' | 'recently-viewed' | 'personalized-products'
     | 'category-header' | 'category-products' | 'category-filters' | 'category-pagination' | 'product-details'
@@ -24,7 +24,8 @@ export type ModuleType =
     | 'marquee'
     | 'icon'
     | 'table'
-    | 'content-card-grid';
+    | 'content-card-grid'
+    | 'icon-list';
 
 export type SectionType = 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';
 

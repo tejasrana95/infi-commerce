@@ -42,6 +42,7 @@ export * from './CTAConfigPanel';
 export * from './StripBannerConfigPanel';
 export * from './CardGroupConfigPanel';
 export { default as IconBoxConfigPanel } from './IconBoxConfigPanel';
+export { default as IconGroupConfigPanel } from './IconGroupConfigPanel';
 export { default as PricingTableConfigPanel } from './PricingTableConfigPanel';
 export { default as AccordionConfigPanel } from './AccordionConfigPanel';
 export { default as HeadingConfigPanel } from './HeadingConfigPanel';
@@ -51,6 +52,8 @@ export { default as ProgressBarConfigPanel } from './ProgressBarConfigPanel';
 export { default as MarqueeConfigPanel } from './MarqueeConfigPanel';
 export { default as IconConfigPanel } from './IconConfigPanel';
 export { default as TableConfigPanel } from './TableConfigPanel';
+export { default as IconListConfigPanel } from './IconListConfigPanel';
+export type { IconListConfig } from './IconListConfigPanel';
 
 // Content Card Config Panel
 export { default as ContentCardGridConfigPanel, defaultContentCardGridConfig } from './ContentCardGridConfigPanel';

@@ -4,6 +4,8 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import dynamicIconImports from 'lucide-react/dynamicIconImports';
 
+import IconSkeleton from './icons/IconSkeleton';
+
 // Dynamically load icon set wrappers to split them into separate chunks
 const FaIconSet = dynamic(() => import('./icons/FaIcon'), { ssr: false });
 const MdIconSet = dynamic(() => import('./icons/MdIcon'), { ssr: false });
@@ -54,55 +56,66 @@ export default function DynamicIcon({ name, className, size = 24 }: DynamicIconP
         .replace(/([0-9])([a-zA-Z])/g, '$1-$2')
         .toLowerCase() as keyof typeof dynamicIconImports;
 
-    if (dynamicIconImports[lucideName]) {
-        const LucideIcon = dynamic(dynamicIconImports[lucideName], {
-            loading: () => <div style={{ width: size, height: size }} />,
-            ssr: false
-        });
-        return <LucideIcon className={className} size={size} />;
-    }
+    const getIconComponent = () => {
+        if (dynamicIconImports[lucideName]) {
+            const LucideIcon = dynamic(dynamicIconImports[lucideName], {
+                loading: () => <IconSkeleton size={size} className={className} />,
+                ssr: false
+            });
+            return <LucideIcon className={className} size={size} />;
+        }
 
-    // 2. Handle Material Design (Md)
-    if (name.startsWith('Md')) {
-        return <MdIconSet name={name} className={className} size={size} />;
-    }
+        // 2. Handle Material Design (Md)
+        if (name.startsWith('Md')) {
+            return <MdIconSet name={name} className={className} size={size} />;
+        }
 
-    // 3. Handle Bootstrap/BoxIcons (Bi)
-    if (name.startsWith('Bi')) {
-        return <BiIconSet name={name} className={className} size={size} />;
-    }
+        // 3. Handle Bootstrap/BoxIcons (Bi)
+        if (name.startsWith('Bi')) {
+            return <BiIconSet name={name} className={className} size={size} />;
+        }
 
-    // 4. Handle Ionicons (Io)
-    if (name.startsWith('Io')) {
-        return <IoIconSet name={name} className={className} size={size} />;
-    }
+        // 4. Handle Ionicons (Io)
+        if (name.startsWith('Io')) {
+            return <IoIconSet name={name} className={className} size={size} />;
+        }
 
-    // 5. Handle Ant Design (Ai)
-    if (name.startsWith('Ai')) {
-        return <AiIconSet name={name} className={className} size={size} />;
-    }
+        // 5. Handle Ant Design (Ai)
+        if (name.startsWith('Ai')) {
+            return <AiIconSet name={name} className={className} size={size} />;
+        }
 
-    // 6. Handle Bootstrap (Bs)
-    if (name.startsWith('Bs')) {
-        return <BsIconSet name={name} className={className} size={size} />;
-    }
+        // 6. Handle Bootstrap (Bs)
+        if (name.startsWith('Bs')) {
+            return <BsIconSet name={name} className={className} size={size} />;
+        }
 
-    // 7. Handle Heroicons (Hi)
-    if (name.startsWith('Hi')) {
-        return <HiIconSet name={name} className={className} size={size} />;
-    }
+        // 7. Handle Heroicons (Hi)
+        if (name.startsWith('Hi')) {
+            return <HiIconSet name={name} className={className} size={size} />;
+        }
 
-    // 8. Handle Remix Icon (Ri)
-    if (name.startsWith('Ri')) {
-        return <RiIconSet name={name} className={className} size={size} />;
-    }
+        // 8. Handle Remix Icon (Ri)
+        if (name.startsWith('Ri')) {
+            return <RiIconSet name={name} className={className} size={size} />;
+        }
 
-    // 9. Handle FontAwesome (Fa)
-    if (name.startsWith('Fa')) {
-        return <FaIconSet name={name} className={className} size={size} />;
-    }
+        // 9. Handle FontAwesome (Fa)
+        if (name.startsWith('Fa')) {
+            return <FaIconSet name={name} className={className} size={size} />;
+        }
 
-    // Fallback: Try Fa if no prefix ( legacy behavior )
-    const faName = name.startsWith('Fa') ? name : `Fa${name}`;
-    return <FaIconSet name={faName} className={className} size={size} />;
+        // Fallback: Try Fa if no prefix ( legacy behavior )
+        const faName = name.startsWith('Fa') ? name : `Fa${name}`;
+        return <FaIconSet name={faName} className={className} size={size} />;
+    };
+
+    return (
+        <span
+            className={`inline-flex items-center justify-center empty:animate-pulse empty:bg-current empty:opacity-10 empty:rounded-md ${className || ''}`}
+            style={{ width: size, height: size, minWidth: size, minHeight: size }}
+        >
+            {getIconComponent()}
+        </span>
+    );
 }

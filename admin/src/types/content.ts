@@ -57,6 +57,7 @@ export interface Testimonial {
     customerName: string;
     customerTitle?: string;
     customerImage?: string;
+    productPurchased?: string;
     content: string;
     rating?: number;
     isActive: boolean;

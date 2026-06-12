@@ -8,18 +8,23 @@ interface HeadingConfigPanelProps {
         subheading?: string;
         tag?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'div';
         align?: 'left' | 'center' | 'right';
+        headingStyle?: 'plain' | 'bottom-accent' | 'double-line' | 'background-ribbon';
+        subheadingFirst?: boolean;
         styles?: {
             fontFamily?: string;
             fontSize?: number; // px
             fontWeight?: number;
             color?: string;
+            textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
 
             subFontFamily?: string;
             subFontSize?: number;
             subFontWeight?: number;
             subColor?: string;
+            subTextTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
 
             backgroundColor?: string;
+            decorationColor?: string;
 
             // Border
             borderStyle?: string;
@@ -95,6 +100,16 @@ const HeadingConfigPanel: React.FC<HeadingConfigPanelProps> = ({ config, onChang
                         multiline
                     />
 
+                    <FormControlLabel
+                        control={
+                            <Switch
+                                checked={config.subheadingFirst || false}
+                                onChange={(e) => handleChange('subheadingFirst', e.target.checked)}
+                            />
+                        }
+                        label="Show Subheading First"
+                    />
+
                     <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
                         <FormControl fullWidth>
                             <InputLabel>HTML Tag</InputLabel>
@@ -125,6 +140,31 @@ const HeadingConfigPanel: React.FC<HeadingConfigPanelProps> = ({ config, onChang
                                 <MenuItem value="right">Right</MenuItem>
                             </Select>
                         </FormControl>
+                    </Box>
+
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                        <FormControl fullWidth>
+                            <InputLabel>Heading Design Style</InputLabel>
+                            <Select
+                                value={config.headingStyle || 'plain'}
+                                label="Heading Design Style"
+                                onChange={(e) => handleChange('headingStyle', e.target.value)}
+                            >
+                                <MenuItem value="plain">Plain</MenuItem>
+                                <MenuItem value="bottom-accent">Bottom Accent Line</MenuItem>
+                                <MenuItem value="double-line">Double Line Flanked</MenuItem>
+                                <MenuItem value="background-ribbon">Background Ribbon</MenuItem>
+                            </Select>
+                        </FormControl>
+                        {config.headingStyle && config.headingStyle !== 'plain' ? (
+                            <ColorPicker
+                                label="Decoration Color"
+                                value={config.styles?.decorationColor || '#3b82f6'}
+                                onChange={(color) => handleStyleChange('decorationColor', color)}
+                            />
+                        ) : (
+                            <Box />
+                        )}
                     </Box>
                 </Box>
             )}
@@ -174,11 +214,26 @@ const HeadingConfigPanel: React.FC<HeadingConfigPanelProps> = ({ config, onChang
                         </FormControl>
                     </Box>
 
-                    <ColorPicker
-                        label="Heading Color"
-                        value={config.styles?.color || '#000000'}
-                        onChange={(color) => handleStyleChange('color', color)}
-                    />
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                        <ColorPicker
+                            label="Heading Color"
+                            value={config.styles?.color || '#000000'}
+                            onChange={(color) => handleStyleChange('color', color)}
+                        />
+                        <FormControl fullWidth size="small">
+                            <InputLabel>Text Transform</InputLabel>
+                            <Select
+                                value={config.styles?.textTransform || 'none'}
+                                label="Text Transform"
+                                onChange={(e) => handleStyleChange('textTransform', e.target.value)}
+                            >
+                                <MenuItem value="none">None</MenuItem>
+                                <MenuItem value="uppercase">Uppercase</MenuItem>
+                                <MenuItem value="lowercase">Lowercase</MenuItem>
+                                <MenuItem value="capitalize">Capitalize</MenuItem>
+                            </Select>
+                        </FormControl>
+                    </Box>
 
                     <Divider sx={{ my: 1 }} />
                     <Typography variant="subtitle2">Subheading Typography</Typography>
@@ -224,11 +279,26 @@ const HeadingConfigPanel: React.FC<HeadingConfigPanelProps> = ({ config, onChang
                         </FormControl>
                     </Box>
 
-                    <ColorPicker
-                        label="Subheading Color"
-                        value={config.styles?.subColor || '#666666'}
-                        onChange={(color) => handleStyleChange('subColor', color)}
-                    />
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                        <ColorPicker
+                            label="Subheading Color"
+                            value={config.styles?.subColor || '#666666'}
+                            onChange={(color) => handleStyleChange('subColor', color)}
+                        />
+                        <FormControl fullWidth size="small">
+                            <InputLabel>Text Transform</InputLabel>
+                            <Select
+                                value={config.styles?.subTextTransform || 'none'}
+                                label="Text Transform"
+                                onChange={(e) => handleStyleChange('subTextTransform', e.target.value)}
+                            >
+                                <MenuItem value="none">None</MenuItem>
+                                <MenuItem value="uppercase">Uppercase</MenuItem>
+                                <MenuItem value="lowercase">Lowercase</MenuItem>
+                                <MenuItem value="capitalize">Capitalize</MenuItem>
+                            </Select>
+                        </FormControl>
+                    </Box>
                 </Box>
             )}
 

@@ -28,12 +28,13 @@ interface BannerSlide {
 
 interface Testimonial {
     _id: string;
-    name: string;
-    role?: string;
-    company?: string;
+    customerName: string;
+    customerTitle?: string;
+    customerImage?: string;
+    productPurchased?: string;
     content: string;
-    avatar?: string;
     rating?: number;
+    company?: string;
 }
 
 /**
