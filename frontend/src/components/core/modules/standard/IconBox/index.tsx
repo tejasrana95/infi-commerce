@@ -7,6 +7,8 @@ import { ModuleProps } from '../..';
 import DynamicIcon from '@/components/core/common/DynamicIcon';
 import styles from './IconBox.module.scss';
 import { useStore } from '@/providers/StoreProvider';
+import { formatFontFamily } from '@/lib/fonts';
+import { useDynamicFonts } from '@/hooks/useDynamicFonts';
 
 interface IconBoxItem {
     id: string;
@@ -28,6 +30,32 @@ interface IconBoxConfig {
     columns: number;
     iconType: 'icon' | 'image';
     textAlign: 'left' | 'center' | 'right';
+    styles?: {
+        borderColor?: string;
+        borderRadius?: number;
+        iconColor?: string;
+        iconBgColor?: string;
+        iconBgRadius?: number;
+        paddingTop?: number;
+        paddingBottom?: number;
+        paddingLeft?: number;
+        paddingRight?: number;
+        titleFontFamily?: string;
+        titleFontSize?: number;
+        titleFontWeight?: number;
+        descFontFamily?: string;
+        descFontSize?: number;
+        descFontWeight?: number;
+        bgColor?: string;
+        ctaColor?: string;
+        titleColor?: string;
+        descColor?: string;
+        iconSize?: number;
+        iconBgSize?: number;
+        iconBgPadding?: number;
+        iconAlign?: string;
+        hoverEffect?: string;
+    };
 }
 
 export default function IconBoxModule({ config }: ModuleProps) {
@@ -38,7 +66,8 @@ export default function IconBoxModule({ config }: ModuleProps) {
         columns = 3,
         iconType = 'icon',
         textAlign = 'center',
-        fullSizeImage = false
+        fullSizeImage = false,
+        styles: customStyles = {}
     } = config as IconBoxConfig & { fullSizeImage?: boolean };
 
     const { themeConfig } = useStore();
@@ -46,6 +75,12 @@ export default function IconBoxModule({ config }: ModuleProps) {
     const primaryLightColor = `${primaryColor}15`; // 10% opacity
 
     const [currentIndex, setCurrentIndex] = useState(0);
+
+    // Dynamically load Title and Description fonts
+    const fontsToLoad: string[] = [];
+    if (customStyles?.titleFontFamily) fontsToLoad.push(customStyles.titleFontFamily);
+    if (customStyles?.descFontFamily) fontsToLoad.push(customStyles.descFontFamily);
+    useDynamicFonts(fontsToLoad);
 
     // For interaction logic (clamping index), we track visible items in JS
     // BUT rendering is handled by CSS to prevent FOUC
@@ -102,18 +137,111 @@ export default function IconBoxModule({ config }: ModuleProps) {
 
         const isFullImage = fullSizeImage && iconType === 'image' && item.image;
 
-        // Custom colors for this item
+        // Custom styling for this card/box
+        const itemBg = item.bgColor || customStyles.bgColor || undefined;
         const itemStyle = {
             ...boxStyle,
-            backgroundColor: item.bgColor || undefined,
+            backgroundColor: itemBg,
+            background: itemBg,
         } as React.CSSProperties;
 
+        // Hover effect styles
+        const hoverEffect = customStyles.hoverEffect || 'default';
+        if (hoverEffect === 'none') {
+            (itemStyle as any)['--hover-y'] = '0px';
+            (itemStyle as any)['--hover-scale'] = '1';
+            (itemStyle as any)['--hover-shadow'] = 'none';
+            (itemStyle as any)['--hover-line-opacity'] = '0';
+            (itemStyle as any)['--hover-icon-scale'] = '1';
+            (itemStyle as any)['--hover-border'] = 'transparent';
+        } else if (hoverEffect === 'lift') {
+            (itemStyle as any)['--hover-y'] = '-12px';
+            (itemStyle as any)['--hover-scale'] = '1';
+            (itemStyle as any)['--hover-shadow'] = '0 20px 40px rgba(0, 0, 0, 0.08)';
+            (itemStyle as any)['--hover-line-opacity'] = '0';
+            (itemStyle as any)['--hover-icon-scale'] = '1.05';
+        } else if (hoverEffect === 'zoom') {
+            (itemStyle as any)['--hover-y'] = '0px';
+            (itemStyle as any)['--hover-scale'] = '1.04';
+            (itemStyle as any)['--hover-shadow'] = '0 12px 24px rgba(0, 0, 0, 0.05)';
+            (itemStyle as any)['--hover-line-opacity'] = '0';
+            (itemStyle as any)['--hover-icon-scale'] = '1.1';
+        } else if (hoverEffect === 'shadow') {
+            (itemStyle as any)['--hover-y'] = '0px';
+            (itemStyle as any)['--hover-scale'] = '1';
+            (itemStyle as any)['--hover-shadow'] = '0 0 35px rgba(59, 130, 246, 0.25)';
+            (itemStyle as any)['--hover-line-opacity'] = '1';
+            (itemStyle as any)['--hover-icon-scale'] = '1.15';
+        }
+
+        // Custom borders
+        if (customStyles.borderColor) {
+            itemStyle.borderColor = customStyles.borderColor;
+            itemStyle.borderStyle = 'solid';
+        }
+        if (customStyles.borderRadius !== undefined) {
+            itemStyle.borderRadius = `${customStyles.borderRadius}px`;
+        }
+
+        // Custom paddings
+        if (customStyles.paddingTop !== undefined) itemStyle.paddingTop = `${customStyles.paddingTop}px`;
+        if (customStyles.paddingBottom !== undefined) itemStyle.paddingBottom = `${customStyles.paddingBottom}px`;
+        if (customStyles.paddingLeft !== undefined) itemStyle.paddingLeft = `${customStyles.paddingLeft}px`;
+        if (customStyles.paddingRight !== undefined) itemStyle.paddingRight = `${customStyles.paddingRight}px`;
+
+        // Custom icon styles
         const iconStyle = {
-            color: item.iconColor || undefined,
+            color: item.iconColor || customStyles.iconColor || undefined,
         } as React.CSSProperties;
+
+        if (customStyles.iconBgColor) {
+            iconStyle.background = customStyles.iconBgColor;
+        }
+        if (customStyles.iconBgRadius !== undefined) {
+            iconStyle.borderRadius = `${customStyles.iconBgRadius}px`;
+            iconStyle.overflow = 'hidden'; // clip any custom image or content
+        }
+        if (customStyles.iconSize !== undefined) {
+            (iconStyle as any)['--icon-size'] = `${customStyles.iconSize}px`;
+        }
+        if (customStyles.iconBgSize !== undefined) {
+            iconStyle.width = `${customStyles.iconBgSize}px`;
+            iconStyle.height = `${customStyles.iconBgSize}px`;
+        }
+        if (customStyles.iconBgPadding !== undefined) {
+            iconStyle.padding = `${customStyles.iconBgPadding}px`;
+        }
+        if (customStyles.iconAlign) {
+            iconStyle.alignSelf = customStyles.iconAlign;
+            if (customStyles.iconAlign === 'flex-start') {
+                iconStyle.marginLeft = '0';
+                iconStyle.marginRight = 'auto';
+            } else if (customStyles.iconAlign === 'center') {
+                iconStyle.marginLeft = 'auto';
+                iconStyle.marginRight = 'auto';
+            } else if (customStyles.iconAlign === 'flex-end') {
+                iconStyle.marginLeft = 'auto';
+                iconStyle.marginRight = '0';
+            }
+        }
 
         const ctaStyle = {
-            color: item.ctaColor || undefined,
+            color: item.ctaColor || customStyles.ctaColor || undefined,
+        } as React.CSSProperties;
+
+        // Typography Styles
+        const titleStyle = {
+            fontFamily: formatFontFamily(customStyles.titleFontFamily),
+            fontSize: customStyles.titleFontSize ? `${customStyles.titleFontSize}px` : undefined,
+            fontWeight: customStyles.titleFontWeight || undefined,
+            color: customStyles.titleColor || undefined,
+        } as React.CSSProperties;
+
+        const descStyle = {
+            fontFamily: formatFontFamily(customStyles.descFontFamily),
+            fontSize: customStyles.descFontSize ? `${customStyles.descFontSize}px` : undefined,
+            fontWeight: customStyles.descFontWeight || undefined,
+            color: customStyles.descColor || undefined,
         } as React.CSSProperties;
 
         return (
@@ -139,13 +267,13 @@ export default function IconBoxModule({ config }: ModuleProps) {
                             />
                         </div>
                     ) : (
-                        <DynamicIcon name={item.icon || 'FaStar'} size={24} />
+                        <DynamicIcon name={item.icon || 'FaStar'} size={customStyles.iconSize || 24} />
                     )}
                 </div>
 
                 <div className={styles.content}>
-                    <h3 className={styles.title}>{item.title}</h3>
-                    {item.description && <p className={styles.description}>{item.description}</p>}
+                    <h3 className={styles.title} style={titleStyle}>{item.title}</h3>
+                    {item.description && <p className={styles.description} style={descStyle}>{item.description}</p>}
 
                     {item.link && item.ctaText && (
                         <span className={styles.ctaLink} style={ctaStyle}>

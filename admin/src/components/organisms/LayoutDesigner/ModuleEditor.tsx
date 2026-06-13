@@ -18,6 +18,7 @@ import {
     BannerConfigPanel,
     BannerSliderConfigPanel,
     HeroSliderConfigPanel,
+    HeroBannerConfigPanel,
     TestimonialsConfigPanel,
     BrandLogosConfigPanel,
     ProductCollectionConfigPanel,
@@ -165,6 +166,15 @@ export default function ModuleEditor({ module, onChange, onDelete, storeId }: Mo
             case 'hero-slider':
                 return (
                     <HeroSliderConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
+                        storeId={effectiveStoreId}
+                    />
+                );
+
+            case 'hero-banner':
+                return (
+                    <HeroBannerConfigPanel
                         config={module.config as any}
                         onChange={updateConfig}
                         storeId={effectiveStoreId}

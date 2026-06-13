@@ -171,7 +171,10 @@ export default function RecentlyViewedModule({
         setCurrentIndex(prev => prev <= 0 ? maxIndex : prev - 1);
     }, [maxIndex]);
 
-    const columnClass = styles[`columns${Math.min(Math.max(columns, 2), 6)}`];
+    const desktopCols = columns;
+    const tabletCols = Math.min(columns, 3);
+    const mobileCols = columns === 1 ? 1 : Math.min(columns, 2);
+
     const titleAlignment = titleTypography?.alignment || 'left';
     const headerStyle: React.CSSProperties = {
         justifyContent: titleAlignment === 'center' ? 'center' : titleAlignment === 'right' ? 'flex-end' : 'flex-start',
@@ -184,16 +187,48 @@ export default function RecentlyViewedModule({
     };
 
     if (loading) {
+        const header = title && (
+            <div className={styles.header} style={headerStyle}>
+                <h2 className={styles.title} style={titleStyle}>{title}</h2>
+            </div>
+        );
+
+        if (layout === 'carousel') {
+            return (
+                <div className={styles.container}>
+                    {header}
+                    <div className={styles.carouselViewport}>
+                        <div className={styles.carouselTrack}>
+                            {Array.from({ length: visibleCount }).map((_, i) => (
+                                <div 
+                                    key={i} 
+                                    className={styles.carouselSlide}
+                                    style={{ width: `${100 / visibleCount}%` }}
+                                >
+                                    <div className={styles.skeleton} />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
         return (
             <div className={styles.container}>
-                {title && (
-                    <div className={styles.header} style={headerStyle}>
-                        <h2 className={styles.title} style={titleStyle}>{title}</h2>
-                    </div>
-                )}
-                <div className={styles.skeletonGrid}>
-                    {Array.from({ length: 4 }).map((_, i) => (
-                        <div key={i} className={styles.skeleton} />
+                {header}
+                <div 
+                    className={styles.grid}
+                    style={{
+                        '--columns-desktop': desktopCols,
+                        '--columns-tablet': tabletCols,
+                        '--columns-mobile': mobileCols,
+                    } as React.CSSProperties}
+                >
+                    {Array.from({ length: Math.min(limit, desktopCols) }).map((_, i) => (
+                        <div key={i} className={styles.gridItem}>
+                            <div className={styles.skeleton} />
+                        </div>
                     ))}
                 </div>
             </div>
@@ -217,7 +252,14 @@ export default function RecentlyViewedModule({
                         <h2 className={styles.title} style={titleStyle}>{title}</h2>
                     </div>
                 )}
-                <div className={`${styles.grid} ${columnClass}`}>
+                <div 
+                    className={styles.grid}
+                    style={{
+                        '--columns-desktop': desktopCols,
+                        '--columns-tablet': tabletCols,
+                        '--columns-mobile': mobileCols,
+                    } as React.CSSProperties}
+                >
                     {products.map((product) => (
                         <div key={product._id} className={styles.gridItem}>
                             <ProductCard
@@ -247,11 +289,15 @@ export default function RecentlyViewedModule({
             >
                 <div className={styles.carouselViewport}>
                     <div
-                        className={`${styles.carouselTrack} ${columnClass}`}
+                        className={styles.carouselTrack}
                         style={{ transform: `translateX(-${translateX}%)` }}
                     >
                         {products.map((product) => (
-                            <div key={product._id} className={styles.carouselSlide}>
+                            <div 
+                                key={product._id} 
+                                className={styles.carouselSlide}
+                                style={{ width: `${slideWidth}%` }}
+                            >
                                 <ProductCard
                                     product={product}
                                     showRating={showRating}

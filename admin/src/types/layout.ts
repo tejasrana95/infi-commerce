@@ -1,7 +1,7 @@
 export type LayoutType = 'homepage' | 'category' | 'product' | 'search' | 'blog-list' | 'blog-post' | 'page' | 'cart' | 'checkout' | 'account';
 
 export type ModuleType =
-    | 'banner' | 'banner-slider' | 'hero-slider' | 'text-block' | 'image' | 'image-gallery'
+    | 'banner' | 'banner-slider' | 'hero-slider' | 'hero-banner' | 'text-block' | 'image' | 'image-gallery'
     | 'video' | 'spacer' | 'divider' | 'html' | 'newsletter' | 'testimonials'
     | 'countdown' | 'brand-logos' | 'cta-button' | 'strip-banner' | 'card-group'
     | 'icon-box' | 'icon-group' | 'pricing-table'

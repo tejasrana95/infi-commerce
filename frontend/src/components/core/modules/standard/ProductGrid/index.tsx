@@ -99,7 +99,10 @@ export default function ProductGridModule({ config, initialData }: ModuleProps) 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [source, limit, categoryIds, productIds]);
 
-    const columnClass = styles[`columns${Math.min(Math.max(columns, 2), 6)}`];
+    const desktopCols = columns;
+    const tabletCols = Math.min(columns, 3);
+    const mobileCols = columns === 1 ? 1 : Math.min(columns, 2);
+
     const titleAlignment = titleTypography?.alignment || 'left';
     const headerStyle: React.CSSProperties = {
         justifyContent: titleAlignment === 'center' ? 'center' : titleAlignment === 'right' ? 'flex-end' : 'flex-start',
@@ -114,9 +117,20 @@ export default function ProductGridModule({ config, initialData }: ModuleProps) 
     if (loading) {
         return (
             <div className={styles.container}>
-                {title && <div className={styles.skeletonTitle} />}
-                <div className={styles.skeletonGrid}>
-                    {Array.from({ length: Math.min(limit, 8) }).map((_, i) => (
+                {title && (
+                    <div className={styles.header} style={headerStyle}>
+                        <h2 className={styles.title} style={titleStyle}>{title}</h2>
+                    </div>
+                )}
+                <div 
+                    className={styles.grid}
+                    style={{
+                        '--columns-desktop': desktopCols,
+                        '--columns-tablet': tabletCols,
+                        '--columns-mobile': mobileCols,
+                    } as React.CSSProperties}
+                >
+                    {Array.from({ length: Math.min(limit, desktopCols) }).map((_, i) => (
                         <div key={i} className={styles.skeleton} />
                     ))}
                 </div>
@@ -146,7 +160,14 @@ export default function ProductGridModule({ config, initialData }: ModuleProps) 
                 </div>
             )}
 
-            <div className={`${styles.grid} ${columnClass}`}>
+            <div 
+                className={styles.grid}
+                style={{
+                    '--columns-desktop': desktopCols,
+                    '--columns-tablet': tabletCols,
+                    '--columns-mobile': mobileCols,
+                } as React.CSSProperties}
+            >
                 {products.map((product) => (
                     <ProductCard
                         key={product._id}

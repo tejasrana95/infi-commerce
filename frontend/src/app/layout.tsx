@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import pkg from "../../package.json";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 import { headers, cookies } from "next/headers";
 import "./globals.scss";
 
@@ -41,6 +41,12 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const playfairDisplay = Playfair_Display({
+  variable: "--font-playfair-display",
   subsets: ["latin"],
   display: "swap",
 });
@@ -175,7 +181,7 @@ export default async function RootLayout({
     // If backend is down, render a fallback UI
     return (
       <html lang="en">
-        <body className={`${geistSans.variable} ${geistMono.variable}`}>
+        <body className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable}`}>
           <ServerUnavailable />
         </body>
       </html>
@@ -217,7 +223,7 @@ export default async function RootLayout({
   if (store && !store.isActive) {
     return (
       <html lang="en">
-        <body className={`${geistSans.variable} ${geistMono.variable}`}>
+        <body className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable}`}>
           <StoreInactive />
         </body>
       </html>
@@ -273,7 +279,7 @@ export default async function RootLayout({
           https://inficommerce.com
         */}
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable}`}>
         <NavigationProgress />
         {store && (
           <script

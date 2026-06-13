@@ -138,6 +138,16 @@ export default function ModernCleanProductCardTemplate({
                     addToCartStyle: 'filled' as const,
                     showRating: true
                 };
+            case 'clean':
+                return {
+                    cardBorderRadius: 14,
+                    cardPadding: 12,
+                    titleFontSize: 'medium' as const,
+                    showStock: true,
+                    showSku: false,
+                    addToCartStyle: 'filled' as const,
+                    showRating: true
+                };
             case 'elegant':
                 return {
                     cardBorderRadius: 2,
@@ -260,7 +270,10 @@ export default function ModernCleanProductCardTemplate({
 
     // Render star rating
     const renderStars = () => {
-        if (!showRating || rating === undefined) return null;
+        if (!showRating || rating === undefined) {
+            // render a placeholder element so layout doesn't jump when rating is absent
+            return <div className={`${styles.rating} ${styles.ratingPlaceholder}`} />;
+        }
 
         const fullStars = Math.floor(rating);
         const stars = [];
@@ -344,6 +357,12 @@ export default function ModernCleanProductCardTemplate({
                                 New
                             </span>
                         )}
+                            {/* If there's no discount, surface stock status as a badge (supports config) */}
+                            {(!hasDiscount || !showSalePercent) && stockStatus && inStock && (
+                                <span className={`${styles.badge} ${styles.badgeStock}`}>
+                                    {formatStockStatus(stockStatus)}
+                                </span>
+                            )}
                     </div>
 
                     {/* Compact Style Overlay Actions */}
@@ -468,7 +487,10 @@ export default function ModernCleanProductCardTemplate({
                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                                                 </svg>
                                             ) : (
-                                                'Add to Cart'
+                                                <>
+                                                {cardStyle as any === 'clean' && !showBuyNow && (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                                </svg> )} Add to Cart</>
                                             )}
                                         </button>
                                     )}
@@ -553,15 +575,16 @@ export default function ModernCleanProductCardTemplate({
                 </PriceDisplay>
 
                 {/* Stock Status */}
-                {showStock && (
+                {showStock && cardStyle !== 'clean' && (
                     <span className={`${styles.stockStatus} ${inStock ? styles.inStock : styles.outOfStockText}`}>
                         {formatStockStatus(stockStatus)}
                     </span>
                 )}
 
                 {/* Action Buttons - For non-overlay card styles */}
-                {cardStyle !== 'overlay' && cardStyle !== 'magazine' && (cardStyle as any) !== 'detailed' && cardStyle !== 'brutalist' && cardStyle !== 'elegant' && (showAddToCart || showBuyNow) && inStock && shouldShowPrice && (
-                    <div className={`${styles.contentActions} ${(addToCartStyle === 'icon-only' && buyNowStyle === 'icon-only') ? styles.centeredActions : ''}`}>
+                {/* Sticky action area: keeps Add to Cart / Buy Now at bottom for most styles */}
+                {cardStyle !== 'overlay' && cardStyle !== 'magazine' && (cardStyle as any) !== 'detailed' && cardStyle !== 'brutalist' && cardStyle !== 'elegant' && (showAddToCart || showBuyNow) && (
+                    <div className={`${styles.stickyActions} ${(addToCartStyle === 'icon-only' && buyNowStyle === 'icon-only') ? styles.centeredActions : ''}`}>
                         {showAddToCart && (
                             <button
                                 className={`${styles.contentBtn} ${styles.addToCart} ${styles[`contentBtn${addToCartStyle.charAt(0).toUpperCase() + addToCartStyle.slice(1).replace('-', '')}`]} infi-track`}
@@ -572,13 +595,16 @@ export default function ModernCleanProductCardTemplate({
                                 data-ga-action="add_to_cart"
                                 data-ga-label={name}
                                 title={addToCartStyle === 'icon-only' ? 'Add to Cart' : undefined}
+                                disabled={!inStock}
                             >
                                 {addToCartStyle === 'icon-only' ? (
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                                     </svg>
                                 ) : (
-                                    'Add to Cart'
+                                    <>{cardStyle as any === 'clean' && !showBuyNow && (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                                </svg> )} Add to Cart</>
                                 )}
                             </button>
                         )}
@@ -592,6 +618,7 @@ export default function ModernCleanProductCardTemplate({
                                 data-ga-action="buy_now"
                                 data-ga-label={name}
                                 title={buyNowStyle === 'icon-only' ? 'Buy Now' : undefined}
+                                disabled={!inStock}
                             >
                                 {buyNowStyle === 'icon-only' ? (
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>

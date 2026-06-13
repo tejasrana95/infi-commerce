@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Box, Typography, Select, MenuItem, InputLabel, FormControl, TextField } from '@mui/material';
+import { Box, Typography, Select, MenuItem, InputLabel, FormControl, TextField, Slider } from '@mui/material';
 import { ColorPicker } from '@/components/atoms';
+import { COMMON_FONTS } from '@/utils/fonts';
 import ProductAutoComplete, { ProductOption } from '@/components/molecules/ProductAutoComplete';
 import CategoryAutocomplete from '@/components/molecules/CategoryAutocomplete';
 import api from '@/lib/api';
@@ -18,6 +19,7 @@ interface ProductCollectionConfigPanelProps {
             alignment?: 'left' | 'center' | 'right';
         };
         limit?: number;
+        columns?: number;
         categoryIds?: string[];
         productIds?: string[];
         [key: string]: any;
@@ -26,16 +28,6 @@ interface ProductCollectionConfigPanelProps {
     storeId?: string;
 }
 
-const COMMON_FONTS = [
-    { label: 'Default', value: '' },
-    { label: 'Inter', value: 'Inter, sans-serif' },
-    { label: 'Roboto', value: 'Roboto, sans-serif' },
-    { label: 'Open Sans', value: '"Open Sans", sans-serif' },
-    { label: 'Lato', value: 'Lato, sans-serif' },
-    { label: 'Montserrat', value: 'Montserrat, sans-serif' },
-    { label: 'Playfair Display', value: '"Playfair Display", serif' },
-    { label: 'Merriweather', value: 'Merriweather, serif' },
-];
 
 export default function ProductCollectionConfigPanel({ config, onChange, storeId }: ProductCollectionConfigPanelProps) {
     const [selectedProducts, setSelectedProducts] = useState<ProductOption[]>([]);
@@ -185,6 +177,21 @@ export default function ProductCollectionConfigPanel({ config, onChange, storeId
                 helperText="Number of products to display"
                 fullWidth
             />
+
+            <Box>
+                <Typography gutterBottom>
+                    Columns: {config.columns || 4}
+                </Typography>
+                <Slider
+                    value={config.columns || 4}
+                    onChange={(_, value) => handleChange('columns', value)}
+                    min={1}
+                    max={12}
+                    step={1}
+                    marks
+                    valueLabelDisplay="auto"
+                />
+            </Box>
 
             {config.source === 'category' && (
                 <Box>

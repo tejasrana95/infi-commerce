@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Box, TextField, FormControl, InputLabel, Select, MenuItem, Typography, Divider, Tabs, Tab, Grid, Slider, Switch, FormControlLabel } from '@mui/material';
 import { ColorPicker } from '@/components/atoms';
+import { COMMON_FONTS } from '@/utils/fonts';
 
 interface HeadingConfigPanelProps {
     config: {
@@ -46,16 +47,6 @@ interface HeadingConfigPanelProps {
     onChange: (config: any) => void;
 }
 
-const COMMON_FONTS = [
-    { label: 'Default', value: '' },
-    { label: 'Inter', value: 'Inter, sans-serif' },
-    { label: 'Roboto', value: 'Roboto, sans-serif' },
-    { label: 'Open Sans', value: '"Open Sans", sans-serif' },
-    { label: 'Lato', value: 'Lato, sans-serif' },
-    { label: 'Montserrat', value: 'Montserrat, sans-serif' },
-    { label: 'Playfair Display', value: '"Playfair Display", serif' },
-    { label: 'Merriweather', value: 'Merriweather, serif' },
-];
 
 const HeadingConfigPanel: React.FC<HeadingConfigPanelProps> = ({ config, onChange }) => {
     const [tab, setTab] = useState(0);

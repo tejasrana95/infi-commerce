@@ -1,5 +1,5 @@
 import { useEditor, EditorContent, Editor } from '@tiptap/react';
-import { Node, mergeAttributes } from '@tiptap/core';
+import { Node, Mark, mergeAttributes } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
@@ -14,7 +14,7 @@ import {
     FormatListBulleted, FormatListNumbered, FormatQuote, Code,
     Undo, Redo, Image as ImageIcon, Link as LinkIcon,
     FormatAlignLeft, FormatAlignCenter, FormatAlignRight, LinkOff,
-    Fullscreen, FullscreenExit,
+    Fullscreen, FullscreenExit, BorderColor,
 } from '@mui/icons-material';
 import YouTubeIcon from '@mui/icons-material/YouTube';
 import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
@@ -87,6 +87,20 @@ const YouTubeNode = Node.create({
                 ),
             ],
         ];
+    },
+});
+
+const HighlightSpan = Mark.create({
+    name: 'highlightSpan',
+    parseHTML() {
+        return [
+            {
+                tag: 'span',
+            },
+        ];
+    },
+    renderHTML({ HTMLAttributes }) {
+        return ['span', mergeAttributes(HTMLAttributes), 0];
     },
 });
 
@@ -334,6 +348,15 @@ const MenuBar = ({ editor, variant, showSourceToggle, sourceMode, onSourceToggle
                     <FormatStrikethrough fontSize="small" />
                 </IconButton>
             </Tooltip>
+            <Tooltip title="Highlight Text (Span)">
+                <IconButton
+                    size="small"
+                    onClick={() => editor.chain().focus().toggleMark('highlightSpan').run()}
+                    color={editor.isActive('highlightSpan') ? 'primary' : 'default'}
+                >
+                    <BorderColor fontSize="small" />
+                </IconButton>
+            </Tooltip>
 
             <Divider flexItem orientation="vertical" sx={{ mx: 0.5, my: 0.5, height: 24 }} />
 
@@ -569,6 +592,7 @@ export default function RichTextEditor({
             TextStyle,
             Color,
             YouTubeNode,
+            HighlightSpan,
         ],
         content: value,
         onUpdate: ({ editor }) => {

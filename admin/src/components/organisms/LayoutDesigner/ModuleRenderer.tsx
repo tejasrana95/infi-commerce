@@ -62,6 +62,7 @@ export default function ModuleRenderer({ module, isSelected, onClick }: ModuleRe
         switch (module.type) {
             case 'banner':
             case 'banner-slider':
+            case 'hero-banner':
                 return (
                     <Box
                         sx={{

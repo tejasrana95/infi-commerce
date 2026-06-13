@@ -147,7 +147,6 @@ export default function ProductCarouselModule({ config, initialData }: ModulePro
         }
     }, [autoplay, autoplayInterval, products.length, visibleCount, isPaused, nextSlide]);
 
-    const columnClass = styles[`columns${Math.min(Math.max(columns, 2), 6)}`];
     const titleAlignment = titleTypography?.alignment || 'left';
     const headerStyle: React.CSSProperties | undefined = viewAllLink
         ? undefined
@@ -167,10 +166,18 @@ export default function ProductCarouselModule({ config, initialData }: ModulePro
                         <h2 className={styles.title} style={titleStyle}>{title}</h2>
                     </div>
                 )}
-                <div className={styles.skeletonGrid}>
-                    {Array.from({ length: 4 }).map((_, i) => (
-                        <div key={i} className={styles.skeleton} />
-                    ))}
+                <div className={styles.carouselViewport}>
+                    <div className={styles.carouselTrack}>
+                        {Array.from({ length: visibleCount }).map((_, i) => (
+                            <div 
+                                key={i} 
+                                className={styles.carouselSlide}
+                                style={{ width: `${100 / visibleCount}%` }}
+                            >
+                                <div className={styles.skeleton} />
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         );
@@ -218,11 +225,15 @@ export default function ProductCarouselModule({ config, initialData }: ModulePro
             >
                 <div className={styles.carouselViewport}>
                     <div
-                        className={`${styles.carouselTrack} ${columnClass}`}
+                        className={styles.carouselTrack}
                         style={{ transform: `translateX(-${translateX}%)` }}
                     >
                         {products.map((product) => (
-                            <div key={product._id} className={styles.carouselSlide}>
+                            <div 
+                                key={product._id} 
+                                className={styles.carouselSlide}
+                                style={{ width: `${slideWidth}%` }}
+                            >
                                 <ProductCard
                                     product={product}
                                     showRating={showRating}

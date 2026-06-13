@@ -270,8 +270,6 @@ export default function PersonalizedProductsModule({ config }: ModuleProps) {
         fetchRecommendations();
     }, [store, limit, exclusionScope, exclusionDays, retentionDays, fallback, getLocalData]);
 
-    const columnClass = styles[`columns${Math.min(Math.max(normalizedColumns.desktop, 2), 6)}`];
-    const carouselColumnClass = carouselStyles[`columns${Math.min(Math.max(normalizedColumns.desktop, 2), 6)}`];
     const titleAlignment = titleTypography?.alignment || 'left';
     const headerStyle: React.CSSProperties = {
         alignItems: titleAlignment === 'center' ? 'center' : titleAlignment === 'right' ? 'flex-end' : 'flex-start',
@@ -284,15 +282,49 @@ export default function PersonalizedProductsModule({ config }: ModuleProps) {
     };
 
     if (loading) {
+        const header = (
+            (title || subtitle) && (
+                <div className={styles.header} style={headerStyle}>
+                    {title && <h2 className={styles.title} style={titleStyle}>{title}</h2>}
+                    {subtitle && <span className={styles.personalizedBadge}>{subtitle}</span>}
+                </div>
+            )
+        );
+
+        if (layout === 'carousel') {
+            const slideWidth = 100 / visibleCount;
+            return (
+                <div className={styles.container}>
+                    {header}
+                    <div className={carouselStyles.carouselViewport}>
+                        <div className={carouselStyles.carouselTrack}>
+                            {Array.from({ length: visibleCount }).map((_, i) => (
+                                <div 
+                                    key={i} 
+                                    className={carouselStyles.carouselSlide}
+                                    style={{ width: `${slideWidth}%` }}
+                                >
+                                    <div className={styles.skeleton} />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
         return (
             <div className={styles.container}>
-                {title && (
-                    <div className={styles.header} style={headerStyle}>
-                        <h2 className={styles.title} style={titleStyle}>{title}</h2>
-                    </div>
-                )}
-                <div className={`${styles.skeletonGrid} ${styles.grid} ${columnClass}`}>
-                    {Array.from({ length: Math.min(limit, 8) }).map((_, i) => (
+                {header}
+                <div 
+                    className={styles.grid}
+                    style={{
+                        '--columns-desktop': normalizedColumns.desktop,
+                        '--columns-tablet': normalizedColumns.tablet,
+                        '--columns-mobile': normalizedColumns.mobile,
+                    } as React.CSSProperties}
+                >
+                    {Array.from({ length: Math.min(limit, normalizedColumns.desktop) }).map((_, i) => (
                         <div key={i} className={styles.skeleton} />
                     ))}
                 </div>
@@ -331,11 +363,15 @@ export default function PersonalizedProductsModule({ config }: ModuleProps) {
                 >
                     <div className={carouselStyles.carouselViewport}>
                         <div
-                            className={`${carouselStyles.carouselTrack} ${carouselColumnClass}`}
+                            className={carouselStyles.carouselTrack}
                             style={{ transform: `translateX(-${translateX}%)` }}
                         >
                             {products.map((product) => (
-                                <div key={product._id} className={carouselStyles.carouselSlide}>
+                                <div 
+                                    key={product._id} 
+                                    className={carouselStyles.carouselSlide}
+                                    style={{ width: `${slideWidth}%` }}
+                                >
                                     <ProductCard product={product} showRating={showRating} />
                                 </div>
                             ))}
@@ -388,7 +424,14 @@ export default function PersonalizedProductsModule({ config }: ModuleProps) {
     return (
         <section className={styles.container}>
             {header}
-            <div className={`${styles.grid} ${columnClass}`}>
+            <div 
+                className={styles.grid}
+                style={{
+                    '--columns-desktop': normalizedColumns.desktop,
+                    '--columns-tablet': normalizedColumns.tablet,
+                    '--columns-mobile': normalizedColumns.mobile,
+                } as React.CSSProperties}
+            >
                 {products.map((product) => (
                     <ProductCard
                         key={product._id}

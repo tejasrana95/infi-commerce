@@ -106,6 +106,11 @@ export function getRevalidateTime(type: keyof typeof revalidationConfig): number
  * Helper to create Next.js fetch cache options
  */
 export function getCacheOptions(type: keyof typeof revalidationConfig, noCache: boolean = false): RequestInit {
+    // In development always return no-store to avoid stale SSR during dev
+    if (process.env.NODE_ENV === 'development') {
+        return { cache: 'no-store' };
+    }
+
     if (noCache) {
         return { cache: 'no-store' };
     }

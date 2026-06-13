@@ -105,6 +105,7 @@ export default function ProductCardSettings({ config, onChange }: ProductCardSet
                             size="small"
                         >
                             <MenuItem value="default">Default</MenuItem>
+                            <MenuItem value="clean">Clean</MenuItem>
                             <MenuItem value="minimal">Minimal</MenuItem>
                             <MenuItem value="overlay">Overlay</MenuItem>
                             <MenuItem value="horizontal">Horizontal</MenuItem>
@@ -169,7 +170,7 @@ export default function ProductCardSettings({ config, onChange }: ProductCardSet
                             <Slider
                                 value={productCard.cardGap}
                                 onChange={(_, value) => handleChange('cardGap', value)}
-                                min={8}
+                                min={4}
                                 max={32}
                                 step={4}
                                 marks

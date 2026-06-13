@@ -227,9 +227,6 @@ export default function SearchAutocomplete({
     return (
         <div className={styles.container} ref={containerRef}>
             <div className={styles.inputWrapper}>
-                <svg className={styles.searchIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
                 <input
                     ref={inputRef}
                     type="text"
@@ -245,18 +242,27 @@ export default function SearchAutocomplete({
                     className={styles.input}
                     autoComplete="off"
                 />
-                {(query || onClose) && (
-                    <button className={styles.closeBtn} onClick={() => {
+                {query && (
+                    <button className={styles.clearBtn} onClick={() => {
                         setQuery('');
                         setSuggestions([]);
                         inputRef.current?.focus();
-                        onClose?.();
-                    }} aria-label={query ? "Clear search" : "Close search"}>
+                    }} aria-label="Clear search">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                             <path d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
                 )}
+                <button
+                    type="button"
+                    className={styles.searchSubmitBtn}
+                    onClick={() => handleSearch(query)}
+                    aria-label="Submit Search"
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </button>
             </div>
 
             {showDropdown && (

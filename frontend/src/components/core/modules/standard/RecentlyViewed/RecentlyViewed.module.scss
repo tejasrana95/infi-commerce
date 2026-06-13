@@ -46,15 +46,17 @@
 
 .grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(var(--columns-mobile, 2), 1fr);
     gap: 1rem;
 
     @include tablet {
         gap: 1.5rem;
+        grid-template-columns: repeat(var(--columns-tablet, 3), 1fr);
     }
 
     @include desktop {
         gap: 2rem;
+        grid-template-columns: repeat(var(--columns-desktop, 4), 1fr);
     }
 }
 
@@ -62,54 +64,7 @@
     width: 100%;
 }
 
-// Grid column variations
-.grid.columns2 {
-    grid-template-columns: repeat(2, 1fr);
-}
-
-.grid.columns3 {
-    grid-template-columns: repeat(2, 1fr);
-
-    @include tablet {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
-
-.grid.columns4 {
-    grid-template-columns: repeat(2, 1fr);
-
-    @include tablet {
-        grid-template-columns: repeat(3, 1fr);
-    }
-
-    @include desktop {
-        grid-template-columns: repeat(4, 1fr);
-    }
-}
-
-.grid.columns5 {
-    grid-template-columns: repeat(2, 1fr);
-
-    @include tablet {
-        grid-template-columns: repeat(3, 1fr);
-    }
-
-    @include desktop {
-        grid-template-columns: repeat(5, 1fr);
-    }
-}
-
-.grid.columns6 {
-    grid-template-columns: repeat(2, 1fr);
-
-    @include tablet {
-        grid-template-columns: repeat(4, 1fr);
-    }
-
-    @include desktop {
-        grid-template-columns: repeat(6, 1fr);
-    }
-}
+// Column styles managed dynamically via inline styles/variables
 
 // =============================================================================
 // CAROUSEL
@@ -135,62 +90,7 @@
     padding: 0 8px;
 }
 
-// Column variations for carousel
-.columns2 .carouselSlide {
-    width: 100%;
-
-    @include tablet {
-        width: 50%;
-    }
-}
-
-.columns3 .carouselSlide {
-    width: 100%;
-
-    @include tablet {
-        width: 50%;
-    }
-
-    @include desktop {
-        width: 33.33%;
-    }
-}
-
-.columns4 .carouselSlide {
-    width: 100%;
-
-    @include tablet {
-        width: 50%;
-    }
-
-    @include desktop {
-        width: 25%;
-    }
-}
-
-.columns5 .carouselSlide {
-    width: 100%;
-
-    @include tablet {
-        width: 50%;
-    }
-
-    @include desktop {
-        width: 20%;
-    }
-}
-
-.columns6 .carouselSlide {
-    width: 100%;
-
-    @include tablet {
-        width: 50%;
-    }
-
-    @include desktop {
-        width: 16.666%;
-    }
-}
+// Column styles managed dynamically via inline width
 
 // =============================================================================
 // NAVIGATION

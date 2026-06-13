@@ -612,6 +612,8 @@ $accent-color: var(--color-accent, #007185);
     align-items: center;
     gap: 0.5rem;
     width: 100%;
+    justify-content: center;
+    max-width: 700px;
 }
 
 // Search button inside wrapper - hidden on desktop, visible on mobile

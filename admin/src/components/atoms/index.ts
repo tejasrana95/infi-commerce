@@ -6,3 +6,4 @@ export { default as SearchField } from './SearchField';
 export { default as ColorPicker } from './ColorPicker';
 export { default as AlertMessage } from './AlertMessage';
 export { default as PermissionGuard } from './PermissionGuard';
+export { default as GradientPicker } from './GradientPicker';

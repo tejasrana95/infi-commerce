@@ -353,6 +353,21 @@ $accent: var(--color-accent, #007185);
     flex: 1;
 }
 
+// Sticky actions container to keep buttons at bottom
+.stickyActions {
+    margin-top: auto;
+    padding: 12px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: stretch;
+    background: transparent;
+
+    .contentBtn {
+        flex: 1;
+    }
+}
+
 .name {
     margin: 0;
     font-size: 0.9375rem;
@@ -391,6 +406,10 @@ $accent: var(--color-accent, #007185);
     display: flex;
     align-items: center;
     gap: 6px;
+}
+
+.ratingPlaceholder {
+    min-height: 18px; // reserve vertical space when rating isn't present
 }
 
 .ratingValue {
@@ -1509,6 +1528,106 @@ $accent: var(--color-accent, #007185);
                 background: #10b981;
             }
         }
+    }
+}
+
+// =============================================================================
+// CLEAN STYLE - Minimal, airy product card used by store theme 'clean'
+// =============================================================================
+
+.styleClean {
+    background: #fff;
+    border-radius: var(--card-border-radius, 14px);
+    border: 1px solid #f3f2ef;
+    box-shadow: 0 6px 18px rgba(16, 24, 40, 0.04);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+
+    &.card {
+        &:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08), 0 8px 16px rgba(59, 130, 246, 0.1);
+        }
+
+    }
+
+    &::before {
+        display: none;
+    }
+
+    .imageContainer {
+        aspect-ratio: 3 / 4;
+        border-bottom: 1px solid #f3f4f6;
+        background: #faf7f3;
+    }
+
+    .content {
+        padding: var(--card-padding, 12px);
+        gap: 4px;
+    }
+
+    .name {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #111827;
+    }
+
+    .brand {
+        color: #6b7280;
+        font-size: 0.75rem;
+    }
+
+    .price {
+        color: #111827;
+        font-weight: 700;
+    }
+
+    .badges {
+        top: 4px;
+        left: 6px;
+
+        .badge {
+            border-radius: 999px;
+            padding: 6px;
+            font-weight: 700;
+            font-size: 0.475rem;
+            background: rgba(255, 255, 255, 0.14);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 5px 4px rgb(0 0 0 / 0%), inset 0px 0 0 rgb(255 255 255 / 29%), inset 0 0 0 rgb(255 255 255 / 0%), inset 0 0 20px 11px rgb(255 255 255 / 56%);
+        }
+
+        .badgeSale {
+            background: var(--accent-color, #d97706);
+            color: #fff;
+        }
+
+        .badgeNew {
+            background: #06b6d4;
+            color: #fff;
+        }
+
+        .badgeStock {
+            background: rgba(255, 255, 255, 0.14);
+            color: #374151;
+            font-weight: 600;
+
+        }
+    }
+
+    .contentBtnFilled {
+        border-radius: 20px;
+        background: var(--accent);
+    }
+
+    .contentActions {
+        margin-top: 8px;
+    }
+
+    .stickyActions{
+        padding: 4px;
     }
 }
 

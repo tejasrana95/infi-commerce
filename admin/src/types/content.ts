@@ -90,3 +90,109 @@ export interface BrandShowcase {
     createdAt: string;
     updatedAt: string;
 }
+
+export interface HeroBanner {
+    _id: string;
+    storeId: string | { _id: string; name: string };
+    name: string;
+    isActive: boolean;
+    order: number;
+    title: {
+        text: string;
+        color?: string;
+        highlightColor?: string;
+        highlightFontFamily?: string;
+        fontSize?: string;
+        fontSizeTablet?: string;
+        fontSizeMobile?: string;
+        fontFamily?: string;
+        fontWeight?: string;
+        textAlign?: string;
+        lineHeight?: string;
+    };
+    description: {
+        text: string;
+        color?: string;
+        fontSize?: string;
+        fontSizeTablet?: string;
+        fontSizeMobile?: string;
+        fontFamily?: string;
+        fontWeight?: string;
+        textAlign?: string;
+        lineHeight?: string;
+    };
+    stats?: Array<{
+        number: string;
+        label: string;
+        icon?: string;
+        color?: string;
+        numberColor?: string;
+        labelColor?: string;
+        fontSize?: string;
+        numberFontSize?: string;
+        labelFontSize?: string;
+        fontFamily?: string;
+        numberFontFamily?: string;
+        labelFontFamily?: string;
+        fontWeight?: string;
+        numberFontWeight?: string;
+        labelFontWeight?: string;
+        textAlign?: string;
+        lineHeight?: string;
+    }>;
+    chips?: Array<{
+        label: string;
+        icon?: string;
+        color?: string;
+        fontSize?: string;
+        fontFamily?: string;
+        fontWeight?: string;
+        textAlign?: string;
+        lineHeight?: string;
+        backgroundColor?: string;
+        borderRadius?: string;
+        borderColor?: string;
+    }>;
+    image?: {
+        src: string;
+        borderRadius?: string;
+        borderColor?: string;
+        borderWidth?: string;
+        highlights?: Array<{
+            label?: string;
+            value?: string;
+            position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+            backgroundColor?: string;
+            textColor?: string;
+            labelColor?: string;
+            labelFontFamily?: string;
+            labelFontSize?: string;
+            labelFontWeight?: string;
+            valueColor?: string;
+            valueFontFamily?: string;
+            valueFontSize?: string;
+            valueFontWeight?: string;
+        }>;
+    };
+    ctas?: Array<{
+        label: string;
+        link: string;
+        target?: string;
+        color?: string;
+        fontSize?: string;
+        fontFamily?: string;
+        fontWeight?: string;
+        textAlign?: string;
+        lineHeight?: string;
+        backgroundColor?: string;
+        borderRadius?: string;
+        borderColor?: string;
+    }>;
+    config?: {
+        backgroundGradient?: string;
+        padding?: string;
+        margin?: string;
+    };
+    createdAt: string;
+    updatedAt: string;
+}

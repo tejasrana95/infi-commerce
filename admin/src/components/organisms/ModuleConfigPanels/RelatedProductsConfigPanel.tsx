@@ -14,6 +14,7 @@ import {
     Switch,
 } from '@mui/material';
 import { ColorPicker } from '@/components/atoms';
+import { COMMON_FONTS } from '@/utils/fonts';
 import ProductAutoComplete, { ProductOption } from '@/components/molecules/ProductAutoComplete';
 import CategoryAutocomplete from '@/components/molecules/CategoryAutocomplete';
 import api from '@/lib/api';
@@ -36,16 +37,6 @@ export interface RelatedProductsConfig {
     productIds?: string[];
 }
 
-const COMMON_FONTS = [
-    { label: 'Default', value: '' },
-    { label: 'Inter', value: 'Inter, sans-serif' },
-    { label: 'Roboto', value: 'Roboto, sans-serif' },
-    { label: 'Open Sans', value: '"Open Sans", sans-serif' },
-    { label: 'Lato', value: 'Lato, sans-serif' },
-    { label: 'Montserrat', value: 'Montserrat, sans-serif' },
-    { label: 'Playfair Display', value: '"Playfair Display", serif' },
-    { label: 'Merriweather', value: 'Merriweather, serif' },
-];
 
 interface RelatedProductsConfigPanelProps {
     config: RelatedProductsConfig;

@@ -131,6 +131,29 @@ export async function fetchHeroSliderData(
 }
 
 /**
+ * Fetch hero banner data
+ */
+export async function fetchHeroBannerData(
+    bannerId: string,
+    storeId: string
+): Promise<any> {
+    try {
+        const response = await fetch(`${API_BASE}/hero-banners/${bannerId}`, {
+            headers: { 'x-store-id': storeId },
+            next: { revalidate: 300 } // Cache for 5 minutes
+        });
+
+        if (!response.ok) return null;
+
+        const data = await response.json();
+        return data.heroBanner || data;
+    } catch (error) {
+        console.error('Error fetching hero banner:', error);
+        return null;
+    }
+}
+
+/**
  * Fetch testimonials data
  */
 export async function fetchTestimonialsData(
@@ -221,6 +244,11 @@ export async function prefetchModuleData(
                     case 'hero-slider':
                         if (module.config.sliderId) {
                             moduleData[module.id] = await fetchHeroSliderData(module.config.sliderId, storeId);
+                        }
+                        break;
+                    case 'hero-banner':
+                        if (module.config.bannerId) {
+                            moduleData[module.id] = await fetchHeroBannerData(module.config.bannerId, storeId);
                         }
                         break;
                     case 'testimonials':

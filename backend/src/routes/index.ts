@@ -42,6 +42,7 @@ import bannerSliderRoutes from './bannerSlider.routes';
 import testimonialRoutes from './testimonial.routes';
 import brandShowcaseRoutes from './brandShowcase.routes';
 import newsletterRoutes from './newsletter.routes';
+import heroBannerRoutes from './heroBanner.routes';
 
 // Backup & Restore Routes
 import backupRoutes from './backup.routes';
@@ -159,6 +160,7 @@ router.use('/banner-sliders', bannerSliderRoutes);
 router.use('/testimonials', testimonialRoutes);
 router.use('/brand-showcases', brandShowcaseRoutes);
 router.use('/newsletter', newsletterRoutes);
+router.use('/hero-banners', heroBannerRoutes);
 
 // Mount compare routes
 router.use('/compare', compareRoutes);

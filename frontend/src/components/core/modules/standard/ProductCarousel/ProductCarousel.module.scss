@@ -84,54 +84,7 @@
     padding: 0 8px;
 }
 
-// Column variations
-.columns2 .carouselSlide {
-    width: 100%;
-}
-
-.columns3 .carouselSlide {
-    width: 100%;
-
-    @include tablet {
-        width: 33.333%;
-    }
-}
-
-.columns4 .carouselSlide {
-    width: 100%;
-
-    @include tablet {
-        width: 33.333%;
-    }
-
-    @include desktop {
-        width: 25%;
-    }
-}
-
-.columns5 .carouselSlide {
-    width: 100%;
-
-    @include tablet {
-        width: 33.333%;
-    }
-
-    @include desktop {
-        width: 20%;
-    }
-}
-
-.columns6 .carouselSlide {
-    width: 100%;
-
-    @include tablet {
-        width: 25%;
-    }
-
-    @include desktop {
-        width: 16.666%;
-    }
-}
+// Column styles managed dynamically via inline width
 
 // =============================================================================
 // NAVIGATION

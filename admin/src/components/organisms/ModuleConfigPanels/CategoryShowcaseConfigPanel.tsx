@@ -3,6 +3,7 @@
 import { Box, Typography, TextField, FormControl, InputLabel, Select, MenuItem, FormControlLabel, Switch, Slider, Checkbox } from '@mui/material';
 import { ColorPicker } from '@/components/atoms';
 import CategoryAutocomplete from '@/components/molecules/CategoryAutocomplete';
+import { COMMON_FONTS } from '@/utils/fonts';
 
 interface CategoryShowcaseConfig {
     categoryIds?: string[];
@@ -29,16 +30,6 @@ interface CategoryShowcaseConfigPanelProps {
     storeId?: string;
 }
 
-const COMMON_FONTS = [
-    { label: 'Default', value: '' },
-    { label: 'Inter', value: 'Inter, sans-serif' },
-    { label: 'Roboto', value: 'Roboto, sans-serif' },
-    { label: 'Open Sans', value: '"Open Sans", sans-serif' },
-    { label: 'Lato', value: 'Lato, sans-serif' },
-    { label: 'Montserrat', value: 'Montserrat, sans-serif' },
-    { label: 'Playfair Display', value: '"Playfair Display", serif' },
-    { label: 'Merriweather', value: 'Merriweather, serif' },
-];
 
 export default function CategoryShowcaseConfigPanel({ config, onChange, storeId }: CategoryShowcaseConfigPanelProps) {
     const handleChange = <Key extends keyof CategoryShowcaseConfig>(key: Key, value: CategoryShowcaseConfig[Key]) => {

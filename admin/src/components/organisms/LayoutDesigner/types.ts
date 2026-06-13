@@ -111,6 +111,14 @@ export const AVAILABLE_MODULES: ModuleDefinition[] = [
         defaultConfig: { sliderId: '', height: 600 },
     },
     {
+        type: 'hero-banner',
+        label: 'Hero Banner (Custom)',
+        icon: 'ViewCarousel',
+        category: 'standard',
+        description: 'Beautiful styled hero banner promotion block',
+        defaultConfig: { bannerId: '' },
+    },
+    {
         type: 'text-block',
         label: 'Text Block',
         icon: 'TextFields',

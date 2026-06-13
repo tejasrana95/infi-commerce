@@ -205,7 +205,7 @@ export interface FooterConfig {
 
 export interface ProductCardConfig {
   // Card Design
-  cardStyle: 'default' | 'minimal' | 'overlay' | 'horizontal' | 'bordered' | 'glassmorphism' | 'neon' | 'magazine' | 'polaroid' | 'gradient' | 'elegant' | 'brutalist' | 'floating';
+  cardStyle: 'default' | 'minimal' | 'overlay' | 'horizontal' | 'bordered' | 'glassmorphism' | 'neon' | 'magazine' | 'polaroid' | 'gradient' | 'elegant' | 'brutalist' | 'floating' | 'clean';
 
   // Image Settings
   imageAspectRatio: '1:1' | '3:4' | '4:3' | '16:9' | 'auto';
