@@ -764,7 +764,6 @@ export default function CategoryFilters({
             </div>
         );
     }
-
     // Default Vertical Sidebar
     return (
         <div className={`${styles.filtersContent} ${className || ''}`}>
@@ -786,7 +785,7 @@ export default function CategoryFilters({
                             const displayMin = Math.round((activeFilters.price?.min || 0) * exchangeRate);
                             const displayMax = activeFilters.price?.max === Infinity
                                 ? '∞'
-                                : Math.round((activeFilters.price?.max || 0) * exchangeRate).toLocaleString();
+                                : Math.round((activeFilters.price?.max || 0) * exchangeRate);
                             return (
                                 <span className={styles.filterTag}>
                                     {formatPrice(displayMin, priceCurrency)} - {String(displayMax).includes('∞') ? '∞' : formatPrice(Number(displayMax), priceCurrency)}

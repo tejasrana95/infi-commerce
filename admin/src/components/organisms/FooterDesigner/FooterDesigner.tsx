@@ -19,6 +19,8 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
+    FormControlLabel,
+    Switch,
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -50,6 +52,7 @@ import { SortableFooterElement, SortableFooterColumn } from './SortableComponent
 import { ColorPicker } from '@/components/atoms';
 import api from '@/lib/api';
 import { useConfirm } from '@/contexts/ConfirmContext';
+import { COMMON_FONTS } from '@/utils/fonts';
 
 interface FooterDesignerProps {
     config: ThemeConfig;
@@ -73,6 +76,12 @@ const defaultRowSettings: Required<FooterRowSettings> = {
     headingFontFamily: '',
     headingFontSize: 16,
     headingAlign: 'left',
+    headingColor: '',
+    columnGap: 16,
+    rowPadding: 24,
+    showBorder: false,
+    borderColor: '#e2e8f0',
+    showPadding: true,
 };
 
 const getRowSettings = (row: FooterRow): Required<FooterRowSettings> => ({
@@ -738,6 +747,9 @@ export default function FooterDesigner({ config, onChange, storeId }: FooterDesi
                                                             border: '1px dashed rgba(255,255,255,0.3)',
                                                             '& .col-actions': { opacity: 1 },
                                                         },
+                                                        'img': {
+                                                            maxWidth: '100%',
+                                                        }
                                                     }}
                                                 >
                                                     {/* Column Header */}
@@ -951,6 +963,43 @@ export default function FooterDesigner({ config, onChange, storeId }: FooterDesi
                                     />
                                 </Box>
                             </Box>
+
+                            <Box sx={{ display: 'flex', gap: 2, mt: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            checked={bottomBarSection.showTopBorder ?? false}
+                                            onChange={(e) => updateFooter({ bottomBar: { showTopBorder: e.target.checked } })}
+                                        />
+                                    }
+                                    label="Show Top Border"
+                                />
+
+                                {(bottomBarSection.showTopBorder ?? false) && (
+                                    <>
+                                        <Box sx={{ width: 250 }}>
+                                            <ColorPicker
+                                                label="Border Color"
+                                                value={bottomBarSection.borderColor || '#e2e8f0'}
+                                                onChange={(color) => updateFooter({ bottomBar: { borderColor: color } })}
+                                                size="small"
+                                            />
+                                        </Box>
+                                        <TextField
+                                            type="number"
+                                            label="Border Padding (px)"
+                                            value={bottomBarSection.borderPadding ?? 20}
+                                            onChange={(e) => {
+                                                const val = parseInt(e.target.value, 10);
+                                                updateFooter({ bottomBar: { borderPadding: Number.isNaN(val) ? 20 : Math.max(0, Math.min(150, val)) } });
+                                            }}
+                                            size="small"
+                                            inputProps={{ min: 0, max: 150 }}
+                                            sx={{ width: 180 }}
+                                        />
+                                    </>
+                                )}
+                            </Box>
                         </Box>
                     </Collapse>
                 </Paper>
@@ -993,14 +1042,11 @@ export default function FooterDesigner({ config, onChange, storeId }: FooterDesi
                                     settings: { ...prev.settings, headingFontFamily: e.target.value }
                                 } : null)}
                             >
-                                <MuiMenuItem value="">Theme Default</MuiMenuItem>
-                                <MuiMenuItem value="inherit">Inherit</MuiMenuItem>
-                                <MuiMenuItem value="Arial, sans-serif">Arial</MuiMenuItem>
-                                <MuiMenuItem value="'Helvetica Neue', Helvetica, Arial, sans-serif">Helvetica Neue</MuiMenuItem>
-                                <MuiMenuItem value="'Times New Roman', Times, serif">Times New Roman</MuiMenuItem>
-                                <MuiMenuItem value="'Georgia', serif">Georgia</MuiMenuItem>
-                                <MuiMenuItem value="'Poppins', sans-serif">Poppins</MuiMenuItem>
-                                <MuiMenuItem value="'Roboto', sans-serif">Roboto</MuiMenuItem>
+                                {COMMON_FONTS.map(font => (
+                                    <MuiMenuItem key={font.value} value={font.value} style={{ fontFamily: font.value || 'inherit' }}>
+                                        {font.label}
+                                    </MuiMenuItem>
+                                ))}
                             </TextField>
 
                             <TextField
@@ -1035,6 +1081,119 @@ export default function FooterDesigner({ config, onChange, storeId }: FooterDesi
                                 <MuiMenuItem value="center">Center</MuiMenuItem>
                                 <MuiMenuItem value="right">Right</MuiMenuItem>
                             </TextField>
+
+                            <Box sx={{ mt: 1 }}>
+                                <ColorPicker
+                                    label="Heading Color"
+                                    value={editingRowSettings?.settings.headingColor || ''}
+                                    onChange={(color) => setEditingRowSettings((prev) => prev ? {
+                                        ...prev,
+                                        settings: { ...prev.settings, headingColor: color }
+                                    } : null)}
+                                    size="small"
+                                />
+                            </Box>
+
+                            <Typography variant="subtitle2" sx={{ mt: 2 }}>Column Settings</Typography>
+
+                            <TextField
+                                type="number"
+                                fullWidth
+                                label="Column Gap (px)"
+                                value={editingRowSettings?.settings.columnGap ?? 16}
+                                onChange={(e) => {
+                                    const nextValue = parseInt(e.target.value, 10);
+                                    setEditingRowSettings((prev) => prev ? {
+                                        ...prev,
+                                        settings: {
+                                            ...prev.settings,
+                                            columnGap: Number.isNaN(nextValue) ? 16 : Math.max(0, Math.min(100, nextValue)),
+                                        }
+                                    } : null);
+                                }}
+                                inputProps={{ min: 0, max: 100 }}
+                                helperText="Space between columns in pixels"
+                            />
+
+                            <Typography variant="subtitle2" sx={{ mt: 2 }}>Row Layout & Styling</Typography>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', flexDirection: 'row', gap: 2 }}>
+                                <TextField
+                                    type="number"
+                                    
+                                    label="Vertical Padding Top (px)"
+                                    value={editingRowSettings?.settings.rowPaddingTop ?? 24}
+                                    onChange={(e) => {
+                                        const nextValue = parseInt(e.target.value, 10);
+                                        setEditingRowSettings((prev) => prev ? {
+                                            ...prev,
+                                            settings: {
+                                                ...prev.settings,
+                                                rowPaddingTop: Number.isNaN(nextValue) ? 24 : Math.max(0, Math.min(150, nextValue)),
+                                            }
+                                        } : null);
+                                    }}
+                                    inputProps={{ min: 0, max: 150 }}
+                                    helperText="Vertical padding top inside the row"
+                                />
+
+                                <TextField
+                                    type="number"
+                                    
+                                    label="Vertical Padding Bottom (px)"
+                                    value={editingRowSettings?.settings.rowPaddingBottom ?? 24}
+                                    onChange={(e) => {
+                                        const nextValue = parseInt(e.target.value, 10);
+                                        setEditingRowSettings((prev) => prev ? {
+                                            ...prev,
+                                            settings: {
+                                                ...prev.settings,
+                                                rowPaddingBottom: Number.isNaN(nextValue) ? 24 : Math.max(0, Math.min(150, nextValue)),
+                                            }
+                                        } : null);
+                                    }}
+                                    inputProps={{ min: 0, max: 150 }}
+                                    helperText="Vertical padding bottom inside the row"
+                                />
+                            </Box>
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={editingRowSettings?.settings.showPadding ?? true}
+                                        onChange={(e) => setEditingRowSettings((prev) => prev ? {
+                                            ...prev,
+                                            settings: { ...prev.settings, showPadding: e.target.checked }
+                                        } : null)}
+                                    />
+                                }
+                                label="Enable Row Padding"
+                            />
+
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={editingRowSettings?.settings.showBorder ?? false}
+                                        onChange={(e) => setEditingRowSettings((prev) => prev ? {
+                                            ...prev,
+                                            settings: { ...prev.settings, showBorder: e.target.checked }
+                                        } : null)}
+                                    />
+                                }
+                                label="Show Row Border"
+                            />
+
+                            {(editingRowSettings?.settings.showBorder ?? false) && (
+                                <Box sx={{ mt: 1 }}>
+                                    <ColorPicker
+                                        label="Border Color"
+                                        value={editingRowSettings?.settings.borderColor || '#e2e8f0'}
+                                        onChange={(color) => setEditingRowSettings((prev) => prev ? {
+                                            ...prev,
+                                            settings: { ...prev.settings, borderColor: color }
+                                        } : null)}
+                                        size="small"
+                                    />
+                                </Box>
+                            )}
                         </Box>
                     </DialogContent>
                     <DialogActions>

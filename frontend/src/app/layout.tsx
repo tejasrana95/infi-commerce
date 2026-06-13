@@ -64,7 +64,20 @@ function generateThemeCSSVariables(themeConfig: any): string {
     const { primary, secondary, accent, background, text, headerBg, footerBg } = themeConfig.colors;
     if (primary) variables.push(`--color-primary: ${primary}`);
     if (secondary) variables.push(`--color-secondary: ${secondary}`);
-    if (accent) variables.push(`--color-accent: ${accent}`);
+    if (accent) { 
+      variables.push(`--color-accent: ${accent};
+        --accent-color-dark: color-mix(
+    in srgb,
+    ${accent} 70%,
+    black 20%
+  );
+  --accent-color-light: color-mix(
+    in srgb,
+     ${accent}  70%,
+    white 30%
+  );
+`); 
+    }
     if (background) variables.push(`--color-background: ${background}`);
     if (text) variables.push(`--color-text: ${text}`);
     if (headerBg) variables.push(`--color-header-bg: ${headerBg}`);

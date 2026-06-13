@@ -169,30 +169,57 @@ export function FooterContactElement({ element }: FooterContactElementProps) {
 
     if (!contactInfo) return null;
 
+    const showIcon = contactInfo.showIcon ?? true;
+
     return (
         <div className={styles.elementContact}>
             {contactInfo.title && <h4>{contactInfo.title}</h4>}
 
-            <div>
+            <div className="space-y-2">
                 {contactInfo.address && (
-                    <p>{contactInfo.address}</p>
+                    <p className="flex items-start">
+                        {showIcon && (
+                            <svg className="w-4 h-4 mr-2 mt-1 inline-block shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                        )}
+                        <span>{contactInfo.address}</span>
+                    </p>
                 )}
                 {contactInfo.phone && (
-                    <p>
-                        <a href={`tel:${contactInfo.phone}`}>
+                    <p className="flex items-center">
+                        {showIcon && (
+                            <svg className="w-4 h-4 mr-2 inline-block shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                            </svg>
+                        )}
+                        <a href={`tel:${contactInfo.phone}`} className="hover:underline">
                             {contactInfo.phone}
                         </a>
                     </p>
                 )}
                 {contactInfo.email && (
-                    <p>
-                        <a href={`mailto:${contactInfo.email}`}>
+                    <p className="flex items-center">
+                        {showIcon && (
+                            <svg className="w-4 h-4 mr-2 inline-block shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                            </svg>
+                        )}
+                        <a href={`mailto:${contactInfo.email}`} className="hover:underline">
                             {contactInfo.email}
                         </a>
                     </p>
                 )}
                 {contactInfo.workingHours && (
-                    <p className={styles.workingHours}>{contactInfo.workingHours}</p>
+                    <p className={`${styles.workingHours} flex items-center`}>
+                        {showIcon && (
+                            <svg className="w-4 h-4 mr-2 inline-block shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        )}
+                        <span>{contactInfo.workingHours}</span>
+                    </p>
                 )}
             </div>
         </div>

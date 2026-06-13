@@ -13,11 +13,11 @@
     // Main footer section with columns
     &Main {
         position: relative;
-        padding: 60px 0;
+        padding: 40px 0;
         background: linear-gradient(135deg, var(--footer-bg-start, #1a1a2e) 0%, var(--footer-bg-end, #16213e) 100%);
 
         @include mobile {
-            padding: 40px 0;
+            padding: 30px 0;
         }
 
         // Background decoration
@@ -42,14 +42,14 @@
         --row-heading-font-size: 16px;
         --row-heading-align: left;
         --row-content-align: flex-start;
+        padding-top: var(--row-padding-top, 0px);
+        padding-bottom: var(--row-padding-bottom, 0px);
+        border-top: var(--row-border-style, none) 1px var(--row-border-color, transparent);
 
         &:not(:first-child) {
-            margin-top: 48px;
-
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: var(--row-border-style, solid) 1px var(--row-border-color, rgba(255, 255, 255, 0.1));
 
             @include mobile {
-                margin-top: 32px;
                 padding-top: 32px;
             }
         }
@@ -63,7 +63,7 @@
         gap: 0;
 
         @include mobile {
-            gap: 16px;
+            gap: 0;
         }
     }
 
@@ -76,7 +76,8 @@
         flex-shrink: 0;
         min-width: 0;
         box-sizing: border-box;
-        padding: 0 10px;
+        padding-inline: calc(var(--row-column-gap, 16px) / 2);
+        padding-block: 0;
         --col-align-desktop: var(--row-heading-align, left);
         --col-align-tablet: var(--col-align-desktop);
         --col-align-mobile: var(--col-align-tablet);
@@ -86,6 +87,14 @@
         --col-align: var(--col-align-desktop);
         --col-justify: var(--col-justify-desktop);
         text-align: var(--col-align, left);
+
+        &:first-child {
+            padding-left: 0;
+        }
+
+        &:last-child {
+            padding-right: 0;
+        }
 
         @include tablet-down {
             --col-align: var(--col-align-tablet);
@@ -98,6 +107,7 @@
             min-width: 100%;
             flex-basis: 100% !important;
             max-width: 100% !important;
+            padding-inline: 0;
             margin-bottom: 32px;
 
             &:last-child {
@@ -118,6 +128,7 @@
             font-weight: 600;
             font-family: var(--row-heading-font-family, inherit);
             font-size: var(--row-heading-font-size, 16px);
+            color: var(--row-heading-color, inherit);
             text-align: var(--row-heading-align, left);
             text-transform: uppercase;
             letter-spacing: 1.5px;
@@ -151,16 +162,15 @@
 
     // Bottom bar
     &BottomBar {
-        padding: 20px 0;
-        text-align: center;
-        font-size: 14px;
+        padding: var(--footer-bottom-border-padding, 20px) 0;
         text-align: center;
         font-size: 14px;
         background: var(--footer-bottom-bg, #000000);
         color: var(--footer-bottom-text, #888888);
+        border-top: var(--footer-bottom-border-style, none) 1px var(--footer-bottom-border-color, transparent);
 
         @include mobile {
-            padding: 16px 0;
+            padding: calc(var(--footer-bottom-border-padding, 20px) * 0.8) 0;
             font-size: 12px;
         }
 

@@ -2,7 +2,16 @@ import { notificationService } from './notification.service';
 import Store from '../models/Store';
 import { RETURN_REASONS } from '../utils/constants';
 
-const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+const resolvePrimaryUrl = (value: string | undefined, fallback: string): string => {
+    const primaryUrl = value
+        ?.split(',')
+        .map(entry => entry.trim())
+        .find(Boolean);
+
+    return primaryUrl || fallback;
+};
+
+const frontendUrl = resolvePrimaryUrl(process.env.FRONTEND_URL, 'http://localhost:3000');
 
 export interface NotificationPayload {
     storeId: string;
@@ -110,7 +119,6 @@ export class TransactionalNotificationService {
                 loginUrl: `${frontendUrl}/login`,
             }
         });
-
         // Trigger admin notification
         try {
             await notificationService.triggerAdminNotifications(storeId, 'newCustomer', { email, firstName, phone });

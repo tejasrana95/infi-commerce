@@ -825,7 +825,6 @@ class NotificationService {
                 }
             }
         }
-
         // 2. Telegram Notifications
         if (telegramSettings?.enabled && telegramSettings?.notifications[event]) {
             try {

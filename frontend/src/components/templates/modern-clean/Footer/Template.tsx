@@ -53,6 +53,9 @@ export default function ModernCleanFooterTemplate(props: ModernCleanFooterTempla
         '--footer-primary': colors?.primary || '#667eea',
         '--footer-bottom-bg': bottomBarSection?.backgroundColor || '#000000',
         '--footer-bottom-text': bottomBarSection?.textColor || '#888888',
+        '--footer-bottom-border-style': bottomBarSection?.showTopBorder ? 'solid' : 'none',
+        '--footer-bottom-border-color': bottomBarSection?.borderColor || 'rgba(255, 255, 255, 0.1)',
+        '--footer-bottom-border-padding': bottomBarSection?.borderPadding !== undefined ? `${bottomBarSection.borderPadding}px` : '20px',
     } as React.CSSProperties;
 
     return (
@@ -74,12 +77,18 @@ export default function ModernCleanFooterTemplate(props: ModernCleanFooterTempla
                                             : 'flex-start',
                                     '--row-heading-font-family': row.settings?.headingFontFamily || 'inherit',
                                     '--row-heading-font-size': `${row.settings?.headingFontSize || 16}px`,
+                                    '--row-heading-color': row.settings?.headingColor || 'inherit',
                                     '--row-heading-align': row.settings?.headingAlign || 'left',
                                     '--row-content-align': row.settings?.headingAlign === 'center'
                                         ? 'center'
                                         : row.settings?.headingAlign === 'right'
                                             ? 'flex-end'
                                             : 'flex-start',
+                                    '--row-column-gap': `${row.settings?.columnGap ?? 16}px`,
+                                    '--row-padding-top': row.settings?.showPadding !== false ? `${row.settings?.rowPaddingTop ?? 24}px` : '0px',
+                                    '--row-padding-bottom': row.settings?.showPadding !== false ? `${row.settings?.rowPaddingBottom ?? 24}px` : '0px',
+                                    '--row-border-style': row.settings?.showBorder ? 'solid' : 'none',
+                                    '--row-border-color': row.settings?.borderColor || 'rgba(255, 255, 255, 0.1)',
                                 } as React.CSSProperties}
                             >
                                 <div className={styles.footerFlexGrid}>

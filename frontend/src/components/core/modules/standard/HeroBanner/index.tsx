@@ -178,13 +178,17 @@ export default function HeroBannerModule({ config, initialData }: HeroBannerProp
 
     const containerStyles = {
         background: bannerConfig?.backgroundGradient || 'linear-gradient(135deg, #fefaf4 0%, #f7ebd9 100%)',
+    } as React.CSSProperties;
+    
+    const innerSectionStyles = {
         padding: bannerConfig?.padding || '80px 0',
-        margin: bannerConfig?.margin || '0',
+            margin: bannerConfig?.margin || '0',
     } as React.CSSProperties;
 
     return (
-        <section className={styles.section} style={containerStyles}>
-            <div className={styles.container}>
+        <section style={containerStyles} className={styles.section}>
+            <div className={`${styles.overlayPattern}`} ></div>
+            <div className={styles.container} style={innerSectionStyles}>
                 <div className={styles.leftColumn}>
                     {chips.length > 0 && (
                         <div className={styles.chipsContainer}>

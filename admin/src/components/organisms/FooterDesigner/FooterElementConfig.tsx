@@ -17,6 +17,8 @@ import {
     IconButton,
     List,
     ListItem,
+    FormControlLabel,
+    Switch,
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { FooterElement } from '@/types';
@@ -454,6 +456,26 @@ export default function FooterElementConfig({
                                 }
                                 fullWidth
                                 placeholder="Mon-Fri: 9AM-6PM"
+                            />
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={formData.settings?.contactInfo?.showIcon ?? true}
+                                        onChange={(e) =>
+                                            setFormData({
+                                                ...formData,
+                                                settings: {
+                                                    ...formData.settings,
+                                                    contactInfo: {
+                                                        ...formData.settings?.contactInfo,
+                                                        showIcon: e.target.checked,
+                                                    },
+                                                },
+                                            })
+                                        }
+                                    />
+                                }
+                                label="Show Icons"
                             />
                         </>
                     )}

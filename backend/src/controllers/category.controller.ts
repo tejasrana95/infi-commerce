@@ -256,13 +256,14 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
     // Build filter
     const filter: any = {};
     let idsFilterCount = 0;
+    let requestedIds: string[] = [];
 
     // Support comma-separated IDs filter
     if (req.query.ids) {
-        const ids = (req.query.ids as string).split(',').map(id => id.trim()).filter(id => id);
-        if (ids.length > 0) {
-            filter._id = { $in: ids };
-            idsFilterCount = ids.length;
+        requestedIds = (req.query.ids as string).split(',').map(id => id.trim()).filter(id => id);
+        if (requestedIds.length > 0) {
+            filter._id = { $in: requestedIds };
+            idsFilterCount = requestedIds.length;
         }
     }
 
@@ -355,6 +356,7 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
     }
 
     // Get categories with pagination
+    const shouldPreserveIdsOrder = requestedIds.length > 0;
     const canSkipCountForIds =
         idsFilterCount > 0 &&
         page === 1 &&
@@ -365,10 +367,14 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
     // (sanitizePublicCategory strips it) so skip that overhead.
     const categoryQuery = Category.find(filter)
         .populate('parentCategory', 'title slug')
-        .skip(skip)
-        .limit(limit)
-        .sort({ sortOrder: sort ? 1 : -1, title: sort ? 1 : -1 })
         .lean();
+
+    if (!shouldPreserveIdsOrder) {
+        categoryQuery
+            .skip(skip)
+            .limit(limit)
+            .sort({ sortOrder: sort ? 1 : -1, title: sort ? 1 : -1 });
+    }
 
     if (isPrivileged) {
         categoryQuery.populate('storeId', 'name slug');
@@ -379,12 +385,27 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
 
     const [categories, total] = await Promise.all([
         categoryQuery,
-        canSkipCountForIds ? Promise.resolve(0) : Category.countDocuments(filter),
+        shouldPreserveIdsOrder || canSkipCountForIds ? Promise.resolve(0) : Category.countDocuments(filter),
     ]);
-    const totalCount = canSkipCountForIds ? categories.length : total;
+
+    const orderedCategories = shouldPreserveIdsOrder
+        ? requestedIds
+            .map((id) => categories.find((category: any) => String(category._id) === id))
+            .filter((category): category is NonNullable<typeof category> => !!category)
+        : categories;
+
+    const paginatedCategories = shouldPreserveIdsOrder
+        ? orderedCategories.slice(skip, skip + limit)
+        : orderedCategories;
+
+    const totalCount = shouldPreserveIdsOrder
+        ? orderedCategories.length
+        : canSkipCountForIds
+            ? categories.length
+            : total;
 
     const responsePayload = {
-        categories: isPrivileged ? categories : categories.map(sanitizePublicCategory),
+        categories: isPrivileged ? paginatedCategories : paginatedCategories.map(sanitizePublicCategory),
         pagination: {
             total: totalCount,
             page,

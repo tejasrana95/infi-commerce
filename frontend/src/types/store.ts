@@ -128,6 +128,7 @@ export interface FooterElementSettings {
     phone?: string;
     email?: string;
     workingHours?: string;
+    showIcon?: boolean;
   };
   // Payment methods
   paymentMethods?: Array<{
@@ -176,6 +177,13 @@ export interface FooterRowSettings {
   headingFontFamily?: string;
   headingFontSize?: number;
   headingAlign?: 'left' | 'center' | 'right';
+  headingColor?: string;
+  columnGap?: number;
+  rowPaddingTop?: number;
+  rowPaddingBottom?: number;
+  showBorder?: boolean;
+  borderColor?: string;
+  showPadding?: boolean;
 }
 
 export interface FooterRow {
@@ -193,6 +201,9 @@ export interface FooterSection {
   columns?: FooterColumn[];
   rows?: FooterRow[];
   bottomBarContent?: string;
+  showTopBorder?: boolean;
+  borderColor?: string;
+  borderPadding?: number;
 }
 
 export interface FooterConfig {

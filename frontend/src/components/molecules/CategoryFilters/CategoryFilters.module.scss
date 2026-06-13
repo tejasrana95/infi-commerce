@@ -64,7 +64,7 @@
     transition: color 0.2s;
 
     &:hover {
-        color: var(--category-accent);
+        color: var(--color-accent);
     }
 }
 
@@ -109,7 +109,7 @@
     transition: color 0.2s;
 
     &:hover {
-        color: var(--category-accent);
+        color: var(--color-accent);
     }
 
     input {
@@ -118,8 +118,8 @@
         pointer-events: none;
 
         &:checked+.checkbox {
-            background: var(--category-accent);
-            border-color: var(--category-accent);
+            background: var(--color-accent);
+            border-color: var(--color-accent);
 
             svg {
                 opacity: 1;
@@ -199,7 +199,7 @@
     transition: border-color 0.2s;
 
     &:focus-within {
-        border-color: var(--category-accent);
+        border-color: var(--color-accent);
     }
 
     .currencySymbol {
@@ -280,7 +280,7 @@
         width: 18px;
         height: 18px;
         border-radius: 50%;
-        background: var(--category-accent);
+        background: var(--color-accent);
         cursor: pointer;
         appearance: none;
         -webkit-appearance: none;
@@ -298,7 +298,7 @@
         width: 18px;
         height: 18px;
         border-radius: 50%;
-        background: var(--category-accent);
+        background: var(--color-accent);
         cursor: pointer;
         border: none;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
@@ -308,7 +308,7 @@
 .sliderTrack {
     position: absolute;
     height: 6px;
-    background: var(--category-accent);
+    background: var(--color-accent);
     border-radius: 3px;
 }
 
@@ -333,13 +333,13 @@
     transition: all 0.2s ease;
 
     &:hover {
-        border-color: var(--category-accent);
-        color: var(--category-accent);
+        border-color: var(--color-accent);
+        color: var(--color-accent);
     }
 
     &.active {
-        background: var(--category-accent);
-        border-color: var(--category-accent);
+        background: var(--color-accent);
+        border-color: var(--color-accent);
         color: #fff;
     }
 }
@@ -356,8 +356,8 @@
     margin-top: 0.25rem;
 
     &:hover {
-        border-color: var(--category-accent);
-        color: var(--category-accent);
+        border-color: var(--color-accent);
+        color: var(--color-accent);
         border-style: solid;
     }
 }
@@ -377,7 +377,7 @@
         opacity: 0;
 
         &:checked+.radio {
-            border-color: var(--category-accent);
+            border-color: var(--color-accent);
 
             &::after {
                 transform: scale(1);
@@ -401,7 +401,7 @@
         left: 3px;
         width: 8px;
         height: 8px;
-        background: var(--category-accent);
+        background: var(--color-accent);
         border-radius: 50%;
         transform: scale(0);
         transition: transform 0.2s;
@@ -456,7 +456,7 @@
     button {
         background: none;
         border: none;
-        color: var(--category-accent);
+        color: var(--color-accent);
         font-size: 0.8125rem;
         cursor: pointer;
         padding: 0;
@@ -478,7 +478,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.375rem 0.75rem;
-    background: var(--category-accent);
+    background: var(--color-accent);
     color: #fff;
     font-size: 0.8125rem;
     border-radius: 20px;
@@ -530,7 +530,7 @@
 .clearAllBtn {
     background: none;
     border: none;
-    color: var(--category-accent);
+    color: var(--color-accent);
     font-size: 0.8125rem;
     font-weight: 500;
     cursor: pointer;
@@ -561,8 +561,8 @@
 
     &:hover,
     &.active {
-        border-color: var(--category-accent);
-        color: var(--category-accent);
+        border-color: var(--color-accent);
+        color: var(--color-accent);
     }
 
     svg {
@@ -593,7 +593,7 @@
 }
 
 .filterBadge {
-    background: var(--category-accent);
+    background: var(--color-accent);
     color: #fff;
     font-size: 0.75rem;
     padding: 0.125rem 0.5rem;
@@ -617,7 +617,7 @@
 .filterApplyBtn {
     width: 100%;
     padding: 0.325rem 1rem;
-    background: var(--category-accent);
+    background: var(--color-accent);
     border: none;
     border-radius: 4px;
     font-size: 0.7125rem;
@@ -627,7 +627,7 @@
     transition: all 0.2s ease;
 
     &:hover {
-        background: var(--category-accent-dark);
+        background: var(--accent-color-dark);
         transform: translateY(-1px);
     }
 }
@@ -664,15 +664,15 @@
     transition: all 0.2s ease;
 
     &:hover {
-        border-color: var(--category-accent);
-        color: var(--category-accent);
+        border-color: var(--color-accent);
+        color: var(--color-accent);
         background: rgba(79, 70, 229, 0.05);
     }
 }
 
 .clearFiltersBtn {
     padding: 0.5rem 1rem; // Adjusted match inline usage
-    background: var(--category-accent);
+    background: var(--color-accent);
     color: #fff;
     border: none;
     border-radius: 10px;
@@ -682,7 +682,7 @@
     transition: background 0.2s;
 
     &:hover {
-        background: var(--category-accent-dark);
+        background: var(--accent-color-dark);
     }
 }
 

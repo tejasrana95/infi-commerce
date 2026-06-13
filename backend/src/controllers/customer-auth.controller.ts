@@ -146,7 +146,16 @@ export const registerCustomer = asyncHandler(async (req: AuthRequest, res: Respo
         verificationToken,
         customer.phone
     );
-
+    // Send Welcome notification after successful verification
+    if (storeId && storeName) {
+        await transactionalNotificationService.sendWelcome(
+            storeId,
+            storeName,
+            customer.email,
+            customer.firstName,
+            customer.phone
+        );
+    }
     // Notify Admin
     await notificationService.createAdminNotification({
         type: 'customer',
@@ -1005,18 +1014,6 @@ export const verifyEmail = asyncHandler(async (req: AuthRequest, res: Response) 
     customer.emailVerificationToken = undefined;
     customer.emailVerificationExpires = undefined;
     await customer.save();
-
-    // Send Welcome notification after successful verification
-    const store = await StoreModel.findById(req.storeId);
-    if (store) {
-        await transactionalNotificationService.sendWelcome(
-            store._id.toString(),
-            store.name,
-            customer.email,
-            customer.firstName,
-            customer.phone
-        );
-    }
 
     res.json({ message: 'Email verified successfully' });
 });
