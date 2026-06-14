@@ -83,7 +83,8 @@
 @media (max-width: 767px) {
     .iconGroup {
         grid-template-columns: 1fr;
-        padding: 0.875rem;
+        padding: 1.4rem;
+        row-gap: 24px;
     }
 
     .item {
