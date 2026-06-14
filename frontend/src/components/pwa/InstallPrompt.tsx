@@ -31,7 +31,7 @@ export default function InstallPrompt() {
         }
 
         // Don't show if already installed
-        if (isPWAInstalled()) {
+        if (isPWAInstalled() || isIOS()) {
             return;
         }
 
@@ -50,7 +50,7 @@ export default function InstallPrompt() {
 
         // Check if prompt is available after a short delay
         const timer = setTimeout(() => {
-            if (getInstallPrompt() || isIOS()) {
+            if (getInstallPrompt()) {
                 setShowPrompt(true);
             }
         }, 3000); // Show after 3 seconds
