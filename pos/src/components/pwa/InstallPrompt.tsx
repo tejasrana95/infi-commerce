@@ -24,8 +24,8 @@ export default function InstallPrompt({ className }: InstallPromptProps) {
     const promptStyle = settings?.installPromptStyle || 'toast';
 
     useEffect(() => {
-        // Don't show if already installed, disabled, or dismissed
-        if (isPWAInstalled() || dismissed || !settings?.enabled || promptStyle === 'none') {
+        // Don't show if already installed, disabled, dismissed, or on iOS
+        if (isPWAInstalled() || dismissed || !settings?.enabled || promptStyle === 'none' || isIOS()) {
             return;
         }
 
@@ -43,10 +43,7 @@ export default function InstallPrompt({ className }: InstallPromptProps) {
             setTimeout(() => setShowPrompt(true), 2000);
         });
 
-        // For iOS, show custom instructions after delay
-        if (isIOS()) {
-            setTimeout(() => setShowPrompt(true), 3000);
-        }
+        // Do not show install prompt on iOS devices
     }, [settings, dismissed, promptStyle]);
 
     const handleInstall = async () => {

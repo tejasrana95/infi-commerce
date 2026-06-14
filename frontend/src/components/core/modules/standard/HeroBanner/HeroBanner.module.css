@@ -23,7 +23,7 @@
   grid-template-columns: 1.2fr 1fr;
   gap: 60px;
   align-items: center;
-
+  z-index: 1;
 }
 
 @media (max-width: 1024px) {
