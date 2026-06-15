@@ -1,0 +1,137 @@
+// Styles for CategoryPageSkeleton
+.categorySkeleton {
+    min-height: 100vh;
+    background: #f8fafc;
+}
+
+// Accent background for skeleton header as requested
+.skeletonHeaderCard {
+    background: radial-gradient(circle at 0 0, #6366f114, #0000 34%), radial-gradient(circle at 100% 100%, #fbbf2414, #0000 40%), linear-gradient(#fff 0%, #f7faff 100%) !important;
+    border: none !important;
+    color: #ffffff;
+}
+
+.skeletonBreadcrumb {
+    height: 1rem;
+    width: 150px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    animation: shimmer 1.5s infinite;
+}
+
+.skeletonTitle {
+    height: 2.25rem;
+    width: 280px;
+    background: #e2e8f0;
+    border-radius: 8px;
+    animation: shimmer 1.5s infinite;
+}
+
+.skeletonBadge {
+    height: 1.75rem;
+    width: 100px;
+    background: #e2e8f0;
+    border-radius: 999px;
+    animation: shimmer 1.5s infinite;
+}
+
+.skeletonFilterBlock {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 1.25rem;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 1rem;
+}
+
+.skeletonFilterTitle {
+    height: 1.25rem;
+    width: 40%;
+    background: #e2e8f0;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    animation: shimmer 1.5s infinite;
+}
+
+.skeletonFilterItem {
+    height: 1rem;
+    width: 80%;
+    background: #e2e8f0;
+    border-radius: 4px;
+    margin-bottom: 0.75rem;
+    animation: shimmer 1.5s infinite;
+
+    &:last-child {
+        margin-bottom: 0;
+        width: 60%;
+    }
+}
+
+.skeletonCard {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.skeletonImage {
+    aspect-ratio: 3/4;
+    background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+.skeletonText {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.skeletonLine {
+    height: 1rem;
+    background: #e2e8f0;
+    border-radius: 4px;
+    animation: shimmer 1.5s infinite;
+
+    &.short {
+        width: 50%;
+    }
+
+    &.medium {
+        width: 75%;
+    }
+}
+
+.skeletonToolbarBtn {
+    height: 2.25rem;
+    width: 100px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    animation: shimmer 1.5s infinite;
+}
+
+.skeletonToolbarText {
+    height: 1rem;
+    width: 80px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        opacity: 0.6;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0.6;
+    }
+}
