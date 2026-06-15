@@ -15,6 +15,8 @@ import {
     Undo, Redo, Image as ImageIcon, Link as LinkIcon,
     FormatAlignLeft, FormatAlignCenter, FormatAlignRight, LinkOff,
     Fullscreen, FullscreenExit, BorderColor,
+    HelpOutline as HelpOutlineIcon, Delete as DeleteIcon,
+    ArrowUpward as ArrowUpwardIcon, ArrowDownward as ArrowDownwardIcon,
 } from '@mui/icons-material';
 import YouTubeIcon from '@mui/icons-material/YouTube';
 import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
@@ -85,6 +87,98 @@ const YouTubeNode = Node.create({
                         allowfullscreen: 'true',
                     }
                 ),
+            ],
+        ];
+    },
+});
+
+export interface FAQItem {
+    question: string;
+    answer: string;
+}
+
+const FAQBlock = Node.create({
+    name: 'faqBlock',
+    group: 'block',
+    atom: true,
+
+    addAttributes() {
+        return {
+            faqs: {
+                default: [],
+                parseHTML: (element) => {
+                    const dataFaqs = element.getAttribute('data-faqs');
+                    if (dataFaqs) {
+                        try {
+                            return JSON.parse(dataFaqs);
+                        } catch (e) {
+                            return [];
+                        }
+                    }
+                    return [];
+                },
+                renderHTML: (attributes) => {
+                    return {
+                        'data-faqs': JSON.stringify(attributes.faqs),
+                    };
+                },
+            },
+        };
+    },
+
+    parseHTML() {
+        return [
+            {
+                tag: 'div[data-faq-block]',
+            },
+        ];
+    },
+
+    renderHTML({ node }) {
+        const faqs = (node.attrs.faqs as FAQItem[]) || [];
+
+        const jsonLd = {
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            'mainEntity': faqs.map((faq) => ({
+                '@type': 'Question',
+                'name': faq.question,
+                'acceptedAnswer': {
+                    '@type': 'Answer',
+                    'text': faq.answer,
+                },
+            })),
+        };
+
+        return [
+            'div',
+            { 'data-faq-block': 'true', 'data-faqs': JSON.stringify(faqs), class: 'faq-block-wrapper' },
+            [
+                'div',
+                { class: 'faq-accordion-container' },
+                ...faqs.map((faq) => [
+                    'details',
+                    { class: 'faq-item', itemscope: '', itemprop: 'mainEntity', itemtype: 'https://schema.org/Question' },
+                    [
+                        'summary',
+                        { class: 'faq-question', itemprop: 'name' },
+                        faq.question,
+                    ],
+                    [
+                        'div',
+                        { class: 'faq-answer', itemscope: '', itemprop: 'acceptedAnswer', itemtype: 'https://schema.org/Answer' },
+                        [
+                            'div',
+                            { itemprop: 'text' },
+                            faq.answer,
+                        ],
+                    ],
+                ]),
+            ],
+            [
+                'script',
+                { type: 'application/ld+json' },
+                JSON.stringify(jsonLd),
             ],
         ];
     },
@@ -203,6 +297,138 @@ const YouTubeDialog = ({ open, onClose, onEmbed }: { open: boolean; onClose: () 
     );
 };
 
+// ---------------------------------------------------------------------------
+// FAQ Dialog
+// ---------------------------------------------------------------------------
+const FAQDialog = ({
+    open,
+    onClose,
+    onSave,
+    onDelete,
+    initialFaqs,
+    showDelete
+}: {
+    open: boolean;
+    onClose: () => void;
+    onSave: (faqs: FAQItem[]) => void;
+    onDelete?: () => void;
+    initialFaqs: FAQItem[];
+    showDelete?: boolean;
+}) => {
+    const [faqs, setFaqs] = useState<FAQItem[]>([]);
+
+    useEffect(() => {
+        if (open) {
+            setFaqs(initialFaqs.length > 0 ? [...initialFaqs] : [{ question: '', answer: '' }]);
+        }
+    }, [open, initialFaqs]);
+
+    const handleAdd = () => {
+        setFaqs([...faqs, { question: '', answer: '' }]);
+    };
+
+    const handleRemove = (index: number) => {
+        setFaqs(faqs.filter((_, i) => i !== index));
+    };
+
+    const handleChange = (index: number, field: keyof FAQItem, value: string) => {
+        const newFaqs = [...faqs];
+        newFaqs[index] = {
+            ...newFaqs[index],
+            [field]: value
+        };
+        setFaqs(newFaqs);
+    };
+
+    const handleMoveUp = (index: number) => {
+        if (index === 0) return;
+        const newFaqs = [...faqs];
+        const temp = newFaqs[index];
+        newFaqs[index] = newFaqs[index - 1];
+        newFaqs[index - 1] = temp;
+        setFaqs(newFaqs);
+    };
+
+    const handleMoveDown = (index: number) => {
+        if (index === faqs.length - 1) return;
+        const newFaqs = [...faqs];
+        const temp = newFaqs[index];
+        newFaqs[index] = newFaqs[index + 1];
+        newFaqs[index + 1] = temp;
+        setFaqs(newFaqs);
+    };
+
+    const handleDelete = () => {
+        if (onDelete) {
+            onDelete();
+        }
+        onClose();
+    };
+
+    const handleSave = () => {
+        const filteredFaqs = faqs.filter(f => f.question.trim() !== '' && f.answer.trim() !== '');
+        onSave(filteredFaqs);
+        onClose();
+    };
+
+    return (
+        <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+            <DialogTitle>Manage FAQs</DialogTitle>
+            <DialogContent dividers sx={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                {faqs.map((faq, index) => (
+                    <Box key={index} sx={{ mb: 3, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, position: 'relative' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                            <Typography variant="subtitle2" color="primary">FAQ Item #{index + 1}</Typography>
+                            <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                <IconButton size="small" onClick={() => handleMoveUp(index)} disabled={index === 0}>
+                                    <ArrowUpwardIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton size="small" onClick={() => handleMoveDown(index)} disabled={index === faqs.length - 1}>
+                                    <ArrowDownwardIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton size="small" color="error" onClick={() => handleRemove(index)}>
+                                    <DeleteIcon fontSize="small" />
+                                </IconButton>
+                            </Box>
+                        </Box>
+                        <TextField
+                            margin="dense"
+                            label="Question"
+                            fullWidth
+                            variant="outlined"
+                            value={faq.question}
+                            onChange={(e) => handleChange(index, 'question', e.target.value)}
+                            sx={{ mb: 2 }}
+                        />
+                        <TextField
+                            margin="dense"
+                            label="Answer"
+                            fullWidth
+                            multiline
+                            rows={3}
+                            variant="outlined"
+                            value={faq.answer}
+                            onChange={(e) => handleChange(index, 'answer', e.target.value)}
+                        />
+                    </Box>
+                ))}
+                <Button onClick={handleAdd} variant="outlined" fullWidth sx={{ mt: 1 }}>
+                    + Add FAQ Item
+                </Button>
+            </DialogContent>
+            <DialogActions>
+                {showDelete && onDelete && (
+                    <Button onClick={handleDelete} color="error" variant="outlined" sx={{ mr: 'auto' }}>
+                        Delete FAQs
+                    </Button>
+                )}
+                <Button onClick={onClose}>Cancel</Button>
+                <Button onClick={handleSave} variant="contained" color="primary">Save FAQs</Button>
+            </DialogActions>
+        </Dialog>
+    );
+};
+
 interface MenuBarProps {
     editor: Editor | null;
     variant: RichTextEditorVariant;
@@ -217,6 +443,7 @@ interface MenuBarProps {
 const MenuBar = ({ editor, variant, showSourceToggle, sourceMode, onSourceToggle, showFullscreen, isFullscreen, onFullscreenToggle }: MenuBarProps) => {
     const [linkDialogOpen, setLinkDialogOpen] = useState(false);
     const [youtubeDialogOpen, setYoutubeDialogOpen] = useState(false);
+    const [faqDialogOpen, setFaqDialogOpen] = useState(false);
     const theme = useTheme();
 
     if (!editor) {
@@ -248,6 +475,53 @@ const MenuBar = ({ editor, variant, showSourceToggle, sourceMode, onSourceToggle
             type: 'youtubeEmbed',
             attrs: { src, width: '100%', height: '360' },
         });
+    };
+
+    const getFaqDetails = () => {
+        let exists = false;
+        let faqs: FAQItem[] = [];
+        let pos = -1;
+        let nodeSize = 0;
+        editor.state.doc.descendants((node, position) => {
+            if (node.type.name === 'faqBlock') {
+                exists = true;
+                faqs = node.attrs.faqs || [];
+                pos = position;
+                nodeSize = node.nodeSize;
+                return false;
+            }
+        });
+        return { exists, faqs, pos, nodeSize };
+    };
+
+    const faqDetails = getFaqDetails();
+
+    const handleFaqSave = (faqs: FAQItem[]) => {
+        editor.commands.focus();
+        const { exists, pos } = getFaqDetails();
+        if (exists && pos !== -1) {
+            editor.chain().focus().setNodeSelection(pos).updateAttributes('faqBlock', { faqs }).run();
+        } else {
+            editor.chain().focus().insertContent({
+                type: 'faqBlock',
+                attrs: { faqs }
+            }).run();
+        }
+    };
+
+    const handleDeleteFaq = () => {
+        const { exists, pos, nodeSize } = getFaqDetails();
+        if (exists && pos !== -1) {
+            editor.chain().focus().deleteRange({ from: pos, to: pos + nodeSize }).run();
+        }
+    };
+
+    const getActiveFaqs = (): FAQItem[] => {
+        const { exists, faqs } = getFaqDetails();
+        if (exists) {
+            return faqs;
+        }
+        return [];
     };
 
     const handleHeadingChange = (event: SelectChangeEvent<string>) => {
@@ -462,6 +736,19 @@ const MenuBar = ({ editor, variant, showSourceToggle, sourceMode, onSourceToggle
                 </Tooltip>
             )}
 
+            {/* FAQ Manager – Standard or Full variants */}
+            {variant !== 'minimal' && (
+                <Tooltip title={faqDetails.exists ? 'Edit FAQs' : 'Insert FAQs'}>
+                    <IconButton
+                        size="small"
+                        onClick={() => setFaqDialogOpen(true)}
+                        color={faqDetails.exists ? 'primary' : 'default'}
+                    >
+                        <HelpOutlineIcon fontSize="small" />
+                    </IconButton>
+                </Tooltip>
+            )}
+
             {variant !== 'minimal' && (
                 <>
                     <Tooltip title="Blockquote">
@@ -517,6 +804,15 @@ const MenuBar = ({ editor, variant, showSourceToggle, sourceMode, onSourceToggle
                 open={youtubeDialogOpen}
                 onClose={() => setYoutubeDialogOpen(false)}
                 onEmbed={handleYoutubeEmbed}
+            />
+
+            <FAQDialog
+                open={faqDialogOpen}
+                onClose={() => setFaqDialogOpen(false)}
+                onSave={handleFaqSave}
+                onDelete={handleDeleteFaq}
+                initialFaqs={getActiveFaqs()}
+                showDelete={faqDetails.exists}
             />
 
             {/* Source Code Toggle */}
@@ -593,6 +889,7 @@ export default function RichTextEditor({
             Color,
             YouTubeNode,
             HighlightSpan,
+            FAQBlock,
         ],
         content: value,
         onUpdate: ({ editor }) => {

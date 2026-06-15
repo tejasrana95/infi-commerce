@@ -290,7 +290,7 @@ export default function ModernCleanCategoryPageTemplate({
             <div className={styles.descriptionContent}>
                 <div
                     ref={!isDescriptionExpanded ? descriptionRef : undefined}
-                    className={`${styles.description} ${showCollapsed ? styles.collapsed : ''}`}
+                    className={`${styles.description} rte-description-content ${showCollapsed ? styles.collapsed : ''}`}
                     dangerouslySetInnerHTML={{ __html: category.description }}
                 />
                 {isCollapsed && needsToggle && (

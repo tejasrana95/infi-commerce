@@ -689,7 +689,7 @@ export default function ModernCleanProductPageTemplate({
     const renderDescription = () => (
         <div className={styles.descriptionSection}>
             <div
-                className={styles.description}
+                className={`${styles.description} rte-description-content`}
                 dangerouslySetInnerHTML={{ __html: product.description }}
             />
         </div>

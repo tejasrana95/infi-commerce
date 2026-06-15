@@ -358,6 +358,7 @@ export default function CategoryForm({ initialData, onSubmit, isSubmitting = fal
                                     error={!!errors.description}
                                     helperText={errors.description?.message}
                                     minHeight={200}
+                                    showSourceToggle
                                 />
                             )}
                         />

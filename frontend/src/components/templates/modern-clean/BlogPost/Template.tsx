@@ -59,7 +59,7 @@ export default function ModernCleanBlogPostTemplate({
     const renderContent = () => (
         <article className={styles.article} key={post._id}>
             <div
-                className={styles.content}
+                className={`${styles.content} rte-description-content`}
                 dangerouslySetInnerHTML={{ __html: post.content }}
             />
 
