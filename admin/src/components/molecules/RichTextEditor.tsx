@@ -1000,7 +1000,7 @@ export default function RichTextEditor({
                     flex: fullscreenMode ? 1 : undefined,
                     overflow: fullscreenMode ? 'auto' : undefined,
                     '& .ProseMirror': fullscreenMode ? { minHeight: 'calc(100vh - 120px)' } : {},
-                    maxHeight: '80vh',
+                    maxHeight: '65vh',
                     overflowY: 'auto',
                 }}>
                     <EditorContent editor={editor} />
