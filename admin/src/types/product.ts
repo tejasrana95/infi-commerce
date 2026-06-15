@@ -3,6 +3,7 @@ import { Store } from './store';
 export interface Category {
     _id: string;
     title: string;
+    heading: string;
     slug: string;
     description?: string;
     storeId: string | { _id: string; name: string; slug: string };

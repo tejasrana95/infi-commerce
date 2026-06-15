@@ -36,7 +36,7 @@ export default function PageContent({ config }: PageContentProps) {
                 <div className={containerClass}>
                     <div className={styles.contentBody}>
                         <div
-                            className={`${styles.richText} rte-description-content`}
+                            className={`rte-description-content`}
                             dangerouslySetInnerHTML={{ __html: pageData.content }}
                         />
                     </div>

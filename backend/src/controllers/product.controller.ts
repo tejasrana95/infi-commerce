@@ -87,6 +87,7 @@ function sanitizePublicProduct(product: any, mode: 'listing' | 'detail' = 'detai
         '_id',
         'storeId',
         'name',
+        'heading',
         'slug',
         'type',
         'sku',
@@ -263,6 +264,7 @@ export function addPricingToProduct(product: any) {
 // Validation rules
 export const createProductValidation = [
     body('name').trim().notEmpty().withMessage('Product name is required'),
+    body('heading').trim().notEmpty().withMessage('Product heading is required'),
     body('slug').trim().notEmpty().matches(/^[a-z0-9-]+$/).withMessage('Invalid slug format'),
     body('description').notEmpty().withMessage('Description is required'),
     body('storeId').isMongoId().withMessage('Valid store ID is required'),
@@ -280,6 +282,7 @@ export const createProductValidation = [
 export const updateProductValidation = [
     param('id').isMongoId().withMessage('Invalid product ID'),
     body('name').optional().trim().notEmpty().withMessage('Name cannot be empty'),
+    body('heading').optional().trim().notEmpty().withMessage('Heading cannot be empty'),
     body('slug').optional().trim().matches(/^[a-z0-9-]+$/).withMessage('Invalid slug format'),
     body('hsnCode').optional().trim(),
     body('price').optional().isFloat({ min: 0 }).withMessage('Price must be positive'),

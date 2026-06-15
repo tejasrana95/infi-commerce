@@ -9,6 +9,7 @@ import slugService from '../services/slug.service';
 export interface IProduct extends Document {
     storeId: mongoose.Types.ObjectId;
     name: string;
+    heading?: string;
     slug: string;
     description: string; // HTML content
     shortDescription?: string;
@@ -202,6 +203,12 @@ const ProductSchema = new Schema<IProduct>(
         name: {
             type: String,
             required: true,
+            trim: true,
+            maxlength: 200,
+        },
+        heading: {
+            type: String,
+            required: false,
             trim: true,
             maxlength: 200,
         },

@@ -699,7 +699,7 @@ export default function ModernCleanCategoryPageTemplate({
                             <div className={styles.categoryInfo}>
                                 <div className={styles.titleRow}>
                                     <div className={styles.titleWrapper}>
-                                        <h1>{category.title}</h1>
+                                        <h1>{category?.heading || category.title}</h1>
                                         <div className={styles.titleDecoration} />
                                     </div>
 
@@ -707,7 +707,7 @@ export default function ModernCleanCategoryPageTemplate({
                                         <div className={styles.visualThumb}>
                                             <Image
                                                 src={category.image}
-                                                alt={category.title}
+                                                alt={category?.heading || category.title}
                                                 fill
                                                 style={{ objectFit: 'cover' }}
                                                 priority

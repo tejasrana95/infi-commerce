@@ -7,6 +7,7 @@ import slugService from '../services/slug.service';
  */
 export interface ICategory extends Document {
     title: string;
+    heading?: string;
     slug: string;
     description?: string; // HTML content
     storeId: mongoose.Types.ObjectId;
@@ -46,6 +47,11 @@ const CategorySchema = new Schema<ICategory>(
         title: {
             type: String,
             required: true,
+            trim: true,
+            maxlength: 200,
+        },
+        heading: {
+            type: String,
             trim: true,
             maxlength: 200,
         },

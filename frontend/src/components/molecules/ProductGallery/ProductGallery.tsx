@@ -30,6 +30,7 @@ export default function ProductGallery({
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
     const [zoomPosition, setZoomPosition] = useState({ x: 50, y: 50 });
     const [isZooming, setIsZooming] = useState(false);
+    const [mainImageLoading, setMainImageLoading] = useState(false);
 
     const {
         layout = 'thumbnails-left',
@@ -58,6 +59,7 @@ export default function ProductGallery({
 
     const handleImageClick = (index?: number) => {
         if (index !== undefined) {
+            setMainImageLoading(true);
             setMainImageIndex(index);
         }
         if (enableLightbox) {
@@ -141,15 +143,23 @@ export default function ProductGallery({
                         } as React.CSSProperties}
                     >
                         {images[mainImageIndex] && (
-                            <ImageWithDimensions
-                                src={images[mainImageIndex]}
-                                alt={productName}
-                                fill
-                                aspectRatio="1x1"
-                                priority
-                                className={styles.productImage}
-                                sizes="(max-width: 768px) 100vw, 50vw"
-                            />
+                            <>
+                                <ImageWithDimensions
+                                    src={images[mainImageIndex]}
+                                    alt={productName}
+                                    fill
+                                    aspectRatio="1x1"
+                                    priority
+                                    className={styles.productImage}
+                                    sizes="(max-width: 768px) 100vw, 50vw"
+                                    onLoadingComplete={() => setMainImageLoading(false)}
+                                />
+                                {mainImageLoading && (
+                                    <div className={styles.overlay} aria-hidden>
+                                        <div className={styles.loader} />
+                                    </div>
+                                )}
+                            </>
                         )}
                         {hasDiscount && discountPercent > 0 && (
                             <span className={styles.saleBadge}>-{discountPercent}%</span>
@@ -163,14 +173,14 @@ export default function ProductGallery({
                         ›
                     </button>
                     <div className={styles.carouselDots}>
-                        {images.map((_, index) => (
-                            <button
-                                key={index}
-                                className={`${styles.dot} ${index === mainImageIndex ? styles.active : ''}`}
-                                onClick={() => setMainImageIndex(index)}
-                                aria-label={`Go to image ${index + 1}`}
-                            />
-                        ))}
+                            {images.map((_, index) => (
+                                <button
+                                    key={index}
+                                    className={`${styles.dot} ${index === mainImageIndex ? styles.active : ''}`}
+                                    onClick={() => { setMainImageLoading(true); setMainImageIndex(index); }}
+                                    aria-label={`Go to image ${index + 1}`}
+                                />
+                            ))}
                     </div>
                     {hasDiscount && discountPercent > 0 && (
                         <span className={styles.saleBadge}>-{discountPercent}%</span>
@@ -229,7 +239,7 @@ export default function ProductGallery({
                         <button
                             key={index}
                             className={`${styles.lightboxThumb} ${index === mainImageIndex ? styles.active : ''}`}
-                            onClick={(e) => { e.stopPropagation(); setMainImageIndex(index); }}
+                            onClick={(e) => { e.stopPropagation(); setMainImageLoading(true); setMainImageIndex(index); }}
                         >
                             <ImageWithDimensions src={image} alt="" width={60} height={60} aspectRatio="1x1" />
                         </button>
@@ -249,7 +259,7 @@ export default function ProductGallery({
                         <button
                             key={index}
                             className={`${styles.thumbnail} ${index === mainImageIndex ? styles.active : ''}`}
-                            onClick={() => setMainImageIndex(index)}
+                            onClick={() => { setMainImageLoading(true); setMainImageIndex(index); }}
                         >
                             <ImageWithDimensions
                                 src={image}
@@ -276,15 +286,23 @@ export default function ProductGallery({
                     } as React.CSSProperties}
                 >
                     {images[mainImageIndex] && (
-                        <ImageWithDimensions
-                            src={images[mainImageIndex]}
-                            alt={productName}
-                            fill
-                            aspectRatio="1x1"
-                            priority
-                            className={styles.productImage}
-                            sizes="(max-width: 768px) 100vw, 50vw"
-                        />
+                        <>
+                            <ImageWithDimensions
+                                src={images[mainImageIndex]}
+                                alt={productName}
+                                fill
+                                aspectRatio="1x1"
+                                priority
+                                className={styles.productImage}
+                                sizes="(max-width: 768px) 100vw, 50vw"
+                                onLoadingComplete={() => setMainImageLoading(false)}
+                            />
+                            {mainImageLoading && (
+                                <div className={styles.overlay} aria-hidden>
+                                    <div className={styles.loader} />
+                                </div>
+                            )}
+                        </>
                     )}
                     {hasDiscount && discountPercent > 0 && (
                         <span className={styles.saleBadge}>-{discountPercent}%</span>

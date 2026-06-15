@@ -441,7 +441,7 @@ export default function ModernCleanProductPageTemplate({
                     {typeof product.brand === 'object' ? product.brand.name : product.brand}
                 </p>
             )}
-            <h1 className={styles.title}>{product.name}</h1>
+            <h1 className={styles.title}>{product?.heading || product.name}</h1>
 
             {/* Rating Summary */}
             {reviewStats && reviewStats.totalReviews > 0 && (

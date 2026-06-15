@@ -46,6 +46,7 @@ import SeoSuggestions from '../molecules/SeoSuggestions';
 // Validation schema
 const schema = z.object({
     name: z.string().min(1, 'Name is required'),
+    heading: z.string().min(1, 'Heading is required'),
     slug: z.string().min(1, 'Slug is required').regex(/^[a-z0-9-]+$/, 'Slug must be lowercase letters, numbers, and hyphens only'),
     storeId: z.string().min(1, 'Store is required'),
     type: z.enum(['simple', 'variable', 'digital']),
@@ -204,6 +205,7 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
         resolver: zodResolver(schema),
         defaultValues: {
             name: '',
+            heading: '',
             slug: '',
             storeId: '',
             type: 'simple',
@@ -355,6 +357,7 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
     useEffect(() => {
         if (initialData) {
             setValue('name', initialData.name || '');
+            setValue('heading', initialData.heading || '');
             setValue('slug', initialData.slug || '');
             setValue('storeId', (initialData.storeId && typeof initialData.storeId === 'object') ? initialData.storeId._id : initialData.storeId || '');
             setValue('type', initialData.type || 'simple');
@@ -535,7 +538,22 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
                                 )}
                             />
                         </Grid>
-
+                        <Grid size={{ xs: 12, md: 6 }}>
+                            <Controller
+                                name="heading"
+                                control={control}
+                                render={({ field }) => (
+                                    <TextField
+                                        {...field}
+                                        label="Heading Title (H1)"
+                                        fullWidth
+                                        required
+                                        error={!!errors.heading}
+                                        helperText={errors.heading?.message}
+                                    />
+                                )}
+                            />
+                        </Grid>
                         <Grid size={{ xs: 12, md: 6 }}>
                             <Controller
                                 name="slug"

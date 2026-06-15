@@ -34,6 +34,7 @@ function sanitizePublicCategory(category: any): any {
     return {
         _id: category._id,
         title: category.title,
+        heading: category.heading,
         slug: category.slug,
         description: category.description,
         image: category.image,
@@ -152,7 +153,7 @@ export const updateCategoryValidation = [
  *         description: Unauthorized
  */
 export const createCategory = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { title, slug, description, storeId, parentCategory, image, status, seo, sortOrder, isVisible } = req.body;
+    const { title, heading, slug, description, storeId, parentCategory, image, status, seo, sortOrder, isVisible } = req.body;
 
     // Verify store exists
     const store = await Store.findById(storeId);
@@ -189,6 +190,7 @@ export const createCategory = asyncHandler(async (req: AuthRequest, res: Respons
     const category = await Category.create({
         title,
         slug,
+        heading,
         description,
         storeId,
         parentCategory: parentCategory || null,

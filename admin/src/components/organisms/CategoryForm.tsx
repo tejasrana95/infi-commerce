@@ -37,6 +37,7 @@ import RichTextEditor from '../molecules/RichTextEditor';
 // Validation Schema
 const schema = z.object({
     title: z.string().min(1, 'Title is required').max(200, 'Title max 200 characters'),
+    heading: z.string().min(1, 'Heading is required').max(200, 'Heading max 200 characters'),
     slug: z.string().min(1, 'Slug is required').regex(/^[a-z0-9-]+$/, 'Slug must be lowercase with hyphens only'),
     storeId: z.string().min(1, 'Store is required'),
     parentCategory: z.string().optional(),
@@ -70,6 +71,7 @@ interface CategoryFormProps {
 
 const defaultValues: FormData = {
     title: '',
+    heading: '',
     slug: '',
     storeId: '',
     parentCategory: '',
@@ -119,6 +121,7 @@ export default function CategoryForm({ initialData, onSubmit, isSubmitting = fal
 
             reset({
                 title: initialData.title || '',
+                heading: initialData.heading || '',
                 slug: initialData.slug || '',
                 storeId: storeId,
                 parentCategory: parentCategory,
@@ -267,6 +270,23 @@ export default function CategoryForm({ initialData, onSubmit, isSubmitting = fal
                             )}
                         />
                     </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <Controller
+                            name="heading"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField
+                                    {...field}
+                                    label="Heading Title (H1)"
+                                    fullWidth
+                                    required
+                                    error={!!errors.heading}
+                                    helperText={errors.heading?.message}
+                                    placeholder="Electronics"
+                                />
+                            )}
+                        />
+                    </Grid>
 
                     <Grid size={{ xs: 12, md: 6 }}>
                         <Controller
@@ -341,6 +361,40 @@ export default function CategoryForm({ initialData, onSubmit, isSubmitting = fal
                                     helperText={errors.parentCategory?.message || 'Leave empty for root category'}
                                 />
                             )}
+                        />
+                    </Grid>
+
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <Controller
+                            name="channels"
+                            control={control}
+                            render={({ field }) => {
+                                const availableChannels = (process.env.NEXT_PUBLIC_AVAILABLE_CHANNELS || 'WEB,POS,MOB').split(',').map(c => c.trim());
+                                return (
+                                    <FormControl fullWidth>
+                                        <InputLabel>Channels</InputLabel>
+                                        <Select
+                                            {...field}
+                                            multiple
+                                            label="Channels"
+                                            value={field.value || []}
+                                            renderValue={(selected) => (
+                                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                                    {(selected as string[]).map((value) => (
+                                                        <Chip key={value} label={value} size="small" />
+                                                    ))}
+                                                </Box>
+                                            )}
+                                        >
+                                            {availableChannels.map((channel) => (
+                                                <MenuItem key={channel} value={channel}>
+                                                    {channel}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                );
+                            }}
                         />
                     </Grid>
 
@@ -455,39 +509,6 @@ export default function CategoryForm({ initialData, onSubmit, isSubmitting = fal
                         />
                     </Grid>
 
-                    <Grid size={{ xs: 12 }}>
-                        <Controller
-                            name="channels"
-                            control={control}
-                            render={({ field }) => {
-                                const availableChannels = (process.env.NEXT_PUBLIC_AVAILABLE_CHANNELS || 'WEB,POS,MOB').split(',').map(c => c.trim());
-                                return (
-                                    <FormControl fullWidth>
-                                        <InputLabel>Channels</InputLabel>
-                                        <Select
-                                            {...field}
-                                            multiple
-                                            label="Channels"
-                                            value={field.value || []}
-                                            renderValue={(selected) => (
-                                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                                    {(selected as string[]).map((value) => (
-                                                        <Chip key={value} label={value} size="small" />
-                                                    ))}
-                                                </Box>
-                                            )}
-                                        >
-                                            {availableChannels.map((channel) => (
-                                                <MenuItem key={channel} value={channel}>
-                                                    {channel}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                );
-                            }}
-                        />
-                    </Grid>
                 </Grid>
             )}
 

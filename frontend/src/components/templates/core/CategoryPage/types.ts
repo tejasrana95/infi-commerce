@@ -7,6 +7,7 @@ export interface Category {
     _id: string;
     title: string;
     slug: string;
+    heading: string;
     description?: string;
     image?: string;
     parentCategory?: {

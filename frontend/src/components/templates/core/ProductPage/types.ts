@@ -83,6 +83,7 @@ export interface ProductSEO {
 export interface Product {
     _id: string;
     storeId: string;
+    heading?: string;
     name: string;
     slug: string;
     description: string;
