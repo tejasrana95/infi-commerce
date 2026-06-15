@@ -373,57 +373,63 @@ const FAQDialog = ({
 
     return (
         <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-            <DialogTitle>Manage FAQs</DialogTitle>
-            <DialogContent dividers sx={{ maxHeight: '60vh', overflowY: 'auto' }}>
+            <DialogTitle sx={{ py: 1, px: 2, fontSize: '1.1rem' }}>Manage FAQs</DialogTitle>
+            <DialogContent dividers sx={{ maxHeight: '75vh', overflowY: 'auto', p: 1.5 }}>
                 {faqs.map((faq, index) => (
-                    <Box key={index} sx={{ mb: 3, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, position: 'relative' }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                            <Typography variant="subtitle2" color="primary">FAQ Item #{index + 1}</Typography>
-                            <Box sx={{ display: 'flex', gap: 0.5 }}>
-                                <IconButton size="small" onClick={() => handleMoveUp(index)} disabled={index === 0}>
-                                    <ArrowUpwardIcon fontSize="small" />
+                    <Box key={index} sx={{ mb: 1, p: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1, backgroundColor: 'background.paper' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.75 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.8rem' }}>FAQ Item #{index + 1}</Typography>
+                            <Box sx={{ display: 'flex', gap: 0.25 }}>
+                                <IconButton size="small" onClick={() => handleMoveUp(index)} disabled={index === 0} sx={{ p: 0.25 }}>
+                                    <ArrowUpwardIcon sx={{ fontSize: '1.1rem' }} />
                                 </IconButton>
-                                <IconButton size="small" onClick={() => handleMoveDown(index)} disabled={index === faqs.length - 1}>
-                                    <ArrowDownwardIcon fontSize="small" />
+                                <IconButton size="small" onClick={() => handleMoveDown(index)} disabled={index === faqs.length - 1} sx={{ p: 0.25 }}>
+                                    <ArrowDownwardIcon sx={{ fontSize: '1.1rem' }} />
                                 </IconButton>
-                                <IconButton size="small" color="error" onClick={() => handleRemove(index)}>
-                                    <DeleteIcon fontSize="small" />
+                                <IconButton size="small" color="error" onClick={() => handleRemove(index)} sx={{ p: 0.25 }}>
+                                    <DeleteIcon sx={{ fontSize: '1.1rem' }} />
                                 </IconButton>
                             </Box>
                         </Box>
-                        <TextField
-                            margin="dense"
-                            label="Question"
-                            fullWidth
-                            variant="outlined"
-                            value={faq.question}
-                            onChange={(e) => handleChange(index, 'question', e.target.value)}
-                            sx={{ mb: 2 }}
-                        />
-                        <TextField
-                            margin="dense"
-                            label="Answer"
-                            fullWidth
-                            multiline
-                            rows={3}
-                            variant="outlined"
-                            value={faq.answer}
-                            onChange={(e) => handleChange(index, 'answer', e.target.value)}
-                        />
+                        <Box sx={{ display: 'flex', gap: 1, flexDirection: { xs: 'column', md: 'row' } }}>
+                            <Box sx={{ flex: 1 }}>
+                                <TextField
+                                    size="small"
+                                    label="Question"
+                                    fullWidth
+                                    variant="outlined"
+                                    value={faq.question}
+                                    onChange={(e) => handleChange(index, 'question', e.target.value)}
+                                />
+                            </Box>
+                            <Box sx={{ flex: 1.5 }}>
+                                <TextField
+                                    size="small"
+                                    label="Answer"
+                                    fullWidth
+                                    multiline
+                                    minRows={2}
+                                    maxRows={6}
+                                    variant="outlined"
+                                    value={faq.answer}
+                                    onChange={(e) => handleChange(index, 'answer', e.target.value)}
+                                />
+                            </Box>
+                        </Box>
                     </Box>
                 ))}
-                <Button onClick={handleAdd} variant="outlined" fullWidth sx={{ mt: 1 }}>
+                <Button onClick={handleAdd} variant="outlined" fullWidth sx={{ mt: 0.5, py: 0.5, fontSize: '0.85rem' }}>
                     + Add FAQ Item
                 </Button>
             </DialogContent>
-            <DialogActions>
+            <DialogActions sx={{ px: 2, py: 1 }}>
                 {showDelete && onDelete && (
-                    <Button onClick={handleDelete} color="error" variant="outlined" sx={{ mr: 'auto' }}>
+                    <Button onClick={handleDelete} color="error" variant="outlined" size="small" sx={{ mr: 'auto' }}>
                         Delete FAQs
                     </Button>
                 )}
-                <Button onClick={onClose}>Cancel</Button>
-                <Button onClick={handleSave} variant="contained" color="primary">Save FAQs</Button>
+                <Button onClick={onClose} size="small">Cancel</Button>
+                <Button onClick={handleSave} variant="contained" color="primary" size="small">Save FAQs</Button>
             </DialogActions>
         </Dialog>
     );
