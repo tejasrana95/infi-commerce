@@ -174,6 +174,7 @@
   color: var(--color-text-muted, #4b5563);
   font-size: 13px;
   line-height: 1.6;
+  white-space: pre-wrap;
 }
 
 .faq-answer>div {
@@ -192,7 +193,8 @@
   }
 }
 
-.richText, .rte-description-content {
+.richText,
+.rte-description-content {
 
   h1,
   h2,

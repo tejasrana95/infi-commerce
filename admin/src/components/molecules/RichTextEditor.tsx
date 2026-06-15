@@ -556,13 +556,16 @@ const MenuBar = ({ editor, variant, showSourceToggle, sourceMode, onSourceToggle
             sx={{
                 p: 1,
                 mb: 1,
+                position: 'sticky',
+                top: 0,
+                zIndex: 10,
                 borderBottom: `1px solid ${theme.palette.divider}`,
                 backgroundColor: theme.palette.background.default,
                 display: 'flex',
                 flexWrap: 'wrap',
                 alignItems: 'center',
                 gap: 0.5,
-                borderRadius: 0,
+                borderRadius: `${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0 0`,
             }}
         >
             {/* Heading Selector */}
@@ -996,7 +999,9 @@ export default function RichTextEditor({
                 <Box sx={{
                     flex: fullscreenMode ? 1 : undefined,
                     overflow: fullscreenMode ? 'auto' : undefined,
-                    '& .ProseMirror': fullscreenMode ? { minHeight: 'calc(100vh - 120px)' } : {}
+                    '& .ProseMirror': fullscreenMode ? { minHeight: 'calc(100vh - 120px)' } : {},
+                    maxHeight: '80vh',
+                    overflowY: 'auto',
                 }}>
                     <EditorContent editor={editor} />
                 </Box>
@@ -1016,7 +1021,6 @@ export default function RichTextEditor({
                     border: `1px solid ${error ? theme.palette.error.main : theme.palette.divider}`,
                     borderRadius: 1,
                     bgcolor: 'background.paper',
-                    overflow: 'hidden',
                     '&:hover': {
                         borderColor: error ? theme.palette.error.main : theme.palette.primary.main,
                     },
@@ -1027,6 +1031,7 @@ export default function RichTextEditor({
                     '& .ProseMirror': {
                         outline: 'none',
                         minHeight: minHeight,
+                        whiteSpace: 'pre-wrap',
                         fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                         fontSize: '15px',
                         lineHeight: '1.7',
@@ -1282,6 +1287,7 @@ export default function RichTextEditor({
                             outline: 'none',
                             flex: 1,
                             minHeight: 'calc(100vh - 100px)',
+                            whiteSpace: 'pre-wrap',
                             padding: '24px',
                             fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                             fontSize: '15px',

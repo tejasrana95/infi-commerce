@@ -132,6 +132,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   color: var(--color-text-muted, #4b5563);
   font-size: 13px;
   line-height: 1.6;
+  white-space: pre-wrap;
 }
 
 .faq-answer>div {
