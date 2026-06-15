@@ -6,8 +6,8 @@ import { CategoryConfig } from '@/types/store';
 export interface Category {
     _id: string;
     title: string;
+    heading?: string;
     slug: string;
-    heading: string;
     description?: string;
     image?: string;
     parentCategory?: {
