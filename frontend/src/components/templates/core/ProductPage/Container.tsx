@@ -30,6 +30,10 @@ import { useCurrency } from '@/hooks/useCurrency';
 interface ProductPageContainerProps {
     product: Product;
     layout?: ProductPageLayout | null;
+    initialReviews?: {
+        reviews: Review[];
+        stats: ReviewStats | null;
+    } | null;
 }
 
 
@@ -37,6 +41,7 @@ interface ProductPageContainerProps {
 export default function ProductPageContainer({
     product: initialProduct,
     layout,
+    initialReviews,
 }: ProductPageContainerProps) {
     const { store, currentCurrency } = useStore();
     const themeConfig = useThemeConfig();
@@ -345,14 +350,14 @@ export default function ProductPageContainer({
     // ============================================
     // Reviews
     // ============================================
-    const [reviews, setReviews] = useState<Review[]>([]);
-    const [reviewStats, setReviewStats] = useState<ReviewStats | null>(null);
+    const [reviews, setReviews] = useState<Review[]>(() => initialReviews?.reviews || []);
+    const [reviewStats, setReviewStats] = useState<ReviewStats | null>(() => initialReviews?.stats || null);
     const [reviewsLoading, setReviewsLoading] = useState(false);
     const [reviewsPagination, setReviewsPagination] = useState({
         page: 1,
         limit: 10,
-        total: 0,
-        pages: 0,
+        total: initialReviews?.reviews ? (initialReviews.stats?.totalReviews || initialReviews.reviews.length) : 0,
+        pages: initialReviews?.reviews ? Math.ceil((initialReviews.stats?.totalReviews || initialReviews.reviews.length) / 10) : 0,
     });
     const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
@@ -386,10 +391,10 @@ export default function ProductPageContainer({
     }, [api, product._id, reviewSettings.allowReviews, reviewsPagination.limit]);
 
     useEffect(() => {
-        if (reviewSettings.allowReviews) {
+        if (reviewSettings.allowReviews && (!initialReviews || !initialReviews.reviews || initialReviews.reviews.length === 0)) {
             fetchReviews(1);
         }
-    }, [fetchReviews, reviewSettings.allowReviews]);
+    }, [fetchReviews, reviewSettings.allowReviews, initialReviews]);
 
     const handleLoadMoreReviews = useCallback(() => {
         if (reviewsPagination.page < reviewsPagination.pages) {

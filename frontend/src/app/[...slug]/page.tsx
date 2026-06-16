@@ -74,13 +74,16 @@ async function getProductLayout(storeId: string, slug: string) {
 async function getProductReviews(productId: string) {
     try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-        const response = await fetch(`${apiUrl}/reviews/product/${productId}?limit=1`, {
+        const response = await fetch(`${apiUrl}/reviews/product/${productId}?limit=10`, {
             next: { revalidate: 60 },
             headers: { 'Content-Type': 'application/json' },
         });
         if (!response.ok) return null;
         const data = await response.json();
-        return data.stats || null;
+        return {
+            stats: data.stats || null,
+            reviews: data.reviews || [],
+        };
     } catch (err) { return null; }
 }
 
@@ -234,10 +237,10 @@ export default async function UniversalPage({ params, searchParams }: UniversalP
 
         if (!product) notFound();
 
-        const reviewStats = await getProductReviews(product._id);
-        if (reviewStats) {
-            product.averageRating = reviewStats.averageRating;
-            product.reviewCount = reviewStats.totalReviews;
+        const reviewsData = await getProductReviews(product._id);
+        if (reviewsData?.stats) {
+            product.averageRating = reviewsData.stats.averageRating;
+            product.reviewCount = reviewsData.stats.totalReviews;
         }
 
         const shippingDetails = product.type !== 'digital'
@@ -286,7 +289,7 @@ export default async function UniversalPage({ params, searchParams }: UniversalP
                 reviewCount: product.reviewCount,
             }
             : undefined;
-        const jsonLd = {
+        const jsonLd: any = {
             '@context': 'https://schema.org',
             '@type': 'Product',
             '@id': `${productUrl}#product`,
@@ -309,11 +312,56 @@ export default async function UniversalPage({ params, searchParams }: UniversalP
             aggregateRating,
         };
 
+        if (product.specifications && product.specifications.length > 0) {
+            jsonLd.additionalProperty = product.specifications.map((spec: any) => {
+                const name = (spec.attributeId && typeof spec.attributeId === 'object')
+                    ? spec.attributeId.name
+                    : (spec.name || 'Attribute');
+                return {
+                    '@type': 'PropertyValue',
+                    name,
+                    value: String(spec.value),
+                };
+            });
+        }
+
+        if (product.videos && product.videos.length > 0) {
+            const videoObjects = product.videos.map((vid: any) => ({
+                '@type': 'VideoObject',
+                'name': vid.title || `${product.name} Video`,
+                'description': product.shortDescription || product.description?.replace(/<[^>]*>/g, '').substring(0, 150) || `${product.name} video demonstration`,
+                'thumbnailUrl': vid.thumbnail || product.featuredImage || product.images?.[0] || '',
+                'contentUrl': vid.url,
+                'embedUrl': vid.url,
+                'uploadDate': product.createdAt ? new Date(product.createdAt).toISOString() : new Date().toISOString()
+            }));
+            jsonLd.subjectOf = videoObjects;
+            jsonLd.video = videoObjects;
+        }
+
+        if (reviewsData?.reviews && reviewsData.reviews.length > 0) {
+            jsonLd.review = reviewsData.reviews.map((rev: any) => ({
+                '@type': 'Review',
+                'reviewRating': {
+                    '@type': 'Rating',
+                    'ratingValue': rev.rating,
+                    'bestRating': '5',
+                },
+                'author': {
+                    '@type': 'Person',
+                    'name': rev.isGuestReview ? rev.guestName : `${rev.customerId?.firstName || ''} ${rev.customerId?.lastName || ''}`.trim() || 'Anonymous',
+                },
+                'datePublished': new Date(rev.createdAt).toISOString().split('T')[0],
+                'reviewBody': rev.content,
+                'name': rev.title || 'Product Review',
+            }));
+        }
+
         return (
             <>
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
                 <ProductSeoShell product={product} store={store} />
-                <ProductPageClient product={product} layout={layout} />
+                <ProductPageClient product={product} layout={layout} initialReviews={reviewsData} />
             </>
         );
     }

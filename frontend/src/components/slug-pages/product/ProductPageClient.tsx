@@ -11,9 +11,10 @@ import { useInterest } from '@/providers/InterestProvider';
 interface ProductPageClientProps {
     product: any;
     layout?: any;
+    initialReviews?: any;
 }
 
-export default function ProductPageClient({ product, layout }: ProductPageClientProps) {
+export default function ProductPageClient({ product, layout, initialReviews }: ProductPageClientProps) {
     const { store } = useStore();
     const { trackProductView } = useInterest();
     const templateId = store?.theme?.templateId || 'modern-clean';
@@ -30,6 +31,6 @@ export default function ProductPageClient({ product, layout }: ProductPageClient
     // Get the ProductPage container component
     const ProductPage = getComponent('ProductPage', templateId);
 
-    return <ProductPage product={product} layout={layout} />;
+    return <ProductPage product={product} layout={layout} initialReviews={initialReviews} />;
 }
 

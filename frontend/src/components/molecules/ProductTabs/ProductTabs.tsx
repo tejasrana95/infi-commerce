@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, ReactNode } from 'react';
+import React, { useState, useEffect, ReactNode } from 'react';
 import styles from './ProductTabs.module.scss';
 
 interface Tab {
@@ -26,8 +26,6 @@ export default function ProductTabs({
     const { layout = 'tabs' } = config;
     const [activeTab, setActiveTab] = useState(0);
     const [expandedAccordions, setExpandedAccordions] = useState<Set<number>>(new Set([0]));
-    const [indicatorStyle, setIndicatorStyle] = useState<React.CSSProperties>({ left: 0, width: 0, opacity: 0 });
-    const tabRefs = useRef<(HTMLAnchorElement | null)[]>([]);
 
     // Filter tabs that should be shown
     const visibleTabs = tabs.filter(tab => tab.show !== false);
@@ -68,29 +66,6 @@ export default function ProductTabs({
         return () => window.removeEventListener('hashchange', handleHashChange);
     }, [visibleTabs, layout]);
 
-    useEffect(() => {
-        if (layout !== 'tabs' || visibleTabs.length === 0) return;
-
-        const updateIndicator = () => {
-            const activeElement = tabRefs.current[activeTab];
-            if (activeElement) {
-                setIndicatorStyle({
-                    left: activeElement.offsetLeft,
-                    width: activeElement.offsetWidth,
-                    opacity: 1,
-                });
-            }
-        };
-
-        const timer = setTimeout(updateIndicator, 50);
-
-        window.addEventListener('resize', updateIndicator);
-        return () => {
-            clearTimeout(timer);
-            window.removeEventListener('resize', updateIndicator);
-        };
-    }, [activeTab, visibleTabs, layout]);
-
     if (visibleTabs.length === 0) return null;
 
     const toggleAccordion = (index: number) => {
@@ -127,12 +102,10 @@ export default function ProductTabs({
     if (layout === 'tabs') {
         return (
             <div className={`${styles.tabsContainer} ${className}`}>
-                <div className={styles.tabList} role="tablist" style={{ position: 'relative' }}>
-                    <div className={styles.activeIndicator} style={indicatorStyle} />
+                <div className={styles.tabList} role="tablist">
                     {visibleTabs.map((tab, index) => (
                         <a
                             key={tab.id}
-                            ref={(el) => { tabRefs.current[index] = el; }}
                             href={`#${tab.id}`}
                             role="tab"
                             aria-selected={activeTab === index}
@@ -146,9 +119,16 @@ export default function ProductTabs({
                         </a>
                     ))}
                 </div>
-                <div key={activeTab} id={visibleTabs[activeTab]?.id} className={styles.tabContent} role="tabpanel">
-                    {visibleTabs[activeTab]?.content}
-                </div>
+                {visibleTabs.map((tab, index) => (
+                    <div
+                        key={tab.id}
+                        id={tab.id}
+                        className={`${styles.tabContent} ${activeTab === index ? styles.active : styles.hidden}`}
+                        role="tabpanel"
+                    >
+                        {tab.content}
+                    </div>
+                ))}
             </div>
         );
     }
