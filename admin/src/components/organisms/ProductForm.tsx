@@ -691,6 +691,7 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
                                         error={!!errors.description}
                                         helperText={errors.description?.message}
                                         minHeight={200}
+                                        showSourceToggle
                                     />
                                 )}
                             />
