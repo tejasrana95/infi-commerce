@@ -13,11 +13,14 @@ $bg-light: #f9fafb;
 
 .tabList {
     display: flex;
-    gap: 4px;
-    border-bottom: 2px solid $border-color;
-    margin-bottom: 24px;
+    gap: 6px;
+    padding: 6px;
+    background: #f3f4f6;
+    border-radius: 30px;
+    margin-bottom: 20px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    border-bottom: none;
 
     &::-webkit-scrollbar {
         display: none;
@@ -25,7 +28,7 @@ $bg-light: #f9fafb;
 }
 
 .tab {
-    padding: 12px 24px;
+    padding: 10px 22px;
     border: none;
     background: none;
     font-size: 0.875rem;
@@ -33,22 +36,48 @@ $bg-light: #f9fafb;
     color: $text-secondary;
     cursor: pointer;
     white-space: nowrap;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -2px;
-    transition: all 0.2s;
+    border-bottom: none;
+    border-radius: 20px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none;
+    position: relative;
+    z-index: 1;
 
     &:hover {
         color: $text-primary;
     }
 
     &.active {
-        color: $primary-color;
-        border-bottom-color: $primary-color;
+        color: white;
+    }
+}
+
+.activeIndicator {
+    position: absolute;
+    top: 6px;
+    bottom: 6px;
+    border-radius: 20px;
+    background: var(--color-accent, $primary-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+    z-index: 0;
+}
+
+@keyframes tabFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
 .tabContent {
-    padding: 8px 0;
+    padding: 12px 4px;
+    animation: tabFadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 // Accordion Layout

@@ -129,7 +129,9 @@ function sanitizePublicProduct(product: any, mode: 'listing' | 'detail' = 'detai
         'specifications',
         'videos',
         'categoryBreadcrumbs',
+        'customTabs',
     ];
+
 
     const fields = mode === 'detail' ? [...commonFields, ...detailOnlyFields] : commonFields;
     const clean = pickDefined(product, fields) as any;
@@ -277,6 +279,7 @@ export const createProductValidation = [
     body('returnSettings.returnWindowDays').optional({ nullable: true }).isInt({ min: 0 }).withMessage('Return window must be a positive integer'),
     body('returnSettings.exchangeWindowDays').optional({ nullable: true }).isInt({ min: 0 }).withMessage('Exchange window must be a positive integer'),
     body('returnSettings.isReturnable').optional().isBoolean(),
+    body('customTabs').optional().isArray().withMessage('Custom tabs must be an array'),
 ];
 
 export const updateProductValidation = [
@@ -289,6 +292,7 @@ export const updateProductValidation = [
     body('returnSettings.returnWindowDays').optional({ nullable: true }).isInt({ min: 0 }).withMessage('Return window must be a positive integer'),
     body('returnSettings.exchangeWindowDays').optional({ nullable: true }).isInt({ min: 0 }).withMessage('Exchange window must be a positive integer'),
     body('returnSettings.isReturnable').optional().isBoolean(),
+    body('customTabs').optional().isArray().withMessage('Custom tabs must be an array'),
 ];
 
 /**

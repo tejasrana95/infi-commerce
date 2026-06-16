@@ -19,12 +19,16 @@ import {
     Typography,
     Button,
     CircularProgress,
+    Accordion,
+    AccordionSummary,
+    AccordionDetails,
 } from '@mui/material';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import api from '@/lib/api';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import { TaxRate } from '@/types';
@@ -165,6 +169,10 @@ const schema = z.object({
     isActive: z.boolean(),
     isFeatured: z.boolean(),
     downloadable: z.boolean(),
+    customTabs: z.array(z.object({
+        name: z.string().min(1, 'Tab name is required'),
+        content: z.string().min(1, 'Tab content is required'),
+    })).optional(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -263,7 +271,13 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
             isActive: true,
             isFeatured: false,
             downloadable: false,
+            customTabs: [],
         },
+    });
+
+    const { fields: customTabFields, append: appendCustomTab, remove: removeCustomTab } = useFieldArray({
+        control,
+        name: 'customTabs',
     });
 
     const [isCalculatingSeo, setIsCalculatingSeo] = useState(false);
@@ -437,6 +451,7 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
             setValue('isFeatured', initialData.isFeatured || false);
             setValue('downloadable', initialData.downloadable || false);
             setValue('returnSettings', initialData.returnSettings);
+            setValue('customTabs', initialData.customTabs || []);
         }
     }, [initialData, setValue]);
 
@@ -502,6 +517,8 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
             onSubmit={handleSubmit(handleFormSubmit, (formErrors) => {
                 if (formErrors?.seo) {
                     setActiveTab(5);
+                } else if (formErrors?.customTabs) {
+                    setActiveTab(6);
                 }
                 console.error('Form Errors:', formErrors);
             })}
@@ -514,6 +531,7 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
                     <Tab label="Variants & Downloads" />
                     <Tab label="Specifications" />
                     <Tab label="SEO & Settings" />
+                    <Tab label="Custom Tabs" />
                     <Tab label="Other" />
                 </Tabs>
             </Paper>
@@ -1588,8 +1606,81 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting = fals
                 </Paper>
             )}
 
-            {/* Other Tab */}
+            {/* Custom Tabs Tab */}
             {activeTab === 6 && (
+                <Paper sx={{ p: 3 }}>
+                    <Typography variant="h6" sx={{ mb: 2 }}>Custom Tabs</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                        Add custom tabs (e.g. FAQ, How to Care, Specs, etc.) that will show on the product page.
+                    </Typography>
+
+                    {customTabFields.map((field, index) => (
+                        <Accordion key={field.id} sx={{ mb: 2 }} defaultExpanded>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                                    {watch(`customTabs.${index}.name`) || `Custom Tab ${index + 1}`}
+                                </Typography>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                                <Grid container spacing={3}>
+                                    <Grid size={{ xs: 12 }}>
+                                        <Controller
+                                            name={`customTabs.${index}.name`}
+                                            control={control}
+                                            render={({ field: nameField }) => (
+                                                <TextField
+                                                    {...nameField}
+                                                    label="Tab Name"
+                                                    fullWidth
+                                                    required
+                                                    placeholder="e.g. FAQ, How to Care"
+                                                />
+                                            )}
+                                        />
+                                    </Grid>
+                                    <Grid size={{ xs: 12 }}>
+                                        <Controller
+                                            name={`customTabs.${index}.content`}
+                                            control={control}
+                                            render={({ field: contentField }) => (
+                                                <RichTextEditor
+                                                    value={contentField.value || ''}
+                                                    onChange={contentField.onChange}
+                                                    label="Tab Content"
+                                                    variant="standard"
+                                                    minHeight={250}
+                                                />
+                                            )}
+                                        />
+                                    </Grid>
+                                    <Grid size={{ xs: 12 }} display="flex" justifyContent="flex-end">
+                                        <Button
+                                            variant="outlined"
+                                            color="error"
+                                            startIcon={<CloseIcon />}
+                                            onClick={() => removeCustomTab(index)}
+                                        >
+                                            Delete Tab
+                                        </Button>
+                                    </Grid>
+                                </Grid>
+                            </AccordionDetails>
+                        </Accordion>
+                    ))}
+
+                    <Button
+                        variant="outlined"
+                        startIcon={<AddIcon />}
+                        onClick={() => appendCustomTab({ name: '', content: '' })}
+                        sx={{ mt: 1 }}
+                    >
+                        Add Tab
+                    </Button>
+                </Paper>
+            )}
+
+            {/* Other Tab */}
+            {activeTab === 7 && (
                 <Paper sx={{ p: 3 }}>
                     <Grid container spacing={3}>
                         <GeoLimitsField control={control} watch={watch} />

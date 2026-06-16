@@ -1054,6 +1054,17 @@ export default function ModernCleanProductPageTemplate({
                     config.info?.showReviews !== false &&
                     reviewSettings.allowReviews,
             },
+            ...(product.customTabs || []).map((tab) => ({
+                id: tab.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+                label: tab.name,
+                content: (
+                    <div
+                        className="rte-description-content"
+                        dangerouslySetInnerHTML={{ __html: tab.content }}
+                    />
+                ),
+                show: true,
+            })),
         ];
 
         return (

@@ -147,6 +147,12 @@ export interface IProduct extends Document {
         isReturnable?: boolean; // Default true, set false to disable returns
     };
 
+    customTabs?: Array<{
+        name: string;
+        content: string;
+    }>;
+
+
     // Google Merchant Center
     googleMerchant?: {
         status: 'not_submitted' | 'pending' | 'approved' | 'disapproved' | 'warning';
@@ -536,6 +542,14 @@ const ProductSchema = new Schema<IProduct>(
                 default: true,
             },
         },
+
+        customTabs: [
+            {
+                name: { type: String, required: true },
+                content: { type: String, required: true },
+            },
+        ],
+
 
         // Google Merchant Center
         googleMerchant: {

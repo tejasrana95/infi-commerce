@@ -88,6 +88,10 @@ export interface Product {
     slug: string;
     description: string;
     shortDescription?: string;
+    customTabs?: Array<{
+        name: string;
+        content: string;
+    }>;
     type: 'simple' | 'variable' | 'digital';
     sku: string;
 
