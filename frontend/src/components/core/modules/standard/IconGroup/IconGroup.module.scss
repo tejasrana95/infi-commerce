@@ -91,3 +91,33 @@
         justify-content: flex-start;
     }
 }
+
+.hasBorder {
+    gap: 0;
+    padding: 0;
+
+    .item {
+        padding: 1.5rem 1rem;
+    }
+
+    @media (max-width: 767px) {
+        .item {
+            border-bottom: 1px solid var(--icon-group-border-color, #e8d8bd);
+            justify-content: flex-start;
+            
+            &:last-child {
+                border-bottom: none;
+            }
+        }
+    }
+
+    @media (min-width: 768px) {
+        .item {
+            border-right: 1px solid var(--icon-group-border-color, #e8d8bd);
+            
+            &:last-child {
+                border-right: none;
+            }
+        }
+    }
+}

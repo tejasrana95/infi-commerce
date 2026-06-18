@@ -324,6 +324,25 @@ export const AVAILABLE_MODULES: ModuleDefinition[] = [
         },
     },
     {
+        type: 'section-layout',
+        label: 'Section Layout',
+        icon: 'ViewStream',
+        category: 'standard',
+        description: 'A custom section container that can hold multiple nested modules with custom background and borders.',
+        defaultConfig: {
+            backgroundColor: 'transparent',
+            borderColor: '#e5e7eb',
+            borderWidth: 0,
+            borderStyle: 'none',
+            borderRadius: 8,
+            paddingTop: 16,
+            paddingBottom: 16,
+            paddingLeft: 16,
+            paddingRight: 16,
+            modules: []
+        }
+    },
+    {
         type: 'pricing-table',
         label: 'Pricing Table',
         icon: 'MonetizationOn',

@@ -25,6 +25,7 @@ export type ModuleType =
     | 'icon'
     | 'table'
     | 'content-card-grid'
+    | 'section-layout'
     | 'icon-list';
 
 export type SectionType = 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';
@@ -108,6 +109,7 @@ export interface LayoutSection {
         borderRadius?: number;
         // Box shadow
         boxShadow?: 'none' | 'small' | 'medium' | 'large';
+        styleInnerContainer?: boolean;
         // Height constraints
         minHeight?: number;
         maxHeight?: number;

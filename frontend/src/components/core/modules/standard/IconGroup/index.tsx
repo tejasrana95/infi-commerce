@@ -26,6 +26,10 @@ interface IconGroupConfig {
     descriptionColor?: string;
     iconPosition?: IconPosition;
     textAlign?: TextAlign;
+    showBorder?: boolean;
+    gap?: number;
+    paddingVertical?: number;
+    paddingHorizontal?: number;
 }
 
 export default function IconGroupModule({ config }: ModuleProps) {
@@ -38,6 +42,10 @@ export default function IconGroupModule({ config }: ModuleProps) {
         descriptionColor = '#6b7280',
         iconPosition = 'left',
         textAlign = 'left',
+        showBorder = false,
+        gap,
+        paddingVertical,
+        paddingHorizontal,
     } = config as IconGroupConfig;
 
     if (items.length === 0) return null;
@@ -49,10 +57,20 @@ export default function IconGroupModule({ config }: ModuleProps) {
         '--icon-group-title-color': titleColor,
         '--icon-group-description-color': descriptionColor,
         '--icon-group-text-align': textAlign,
+        padding: (!showBorder && (paddingVertical !== undefined || paddingHorizontal !== undefined))
+            ? `${paddingVertical ?? 1.5}rem ${paddingHorizontal ?? 1}rem`
+            : undefined,
+        gap: (!showBorder && gap !== undefined) ? `${gap}rem` : undefined,
+    } as React.CSSProperties;
+
+    const itemStyle = {
+        padding: (showBorder && (paddingVertical !== undefined || paddingHorizontal !== undefined))
+            ? `${paddingVertical ?? 1.5}rem ${paddingHorizontal ?? 1}rem`
+            : undefined,
     } as React.CSSProperties;
 
     return (
-        <div className={styles.iconGroup} style={groupStyle}>
+        <div className={`${styles.iconGroup} ${showBorder ? styles.hasBorder : ''}`} style={groupStyle}>
             {items.map((item, index) => {
                 const content = (
                     <>
@@ -75,6 +93,7 @@ export default function IconGroupModule({ config }: ModuleProps) {
                             key={key}
                             href={item.link}
                             className={className}
+                            style={itemStyle}
                             target={item.openInNewTab ? '_blank' : undefined}
                             rel={item.openInNewTab ? 'noopener noreferrer' : undefined}
                         >
@@ -84,7 +103,7 @@ export default function IconGroupModule({ config }: ModuleProps) {
                 }
 
                 return (
-                    <div key={key} className={className}>
+                    <div key={key} className={className} style={itemStyle}>
                         {content}
                     </div>
                 );

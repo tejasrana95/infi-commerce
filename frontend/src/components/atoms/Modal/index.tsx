@@ -33,6 +33,8 @@ export default function Modal({
             }
         };
 
+        const originalOverflow = document.body.style.overflow;
+
         if (isOpen) {
             document.addEventListener('keydown', handleEscape);
             // Lock body scroll
@@ -41,7 +43,12 @@ export default function Modal({
 
         return () => {
             document.removeEventListener('keydown', handleEscape);
-            document.body.style.overflow = 'unset';
+            const activeOverlays = document.querySelectorAll('[role="dialog"], [class*="overlay"], [class*="modal"], [class*="drawer"]');
+            if (activeOverlays.length <= 1) {
+                document.body.style.overflow = '';
+            } else {
+                document.body.style.overflow = originalOverflow;
+            }
         };
     }, [isOpen, onClose]);
 

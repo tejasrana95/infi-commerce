@@ -77,18 +77,21 @@ export default function SectionRenderer({ section, moduleData, renderModule, ind
     // Use custom render function if provided, otherwise use default
     const renderModuleFn = renderModule || defaultRenderModule;
 
-    // Build section styles
-    const sectionStyle: React.CSSProperties = {
+    const isInnerContainerStyled = !!section.settings?.styleInnerContainer;
+
+    const outerSectionStyle: React.CSSProperties = {
+        marginTop: section.settings?.marginTop ? `${section.settings.marginTop}px` : undefined,
+        marginBottom: section.settings?.marginBottom ? `${section.settings.marginBottom}px` : undefined,
+    };
+
+    const innerContainerStyle: React.CSSProperties = isInnerContainerStyled ? {
         backgroundColor: section.settings?.backgroundColor,
         paddingTop: section.settings?.paddingTop ? `${section.settings.paddingTop}px` : undefined,
         paddingBottom: section.settings?.paddingBottom ? `${section.settings.paddingBottom}px` : undefined,
         paddingLeft: section.settings?.paddingLeft ? `${section.settings.paddingLeft}px` : undefined,
         paddingRight: section.settings?.paddingRight ? `${section.settings.paddingRight}px` : undefined,
-        marginTop: section.settings?.marginTop ? `${section.settings.marginTop}px` : undefined,
-        marginBottom: section.settings?.marginBottom ? `${section.settings.marginBottom}px` : undefined,
         minHeight: section.settings?.minHeight ? `${section.settings.minHeight}px` : undefined,
         maxHeight: section.settings?.maxHeight ? `${section.settings.maxHeight}px` : undefined,
-        // Individual border widths
         borderTopWidth: section.settings?.borderTopWidth ? `${section.settings.borderTopWidth}px` : undefined,
         borderRightWidth: section.settings?.borderRightWidth ? `${section.settings.borderRightWidth}px` : undefined,
         borderBottomWidth: section.settings?.borderBottomWidth ? `${section.settings.borderBottomWidth}px` : undefined,
@@ -96,7 +99,26 @@ export default function SectionRenderer({ section, moduleData, renderModule, ind
         borderColor: section.settings?.borderColor,
         borderStyle: section.settings?.borderStyle || 'solid',
         borderRadius: section.settings?.borderRadius ? `${section.settings.borderRadius}px` : undefined,
-        // Box shadow
+        boxShadow: section.settings?.boxShadow ? getBoxShadow(section.settings.boxShadow) : undefined,
+        overflow: 'hidden',
+    } : {};
+
+    const sectionStyle: React.CSSProperties = isInnerContainerStyled ? outerSectionStyle : {
+        ...outerSectionStyle,
+        backgroundColor: section.settings?.backgroundColor,
+        paddingTop: section.settings?.paddingTop ? `${section.settings.paddingTop}px` : undefined,
+        paddingBottom: section.settings?.paddingBottom ? `${section.settings.paddingBottom}px` : undefined,
+        paddingLeft: section.settings?.paddingLeft ? `${section.settings.paddingLeft}px` : undefined,
+        paddingRight: section.settings?.paddingRight ? `${section.settings.paddingRight}px` : undefined,
+        minHeight: section.settings?.minHeight ? `${section.settings.minHeight}px` : undefined,
+        maxHeight: section.settings?.maxHeight ? `${section.settings.maxHeight}px` : undefined,
+        borderTopWidth: section.settings?.borderTopWidth ? `${section.settings.borderTopWidth}px` : undefined,
+        borderRightWidth: section.settings?.borderRightWidth ? `${section.settings.borderRightWidth}px` : undefined,
+        borderBottomWidth: section.settings?.borderBottomWidth ? `${section.settings.borderBottomWidth}px` : undefined,
+        borderLeftWidth: section.settings?.borderLeftWidth ? `${section.settings.borderLeftWidth}px` : undefined,
+        borderColor: section.settings?.borderColor,
+        borderStyle: section.settings?.borderStyle || 'solid',
+        borderRadius: section.settings?.borderRadius ? `${section.settings.borderRadius}px` : undefined,
         boxShadow: section.settings?.boxShadow ? getBoxShadow(section.settings.boxShadow) : undefined,
     };
 
@@ -165,11 +187,15 @@ export default function SectionRenderer({ section, moduleData, renderModule, ind
         <section
             id={section.sectionId || undefined}
             ref={sectionRef}
-            className={`${styles.section} ${section.settings?.customClass || ''} ${getVisibilityClasses()}`}
+            className={`${styles.section} ${section.settings?.customClass || ''} ${getVisibilityClasses()} ${isInnerContainerStyled ? styles.outerSectionPadded : ''}`}
             style={sectionStyle}
         >
-            {renderBackground()}
-            <div className={`${styles.contentWrapper} ${getInnerClass()} ${styles.columnWrapper}`}>
+            {!isInnerContainerStyled && renderBackground()}
+            <div 
+                className={`${styles.contentWrapper} ${getInnerClass()} ${styles.columnWrapper}`}
+                style={innerContainerStyle}
+            >
+                {isInnerContainerStyled && renderBackground()}
                 {section.columns.map((column) => {
                     const sortedColumnModules = [...(column.modules || [])].sort((a, b) => a.order - b.order);
                     const widthPercent = (column.width / 12) * 100;
@@ -216,11 +242,15 @@ export default function SectionRenderer({ section, moduleData, renderModule, ind
         <section
             id={section.sectionId || undefined}
             ref={sectionRef}
-            className={`${styles.section} ${section.settings?.customClass || ''} ${getVisibilityClasses()}`}
+            className={`${styles.section} ${section.settings?.customClass || ''} ${getVisibilityClasses()} ${isInnerContainerStyled ? styles.outerSectionPadded : ''}`}
             style={sectionStyle}
         >
-            {renderBackground()}
-            <div className={`${styles.contentWrapper} ${getInnerClass()}`}>
+            {!isInnerContainerStyled && renderBackground()}
+            <div 
+                className={`${styles.contentWrapper} ${getInnerClass()}`}
+                style={innerContainerStyle}
+            >
+                {isInnerContainerStyled && renderBackground()}
                 {sortedModules.map((module) =>
                     renderModuleFn(module, moduleData?.[module.id], index === 0)
                 )}

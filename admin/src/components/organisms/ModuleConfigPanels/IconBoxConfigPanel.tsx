@@ -45,6 +45,10 @@ interface IconBoxConfigStyles {
     iconBgPadding?: number;
     iconAlign?: string;
     hoverEffect?: string;
+    gap?: number;
+    hideBoxShadow?: boolean;
+    hideIconBg?: boolean;
+    iconTextGap?: number;
 }
 
 interface IconBoxConfig {
@@ -435,6 +439,30 @@ export default function IconBoxConfigPanel({ config, onChange }: Readonly<IconBo
             {/* Tab 2: Box Model & Styling */}
             {tab === 2 && (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+                    <Typography variant="subtitle2">Grid Layout & Shadow</Typography>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, alignItems: 'center' }}>
+                        <TextField
+                            label="Grid Gap (px)"
+                            type="number"
+                            value={config.styles?.gap ?? ''}
+                            onChange={(e) => handleStyleChange('gap', e.target.value ? Number.parseInt(e.target.value, 10) : undefined)}
+                            size="small"
+                            fullWidth
+                            placeholder="32"
+                        />
+                        <FormControlLabel
+                            control={
+                                <Switch
+                                    checked={config.styles?.hideBoxShadow || false}
+                                    onChange={(e) => handleStyleChange('hideBoxShadow', e.target.checked)}
+                                />
+                            }
+                            label="Hide Box Shadow"
+                        />
+                    </Box>
+
+                    <Divider sx={{ my: 1 }} />
+
                     <Typography variant="subtitle2">Card Border & Corners</Typography>
                     <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, alignItems: 'center' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -595,6 +623,27 @@ export default function IconBoxConfigPanel({ config, onChange }: Readonly<IconBo
                                 <MenuItem value="flex-end">Bottom / Right (End)</MenuItem>
                             </Select>
                         </FormControl>
+
+                        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, alignItems: 'center' }}>
+                            <TextField
+                                label="Icon-to-Text Gap (px)"
+                                type="number"
+                                value={config.styles?.iconTextGap ?? ''}
+                                onChange={(e) => handleStyleChange('iconTextGap', e.target.value ? Number.parseInt(e.target.value, 10) : undefined)}
+                                size="small"
+                                fullWidth
+                                placeholder="24"
+                            />
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={config.styles?.hideIconBg || false}
+                                        onChange={(e) => handleStyleChange('hideIconBg', e.target.checked)}
+                                    />
+                                }
+                                label="Hide Icon Background"
+                            />
+                        </Box>
                     </Box>
 
                     <Divider sx={{ my: 1 }} />

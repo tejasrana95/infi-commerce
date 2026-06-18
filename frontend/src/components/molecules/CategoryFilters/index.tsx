@@ -833,9 +833,9 @@ export default function CategoryFilters({
             )}
 
             {config.filters?.showAttributeFilters && availableFilters?.attributes?.map(attr => (
-                <div key={attr._id}>
+                <React.Fragment key={attr._id}>
                     {renderCheckboxFilter(attr.name, attr.slug, attr.values)}
-                </div>
+                </React.Fragment>
             ))}
 
             {config.filters?.showTagFilter && (availableFilters?.tags?.length ?? 0) > 0 && (

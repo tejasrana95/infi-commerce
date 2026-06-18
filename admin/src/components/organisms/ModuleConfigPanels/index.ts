@@ -70,3 +70,8 @@ export * from './PageHeroConfigPanel';
 // Checkout Config Panel
 export { default as CheckoutContentConfigPanel, defaultCheckoutContentConfig } from './CheckoutConfigPanels';
 export type { CheckoutContentConfig } from './CheckoutConfigPanels';
+
+// Section Layout Config Panel
+export { default as SectionLayoutConfigPanel, defaultSectionLayoutConfig } from './SectionLayoutConfigPanel';
+export type { SectionLayoutConfig } from './SectionLayoutConfigPanel';
+

@@ -41,6 +41,7 @@ import ContentCardGridModule from './standard/ContentCardGrid';
 import HeroSliderModule from './standard/HeroSlider';
 import HeroBannerModule from './standard/HeroBanner';
 import IconListModule from './standard/IconList';
+import SectionLayoutModule from './standard/SectionLayout';
 import CheckoutContentModule from './checkout/CheckoutContent';
 import CartModule from './cart/CartModule';
 import FormModule from './form/FormModule';
@@ -126,6 +127,7 @@ export const moduleRegistry: Record<string, ModuleComponent> = {
     'hero-slider': HeroSliderModule,
     'hero-banner': HeroBannerModule,
     'icon-list': IconListModule,
+    'section-layout': SectionLayoutModule,
     // Checkout module
     'checkout-content': CheckoutContentModule,
     // Cart module

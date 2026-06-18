@@ -266,6 +266,16 @@ export default function SectionEditor({ section, onChange, onDelete, copiedStyle
 
             {activeTab === 1 && (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+                    <FormControlLabel
+                        control={
+                            <Checkbox
+                                checked={section.settings.styleInnerContainer || false}
+                                onChange={(e) => updateSettings('styleInnerContainer', e.target.checked)}
+                                size="small"
+                            />
+                        }
+                        label="Style Inner Container Only"
+                    />
                     <Typography variant="subtitle2" color="text.secondary">Background</Typography>
                     <Box sx={{ display: 'flex', gap: 1 }}>
                         <Box flex={1}>

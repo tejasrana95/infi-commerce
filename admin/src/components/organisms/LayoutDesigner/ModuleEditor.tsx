@@ -56,6 +56,7 @@ import {
     TableConfigPanel,
     ContentCardGridConfigPanel,
     IconListConfigPanel,
+    SectionLayoutConfigPanel,
 } from '@/components/organisms/ModuleConfigPanels';
 import FormModuleEditor from './ModuleEditors/FormModuleEditor';
 
@@ -471,6 +472,15 @@ export default function ModuleEditor({ module, onChange, onDelete, storeId }: Mo
                     <IconListConfigPanel
                         config={module.config as any}
                         onChange={updateConfig}
+                    />
+                );
+
+            case 'section-layout':
+                return (
+                    <SectionLayoutConfigPanel
+                        config={module.config as any}
+                        onChange={updateConfig}
+                        storeId={effectiveStoreId}
                     />
                 );
 

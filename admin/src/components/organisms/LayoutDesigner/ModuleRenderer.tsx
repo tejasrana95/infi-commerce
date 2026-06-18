@@ -343,6 +343,49 @@ export default function ModuleRenderer({ module, isSelected, onClick }: ModuleRe
                     </Box>
                 );
 
+            case 'section-layout':
+                const nestedModules = (module.config.modules || []) as LayoutModule[];
+                return (
+                    <Box
+                        sx={{
+                            p: `${module.config.paddingTop ?? 16}px ${module.config.paddingRight ?? 16}px ${module.config.paddingBottom ?? 16}px ${module.config.paddingLeft ?? 16}px`,
+                            backgroundColor: module.config.backgroundColor || 'transparent',
+                            border: `${module.config.borderWidth ?? 0}px ${module.config.borderStyle || 'none'} ${module.config.borderColor || 'transparent'}`,
+                            borderRadius: `${module.config.borderRadius ?? 0}px`,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: module.config.gap !== undefined ? `${module.config.gap}px` : '1.5rem',
+                            minHeight: 80,
+                            boxSizing: 'border-box',
+                            width: '100%',
+                        }}
+                    >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, borderBottom: '1px dashed', borderColor: 'grey.300', pb: 0.5, mb: 0.5 }}>
+                            <IconComponent sx={{ fontSize: 18, color: 'primary.main' }} />
+                            <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                Section Layout Container ({nestedModules.length})
+                            </Typography>
+                        </Box>
+                        {nestedModules.length === 0 ? (
+                            <Box sx={{ p: 2, textAlign: 'center', border: '1px dashed', borderColor: 'grey.300', borderRadius: 1 }}>
+                                <Typography variant="caption" color="text.secondary">
+                                    Empty Section Layout. Open config panel to add modules.
+                                </Typography>
+                            </Box>
+                        ) : (
+                            nestedModules.map((nestedMod) => (
+                                <Box key={nestedMod.id} sx={{ pointerEvents: 'none' }}>
+                                    <ModuleRenderer
+                                        module={nestedMod}
+                                        isSelected={false}
+                                        onClick={() => {}}
+                                    />
+                                </Box>
+                            ))
+                        )}
+                    </Box>
+                );
+
             case 'strip-banner':
                 return (
                     <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, minHeight: 60 }}>

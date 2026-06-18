@@ -88,6 +88,7 @@ export interface Section {
         borderRadius?: number;
         // Box shadow
         boxShadow?: 'none' | 'small' | 'medium' | 'large';
+        styleInnerContainer?: boolean;
     };
     columns?: Column[];
     modules: Module[];

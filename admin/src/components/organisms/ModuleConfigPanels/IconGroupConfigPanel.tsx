@@ -28,6 +28,10 @@ export interface IconGroupConfig {
     descriptionColor?: string;
     iconPosition?: IconPosition;
     textAlign?: TextAlign;
+    showBorder?: boolean;
+    gap?: number;
+    paddingVertical?: number;
+    paddingHorizontal?: number;
 }
 
 interface IconGroupConfigPanelProps {
@@ -123,6 +127,49 @@ export default function IconGroupConfigPanel({ config, onChange }: IconGroupConf
                         <MenuItem value="right">Right</MenuItem>
                     </Select>
                 </FormControl>
+                <FormControlLabel
+                    control={
+                        <Checkbox
+                            checked={config.showBorder || false}
+                            onChange={(e) => handleChange('showBorder', e.target.checked)}
+                        />
+                    }
+                    label="Show Border Between Items"
+                    sx={{ gridColumn: 'span 2' }}
+                />
+            </Box>
+
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2 }}>
+                <TextField
+                    label="Gap (rem)"
+                    type="number"
+                    value={config.gap ?? ''}
+                    onChange={(e) => handleChange('gap', e.target.value === '' ? undefined : parseFloat(e.target.value))}
+                    fullWidth
+                    size="small"
+                    inputProps={{ min: 0, step: 0.1 }}
+                    placeholder="0.75"
+                />
+                <TextField
+                    label="Padding Vert. (rem)"
+                    type="number"
+                    value={config.paddingVertical ?? ''}
+                    onChange={(e) => handleChange('paddingVertical', e.target.value === '' ? undefined : parseFloat(e.target.value))}
+                    fullWidth
+                    size="small"
+                    inputProps={{ min: 0, step: 0.1 }}
+                    placeholder="1.5"
+                />
+                <TextField
+                    label="Padding Horiz. (rem)"
+                    type="number"
+                    value={config.paddingHorizontal ?? ''}
+                    onChange={(e) => handleChange('paddingHorizontal', e.target.value === '' ? undefined : parseFloat(e.target.value))}
+                    fullWidth
+                    size="small"
+                    inputProps={{ min: 0, step: 0.1 }}
+                    placeholder="1"
+                />
             </Box>
 
             <Box>

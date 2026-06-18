@@ -94,7 +94,10 @@ export default function ImageGalleryModule({ config }: ModuleProps) {
 
     const closeLightbox = () => {
         setLightboxOpen(false);
-        document.body.style.overflow = '';
+        const activeOverlays = document.querySelectorAll('[role="dialog"], [class*="overlay"], [class*="modal"], [class*="drawer"]');
+        if (activeOverlays.length <= 1) {
+            document.body.style.overflow = '';
+        }
     };
 
     const nextImage = () => {

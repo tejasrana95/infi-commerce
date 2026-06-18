@@ -55,6 +55,10 @@ interface IconBoxConfig {
         iconBgPadding?: number;
         iconAlign?: string;
         hoverEffect?: string;
+        gap?: number;
+        hideBoxShadow?: boolean;
+        hideIconBg?: boolean;
+        iconTextGap?: number;
     };
 }
 
@@ -121,8 +125,15 @@ export default function IconBoxModule({ config }: ModuleProps) {
         setCurrentIndex(Math.max(0, Math.min(index, maxIndex)));
     };
 
+    // Helper to resolve empty string color settings to transparent
+    const resolveColor = (val?: string) => {
+        if (val === '') return 'transparent';
+        return val;
+    };
+
     const gridStyle = {
         '--desktop-columns': columns,
+        gap: customStyles.gap !== undefined ? `${customStyles.gap}px` : undefined,
     } as React.CSSProperties;
 
     const boxStyle = {
@@ -138,7 +149,7 @@ export default function IconBoxModule({ config }: ModuleProps) {
         const isFullImage = fullSizeImage && iconType === 'image' && item.image;
 
         // Custom styling for this card/box
-        const itemBg = item.bgColor || customStyles.bgColor || undefined;
+        const itemBg = resolveColor(item.bgColor || customStyles.bgColor);
         const itemStyle = {
             ...boxStyle,
             backgroundColor: itemBg,
@@ -175,8 +186,9 @@ export default function IconBoxModule({ config }: ModuleProps) {
         }
 
         // Custom borders
-        if (customStyles.borderColor) {
-            itemStyle.borderColor = customStyles.borderColor;
+        const borderColor = resolveColor(customStyles.borderColor);
+        if (borderColor) {
+            itemStyle.borderColor = borderColor;
             itemStyle.borderStyle = 'solid';
         }
         if (customStyles.borderRadius !== undefined) {
@@ -189,13 +201,26 @@ export default function IconBoxModule({ config }: ModuleProps) {
         if (customStyles.paddingLeft !== undefined) itemStyle.paddingLeft = `${customStyles.paddingLeft}px`;
         if (customStyles.paddingRight !== undefined) itemStyle.paddingRight = `${customStyles.paddingRight}px`;
 
+        // Override box shadow if requested
+        if (customStyles.hideBoxShadow) {
+            itemStyle.boxShadow = 'none';
+            (itemStyle as any)['--hover-shadow'] = 'none';
+        }
+
         // Custom icon styles
         const iconStyle = {
             color: item.iconColor || customStyles.iconColor || undefined,
         } as React.CSSProperties;
 
-        if (customStyles.iconBgColor) {
-            iconStyle.background = customStyles.iconBgColor;
+        const iconBgColor = resolveColor(customStyles.iconBgColor);
+        if (iconBgColor && !customStyles.hideIconBg) {
+            iconStyle.background = iconBgColor;
+        }
+        if (customStyles.hideIconBg) {
+            iconStyle.background = 'transparent';
+            iconStyle.boxShadow = 'none';
+            // Also clean up absolute border line/blur effects from styles if present
+            (iconStyle as any)['boxShadow'] = 'none';
         }
         if (customStyles.iconBgRadius !== undefined) {
             iconStyle.borderRadius = `${customStyles.iconBgRadius}px`;
@@ -211,6 +236,22 @@ export default function IconBoxModule({ config }: ModuleProps) {
         if (customStyles.iconBgPadding !== undefined) {
             iconStyle.padding = `${customStyles.iconBgPadding}px`;
         }
+
+        // Apply gap between icon and text if configured
+        if (customStyles.iconTextGap !== undefined) {
+            const gapValue = `${customStyles.iconTextGap}px`;
+            if (layout === 'icon-top') {
+                iconStyle.marginBottom = gapValue;
+            } else if (layout === 'icon-left') {
+                iconStyle.marginRight = gapValue;
+            } else if (layout === 'icon-right') {
+                iconStyle.marginLeft = gapValue;
+            } else if (layout === 'icon-bottom') {
+                iconStyle.marginTop = gapValue;
+            }
+            itemStyle.gap = gapValue;
+        }
+
         if (customStyles.iconAlign) {
             iconStyle.alignSelf = customStyles.iconAlign;
             if (customStyles.iconAlign === 'flex-start') {

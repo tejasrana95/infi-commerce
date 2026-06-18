@@ -90,6 +90,7 @@ export interface ISection {
         borderRadius?: number;
         // Box shadow
         boxShadow?: 'none' | 'small' | 'medium' | 'large';
+        styleInnerContainer?: boolean;
     };
     columns?: IColumn[];                // For split layouts
     modules: IModule[];                 // For non-split layouts
@@ -237,6 +238,7 @@ const SectionSchema = new Schema<ISection>(
             borderRadius: { type: Number },
             // Box shadow
             boxShadow: { type: String, enum: ['none', 'small', 'medium', 'large'], default: 'none' },
+            styleInnerContainer: { type: Boolean, default: false },
         },
         columns: { type: [ColumnSchema], default: [] },
         modules: { type: [ModuleSchema], default: [] },

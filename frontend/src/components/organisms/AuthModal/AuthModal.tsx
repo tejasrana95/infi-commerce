@@ -16,6 +16,8 @@ export default function AuthModal() {
             if (e.key === 'Escape') closeAuthModal();
         };
 
+        const originalOverflow = document.body.style.overflow;
+
         if (isAuthModalOpen) {
             document.addEventListener('keydown', handleEscape);
             document.body.style.overflow = 'hidden';
@@ -23,7 +25,12 @@ export default function AuthModal() {
 
         return () => {
             document.removeEventListener('keydown', handleEscape);
-            document.body.style.overflow = 'auto';
+            const activeOverlays = document.querySelectorAll('[role="dialog"], [class*="overlay"], [class*="modal"], [class*="drawer"]');
+            if (activeOverlays.length <= 1) {
+                document.body.style.overflow = '';
+            } else {
+                document.body.style.overflow = originalOverflow;
+            }
         };
     }, [isAuthModalOpen, closeAuthModal]);
 
