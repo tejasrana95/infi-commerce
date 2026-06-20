@@ -2,6 +2,7 @@ import { Response } from 'express';
 import Geo from '../models/Geo';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
+import { getClientIp } from '../utils/request.utils';
 
 /**
  * @swagger
@@ -447,7 +448,7 @@ export const detectGeoLocation = asyncHandler(async (req: AuthRequest, res: Resp
 
     // Fallback: ipapi.co (server-to-server, not rate-limited by browser IP)
     try {
-        const clientIp = (req.headers['x-forwarded-for'] as string || req.ip || '').split(',')[0].trim();
+        const clientIp = getClientIp(req);
         const ipapiUrl = clientIp ? `https://ipapi.co/${clientIp}/json/` : 'https://ipapi.co/json/';
         const response = await fetch(ipapiUrl, {
             signal: AbortSignal.timeout(5000),
@@ -469,7 +470,7 @@ export const detectGeoLocation = asyncHandler(async (req: AuthRequest, res: Resp
 
     // Second fallback: api.country.is (no limits, returns country only)
     try {
-        const clientIp = (req.headers['x-forwarded-for'] as string || req.ip || '').split(',')[0].trim();
+        const clientIp = getClientIp(req);
         const url = clientIp ? `https://api.country.is/${clientIp}` : 'https://api.country.is/';
         const response = await fetch(url, { signal: AbortSignal.timeout(4000) });
         if (response.ok) {

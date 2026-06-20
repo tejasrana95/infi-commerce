@@ -1,10 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
+import { getClientIp } from '../utils/request.utils';
 
 /**
  * Middleware to restrict access to local IPs only (cron jobs, internal cleanup)
  */
 export const localIpOnly = (req: Request, res: Response, next: NextFunction) => {
-    const clientIp = req.ip || req.socket.remoteAddress || '';
+    const clientIp = getClientIp(req);
 
     // Allow localhost IPv4, IPv6, and loopback addresses
     const localIps = ['127.0.0.1', '::1', '::ffff:127.0.0.1', 'localhost', process.env.SERVER_IP || ''];

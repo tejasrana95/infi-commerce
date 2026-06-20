@@ -3,6 +3,7 @@ import ApiKey, { IApiKey } from '../models/ApiKey';
 import Store from '../models/Store';
 import redisService from '../services/redis.service';
 import { CacheKeys, CACHE_TTL } from '../utils/cache-keys';
+import { getClientIp } from '../utils/request.utils';
 
 // Rate limit tracking (in-memory for simplicity, use Redis in production)
 const rateLimitStore: Map<string, { count: number; resetAt: number }> = new Map();
@@ -64,7 +65,7 @@ export const authenticateApiKey = async (
         }
 
         // Check IP restriction
-        const clientIp = req.ip || req.socket.remoteAddress || '';
+        const clientIp = getClientIp(req);
         // Normalize IPv6 localhost to IPv4
         const normalizedIp = clientIp === '::1' ? '127.0.0.1' : clientIp.replace(/^::ffff:/, '');
 
@@ -281,7 +282,7 @@ export const optionalApiKeyAuth = async (
         }
 
         // Check IP restriction
-        const clientIp = req.ip || req.socket.remoteAddress || '';
+        const clientIp = getClientIp(req);
         const normalizedIp = clientIp === '::1' ? '127.0.0.1' : clientIp.replace(/^::ffff:/, '');
 
         if (!apiKey.allowedIps.includes('0.0.0.0') && apiKey.allowedIps.length > 0) {

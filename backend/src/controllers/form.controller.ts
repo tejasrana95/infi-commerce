@@ -9,6 +9,7 @@ import { asyncHandler, AppError } from '../middleware/validation';
 import { storageService } from '../services/storage';
 import { generateUniqueFilename } from '../middleware/upload';
 import { getFileCategory } from '../middleware/fileValidation';
+import { getClientIp } from '../utils/request.utils';
 import path from 'path';
 
 // Validation rules
@@ -667,7 +668,7 @@ export const submitForm = asyncHandler(async (req: any, res: Response) => {
         data: formData,
         files: files.length > 0 ? files : undefined,
         metadata: {
-            ip: req.ip,
+            ip: getClientIp(req),
             userAgent: req.get('User-Agent'),
             referer: req.get('Referrer'),
             geo: clientMetadata.geoData
