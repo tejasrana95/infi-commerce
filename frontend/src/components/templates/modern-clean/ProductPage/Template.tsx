@@ -602,7 +602,7 @@ export default function ModernCleanProductPageTemplate({
                 <p className={styles.selectOptionsHint}>Please select all options to continue</p>
             )}
             {shouldShowPrice ? (
-                <div className={`${styles.actions} ${customButtonEnabled ? styles.actionsWithCustom : ''}`}>
+                <div className={`${styles.actions} ${customButtonEnabled ? styles.actionsWithCustom : styles.actionsTwoCol}`}>
                     <button
                         className={styles.addToCartBtn}
                         onClick={onAddToCart}

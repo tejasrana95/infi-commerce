@@ -582,16 +582,30 @@ $star-color: #fbbf24;
 // Action Buttons
 // ============================================
 .actions {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr;
     gap: 12px;
+}
 
-    @include small-mobile {
-        flex-direction: column;
+// When only Add to Cart + Buy Now (no custom button)
+.actionsTwoCol {
+    grid-template-columns: 1fr 1fr;
+
+    @include mobile {
+        grid-template-columns: 1fr;
+    }
+}
+
+// When custom button is enabled, custom button spans full width on its own row
+.actionsWithCustom {
+    grid-template-columns: 1fr 1fr;
+
+    @include mobile {
+        grid-template-columns: 1fr;
     }
 }
 
 .addToCartBtn {
-    flex: 1;
     padding: 18px 36px;
     background: linear-gradient(135deg, $accent-color 0%, $accent-color 100%);
     color: white;
@@ -640,7 +654,6 @@ $star-color: #fbbf24;
 }
 
 .buyNowBtn {
-    flex: 1;
     padding: 18px 36px;
     background: white;
     color: $primary-color;
@@ -656,8 +669,8 @@ $star-color: #fbbf24;
     gap: 6px;
     &:hover:not(:disabled) {
         background: linear-gradient(145deg, #f9fafb 0%, #ffffff 100%);
-        border-color: #3b82f6;
-        color: #3b82f6;
+        border-color: var(--color-accent, #3b82f6);
+        color: var(--color-accent, #3b82f6);
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
     }
@@ -668,14 +681,11 @@ $star-color: #fbbf24;
     }
 }
 
-// When custom button is enabled, allow wrapping so custom button goes to new line
-.actionsWithCustom {
-    flex-wrap: wrap;
-}
+
 
 // Custom button - outline style with accent color, full width on its own line
 .customBtn {
-    flex: 1 1 100%;
+    grid-column: 1 / -1;
     display: flex;
     align-items: center;
     justify-content: center;
