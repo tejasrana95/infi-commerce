@@ -786,7 +786,7 @@ export const submitForm = asyncHandler(async (req: any, res: Response) => {
                         const paramsList = Object.entries(parsed)
                             .map(([pk, pv]) => {
                                 const cleanValue = linkify(escapeHtml(String(pv ?? '')));
-                                return `<tr><td style="${tdLabelStyle}padding-left:28px;">${escapeHtml(pk)}</td><td style="${tdValueStyle}">${cleanValue}</td></tr>`;
+                                return `<tr><td colspan="2" style="${tdLabelStyle}">${escapeHtml(pk)}</td></tr><tr><td colspan="2" style="${tdValueStyle}">${cleanValue}</td></tr>`;
                             })
                             .join('');
                         formDataRows += `<tr><td style="${tdLabelStyle}">${escapeHtml(label)}</td><td style="${tdValueStyle}"><table style="${tableStyle}margin:-6px 0;">${paramsList}</table></td></tr>`;
