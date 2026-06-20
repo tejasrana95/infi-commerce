@@ -295,21 +295,37 @@ export default async function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable}`}>
         <NavigationProgress />
         {store && (
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{
-              __html: JSON.stringify({
-                "@context": "https://schema.org",
-                "@type": "Organization",
-                "@id": `https://${domain}/#organization`,
-                "name": store.name,
-                "description": store.description,
-                "currenciesAccepted": currencies.map(c => c.code).join(", "),
-                "url": `https://${domain}`,
-                "logo": store.logo || undefined,
-              })
-            }}
-          />
+          <>
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{
+                __html: JSON.stringify({
+                  "@context": "https://schema.org",
+                  "@type": "Organization",
+                  "@id": `https://${domain}/#organization`,
+                  "name": store.name,
+                  "description": store.description,
+                  "url": `https://${domain}`,
+                  "logo": store.logo || undefined,
+                })
+              }}
+            />
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{
+                __html: JSON.stringify({
+                  "@context": "https://schema.org",
+                  "@type": "Store",
+                  "@id": `https://${domain}/#store`,
+                  "name": store.name,
+                  "description": store.description,
+                  "url": `https://${domain}`,
+                  "logo": store.logo || undefined,
+                  "currenciesAccepted": currencies.map(c => c.code).join(", "),
+                })
+              }}
+            />
+          </>
         )}
         {/* StoreProvider is a client component that wraps server-rendered children */}
         <StoreProvider
