@@ -57,6 +57,7 @@ import {
     ContentCardGridConfigPanel,
     IconListConfigPanel,
     SectionLayoutConfigPanel,
+    ModuleStylingTab,
 } from '@/components/organisms/ModuleConfigPanels';
 import FormModuleEditor from './ModuleEditors/FormModuleEditor';
 
@@ -539,68 +540,7 @@ export default function ModuleEditor({ module, onChange, onDelete, storeId }: Mo
             )}
 
             {tab === 1 && (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <Typography variant="caption" color="text.secondary">
-                        Margin (px)
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                        <Box flex={1}>
-                            <Typography variant="caption">Top</Typography>
-                            <input
-                                type="number"
-                                value={module.styling?.marginTop || 0}
-                                onChange={(e) => updateStyling('marginTop', parseInt(e.target.value) || 0)}
-                                style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ddd' }}
-                            />
-                        </Box>
-                        <Box flex={1}>
-                            <Typography variant="caption">Bottom</Typography>
-                            <input
-                                type="number"
-                                value={module.styling?.marginBottom || 0}
-                                onChange={(e) => updateStyling('marginBottom', parseInt(e.target.value) || 0)}
-                                style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ddd' }}
-                            />
-                        </Box>
-                    </Box>
-
-                    <Typography variant="caption" color="text.secondary">
-                        Padding (px)
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                        <Box flex={1}>
-                            <Typography variant="caption">Top</Typography>
-                            <input
-                                type="number"
-                                value={module.styling?.paddingTop || 0}
-                                onChange={(e) => updateStyling('paddingTop', parseInt(e.target.value) || 0)}
-                                style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ddd' }}
-                            />
-                        </Box>
-                        <Box flex={1}>
-                            <Typography variant="caption">Bottom</Typography>
-                            <input
-                                type="number"
-                                value={module.styling?.paddingBottom || 0}
-                                onChange={(e) => updateStyling('paddingBottom', parseInt(e.target.value) || 0)}
-                                style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ddd' }}
-                            />
-                        </Box>
-                    </Box>
-
-                    <Box>
-                        <Typography variant="caption" color="text.secondary">
-                            CSS Class
-                        </Typography>
-                        <input
-                            type="text"
-                            value={module.styling?.className || ''}
-                            onChange={(e) => updateStyling('className', e.target.value)}
-                            placeholder="custom-module-class"
-                            style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ddd' }}
-                        />
-                    </Box>
-                </Box>
+                <ModuleStylingTab styling={module.styling} onChange={updateStyling} />
             )}
         </Box>
     );

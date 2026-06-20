@@ -39,6 +39,7 @@ export default function ModuleRenderer({ module, sectionType, prefetchedData, pr
     // Build module props
     const moduleProps = {
         config: module.config,
+        styling: module.styling,
         sectionType,
         initialData: prefetchedData,
         priority
@@ -47,13 +48,40 @@ export default function ModuleRenderer({ module, sectionType, prefetchedData, pr
     // Check if module is full height
     const isFullHeight = module.config?.fullHeight === true;
 
+    const getShadow = () => {
+        switch (module.styling?.boxShadow) {
+            case 'small':
+                return '0 6px 18px rgba(15, 23, 42, 0.08)';
+            case 'medium':
+                return '0 12px 30px rgba(15, 23, 42, 0.12)';
+            case 'large':
+                return '0 24px 50px rgba(15, 23, 42, 0.16)';
+            default:
+                return undefined;
+        }
+    };
+
     // Build module styles
-    const moduleStyle: React.CSSProperties = {
-        marginTop: module.styling?.marginTop ? `${module.styling.marginTop}px` : undefined,
-        marginBottom: module.styling?.marginBottom ? `${module.styling.marginBottom}px` : undefined,
-        paddingTop: module.styling?.paddingTop ? `${module.styling.paddingTop}px` : undefined,
-        paddingBottom: module.styling?.paddingBottom ? `${module.styling.paddingBottom}px` : undefined,
+    const moduleStyle: React.CSSProperties & Record<string, string | number | undefined> = {
+        marginTop: module.styling?.marginTop !== undefined ? `${module.styling.marginTop}px` : undefined,
+        marginBottom: module.styling?.marginBottom !== undefined ? `${module.styling.marginBottom}px` : undefined,
+        marginLeft: module.styling?.marginLeft !== undefined ? `${module.styling.marginLeft}px` : undefined,
+        marginRight: module.styling?.marginRight !== undefined ? `${module.styling.marginRight}px` : undefined,
+        paddingTop: module.styling?.paddingTop !== undefined ? `${module.styling.paddingTop}px` : undefined,
+        paddingBottom: module.styling?.paddingBottom !== undefined ? `${module.styling.paddingBottom}px` : undefined,
+        paddingLeft: module.styling?.paddingLeft !== undefined ? `${module.styling.paddingLeft}px` : undefined,
+        paddingRight: module.styling?.paddingRight !== undefined ? `${module.styling.paddingRight}px` : undefined,
+        maxWidth: module.styling?.maxWidth !== undefined ? `${module.styling.maxWidth}px` : undefined,
+        backgroundColor: module.styling?.backgroundColor,
+        color: module.styling?.textColor,
+        border: module.styling?.borderStyle && module.styling.borderStyle !== 'none'
+            ? `${module.styling.borderWidth ?? 1}px ${module.styling.borderStyle} ${module.styling.borderColor || 'transparent'}`
+            : 'none',
+        borderRadius: module.styling?.borderRadius !== undefined ? `${module.styling.borderRadius}px` : undefined,
+        boxShadow: getShadow(),
         height: isFullHeight ? '100%' : undefined,
+        width: '100%',
+        boxSizing: 'border-box',
     };
 
     // Build visibility CSS classes for responsive hiding

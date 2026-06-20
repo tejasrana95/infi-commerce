@@ -4,7 +4,6 @@ import {
     Box,
     TextField,
     Typography,
-    Slider,
     MenuItem,
     Button,
     IconButton,
@@ -15,7 +14,6 @@ import {
     Tabs,
     Tab,
     Paper,
-    Stack,
     List,
     ListItem,
     ListItemText,
@@ -29,8 +27,10 @@ import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import { useState } from 'react';
 import { ColorPicker } from '@/components/atoms';
-import { LayoutModule } from '@/types';
+import { LayoutModule, ModuleType } from '@/types';
 import { AVAILABLE_MODULES, createModule, getModuleDefinition } from '../LayoutDesigner/types';
+import FormModuleEditor from '../LayoutDesigner/ModuleEditors/FormModuleEditor';
+import ModuleStylingTab from '../LayoutDesigner/ModuleStylingTab';
 
 // Import config panels
 import {
@@ -67,7 +67,18 @@ import {
     IconConfigPanel,
     TableConfigPanel,
     ContentCardGridConfigPanel,
-    IconListConfigPanel
+    IconListConfigPanel,
+    CategoryHeaderConfigPanel,
+    BlogGridConfigPanel,
+    BlogCategoriesSidebarConfigPanel,
+    RecentPostsConfigPanel,
+    PopularPostsConfigPanel,
+    TagsCloudConfigPanel,
+    NewsletterSignupConfigPanel,
+    AuthorCardConfigPanel,
+    PageContentConfigPanel,
+    PageHeroConfigPanel,
+    CheckoutContentConfigPanel
 } from './index';
 
 export interface SectionLayoutConfig {
@@ -108,9 +119,11 @@ export default function SectionLayoutConfigPanel({ config, onChange, storeId }: 
     const [editingModule, setEditingModule] = useState<LayoutModule | null>(null);
     const [editingModuleIndex, setEditingModuleIndex] = useState<number | null>(null);
     const [dialogTab, setDialogTab] = useState(0);
-    const [selectedNewType, setSelectedNewType] = useState<string>('');
+    const [selectedNewType, setSelectedNewType] = useState<ModuleType | ''>('');
 
-    const handleChange = (key: keyof SectionLayoutConfig, value: any) => {
+    type SectionConfigValue = string | number | boolean | LayoutModule[] | undefined;
+
+    const handleChange = (key: keyof SectionLayoutConfig, value: SectionConfigValue) => {
         onChange({ ...config, [key]: value });
     };
 
@@ -123,7 +136,7 @@ export default function SectionLayoutConfigPanel({ config, onChange, storeId }: 
 
     const handleAddModule = () => {
         if (!selectedNewType) return;
-        const newMod = createModule(selectedNewType as any);
+        const newMod = createModule(selectedNewType);
         const updatedModules = [...(config.modules || []), newMod];
         handleChange('modules', updatedModules);
         setSelectedNewType('');
@@ -165,6 +178,7 @@ export default function SectionLayoutConfigPanel({ config, onChange, storeId }: 
         setEditingModuleIndex(null);
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- config shapes vary per module type
     const handleUpdateNestedConfig = (nestedConfig: Record<string, any>) => {
         if (!editingModule) return;
         setEditingModule({
@@ -173,7 +187,7 @@ export default function SectionLayoutConfigPanel({ config, onChange, storeId }: 
         });
     };
 
-    const handleUpdateNestedStyling = (key: string, value: any) => {
+    const handleUpdateNestedStyling = (key: string, value: string | number | undefined) => {
         if (!editingModule) return;
         setEditingModule({
             ...editingModule,
@@ -185,6 +199,7 @@ export default function SectionLayoutConfigPanel({ config, onChange, storeId }: 
     };
 
     // Render nested module content editing panel (matches the parent ModuleEditor switch)
+    /* eslint-disable @typescript-eslint/no-explicit-any -- config subtypes vary per module; LayoutModule.config is Record<string, any> */
     const renderNestedConfigPanel = () => {
         if (!editingModule) return null;
         
@@ -220,12 +235,35 @@ export default function SectionLayoutConfigPanel({ config, onChange, storeId }: 
                 return <ProductCollectionConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} storeId={storeId} />;
             case 'category-showcase':
                 return <CategoryShowcaseConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} storeId={storeId} />;
+            case 'category-header':
+                return <CategoryHeaderConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
             case 'related-products':
                 return <RelatedProductsConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} storeId={storeId} />;
             case 'recently-viewed':
                 return <RecentlyViewedConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} storeId={storeId} />;
             case 'personalized-products':
                 return <PersonalizedProductsConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} storeId={storeId} />;
+            case 'blog-grid':
+            case 'blog-listing':
+                return <BlogGridConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
+            case 'blog-categories-sidebar':
+                return <BlogCategoriesSidebarConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
+            case 'recent-posts':
+                return <RecentPostsConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
+            case 'popular-posts':
+                return <PopularPostsConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
+            case 'tags-cloud':
+                return <TagsCloudConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
+            case 'newsletter-signup':
+                return <NewsletterSignupConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
+            case 'author-card':
+                return <AuthorCardConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
+            case 'page-content':
+                return <PageContentConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
+            case 'page-hero':
+                return <PageHeroConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
+            case 'checkout-content':
+                return <CheckoutContentConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
             case 'cta-button':
                 return <CTAConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
             case 'strip-banner':
@@ -258,6 +296,8 @@ export default function SectionLayoutConfigPanel({ config, onChange, storeId }: 
                 return <ContentCardGridConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
             case 'icon-list':
                 return <IconListConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
+            case 'form':
+                return <FormModuleEditor module={editingModule} onChange={setEditingModule} />;
             default:
                 return (
                     <Typography variant="body2" color="text.secondary">
@@ -266,32 +306,40 @@ export default function SectionLayoutConfigPanel({ config, onChange, storeId }: 
                 );
         }
     };
+    /* eslint-enable @typescript-eslint/no-explicit-any */
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {/* Background Color */}
-            <Box>
-                <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-                    Background Color
-                </Typography>
-                <ColorPicker
-                    value={config.backgroundColor || 'transparent'}
-                    onChange={(color) => handleChange('backgroundColor', color)}
-                />
-            </Box>
-
-            <Divider />
-
-            {/* Border Settings */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Typography variant="subtitle2" fontWeight={600}>
-                    Border Settings
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+            {/* ── Colors ──────────────────────────────────────────────── */}
+            <Paper variant="outlined" sx={{ p: 2.5 }}>
+                <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1.5 }}>
+                    Colors
                 </Typography>
 
-                <Box sx={{ display: 'flex', gap: 2 }}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                    <ColorPicker
+                        label="Background"
+                        value={config.backgroundColor || 'transparent'}
+                        onChange={(color) => handleChange('backgroundColor', color)}
+                    />
+                    <ColorPicker
+                        label="Border"
+                        value={config.borderColor || '#e5e7eb'}
+                        onChange={(color) => handleChange('borderColor', color)}
+                    />
+                </Box>
+            </Paper>
+
+            {/* ── Border & Radius ─────────────────────────────────────── */}
+            <Paper variant="outlined" sx={{ p: 2.5 }}>
+                <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1.5 }}>
+                    Border & Radius
+                </Typography>
+
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2 }}>
                     <TextField
                         select
-                        label="Border Style"
+                        label="Style"
                         value={config.borderStyle || 'none'}
                         onChange={(e) => handleChange('borderStyle', e.target.value)}
                         fullWidth
@@ -304,135 +352,127 @@ export default function SectionLayoutConfigPanel({ config, onChange, storeId }: 
                     </TextField>
 
                     <TextField
-                        label="Border Width (px)"
+                        label="Width (px)"
                         type="number"
-                        value={config.borderWidth || 0}
-                        onChange={(e) => handleChange('borderWidth', parseInt(e.target.value) || 0)}
+                        value={config.borderWidth ?? ''}
+                        onChange={(e) => {
+                            const raw = e.target.value;
+                            handleChange('borderWidth', raw === '' ? 0 : Number.parseInt(raw, 10) || 0);
+                        }}
                         fullWidth
                         size="small"
-                        inputProps={{ min: 0, max: 20 }}
+                        slotProps={{ htmlInput: { min: 0, max: 20 } }}
                         disabled={config.borderStyle === 'none'}
                     />
-                </Box>
 
-                {config.borderStyle !== 'none' && (
-                    <Box>
-                        <Typography variant="caption" color="text.secondary">
-                            Border Color
-                        </Typography>
-                        <ColorPicker
-                            value={config.borderColor || '#e5e7eb'}
-                            onChange={(color) => handleChange('borderColor', color)}
-                        />
-                    </Box>
-                )}
-
-                <Box>
-                    <Typography variant="caption" color="text.secondary">
-                        Border Radius: {config.borderRadius ?? 8}px
-                    </Typography>
-                    <Slider
-                        value={config.borderRadius ?? 8}
-                        onChange={(_, val) => handleChange('borderRadius', val)}
-                        min={0}
-                        max={40}
-                        step={2}
+                    <TextField
+                        label="Radius (px)"
+                        type="number"
+                        value={config.borderRadius ?? ''}
+                        onChange={(e) => {
+                            const raw = e.target.value;
+                            handleChange('borderRadius', raw === '' ? 0 : Number.parseInt(raw, 10) || 0);
+                        }}
+                        fullWidth
+                        size="small"
+                        slotProps={{ htmlInput: { min: 0, max: 40 } }}
                     />
                 </Box>
-            </Box>
+            </Paper>
 
-            <Box>
-                <Typography variant="caption" color="text.secondary">
-                    Gap between modules: {config.gap ?? 24}px
-                </Typography>
-                <Slider
-                    value={config.gap ?? 24}
-                    onChange={(_, val) => handleChange('gap', val)}
-                    min={0}
-                    max={80}
-                    step={4}
-                />
-            </Box>
-
-            <Divider />
-
-            {/* Inner Paddings */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                <Typography variant="subtitle2" fontWeight={600}>
-                    Inner Paddings (px)
+            {/* ── Spacing ─────────────────────────────────────────────── */}
+            <Paper variant="outlined" sx={{ p: 2.5 }}>
+                <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1.5 }}>
+                    Spacing
                 </Typography>
 
-                <Stack spacing={1}>
-                    <Box>
-                        <Typography variant="caption" color="text.secondary">
-                            Padding Top: {config.paddingTop ?? 16}px
-                        </Typography>
-                        <Slider
-                            value={config.paddingTop ?? 16}
-                            onChange={(_, val) => handleChange('paddingTop', val)}
-                            min={0}
-                            max={100}
-                            step={4}
-                            size="small"
-                        />
-                    </Box>
-                    <Box>
-                        <Typography variant="caption" color="text.secondary">
-                            Padding Bottom: {config.paddingBottom ?? 16}px
-                        </Typography>
-                        <Slider
-                            value={config.paddingBottom ?? 16}
-                            onChange={(_, val) => handleChange('paddingBottom', val)}
-                            min={0}
-                            max={100}
-                            step={4}
-                            size="small"
-                        />
-                    </Box>
-                    <Box>
-                        <Typography variant="caption" color="text.secondary">
-                            Padding Left: {config.paddingLeft ?? 16}px
-                        </Typography>
-                        <Slider
-                            value={config.paddingLeft ?? 16}
-                            onChange={(_, val) => handleChange('paddingLeft', val)}
-                            min={0}
-                            max={100}
-                            step={4}
-                            size="small"
-                        />
-                    </Box>
-                    <Box>
-                        <Typography variant="caption" color="text.secondary">
-                            Padding Right: {config.paddingRight ?? 16}px
-                        </Typography>
-                        <Slider
-                            value={config.paddingRight ?? 16}
-                            onChange={(_, val) => handleChange('paddingRight', val)}
-                            min={0}
-                            max={100}
-                            step={4}
-                            size="small"
-                        />
-                    </Box>
-                </Stack>
-            </Box>
+                {/* Padding */}
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                    Padding
+                </Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1.5, mb: 2.5 }}>
+                    <TextField
+                        label="Top"
+                        type="number"
+                        value={config.paddingTop ?? ''}
+                        onChange={(e) => {
+                            const raw = e.target.value;
+                            handleChange('paddingTop', raw === '' ? 0 : Number.parseInt(raw, 10) || 0);
+                        }}
+                        size="small"
+                        fullWidth
+                        slotProps={{ htmlInput: { min: 0, max: 100 } }}
+                    />
+                    <TextField
+                        label="Right"
+                        type="number"
+                        value={config.paddingRight ?? ''}
+                        onChange={(e) => {
+                            const raw = e.target.value;
+                            handleChange('paddingRight', raw === '' ? 0 : Number.parseInt(raw, 10) || 0);
+                        }}
+                        size="small"
+                        fullWidth
+                        slotProps={{ htmlInput: { min: 0, max: 100 } }}
+                    />
+                    <TextField
+                        label="Bottom"
+                        type="number"
+                        value={config.paddingBottom ?? ''}
+                        onChange={(e) => {
+                            const raw = e.target.value;
+                            handleChange('paddingBottom', raw === '' ? 0 : Number.parseInt(raw, 10) || 0);
+                        }}
+                        size="small"
+                        fullWidth
+                        slotProps={{ htmlInput: { min: 0, max: 100 } }}
+                    />
+                    <TextField
+                        label="Left"
+                        type="number"
+                        value={config.paddingLeft ?? ''}
+                        onChange={(e) => {
+                            const raw = e.target.value;
+                            handleChange('paddingLeft', raw === '' ? 0 : Number.parseInt(raw, 10) || 0);
+                        }}
+                        size="small"
+                        fullWidth
+                        slotProps={{ htmlInput: { min: 0, max: 100 } }}
+                    />
+                </Box>
 
-            <Divider />
+                <Divider sx={{ mb: 2.5 }} />
 
-            {/* Nested Modules Management */}
-            <Box>
-                <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                {/* Gap */}
+                <Box sx={{ maxWidth: '25%' }}>
+                    <TextField
+                        label="Gap (px)"
+                        type="number"
+                        value={config.gap ?? ''}
+                        onChange={(e) => {
+                            const raw = e.target.value;
+                            handleChange('gap', raw === '' ? 0 : Number.parseInt(raw, 10) || 0);
+                        }}
+                        size="small"
+                        fullWidth
+                        slotProps={{ htmlInput: { min: 0, max: 80 } }}
+                    />
+                </Box>
+            </Paper>
+
+            {/* ── Nested Modules ──────────────────────────────────────── */}
+            <Paper variant="outlined" sx={{ p: 2.5 }}>
+                <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1.5 }}>
                     Nested Modules
                 </Typography>
 
-                {/* Add Module Inline Row */}
-                <Box sx={{ display: 'flex', gap: 1, mb: 2, mt: 1 }}>
+                {/* Add Module Row */}
+                <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
                     <TextField
                         select
                         label="Select Module to Add"
                         value={selectedNewType}
-                        onChange={(e) => setSelectedNewType(e.target.value)}
+                        onChange={(e) => setSelectedNewType(e.target.value as ModuleType)}
                         fullWidth
                         size="small"
                     >
@@ -452,7 +492,7 @@ export default function SectionLayoutConfigPanel({ config, onChange, storeId }: 
                     </Button>
                 </Box>
 
-                {/* List of Nested Modules */}
+                {/* Module List */}
                 <Paper variant="outlined">
                     {(config.modules || []).length === 0 ? (
                         <Box sx={{ p: 2, textAlign: 'center' }}>
@@ -512,9 +552,9 @@ export default function SectionLayoutConfigPanel({ config, onChange, storeId }: 
                         </List>
                     )}
                 </Paper>
-            </Box>
+            </Paper>
 
-            {/* Nested Module Config Editor Dialog */}
+            {/* ── Edit Dialog ─────────────────────────────────────────── */}
             <Dialog
                 open={editingModule !== null}
                 onClose={() => setEditingModule(null)}
@@ -544,67 +584,8 @@ export default function SectionLayoutConfigPanel({ config, onChange, storeId }: 
                             )}
 
                             {dialogTab === 1 && (
-                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-                                    <Typography variant="caption" color="text.secondary">
-                                        Margin (px)
-                                    </Typography>
-                                    <Box sx={{ display: 'flex', gap: 2 }}>
-                                        <Box flex={1}>
-                                            <Typography variant="caption">Top</Typography>
-                                            <input
-                                                type="number"
-                                                value={editingModule.styling?.marginTop || 0}
-                                                onChange={(e) => handleUpdateNestedStyling('marginTop', parseInt(e.target.value) || 0)}
-                                                style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ddd' }}
-                                            />
-                                        </Box>
-                                        <Box flex={1}>
-                                            <Typography variant="caption">Bottom</Typography>
-                                            <input
-                                                type="number"
-                                                value={editingModule.styling?.marginBottom || 0}
-                                                onChange={(e) => handleUpdateNestedStyling('marginBottom', parseInt(e.target.value) || 0)}
-                                                style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ddd' }}
-                                            />
-                                        </Box>
-                                    </Box>
-
-                                    <Typography variant="caption" color="text.secondary">
-                                        Padding (px)
-                                    </Typography>
-                                    <Box sx={{ display: 'flex', gap: 2 }}>
-                                        <Box flex={1}>
-                                            <Typography variant="caption">Top</Typography>
-                                            <input
-                                                type="number"
-                                                value={editingModule.styling?.paddingTop || 0}
-                                                onChange={(e) => handleUpdateNestedStyling('paddingTop', parseInt(e.target.value) || 0)}
-                                                style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ddd' }}
-                                            />
-                                        </Box>
-                                        <Box flex={1}>
-                                            <Typography variant="caption">Bottom</Typography>
-                                            <input
-                                                type="number"
-                                                value={editingModule.styling?.paddingBottom || 0}
-                                                onChange={(e) => handleUpdateNestedStyling('paddingBottom', parseInt(e.target.value) || 0)}
-                                                style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ddd' }}
-                                            />
-                                        </Box>
-                                    </Box>
-
-                                    <Box>
-                                        <Typography variant="caption" color="text.secondary">
-                                            CSS Class
-                                        </Typography>
-                                        <input
-                                            type="text"
-                                            value={editingModule.styling?.className || ''}
-                                            onChange={(e) => handleUpdateNestedStyling('className', e.target.value)}
-                                            placeholder="custom-module-class"
-                                            style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ddd' }}
-                                        />
-                                    </Box>
+                                <Box sx={{ pt: 1 }}>
+                                    <ModuleStylingTab styling={editingModule.styling} onChange={handleUpdateNestedStyling} />
                                 </Box>
                             )}
                         </Box>

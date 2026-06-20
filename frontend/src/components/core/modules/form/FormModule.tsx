@@ -41,7 +41,7 @@ interface FormData {
     captureGeoData?: boolean;
 }
 
-export default function FormModule({ config }: ModuleProps) {
+export default function FormModule({ config, styling }: ModuleProps) {
     const [form, setForm] = useState<FormData | null>(null);
     const [formValues, setFormValues] = useState<Record<string, any>>({});
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -60,6 +60,11 @@ export default function FormModule({ config }: ModuleProps) {
         redirectUrl,
         inheritBackground = false,
     } = config;
+
+    const buttonBackgroundColor = config.buttonBackgroundColor || styling?.buttonBackgroundColor || '#2563eb';
+    const buttonTextColor = config.buttonTextColor || styling?.buttonTextColor || '#ffffff';
+    const inputBackgroundColor = config.inputBackgroundColor || styling?.inputBackgroundColor || '#ffffff';
+    const inputTextColor = config.inputTextColor || styling?.inputTextColor || '#111827';
 
     const { store } = useStore();
 
@@ -780,9 +785,13 @@ export default function FormModule({ config }: ModuleProps) {
         <div
             ref={containerRef}
             className={styles.formModule}
-            style={inheritBackground ? {
-                '--contrast-color': contrastColor,
-            } as React.CSSProperties : undefined}
+            style={{
+                ...(inheritBackground ? { '--contrast-color': contrastColor } : {}),
+                '--form-button-bg': buttonBackgroundColor,
+                '--form-button-text': buttonTextColor,
+                '--form-input-bg': inputBackgroundColor,
+                '--form-input-text': inputTextColor,
+            } as React.CSSProperties}
             data-inherit-background={inheritBackground}
         >
             {showTitle && <h2 className={styles.title} style={inheritBackground ? { color: contrastColor } : undefined}>{form.name}</h2>}

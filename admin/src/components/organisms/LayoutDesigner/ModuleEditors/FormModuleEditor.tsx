@@ -1,9 +1,10 @@
 'use client';
 
-import { TextField, Switch, FormControlLabel, Box, MenuItem, Typography } from '@mui/material';
+import { TextField, Switch, FormControlLabel, Box, MenuItem, Typography, Paper } from '@mui/material';
 import { Form, LayoutModule } from '@/types';
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
+import { ColorPicker } from '@/components/atoms';
 
 interface FormModuleEditorProps {
     module: LayoutModule;
@@ -34,6 +35,14 @@ export default function FormModuleEditor({ module, onChange }: FormModuleEditorP
             ...module,
             config: { ...module.config, [key]: value },
         });
+    };
+
+    const updateUiColor = (key: string, value: string) => {
+        updateConfig(key, value);
+    };
+
+    const getUiColor = (key: 'buttonBackgroundColor' | 'buttonTextColor' | 'inputBackgroundColor' | 'inputTextColor', fallback: string) => {
+        return module.config[key] || module.styling?.[key] || fallback;
     };
 
     return (
@@ -126,6 +135,43 @@ export default function FormModuleEditor({ module, onChange }: FormModuleEditorP
                 placeholder="/thank-you"
                 helperText="Leave empty to show success message on same page"
             />
+
+            <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                    UI Colors
+                </Typography>
+
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                    <Box>
+                        <Typography variant="caption" color="text.secondary">Button Background</Typography>
+                        <ColorPicker
+                            value={getUiColor('buttonBackgroundColor', '#2563eb')}
+                            onChange={(color) => updateUiColor('buttonBackgroundColor', color)}
+                        />
+                    </Box>
+                    <Box>
+                        <Typography variant="caption" color="text.secondary">Button Text Color</Typography>
+                        <ColorPicker
+                            value={getUiColor('buttonTextColor', '#ffffff')}
+                            onChange={(color) => updateUiColor('buttonTextColor', color)}
+                        />
+                    </Box>
+                    <Box>
+                        <Typography variant="caption" color="text.secondary">Input Background</Typography>
+                        <ColorPicker
+                            value={getUiColor('inputBackgroundColor', '#ffffff')}
+                            onChange={(color) => updateUiColor('inputBackgroundColor', color)}
+                        />
+                    </Box>
+                    <Box>
+                        <Typography variant="caption" color="text.secondary">Input Text Color</Typography>
+                        <ColorPicker
+                            value={getUiColor('inputTextColor', '#111827')}
+                            onChange={(color) => updateUiColor('inputTextColor', color)}
+                        />
+                    </Box>
+                </Box>
+            </Paper>
         </Box>
     );
 }

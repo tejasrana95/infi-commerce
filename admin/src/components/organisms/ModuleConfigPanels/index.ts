@@ -75,3 +75,6 @@ export type { CheckoutContentConfig } from './CheckoutConfigPanels';
 export { default as SectionLayoutConfigPanel, defaultSectionLayoutConfig } from './SectionLayoutConfigPanel';
 export type { SectionLayoutConfig } from './SectionLayoutConfigPanel';
 
+// Shared styling panel
+export { default as ModuleStylingTab } from '../LayoutDesigner/ModuleStylingTab';
+

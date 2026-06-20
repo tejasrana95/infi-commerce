@@ -8,10 +8,27 @@ export interface Module {
     styling: {
         className?: string;
         customCSS?: string;
+        backgroundColor?: string;
+        textColor?: string;
+        borderColor?: string;
+        borderWidth?: number;
+        borderStyle?: 'none' | 'solid' | 'dashed' | 'dotted';
+        borderRadius?: number;
         marginTop?: number;
         marginBottom?: number;
+        marginLeft?: number;
+        marginRight?: number;
         paddingTop?: number;
         paddingBottom?: number;
+        paddingLeft?: number;
+        paddingRight?: number;
+        maxWidth?: number;
+        boxShadow?: 'none' | 'small' | 'medium' | 'large';
+        gap?: number;
+        inputBackgroundColor?: string;
+        inputTextColor?: string;
+        buttonBackgroundColor?: string;
+        buttonTextColor?: string;
     };
     visibility: {
         desktop: boolean;

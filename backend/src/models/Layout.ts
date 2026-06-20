@@ -10,10 +10,23 @@ export interface IModule {
     styling: {
         className?: string;
         customCSS?: string;
+        backgroundColor?: string;
+        textColor?: string;
+        borderColor?: string;
+        borderWidth?: number;
+        borderStyle?: 'none' | 'solid' | 'dashed' | 'dotted';
+        borderRadius?: number;
         marginTop?: number;
         marginBottom?: number;
+        marginLeft?: number;
+        marginRight?: number;
         paddingTop?: number;
         paddingBottom?: number;
+        paddingLeft?: number;
+        paddingRight?: number;
+        maxWidth?: number;
+        boxShadow?: 'none' | 'small' | 'medium' | 'large';
+        gap?: number;
     };
     visibility: {
         desktop: boolean;
@@ -150,10 +163,23 @@ const ModuleSchema = new Schema<IModule>(
         styling: {
             className: { type: String, trim: true },
             customCSS: { type: String },
+            backgroundColor: { type: String, trim: true },
+            textColor: { type: String, trim: true },
+            borderColor: { type: String, trim: true },
+            borderWidth: { type: Number },
+            borderStyle: { type: String, enum: ['none', 'solid', 'dashed', 'dotted'], default: 'none' },
+            borderRadius: { type: Number },
             marginTop: { type: Number },
             marginBottom: { type: Number },
+            marginLeft: { type: Number },
+            marginRight: { type: Number },
             paddingTop: { type: Number },
             paddingBottom: { type: Number },
+            paddingLeft: { type: Number },
+            paddingRight: { type: Number },
+            maxWidth: { type: Number },
+            boxShadow: { type: String, enum: ['none', 'small', 'medium', 'large'], default: 'none' },
+            gap: { type: Number },
         },
         visibility: {
             desktop: { type: Boolean, default: true },
