@@ -87,6 +87,8 @@ export interface IForm extends Document {
         subject?: string;
         body?: string; // Rich text
     };
+    captureUserAgent?: boolean;
+    captureGeoData?: boolean;
     status: 'draft' | 'published';
     submissionsCount: number;
     createdAt: Date;
@@ -101,7 +103,7 @@ const FormFieldSchema = new Schema<IFormField>(
             type: String,
             required: true,
             enum: ['text', 'textarea', 'email', 'phone', 'date', 'time', 'datetime',
-                'select', 'radio', 'checkbox', 'file', 'image', 'richtext', 'repeater'],
+                'select', 'radio', 'checkbox', 'file', 'image', 'richtext', 'repeater', 'query_param'],
         },
         label: { type: String, required: true, trim: true },
         name: { type: String, required: true, trim: true },
@@ -237,6 +239,8 @@ const FormSchema = new Schema<IForm>(
             subject: { type: String, trim: true },
             body: { type: String },
         },
+        captureUserAgent: { type: Boolean, default: false },
+        captureGeoData: { type: Boolean, default: false },
         status: {
             type: String,
             enum: ['draft', 'published'],

@@ -270,7 +270,7 @@
     justify-content: center;
     gap: 8px;
     color: #fff;
-    background: linear-gradient(135deg, var(--auth-primary) 0%, color-mix(in srgb, var(--auth-primary) 58%, #273f78) 100%);
+    background: var(--auth-primary);
     font-weight: 700;
     font-size: 0.96rem;
     cursor: pointer;

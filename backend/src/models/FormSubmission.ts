@@ -17,6 +17,17 @@ export interface IFormSubmission extends Document {
         ip?: string;
         userAgent?: string;
         referer?: string;
+        geo?: {
+            country_code?: string;
+            region_code?: string;
+            city?: string;
+        };
+        clientMetadata?: {
+            userAgent?: string;
+            platform?: string;
+            language?: string;
+            screenResolution?: string;
+        };
     };
     emailSent: boolean;
     confirmationEmailSent?: boolean;
@@ -52,6 +63,17 @@ const FormSubmissionSchema = new Schema<IFormSubmission>(
             ip: { type: String },
             userAgent: { type: String },
             referer: { type: String },
+            geo: {
+                country_code: { type: String },
+                region_code: { type: String },
+                city: { type: String },
+            },
+            clientMetadata: {
+                userAgent: { type: String },
+                platform: { type: String },
+                language: { type: String },
+                screenResolution: { type: String },
+            },
         },
         emailSent: {
             type: Boolean,

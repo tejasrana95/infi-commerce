@@ -501,6 +501,13 @@ export interface ProductPageConfig {
     limit?: number;
     title?: string;
   };
+  customButton?: {
+    enabled: boolean;
+    label: string;
+    url: string;
+    captureProductUrl: boolean;
+    icon: string;
+  };
 }
 
 // ============================================

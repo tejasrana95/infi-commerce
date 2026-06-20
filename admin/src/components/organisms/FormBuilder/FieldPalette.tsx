@@ -17,6 +17,7 @@ import FormatBoldIcon from '@mui/icons-material/FormatBold';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import ImageIcon from '@mui/icons-material/Image';
+import LinkIcon from '@mui/icons-material/Link';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 
 const iconMap: Record<string, any> = {
@@ -34,6 +35,7 @@ const iconMap: Record<string, any> = {
     Repeat: RepeatIcon,
     AttachFile: AttachFileIcon,
     Image: ImageIcon,
+    Link: LinkIcon,
 };
 
 interface FieldPaletteItemProps {

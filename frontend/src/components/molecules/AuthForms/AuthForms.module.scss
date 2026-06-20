@@ -103,7 +103,7 @@
     font-size: 0.97rem;
     font-weight: 700;
     padding: 14px;
-    background: linear-gradient(135deg, var(--auth-primary) 0%, color-mix(in srgb, var(--auth-primary) 58%, #263f7d) 100%);
+    background: var(--auth-primary);
     box-shadow: 0 11px 24px color-mix(in srgb, var(--auth-primary) 30%, transparent);
     transition: all 0.2s ease;
 

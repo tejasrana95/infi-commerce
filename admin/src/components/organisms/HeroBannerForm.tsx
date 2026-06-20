@@ -49,7 +49,11 @@ const schema = z.object({
         fontSizeMobile: z.string().optional(),
         fontFamily: z.string().optional(),
         fontWeight: z.string().optional(),
-        textAlign: z.string().optional(),
+        textAlign: z.object({
+            desktop: z.string().optional(),
+            tablet: z.string().optional(),
+            mobile: z.string().optional(),
+        }).optional(),
         lineHeight: z.string().optional(),
     }),
     description: z.object({
@@ -60,7 +64,11 @@ const schema = z.object({
         fontSizeMobile: z.string().optional(),
         fontFamily: z.string().optional(),
         fontWeight: z.string().optional(),
-        textAlign: z.string().optional(),
+        textAlign: z.object({
+            desktop: z.string().optional(),
+            tablet: z.string().optional(),
+            mobile: z.string().optional(),
+        }).optional(),
         lineHeight: z.string().optional(),
     }),
     stats: z.array(z.object({
@@ -79,7 +87,11 @@ const schema = z.object({
         fontWeight: z.string().optional(),
         numberFontWeight: z.string().optional(),
         labelFontWeight: z.string().optional(),
-        textAlign: z.string().optional(),
+        textAlign: z.object({
+            desktop: z.string().optional(),
+            tablet: z.string().optional(),
+            mobile: z.string().optional(),
+        }).optional(),
         lineHeight: z.string().optional(),
     })).optional(),
     chips: z.array(z.object({
@@ -89,7 +101,11 @@ const schema = z.object({
         fontSize: z.string().optional(),
         fontFamily: z.string().optional(),
         fontWeight: z.string().optional(),
-        textAlign: z.string().optional(),
+        textAlign: z.object({
+            desktop: z.string().optional(),
+            tablet: z.string().optional(),
+            mobile: z.string().optional(),
+        }).optional(),
         lineHeight: z.string().optional(),
         backgroundColor: z.string().optional(),
         borderRadius: z.string().optional(),
@@ -124,7 +140,11 @@ const schema = z.object({
         fontSize: z.string().optional(),
         fontFamily: z.string().optional(),
         fontWeight: z.string().optional(),
-        textAlign: z.string().optional(),
+        textAlign: z.object({
+            desktop: z.string().optional(),
+            tablet: z.string().optional(),
+            mobile: z.string().optional(),
+        }).optional(),
         lineHeight: z.string().optional(),
         backgroundColor: z.string().optional(),
         borderRadius: z.string().optional(),
@@ -154,7 +174,7 @@ const defaultValues: FormData = {
         fontSizeMobile: '2.5rem',
         fontFamily: 'Playfair Display, serif',
         fontWeight: 'bold',
-        textAlign: 'left',
+        textAlign: { desktop: 'left', tablet: 'left', mobile: 'left' },
         lineHeight: '1.2',
     },
     description: {
@@ -165,7 +185,7 @@ const defaultValues: FormData = {
         fontSizeMobile: '0.875rem',
         fontFamily: 'Inter, sans-serif',
         fontWeight: 'normal',
-        textAlign: 'left',
+        textAlign: { desktop: 'left', tablet: 'left', mobile: 'left' },
         lineHeight: '1.6',
     },
     stats: [],
@@ -241,7 +261,11 @@ export default function HeroBannerForm({ initialData, onSubmit, isSubmitting = f
                     fontSizeMobile: initialData.title?.fontSizeMobile || '2.5rem',
                     fontFamily: initialData.title?.fontFamily || 'Playfair Display, serif',
                     fontWeight: initialData.title?.fontWeight || 'bold',
-                    textAlign: initialData.title?.textAlign || 'left',
+                    textAlign: {
+                        desktop: (initialData.title?.textAlign as any)?.desktop || 'left',
+                        tablet: (initialData.title?.textAlign as any)?.tablet || 'left',
+                        mobile: (initialData.title?.textAlign as any)?.mobile || 'left',
+                    },
                     lineHeight: initialData.title?.lineHeight || '1.2',
                 },
                 description: {
@@ -252,7 +276,11 @@ export default function HeroBannerForm({ initialData, onSubmit, isSubmitting = f
                     fontSizeMobile: initialData.description?.fontSizeMobile || '0.875rem',
                     fontFamily: initialData.description?.fontFamily || 'Inter, sans-serif',
                     fontWeight: initialData.description?.fontWeight || 'normal',
-                    textAlign: initialData.description?.textAlign || 'left',
+                    textAlign: {
+                        desktop: (initialData.description?.textAlign as any)?.desktop || 'left',
+                        tablet: (initialData.description?.textAlign as any)?.tablet || 'left',
+                        mobile: (initialData.description?.textAlign as any)?.mobile || 'left',
+                    },
                     lineHeight: initialData.description?.lineHeight || '1.6',
                 },
                 stats: initialData.stats || [],
@@ -366,21 +394,60 @@ export default function HeroBannerForm({ initialData, onSubmit, isSubmitting = f
                                             )}
                                         />
                                     </Grid>
-                                    <Grid size={{ xs: 12, md: 4 }}>
-                                        <Controller
-                                            name="title.textAlign"
-                                            control={control}
-                                            render={({ field }) => (
-                                                <FormControl size="small" fullWidth>
-                                                    <InputLabel>Align</InputLabel>
-                                                    <Select {...field} label="Align">
-                                                        <MenuItem value="left">Left</MenuItem>
-                                                        <MenuItem value="center">Center</MenuItem>
-                                                        <MenuItem value="right">Right</MenuItem>
-                                                    </Select>
-                                                </FormControl>
-                                            )}
-                                        />
+                                    <Grid size={{ xs: 12, md: 12 }}>
+                                        <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
+                                            Text Alignment (Responsive)
+                                        </Typography>
+                                        <Grid container spacing={2}>
+                                            <Grid size={{ xs: 12, md: 4 }}>
+                                                <Controller
+                                                    name="title.textAlign.desktop"
+                                                    control={control}
+                                                    render={({ field }) => (
+                                                        <FormControl size="small" fullWidth>
+                                                            <InputLabel>Desktop</InputLabel>
+                                                            <Select {...field} label="Desktop">
+                                                                <MenuItem value="left">Left</MenuItem>
+                                                                <MenuItem value="center">Center</MenuItem>
+                                                                <MenuItem value="right">Right</MenuItem>
+                                                            </Select>
+                                                        </FormControl>
+                                                    )}
+                                                />
+                                            </Grid>
+                                            <Grid size={{ xs: 12, md: 4 }}>
+                                                <Controller
+                                                    name="title.textAlign.tablet"
+                                                    control={control}
+                                                    render={({ field }) => (
+                                                        <FormControl size="small" fullWidth>
+                                                            <InputLabel>Tablet</InputLabel>
+                                                            <Select {...field} label="Tablet">
+                                                                <MenuItem value="left">Left</MenuItem>
+                                                                <MenuItem value="center">Center</MenuItem>
+                                                                <MenuItem value="right">Right</MenuItem>
+                                                            </Select>
+                                                        </FormControl>
+                                                    )}
+                                                />
+                                            </Grid>
+                                            <Grid size={{ xs: 12, md: 4 }}>
+                                                <Controller
+                                                    name="title.textAlign.mobile"
+                                                    control={control}
+                                                    render={({ field }) => (
+                                                        <FormControl size="small" fullWidth>
+                                                            <InputLabel>Mobile</InputLabel>
+                                                            <Select {...field} label="Mobile">
+                                                                <MenuItem value="left">Left</MenuItem>
+                                                                <MenuItem value="center">Center</MenuItem>
+                                                                <MenuItem value="right">Right</MenuItem>
+                                                            </Select>
+                                                        </FormControl>
+                                                    )}
+                                                />
+                                            </Grid>
+                                        </Grid>
                                     </Grid>
                                     <Grid size={{ xs: 12, md: 4 }}>
                                         <Controller
@@ -526,6 +593,61 @@ export default function HeroBannerForm({ initialData, onSubmit, isSubmitting = f
                                                 <ColorPicker label="Description Color" value={field.value || ''} onChange={field.onChange} />
                                             )}
                                         />
+                                    </Grid>
+                                    <Grid size={{ xs: 12, md: 12 }}>
+                                        <Typography variant="subtitle2" fontWeight={600} sx={{ borderBottom: '1px solid #eaeaea', pb: 1, mt: 1 }}>
+                                            Description Text Alignment (Responsive)
+                                        </Typography>
+                                        <Grid container spacing={2} sx={{ mt: 0.5 }}>
+                                            <Grid size={{ xs: 12, md: 4 }}>
+                                                <Controller
+                                                    name="description.textAlign.desktop"
+                                                    control={control}
+                                                    render={({ field }) => (
+                                                        <FormControl size="small" fullWidth>
+                                                            <InputLabel>Desktop</InputLabel>
+                                                            <Select {...field} label="Desktop">
+                                                                <MenuItem value="left">Left</MenuItem>
+                                                                <MenuItem value="center">Center</MenuItem>
+                                                                <MenuItem value="right">Right</MenuItem>
+                                                            </Select>
+                                                        </FormControl>
+                                                    )}
+                                                />
+                                            </Grid>
+                                            <Grid size={{ xs: 12, md: 4 }}>
+                                                <Controller
+                                                    name="description.textAlign.tablet"
+                                                    control={control}
+                                                    render={({ field }) => (
+                                                        <FormControl size="small" fullWidth>
+                                                            <InputLabel>Tablet</InputLabel>
+                                                            <Select {...field} label="Tablet">
+                                                                <MenuItem value="left">Left</MenuItem>
+                                                                <MenuItem value="center">Center</MenuItem>
+                                                                <MenuItem value="right">Right</MenuItem>
+                                                            </Select>
+                                                        </FormControl>
+                                                    )}
+                                                />
+                                            </Grid>
+                                            <Grid size={{ xs: 12, md: 4 }}>
+                                                <Controller
+                                                    name="description.textAlign.mobile"
+                                                    control={control}
+                                                    render={({ field }) => (
+                                                        <FormControl size="small" fullWidth>
+                                                            <InputLabel>Mobile</InputLabel>
+                                                            <Select {...field} label="Mobile">
+                                                                <MenuItem value="left">Left</MenuItem>
+                                                                <MenuItem value="center">Center</MenuItem>
+                                                                <MenuItem value="right">Right</MenuItem>
+                                                            </Select>
+                                                        </FormControl>
+                                                    )}
+                                                />
+                                            </Grid>
+                                        </Grid>
                                     </Grid>
                                 </Grid>
 

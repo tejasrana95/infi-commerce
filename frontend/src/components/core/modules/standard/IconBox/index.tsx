@@ -30,9 +30,11 @@ interface IconBoxConfig {
     columns: number;
     iconType: 'icon' | 'image';
     textAlign: 'left' | 'center' | 'right';
+    justifyItems?: 'start' | 'center' | 'end';
     styles?: {
         borderColor?: string;
         borderRadius?: number;
+        borderSize?: number;
         iconColor?: string;
         iconBgColor?: string;
         iconBgRadius?: number;
@@ -54,6 +56,7 @@ interface IconBoxConfig {
         iconBgSize?: number;
         iconBgPadding?: number;
         iconAlign?: string;
+        iconTextAlign?: string;
         hoverEffect?: string;
         gap?: number;
         hideBoxShadow?: boolean;
@@ -70,6 +73,7 @@ export default function IconBoxModule({ config }: ModuleProps) {
         columns = 3,
         iconType = 'icon',
         textAlign = 'center',
+        justifyItems,
         fullSizeImage = false,
         styles: customStyles = {}
     } = config as IconBoxConfig & { fullSizeImage?: boolean };
@@ -134,6 +138,7 @@ export default function IconBoxModule({ config }: ModuleProps) {
     const gridStyle = {
         '--desktop-columns': columns,
         gap: customStyles.gap !== undefined ? `${customStyles.gap}px` : undefined,
+        justifyItems: justifyItems || 'start',
     } as React.CSSProperties;
 
     const boxStyle = {
@@ -265,7 +270,12 @@ export default function IconBoxModule({ config }: ModuleProps) {
                 iconStyle.marginRight = '0';
             }
         }
-
+        if (customStyles.iconTextAlign) {
+            itemStyle.alignItems = customStyles.iconTextAlign;
+        }
+        if (customStyles.borderSize !== undefined) {
+            itemStyle.borderWidth = `${customStyles.borderSize}px`;
+        }   
         const ctaStyle = {
             color: item.ctaColor || customStyles.ctaColor || undefined,
         } as React.CSSProperties;

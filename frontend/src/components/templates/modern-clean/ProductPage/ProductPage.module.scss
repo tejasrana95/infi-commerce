@@ -604,7 +604,10 @@ $star-color: #fbbf24;
     box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
     position: relative;
     overflow: hidden;
-
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     &::before {
         content: '';
         position: absolute;
@@ -647,7 +650,10 @@ $star-color: #fbbf24;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     &:hover:not(:disabled) {
         background: linear-gradient(145deg, #f9fafb 0%, #ffffff 100%);
         border-color: #3b82f6;
@@ -659,6 +665,39 @@ $star-color: #fbbf24;
     &:disabled {
         opacity: 0.5;
         cursor: not-allowed;
+    }
+}
+
+// When custom button is enabled, allow wrapping so custom button goes to new line
+.actionsWithCustom {
+    flex-wrap: wrap;
+}
+
+// Custom button - outline style with accent color, full width on its own line
+.customBtn {
+    flex: 1 1 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px 36px;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background-color: #fcf6ef;
+    color: #434343;
+    &:hover {
+        background: #fedca0;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+    }
+    svg {
+        color: var(--color-accent, #3b82f6);
+    }
+    &:active {
+        transform: translateY(0);
     }
 }
 

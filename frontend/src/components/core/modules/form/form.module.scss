@@ -228,8 +228,8 @@
     gap: 0.5rem;
     padding: 0.75rem 1.5rem;
     background: white;
-    color: var(--primary);
-    border: 1.5px dashed var(--primary);
+    color: var(--color-accent);
+    border: 1.5px dashed var(--color-accent);
     border-radius: 8px;
     font-size: 0.95rem;
     font-weight: 600;
@@ -239,7 +239,7 @@
     margin-top: 0.5rem;
 
     &:hover {
-        background: rgba(var(--primary-rgb, 37, 99, 235), 0.05);
+        background: rgba(var(--color-accent-rgb, 37, 99, 235), 0.05);
         transform: translateY(-1px);
     }
 
@@ -263,12 +263,14 @@
     display: grid;
     gap: 2rem;
     align-items: start;
+    grid-template-columns: 1fr;
 
     @include tablet {
-        grid-template-columns: 1fr !important;
         gap: 1.5rem;
+        grid-template-columns: var(--columns-template, 1fr);
     }
 }
+
 
 .column {
     display: flex;
@@ -318,8 +320,8 @@
 
         &:focus {
             outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 4px rgba(var(--primary-rgb, 37, 99, 235), 0.1);
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 4px rgba(var(--color-accent-rgb, 37, 99, 235), 0.1);
         }
 
         &.error {
@@ -358,7 +360,7 @@
         border: 1.5px dashed rgba(0, 0, 0, 0.1);
 
         &::-webkit-file-upload-button {
-            background: var(--primary);
+            background: var(--color-accent);
             color: white;
             border: none;
             padding: 0.5rem 1rem;
@@ -432,19 +434,19 @@
         width: 1.25rem;
         height: 1.25rem;
         cursor: pointer;
-        accent-color: var(--primary);
+        accent-color: var(--color-accent);
     }
 
     &:hover {
         background: #f1f5f9;
-        border-color: var(--primary);
+        border-color: var(--color-accent);
     }
 }
 
 .submitButton {
     width: 100%;
     padding: 1.125rem 2.5rem;
-    background: var(--primary);
+    background: var(--color-accent);
     color: white;
     border: none;
     border-radius: var(--btn-border-radius, 8px);
@@ -528,6 +530,81 @@
     font-size: 1.25rem;
     font-weight: 500;
     color: var(--secondary);
+}
+
+.loadingSkeleton {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 2rem;
+    border-radius: 14px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    animation: skeletonPulse 1.2s ease-in-out infinite;
+}
+
+.skeletonTitle,
+.skeletonDescription,
+.skeletonInput,
+.skeletonButton {
+    border-radius: 8px;
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 37%, #f1f5f9 63%);
+    background-size: 400% 100%;
+    animation: skeletonShimmer 1.2s ease infinite;
+}
+
+.skeletonTitle {
+    height: 28px;
+    width: 48%;
+    margin: 0 auto;
+}
+
+.skeletonDescription {
+    height: 16px;
+    width: 72%;
+    margin: 0 auto 0.25rem;
+}
+
+.skeletonGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+
+    @include mobile {
+        grid-template-columns: 1fr;
+    }
+}
+
+.skeletonInput {
+    height: 52px;
+    width: 100%;
+}
+
+.skeletonButton {
+    height: 50px;
+    width: 220px;
+    margin: 1rem auto 0;
+}
+
+@keyframes skeletonShimmer {
+    0% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0 50%;
+    }
+}
+
+@keyframes skeletonPulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.92;
+    }
 }
 
 .error {

@@ -483,6 +483,42 @@ export default function FormEditor({ form, onSave, onBack, saving = false }: For
                                 )}
                             </Grid>
                         </Box>
+
+                        <Box sx={{ mt: 4 }}>
+                            <Typography variant="h6" gutterBottom>
+                                Tracking & Metadata
+                            </Typography>
+                            <Grid container spacing={3}>
+                                <Grid size={{ xs: 12 }}>
+                                    <FormControlLabel
+                                        control={
+                                            <Switch
+                                                checked={formData.captureUserAgent || false}
+                                                onChange={(e) => handleChange('captureUserAgent', e.target.checked)}
+                                            />
+                                        }
+                                        label="Capture User Agent & IP Address"
+                                    />
+                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 4 }}>
+                                        Include the submitter's browser, OS, and IP address in the notification email
+                                    </Typography>
+                                </Grid>
+                                <Grid size={{ xs: 12 }}>
+                                    <FormControlLabel
+                                        control={
+                                            <Switch
+                                                checked={formData.captureGeoData || false}
+                                                onChange={(e) => handleChange('captureGeoData', e.target.checked)}
+                                            />
+                                        }
+                                        label="Capture Geo Location"
+                                    />
+                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 4 }}>
+                                        Detect and include the submitter's country, region, and city in the notification email
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                        </Box>
                     </Box>
                 )}
             </Paper>

@@ -21,7 +21,11 @@ interface HeroBannerData {
         fontSizeMobile?: string;
         fontFamily?: string;
         fontWeight?: string;
-        textAlign?: string;
+        textAlign?: {
+            desktop?: string;
+            tablet?: string;
+            mobile?: string;
+        };
         lineHeight?: string;
     };
     description: {
@@ -32,7 +36,11 @@ interface HeroBannerData {
         fontSizeMobile?: string;
         fontFamily?: string;
         fontWeight?: string;
-        textAlign?: string;
+        textAlign?: {
+            desktop?: string;
+            tablet?: string;
+            mobile?: string;
+        };
         lineHeight?: string;
     };
     stats?: Array<{
@@ -51,7 +59,11 @@ interface HeroBannerData {
         fontWeight?: string;
         numberFontWeight?: string;
         labelFontWeight?: string;
-        textAlign?: string;
+        textAlign?: {
+            desktop?: string;
+            tablet?: string;
+            mobile?: string;
+        };
         lineHeight?: string;
     }>;
     chips?: Array<{
@@ -61,7 +73,11 @@ interface HeroBannerData {
         fontSize?: string;
         fontFamily?: string;
         fontWeight?: string;
-        textAlign?: string;
+        textAlign?: {
+            desktop?: string;
+            tablet?: string;
+            mobile?: string;
+        };
         lineHeight?: string;
         backgroundColor?: string;
         borderRadius?: string;
@@ -96,7 +112,11 @@ interface HeroBannerData {
         fontSize?: string;
         fontFamily?: string;
         fontWeight?: string;
-        textAlign?: string;
+        textAlign?: {
+            desktop?: string;
+            tablet?: string;
+            mobile?: string;
+        };
         lineHeight?: string;
         backgroundColor?: string;
         borderRadius?: string;
@@ -152,28 +172,34 @@ export default function HeroBannerModule({ config, initialData }: HeroBannerProp
 
     const { title, description, stats = [], chips = [], image, ctas = [], config: bannerConfig } = banner;
 
+    const titleTextAlign = title.textAlign || {};
     const titleStyles = {
         color: title.color || '#111827',
         fontFamily: title.fontFamily || 'inherit',
         fontWeight: title.fontWeight || 'bold',
-        textAlign: (title.textAlign as any) || 'left',
         lineHeight: title.lineHeight || '1.2',
         '--title-highlight-color': title.highlightColor || '#b45309',
         '--title-highlight-font-family': title.highlightFontFamily || undefined,
         '--title-font-size-desktop': title.fontSize || '4.5rem',
         '--title-font-size-tablet': title.fontSizeTablet || title.fontSize || '3.5rem',
         '--title-font-size-mobile': title.fontSizeMobile || title.fontSizeTablet || title.fontSize || '2.5rem',
+        '--title-text-align-desktop': titleTextAlign.desktop || 'left',
+        '--title-text-align-tablet': titleTextAlign.tablet || titleTextAlign.desktop || 'left',
+        '--title-text-align-mobile': titleTextAlign.mobile || titleTextAlign.tablet || titleTextAlign.desktop || 'left',
     } as React.CSSProperties;
 
+    const descTextAlign = description.textAlign || {};
     const descriptionStyles = {
         color: description.color || '#4b5563',
         fontFamily: description.fontFamily || 'inherit',
         fontWeight: description.fontWeight || 'normal',
-        textAlign: (description.textAlign as any) || 'left',
         lineHeight: description.lineHeight || '1.6',
         '--description-font-size-desktop': description.fontSize || '1.125rem',
         '--description-font-size-tablet': description.fontSizeTablet || description.fontSize || '1rem',
         '--description-font-size-mobile': description.fontSizeMobile || description.fontSizeTablet || description.fontSize || '0.875rem',
+        '--description-text-align-desktop': descTextAlign.desktop || 'left',
+        '--description-text-align-tablet': descTextAlign.tablet || descTextAlign.desktop || 'left',
+        '--description-text-align-mobile': descTextAlign.mobile || descTextAlign.tablet || descTextAlign.desktop || 'left',
     } as React.CSSProperties;
 
     const containerStyles = {

@@ -599,9 +599,19 @@ export const submitForm = asyncHandler(async (req: any, res: Response) => {
         fileSize: number;
     }> = [];
 
+    // Extract metadata sent from frontend
+    let clientMetadata: Record<string, any> = {};
+    if (req.body._metadata) {
+        try {
+            clientMetadata = typeof req.body._metadata === 'string'
+                ? JSON.parse(req.body._metadata)
+                : req.body._metadata;
+        } catch { /* ignore parse errors */ }
+    }
+
     // Process regular fields
     Object.keys(req.body).forEach(key => {
-        if (key !== 'storeId') {
+        if (key !== 'storeId' && key !== '_metadata') {
             formData[key] = req.body[key];
         }
     });
@@ -660,6 +670,19 @@ export const submitForm = asyncHandler(async (req: any, res: Response) => {
             ip: req.ip,
             userAgent: req.get('User-Agent'),
             referer: req.get('Referrer'),
+            geo: clientMetadata.geoData
+                ? (typeof clientMetadata.geoData === 'string'
+                    ? JSON.parse(clientMetadata.geoData)
+                    : clientMetadata.geoData)
+                : undefined,
+            clientMetadata: clientMetadata.userAgent
+                ? {
+                    userAgent: clientMetadata.userAgent,
+                    platform: clientMetadata.platform,
+                    language: clientMetadata.language,
+                    screenResolution: clientMetadata.screenResolution,
+                }
+                : undefined,
         },
         emailSent: false,
         confirmationEmailSent: false,
@@ -693,6 +716,28 @@ export const submitForm = asyncHandler(async (req: any, res: Response) => {
             });
         });
 
+        // Convert plain URLs in text to clickable links
+        const linkify = (text: string): string => {
+            if (!text || typeof text !== 'string') return text || '';
+            // Match http/https URLs
+            const urlRegex = /(https?:\/\/[^\s<>"']+)/gi;
+            return text.replace(urlRegex, (url) => {
+                // Strip trailing punctuation that's not part of the URL
+                let cleanUrl = url.replace(/[.,;:!?)]+$/, '');
+                return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer">${cleanUrl}</a>`;
+            });
+        };
+
+        // Escape HTML entities in plain text values (except URLs already handled by linkify)
+        const escapeHtml = (text: string): string => {
+            if (!text || typeof text !== 'string') return text || '';
+            return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        };
+
         const formatValue = (key: string, value: any): string => {
             const type = fieldTypeMap[key];
             if (type === 'repeater' && typeof value === 'string') {
@@ -704,34 +749,105 @@ export const submitForm = asyncHandler(async (req: any, res: Response) => {
 
                         return '<br/>' + parsed.map((item, idx) => {
                             const details = Object.entries(item)
-                                .map(([sk, sv]) => `&nbsp;&nbsp;&nbsp;<strong>${subLabelMap[sk] || sk}:</strong> ${sv}`)
+                                .map(([sk, sv]) => {
+                                    const displayVal = linkify(escapeHtml(String(sv ?? '')));
+                                    return `&nbsp;&nbsp;&nbsp;<strong>${subLabelMap[sk] || sk}:</strong> ${displayVal}`;
+                                })
                                 .join('<br/>');
                             return `&nbsp;&nbsp;<strong>Item #${idx + 1}:</strong><br/>${details}`;
                         }).join('<br/>');
                     }
                 } catch (e) {
-                    return value;
+                    return linkify(escapeHtml(String(value)));
                 }
             }
-            return value;
+            return linkify(escapeHtml(String(value ?? '')));
         };
 
-        // Format form data for email display
-        const formattedDataList = Object.entries(formData)
-            .map(([key, value]) => `<strong>${fieldLabelMap[key] || key}:</strong> ${formatValue(key, value)}`)
-            .join('<br/>');
+        // Email table wrapper style
+        const tableStyle = 'border-collapse:collapse;width:100%;font-family:Arial,Helvetica,sans-serif;font-size:14px;';
+        const tdLabelStyle = 'padding:10px 14px;border-bottom:1px solid #eef2f7;color:#6b7280;font-weight:600;white-space:nowrap;vertical-align:top;width:1%;';
+        const tdValueStyle = 'padding:10px 14px;border-bottom:1px solid #eef2f7;color:#111827;vertical-align:top;word-break:break-word;';
+        const sectionTitleStyle = 'margin:24px 0 12px 0;padding:8px 14px;background:#f0f4ff;border-left:4px solid #3b82f6;color:#1e40af;font-size:15px;font-weight:700;border-radius:0 4px 4px 0;';
+
+        // Build form data rows (skip internal honeypot field)
+        let formDataRows = '';
+        Object.entries(formData).forEach(([key, value]) => {
+            if (key === '_form_trap' || key === '_metadata') return;
+            const label = fieldLabelMap[key] || key;
+            let displayValue = formatValue(key, value);
+
+            // For query_param fields, pretty-print the JSON
+            if (fieldTypeMap[key] === 'query_param' && typeof value === 'string') {
+                try {
+                    const parsed = JSON.parse(value);
+                    if (Object.keys(parsed).length > 0) {
+                        const paramsList = Object.entries(parsed)
+                            .map(([pk, pv]) => {
+                                const cleanValue = linkify(escapeHtml(String(pv ?? '')));
+                                return `<tr><td style="${tdLabelStyle}padding-left:28px;">${escapeHtml(pk)}</td><td style="${tdValueStyle}">${cleanValue}</td></tr>`;
+                            })
+                            .join('');
+                        formDataRows += `<tr><td style="${tdLabelStyle}">${escapeHtml(label)}</td><td style="${tdValueStyle}"><table style="${tableStyle}margin:-6px 0;">${paramsList}</table></td></tr>`;
+                        return;
+                    }
+                } catch { /* fall through */ }
+            }
+
+            // Skip completely empty values for cleaner emails
+            if (displayValue === '' || displayValue === 'None' || displayValue === 'null') {
+                displayValue = '<span style="color:#9ca3af;font-style:italic;">—</span>';
+            }
+
+            formDataRows += `<tr><td style="${tdLabelStyle}">${escapeHtml(label)}</td><td style="${tdValueStyle}">${displayValue}</td></tr>`;
+        });
 
         // Build email content with form data
         let emailBody = form.emailSettings.body;
-        emailBody += '<br/><br/><h3>Form Submission Data:</h3>';
-        emailBody += formattedDataList;
+        emailBody += `<br/><br/><div style="${sectionTitleStyle}">📋 Form Submission Data</div>`;
+        emailBody += `<table style="${tableStyle}">${formDataRows}</table>`;
 
         if (files.length > 0) {
-            emailBody += '<br/><br/><h3>Uploaded Files:</h3><ul>';
+            emailBody += `<br/><div style="${sectionTitleStyle}">📎 Uploaded Files</div>`;
+            let fileRows = '';
             files.forEach(file => {
-                emailBody += `<li><a href="${file.fileUrl}">${fieldLabelMap[file.fieldName] || file.fieldName}</a>: ${file.fileName} (${(file.fileSize / 1024).toFixed(2)} KB)</li>`;
+                fileRows += `<tr><td style="${tdLabelStyle}">${escapeHtml(fieldLabelMap[file.fieldName] || file.fieldName)}</td><td style="${tdValueStyle}"><a href="${file.fileUrl}" target="_blank">${escapeHtml(file.fileName)}</a> <span style="color:#9ca3af;">(${(file.fileSize / 1024).toFixed(2)} KB)</span></td></tr>`;
             });
-            emailBody += '</ul>';
+            emailBody += `<table style="${tableStyle}">${fileRows}</table>`;
+        }
+
+        // Add metadata section if capture is enabled
+        const hasMetadata = form.captureUserAgent || form.captureGeoData;
+        if (hasMetadata) {
+            emailBody += `<br/><div style="${sectionTitleStyle}">🔍 Submitter Information</div>`;
+            let metaRows = '';
+
+            if (form.captureUserAgent) {
+                const ua = submission.metadata.userAgent || '';
+                const platform = submission.metadata.clientMetadata?.platform || '';
+                const language = submission.metadata.clientMetadata?.language || '';
+                const screen = submission.metadata.clientMetadata?.screenResolution || '';
+                const ip = submission.metadata.ip || '';
+
+                if (ua) metaRows += `<tr><td style="${tdLabelStyle}">User Agent</td><td style="${tdValueStyle}font-size:12px;">${escapeHtml(ua)}</td></tr>`;
+                if (platform) metaRows += `<tr><td style="${tdLabelStyle}">Platform</td><td style="${tdValueStyle}">${escapeHtml(platform)}</td></tr>`;
+                if (language) metaRows += `<tr><td style="${tdLabelStyle}">Language</td><td style="${tdValueStyle}">${escapeHtml(language)}</td></tr>`;
+                if (screen) metaRows += `<tr><td style="${tdLabelStyle}">Screen</td><td style="${tdValueStyle}">${escapeHtml(screen)}</td></tr>`;
+                if (ip) metaRows += `<tr><td style="${tdLabelStyle}">IP Address</td><td style="${tdValueStyle}"><code style="background:#f1f5f9;padding:2px 8px;border-radius:4px;">${escapeHtml(ip)}</code></td></tr>`;
+            }
+
+            if (form.captureGeoData && submission.metadata.geo) {
+                const geo = submission.metadata.geo;
+                if (geo.country_code) metaRows += `<tr><td style="${tdLabelStyle}">Country</td><td style="${tdValueStyle}">${escapeHtml(geo.country_code)}</td></tr>`;
+                if (geo.region_code) metaRows += `<tr><td style="${tdLabelStyle}">Region</td><td style="${tdValueStyle}">${escapeHtml(geo.region_code)}</td></tr>`;
+                if (geo.city) metaRows += `<tr><td style="${tdLabelStyle}">City</td><td style="${tdValueStyle}">${escapeHtml(geo.city)}</td></tr>`;
+            }
+
+            if (metaRows) {
+                emailBody += `<table style="${tableStyle}">${metaRows}</table>`;
+            } else {
+                emailBody += `<p style="color:#9ca3af;font-style:italic;margin:8px 14px;">No information captured.</p>`;
+            }
         }
 
         // Queue notification to admin(s)

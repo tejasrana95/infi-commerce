@@ -9,18 +9,19 @@ $bg-light: #f9fafb;
 // Tabs Layout
 .tabsContainer {
     width: 100%;
+    border: 1px solid #efefef;
+    border-radius: 16px;
 }
 
 .tabList {
     display: flex;
     gap: 6px;
     padding: 6px;
-    background: #f3f4f6;
-    border-radius: 30px;
+    padding-bottom: 0;
     margin-bottom: 20px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    border-bottom: none;
+    border-bottom: 1px solid #efefef;
 
     &::-webkit-scrollbar {
         display: none;
@@ -37,24 +38,25 @@ $bg-light: #f9fafb;
     cursor: pointer;
     white-space: nowrap;
     border-bottom: none;
-    border-radius: 20px;
+    border-radius: 0;
     transition: all 0.2s ease;
     text-decoration: none;
 
     &:hover {
-        color: $text-primary;
-        background: rgba(0, 0, 0, 0.03);
+        color: var(--color-accent);
     }
 
     &.active {
-        color: white;
-        background: var(--color-accent, $primary-color);
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+        color: var(--color-accent);
+    background: #fff;
+    box-shadow: none;
+    border-bottom: 2px solid var(--color-accent);
+    
     }
 }
 
 .tabContent {
-    padding: 12px 4px;
+    padding: 8px 16px;
     display: block;
 
     &.hidden {

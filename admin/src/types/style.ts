@@ -208,6 +208,13 @@ export interface ProductPageConfig {
     shipping?: {
         showCalculator: boolean;
     };
+    customButton?: {
+        enabled: boolean;
+        label: string;
+        url: string;
+        captureProductUrl: boolean;
+        icon: string;
+    };
 }
 
 export const DEFAULT_PRODUCT_PAGE_CONFIG: ProductPageConfig = {
@@ -246,6 +253,13 @@ export const DEFAULT_PRODUCT_PAGE_CONFIG: ProductPageConfig = {
     },
     shipping: {
         showCalculator: false,
+    },
+    customButton: {
+        enabled: false,
+        label: '',
+        url: '',
+        captureProductUrl: false,
+        icon: '',
     },
 };
 

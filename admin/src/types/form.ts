@@ -3,7 +3,7 @@ import { Store } from './store';
 export interface FormField {
     id: string;
     type: 'text' | 'textarea' | 'email' | 'phone' | 'date' | 'time' | 'datetime' |
-    'select' | 'radio' | 'checkbox' | 'file' | 'image' | 'richtext' | 'repeater';
+    'select' | 'radio' | 'checkbox' | 'file' | 'image' | 'richtext' | 'repeater' | 'query_param';
     label: string;
     name: string;
     placeholder?: string;
@@ -81,6 +81,8 @@ export interface Form {
         subject?: string;
         body?: string;
     };
+    captureUserAgent?: boolean;
+    captureGeoData?: boolean;
     status: 'draft' | 'published';
     submissionsCount: number;
     createdAt: string;
@@ -102,6 +104,11 @@ export interface FormSubmission {
         ip?: string;
         userAgent?: string;
         referer?: string;
+        geo?: {
+            country_code?: string;
+            region_code?: string;
+            city?: string;
+        };
     };
     emailSent: boolean;
     confirmationEmailSent?: boolean;

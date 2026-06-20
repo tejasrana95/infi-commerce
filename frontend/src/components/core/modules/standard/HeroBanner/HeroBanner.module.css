@@ -78,6 +78,7 @@
   line-height: 1.15;
   letter-spacing: -0.02em;
   font-size: var(--title-font-size-desktop, 4.5rem);
+  text-align: var(--title-text-align-desktop, left);
 }
 
 @media (max-width: 1024px) {
@@ -86,6 +87,7 @@
       --title-font-size-tablet,
       var(--title-font-size-desktop, 3.5rem)
     );
+    text-align: var(--title-text-align-tablet, var(--title-text-align-desktop, left));
   }
 }
 
@@ -95,6 +97,7 @@
       --title-font-size-mobile,
       var(--title-font-size-tablet, var(--title-font-size-desktop, 2.5rem))
     );
+    text-align: var(--title-text-align-mobile, var(--title-text-align-tablet, var(--title-text-align-desktop, left)));
   }
 }
 
@@ -108,6 +111,7 @@
   margin: 0;
   max-width: 600px;
   font-size: var(--description-font-size-desktop, 1.125rem);
+  text-align: var(--description-text-align-desktop, left);
 }
 
 @media (max-width: 1024px) {
@@ -116,6 +120,7 @@
       --description-font-size-tablet,
       var(--description-font-size-desktop, 1rem)
     );
+    text-align: var(--description-text-align-tablet, var(--description-text-align-desktop, left));
   }
 }
 
@@ -128,6 +133,7 @@
         var(--description-font-size-desktop, 0.875rem)
       )
     );
+    text-align: var(--description-text-align-mobile, var(--description-text-align-tablet, var(--description-text-align-desktop, left)));
   }
 }
 

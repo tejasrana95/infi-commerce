@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import { ThemeConfig, ProductPageConfig, DEFAULT_PRODUCT_PAGE_CONFIG } from '@/types';
+import IconPicker from '@/components/atoms/IconPicker';
 
 interface ProductPageSettingsProps {
     config: ThemeConfig;
@@ -372,6 +373,71 @@ export default function ProductPageSettings({ config, onChange }: ProductPageSet
                         <Typography variant="caption" color="text.secondary" sx={{ mt: -1.5, ml: 4 }}>
                             Allow customers to estimate shipping costs before adding to cart
                         </Typography>
+                    </Box>
+                </AccordionDetails>
+            </Accordion>
+
+            {/* Custom Button Settings */}
+            <Accordion>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography fontWeight={600}>Custom Button</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <FormControlLabel
+                            control={
+                                <Switch
+                                    checked={product.customButton?.enabled ?? false}
+                                    onChange={(e) => handleChange('customButton', 'enabled', e.target.checked)}
+                                />
+                            }
+                            label="Enable Custom Button"
+                        />
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: -1.5, ml: 4 }}>
+                            Show an additional custom button on the product page after Add to Cart
+                        </Typography>
+
+                        {product.customButton?.enabled && (
+                            <>
+                                <TextField
+                                    label="Button Label"
+                                    value={product.customButton?.label ?? ''}
+                                    onChange={(e) => handleChange('customButton', 'label', e.target.value)}
+                                    fullWidth
+                                    size="small"
+                                    placeholder="e.g. View Details"
+                                />
+
+                                <TextField
+                                    label="URL"
+                                    value={product.customButton?.url ?? ''}
+                                    onChange={(e) => handleChange('customButton', 'url', e.target.value)}
+                                    fullWidth
+                                    size="small"
+                                    placeholder="https://example.com"
+                                />
+
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            checked={product.customButton?.captureProductUrl ?? false}
+                                            onChange={(e) => handleChange('customButton', 'captureProductUrl', e.target.checked)}
+                                        />
+                                    }
+                                    label="Capture Product URL in Query Param"
+                                />
+                                <Typography variant="caption" color="text.secondary" sx={{ mt: -1.5, ml: 4 }}>
+                                    Append the current product page URL as a query parameter when navigating
+                                </Typography>
+
+                                <IconPicker
+                                    value={product.customButton?.icon ?? ''}
+                                    onChange={(icon) => handleChange('customButton', 'icon', icon)}
+                                    label="Button Icon (optional)"
+                                    fullWidth
+                                />
+                            </>
+                        )}
                     </Box>
                 </AccordionDetails>
             </Accordion>

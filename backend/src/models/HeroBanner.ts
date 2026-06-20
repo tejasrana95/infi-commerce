@@ -15,7 +15,11 @@ export interface IHeroBanner extends Document {
         fontSizeMobile?: string;
         fontFamily?: string;
         fontWeight?: string;
-        textAlign?: string;
+        textAlign?: {
+            desktop?: string;
+            tablet?: string;
+            mobile?: string;
+        };
         lineHeight?: string;
     };
     description: {
@@ -26,7 +30,11 @@ export interface IHeroBanner extends Document {
         fontSizeMobile?: string;
         fontFamily?: string;
         fontWeight?: string;
-        textAlign?: string;
+        textAlign?: {
+            desktop?: string;
+            tablet?: string;
+            mobile?: string;
+        };
         lineHeight?: string;
     };
     stats?: Array<{
@@ -45,7 +53,11 @@ export interface IHeroBanner extends Document {
         fontWeight?: string;
         numberFontWeight?: string;
         labelFontWeight?: string;
-        textAlign?: string;
+        textAlign?: {
+            desktop?: string;
+            tablet?: string;
+            mobile?: string;
+        };
         lineHeight?: string;
     }>;
     chips?: Array<{
@@ -55,7 +67,11 @@ export interface IHeroBanner extends Document {
         fontSize?: string;
         fontFamily?: string;
         fontWeight?: string;
-        textAlign?: string;
+        textAlign?: {
+            desktop?: string;
+            tablet?: string;
+            mobile?: string;
+        };
         lineHeight?: string;
         backgroundColor?: string;
         borderRadius?: string;
@@ -90,7 +106,11 @@ export interface IHeroBanner extends Document {
         fontSize?: string;
         fontFamily?: string;
         fontWeight?: string;
-        textAlign?: string;
+        textAlign?: {
+            desktop?: string;
+            tablet?: string;
+            mobile?: string;
+        };
         lineHeight?: string;
         backgroundColor?: string;
         borderRadius?: string;
@@ -137,7 +157,11 @@ const HeroBannerSchema = new Schema<IHeroBanner>(
             fontSizeMobile: { type: String },
             fontFamily: { type: String },
             fontWeight: { type: String },
-            textAlign: { type: String },
+            textAlign: {
+                desktop: { type: String, default: 'left' },
+                tablet: { type: String, default: 'left' },
+                mobile: { type: String, default: 'left' },
+            },
             lineHeight: { type: String },
         },
         description: {
@@ -148,7 +172,11 @@ const HeroBannerSchema = new Schema<IHeroBanner>(
             fontSizeMobile: { type: String },
             fontFamily: { type: String },
             fontWeight: { type: String },
-            textAlign: { type: String },
+            textAlign: {
+                desktop: { type: String, default: 'left' },
+                tablet: { type: String, default: 'left' },
+                mobile: { type: String, default: 'left' },
+            },
             lineHeight: { type: String },
         },
         stats: [
@@ -168,7 +196,11 @@ const HeroBannerSchema = new Schema<IHeroBanner>(
                 fontWeight: { type: String },
                 numberFontWeight: { type: String },
                 labelFontWeight: { type: String },
-                textAlign: { type: String },
+                textAlign: {
+                    desktop: { type: String, default: 'left' },
+                    tablet: { type: String, default: 'left' },
+                    mobile: { type: String, default: 'left' },
+                },
                 lineHeight: { type: String },
             },
         ],
@@ -180,7 +212,11 @@ const HeroBannerSchema = new Schema<IHeroBanner>(
                 fontSize: { type: String },
                 fontFamily: { type: String },
                 fontWeight: { type: String },
-                textAlign: { type: String },
+                textAlign: {
+                    desktop: { type: String, default: 'left' },
+                    tablet: { type: String, default: 'left' },
+                    mobile: { type: String, default: 'left' },
+                },
                 lineHeight: { type: String },
                 backgroundColor: { type: String },
                 borderRadius: { type: String },
@@ -223,7 +259,11 @@ const HeroBannerSchema = new Schema<IHeroBanner>(
                 fontSize: { type: String },
                 fontFamily: { type: String },
                 fontWeight: { type: String },
-                textAlign: { type: String },
+                textAlign: {
+                    desktop: { type: String, default: 'left' },
+                    tablet: { type: String, default: 'left' },
+                    mobile: { type: String, default: 'left' },
+                },
                 lineHeight: { type: String },
                 backgroundColor: { type: String },
                 borderRadius: { type: String },

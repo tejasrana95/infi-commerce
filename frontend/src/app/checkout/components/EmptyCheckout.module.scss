@@ -89,7 +89,7 @@
 
 .primaryBtn {
     color: #fff;
-    background: linear-gradient(135deg, #2d58c8 0%, #5867d9 100%);
+    background: var(--color-primary, #6366f1);
     box-shadow: 0 10px 24px rgba(54, 87, 190, 0.28);
 
     &:hover {

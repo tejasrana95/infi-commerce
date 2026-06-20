@@ -23,6 +23,7 @@ interface IconBoxItem {
 interface IconBoxConfigStyles {
     borderColor?: string;
     borderRadius?: number;
+    borderSize?: number;
     iconColor?: string;
     iconBgColor?: string;
     iconBgRadius?: number;
@@ -44,6 +45,7 @@ interface IconBoxConfigStyles {
     iconBgSize?: number;
     iconBgPadding?: number;
     iconAlign?: string;
+    iconTextAlign?: string;
     hoverEffect?: string;
     gap?: number;
     hideBoxShadow?: boolean;
@@ -60,6 +62,7 @@ interface IconBoxConfig {
     textAlign: string;
     fullSizeImage?: boolean;
     styles?: IconBoxConfigStyles;
+    justifyItems?: string;
     [key: string]: unknown;
 }
 
@@ -160,6 +163,14 @@ export default function IconBoxConfigPanel({ config, onChange }: Readonly<IconBo
                                 <MenuItem value={2}>2 Columns</MenuItem>
                                 <MenuItem value={3}>3 Columns</MenuItem>
                                 <MenuItem value={4}>4 Columns</MenuItem>
+                                <MenuItem value={5}>5 Columns</MenuItem>
+                                <MenuItem value={6}>6 Columns</MenuItem>
+                                <MenuItem value={7}>7 Columns</MenuItem>
+                                <MenuItem value={8}>8 Columns</MenuItem>
+                                <MenuItem value={9}>9 Columns</MenuItem>
+                                <MenuItem value={10}>10 Columns</MenuItem>
+                                <MenuItem value={11}>11 Columns</MenuItem>
+                                <MenuItem value={12}>12 Columns</MenuItem>
                             </Select>
                         </FormControl>
 
@@ -185,6 +196,19 @@ export default function IconBoxConfigPanel({ config, onChange }: Readonly<IconBo
                             >
                                 <MenuItem value="icon">React Icon</MenuItem>
                                 <MenuItem value="image">Custom Image</MenuItem>
+                            </Select>
+                        </FormControl>
+
+                        <FormControl fullWidth size="small">
+                            <InputLabel>Justify Items</InputLabel>
+                            <Select
+                                value={config.justifyItems || 'start'}
+                                label="Justify Items"
+                                onChange={(e) => handleChange('justifyItems', e.target.value)}
+                            >
+                                <MenuItem value="start">Start</MenuItem>
+                                <MenuItem value="center">Center</MenuItem>
+                                <MenuItem value="end">End</MenuItem>
                             </Select>
                         </FormControl>
 
@@ -490,6 +514,14 @@ export default function IconBoxConfigPanel({ config, onChange }: Readonly<IconBo
                             size="small"
                             fullWidth
                         />
+                        <TextField
+                            label="Border Size (px)"
+                            type="number"
+                            value={config.styles?.borderSize ?? ''}
+                            onChange={(e) => handleStyleChange('borderSize', e.target.value ? Number.parseInt(e.target.value, 10) : undefined)}
+                            size="small"
+                            fullWidth
+                        />
                     </Box>
 
                     <Divider sx={{ my: 1 }} />
@@ -623,7 +655,19 @@ export default function IconBoxConfigPanel({ config, onChange }: Readonly<IconBo
                                 <MenuItem value="flex-end">Bottom / Right (End)</MenuItem>
                             </Select>
                         </FormControl>
-
+                        <FormControl fullWidth size="small">
+                            <InputLabel>Icon Text-Alignment</InputLabel>
+                            <Select
+                                value={config.styles?.iconTextAlign || ''}
+                                label="Icon Text-Alignment"
+                                onChange={(e) => handleStyleChange('iconTextAlign', e.target.value)}
+                            >
+                                <MenuItem value="">Default</MenuItem>
+                                <MenuItem value="flex-start">Top (Start)</MenuItem>
+                                <MenuItem value="center">Center</MenuItem>
+                                <MenuItem value="flex-end">Bottom (End)</MenuItem>
+                            </Select>
+                        </FormControl>
                         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, alignItems: 'center' }}>
                             <TextField
                                 label="Icon-to-Text Gap (px)"

@@ -21,6 +21,7 @@ import { ProductTabs } from '@/components/molecules/ProductTabs';
 import { ProductVideoGallery } from '@/components/molecules/ProductVideoGallery';
 import ProductReturnExchange from '@/components/molecules/ProductReturnExchange/ProductReturnExchange';
 import ShippingCalculator from '@/components/organisms/ShippingCalculator';
+import DynamicIcon from '@/components/core/common/DynamicIcon';
 
 import styles from './ProductPage.module.scss';
 import api from '@/lib/api';
@@ -203,6 +204,22 @@ export default function ModernCleanProductPageTemplate({
         displaySalePrice = currentSalePrice;
         displayComparePrice = currentSalePrice && currentSalePrice < currentPrice ? currentPrice : undefined;
     }
+
+    // Custom button config
+    const customButton = config.customButton;
+    const customButtonEnabled = customButton?.enabled && customButton?.label && customButton?.url;
+
+    // Handle custom button click
+    const handleCustomButtonClick = () => {
+        if (!customButton?.url) return;
+        let targetUrl = customButton.url;
+        if (customButton.captureProductUrl) {
+            const currentUrl = encodeURIComponent(window.location.href);
+            const separator = targetUrl.includes('?') ? '&' : '?';
+            targetUrl = `${targetUrl}${separator}product_url=${currentUrl}`;
+        }
+        window.open(targetUrl, '_blank');
+    };
 
     const effectivePrice = displaySalePrice && displaySalePrice < displayPrice
         ? displaySalePrice
@@ -585,7 +602,7 @@ export default function ModernCleanProductPageTemplate({
                 <p className={styles.selectOptionsHint}>Please select all options to continue</p>
             )}
             {shouldShowPrice ? (
-                <div className={styles.actions}>
+                <div className={`${styles.actions} ${customButtonEnabled ? styles.actionsWithCustom : ''}`}>
                     <button
                         className={styles.addToCartBtn}
                         onClick={onAddToCart}
@@ -597,6 +614,7 @@ export default function ModernCleanProductPageTemplate({
                         data-currency={typeof currency === 'object' ? currency.code : currency}
                         data-quantity={quantity}
                     >
+                        <DynamicIcon name='MdOutlineAddShoppingCart' size={18} />
                         {isAddingToCart ? 'Adding...' : 'Add to Cart'}
                     </button>
                     <button
@@ -612,8 +630,17 @@ export default function ModernCleanProductPageTemplate({
                         data-currency={typeof currency === 'object' ? currency.code : currency}
                         data-quantity={quantity}
                     >
-                        Buy Now
+                         <DynamicIcon name='MdShoppingCartCheckout' size={18} /> Buy Now
                     </button>
+                    {customButtonEnabled && (
+                        <button
+                            className={styles.customBtn}
+                            onClick={handleCustomButtonClick}
+                        >
+                            {customButton.icon && <DynamicIcon name={customButton.icon} size={18} />}
+                            {customButton.label}
+                        </button>
+                    )}
                 </div>
             ) : (
                 <div className={styles.actions}>

@@ -107,7 +107,11 @@ export interface HeroBanner {
         fontSizeMobile?: string;
         fontFamily?: string;
         fontWeight?: string;
-        textAlign?: string;
+        textAlign?: {
+            desktop?: string;
+            tablet?: string;
+            mobile?: string;
+        };
         lineHeight?: string;
     };
     description: {
@@ -118,7 +122,11 @@ export interface HeroBanner {
         fontSizeMobile?: string;
         fontFamily?: string;
         fontWeight?: string;
-        textAlign?: string;
+        textAlign?: {
+            desktop?: string;
+            tablet?: string;
+            mobile?: string;
+        };
         lineHeight?: string;
     };
     stats?: Array<{
@@ -137,7 +145,11 @@ export interface HeroBanner {
         fontWeight?: string;
         numberFontWeight?: string;
         labelFontWeight?: string;
-        textAlign?: string;
+        textAlign?: {
+            desktop?: string;
+            tablet?: string;
+            mobile?: string;
+        };
         lineHeight?: string;
     }>;
     chips?: Array<{
@@ -147,7 +159,11 @@ export interface HeroBanner {
         fontSize?: string;
         fontFamily?: string;
         fontWeight?: string;
-        textAlign?: string;
+        textAlign?: {
+            desktop?: string;
+            tablet?: string;
+            mobile?: string;
+        };
         lineHeight?: string;
         backgroundColor?: string;
         borderRadius?: string;
@@ -182,7 +198,11 @@ export interface HeroBanner {
         fontSize?: string;
         fontFamily?: string;
         fontWeight?: string;
-        textAlign?: string;
+        textAlign?: {
+            desktop?: string;
+            tablet?: string;
+            mobile?: string;
+        };
         lineHeight?: string;
         backgroundColor?: string;
         borderRadius?: string;

@@ -26,6 +26,7 @@ export const fieldTypeDefinitions: FieldTypeDefinition[] = [
     { type: 'checkbox', label: 'Checkboxes', icon: 'CheckBox', category: 'advanced', description: 'Multiple choices' },
     { type: 'richtext', label: 'Rich Text', icon: 'FormatBold', category: 'advanced', description: 'Rich text editor' },
     { type: 'repeater', label: 'Repeater', icon: 'Repeat', category: 'advanced', description: 'Repeatable field group' },
+    { type: 'query_param', label: 'Capture Query Params', icon: 'Link', category: 'advanced', description: 'Auto-capture URL query parameters' },
 
     // File Fields
     { type: 'file', label: 'File Upload', icon: 'AttachFile', category: 'file', description: 'File upload field' },

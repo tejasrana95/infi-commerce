@@ -7,6 +7,7 @@ import { useStore } from '@/providers/StoreProvider';
 import styles from './form.module.scss';
 import Honeypot from '@/components/core/common/Honeypot';
 import { track } from '@/lib/ga';
+import { getGeoCookie } from '@/hooks/usePriceVisibility';
 
 interface FormField {
     id: string;
@@ -36,6 +37,8 @@ interface FormData {
     description?: string;
     sections: FormSection[];
     status: 'draft' | 'published';
+    captureUserAgent?: boolean;
+    captureGeoData?: boolean;
 }
 
 export default function FormModule({ config }: ModuleProps) {
@@ -141,6 +144,10 @@ export default function FormModule({ config }: ModuleProps) {
                     }, {});
                     initialValues[field.name] = Array(min).fill(null).map(() => ({ ...defaultItem }));
                 }
+                // Auto-capture query params for query_param fields
+                if (field.type === 'query_param') {
+                    initialValues[field.name] = captureQueryParams();
+                }
             });
 
             setFormValues(prev => ({ ...prev, ...initialValues }));
@@ -149,6 +156,38 @@ export default function FormModule({ config }: ModuleProps) {
         } finally {
             setLoading(false);
         }
+    };
+
+    // Capture all query parameters from URL
+    const captureQueryParams = (): string => {
+        if (typeof window === 'undefined') return '';
+        const params = new URLSearchParams(window.location.search);
+        const result: Record<string, string> = {};
+        params.forEach((value, key) => {
+            result[key] = value;
+        });
+        return Object.keys(result).length > 0 ? JSON.stringify(result) : '';
+    };
+
+    // Fetch geo data
+    const fetchGeoData = async (): Promise<Record<string, any> | null> => {
+        try {
+            const cachedGeo = getGeoCookie();
+            if (cachedGeo && Object.keys(cachedGeo).length > 0) {
+                return cachedGeo;
+            }
+            // Fallback: call the geo detect endpoint
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+            const response = await fetch(`${apiUrl}/api/geo/detect`, {
+                signal: AbortSignal.timeout(5000),
+            });
+            if (response.ok) {
+                return await response.json();
+            }
+        } catch {
+            // Silently fail
+        }
+        return null;
     };
 
     const handleInputChange = (fieldName: string, value: any, repeaterIndex?: number, subFieldName?: string) => {
@@ -220,6 +259,9 @@ export default function FormModule({ config }: ModuleProps) {
     };
 
     const validateField = (field: FormField, value: any): string | null => {
+        // query_param fields are auto-captured - skip validation
+        if (field.type === 'query_param') return null;
+
         // Handle strings, arrays, and other types for required check
         const isEmpty =
             value === undefined ||
@@ -363,6 +405,27 @@ export default function FormModule({ config }: ModuleProps) {
 
             // Append honeypot field
             formData.append('_form_trap', honeyTrap);
+
+            // Capture metadata (user agent, geo, IP) based on form config
+            if (form.captureUserAgent || form.captureGeoData) {
+                const metadata: Record<string, string> = {};
+
+                if (form.captureUserAgent) {
+                    metadata.userAgent = navigator.userAgent;
+                    metadata.platform = navigator.platform;
+                    metadata.language = navigator.language;
+                    metadata.screenResolution = `${window.screen.width}x${window.screen.height}`;
+                }
+
+                if (form.captureGeoData) {
+                    const geoData = await fetchGeoData();
+                    if (geoData) {
+                        metadata.geoData = JSON.stringify(geoData);
+                    }
+                }
+
+                formData.append('_metadata', JSON.stringify(metadata));
+            }
 
             // Append files
             Object.entries(uploadedFiles).forEach(([fieldName, files]) => {
@@ -616,6 +679,16 @@ export default function FormModule({ config }: ModuleProps) {
                     );
                 }
 
+                case 'query_param':
+                    // Hidden field - auto-captured from URL query params
+                    return (
+                        <input
+                            type="hidden"
+                            name={field.name}
+                            value={value}
+                        />
+                    );
+
                 default:
                     return null;
             }
@@ -623,10 +696,13 @@ export default function FormModule({ config }: ModuleProps) {
 
         return (
             <div key={field.id} className={styles.field}>
-                <label htmlFor={field.id} className={styles.label}>
-                    {field.label}
-                    {field.required && <span className={styles.required}>*</span>}
-                </label>
+                {/* query_param fields are hidden - no visible label or wrapper */}
+                {field.type !== 'query_param' && (
+                    <label htmlFor={field.id} className={styles.label}>
+                        {field.label}
+                        {field.required && <span className={styles.required}>*</span>}
+                    </label>
+                )}
                 {renderFieldContent()}
                 {error && <span className={styles.errorText}>{error}</span>}
             </div>
@@ -654,8 +730,8 @@ export default function FormModule({ config }: ModuleProps) {
                 <div
                     className={styles.columns}
                     style={{
-                        gridTemplateColumns: (section.columns || []).map(c => `${c.width}fr`).join(' ')
-                    }}
+                        '--columns-template': (section.columns || []).map(c => `${c.width}fr`).join(' ')
+                    } as React.CSSProperties}
                 >
                     {(section.columns || []).map(column => (
                         <div key={column.id} className={styles.column}>
@@ -667,7 +743,19 @@ export default function FormModule({ config }: ModuleProps) {
     };
 
     if (loading) {
-        return <div className={styles.loading}>Loading form...</div>;
+        return (
+            <div className={styles.loadingSkeleton} aria-live="polite" aria-busy="true">
+                <div className={styles.skeletonTitle} />
+                <div className={styles.skeletonDescription} />
+                <div className={styles.skeletonGrid}>
+                    <div className={styles.skeletonInput} />
+                    <div className={styles.skeletonInput} />
+                </div>
+                <div className={styles.skeletonInput} />
+                <div className={styles.skeletonInput} />
+                <div className={styles.skeletonButton} />
+            </div>
+        );
     }
 
     if (!form) {
