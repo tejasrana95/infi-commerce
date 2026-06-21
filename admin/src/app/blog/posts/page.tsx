@@ -15,6 +15,7 @@ import { useNotification } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { createDataGridStyles } from '@/utils/styles';
+import Link from 'next/link';
 
 export default function BlogPostsPage() {
     const router = useRouter();
@@ -86,10 +87,6 @@ export default function BlogPostsPage() {
         }
     };
 
-    const handleEdit = (id: string) => {
-        router.push(`/blog/posts/${id}`);
-    };
-
     const handleCreate = () => {
         router.push('/blog/posts/new');
     };
@@ -153,7 +150,7 @@ export default function BlogPostsPage() {
                         variant="body2"
                         fontWeight={600}
                         sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }}
-                        onClick={() => handleEdit(params.row._id)}
+                        component={Link} href={`/blog/posts/${params.row._id}`} 
                     >
                         {params.row.title}
                     </Typography>
@@ -246,7 +243,7 @@ export default function BlogPostsPage() {
             renderCell: (params: GridRenderCellParams) => (
                 <Box display="flex" flexDirection="row" justifyContent="start" alignItems="center" gap={0.5} height="100%">
                     <Tooltip title="Edit">
-                        <IconButton onClick={() => handleEdit(params.row._id)} size="small" color="primary">
+                        <IconButton component={Link} href={`/blog/posts/${params.row._id}`} size="small" color="primary">
                             <EditIcon fontSize="small" />
                         </IconButton>
                     </Tooltip>
