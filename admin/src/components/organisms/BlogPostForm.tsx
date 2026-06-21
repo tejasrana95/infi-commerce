@@ -212,7 +212,7 @@ export default function BlogPostForm({ initialData, onSubmit, isSubmitting = fal
                 seo: {
                     metaTitle: initialData.seo?.metaTitle || '',
                     metaDescription: initialData.seo?.metaDescription || '',
-                    metaKeywords: initialData.seo?.keywords || [],
+                    metaKeywords: (initialData.seo as any)?.metaKeywords || initialData.seo?.keywords || [],
                     ogTitle: (initialData.seo as any)?.ogTitle || '',
                     ogDescription: (initialData.seo as any)?.ogDescription || '',
                     ogImage: (initialData.seo as any)?.ogImage || '',
@@ -259,6 +259,12 @@ export default function BlogPostForm({ initialData, onSubmit, isSubmitting = fal
     // Normalize form data before submission: extract _id from ProductOption objects
     const handleFormSubmit = async (data: FormData) => {
         const normalized = { ...data };
+        if (normalized.seo) {
+            normalized.seo = {
+                ...normalized.seo,
+                metaKeywords: (normalized.seo.metaKeywords || []).map((keyword) => keyword.trim()).filter(Boolean),
+            };
+        }
         if (normalized.linkedProductsConfig) {
             normalized.linkedProductsConfig = {
                 ...normalized.linkedProductsConfig,

@@ -327,6 +327,8 @@ export interface BlogPost {
     seo?: {
         metaTitle?: string;
         metaDescription?: string;
+        metaKeywords?: string[];
+        // Legacy field kept for backward compatibility with older responses.
         keywords?: string[];
         ogImage?: string;
         ogTitle?: string;
