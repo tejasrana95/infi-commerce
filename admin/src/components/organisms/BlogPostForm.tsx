@@ -147,6 +147,24 @@ export default function BlogPostForm({ initialData, onSubmit, isSubmitting = fal
     const linkedProductsCount = Array.isArray(linkedProducts) ? linkedProducts.length : 0;
     const hasStore = Boolean(watchedStoreId);
 
+    const normalizeChipValues = (values: string[]) => {
+        return Array.from(
+            new Set(
+                values
+                    .flatMap((value) => value.split(','))
+                    .map((value) => value.trim())
+                    .filter(Boolean)
+            )
+        );
+    };
+
+    const parseCommaSeparatedValues = (rawValue: string) => {
+        return rawValue
+            .split(',')
+            .map((value) => value.trim())
+            .filter(Boolean);
+    };
+
     useEffect(() => {
         if (initialData) {
             const storeId = typeof initialData.storeId === 'object' && initialData.storeId !== null
@@ -403,7 +421,10 @@ export default function BlogPostForm({ initialData, onSubmit, isSubmitting = fal
                                         multiple
                                         freeSolo
                                         value={value || []}
-                                        onChange={(_, newValue) => onChange(newValue)}
+                                        onChange={(_, newValue) => {
+                                            const normalized = normalizeChipValues(newValue.map((item) => String(item)));
+                                            onChange(normalized);
+                                        }}
                                         options={[]}
                                         renderTags={(value, getTagProps) =>
                                             value.map((option, index) => (
@@ -415,6 +436,17 @@ export default function BlogPostForm({ initialData, onSubmit, isSubmitting = fal
                                                 {...params}
                                                 label="Tags"
                                                 placeholder="Add tags"
+                                                onPaste={(event) => {
+                                                    const pastedText = event.clipboardData.getData('text');
+                                                    if (!pastedText.includes(',')) {
+                                                        return;
+                                                    }
+
+                                                    event.preventDefault();
+                                                    const parsedValues = parseCommaSeparatedValues(pastedText);
+                                                    const merged = normalizeChipValues([...(value || []), ...parsedValues]);
+                                                    onChange(merged);
+                                                }}
                                             />
                                         )}
                                     />
@@ -832,6 +864,48 @@ export default function BlogPostForm({ initialData, onSubmit, isSubmitting = fal
                                     rows={2}
                                     error={!!errors.seo?.metaDescription}
                                     helperText={errors.seo?.metaDescription?.message || `${field.value?.length || 0}/160 characters`}
+                                />
+                            )}
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12 }}>
+                        <Controller
+                            name="seo.metaKeywords"
+                            control={control}
+                            render={({ field: { onChange, value } }) => (
+                                <Autocomplete
+                                    multiple
+                                    freeSolo
+                                    value={value || []}
+                                    onChange={(_, newValue) => {
+                                        const normalized = normalizeChipValues(newValue.map((item) => String(item)));
+                                        onChange(normalized);
+                                    }}
+                                    options={[]}
+                                    renderTags={(keywords, getTagProps) =>
+                                        keywords.map((keyword, index) => (
+                                            <Chip label={keyword} {...getTagProps({ index })} key={index} size="small" />
+                                        ))
+                                    }
+                                    renderInput={(params) => (
+                                        <TextField
+                                            {...params}
+                                            label="Meta Keywords"
+                                            placeholder="Add keywords"
+                                            helperText="Press Enter to add, or paste comma-separated keywords"
+                                            onPaste={(event) => {
+                                                const pastedText = event.clipboardData.getData('text');
+                                                if (!pastedText.includes(',')) {
+                                                    return;
+                                                }
+
+                                                event.preventDefault();
+                                                const parsedValues = parseCommaSeparatedValues(pastedText);
+                                                const merged = normalizeChipValues([...(value || []), ...parsedValues]);
+                                                onChange(merged);
+                                            }}
+                                        />
+                                    )}
                                 />
                             )}
                         />

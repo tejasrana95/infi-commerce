@@ -248,10 +248,6 @@
         font-size: 18px;
     }
 
-    p {
-        margin-bottom: 24px;
-    }
-
     a {
         color: var(--primary, #4f46e5);
         text-decoration: underline;
@@ -333,7 +329,7 @@
     hr {
         border: none;
         border-top: 1px solid var(--border, #e5e5e5);
-        margin: 40px 0;
+        margin: 20px 0;
     }
 
     table {

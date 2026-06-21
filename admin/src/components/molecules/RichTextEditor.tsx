@@ -1,4 +1,4 @@
-import { useEditor, EditorContent, Editor } from '@tiptap/react';
+import { useEditor, EditorContent, Editor, useEditorState } from '@tiptap/react';
 import { Node, Mark, mergeAttributes } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
@@ -8,7 +8,12 @@ import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import { TextStyle } from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
-import { Box, IconButton, Select, MenuItem, Typography, Paper, Divider, Tooltip, useTheme, Dialog, DialogTitle, DialogContent, TextField, DialogActions, Button, SelectChangeEvent } from '@mui/material';
+import { Table } from '@tiptap/extension-table';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
+import TableRow from '@tiptap/extension-table-row';
+import EmojiPicker from 'emoji-picker-react';
+import { Box, IconButton, Select, MenuItem, Typography, Paper, Divider, Tooltip, useTheme, Dialog, DialogTitle, DialogContent, TextField, DialogActions, Button, SelectChangeEvent, Tabs, Tab } from '@mui/material';
 import {
     FormatBold, FormatItalic, FormatUnderlined, FormatStrikethrough,
     FormatListBulleted, FormatListNumbered, FormatQuote, Code,
@@ -17,10 +22,13 @@ import {
     Fullscreen, FullscreenExit, BorderColor,
     HelpOutline as HelpOutlineIcon, Delete as DeleteIcon,
     ArrowUpward as ArrowUpwardIcon, ArrowDownward as ArrowDownwardIcon,
+    HorizontalRule as HorizontalRuleIcon, TableChart,
+    TableRows, ViewColumn, DeleteSweep,
+    FormatClear, AddReaction,
 } from '@mui/icons-material';
 import YouTubeIcon from '@mui/icons-material/YouTube';
 import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import FileManagerButton from './FileManagerButton';
 import { FileItem } from '@/types/file';
 
@@ -111,7 +119,7 @@ const FAQBlock = Node.create({
                     if (dataFaqs) {
                         try {
                             return JSON.parse(dataFaqs);
-                        } catch (e) {
+                        } catch {
                             return [];
                         }
                     }
@@ -297,6 +305,143 @@ const YouTubeDialog = ({ open, onClose, onEmbed }: { open: boolean; onClose: () 
     );
 };
 
+const ICON_GROUPS: Record<string, string[]> = {
+    All: [],
+    Essentials: ['✓', '✔', '✕', '✖', '★', '☆', '✦', '✧', '•', '◦', '→', '←', '↑', '↓', '↗', '↘', '↺', '↻', '⚡', '🔥', '💡', '📌', '📍', '❗', '❓', '✅', '☑', '⚠'],
+    Arrows: ['→', '←', '↑', '↓', '↔', '↕', '↗', '↘', '↙', '↖', '➔', '➜', '➤', '➥', '➦', '➧', '➨', '➩', '➪', '➫', '➬', '➭', '➮', '➯'],
+    Shapes: ['●', '○', '◉', '◌', '■', '□', '▪', '▫', '▲', '△', '▶', '▷', '▼', '▽', '◆', '◇', '◈', '◍', '⬟', '⬢', '⬡', '⬣', '⬤'],
+    Blog: ['📝', '✍', '📖', '📚', '📗', '📘', '📙', '📒', '📔', '📓', '📄', '📃', '🗞', '📰', '🧠', '🎯', '📣', '📢', '💬', '🗨', '🧩', '✨'],
+    Media: ['📷', '📸', '🎥', '🎬', '🎞', '📹', '🎙', '🎧', '🎵', '🎶', '🖼', '🧾', '🗂', '🗃', '🗄', '📁', '📂', '🧷', '📎', '🔗', '🖇'],
+    Tech: ['💻', '🖥', '⌨', '🖱', '📱', '🔌', '🔋', '🛰', '🌐', '⚙', '🛠', '🔧', '🧰', '🧪', '🔬', '🤖', '🧬', '🔐', '🔒', '🔓', '🛡'],
+    Business: ['💼', '📈', '📉', '📊', '💹', '🧮', '🏷', '🛒', '🛍', '📦', '🚚', '🏦', '💳', '💰', '💵', '💴', '💶', '💷', '🧾', '🗓', '📅'],
+    UI: ['🔍', '🔎', '🔔', '🔕', '🛎', '⭐', '❤️', '🖤', '🩶', '🤍', '💙', '💚', '💛', '🧡', '💜', '🩷', '🧭', '📌', '📍', '🏁', '🚩'],
+    Contact: ['☎', '📞', '📲', '✉', '📧', '📨', '📩', '💌', '📬', '📭', '🌍', '📍', '🏢', '🏠', '🌐', '🔗', '🆔', '👤', '👥', '🤝', '🫶'],
+    Commerce: ['🛒', '🛍', '📦', '🏷', '💰', '💳', '💸', '🏪', '🚚', '📬', '✅', '⭐', '🔥', '🎁', '🎉', '🧾', '📈', '📉', '🧮', '🧷'],
+    Social: ['👍', '👎', '👏', '🙌', '🤝', '🙏', '💬', '🗨', '🗯', '❤️', '💙', '💚', '💛', '💜', '🧡', '🖤', '🤍', '💯', '🔥', '✨', '🎉'],
+    Legal: ['©', '®', '™', '℠', '§', '¶', '⚖', '🛡', '🔒', '🔓', '🧾', '📜', '📝', '🆔', '🔏', '🧷', '✅', '☑'],
+};
+
+ICON_GROUPS.All = Array.from(new Set(Object.values(ICON_GROUPS).flatMap((items) => items)));
+
+const IconPickerDialog = ({
+    open,
+    onClose,
+    onSelect,
+}: {
+    open: boolean;
+    onClose: () => void;
+    onSelect: (icon: string) => void;
+}) => {
+    const [pickerTab, setPickerTab] = useState<'symbols' | 'emoji'>('symbols');
+    const [activeGroup, setActiveGroup] = useState<keyof typeof ICON_GROUPS>('All');
+    const [query, setQuery] = useState('');
+    const [customIcon, setCustomIcon] = useState('');
+
+    const visibleIcons = useMemo(() => {
+        const source = ICON_GROUPS[activeGroup] || ICON_GROUPS.All;
+        if (!query.trim()) {
+            return source;
+        }
+
+        const normalizedQuery = query.trim().toLowerCase();
+        return source.filter((icon) => icon.toLowerCase().includes(normalizedQuery));
+    }, [activeGroup, query]);
+
+    const handleInsert = (icon: string) => {
+        onSelect(icon);
+        onClose();
+    };
+
+    return (
+        <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+            <DialogTitle>Insert Icon</DialogTitle>
+            <DialogContent>
+                <Tabs
+                    value={pickerTab}
+                    onChange={(_, value) => setPickerTab(value)}
+                    sx={{ borderBottom: 1, borderColor: 'divider', mb: 1.5 }}
+                >
+                    <Tab value="symbols" label="Symbols" />
+                    <Tab value="emoji" label="Emoji" />
+                </Tabs>
+
+                {pickerTab === 'symbols' && (
+                    <>
+                        <Box sx={{ display: 'flex', gap: 1, mb: 1.5, mt: 0.5 }}>
+                            <Select
+                                size="small"
+                                value={activeGroup}
+                                onChange={(e) => setActiveGroup(e.target.value as keyof typeof ICON_GROUPS)}
+                                sx={{ minWidth: 160 }}
+                            >
+                                {Object.keys(ICON_GROUPS).map((groupName) => (
+                                    <MenuItem key={groupName} value={groupName}>{groupName}</MenuItem>
+                                ))}
+                            </Select>
+                            <TextField
+                                size="small"
+                                placeholder="Search icon"
+                                value={query}
+                                onChange={(e) => setQuery(e.target.value)}
+                                fullWidth
+                            />
+                        </Box>
+
+                        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: 0.75, py: 0.5, maxHeight: 320, overflowY: 'auto' }}>
+                            {visibleIcons.map((icon) => (
+                                <Button
+                                    key={`${activeGroup}-${icon}`}
+                                    variant="outlined"
+                                    onClick={() => handleInsert(icon)}
+                                    sx={{ minWidth: 0, px: 0.75, py: 0.75, fontSize: '1.2rem' }}
+                                >
+                                    {icon}
+                                </Button>
+                            ))}
+                        </Box>
+                    </>
+                )}
+
+                {pickerTab === 'emoji' && (
+                    <Box sx={{ mt: 0.5 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                            Includes complete Unicode emoji set with search and categories (WhatsApp-style use).
+                        </Typography>
+                        <EmojiPicker
+                            onEmojiClick={(emojiData) => handleInsert(emojiData.emoji)}
+                            width="100%"
+                            height={380}
+                            lazyLoadEmojis
+                            searchDisabled={false}
+                        />
+                    </Box>
+                )}
+
+                <Box sx={{ mt: 1.5, display: 'flex', gap: 1 }}>
+                    <TextField
+                        size="small"
+                        label="Custom icon"
+                        placeholder="Paste any emoji/symbol"
+                        value={customIcon}
+                        onChange={(e) => setCustomIcon(e.target.value)}
+                        fullWidth
+                    />
+                    <Button
+                        variant="contained"
+                        onClick={() => handleInsert(customIcon)}
+                        disabled={!customIcon.trim()}
+                    >
+                        Insert
+                    </Button>
+                </Box>
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={onClose}>Close</Button>
+            </DialogActions>
+        </Dialog>
+    );
+};
+
 // ---------------------------------------------------------------------------
 // FAQ Dialog
 // ---------------------------------------------------------------------------
@@ -450,7 +595,40 @@ const MenuBar = ({ editor, variant, showSourceToggle, sourceMode, onSourceToggle
     const [linkDialogOpen, setLinkDialogOpen] = useState(false);
     const [youtubeDialogOpen, setYoutubeDialogOpen] = useState(false);
     const [faqDialogOpen, setFaqDialogOpen] = useState(false);
+    const [iconDialogOpen, setIconDialogOpen] = useState(false);
     const theme = useTheme();
+
+    const editorState = useEditorState({
+        editor,
+        selector: ({ editor }) => {
+            if (!editor) {
+                return {
+                    headingValue: 'paragraph',
+                    canUndo: false,
+                    canRedo: false,
+                };
+            }
+
+            let headingValue = 'paragraph';
+            if (editor.isActive('heading', { level: 1 })) headingValue = 'h1';
+            else if (editor.isActive('heading', { level: 2 })) headingValue = 'h2';
+            else if (editor.isActive('heading', { level: 3 })) headingValue = 'h3';
+            else if (editor.isActive('heading', { level: 4 })) headingValue = 'h4';
+            else if (editor.isActive('heading', { level: 5 })) headingValue = 'h5';
+            else if (editor.isActive('heading', { level: 6 })) headingValue = 'h6';
+
+            return {
+                headingValue,
+                canUndo: editor.can().undo(),
+                canRedo: editor.can().redo(),
+            };
+        },
+    });
+    const menuState = editorState ?? {
+        headingValue: 'paragraph',
+        canUndo: false,
+        canRedo: false,
+    };
 
     if (!editor) {
         return null;
@@ -481,6 +659,10 @@ const MenuBar = ({ editor, variant, showSourceToggle, sourceMode, onSourceToggle
             type: 'youtubeEmbed',
             attrs: { src, width: '100%', height: '360' },
         });
+    };
+
+    const handleIconInsert = (icon: string) => {
+        editor.chain().focus().insertContent(icon).run();
     };
 
     const getFaqDetails = () => {
@@ -535,19 +717,9 @@ const MenuBar = ({ editor, variant, showSourceToggle, sourceMode, onSourceToggle
         if (value === 'paragraph') {
             editor.chain().focus().setParagraph().run();
         } else if (value.startsWith('h')) {
-            const level = parseInt(value.replace('h', '')) as 1 | 2 | 3;
+            const level = parseInt(value.replace('h', ''), 10) as 1 | 2 | 3 | 4 | 5 | 6;
             editor.chain().focus().toggleHeading({ level }).run();
         }
-    };
-
-    const getHeadingValue = () => {
-        if (editor.isActive('heading', { level: 1 })) return 'h1';
-        if (editor.isActive('heading', { level: 2 })) return 'h2';
-        if (editor.isActive('heading', { level: 3 })) return 'h3';
-        if (editor.isActive('heading', { level: 4 })) return 'h4';
-        if (editor.isActive('heading', { level: 5 })) return 'h5';
-        if (editor.isActive('heading', { level: 6 })) return 'h6';
-        return 'paragraph';
     };
 
     return (
@@ -572,7 +744,7 @@ const MenuBar = ({ editor, variant, showSourceToggle, sourceMode, onSourceToggle
             {variant !== 'minimal' && (
                 <>
                     <Select
-                        value={getHeadingValue()}
+                        value={menuState.headingValue}
                         onChange={handleHeadingChange}
                         size="small"
                         sx={{
@@ -781,13 +953,97 @@ const MenuBar = ({ editor, variant, showSourceToggle, sourceMode, onSourceToggle
                 </>
             )}
 
+            {variant === 'full' && (
+                <>
+                    <Divider flexItem orientation="vertical" sx={{ mx: 0.5, my: 0.5, height: 24 }} />
+                    <Tooltip title="Insert Horizontal Line">
+                        <IconButton
+                            size="small"
+                            onClick={() => editor.chain().focus().setHorizontalRule().run()}
+                            color={editor.isActive('horizontalRule') ? 'primary' : 'default'}
+                        >
+                            <HorizontalRuleIcon fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Insert Icon">
+                        <IconButton size="small" onClick={() => setIconDialogOpen(true)}>
+                            <AddReaction fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Remove Formatting">
+                        <IconButton
+                            size="small"
+                            onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}
+                        >
+                            <FormatClear fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+
+                    <Divider flexItem orientation="vertical" sx={{ mx: 0.5, my: 0.5, height: 24 }} />
+                    <Tooltip title="Insert Table (3x3)">
+                        <IconButton
+                            size="small"
+                            onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+                            color={editor.isActive('table') ? 'primary' : 'default'}
+                        >
+                            <TableChart fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Add Row">
+                        <IconButton
+                            size="small"
+                            onClick={() => editor.chain().focus().addRowAfter().run()}
+                            disabled={!editor.isActive('table')}
+                        >
+                            <TableRows fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete Row">
+                        <IconButton
+                            size="small"
+                            onClick={() => editor.chain().focus().deleteRow().run()}
+                            disabled={!editor.isActive('table')}
+                        >
+                            <DeleteIcon fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Add Column">
+                        <IconButton
+                            size="small"
+                            onClick={() => editor.chain().focus().addColumnAfter().run()}
+                            disabled={!editor.isActive('table')}
+                        >
+                            <ViewColumn fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete Column">
+                        <IconButton
+                            size="small"
+                            onClick={() => editor.chain().focus().deleteColumn().run()}
+                            disabled={!editor.isActive('table')}
+                        >
+                            <DeleteSweep fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete Table">
+                        <IconButton
+                            size="small"
+                            onClick={() => editor.chain().focus().deleteTable().run()}
+                            disabled={!editor.isActive('table')}
+                        >
+                            <TableChart fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+                </>
+            )}
+
             <Box sx={{ flexGrow: 1 }} />
 
             <Tooltip title="Undo">
                 <IconButton
                     size="small"
                     onClick={() => editor.chain().focus().undo().run()}
-                    disabled={!editor.can().undo()}
+                    disabled={!menuState.canUndo}
                 >
                     <Undo fontSize="small" />
                 </IconButton>
@@ -796,7 +1052,7 @@ const MenuBar = ({ editor, variant, showSourceToggle, sourceMode, onSourceToggle
                 <IconButton
                     size="small"
                     onClick={() => editor.chain().focus().redo().run()}
-                    disabled={!editor.can().redo()}
+                    disabled={!menuState.canRedo}
                 >
                     <Redo fontSize="small" />
                 </IconButton>
@@ -813,6 +1069,12 @@ const MenuBar = ({ editor, variant, showSourceToggle, sourceMode, onSourceToggle
                 open={youtubeDialogOpen}
                 onClose={() => setYoutubeDialogOpen(false)}
                 onEmbed={handleYoutubeEmbed}
+            />
+
+            <IconPickerDialog
+                open={iconDialogOpen}
+                onClose={() => setIconDialogOpen(false)}
+                onSelect={handleIconInsert}
             />
 
             <FAQDialog
@@ -896,6 +1158,12 @@ export default function RichTextEditor({
             }),
             TextStyle,
             Color,
+            Table.configure({
+                resizable: true,
+            }),
+            TableRow,
+            TableHeader,
+            TableCell,
             YouTubeNode,
             HighlightSpan,
             FAQBlock,
@@ -1207,6 +1475,27 @@ export default function RichTextEditor({
                             marginTop: '2em',
                             marginBottom: '2em',
                         },
+
+                        // Tables
+                        '& table': {
+                            borderCollapse: 'collapse',
+                            tableLayout: 'fixed',
+                            width: '100%',
+                            marginTop: '1.2em',
+                            marginBottom: '1.2em',
+                            overflow: 'hidden',
+                        },
+                        '& table td, & table th': {
+                            border: `1px solid ${theme.palette.divider}`,
+                            minWidth: '1em',
+                            padding: '0.6rem 0.7rem',
+                            verticalAlign: 'top',
+                        },
+                        '& table th': {
+                            backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                            fontWeight: 700,
+                            textAlign: 'left',
+                        },
                     },
                     '& .ProseMirror p.is-editor-empty:first-of-type::before': {
                         color: theme.palette.text.disabled,
@@ -1376,6 +1665,26 @@ export default function RichTextEditor({
                                 textDecorationColor: 'rgba(59, 130, 246, 0.3)',
                                 textDecorationThickness: '2px',
                                 textUnderlineOffset: '2px',
+                            },
+
+                            // Tables
+                            '& table': {
+                                borderCollapse: 'collapse',
+                                tableLayout: 'fixed',
+                                width: '100%',
+                                marginTop: '1.2em',
+                                marginBottom: '1.2em',
+                            },
+                            '& table td, & table th': {
+                                border: `1px solid ${theme.palette.divider}`,
+                                minWidth: '1em',
+                                padding: '0.6rem 0.7rem',
+                                verticalAlign: 'top',
+                            },
+                            '& table th': {
+                                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                                fontWeight: 700,
+                                textAlign: 'left',
                             },
                         },
                         '& .ProseMirror p.is-editor-empty:first-of-type::before': {
