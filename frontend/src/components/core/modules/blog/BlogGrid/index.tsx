@@ -149,33 +149,35 @@ export default function BlogGrid({ config, initialData }: ModuleProps) {
 
     return (
         <section className={styles.blogGrid}>
-            <div className={styles.topBar}>
-                <div>
-                    {displayTitle && <h2 className={styles.title}>{displayTitle}</h2>}
-                    <p className={styles.countLabel}>{sortedPosts.length} articles found</p>
-                </div>
-
-                {allowViewToggle && (
-                    <div className={styles.viewToggle}>
-                        <button
-                            className={viewMode === 'grid' ? styles.active : ''}
-                            onClick={() => setViewMode('grid')}
-                            aria-label="Grid view"
-                            type="button"
-                        >
-                            <FiGrid />
-                        </button>
-                        <button
-                            className={viewMode === 'list' ? styles.active : ''}
-                            onClick={() => setViewMode('list')}
-                            aria-label="List view"
-                            type="button"
-                        >
-                            <FiList />
-                        </button>
+            {displayTitle && allowViewToggle && (
+                <div className={styles.topBar}>
+                    <div>
+                        {displayTitle && (<><h2 className={styles.title}>{displayTitle}</h2>
+                            <p className={styles.countLabel}>{sortedPosts.length} articles found</p></>)}
                     </div>
-                )}
-            </div>
+
+                    {allowViewToggle && (
+                        <div className={styles.viewToggle}>
+                            <button
+                                className={viewMode === 'grid' ? styles.active : ''}
+                                onClick={() => setViewMode('grid')}
+                                aria-label="Grid view"
+                                type="button"
+                            >
+                                <FiGrid />
+                            </button>
+                            <button
+                                className={viewMode === 'list' ? styles.active : ''}
+                                onClick={() => setViewMode('list')}
+                                aria-label="List view"
+                                type="button"
+                            >
+                                <FiList />
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
 
             <div className={`${styles.grid} ${styles[`cols${columns}`]} ${viewMode === 'list' ? styles.listView : ''}`}>
                 {sortedPosts.map((post) => {
@@ -184,13 +186,6 @@ export default function BlogGrid({ config, initialData }: ModuleProps) {
 
                     return (
                         <Link key={post._id} href={`/blog/${post.slug}`} className={styles.card}>
-                            {(pinned || featured) && (
-                                <span className={styles.priorityBadge}>
-                                    {pinned ? <FiMapPin /> : null}
-                                    {pinned ? 'Pinned' : 'Featured'}
-                                </span>
-                            )}
-
                             {showImage && post.featuredImage && (
                                 <div className={styles.imageWrapper}>
                                     <ImageWithDimensions

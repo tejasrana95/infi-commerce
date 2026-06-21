@@ -81,17 +81,41 @@
     &.cols4 {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }
-
+    &.cols5 {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+    &.cols6 {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+    &.cols7 {
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+    }
+    &.cols8 {
+        grid-template-columns: repeat(8, minmax(0, 1fr));
+    }
+    &.cols9 {
+        grid-template-columns: repeat(9, minmax(0, 1fr));
+    }
+    &.cols10 {
+        grid-template-columns: repeat(10, minmax(0, 1fr));
+    }
+    &.cols11 {
+        grid-template-columns: repeat(11, minmax(0, 1fr));
+    }
+    &.cols12 {
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+    }
     @include large-down {
-        &.cols4 {
+        &.cols4, &.cols5, &.cols6, &.cols7, &.cols8, &.cols9, &.cols10, &.cols11, &.cols12 {
             grid-template-columns: repeat(3, minmax(0, 1fr));
         }
+        
     }
 
     @include tablet-down {
 
         &.cols3,
-        &.cols4 {
+        &.cols4,&.cols5, &.cols6, &.cols7, &.cols8, &.cols9, &.cols10, &.cols11, &.cols12 {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
     }
@@ -100,7 +124,7 @@
 
         &.cols2,
         &.cols3,
-        &.cols4 {
+        &.cols4,&.cols5, &.cols6, &.cols7, &.cols8, &.cols9, &.cols10, &.cols11, &.cols12 {
             grid-template-columns: 1fr;
         }
     }
@@ -126,7 +150,8 @@
 }
 
 .card {
-    display: block;
+    display: flex;
+    flex-direction: column;
     text-decoration: none;
     background: var(--panel);
     border: 1px solid var(--edge);
@@ -167,11 +192,10 @@
 
 .imageWrapper {
     width: 100%;
-    height: 100%;
+    min-height: 180px;
     position: relative;
     overflow: hidden;
     background: #f1f5f9;
-    display: contents;
 }
 
 .image {
@@ -184,6 +208,7 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
+    flex: 1;
 }
 
 .category {
@@ -224,7 +249,7 @@
 }
 
 .meta {
-    margin-top: 4px;
+    margin-top: auto;
     padding-top: 12px;
     border-top: 1px dashed var(--edge);
     display: flex;

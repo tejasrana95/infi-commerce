@@ -86,7 +86,7 @@ export function BlogGridConfigPanel({ config, onChange }: BlogGridConfigPanelPro
                     value={config.columns || 3}
                     onChange={(_, value) => handleChange('columns', value)}
                     min={2}
-                    max={4}
+                    max={12}
                     step={1}
                     marks
                     valueLabelDisplay="auto"
