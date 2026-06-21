@@ -2,17 +2,22 @@ import type { NextConfig } from "next";
 import withBundleAnalyzer from '@next/bundle-analyzer';
 
 const nodeEnv = (globalThis as any)?.process?.env?.NODE_ENV;
+const isProd = nodeEnv === 'production';
 const analyzeEnabled = (globalThis as any)?.process?.env?.ANALYZE === 'true';
 
 const nextConfig: NextConfig = {
-  /* config options here */
   output: 'standalone',
-  generateBuildId: async () => {
-    // This will force the client to clear cache by providing a new build ID every time
-    return `build-${Date.now()}`;
-  },
   reactCompiler: true,
+  poweredByHeader: false,
+  productionBrowserSourceMaps: false,
+  compress: true,
+
+  compiler: {
+    removeConsole: isProd ? { exclude: ['error', 'warn'] } : false,
+  },
+
   experimental: {
+    optimizeCss: true,
     optimizePackageImports: [
       'lucide-react',
       'react-icons',
@@ -24,7 +29,10 @@ const nextConfig: NextConfig = {
       '@tiptap/starter-kit'
     ],
   },
+
   images: {
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 2678400, // 31 days
     remotePatterns: [
       {
         protocol: 'http',
@@ -41,9 +49,9 @@ const nextConfig: NextConfig = {
         hostname: '**',
       },
     ],
-    // Allow unoptimized images in development to avoid issues with localhost
     unoptimized: nodeEnv === 'development',
   },
+
   async redirects() {
     return [
       {
@@ -53,24 +61,23 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+
   async headers() {
     return [
+      // Cache static assets aggressively (content-hash filenames make this safe)
       {
-        // Apply cache-control headers to all routes
+        source: '/:path*.(js|css|woff|woff2|ttf|otf|png|jpg|jpeg|gif|svg|ico|webp|avif)',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      // HTML and data routes: no cache (admin data must be fresh)
+      {
         source: '/:path*',
         headers: [
-          {
-            key: 'Cache-Control',
-            value: 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
-          },
-          {
-            key: 'Pragma',
-            value: 'no-cache',
-          },
-          {
-            key: 'Expires',
-            value: '0',
-          },
+          { key: 'Cache-Control', value: 'no-store, must-revalidate' },
+          { key: 'X-DNS-Prefetch-Control', value: 'on' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
         ],
       },
     ];
