@@ -8,7 +8,7 @@
 
 // Hero Section
 .hero {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
     padding: 80px 20px;
     text-align: center;
     position: relative;
@@ -91,7 +91,7 @@
 .searchIcon {
     position: absolute;
     left: 16px;
-    color: #667eea;
+    color: var(--color-primary);
     font-size: 20px;
 }
 
@@ -111,7 +111,7 @@
 .searchButton {
     padding: 16px 32px;
     background: white;
-    color: #667eea;
+    color: var(--color-primary);
     border: none;
     border-radius: 12px;
     font-weight: 600;
@@ -182,22 +182,22 @@
     justify-content: space-between;
     align-items: center;
     padding: 12px 16px;
-    background: var(--background, #f8f9fa);
+    background: var(--color-grey-100, #f8f9fa);
     border: none;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s;
     font-size: 15px;
-    color: var(--text-primary, #333);
+    color: var(--color-gray-800);
 
     &:hover {
-        background: #667eea;
+        background: var(--color-primary);
         color: white;
         transform: translateX(4px);
     }
 
     &.active {
-        background: #667eea;
+        background: var(--color-primary);
         color: white;
         font-weight: 600;
     }
@@ -216,8 +216,8 @@
 
 .tag {
     padding: 8px 16px;
-    background: var(--background, #f8f9fa);
-    border: 1px solid var(--border, #e0e0e0);
+    background: var(--color-accent, #f8f9fa);
+    border: 1px solid var(--color-accent, #e0e0e0);
     border-radius: 20px;
     font-size: 14px;
     cursor: pointer;
@@ -225,16 +225,16 @@
     color: var(--text-primary, #333);
 
     &:hover {
-        background: #667eea;
+        background: var(--color-primary);
         color: white;
-        border-color: #667eea;
+        border-color: var(--color-primary);
         transform: translateY(-2px);
     }
 
     &.active {
-        background: #667eea;
+        background: var(--color-primary);
         color: white;
-        border-color: #667eea;
+        border-color: var(--color-primary);
     }
 }
 
@@ -271,7 +271,7 @@
     align-items: center;
     gap: 8px;
     padding: 6px 12px;
-    background: #667eea;
+    background: var(--color-primary);
     color: white;
     border-radius: 20px;
     font-size: 14px;
@@ -296,15 +296,15 @@
 .clearAll {
     padding: 6px 12px;
     background: none;
-    border: 1px solid #667eea;
-    color: #667eea;
+    border: 1px solid #ca2a30;
+    color: #ca2a30;
     border-radius: 20px;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s;
 
     &:hover {
-        background: #667eea;
+        background: #ca2a30;
         color: white;
     }
 }
@@ -317,7 +317,7 @@
 .viewToggle {
     display: flex;
     gap: 8px;
-    background: var(--card-background, white);
+    background: var(--color-gray-200, white);
     padding: 4px;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -334,11 +334,12 @@
         align-items: center;
 
         &:hover {
-            background: var(--background, #f8f9fa);
+            background: var(--color-primary, #f8f9fa);
+            color: white;
         }
 
         &.active {
-            background: #667eea;
+            background: var(--color-primary);
             color: white;
         }
     }
@@ -464,6 +465,9 @@
     line-height: 1.2;
     margin: 0;
     color: var(--text-primary, #1a1a1a);
+    &:hover {
+        color: var(--color-primary);
+    }
 }
 
 .leadExcerpt {
@@ -489,8 +493,8 @@
     text-transform: uppercase;
     z-index: 2;
     color: white;
-    background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
-    box-shadow: 0 8px 20px rgba(236, 72, 153, 0.35);
+    background: var(--color-accent);
+    box-shadow: 0 8px 20px #f4b13e5c;
 }
 
 .featuredBadge {
@@ -498,7 +502,7 @@
     top: 16px;
     left: 16px;
     padding: 6px 12px;
-    background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+    background: var(--color-accent);
     color: white;
     border-radius: 20px;
     font-size: 12px;
@@ -533,7 +537,7 @@
     display: inline-block;
     padding: 4px 12px;
     background: rgba(102, 126, 234, 0.1);
-    color: #667eea;
+    color: var(--color-grey-800, #4b5563);
     border-radius: 12px;
     font-size: 13px;
     font-weight: 600;
@@ -542,21 +546,21 @@
     width: max-content;
 
     &:hover {
-        background: #667eea;
+        background: var(--color-primary);
         color: white;
     }
 }
 
 .title {
     font-size: 22px;
-    font-weight: 700;
+    font-weight: 500;
     line-height: 1.4;
     margin-bottom: 12px;
-    color: var(--text-primary, #1a1a1a);
+    color: var(--color-grey-700, #1a1a1a);
     transition: color 0.2s;
 
     &:hover {
-        color: #667eea;
+        color: var(--color-primary);
     }
 }
 
@@ -628,7 +632,7 @@
 
 .clearButton {
     padding: 12px 24px;
-    background: #667eea;
+    background: var(--color-primary);
     color: white;
     border: none;
     border-radius: 8px;
@@ -637,7 +641,7 @@
     transition: all 0.2s;
 
     &:hover {
-        background: #5568d3;
+        background: var(--color-primary-dark, #5568d3);
         transform: translateY(-2px);
     }
 }
@@ -679,8 +683,8 @@
 
 .paginationButton {
     padding: 12px 24px;
-    background: var(--card-background, white);
-    border: 1px solid var(--border, #e0e0e0);
+    background: var(--color-accent, white);
+    border: 1px solid var(--color-accent, #e0e0e0);
     border-radius: 8px;
     cursor: pointer;
     font-weight: 600;
@@ -688,9 +692,9 @@
     color: var(--text-primary, #333);
 
     &:hover:not(:disabled) {
-        background: #667eea;
+        background: var(--color-primary);
         color: white;
-        border-color: #667eea;
+        border-color: var(--color-primary);
     }
 
     &:disabled {
@@ -707,8 +711,8 @@
 .pageNumber {
     width: 40px;
     height: 40px;
-    background: var(--card-background, white);
-    border: 1px solid var(--border, #e0e0e0);
+    background: var(--color-accent, white);
+    border: 1px solid var(--color-accent, #e0e0e0);
     border-radius: 8px;
     cursor: pointer;
     font-weight: 600;
@@ -716,15 +720,15 @@
     color: var(--text-primary, #333);
 
     &:hover {
-        background: #667eea;
+        background: var(--color-primary);
         color: white;
-        border-color: #667eea;
+        border-color: var(--color-primary);
     }
 
     &.active {
-        background: #667eea;
+        background: var(--color-primary);
         color: white;
-        border-color: #667eea;
+        border-color: var(--color-primary);
     }
 }
 

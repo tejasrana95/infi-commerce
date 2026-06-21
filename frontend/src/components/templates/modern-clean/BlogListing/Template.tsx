@@ -43,6 +43,38 @@ export default function ModernCleanBlogListingTemplate({
     onClearFilters,
 }: BlogListingTemplateProps) {
     const [searchInput, setSearchInput] = useState(searchQuery || '');
+
+    // Build a lookup map for categories by _id and slug for hierarchy resolution
+    const categoryLookup = useMemo(() => {
+        const byId = new Map<string, typeof categories[0]>();
+        const bySlug = new Map<string, typeof categories[0]>();
+        for (const cat of categories) {
+            byId.set(cat._id, cat);
+            bySlug.set(cat.slug, cat);
+        }
+        return { byId, bySlug };
+    }, [categories]);
+
+    // Get the full hierarchy path for a category (e.g., "Parent → Child → Childmost")
+    const getCategoryBreadcrumb = (cat: { _id: string; name: string; slug: string; path?: string; parentId?: string; level?: number }): { segments: string[]; childmost: typeof cat } => {
+        const segments: string[] = [cat.name];
+        let current = cat;
+
+        // Walk up the parent chain to build the full hierarchy
+        const visited = new Set<string>();
+        while (current.parentId && !visited.has(current.parentId)) {
+            visited.add(current.parentId);
+            const parent = categoryLookup.byId.get(current.parentId);
+            if (parent) {
+                segments.unshift(parent.name);
+                current = parent;
+            } else {
+                break;
+            }
+        }
+
+        return { segments, childmost: cat };
+    };
     const sortedPosts = useMemo(() => {
         return [...posts]
             .map((post, index) => ({ post, index }))
@@ -318,12 +350,17 @@ export default function ModernCleanBlogListingTemplate({
                         </div>
                         <div className={styles.leadContent}>
                             {leadPost.categoryIds.length > 0 && (
-                                <Link
-                                    href={`/blog?category=${leadPost.categoryIds[0].slug}`}
-                                    className={styles.category}
-                                >
-                                    {leadPost.categoryIds[0].name}
-                                </Link>
+                                (() => {
+                                    const { segments, childmost } = getCategoryBreadcrumb(leadPost.categoryIds[0]);
+                                    return (
+                                        <Link
+                                            href={`/blog?category=${childmost.slug}`}
+                                            className={styles.category}
+                                        >
+                                            {segments.join(' → ')}
+                                        </Link>
+                                    );
+                                })()
                             )}
                             <Link href={`/blog/${leadPost.slug}`}>
                                 <h2 className={styles.leadTitle}>{leadPost.title}</h2>
@@ -385,12 +422,17 @@ export default function ModernCleanBlogListingTemplate({
 
                             <div className={styles.cardContent}>
                                 {post.categoryIds.length > 0 && (
-                                    <Link
-                                        href={`/blog?category=${post.categoryIds[0].slug}`}
-                                        className={styles.category}
-                                    >
-                                        {post.categoryIds[0].name}
-                                    </Link>
+                                    (() => {
+                                        const { segments, childmost } = getCategoryBreadcrumb(post.categoryIds[0]);
+                                        return (
+                                            <Link
+                                                href={`/blog?category=${childmost.slug}`}
+                                                className={styles.category}
+                                            >
+                                                {segments.join(' → ')}
+                                            </Link>
+                                        );
+                                    })()
                                 )}
 
                                 <Link href={`/blog/${post.slug}`}>

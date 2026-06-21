@@ -1,5 +1,14 @@
 // BlogListing Types - Shared interfaces for blog listing page
 
+export interface BlogPostCategory {
+    _id: string;
+    name: string;
+    slug: string;
+    path?: string;
+    parentId?: string;
+    level?: number;
+}
+
 export interface BlogPost {
     _id: string;
     title: string;
@@ -12,7 +21,7 @@ export interface BlogPost {
         avatar?: string;
         userId?: string;
     };
-    categoryIds: Array<{ _id: string; name: string; slug: string }>;
+    categoryIds: BlogPostCategory[];
     tags: string[];
     publishedAt: string;
     readingTime?: number;
@@ -28,6 +37,9 @@ export interface BlogCategory {
     slug: string;
     description?: string;
     postCount: number;
+    path?: string;
+    parentId?: string;
+    level?: number;
 }
 
 export interface BlogListingConfig {

@@ -512,7 +512,7 @@ export const getBlogPosts = asyncHandler(async (req: AuthRequest, res: Response)
         .sort(sort)
         .limit(Number(limit))
         .skip((Number(page) - 1) * Number(limit))
-        .populate('categoryIds', 'name slug');
+        .populate('categoryIds', 'name slug path parentId level');
 
     const total = await BlogPost.countDocuments(filter);
 
@@ -581,7 +581,7 @@ export const getBlogPostBySlug = asyncHandler(async (req: AuthRequest, res: Resp
     }
 
     const post = await BlogPost.findOne(filter)
-        .populate('categoryIds', 'name slug')
+        .populate('categoryIds', 'name slug path parentId level')
         .populate('author.userId', 'firstName lastName');
 
     if (!post) {
