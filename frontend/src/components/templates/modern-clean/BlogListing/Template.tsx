@@ -330,12 +330,12 @@ export default function ModernCleanBlogListingTemplate({
         return (
             <>
                 {viewMode === 'grid' && leadPost && (
-                    <article className={styles.leadPostCard}>
-                        <div className={styles.leadImagePane}>
-                            {(leadPost.isPinned || leadPost.isFeatured) && (
-                                <span className={styles.priorityBadge}>{leadPost.isPinned ? 'Pinned' : 'Featured'}</span>
-                            )}
-                            {leadPost.featuredImage && (
+                    <article className={`${styles.leadPostCard} ${!leadPost.featuredImage ? styles.noImage : ''}`}>
+                        {leadPost.featuredImage && (
+                            <div className={styles.leadImagePane}>
+                                {(leadPost.isPinned || leadPost.isFeatured) && (
+                                    <span className={styles.priorityBadge}>{leadPost.isPinned ? 'Pinned' : 'Featured'}</span>
+                                )}
                                 <Link href={`/blog/${leadPost.slug}`} className={styles.imageLink}>
                                     <div className={styles.imageWrapper}>
                                         <Image
@@ -346,8 +346,9 @@ export default function ModernCleanBlogListingTemplate({
                                         />
                                     </div>
                                 </Link>
-                            )}
-                        </div>
+
+                            </div>
+                        )}
                         <div className={styles.leadContent}>
                             {leadPost.categoryIds.length > 0 && (
                                 (() => {

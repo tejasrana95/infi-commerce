@@ -443,6 +443,10 @@
     border: 1px solid var(--border, #e5e7eb);
     box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
 
+    &.noImage {
+        grid-template-columns: 1fr;
+    }
+
     @include tablet-down {
         grid-template-columns: 1fr;
     }
