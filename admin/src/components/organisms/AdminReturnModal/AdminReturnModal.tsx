@@ -38,7 +38,7 @@ interface AdminReturnModalProps {
     onSuccess?: () => void;
 }
 
-const getProductId = (item: OrderItem): string => {
+const getProductId = (item: OrderItem): string | null => {
     if (typeof item.productId === 'string') {
         return item.productId;
     }
@@ -78,6 +78,7 @@ export default function AdminReturnModal({ open, onClose, order, onSuccess }: Ad
             const initialSelection = new Map<string, { quantity: number; checked: boolean }>();
             order.items.forEach((item) => {
                 const pId = getProductId(item);
+                if (!pId) return; // Skip items with undefined productId
                 const key = item.variantId ? `${pId}-${item.variantId}` : pId;
                 initialSelection.set(key, { quantity: item.quantity, checked: true });
             });
