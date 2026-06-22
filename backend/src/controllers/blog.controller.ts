@@ -505,7 +505,7 @@ export const getBlogPosts = asyncHandler(async (req: AuthRequest, res: Response)
         ];
     }
 
-    let sort: any = { updatedAt: -1 };
+    let sort: any = { createdAt: -1 };
     if (sortBy === 'views') sort = { viewCount: -1 };
     if (sortBy === 'likes') sort = { likeCount: -1 };
 
