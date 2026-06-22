@@ -112,12 +112,43 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
     const post = data.data;
 
-    // Fetch related posts
+    // Fetch related articles (when showRelatedArticles is enabled)
     let relatedPosts: any[] = [];
-    if (post.categoryIds?.length > 0) {
-        const categoryId = post.categoryIds[0]._id;
-        const relatedData = await fetchBlogPosts(store._id, { category: categoryId, limit: 3 });
-        relatedPosts = relatedData.data.filter((p: any) => p._id !== post._id);
+    if (post.showRelatedArticles && post.categoryIds?.length > 0) {
+        // Collect all category IDs (direct categories + parent categories)
+        const allCategoryIds = new Set<string>();
+        for (const cat of post.categoryIds) {
+            allCategoryIds.add(cat._id);
+            // If category has a parent, add it too
+            if ((cat as any).parentId) {
+                const parentId = typeof (cat as any).parentId === 'object'
+                    ? (cat as any).parentId._id
+                    : (cat as any).parentId;
+                allCategoryIds.add(parentId);
+            }
+        }
+
+        // Fetch posts from all related categories (up to 6)
+        const categoryArray = Array.from(allCategoryIds);
+        const relatedData = await fetchBlogPosts(store._id, {
+            category: categoryArray[0],
+            limit: 6,
+        });
+        relatedPosts = relatedData.data.filter((p: any) => p._id !== post._id).slice(0, 6);
+
+        // If we have more categories and need more results, fetch from additional categories
+        if (relatedPosts.length < 6 && categoryArray.length > 1) {
+            for (let i = 1; i < categoryArray.length && relatedPosts.length < 6; i++) {
+                const moreData = await fetchBlogPosts(store._id, {
+                    category: categoryArray[i],
+                    limit: 6,
+                });
+                const morePosts = moreData.data.filter(
+                    (p: any) => p._id !== post._id && !relatedPosts.find((rp) => rp._id === p._id)
+                );
+                relatedPosts = [...relatedPosts, ...morePosts].slice(0, 6);
+            }
+        }
     }
 
     // Fetch linked products if configured

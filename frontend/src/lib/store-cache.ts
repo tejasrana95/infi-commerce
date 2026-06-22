@@ -131,7 +131,6 @@ export async function resolveStoreByDomain(
             await scSet(sharedKey, cfg.storeData, SHARED_CACHE_TTL_S);
             return { store: cfg.storeData, source: 'file', fresh: true };
         }
-        console.log(`Store config stale for ${domain}, fetching fresh...`);
     }
 
     // Layer 3: API fallback

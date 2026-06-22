@@ -126,7 +126,6 @@ export async function resolveMenuById(
             await scSet(sharedKey, cfg.menuData, SHARED_CACHE_TTL_S);
             return { menu: cfg.menuData, source: 'file', fresh: true };
         }
-        console.log(`Menu config stale for ${menuId}, fetching fresh...`);
     }
 
     // Layer 3: API fallback

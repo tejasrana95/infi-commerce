@@ -361,7 +361,8 @@ export const createBlogPost = asyncHandler(async (req: AuthRequest, res: Respons
     const {
         storeId, title, slug, excerpt, content, featuredImage,
         categoryIds, tags, author, relatedProducts, layoutId,
-        seo, status, scheduledAt, allowComments, isFeatured, isPinned
+        seo, status, scheduledAt, allowComments, isFeatured, isPinned,
+        showRelatedArticles
     } = req.body;
 
     // RBAC Check: Store Admin only for assigned stores
@@ -412,6 +413,7 @@ export const createBlogPost = asyncHandler(async (req: AuthRequest, res: Respons
         allowComments: allowComments !== undefined ? allowComments : true,
         isFeatured: isFeatured || false,
         isPinned: isPinned || false,
+        showRelatedArticles: showRelatedArticles || false,
     });
 
     res.status(201).json({

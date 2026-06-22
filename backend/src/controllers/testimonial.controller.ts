@@ -3,12 +3,21 @@ import Testimonial from '../models/Testimonial';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/validation';
 
-// @desc    Get all testimonials
+// @desc    Get all testimonials (public or admin)
 // @route   GET /api/testimonials
-// @access  Private/Admin
+// @access  Public & Private/Admin
 export const getTestimonials = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { page = 1, limit = 20, search } = req.query;
+    const { page = 1, limit = 20, search, ids } = req.query;
     const filter: any = {};
+    const isAdmin = req.user && (req.user.role === 'super_admin' || req.user.role === 'admin' || req.user.role === 'store_admin');
+
+    // Support ?ids=id1,id2,id3 for fetching specific testimonials
+    if (ids && typeof ids === 'string') {
+        const idArray = ids.split(',').filter(Boolean);
+        if (idArray.length > 0) {
+            filter._id = { $in: idArray };
+        }
+    }
 
     // Get store ID from multiple sources (header takes priority for API key requests)
     const effectiveStoreId = (req.headers['x-store-id'] || req.query.storeId || req.body?.storeId) as string | undefined;
@@ -21,7 +30,11 @@ export const getTestimonials = asyncHandler(async (req: AuthRequest, res: Respon
         filter.storeId = req.user.storeIds[0];
     }
 
-    if (req.query.isActive !== undefined) {
+    // Non-admin requests: only return active testimonials; never expose private data
+    if (!isAdmin) {
+        filter.isActive = true;
+    } else if (req.query.isActive !== undefined) {
+        // Admin can filter by isActive
         filter.isActive = req.query.isActive === 'true';
     }
 

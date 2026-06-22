@@ -7,17 +7,22 @@ import {
     IconButton,
     Collapse,
     Button,
+    Tooltip,
+    Divider,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
-import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import SettingsIcon from '@mui/icons-material/Settings';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
+import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
 import DesktopWindowsIcon from '@mui/icons-material/DesktopWindows';
 import TabletIcon from '@mui/icons-material/Tablet';
 import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import {
     SortableContext,
@@ -29,8 +34,22 @@ import { LayoutSection, LayoutModule } from '@/types';
 import ModuleRenderer from './ModuleRenderer';
 import { getModuleDefinition } from './types';
 
-// Sortable Module Item
-interface SortableModuleProps {
+// =========================================================================
+// Action button shared styles
+// =========================================================================
+const actionBtnSx = {
+    p: 0.75,
+    color: '#6B7280',
+    borderRadius: 1,
+    transition: 'all 0.15s',
+    '&:hover': { color: '#1F2937', bgcolor: '#F3F4F6' },
+    '&.Mui-disabled': { color: '#D1D5DB' },
+};
+
+// =========================================================================
+// ModuleCard — a single module inside a section
+// =========================================================================
+interface ModuleCardProps {
     module: LayoutModule;
     isSelected: boolean;
     onSelect: () => void;
@@ -41,11 +60,10 @@ interface SortableModuleProps {
     index: number;
 }
 
-function SortableModule({ module, isSelected, onSelect, onDelete, onClone, sectionId, columnId, index }: SortableModuleProps) {
+function ModuleCard({ module, isSelected, onSelect, onDelete, onClone, sectionId, columnId, index }: ModuleCardProps) {
     const definition = getModuleDefinition(module.type);
-
-    // Check if module is removable - defaults to true unless explicitly false or is a placeholder
     const isRemovable = module.isRemovable !== false && definition?.category !== 'placeholder';
+    const [hovered, setHovered] = useState(false);
 
     const {
         attributes,
@@ -56,414 +74,334 @@ function SortableModule({ module, isSelected, onSelect, onDelete, onClone, secti
         isDragging,
     } = useSortable({
         id: module.id,
-        data: {
-            type: 'module',
-            module,
-            sectionId,
-            columnId,
-            index,
-        }
+        data: { type: 'module', module, sectionId, columnId, index },
     });
 
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
-        opacity: isDragging ? 0.5 : 1,
+        opacity: isDragging ? 0.3 : 1,
+        zIndex: isDragging ? 999 : undefined,
     };
 
     return (
         <Box
             ref={setNodeRef}
             style={style}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+            onClick={(e) => {
+                e.stopPropagation(); // Prevent section selection
+                onSelect();
+            }}
             sx={{
-                position: 'relative',
                 display: 'flex',
-                alignItems: 'stretch',
-                gap: 0.75,
-                mb: 1,
-                p: 1,
-                bgcolor: '#FFFFFF',
-                border: isSelected ? '2px solid' : '1px solid',
-                borderColor: isSelected ? '#3B82F6' : '#E5E7EB',
-                borderRadius: 1,
-                boxShadow: isSelected
-                    ? '0 4px 12px rgba(59, 130, 246, 0.15)'
-                    : '0 1px 3px rgba(0, 0, 0, 0.05)',
-                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                alignItems: 'center',
+                gap: 1,
+                p: 1.25,
+                mb: 0.75,
+                bgcolor: isSelected ? '#EFF6FF' : '#FFFFFF',
+                border: isSelected ? '2px solid #3B82F6' : '1px solid #E5E7EB',
+                borderRadius: 1.5,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                boxShadow: isSelected ? '0 2px 8px rgba(59,130,246,0.12)' : 'none',
                 '&:hover': {
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
                     borderColor: isSelected ? '#3B82F6' : '#D1D5DB',
-                    bgcolor: isSelected ? '#FFFFFF' : '#F9FAFB',
-                    '& .module-actions': {
-                        opacity: 1,
-                        visibility: 'visible',
-                    }
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
                 },
             }}
         >
-            {/* Drag Handle */}
+            {/* Drag handle */}
             <Box
                 {...attributes}
                 {...listeners}
                 sx={{
-                    display: 'flex',
-                    alignItems: 'center',
                     cursor: isDragging ? 'grabbing' : 'grab',
-                    color: '#D1D5DB',
-                    transition: 'all 0.2s',
-                    '&:hover': { color: '#9CA3AF' },
+                    color: hovered ? '#9CA3AF' : '#E5E7EB',
+                    display: 'flex',
+                    transition: 'color 0.15s',
+                    '&:hover': { color: '#6B7280' },
                 }}
             >
-                <DragIndicatorIcon sx={{ fontSize: '1rem' }} />
+                <DragIndicatorIcon sx={{ fontSize: '1.125rem' }} />
             </Box>
 
-            {/* Module Content */}
-            <Box flex={1} onClick={onSelect} sx={{ cursor: 'pointer', minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            {/* Module preview */}
+            <Box flex={1} sx={{ minWidth: 0 }}>
                 <ModuleRenderer module={module} isSelected={isSelected} onClick={onSelect} />
             </Box>
 
-            {/* Action Buttons - Top Right on Hover */}
+            {/* Hover actions */}
             <Box
-                className="module-actions"
                 sx={{
-                    position: 'absolute',
-                    top: 4,
-                    right: 4,
                     display: 'flex',
-                    gap: 0.5,
-                    opacity: 0,
-                    visibility: 'hidden',
-                    transition: 'all 0.2s',
-                    bgcolor: 'rgba(255, 255, 255, 0.95)',
-                    borderRadius: 1,
-                    padding: '2px',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                    gap: 0.25,
+                    opacity: hovered ? 1 : 0,
+                    transition: 'opacity 0.15s',
                 }}
             >
-                <IconButton
-                    size="small"
-                    onClick={onClone}
-                    title="Duplicate Module"
-                    sx={{
-                        p: 0.5,
-                        color: '#9CA3AF',
-                        transition: 'all 0.2s',
-                        '&:hover': {
-                            color: '#3B82F6',
-                            bgcolor: '#EFF6FF',
-                        },
-                    }}
-                >
-                    <ContentCopyIcon sx={{ fontSize: '1rem' }} />
-                </IconButton>
-
-                {isRemovable && (
-                    <IconButton
-                        size="small"
-                        onClick={onDelete}
-                        title="Delete Module"
-                        sx={{
-                            p: 0.5,
-                            color: '#9CA3AF',
-                            transition: 'all 0.2s',
-                            '&:hover': {
-                                color: '#EF4444',
-                                bgcolor: '#FEE2E2',
-                            },
-                        }}
-                    >
-                        <DeleteIcon sx={{ fontSize: '1rem' }} />
+                <Tooltip title="Duplicate" arrow>
+                    <IconButton size="small" onClick={(e) => { e.stopPropagation(); onClone(); }} sx={actionBtnSx}>
+                        <ContentCopyIcon sx={{ fontSize: '0.9rem' }} />
                     </IconButton>
+                </Tooltip>
+                {isRemovable && (
+                    <Tooltip title="Delete" arrow>
+                        <IconButton size="small" onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                            sx={{ ...actionBtnSx, '&:hover': { color: '#EF4444', bgcolor: '#FEE2E2' } }}>
+                            <DeleteIcon sx={{ fontSize: '0.9rem' }} />
+                        </IconButton>
+                    </Tooltip>
                 )}
             </Box>
         </Box>
     );
 }
 
-// Droppable area for modules from palette
-interface ModuleDropZoneProps {
-    sectionId: string;
-    columnId?: string;
-    children: React.ReactNode;
-}
-
-function ModuleDropZone({ sectionId, columnId, children }: ModuleDropZoneProps) {
+// =========================================================================
+// ModuleDropZone — droppable area inside sections
+// =========================================================================
+function ModuleDropZone({ sectionId, columnId, children }: { sectionId: string; columnId?: string; children: React.ReactNode }) {
     const dropId = columnId ? `drop-${sectionId}-${columnId}` : `drop-${sectionId}`;
-
     const { setNodeRef, isOver } = useDroppable({
         id: dropId,
-        data: {
-            type: 'section-drop',
-            sectionId,
-            columnId,
-        },
+        data: { type: 'section-drop', sectionId, columnId },
     });
 
     return (
         <Box
             ref={setNodeRef}
             sx={{
-                minHeight: 60,
-                p: 1,
-                border: isOver ? '2px dashed' : '1px dashed',
-                borderColor: isOver ? '#3B82F6' : '#E5E7EB',
-                borderRadius: 1,
-                bgcolor: isOver ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                '&:hover': {
-                    borderColor: '#D1D5DB',
-                    bgcolor: 'rgba(59, 130, 246, 0.02)',
-                },
+                minHeight: 52,
+                p: 1.5,
+                border: isOver ? '2px dashed #3B82F6' : '2px dashed transparent',
+                borderRadius: 1.5,
+                bgcolor: isOver ? 'rgba(59,130,246,0.04)' : 'transparent',
+                transition: 'all 0.2s',
             }}
         >
-            {children}
+            {children || (
+                <Typography variant="body2" sx={{ color: '#9CA3AF', textAlign: 'center', py: 1, fontSize: '0.8rem' }}>
+                    Drop modules here
+                </Typography>
+            )}
         </Box>
     );
 }
 
-// Section Item
-interface SectionItemProps {
+// =========================================================================
+// SectionBlock — a single section card
+// =========================================================================
+interface SectionBlockProps {
     section: LayoutSection;
     isSelected: boolean;
     selectedModuleId: string | null;
     selectedColumnId?: string | null;
-    onSelectSection: () => void;
-    onCloneSection: () => void;
+    isFirst: boolean;
+    isLast: boolean;
+    onSelect: () => void;
+    onMoveUp: () => void;
+    onMoveDown: () => void;
+    onClone: () => void;
+    onDelete: () => void;
     onSelectModule: (moduleId: string) => void;
     onDeleteModule: (moduleId: string) => void;
     onCloneModule: (moduleId: string) => void;
     onSelectColumn?: (sectionId: string, columnId: string) => void;
+    onInsertBefore: () => void;
+    onInsertAfter: () => void;
 }
 
-function SectionItem({
+function SectionBlock({
     section,
     isSelected,
     selectedModuleId,
     selectedColumnId,
-    onSelectSection,
-    onCloneSection,
+    isFirst,
+    isLast,
+    onSelect,
+    onMoveUp,
+    onMoveDown,
+    onClone,
+    onDelete,
     onSelectModule,
     onDeleteModule,
     onCloneModule,
     onSelectColumn,
-}: SectionItemProps) {
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging,
-    } = useSortable({
-        id: section.id,
-        data: { type: 'section', section },
-    });
+    onInsertBefore,
+    onInsertAfter,
+}: SectionBlockProps) {
+    const [hovered, setHovered] = useState(false);
+    const [collapsed, setCollapsed] = useState(false);
+    const blockRef = useRef<HTMLDivElement>(null);
 
-    const [isExpanded, setIsExpanded] = useState(true);
-
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.5 : 1,
-    };
+    const moduleCount = section.modules.length +
+        (section.columns?.reduce((acc, col) => acc + col.modules.length, 0) || 0);
 
     return (
-        <Paper
-            ref={setNodeRef}
-            style={style}
-            elevation={0}
-            sx={{
-                mb: 1.5,
-                overflow: 'hidden',
-                border: isSelected ? '2px solid' : '1px solid',
-                borderColor: isSelected ? '#3B82F6' : '#E5E7EB',
-                borderRadius: 1.5,
-                bgcolor: '#FFFFFF',
-                boxShadow: isSelected
-                    ? '0 4px 16px rgba(59, 130, 246, 0.15)'
-                    : '0 1px 3px rgba(0, 0, 0, 0.05)',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                '&:hover': {
-                    boxShadow: '0 6px 20px rgba(0, 0, 0, 0.08)',
-                    borderColor: isSelected ? '#3B82F6' : '#D1D5DB',
-                },
-            }}
+        <Box
+            ref={blockRef}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+            sx={{ position: 'relative', mb: 0 }}
         >
-            {/* Section Header */}
+            {/* ---- Insert button ABOVE (visible on hover near top edge) ---- */}
             <Box
                 sx={{
                     display: 'flex',
-                    alignItems: 'center',
-                    p: 1.25,
-                    gap: 1,
-                    bgcolor: isSelected ? '#F0F9FF' : '#FAFBFC',
-                    borderBottom: isExpanded ? '1px solid #E5E7EB' : 'none',
-                    transition: 'all 0.2s',
+                    justifyContent: 'center',
+                    height: 20,
+                    mb: -0.5,
+                    mt: -0.5,
+                    opacity: hovered ? 1 : 0,
+                    transition: 'opacity 0.2s',
+                    zIndex: 5,
+                    position: 'relative',
                 }}
             >
-                {/* Drag Handle */}
-                <Box
-                    {...attributes}
-                    {...listeners}
-                    sx={{
-                        cursor: isDragging ? 'grabbing' : 'grab',
-                        display: 'flex',
-                        color: '#D1D5DB',
-                        transition: 'all 0.2s',
-                        '&:hover': { color: '#9CA3AF' },
-                    }}
-                >
-                    <DragIndicatorIcon sx={{ fontSize: '1rem' }} />
-                </Box>
-
-                {/* Section Info */}
-                <Box
-                    flex={1}
-                    onClick={onSelectSection}
-                    sx={{
-                        cursor: 'pointer',
-                        transition: 'opacity 0.2s',
-                        '&:hover': { opacity: 0.7 },
-                    }}
-                >
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.9rem', color: '#1F2937', lineHeight: 1.3 }}>
-                        {section.name || 'Unnamed Section'}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: '#9CA3AF', fontSize: '0.75rem', letterSpacing: 0.3 }}>
-                        {section.type} • {section.modules.length + (section.columns?.reduce((acc, col) => acc + col.modules.length, 0) || 0)} module(s)
-                    </Typography>
-                </Box>
-
-                {/* Visibility Indicators */}
-                <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', px: 0.75, py: 0.5, bgcolor: '#F3F4F6', borderRadius: 0.75, border: '1px solid #E5E7EB' }}>
-                    <DesktopWindowsIcon
+                <Tooltip title="Insert section above" arrow>
+                    <IconButton
+                        size="small"
+                        onClick={(e) => { e.stopPropagation(); onInsertBefore(); }}
                         sx={{
-                            fontSize: '0.9rem',
-                            color: section.visibility.desktop ? '#3B82F6' : '#D1D5DB',
-                            transition: 'color 0.2s',
+                            width: 28,
+                            height: 28,
+                            bgcolor: '#FFFFFF',
+                            border: '1.5px solid #D1D5DB',
+                            borderRadius: '50%',
+                            color: '#6B7280',
+                            boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                            transition: 'all 0.15s',
+                            '&:hover': {
+                                bgcolor: '#3B82F6',
+                                borderColor: '#3B82F6',
+                                color: '#FFFFFF',
+                                boxShadow: '0 2px 8px rgba(59,130,246,0.3)',
+                            },
                         }}
-                    />
-                    <TabletIcon
-                        sx={{
-                            fontSize: '0.9rem',
-                            color: section.visibility.tablet ? '#3B82F6' : '#D1D5DB',
-                            transition: 'color 0.2s',
-                        }}
-                    />
-                    <PhoneIphoneIcon
-                        sx={{
-                            fontSize: '0.9rem',
-                            color: section.visibility.mobile ? '#3B82F6' : '#D1D5DB',
-                            transition: 'color 0.2s',
-                        }}
-                    />
-                </Box>
-
-                {/* Clone Button */}
-                <IconButton
-                    size="small"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onCloneSection();
-                    }}
-                    title="Duplicate Section"
-                    sx={{
-                        p: 0.5,
-                        color: '#9CA3AF',
-                        transition: 'all 0.2s',
-                        '&:hover': {
-                            color: '#3B82F6',
-                            bgcolor: '#EFF6FF',
-                        },
-                    }}
-                >
-                    <ContentCopyIcon sx={{ fontSize: '1rem' }} />
-                </IconButton>
-
-                {/* Settings Button */}
-                <IconButton
-                    size="small"
-                    onClick={onSelectSection}
-                    sx={{
-                        p: 0.5,
-                        color: '#9CA3AF',
-                        transition: 'all 0.2s',
-                        '&:hover': {
-                            color: '#3B82F6',
-                            bgcolor: '#EFF6FF',
-                        },
-                    }}
-                >
-                    <SettingsIcon sx={{ fontSize: '1rem' }} />
-                </IconButton>
-
-                {/* Expand/Collapse Button */}
-                <IconButton
-                    size="small"
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    sx={{
-                        p: 0.5,
-                        color: '#9CA3AF',
-                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                        transform: isExpanded ? 'rotate(0deg)' : 'rotate(180deg)',
-                        '&:hover': {
-                            color: '#3B82F6',
-                            bgcolor: '#EFF6FF',
-                        },
-                    }}
-                >
-                    <ExpandLessIcon sx={{ fontSize: '1rem' }} />
-                </IconButton>
+                    >
+                        <AddIcon sx={{ fontSize: '1rem' }} />
+                    </IconButton>
+                </Tooltip>
             </Box>
 
-            {/* Section Content */}
-            <Collapse in={isExpanded}>
-                <Box sx={{ p: 1 }}>
-                    {section.columns && section.columns.length > 0 ? (
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                            {section.columns.map((col, idx) => (
-                                <Box key={col.id} sx={{ flex: col.width, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                    {/* Column Header/Settings */}
-                                    <Box
-                                        onClick={() => onSelectColumn && onSelectColumn(section.id, col.id)}
-                                        sx={{
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center',
-                                            px: 1,
-                                            py: 0.5,
-                                            bgcolor: selectedColumnId === col.id ? '#EFF6FF' : 'transparent',
-                                            borderRadius: 1,
-                                            cursor: 'pointer',
-                                            border: selectedColumnId === col.id ? '1px solid #3B82F6' : '1px solid transparent',
-                                            '&:hover': { bgcolor: '#F9FAFB' }
-                                        }}
-                                    >
-                                        <Typography variant="caption" color="text.secondary">Col {idx + 1}</Typography>
-                                        <SettingsIcon sx={{ fontSize: '0.8rem', color: '#9CA3AF' }} />
-                                    </Box>
+            {/* ---- Section Card ---- */}
+            <Paper
+                elevation={0}
+                onClick={(e) => {
+                    // Only select if clicking the card itself, not toolbar buttons
+                    if ((e.target as HTMLElement).closest('.section-toolbar')) return;
+                    onSelect();
+                }}
+                sx={{
+                    border: isSelected ? '2px solid #3B82F6' : '1px solid #E5E7EB',
+                    borderRadius: 2,
+                    bgcolor: '#FFFFFF',
+                    overflow: 'hidden',
+                    boxShadow: isSelected
+                        ? '0 4px 16px rgba(59,130,246,0.12)'
+                        : hovered ? '0 4px 16px rgba(0,0,0,0.06)' : '0 1px 3px rgba(0,0,0,0.04)',
+                    transition: 'box-shadow 0.2s, border-color 0.2s',
+                    cursor: 'pointer',
+                }}
+            >
+                {/* ---- Section Header ---- */}
+                <Box
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        px: 2,
+                        py: 1.5,
+                        bgcolor: isSelected ? '#F0F9FF' : '#FAFBFC',
+                        borderBottom: collapsed ? 'none' : '1px solid #F3F4F6',
+                    }}
+                >
+                    {/* Section name + type */}
+                    <Box flex={1} sx={{ minWidth: 0 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#1F2937' }}>
+                            {section.name || 'Untitled Section'}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#9CA3AF', fontSize: '0.7rem' }}>
+                            {section.type} &middot; {moduleCount} block{moduleCount !== 1 ? 's' : ''}
+                        </Typography>
+                    </Box>
 
-                                    <SortableContext
-                                        id={col.id}
-                                        items={col.modules.map(m => m.id)}
-                                        strategy={verticalListSortingStrategy}
-                                    >
-                                        <ModuleDropZone sectionId={section.id} columnId={col.id}>
-                                            {col.modules.length === 0 ? (
-                                                <Typography
-                                                    variant="body2"
-                                                    sx={{
-                                                        color: '#9CA3AF',
-                                                        textAlign: 'center',
-                                                        py: 1.5,
-                                                        fontSize: '0.875rem',
-                                                    }}
-                                                >
-                                                    Empty column
-                                                </Typography>
-                                            ) : (
-                                                col.modules.map((mod, index) => (
-                                                    <SortableModule
+                    {/* Visibility badges */}
+                    <Box sx={{ display: 'flex', gap: 0.5, px: 0.75, py: 0.5, bgcolor: '#F3F4F6', borderRadius: 0.75, border: '1px solid #E5E7EB' }}>
+                        <DesktopWindowsIcon sx={{ fontSize: '0.8rem', color: section.visibility.desktop ? '#3B82F6' : '#D1D5DB' }} />
+                        <TabletIcon sx={{ fontSize: '0.8rem', color: section.visibility.tablet ? '#3B82F6' : '#D1D5DB' }} />
+                        <PhoneIphoneIcon sx={{ fontSize: '0.8rem', color: section.visibility.mobile ? '#3B82F6' : '#D1D5DB' }} />
+                    </Box>
+
+                    {/* ---- Section Toolbar ---- */}
+                    <Box className="section-toolbar" sx={{ display: 'flex', gap: 0.25, opacity: (hovered || isSelected) ? 1 : 0, transition: 'opacity 0.15s' }}>
+                        <Tooltip title="Move up" arrow>
+                            <span>
+                                <IconButton size="small" disabled={isFirst} onClick={(e) => { e.stopPropagation(); onMoveUp(); }} sx={actionBtnSx}>
+                                    <KeyboardArrowUpIcon sx={{ fontSize: '1.1rem' }} />
+                                </IconButton>
+                            </span>
+                        </Tooltip>
+                        <Tooltip title="Move down" arrow>
+                            <span>
+                                <IconButton size="small" disabled={isLast} onClick={(e) => { e.stopPropagation(); onMoveDown(); }} sx={actionBtnSx}>
+                                    <KeyboardArrowDownIcon sx={{ fontSize: '1.1rem' }} />
+                                </IconButton>
+                            </span>
+                        </Tooltip>
+                        <Divider orientation="vertical" flexItem sx={{ mx: 0.25 }} />
+                        <Tooltip title="Duplicate" arrow>
+                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); onClone(); }} sx={actionBtnSx}>
+                                <ContentCopyIcon sx={{ fontSize: '0.9rem' }} />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete" arrow>
+                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                                sx={{ ...actionBtnSx, '&:hover': { color: '#EF4444', bgcolor: '#FEE2E2' } }}>
+                                <DeleteIcon sx={{ fontSize: '0.9rem' }} />
+                            </IconButton>
+                        </Tooltip>
+                        <Divider orientation="vertical" flexItem sx={{ mx: 0.25 }} />
+                        <Tooltip title={collapsed ? 'Expand' : 'Collapse'} arrow>
+                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); setCollapsed(!collapsed); }} sx={actionBtnSx}>
+                                {collapsed ? <UnfoldMoreIcon sx={{ fontSize: '1rem' }} /> : <UnfoldLessIcon sx={{ fontSize: '1rem' }} />}
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Settings" arrow>
+                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); onSelect(); }} sx={actionBtnSx}>
+                                <SettingsIcon sx={{ fontSize: '1rem' }} />
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
+                </Box>
+
+                {/* ---- Section Body ---- */}
+                <Collapse in={!collapsed}>
+                    <Box sx={{ p: 2 }}>
+                        {section.columns && section.columns.length > 0 ? (
+                            <Box sx={{ display: 'flex', gap: 2 }}>
+                                {section.columns.map((col, idx) => (
+                                    <Box key={col.id} sx={{ flex: col.width, minWidth: 0 }}>
+                                        <Box
+                                            onClick={() => onSelectColumn?.(section.id, col.id)}
+                                            sx={{
+                                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                px: 1, py: 0.5, mb: 0.75,
+                                                bgcolor: selectedColumnId === col.id ? '#EFF6FF' : '#F9FAFB',
+                                                borderRadius: 1, cursor: 'pointer',
+                                                border: selectedColumnId === col.id ? '1px solid #3B82F6' : '1px solid transparent',
+                                                '&:hover': { bgcolor: '#F3F4F6' },
+                                            }}
+                                        >
+                                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#6B7280' }}>Column {idx + 1}</Typography>
+                                            <SettingsIcon sx={{ fontSize: '0.7rem', color: '#9CA3AF' }} />
+                                        </Box>
+                                        <SortableContext items={col.modules.map(m => m.id)} strategy={verticalListSortingStrategy}>
+                                            <ModuleDropZone sectionId={section.id} columnId={col.id}>
+                                                {col.modules.map((mod, idx2) => (
+                                                    <ModuleCard
                                                         key={mod.id}
                                                         module={mod}
                                                         isSelected={selectedModuleId === mod.id}
@@ -472,37 +410,19 @@ function SectionItem({
                                                         onClone={() => onCloneModule(mod.id)}
                                                         sectionId={section.id}
                                                         columnId={col.id}
-                                                        index={index}
+                                                        index={idx2}
                                                     />
-                                                ))
-                                            )}
-                                        </ModuleDropZone>
-                                    </SortableContext>
-                                </Box>
-                            ))}
-                        </Box>
-                    ) : (
-                        <SortableContext
-                            id={section.id}
-                            items={section.modules.map((m) => m.id)}
-                            strategy={verticalListSortingStrategy}
-                        >
-                            <ModuleDropZone sectionId={section.id}>
-                                {section.modules.length === 0 ? (
-                                    <Typography
-                                        variant="body2"
-                                        sx={{
-                                            color: '#9CA3AF',
-                                            textAlign: 'center',
-                                            py: 2,
-                                            fontSize: '0.875rem',
-                                        }}
-                                    >
-                                        Drag modules here to add
-                                    </Typography>
-                                ) : (
-                                    section.modules.map((mod, index) => (
-                                        <SortableModule
+                                                ))}
+                                            </ModuleDropZone>
+                                        </SortableContext>
+                                    </Box>
+                                ))}
+                            </Box>
+                        ) : (
+                            <SortableContext items={section.modules.map(m => m.id)} strategy={verticalListSortingStrategy}>
+                                <ModuleDropZone sectionId={section.id}>
+                                    {section.modules.map((mod, idx) => (
+                                        <ModuleCard
                                             key={mod.id}
                                             module={mod}
                                             isSelected={selectedModuleId === mod.id}
@@ -510,20 +430,62 @@ function SectionItem({
                                             onDelete={() => onDeleteModule(mod.id)}
                                             onClone={() => onCloneModule(mod.id)}
                                             sectionId={section.id}
-                                            index={index}
+                                            index={idx}
                                         />
-                                    ))
-                                )}
-                            </ModuleDropZone>
-                        </SortableContext>
-                    )}
-                </Box>
-            </Collapse>
-        </Paper>
+                                    ))}
+                                </ModuleDropZone>
+                            </SortableContext>
+                        )}
+                    </Box>
+                </Collapse>
+            </Paper>
+
+            {/* ---- Insert button BELOW ---- */}
+            <Box
+                sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    height: 20,
+                    mt: -0.5,
+                    mb: -0.5,
+                    opacity: hovered ? 1 : 0,
+                    transition: 'opacity 0.2s',
+                    zIndex: 5,
+                    position: 'relative',
+                }}
+            >
+                <Tooltip title="Insert section below" arrow>
+                    <IconButton
+                        size="small"
+                        onClick={(e) => { e.stopPropagation(); onInsertAfter(); }}
+                        sx={{
+                            width: 28,
+                            height: 28,
+                            bgcolor: '#FFFFFF',
+                            border: '1.5px solid #D1D5DB',
+                            borderRadius: '50%',
+                            color: '#6B7280',
+                            boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                            transition: 'all 0.15s',
+                            '&:hover': {
+                                bgcolor: '#3B82F6',
+                                borderColor: '#3B82F6',
+                                color: '#FFFFFF',
+                                boxShadow: '0 2px 8px rgba(59,130,246,0.3)',
+                            },
+                        }}
+                    >
+                        <AddIcon sx={{ fontSize: '1rem' }} />
+                    </IconButton>
+                </Tooltip>
+            </Box>
+        </Box>
     );
 }
 
-// Main Section List - NO DndContext here, uses parent context
+// =========================================================================
+// SectionList
+// =========================================================================
 interface SectionListProps {
     sections: LayoutSection[];
     selectedSectionId: string | null;
@@ -531,6 +493,9 @@ interface SectionListProps {
     selectedColumnId?: string | null;
     onSelectSection: (id: string) => void;
     onCloneSection: (id: string) => void;
+    onDeleteSection: (id: string) => void;
+    onMoveSection: (fromIndex: number, toIndex: number) => void;
+    onInsertSectionAt: (index: number) => void;
     onSelectModule: (sectionId: string, moduleId: string) => void;
     onDeleteModule: (sectionId: string, moduleId: string) => void;
     onCloneModule: (sectionId: string, moduleId: string) => void;
@@ -545,62 +510,91 @@ export default function SectionList({
     selectedColumnId,
     onSelectSection,
     onCloneSection,
+    onDeleteSection,
+    onMoveSection,
+    onInsertSectionAt,
     onSelectModule,
     onDeleteModule,
     onCloneModule,
     onAddSection,
     onSelectColumn,
 }: SectionListProps) {
+    // No SortableContext needed for sections — we use move up/down buttons instead
+    // Modules still use SortableContext for drag-and-drop within sections
+
+    if (sections.length === 0) {
+        return (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    No sections yet. Add your first section to start building.
+                </Typography>
+                <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={onAddSection}
+                    sx={{
+                        bgcolor: '#3B82F6',
+                        '&:hover': { bgcolor: '#2563EB' },
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        px: 3,
+                        borderRadius: 2,
+                    }}
+                >
+                    Add Section
+                </Button>
+            </Box>
+        );
+    }
+
     return (
         <Box>
-            <SortableContext
-                items={sections.map((s) => s.id)}
-                strategy={verticalListSortingStrategy}
-            >
-                {sections.map((section) => (
-                    <SectionItem
-                        key={section.id}
-                        section={section}
-                        isSelected={selectedSectionId === section.id}
-                        selectedModuleId={
-                            sections.find((s) => s.id === section.id)?.modules.find((m) => m.id === selectedModuleId) ||
-                                sections.find((s) => s.id === section.id)?.columns?.some(c => c.modules.some(m => m.id === selectedModuleId))
-                                ? selectedModuleId
-                                : null
-                        }
-                        onSelectSection={() => onSelectSection(section.id)}
-                        onCloneSection={() => onCloneSection(section.id)}
-                        onSelectModule={(moduleId) => onSelectModule(section.id, moduleId)}
-                        onDeleteModule={(moduleId) => onDeleteModule(section.id, moduleId)}
-                        onCloneModule={(moduleId) => onCloneModule(section.id, moduleId)}
-                        selectedColumnId={selectedColumnId}
-                        onSelectColumn={onSelectColumn}
-                    />
-                ))}
-            </SortableContext>
+            {sections.map((section, index) => (
+                <SectionBlock
+                    key={section.id}
+                    section={section}
+                    isSelected={selectedSectionId === section.id}
+                    selectedModuleId={selectedModuleId}
+                    selectedColumnId={selectedColumnId}
+                    isFirst={index === 0}
+                    isLast={index === sections.length - 1}
+                    onSelect={() => onSelectSection(section.id)}
+                    onMoveUp={() => onMoveSection(index, index - 1)}
+                    onMoveDown={() => onMoveSection(index, index + 1)}
+                    onClone={() => onCloneSection(section.id)}
+                    onDelete={() => onDeleteSection(section.id)}
+                    onSelectModule={(moduleId) => onSelectModule(section.id, moduleId)}
+                    onDeleteModule={(moduleId) => onDeleteModule(section.id, moduleId)}
+                    onCloneModule={(moduleId) => onCloneModule(section.id, moduleId)}
+                    onSelectColumn={onSelectColumn}
+                    onInsertBefore={() => onInsertSectionAt(index)}
+                    onInsertAfter={() => onInsertSectionAt(index + 1)}
+                />
+            ))}
 
-            {/* ... Add Button ... */}
-            <Button
-                fullWidth
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={onAddSection}
-                sx={{
-                    mt: 1.5,
-                    bgcolor: '#3B82F6',
-                    color: '#FFFFFF',
-                    textTransform: 'none',
-                    fontWeight: 600,
-                    py: 1.25,
-                    transition: 'all 0.2s',
-                    '&:hover': {
-                        bgcolor: '#2563EB',
-                        boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
-                    },
-                }}
-            >
-                Add Section
-            </Button>
+            {/* Bottom "Add Section" button */}
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                <Button
+                    variant="outlined"
+                    startIcon={<AddIcon />}
+                    onClick={onAddSection}
+                    sx={{
+                        borderColor: '#D1D5DB',
+                        color: '#6B7280',
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        borderRadius: 2,
+                        px: 3,
+                        '&:hover': {
+                            borderColor: '#3B82F6',
+                            color: '#3B82F6',
+                            bgcolor: '#EFF6FF',
+                        },
+                    }}
+                >
+                    Add Section
+                </Button>
+            </Box>
         </Box>
     );
 }

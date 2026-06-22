@@ -17,7 +17,6 @@ import {
     List,
     ListItem,
     ListItemText,
-    ListItemSecondaryAction,
     Divider
 } from '@mui/material';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
@@ -29,57 +28,8 @@ import { useState } from 'react';
 import { ColorPicker } from '@/components/atoms';
 import { LayoutModule, ModuleType } from '@/types';
 import { AVAILABLE_MODULES, createModule, getModuleDefinition } from '../LayoutDesigner/types';
-import FormModuleEditor from '../LayoutDesigner/ModuleEditors/FormModuleEditor';
 import ModuleStylingTab from '../LayoutDesigner/ModuleStylingTab';
-
-// Import config panels
-import {
-    TextBlockConfigPanel,
-    ImageConfigPanel,
-    ImageGalleryConfigPanel,
-    VideoConfigPanel,
-    SpacerConfigPanel,
-    DividerConfigPanel,
-    HTMLConfigPanel,
-    BannerConfigPanel,
-    BannerSliderConfigPanel,
-    HeroSliderConfigPanel,
-    HeroBannerConfigPanel,
-    TestimonialsConfigPanel,
-    BrandLogosConfigPanel,
-    ProductCollectionConfigPanel,
-    CategoryShowcaseConfigPanel,
-    RelatedProductsConfigPanel,
-    RecentlyViewedConfigPanel,
-    PersonalizedProductsConfigPanel,
-    CTAConfigPanel,
-    StripBannerConfigPanel,
-    CardGroupConfigPanel,
-    IconBoxConfigPanel,
-    IconGroupConfigPanel,
-    PricingTableConfigPanel,
-    AccordionConfigPanel,
-    HeadingConfigPanel,
-    NumberBoxConfigPanel,
-    FlipBoxConfigPanel,
-    ProgressBarConfigPanel,
-    MarqueeConfigPanel,
-    IconConfigPanel,
-    TableConfigPanel,
-    ContentCardGridConfigPanel,
-    IconListConfigPanel,
-    CategoryHeaderConfigPanel,
-    BlogGridConfigPanel,
-    BlogCategoriesSidebarConfigPanel,
-    RecentPostsConfigPanel,
-    PopularPostsConfigPanel,
-    TagsCloudConfigPanel,
-    NewsletterSignupConfigPanel,
-    AuthorCardConfigPanel,
-    PageContentConfigPanel,
-    PageHeroConfigPanel,
-    CheckoutContentConfigPanel
-} from './index';
+import { renderModuleConfigPanel } from './renderModuleConfigPanel';
 
 export interface SectionLayoutConfig {
     backgroundColor: string;
@@ -116,10 +66,10 @@ export const defaultSectionLayoutConfig: SectionLayoutConfig = {
 };
 
 export default function SectionLayoutConfigPanel({ config, onChange, storeId }: SectionLayoutConfigPanelProps) {
+    const [selectedNewType, setSelectedNewType] = useState<ModuleType | ''>('');
     const [editingModule, setEditingModule] = useState<LayoutModule | null>(null);
     const [editingModuleIndex, setEditingModuleIndex] = useState<number | null>(null);
     const [dialogTab, setDialogTab] = useState(0);
-    const [selectedNewType, setSelectedNewType] = useState<ModuleType | ''>('');
 
     type SectionConfigValue = string | number | boolean | LayoutModule[] | undefined;
 
@@ -164,7 +114,7 @@ export default function SectionLayoutConfigPanel({ config, onChange, storeId }: 
     };
 
     const handleOpenEditDialog = (module: LayoutModule, index: number) => {
-        setEditingModule(JSON.parse(JSON.stringify(module))); // Deep copy
+        setEditingModule(JSON.parse(JSON.stringify(module)));
         setEditingModuleIndex(index);
         setDialogTab(0);
     };
@@ -178,135 +128,23 @@ export default function SectionLayoutConfigPanel({ config, onChange, storeId }: 
         setEditingModuleIndex(null);
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- config shapes vary per module type
-    const handleUpdateNestedConfig = (nestedConfig: Record<string, any>) => {
-        if (!editingModule) return;
-        setEditingModule({
-            ...editingModule,
-            config: nestedConfig
-        });
-    };
-
     const handleUpdateNestedStyling = (key: string, value: string | number | undefined) => {
         if (!editingModule) return;
         setEditingModule({
             ...editingModule,
-            styling: {
-                ...editingModule.styling,
-                [key]: value
-            }
+            styling: { ...editingModule.styling, [key]: value },
         });
     };
 
-    // Render nested module content editing panel (matches the parent ModuleEditor switch)
-    /* eslint-disable @typescript-eslint/no-explicit-any -- config subtypes vary per module; LayoutModule.config is Record<string, any> */
     const renderNestedConfigPanel = () => {
         if (!editingModule) return null;
-        
-        switch (editingModule.type) {
-            case 'text-block':
-                return <TextBlockConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'image':
-                return <ImageConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'image-gallery':
-                return <ImageGalleryConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'video':
-                return <VideoConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'spacer':
-                return <SpacerConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'divider':
-                return <DividerConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'html':
-                return <HTMLConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'banner':
-                return <BannerConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} storeId={storeId} />;
-            case 'banner-slider':
-                return <BannerSliderConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} storeId={storeId} />;
-            case 'hero-slider':
-                return <HeroSliderConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} storeId={storeId} />;
-            case 'hero-banner':
-                return <HeroBannerConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} storeId={storeId} />;
-            case 'testimonials':
-                return <TestimonialsConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} storeId={storeId} />;
-            case 'brand-logos':
-                return <BrandLogosConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} storeId={storeId} />;
-            case 'product-carousel':
-            case 'product-grid':
-                return <ProductCollectionConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} storeId={storeId} />;
-            case 'category-showcase':
-                return <CategoryShowcaseConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} storeId={storeId} />;
-            case 'category-header':
-                return <CategoryHeaderConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'related-products':
-                return <RelatedProductsConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} storeId={storeId} />;
-            case 'recently-viewed':
-                return <RecentlyViewedConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} storeId={storeId} />;
-            case 'personalized-products':
-                return <PersonalizedProductsConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} storeId={storeId} />;
-            case 'blog-grid':
-            case 'blog-listing':
-                return <BlogGridConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'blog-categories-sidebar':
-                return <BlogCategoriesSidebarConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'recent-posts':
-                return <RecentPostsConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'popular-posts':
-                return <PopularPostsConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'tags-cloud':
-                return <TagsCloudConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'newsletter-signup':
-                return <NewsletterSignupConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'author-card':
-                return <AuthorCardConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'page-content':
-                return <PageContentConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'page-hero':
-                return <PageHeroConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'checkout-content':
-                return <CheckoutContentConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'cta-button':
-                return <CTAConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'strip-banner':
-                return <StripBannerConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'icon-box':
-                return <IconBoxConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'icon-group':
-                return <IconGroupConfigPanel config={editingModule.config} onChange={handleUpdateNestedConfig} />;
-            case 'pricing-table':
-                return <PricingTableConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'accordion':
-                return <AccordionConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'heading':
-                return <HeadingConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'card-group':
-                return <CardGroupConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'number-box':
-                return <NumberBoxConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'flip-box':
-                return <FlipBoxConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'progress-bar':
-                return <ProgressBarConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'marquee':
-                return <MarqueeConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'icon':
-                return <IconConfigPanel module={editingModule} onChange={setEditingModule} />;
-            case 'table':
-                return <TableConfigPanel module={editingModule} onChange={setEditingModule} />;
-            case 'content-card-grid':
-                return <ContentCardGridConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'icon-list':
-                return <IconListConfigPanel config={editingModule.config as any} onChange={handleUpdateNestedConfig} />;
-            case 'form':
-                return <FormModuleEditor module={editingModule} onChange={setEditingModule} />;
-            default:
-                return (
-                    <Typography variant="body2" color="text.secondary">
-                        Editing not supported for this module type here.
-                    </Typography>
-                );
-        }
+        return renderModuleConfigPanel({
+            module: editingModule,
+            onChange: (updated) => setEditingModule(updated),
+            updateConfig: (config) => setEditingModule({ ...editingModule, config }),
+            storeId,
+        });
     };
-    /* eslint-enable @typescript-eslint/no-explicit-any */
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
@@ -465,6 +303,9 @@ export default function SectionLayoutConfigPanel({ config, onChange, storeId }: 
                 <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1.5 }}>
                     Nested Modules
                 </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+                    Add modules here, then click on them in the canvas to edit their settings in the properties modal.
+                </Typography>
 
                 {/* Add Module Row */}
                 <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
@@ -509,6 +350,22 @@ export default function SectionLayoutConfigPanel({ config, onChange, storeId }: 
                                         key={module.id}
                                         divider={index < (config.modules || []).length - 1}
                                         sx={{ py: 1 }}
+                                        secondaryAction={
+                                            <Box sx={{ display: 'flex', gap: 0.25 }}>
+                                                <IconButton size="small" onClick={() => handleMoveModule(index, 'up')} disabled={index === 0}>
+                                                    <ArrowUpwardIcon fontSize="small" />
+                                                </IconButton>
+                                                <IconButton size="small" onClick={() => handleMoveModule(index, 'down')} disabled={index === (config.modules || []).length - 1}>
+                                                    <ArrowDownwardIcon fontSize="small" />
+                                                </IconButton>
+                                                <IconButton size="small" color="primary" onClick={() => handleOpenEditDialog(module, index)}>
+                                                    <EditIcon fontSize="small" />
+                                                </IconButton>
+                                                <IconButton size="small" color="error" onClick={() => handleDeleteModule(index)}>
+                                                    <DeleteIcon fontSize="small" />
+                                                </IconButton>
+                                            </Box>
+                                        }
                                     >
                                         <ListItemText
                                             primary={definition?.label || module.type}
@@ -516,36 +373,6 @@ export default function SectionLayoutConfigPanel({ config, onChange, storeId }: 
                                             primaryTypographyProps={{ variant: 'body2', fontWeight: 500 }}
                                             secondaryTypographyProps={{ variant: 'caption' }}
                                         />
-                                        <ListItemSecondaryAction>
-                                            <IconButton
-                                                size="small"
-                                                onClick={() => handleMoveModule(index, 'up')}
-                                                disabled={index === 0}
-                                            >
-                                                <ArrowUpwardIcon fontSize="small" />
-                                            </IconButton>
-                                            <IconButton
-                                                size="small"
-                                                onClick={() => handleMoveModule(index, 'down')}
-                                                disabled={index === (config.modules || []).length - 1}
-                                            >
-                                                <ArrowDownwardIcon fontSize="small" />
-                                            </IconButton>
-                                            <IconButton
-                                                size="small"
-                                                color="primary"
-                                                onClick={() => handleOpenEditDialog(module, index)}
-                                            >
-                                                <EditIcon fontSize="small" />
-                                            </IconButton>
-                                            <IconButton
-                                                size="small"
-                                                color="error"
-                                                onClick={() => handleDeleteModule(index)}
-                                            >
-                                                <DeleteIcon fontSize="small" />
-                                            </IconButton>
-                                        </ListItemSecondaryAction>
                                     </ListItem>
                                 );
                             })}
@@ -554,7 +381,7 @@ export default function SectionLayoutConfigPanel({ config, onChange, storeId }: 
                 </Paper>
             </Paper>
 
-            {/* ── Edit Dialog ─────────────────────────────────────────── */}
+            {/* ── Edit Nested Module Dialog ──────────────────────────── */}
             <Dialog
                 open={editingModule !== null}
                 onClose={() => setEditingModule(null)}
@@ -562,7 +389,7 @@ export default function SectionLayoutConfigPanel({ config, onChange, storeId }: 
                 fullWidth
             >
                 <DialogTitle sx={{ pb: 1 }}>
-                    Edit Nested Module: {editingModule && (getModuleDefinition(editingModule.type)?.label || editingModule.type)}
+                    {editingModule && (getModuleDefinition(editingModule.type)?.label || editingModule.type)}
                 </DialogTitle>
                 <DialogContent dividers sx={{ p: 2 }}>
                     {editingModule && (
@@ -583,7 +410,7 @@ export default function SectionLayoutConfigPanel({ config, onChange, storeId }: 
                                 </Box>
                             )}
 
-                            {dialogTab === 1 && (
+                            {dialogTab === 1 && editingModule.styling && (
                                 <Box sx={{ pt: 1 }}>
                                     <ModuleStylingTab styling={editingModule.styling} onChange={handleUpdateNestedStyling} />
                                 </Box>
@@ -594,7 +421,7 @@ export default function SectionLayoutConfigPanel({ config, onChange, storeId }: 
                 <DialogActions>
                     <Button onClick={() => setEditingModule(null)}>Cancel</Button>
                     <Button variant="contained" onClick={handleSaveNestedModule} color="primary">
-                        Save Changes
+                        Save
                     </Button>
                 </DialogActions>
             </Dialog>

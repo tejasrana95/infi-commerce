@@ -252,7 +252,6 @@ export default function TestimonialsModule({ config, initialData }: ModuleProps)
         '--visible-cards': visibleCardsActive,
         '--current-index': currentIndex,
     } as React.CSSProperties;
-
     // Multi Card Carousel Layout
     if (layout === 'multi-carousel') {
         return (

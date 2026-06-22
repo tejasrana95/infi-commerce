@@ -57,6 +57,7 @@ const schema = z.object({
     allowComments: z.boolean(),
     isFeatured: z.boolean(),
     isPinned: z.boolean(),
+    showRelatedArticles: z.boolean(),
 
     // Linked products config
     linkedProductsConfig: z.object({
@@ -105,6 +106,7 @@ const defaultValues: FormData = {
     allowComments: true,
     isFeatured: false,
     isPinned: false,
+    showRelatedArticles: false,
     linkedProductsConfig: {
         enabled: false,
         sourceType: 'products',
@@ -208,6 +210,7 @@ export default function BlogPostForm({ initialData, onSubmit, isSubmitting = fal
                 allowComments: initialData.allowComments ?? true,
                 isFeatured: initialData.isFeatured ?? false,
                 isPinned: initialData.isPinned ?? false,
+                showRelatedArticles: (initialData as any).showRelatedArticles ?? false,
                 linkedProductsConfig,
                 seo: {
                     metaTitle: initialData.seo?.metaTitle || '',
@@ -559,6 +562,16 @@ export default function BlogPostForm({ initialData, onSubmit, isSubmitting = fal
                                                 <FormControlLabel
                                                     control={<Switch checked={field.value} onChange={field.onChange} />}
                                                     label="Pin to Top"
+                                                />
+                                            )}
+                                        />
+                                        <Controller
+                                            name="showRelatedArticles"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <FormControlLabel
+                                                    control={<Switch checked={field.value ?? false} onChange={field.onChange} />}
+                                                    label="Show Related Articles"
                                                 />
                                             )}
                                         />

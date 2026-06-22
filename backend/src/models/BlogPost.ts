@@ -67,6 +67,7 @@ export interface IBlogPost extends Document {
     allowComments: boolean;
     isFeatured: boolean;
     isPinned: boolean;
+    showRelatedArticles: boolean;
 
     // Reading time (auto-calculated)
     readingTime?: number;               // Minutes
@@ -211,6 +212,10 @@ const BlogPostSchema = new Schema<IBlogPost>(
             default: false,
         },
         isPinned: {
+            type: Boolean,
+            default: false,
+        },
+        showRelatedArticles: {
             type: Boolean,
             default: false,
         },

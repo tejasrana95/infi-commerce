@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import {
     Box,
     Paper,
@@ -33,7 +33,6 @@ import {
     DragStartEvent,
     DragOverlay,
     closestCorners,
-    pointerWithin,
     PointerSensor,
     useSensor,
     useSensors,
@@ -77,8 +76,7 @@ export default function LayoutDesigner({
     // Responsive state
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md')); // <900px
-    const [leftPanelOpen, setLeftPanelOpen] = useState(false); // Start hidden
-    const [rightPanelOpen, setRightPanelOpen] = useState(true); // Auto-open when selection exists
+    const [leftPanelOpen, setLeftPanelOpen] = useState(false);
 
     // Types that support slug-specific layouts
     const slugSupportedTypes: LayoutType[] = ['category', 'product', 'blog-post', 'page'];
@@ -105,12 +103,6 @@ export default function LayoutDesigner({
         selectedSection?.columns?.flatMap(c => c.modules).find(m => m.id === selectedModuleId);
 
     // Auto-open right panel when section or module is selected
-    useEffect(() => {
-        if (selectedSectionId || selectedModuleId) {
-            setRightPanelOpen(true);
-        }
-    }, [selectedSectionId, selectedModuleId]);
-
     // Update sections
     const updateSections = useCallback(
         (sections: LayoutSection[]) => {
@@ -209,13 +201,11 @@ export default function LayoutDesigner({
     const handleSelectColumn = (sectionId: string, columnId: string) => {
         if (selectedColumnId === columnId) {
             setSelectedColumnId(null);
-            setRightPanelOpen(false);
             return;
         }
         setSelectedSectionId(sectionId);
         setSelectedModuleId(null);
         setSelectedColumnId(columnId);
-        setRightPanelOpen(true);
     };
 
     // Add new section
@@ -383,6 +373,23 @@ export default function LayoutDesigner({
         });
     };
 
+    // Move section up/down (WordPress-style toolbar buttons)
+    const handleMoveSection = useCallback((fromIndex: number, toIndex: number) => {
+        if (toIndex < 0 || toIndex >= layout.sections.length) return;
+        updateSections(arrayMove(layout.sections, fromIndex, toIndex));
+    }, [layout.sections, updateSections]);
+
+    // Insert a new section at a specific index
+    const handleInsertSectionAt = useCallback((index: number) => {
+        const newSection = createSection('container');
+        const newSections = [...layout.sections];
+        newSections.splice(index, 0, newSection);
+        updateSections(newSections);
+        setSelectedSectionId(newSection.id);
+        setSelectedModuleId(null);
+        setSelectedColumnId(null);
+    }, [layout.sections, updateSections]);
+
     // Handle drag start
     const handleDragStart = (event: DragStartEvent) => {
         const { active } = event;
@@ -432,15 +439,7 @@ export default function LayoutDesigner({
             return;
         }
 
-        // Case 2: Reordering sections
-        if (activeData?.type === 'section' && overData?.type === 'section') {
-            const oldIndex = layout.sections.findIndex((s) => s.id === active.id);
-            const newIndex = layout.sections.findIndex((s) => s.id === over.id);
-            if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
-                updateSections(arrayMove(layout.sections, oldIndex, newIndex));
-            }
-            return;
-        }
+        // Case 2: Section reordering is now handled by toolbar up/down buttons — no DnD
 
         // Case 3: Reordering modules (within section/column or moving between them)
         const activeSection = findSectionByModuleId(active.id as string);
@@ -470,7 +469,7 @@ export default function LayoutDesigner({
             }
 
             // Determine target container
-            let targetSection = overSection;
+            const targetSection = overSection;
             let targetModules: LayoutModule[] | null = null;
             let targetColumnId: string | null = null;
 
@@ -581,39 +580,6 @@ export default function LayoutDesigner({
         }
     };
 
-    // Custom collision detection that works for both palette drops and sortable items
-    const collisionDetection = useCallback((args: any) => {
-        const { active, droppableContainers, pointerCoordinates } = args;
-        const activeData = active?.data.current;
-
-        // First check if we're dragging from palette OR dragging a module
-        if (activeData?.type === 'palette-module' || activeData?.type === 'module') {
-            // For modules/palette, prefer pointer-based detection for precise drops
-            const pointerCollisions = pointerWithin(args);
-
-            // Filter to include ALL possible drop zones (modules OR drop zones)
-            const moduleCollisions = pointerCollisions.filter((c: any) =>
-                c.data?.current?.type === 'module' ||
-                c.data?.current?.type === 'section-drop'
-            );
-
-            if (moduleCollisions.length > 0) return moduleCollisions;
-
-            // If no specific module/drop-zone collide, but we are over a section, 
-            // return the section collisions from pointerWithin
-            const sectionCollisions = pointerCollisions.filter((c: any) =>
-                c.data?.current?.type === 'section'
-            );
-            if (sectionCollisions.length > 0) return sectionCollisions;
-
-            // Fall back to all pointer collisions
-            if (pointerCollisions.length > 0) return pointerCollisions;
-        }
-
-        // For everything else (like reordering sections), use closest corners
-        return closestCorners(args);
-    }, []);
-
     // Render drag overlay content
     const renderDragOverlay = () => {
         if (!activeId || !activeDragData) return null;
@@ -642,22 +608,35 @@ export default function LayoutDesigner({
             );
         }
 
-        // Section being dragged
+        // Section being dragged — show a polished card resembling the section
         if (activeDragData.type === 'section') {
+            const section = activeDragData.section;
+            const moduleCount = section?.modules?.length || 0;
+            const colModuleCount = section?.columns?.reduce((acc: number, col: any) => acc + (col.modules?.length || 0), 0) || 0;
             return (
                 <Paper
                     sx={{
-                        p: 1,
-                        bgcolor: 'grey.100',
+                        p: 1.5,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1.25,
+                        bgcolor: '#FFFFFF',
                         border: '2px solid',
-                        borderColor: 'primary.main',
-                        boxShadow: 4,
-                        opacity: 0.9,
+                        borderColor: '#3B82F6',
+                        borderRadius: 1.5,
+                        boxShadow: '0 8px 32px rgba(59, 130, 246, 0.25)',
+                        minWidth: 260,
                     }}
                 >
-                    <Typography variant="subtitle2" fontWeight={600}>
-                        {activeDragData.section?.name || 'Section'}
-                    </Typography>
+                    <DragIndicatorIcon fontSize="small" sx={{ color: '#3B82F6' }} />
+                    <Box>
+                        <Typography variant="subtitle2" fontWeight={700} sx={{ color: '#1F2937', lineHeight: 1.2 }}>
+                            {section?.name || 'Unnamed Section'}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
+                            {moduleCount + colModuleCount} module(s)
+                        </Typography>
+                    </Box>
                 </Paper>
             );
         }
@@ -672,16 +651,16 @@ export default function LayoutDesigner({
                         display: 'flex',
                         alignItems: 'center',
                         gap: 1,
-                        bgcolor: 'background.paper',
+                        bgcolor: '#FFFFFF',
                         border: '2px solid',
-                        borderColor: 'primary.main',
-                        boxShadow: 8,
+                        borderColor: '#3B82F6',
                         borderRadius: 1.5,
-                        minWidth: 200,
+                        boxShadow: '0 8px 32px rgba(59, 130, 246, 0.25)',
+                        minWidth: 220,
                     }}
                 >
-                    <DragIndicatorIcon fontSize="small" color="primary" />
-                    <Typography variant="body2" fontWeight={600}>
+                    <DragIndicatorIcon fontSize="small" sx={{ color: '#3B82F6' }} />
+                    <Typography variant="body2" fontWeight={600} sx={{ color: '#1F2937' }}>
                         {definition?.label || activeDragData.module?.type}
                     </Typography>
                 </Paper>
@@ -716,14 +695,13 @@ export default function LayoutDesigner({
                     onSettings={() => setSettingsOpen(true)}
                     onToggleModules={() => setLeftPanelOpen(!leftPanelOpen)}
                     modulesOpen={leftPanelOpen}
-                    onToggleProperties={() => setRightPanelOpen(!rightPanelOpen)}
                     isSaving={isSaving}
                 />
             </Box>
 
             <DndContext
                 sensors={sensors}
-                collisionDetection={collisionDetection}
+                collisionDetection={closestCorners}
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
             >
@@ -878,24 +856,23 @@ export default function LayoutDesigner({
                                         onSelectSection={(id) => {
                                             if (selectedSectionId === id && !selectedColumnId && !selectedModuleId) {
                                                 setSelectedSectionId(null);
-                                                setRightPanelOpen(false);
                                             } else {
                                                 setSelectedSectionId(id);
                                                 setSelectedModuleId(null);
                                                 setSelectedColumnId(null);
-                                                setRightPanelOpen(true);
                                             }
                                         }}
                                         onCloneSection={handleCloneSection}
+                                        onDeleteSection={handleDeleteSection}
+                                        onMoveSection={handleMoveSection}
+                                        onInsertSectionAt={handleInsertSectionAt}
                                         onSelectModule={(sectionId, moduleId) => {
                                             if (selectedModuleId === moduleId) {
                                                 setSelectedModuleId(null);
-                                                setRightPanelOpen(false);
                                             } else {
                                                 setSelectedSectionId(sectionId);
                                                 setSelectedModuleId(moduleId);
                                                 setSelectedColumnId(null);
-                                                setRightPanelOpen(true);
                                             }
                                         }}
                                         onDeleteModule={handleDeleteModule}
@@ -908,67 +885,79 @@ export default function LayoutDesigner({
                         </Box>
                     </Box>
 
-                    {/* Right Sidebar - Properties Panel */}
-                    <Drawer
-                        variant="temporary"
-                        anchor="right"
-                        open={rightPanelOpen && !!(selectedSectionId || selectedModuleId || selectedColumnId)}
-                        onClose={() => setRightPanelOpen(false)}
-                        sx={{
-                            zIndex: 1200,
-                            '& .MuiDrawer-paper': {
-                                width: { xs: '90%', sm: 400, md: 360 },
-                                maxWidth: 500,
-                                borderLeft: '1px solid',
-                                borderColor: '#E5E7EB',
-                                bgcolor: '#FFFFFF',
-                                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
-                                display: 'flex',
-                                flexDirection: 'column',
-                            },
-                            '& .MuiBackdrop-root': {
-                                backdropFilter: 'blur(4px)',
-                                bgcolor: 'rgba(0, 0, 0, 0.3)',
+                    {/* Properties Modal (replaces right drawer) */}
+                    <Dialog
+                        open={!!selectedSection || !!selectedModule || !!selectedColumnId}
+                        onClose={() => {
+                            setSelectedSectionId(null);
+                            setSelectedModuleId(null);
+                            setSelectedColumnId(null);
+                        }}
+                        maxWidth="md"
+                        fullWidth
+                        PaperProps={{
+                            sx: {
+                                borderRadius: 2.5,
+                                bgcolor: '#FAFBFC',
+                                maxHeight: '90vh',
+                                overflow: 'hidden',
+                                width: '90vw',
+                                maxWidth: '700px',
                             },
                         }}
                     >
-                        {/* Properties Panel Header */}
-                        <Box
-                            sx={{
-                                p: 2,
-                                borderBottom: '1px solid',
-                                borderColor: '#E5E7EB',
-                                bgcolor: '#FAFBFC',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                            }}
-                        >
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <SettingsIcon sx={{ fontSize: 20, color: '#3B82F6' }} />
-                                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1F2937' }}>
-                                    {selectedModule ? 'Module Settings' : selectedColumnId ? 'Column Settings' : selectedSection ? 'Section Settings' : 'Properties'}
-                                </Typography>
+                        {/* Modal Header */}
+                        <Box sx={{
+                            px: 3, py: 2,
+                            borderBottom: '1px solid #E5E7EB',
+                            bgcolor: '#FFFFFF',
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                <Box sx={{
+                                    width: 36, height: 36, borderRadius: 1.5,
+                                    bgcolor: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}>
+                                    <SettingsIcon sx={{ fontSize: '1.1rem', color: '#3B82F6' }} />
+                                </Box>
+                                <Box>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1F2937', fontSize: '0.9rem' }}>
+                                        {selectedModule
+                                            ? getModuleDefinition(selectedModule.type)?.label || 'Module Settings'
+                                            : selectedColumnId ? 'Column Settings'
+                                            : selectedSection ? (selectedSection.name || 'Section Settings') : 'Properties'}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: '#9CA3AF', fontSize: '0.7rem' }}>
+                                        {selectedModule
+                                            ? `Module — ${selectedModule.type}`
+                                            : selectedColumnId ? 'Edit column layout settings'
+                                            : selectedSection ? `Section — ${selectedSection.type}` : ''}
+                                    </Typography>
+                                </Box>
                             </Box>
                             <IconButton
-                                size="small"
-                                onClick={() => setRightPanelOpen(false)}
-                                sx={{
-                                    color: '#6B7280',
-                                    '&:hover': { bgcolor: '#E5E7EB', color: '#1F2937' },
+                                onClick={() => {
+                                    setSelectedSectionId(null);
+                                    setSelectedModuleId(null);
+                                    setSelectedColumnId(null);
                                 }}
+                                size="small"
+                                sx={{ color: '#9CA3AF', '&:hover': { bgcolor: '#F3F4F6', color: '#1F2937' } }}
                             >
-                                <CloseIcon fontSize="small" />
+                                <CloseIcon sx={{ fontSize: '1.1rem' }} />
                             </IconButton>
                         </Box>
 
-                        {/* Properties Panel Content */}
-                        <Box sx={{ flex: 1, overflow: 'auto' }}>
+                        {/* Modal Body */}
+                        <Box sx={{ flex: 1, overflow: 'auto', px: 3, py: 2.5 }}>
                             {selectedModuleId && selectedSection && selectedModule ? (
                                 <ModuleEditor
                                     module={selectedModule}
                                     onChange={(updatedModule) => updateModule(selectedSection.id, selectedModule.id, updatedModule)}
-                                    onDelete={() => handleDeleteModule(selectedSection.id, selectedModule.id)}
+                                    onDelete={() => {
+                                        handleDeleteModule(selectedSection.id, selectedModule.id);
+                                        setSelectedModuleId(null);
+                                    }}
                                     storeId={typeof layout.storeId === 'object' ? layout.storeId._id : layout.storeId}
                                 />
                             ) : selectedColumnId && selectedSection ? (
@@ -991,26 +980,26 @@ export default function LayoutDesigner({
                                             />
                                         );
                                     }
-                                    return <Typography color="text.secondary">Column not found</Typography>;
+                                    return (
+                                        <Box sx={{ p: 3, textAlign: 'center' }}>
+                                            <Typography color="text.secondary" variant="body2">Column not found</Typography>
+                                        </Box>
+                                    );
                                 })()
                             ) : selectedSectionId && selectedSection ? (
-                                <Box sx={{ p: 2 }}>
-                                    <SectionEditor
-                                        section={selectedSection}
-                                        onChange={(updatedSection) => updateSection(selectedSection.id, updatedSection)}
-                                        onDelete={() => handleDeleteSection(selectedSection.id)}
-                                        copiedStyle={copiedSectionStyle}
-                                        onCopyStyle={setCopiedSectionStyle}
-                                    />
-                                </Box>
-                            ) : (
-                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'text.secondary', gap: 1 }}>
-                                    <SettingsIcon sx={{ fontSize: 40, opacity: 0.2 }} />
-                                    <Typography variant="body2">Select an element to edit</Typography>
-                                </Box>
-                            )}
+                                <SectionEditor
+                                    section={selectedSection}
+                                    onChange={(updatedSection) => updateSection(selectedSection.id, updatedSection)}
+                                    onDelete={() => {
+                                        handleDeleteSection(selectedSection.id);
+                                        setSelectedSectionId(null);
+                                    }}
+                                    copiedStyle={copiedSectionStyle}
+                                    onCopyStyle={setCopiedSectionStyle}
+                                />
+                            ) : null}
                         </Box>
-                    </Drawer>
+                    </Dialog>
                 </Box>
 
                 {/* Drag Overlay */}

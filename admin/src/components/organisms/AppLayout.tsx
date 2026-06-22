@@ -21,8 +21,10 @@ import {
   Collapse,
   Badge,
   Chip,
+  Tooltip,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
+import PushPinIcon from '@mui/icons-material/PushPin';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import NotificationMenu from './NotificationMenu';
 import InventoryIcon from '@mui/icons-material/Inventory';
@@ -74,6 +76,7 @@ import api from '@/lib/api';
 import Image from 'next/image';
 import { QrCode } from 'lucide-react';
 const drawerWidth = 260;
+const collapsedDrawerWidth = 64;
 
 interface NavItem {
   name: string;
@@ -174,16 +177,17 @@ const NavItemComponent = memo(({
   item,
   pathname,
   level = 0,
+  collapsed = false,
   onNavigate
 }: {
   item: NavItem;
   pathname: string;
   level?: number;
+  collapsed?: boolean;
   onNavigate: () => void;
 }) => {
   const hasChildren = item.children && item.children.length > 0;
 
-  // Recursive function to check if any child (at any depth) is active
   const isChildActive = useCallback((navItem: NavItem): boolean => {
     if (navItem.href && (pathname === navItem.href || pathname.startsWith(`${navItem.href}/`))) {
       return true;
@@ -200,10 +204,8 @@ const NavItemComponent = memo(({
     return item.children.some(child => isChildActive(child));
   }, [item.children, isChildActive]);
 
-  // Keep menu open if any child is active
   const [open, setOpen] = useState(isParentActive || false);
 
-  // Update open state when pathname changes
   useEffect(() => {
     if (isParentActive) {
       setOpen(true);
@@ -218,87 +220,99 @@ const NavItemComponent = memo(({
     }
   };
 
-  return (
-    <>
-      <ListItemButton
-        onClick={handleClick}
-        component={item.href && !hasChildren ? Link : 'div'}
-        href={item.href || undefined}
-        selected={isActive}
-        sx={{
-          borderRadius: '8px',
-          minHeight: 42,
-          py: 1.25,
-          pl: level * 2 + 1.5,
-          mb: 0.5,
+  const btn = (
+    <ListItemButton
+      onClick={handleClick}
+      component={item.href && !hasChildren ? Link : 'div'}
+      href={item.href || undefined}
+      selected={isActive}
+      sx={{
+        borderRadius: collapsed ? '8px' : '8px',
+        minHeight: collapsed ? 44 : 42,
+        py: collapsed ? 1 : 1.25,
+        px: collapsed ? 1 : undefined,
+        pl: collapsed ? 1 : level * 2 + 1.5,
+        mb: 0.5,
+        justifyContent: collapsed ? 'center' : 'flex-start',
+        backgroundColor: isActive
+          ? 'primary.main'
+          : isParentActive && !hasChildren
+            ? 'action.hover'
+            : 'transparent',
+        color: isActive ? 'white' : isParentActive ? 'primary.main' : 'text.primary',
+        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        overflow: 'hidden',
+        '&:hover': {
           backgroundColor: isActive
-            ? 'primary.main'
-            : isParentActive && !hasChildren
+            ? 'primary.dark'
+            : level === 0
               ? 'action.hover'
-              : 'transparent',
-          color: isActive ? 'white' : isParentActive ? 'primary.main' : 'text.primary',
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              : 'action.selected',
+          transform: level === 0 && !collapsed ? 'translateX(2px)' : 'none',
+        },
+        '&.Mui-selected': {
+          backgroundColor: 'primary.main',
+          color: 'white',
           '&:hover': {
-            backgroundColor: isActive
-              ? 'primary.dark'
-              : level === 0
-                ? 'action.hover'
-                : 'action.selected',
-            transform: level === 0 ? 'translateX(2px)' : 'none',
+            backgroundColor: 'primary.dark',
           },
-          '&.Mui-selected': {
-            backgroundColor: 'primary.main',
-            color: 'white',
-            '&:hover': {
-              backgroundColor: 'primary.dark',
-            },
-          },
+        },
+      }}
+    >
+      <ListItemIcon
+        sx={{
+          color: isActive ? 'white' : isParentActive ? 'primary.main' : 'text.secondary',
+          minWidth: collapsed ? 0 : 36,
+          mr: collapsed ? 0 : undefined,
+          justifyContent: 'center',
+          transition: 'color 0.2s',
         }}
       >
-        <ListItemIcon
-          sx={{
-            color: isActive ? 'white' : isParentActive ? 'primary.main' : 'text.secondary',
-            minWidth: 36,
-            transition: 'color 0.2s',
-          }}
-        >
-          {item.icon}
-        </ListItemIcon>
-        <ListItemText
-          primary={item.name}
-          primaryTypographyProps={{
-            fontWeight: isActive || isParentActive ? 600 : 500,
-            fontSize: level === 0 ? '0.875rem' : '0.8125rem',
-          }}
-        />
-        {item.badge !== undefined && (
-          <Chip
-            label={item.badge}
-            size="small"
-            sx={{
-              height: 20,
-              fontSize: '0.6875rem',
-              fontWeight: 600,
-              bgcolor: isActive ? 'rgba(255,255,255,0.2)' : 'primary.50',
-              color: isActive ? 'white' : 'primary.main',
+        {item.icon}
+      </ListItemIcon>
+      {!collapsed && (
+        <>
+          <ListItemText
+            primary={item.name}
+            primaryTypographyProps={{
+              fontWeight: isActive || isParentActive ? 600 : 500,
+              fontSize: level === 0 ? '0.875rem' : '0.8125rem',
             }}
           />
-        )}
-        {hasChildren && (
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              color: isParentActive ? 'primary.main' : 'text.secondary',
-              transition: 'transform 0.2s',
-              transform: open ? 'rotate(0deg)' : 'rotate(0deg)',
-            }}
-          >
-            {open ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-          </Box>
-        )}
-      </ListItemButton>
-      {hasChildren && (
+          {item.badge !== undefined && (
+            <Chip
+              label={item.badge}
+              size="small"
+              sx={{
+                height: 20,
+                fontSize: '0.6875rem',
+                fontWeight: 600,
+                bgcolor: isActive ? 'rgba(255,255,255,0.2)' : 'primary.50',
+                color: isActive ? 'white' : 'primary.main',
+              }}
+            />
+          )}
+          {hasChildren && (
+            <Box sx={{ display: 'flex', alignItems: 'center', color: isParentActive ? 'primary.main' : 'text.secondary' }}>
+              {open ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+            </Box>
+          )}
+        </>
+      )}
+    </ListItemButton>
+  );
+
+  return (
+    <>
+      {collapsed ? (
+        <Tooltip title={item.name} placement="right" arrow>
+          {btn}
+        </Tooltip>
+      ) : (
+        btn
+      )}
+      {/* Only show children when not collapsed */}
+      {!collapsed && hasChildren && (
         <Collapse in={open} timeout="auto" unmountOnExit>
           <List component="div" disablePadding sx={{
             pl: 0.5,
@@ -313,6 +327,7 @@ const NavItemComponent = memo(({
                 item={child}
                 pathname={pathname}
                 level={level + 1}
+                collapsed={collapsed}
                 onNavigate={onNavigate}
               />
             ))}
@@ -334,6 +349,31 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
   const theme = useTheme();
   const [branding, setBranding] = useState({ name: 'Infi Commerce', logo: '', favicon: '' });
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Collapsible sidebar: auto-collapse on layout designer pages
+  // Persisted in sessionStorage so state survives route changes / remounts
+  const isLayoutDesigner = pathname?.startsWith('/layouts');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem('sidebarCollapsed');
+      if (stored !== null) return stored === 'true';
+    }
+    return isLayoutDesigner;
+  });
+
+  // Keep sessionStorage in sync
+  useEffect(() => {
+    sessionStorage.setItem('sidebarCollapsed', String(sidebarCollapsed));
+  }, [sidebarCollapsed]);
+
+  // Auto-collapse only when entering layout pages
+  useEffect(() => {
+    if (isLayoutDesigner) {
+      setSidebarCollapsed(true);
+    }
+  }, [isLayoutDesigner]);
+
+  const effectiveWidth = sidebarCollapsed ? collapsedDrawerWidth : drawerWidth;
   const fetchBranding = async () => {
     try {
       const response = await api.get('/settings/admin-branding');
@@ -345,7 +385,6 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
     }
   };
   useEffect(() => {
-
     fetchBranding();
   }, []);
 
@@ -443,11 +482,12 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
         {/* Branding Header */}
         <Box
           sx={{
-            p: 2.5,
+            p: sidebarCollapsed ? 1.5 : 2.5,
             background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
             color: 'white',
             position: 'relative',
             overflow: 'hidden',
+            transition: 'padding 0.25s ease',
             '&::before': {
               content: '""',
               position: 'absolute',
@@ -460,38 +500,45 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
             },
           }}
         >
-          <Box display="flex" alignItems="center" gap={1.5} position="relative" zIndex={1}>
-            <Box
-              sx={{
-                width: 44,
-                height: 44,
-                borderRadius: '10px',
-                background: branding.logo ? 'white' : 'linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backdropFilter: 'blur(10px)',
-                fontWeight: 700,
-                fontSize: '1.25rem',
-                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                border: '1px solid rgba(255,255,255,0.2)',
-                overflow: 'hidden'
-              }}
-            >
+          <Box display="flex" alignItems="center" justifyContent={sidebarCollapsed ? 'center' : 'flex-start'} gap={1.5} position="relative" zIndex={1}>
+            <Tooltip title={branding.name} placement="right" arrow>
+              <Box
+                sx={{
+                  width: sidebarCollapsed ? 38 : 44,
+                  height: sidebarCollapsed ? 38 : 44,
+                  borderRadius: '10px',
+                  background: branding.logo ? 'white' : 'linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backdropFilter: 'blur(10px)',
+                  fontWeight: 700,
+                  fontSize: '1.25rem',
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  overflow: 'hidden',
+                  flexShrink: 0,
+                  transition: 'all 0.25s ease',
+                  cursor: sidebarCollapsed ? 'pointer' : 'default',
+                }}
+              >
               {branding.logo ? (
                 <Image src={branding.logo} alt="L" width={44} height={44} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
               ) : (
                 branding.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
               )}
-            </Box>
-            <Box flex={1}>
-              <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.0625rem', lineHeight: 1.2, mb: 0.25 }}>
-                {branding.name}
-              </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.95, fontSize: '0.6875rem', letterSpacing: '0.5px' }}>
-                ADMIN PORTAL
-              </Typography>
-            </Box>
+              </Box>
+            </Tooltip>
+            {!sidebarCollapsed && (
+              <Box flex={1}>
+                <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.0625rem', lineHeight: 1.2, mb: 0.25 }}>
+                  {branding.name}
+                </Typography>
+                <Typography variant="caption" sx={{ opacity: 0.95, fontSize: '0.6875rem', letterSpacing: '0.5px' }}>
+                  ADMIN PORTAL
+                </Typography>
+              </Box>
+            )}
           </Box>
         </Box>
 
@@ -500,8 +547,8 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
           flex: 1,
           overflowY: 'auto',
           overflowX: 'hidden',
-          p: 1.5,
-          scrollbarGutter: 'stable',
+          p: sidebarCollapsed ? 0.75 : 1.5,
+          transition: 'padding 0.25s ease',
           '&::-webkit-scrollbar': {
             width: 6,
           },
@@ -522,42 +569,64 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
                 key={item.name}
                 item={item}
                 pathname={pathname}
+                collapsed={sidebarCollapsed}
                 onNavigate={handleNavigate}
               />
             ))}
           </List>
         </Box>
 
-        {/* Footer Info */}
+        {/* Footer with collapse toggle */}
         <Box
           sx={{
-            p: 2,
+            p: sidebarCollapsed ? 1 : 2,
             borderTop: '1px solid',
             borderColor: 'divider',
             bgcolor: 'grey.50',
+            transition: 'padding 0.25s ease',
           }}
         >
-          <Box display="flex" alignItems="center" justifyContent="space-between" mb={0.5}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem', fontWeight: 500 }}>
-              Version 1.0.0
-            </Typography>
-            <Box
+          {!sidebarCollapsed && (
+            <>
+              <Box display="flex" alignItems="center" justifyContent="space-between" mb={0.5}>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem', fontWeight: 500 }}>
+                  Version 1.0.0
+                </Typography>
+                <Box
+                  sx={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    bgcolor: 'success.main',
+                    boxShadow: '0 0 0 2px rgba(5, 150, 105, 0.2)',
+                  }}
+                />
+              </Box>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.6875rem', mb: 0.5 }}>
+                © {new Date().getFullYear()} {branding.name}
+              </Typography>
+            </>
+          )}
+          {/* Collapse toggle button */}
+          <Tooltip title={sidebarCollapsed ? 'Pin sidebar open' : 'Unpin sidebar'} placement="right" arrow>
+            <IconButton
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              size="small"
               sx={{
-                width: 6,
-                height: 6,
-                borderRadius: '50%',
-                bgcolor: 'success.main',
-                boxShadow: '0 0 0 2px rgba(5, 150, 105, 0.2)',
+                width: '100%',
+                borderRadius: 1,
+                color: sidebarCollapsed ? 'text.disabled' : 'text.secondary',
+                transition: 'all 0.2s',
+                '&:hover': { bgcolor: 'action.hover', color: 'primary.main' },
               }}
-            />
-          </Box>
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.6875rem' }}>
-            © {new Date().getFullYear()} {branding.name}
-          </Typography>
+            >
+              {sidebarCollapsed ? <PushPinIcon sx={{ fontSize: '1rem', transform: 'rotate(45deg)' }} /> : <PushPinIcon sx={{ fontSize: '1rem' }} />}
+            </IconButton>
+          </Tooltip>
         </Box>
       </Box>
     ),
-    [pathname, handleNavigate, branding]
+    [pathname, handleNavigate, branding, sidebarCollapsed, filteredNavigationItems]
   );
 
   return (
@@ -567,12 +636,13 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
         position="fixed"
         elevation={0}
         sx={{
-          width: { md: `calc(100% - ${drawerWidth}px)` },
-          ml: { md: `${drawerWidth}px` },
+          width: { md: `calc(100% - ${effectiveWidth}px)` },
+          ml: { md: `${effectiveWidth}px` },
           bgcolor: 'background.paper',
           color: 'text.primary',
           borderBottom: '1px solid',
           borderColor: 'divider',
+          transition: 'width 0.25s ease, margin-left 0.25s ease',
         }}
       >
         <Toolbar sx={{ minHeight: { xs: 56, sm: 64 }, px: { xs: 2, sm: 3 } }}>
@@ -694,18 +764,17 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
       </AppBar>
 
       {/* Sidebar Navigation */}
-      <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}>
+      <Box
+        component="nav"
+        sx={{ width: { md: effectiveWidth }, flexShrink: { md: 0 }, transition: 'width 0.25s ease' }}
+      >
         {/* Mobile drawer */}
         <Drawer
           variant="temporary"
           open={mobileOpen}
           onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true,
-          }}
-
+          ModalProps={{ keepMounted: true }}
           sx={{
-
             display: { xs: 'block', md: 'none' },
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
@@ -725,10 +794,12 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
             display: { xs: 'none', md: 'block' },
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
-              width: drawerWidth,
+              width: effectiveWidth,
               borderRight: '1px solid',
               borderColor: 'divider',
-              borderRadius: '0'
+              borderRadius: '0',
+              transition: 'width 0.25s ease',
+              overflowX: 'hidden',
             },
           }}
           open
@@ -743,14 +814,14 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
         sx={{
           flexGrow: 1,
           p: { xs: 2, sm: 3 },
-          width: { md: `calc(100% - ${drawerWidth}px)` },
+          width: { md: `calc(100% - ${effectiveWidth}px)` },
           maxWidth: '100vw',
           overflowX: 'hidden',
           mt: { xs: 7, sm: 8 },
           bgcolor: 'background.default',
           minHeight: '100vh',
           scrollbarGutter: 'stable',
-
+          transition: 'width 0.25s ease',
         }}
       >
         {children}

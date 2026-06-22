@@ -48,6 +48,7 @@ export interface BlogPost {
     viewCount: number;
     likeCount: number;
     isFeatured: boolean;
+    showRelatedArticles?: boolean;
     seo?: {
         metaTitle?: string;
         metaDescription?: string;

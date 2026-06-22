@@ -1,9 +1,16 @@
 'use client';
 
-import { Box, Typography, Paper, Accordion, AccordionSummary, AccordionDetails, Tooltip, TextField, InputAdornment } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import {
+    Box,
+    Typography,
+    Paper,
+    TextField,
+    InputAdornment,
+    Tooltip,
+    Chip,
+} from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
 import ImageIcon from '@mui/icons-material/Image';
 import CollectionsIcon from '@mui/icons-material/Collections';
@@ -27,245 +34,193 @@ import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import ExtensionIcon from '@mui/icons-material/Extension';
 import { useDraggable } from '@dnd-kit/core';
-import { CSS } from '@dnd-kit/utilities';
 import { useState, useMemo } from 'react';
 import { ModuleDefinition, AVAILABLE_MODULES, MODULE_CATEGORIES, getModulesByCategory } from './types';
-import { LayoutType, ModuleType } from '@/types';
+import { LayoutType } from '@/types';
 
-// Map icon names to components
+// Icon map
 const iconMap: Record<string, React.ElementType> = {
-    ViewCarousel: ViewCarouselIcon,
-    TextFields: TextFieldsIcon,
-    Image: ImageIcon,
-    Collections: CollectionsIcon,
-    PlayCircle: PlayCircleIcon,
-    SpaceBar: SpaceBarIcon,
-    HorizontalRule: HorizontalRuleIcon,
-    Code: CodeIcon,
-    FormatQuote: FormatQuoteIcon,
-    BusinessCenter: BusinessCenterIcon,
-    GridView: GridViewIcon,
-    Category: CategoryIcon,
-    Inventory2: Inventory2Icon,
-    ShoppingBag: ShoppingBagIcon,
-    Search: SearchIcon,
-    Article: ArticleIcon,
-    Recommend: RecommendIcon,
-    History: HistoryIcon,
-    SmartButton: SmartButtonIcon,
-    ViewStream: ViewStreamIcon,
-    ViewModule: ViewModuleIcon,
-    MonetizationOn: MonetizationOnIcon,
-    Extension: ExtensionIcon,
-    TableChart: ViewModuleIcon,
+    ViewCarousel: ViewCarouselIcon, TextFields: TextFieldsIcon,
+    Image: ImageIcon, Collections: CollectionsIcon,
+    PlayCircle: PlayCircleIcon, SpaceBar: SpaceBarIcon,
+    HorizontalRule: HorizontalRuleIcon, Code: CodeIcon,
+    FormatQuote: FormatQuoteIcon, BusinessCenter: BusinessCenterIcon,
+    GridView: GridViewIcon, Category: CategoryIcon,
+    Inventory2: Inventory2Icon, ShoppingBag: ShoppingBagIcon,
+    Search: SearchIcon, Article: ArticleIcon,
+    Recommend: RecommendIcon, History: HistoryIcon,
+    SmartButton: SmartButtonIcon, ViewStream: ViewStreamIcon,
+    ViewModule: ViewModuleIcon, MonetizationOn: MonetizationOnIcon,
+    Extension: ExtensionIcon, TableChart: ViewModuleIcon,
 };
 
-interface DraggableModuleItemProps {
-    module: ModuleDefinition;
-}
+// Category chip colors
+const categoryColors: Record<string, string> = {
+    standard: '#3B82F6',
+    product: '#10B981',
+    placeholder: '#8B5CF6',
+    account: '#F59E0B',
+};
 
-function DraggableModuleItem({ module }: DraggableModuleItemProps) {
+// ======================================================================
+// DraggableModuleItem
+// ======================================================================
+function DraggableModuleItem({ module }: { module: ModuleDefinition }) {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-        id: `palette-${module.type}`,
-        data: {
-            type: 'palette-module',
-            moduleType: module.type,
-        },
+        id: 'palette-' + module.type,
+        data: { type: 'palette-module', moduleType: module.type },
     });
 
-    const style = {
-        opacity: isDragging ? 0.4 : 1,
-    };
-
-    const IconComponent = iconMap[module.icon] || ImageIcon;
+    const IconComponent = iconMap[module.icon] || ExtensionIcon;
 
     return (
-        <Tooltip title={module.description} placement="right" arrow>
-            <Paper
-                ref={setNodeRef}
-                style={style}
-                {...listeners}
-                {...attributes}
-                elevation={0}
-                sx={{
-                    p: 1.25,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.25,
-                    cursor: isDragging ? 'grabbing' : 'grab',
-                    touchAction: 'none',
-                    bgcolor: '#F9FAFB',
-                    border: '1px solid #E5E7EB',
-                    borderRadius: 1,
-                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                    '&:hover': {
-                        bgcolor: '#F3F4F6',
-                        borderColor: '#3B82F6',
-                        boxShadow: '0 2px 8px rgba(59, 130, 246, 0.1)',
-                        transform: 'translateX(4px)',
-                    },
-                    '&:active': {
-                        cursor: 'grabbing',
-                    },
-                }}
-            >
-                <DragIndicatorIcon sx={{ fontSize: 18, color: '#9CA3AF', flexShrink: 0 }} />
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flex: 1, minWidth: 0 }}>
-                    <IconComponent sx={{ fontSize: 18, color: '#3B82F6', flexShrink: 0 }} />
-                    <Typography 
-                        variant="body2" 
-                        noWrap 
-                        sx={{ 
-                            fontWeight: 500, 
-                            color: '#1F2937',
-                            fontSize: '0.875rem'
-                        }}
-                    >
-                        {module.label}
-                    </Typography>
-                </Box>
-            </Paper>
-        </Tooltip>
+        <Paper
+            ref={setNodeRef}
+            {...listeners}
+            {...attributes}
+            elevation={0}
+            sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.25,
+                p: 1.25,
+                mb: 0.75,
+                bgcolor: '#FFFFFF',
+                border: '1px solid',
+                borderColor: isDragging ? '#3B82F6' : '#E5E7EB',
+                borderRadius: 1.5,
+                cursor: isDragging ? 'grabbing' : 'grab',
+                opacity: isDragging ? 0.4 : 1,
+                boxShadow: isDragging ? '0 4px 12px rgba(59,130,246,0.15)' : 'none',
+                transition: 'all 0.15s',
+                '&:hover': {
+                    borderColor: '#3B82F6',
+                    boxShadow: '0 2px 8px rgba(59,130,246,0.1)',
+                    transform: 'translateX(2px)',
+                },
+            }}
+        >
+            <DragIndicatorIcon sx={{ fontSize: '1rem', color: '#D1D5DB', flexShrink: 0 }} />
+            <Box sx={{
+                width: 32, height: 32, borderRadius: 1,
+                bgcolor: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+            }}>
+                <IconComponent sx={{ fontSize: '1rem', color: '#3B82F6' }} />
+            </Box>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8rem', color: '#1F2937' }}>
+                    {module.label}
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#9CA3AF', fontSize: '0.65rem' }}>
+                    {module.description}
+                </Typography>
+            </Box>
+        </Paper>
     );
 }
 
+// ======================================================================
+// ModulePalette
+// ======================================================================
 interface ModulePaletteProps {
     layoutType: LayoutType;
 }
 
 export default function ModulePalette({ layoutType }: ModulePaletteProps) {
     const [searchTerm, setSearchTerm] = useState('');
-    const [expandedCategory, setExpandedCategory] = useState<string>('standard');
 
     const filterModulesForLayout = (modules: ModuleDefinition[]) => {
-        return modules.filter(m => {
-            if (!m.allowedLayoutTypes) return true;
-            return m.allowedLayoutTypes.includes(layoutType);
-        });
+        return modules.filter(m => !m.allowedLayoutTypes || m.allowedLayoutTypes.includes(layoutType));
     };
 
-    const filteredCategories = useMemo(() => {
-        const categories = {} as Record<string, ModuleDefinition[]>;
-        
-        (Object.keys(MODULE_CATEGORIES) as Array<keyof typeof MODULE_CATEGORIES>).forEach((category) => {
-            const modules = filterModulesForLayout(getModulesByCategory(category));
+    // Group modules by category, filtered by search & layout type
+    const groupedModules = useMemo(() => {
+        const result: { category: string; label: string; color: string; modules: ModuleDefinition[] }[] = [];
+        const cats = Object.keys(MODULE_CATEGORIES) as Array<keyof typeof MODULE_CATEGORIES>;
+
+        cats.forEach(cat => {
+            const modules = filterModulesForLayout(getModulesByCategory(cat));
             const filtered = modules.filter(m =>
                 m.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 m.description.toLowerCase().includes(searchTerm.toLowerCase())
             );
             if (filtered.length > 0) {
-                categories[category] = filtered;
+                result.push({
+                    category: cat,
+                    label: MODULE_CATEGORIES[cat],
+                    color: categoryColors[cat] || '#6B7280',
+                    modules: filtered,
+                });
             }
         });
-
-        return categories;
+        return result;
     }, [searchTerm, layoutType]);
 
     return (
-        <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', height: '100%' }}>
-            {/* Search Input */}
-            <Box sx={{ p: 1.5, pb: 1 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            {/* Header */}
+            <Box sx={{ px: 2, pt: 1.5, pb: 1 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1F2937', fontSize: '0.8rem', mb: 1 }}>
+                    Blocks
+                </Typography>
                 <TextField
                     size="small"
-                    placeholder="Search modules..."
+                    placeholder="Search blocks..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={e => setSearchTerm(e.target.value)}
                     fullWidth
-                    variant="outlined"
                     InputProps={{
                         startAdornment: (
                             <InputAdornment position="start">
-                                <SearchIcon sx={{ fontSize: 18, color: '#9CA3AF' }} />
+                                <SearchIcon sx={{ fontSize: '1rem', color: '#9CA3AF' }} />
                             </InputAdornment>
                         ),
                     }}
                     sx={{
                         '& .MuiOutlinedInput-root': {
-                            borderRadius: 1,
+                            borderRadius: 1.5,
                             bgcolor: '#F9FAFB',
-                            fontSize: '0.875rem',
-                            '&:hover fieldset': {
-                                borderColor: '#D1D5DB',
-                            },
-                            '&.Mui-focused fieldset': {
-                                borderColor: '#3B82F6',
-                            },
+                            fontSize: '0.8rem',
+                            '& fieldset': { borderColor: '#E5E7EB' },
+                            '&:hover fieldset': { borderColor: '#D1D5DB' },
+                            '&.Mui-focused fieldset': { borderColor: '#3B82F6', borderWidth: '1.5px' },
                         },
                     }}
                 />
             </Box>
 
-            {/* Modules List */}
-            <Box sx={{ flex: 1, overflowY: 'auto', px: 1, pb: 1 }}>
-                {Object.keys(filteredCategories).length === 0 ? (
-                    <Box sx={{ p: 2, textAlign: 'center', color: '#9CA3AF' }}>
-                        <Typography variant="body2">No modules found</Typography>
-                    </Box>
+            {/* Module list */}
+            <Box sx={{ flex: 1, overflowY: 'auto', px: 1.5, pb: 2 }}>
+                {groupedModules.length === 0 ? (
+                    <Typography variant="body2" sx={{ color: '#9CA3AF', textAlign: 'center', py: 4, fontSize: '0.8rem' }}>
+                        {searchTerm ? 'No blocks match your search' : 'No blocks available'}
+                    </Typography>
                 ) : (
-                    (Object.keys(filteredCategories) as Array<keyof typeof MODULE_CATEGORIES>).map((category) => {
-                        const modules = filteredCategories[category];
-                        return (
-                            <Accordion
-                                key={category}
-                                expanded={expandedCategory === category}
-                                onChange={() => setExpandedCategory(expandedCategory === category ? '' : category)}
-                                disableGutters
-                                elevation={0}
-                                sx={{
-                                    bgcolor: 'transparent',
-                                    border: 'none',
-                                    '&.MuiAccordion-root': {
-                                        boxShadow: 'none',
-                                    },
-                                    '&.MuiAccordion-root:before': {
-                                        display: 'none',
-                                    },
-                                }}
-                            >
-                                <AccordionSummary
-                                    expandIcon={<ExpandMoreIcon sx={{ fontSize: 18, color: '#6B7280' }} />}
+                    groupedModules.map(group => (
+                        <Box key={group.category} sx={{ mb: 2 }}>
+                            {/* Category header */}
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, px: 0.5 }}>
+                                <Box sx={{ width: 3, height: 14, borderRadius: 2, bgcolor: group.color }} />
+                                <Typography variant="caption" sx={{ fontWeight: 700, color: '#6B7280', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                    {group.label}
+                                </Typography>
+                                <Chip
+                                    label={group.modules.length}
+                                    size="small"
                                     sx={{
-                                        minHeight: 36,
-                                        px: 0.5,
-                                        py: 0.5,
-                                        '& .MuiAccordionSummary-content': { my: 0.5 },
-                                        transition: 'all 0.2s',
-                                        '&:hover': {
-                                            bgcolor: '#F9FAFB',
-                                        },
+                                        ml: 'auto', height: 18, fontSize: '0.6rem', fontWeight: 600,
+                                        bgcolor: '#F3F4F6', color: '#9CA3AF',
+                                        '& .MuiChip-label': { px: 0.75 },
                                     }}
-                                >
-                                    <Typography
-                                        variant="caption"
-                                        sx={{
-                                            fontWeight: 700,
-                                            color: '#374151',
-                                            fontSize: '0.75rem',
-                                            textTransform: 'uppercase',
-                                            letterSpacing: 0.5,
-                                        }}
-                                    >
-                                        {MODULE_CATEGORIES[category]}
-                                    </Typography>
-                                    <Typography
-                                        variant="caption"
-                                        sx={{
-                                            ml: 'auto',
-                                            color: '#9CA3AF',
-                                            fontSize: '0.7rem',
-                                        }}
-                                    >
-                                        {modules.length}
-                                    </Typography>
-                                </AccordionSummary>
-                                <AccordionDetails sx={{ p: 0.75, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-                                    {modules.map((module) => (
-                                        <DraggableModuleItem key={module.type} module={module} />
-                                    ))}
-                                </AccordionDetails>
-                            </Accordion>
-                        );
-                    })
+                                />
+                            </Box>
+                            {/* Module cards */}
+                            {group.modules.map(mod => (
+                                <DraggableModuleItem key={mod.type} module={mod} />
+                            ))}
+                        </Box>
+                    ))
                 )}
             </Box>
         </Box>

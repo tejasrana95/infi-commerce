@@ -170,7 +170,6 @@ export async function fetchTestimonialsData(
             headers: { 'x-store-id': storeId },
             next: { revalidate: 300 } // Cache for 5 minutes
         });
-
         if (!response.ok) return [];
 
         const data = await response.json();

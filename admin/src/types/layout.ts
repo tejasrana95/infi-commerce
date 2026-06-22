@@ -324,6 +324,7 @@ export interface BlogPost {
     allowComments: boolean;
     isFeatured: boolean;
     isPinned: boolean;
+    showRelatedArticles?: boolean;
     seo?: {
         metaTitle?: string;
         metaDescription?: string;
