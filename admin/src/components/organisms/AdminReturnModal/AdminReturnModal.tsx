@@ -38,11 +38,11 @@ interface AdminReturnModalProps {
     onSuccess?: () => void;
 }
 
-const getProductId = (item: OrderItem): string | null => {
+const getProductId = (item: OrderItem): string => {
     if (typeof item.productId === 'string') {
         return item.productId;
     }
-    return item?.productId?._id || null;
+    return item?.productId?._id || '';
 };
 
 const RETURN_REASONS = [
@@ -127,6 +127,7 @@ export default function AdminReturnModal({ open, onClose, order, onSuccess }: Ad
 
         order.items.forEach((item) => {
             const pId = getProductId(item);
+            if (!pId) return; // Skip items with undefined productId
             const key = item.variantId ? `${pId}-${item.variantId}` : pId;
             const selection = selectedItems.get(key);
             if (selection?.checked) {
@@ -185,6 +186,7 @@ export default function AdminReturnModal({ open, onClose, order, onSuccess }: Ad
 
             order.items.forEach((item) => {
                 const pId = getProductId(item);
+                if (!pId) return; // Skip items with undefined productId
                 const key = item.variantId ? `${pId}-${item.variantId}` : pId;
                 const selection = selectedItems.get(key);
                 if (selection?.checked) {
