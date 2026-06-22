@@ -42,7 +42,7 @@ const getProductId = (item: OrderItem): string => {
     if (typeof item.productId === 'string') {
         return item.productId;
     }
-    return item.productId._id;
+    return item?.productId?._id || null;
 };
 
 const RETURN_REASONS = [
