@@ -235,4 +235,8 @@ router.use('/returns', returnRoutes);
 import googleMerchantRoutes from './google-merchant.routes';
 router.use('/google-merchant', googleMerchantRoutes);
 
+// Mount public product feed routes
+import feedRoutes from './feed.routes';
+router.use('/feeds', feedRoutes);
+
 export default router;

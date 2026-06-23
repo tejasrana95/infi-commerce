@@ -24,6 +24,7 @@ import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import CookieIcon from '@mui/icons-material/Cookie';
 import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
 import FindReplaceIcon from '@mui/icons-material/FindReplace';
+import PinterestIcon from '@mui/icons-material/Pinterest';
 import PageHeader from '@/components/molecules/PageHeader';
 
 interface SettingCard {
@@ -125,6 +126,16 @@ export default function SettingsPage() {
             badge: 'Super Admin',
             badgeColor: 'warning',
             color: '#f59e0b',
+            enabled: true
+        },
+        {
+            title: 'Pinterest Feed',
+            description: 'Expose RSS product catalogs for automated Pinterest ingestion.',
+            icon: <PinterestIcon sx={{ fontSize: 32 }} />,
+            link: '/settings/pinterest',
+            badge: 'Super Admin',
+            badgeColor: 'warning',
+            color: '#e60023',
             enabled: true
         },
     ];
