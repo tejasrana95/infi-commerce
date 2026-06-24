@@ -85,7 +85,11 @@ export const getPinterestFeed = asyncHandler(async (req: Request, res: Response)
     // Find all active products
     const products = await Product.find({ storeId, isActive: true });
 
-    const domain = store.domains?.[0] || 'example.com';
+    const rawDomain = store.domains?.[0] || 'example.com';
+    let domain = rawDomain.trim().replace(/^https?:\/\//i, '');
+    if (!domain.startsWith('www.') && (domain.match(/\./g) || []).length === 1) {
+        domain = 'www.' + domain;
+    }
     const storeLink = `https://${domain}`;
     const targetCurrency = config.currency || store.currency || 'USD';
 
@@ -98,7 +102,7 @@ export const getPinterestFeed = asyncHandler(async (req: Request, res: Response)
     xml += `    <description>Product Catalog Feed for Pinterest integration</description>\n`;
 
     for (const product of products) {
-        const productUrl = `${storeLink}/products/${product.slug}`;
+        const productUrl = `${storeLink}/${product.slug}`;
         const imageBase = product.featuredImage || product.images?.[0] || '';
         const imageLink = imageBase.startsWith('http') ? imageBase : `${storeLink}${imageBase}`;
 

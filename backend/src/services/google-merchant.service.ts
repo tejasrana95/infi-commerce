@@ -69,7 +69,11 @@ class GoogleMerchantService {
         const gmcSettings = store.googleMerchantSettings || {};
         const gmc = product.googleMerchant || {};
         const currency = store.currency || 'USD';
-        const domain = store.domains?.[0] || 'example.com';
+        const rawDomain = store.domains?.[0] || 'example.com';
+        let domain = rawDomain.trim().replace(/^https?:\/\//i, '');
+        if (!domain.startsWith('www.') && (domain.match(/\./g) || []).length === 1) {
+            domain = 'www.' + domain;
+        }
         const productUrl = `https://${domain}/${product.slug}`;
         const imageBase = product.featuredImage || product.images?.[0] || '';
         const imageLink = imageBase.startsWith('http') ? imageBase : `https://${domain}${imageBase}`;
