@@ -991,49 +991,59 @@ const MenuBar = ({ editor, variant, showSourceToggle, sourceMode, onSourceToggle
                         </IconButton>
                     </Tooltip>
                     <Tooltip title="Add Row">
-                        <IconButton
-                            size="small"
-                            onClick={() => editor.chain().focus().addRowAfter().run()}
-                            disabled={!editor.isActive('table')}
-                        >
-                            <TableRows fontSize="small" />
-                        </IconButton>
+                        <span>
+                            <IconButton
+                                size="small"
+                                onClick={() => editor.chain().focus().addRowAfter().run()}
+                                disabled={!editor.isActive('table')}
+                            >
+                                <TableRows fontSize="small" />
+                            </IconButton>
+                        </span>
                     </Tooltip>
                     <Tooltip title="Delete Row">
-                        <IconButton
-                            size="small"
-                            onClick={() => editor.chain().focus().deleteRow().run()}
-                            disabled={!editor.isActive('table')}
-                        >
-                            <DeleteIcon fontSize="small" />
-                        </IconButton>
+                        <span>
+                            <IconButton
+                                size="small"
+                                onClick={() => editor.chain().focus().deleteRow().run()}
+                                disabled={!editor.isActive('table')}
+                            >
+                                <DeleteIcon fontSize="small" />
+                            </IconButton>
+                        </span>
                     </Tooltip>
                     <Tooltip title="Add Column">
-                        <IconButton
-                            size="small"
-                            onClick={() => editor.chain().focus().addColumnAfter().run()}
-                            disabled={!editor.isActive('table')}
-                        >
-                            <ViewColumn fontSize="small" />
-                        </IconButton>
+                        <span>
+                            <IconButton
+                                size="small"
+                                onClick={() => editor.chain().focus().addColumnAfter().run()}
+                                disabled={!editor.isActive('table')}
+                            >
+                                <ViewColumn fontSize="small" />
+                            </IconButton>
+                        </span>
                     </Tooltip>
                     <Tooltip title="Delete Column">
-                        <IconButton
-                            size="small"
-                            onClick={() => editor.chain().focus().deleteColumn().run()}
-                            disabled={!editor.isActive('table')}
-                        >
-                            <DeleteSweep fontSize="small" />
-                        </IconButton>
+                        <span>
+                            <IconButton
+                                size="small"
+                                onClick={() => editor.chain().focus().deleteColumn().run()}
+                                disabled={!editor.isActive('table')}
+                            >
+                                <DeleteSweep fontSize="small" />
+                            </IconButton>
+                        </span>
                     </Tooltip>
                     <Tooltip title="Delete Table">
-                        <IconButton
-                            size="small"
-                            onClick={() => editor.chain().focus().deleteTable().run()}
-                            disabled={!editor.isActive('table')}
-                        >
-                            <TableChart fontSize="small" />
-                        </IconButton>
+                        <span>
+                            <IconButton
+                                size="small"
+                                onClick={() => editor.chain().focus().deleteTable().run()}
+                                disabled={!editor.isActive('table')}
+                            >
+                                <TableChart fontSize="small" />
+                            </IconButton>
+                        </span>
                     </Tooltip>
                 </>
             )}
@@ -1041,22 +1051,26 @@ const MenuBar = ({ editor, variant, showSourceToggle, sourceMode, onSourceToggle
             <Box sx={{ flexGrow: 1 }} />
 
             <Tooltip title="Undo">
-                <IconButton
-                    size="small"
-                    onClick={() => editor.chain().focus().undo().run()}
-                    disabled={!menuState.canUndo}
-                >
-                    <Undo fontSize="small" />
-                </IconButton>
+                <span>
+                    <IconButton
+                        size="small"
+                        onClick={() => editor.chain().focus().undo().run()}
+                        disabled={!menuState.canUndo}
+                    >
+                        <Undo fontSize="small" />
+                    </IconButton>
+                </span>
             </Tooltip>
             <Tooltip title="Redo">
-                <IconButton
-                    size="small"
-                    onClick={() => editor.chain().focus().redo().run()}
-                    disabled={!menuState.canRedo}
-                >
-                    <Redo fontSize="small" />
-                </IconButton>
+                <span>
+                    <IconButton
+                        size="small"
+                        onClick={() => editor.chain().focus().redo().run()}
+                        disabled={!menuState.canRedo}
+                    >
+                        <Redo fontSize="small" />
+                    </IconButton>
+                </span>
             </Tooltip>
 
             <LinkDialog
@@ -1139,36 +1153,41 @@ export default function RichTextEditor({
     const [sourceValue, setSourceValue] = useState(value);
     const [isFullscreen, setIsFullscreen] = useState(false);
 
+    const extensions = useMemo(() => [
+        StarterKit.configure({
+            link: false,
+            underline: false,
+        }),
+        Underline,
+        Link.configure({
+            openOnClick: false,
+            autolink: true,
+        }),
+        Image.configure({
+            inline: true,
+            allowBase64: true,
+        }),
+        Placeholder.configure({
+            placeholder: placeholder || 'Start writing...',
+        }),
+        TextAlign.configure({
+            types: ['heading', 'paragraph', 'image'],
+        }),
+        TextStyle,
+        Color,
+        Table.configure({
+            resizable: true,
+        }),
+        TableRow,
+        TableHeader,
+        TableCell,
+        YouTubeNode,
+        HighlightSpan,
+        FAQBlock,
+    ], [placeholder]);
+
     const editor = useEditor({
-        extensions: [
-            StarterKit,
-            Underline,
-            Link.configure({
-                openOnClick: false,
-                autolink: true,
-            }),
-            Image.configure({
-                inline: true,
-                allowBase64: true,
-            }),
-            Placeholder.configure({
-                placeholder: placeholder || 'Start writing...',
-            }),
-            TextAlign.configure({
-                types: ['heading', 'paragraph', 'image'],
-            }),
-            TextStyle,
-            Color,
-            Table.configure({
-                resizable: true,
-            }),
-            TableRow,
-            TableHeader,
-            TableCell,
-            YouTubeNode,
-            HighlightSpan,
-            FAQBlock,
-        ],
+        extensions,
         content: value,
         onUpdate: ({ editor }) => {
             onChange(editor.getHTML());
@@ -1315,7 +1334,7 @@ export default function RichTextEditor({
                             marginBottom: '0.5em',
                             color: theme.palette.text.primary,
                             letterSpacing: '-0.02em',
-                            '&:first-child': { marginTop: 0 },
+                            '&:first-of-type': { marginTop: 0 },
                         },
                         '& h2': {
                             fontSize: '1.65em',
@@ -1325,7 +1344,7 @@ export default function RichTextEditor({
                             marginBottom: '0.5em',
                             color: theme.palette.text.primary,
                             letterSpacing: '-0.015em',
-                            '&:first-child': { marginTop: 0 },
+                            '&:first-of-type': { marginTop: 0 },
                         },
                         '& h3': {
                             fontSize: '1.35em',
@@ -1335,7 +1354,7 @@ export default function RichTextEditor({
                             marginBottom: '0.5em',
                             color: theme.palette.text.primary,
                             letterSpacing: '-0.01em',
-                            '&:first-child': { marginTop: 0 },
+                            '&:first-of-type': { marginTop: 0 },
                         },
                         '& h4': {
                             fontSize: '1.15em',
@@ -1344,7 +1363,7 @@ export default function RichTextEditor({
                             marginTop: '1.2em',
                             marginBottom: '0.5em',
                             color: theme.palette.text.primary,
-                            '&:first-child': { marginTop: 0 },
+                            '&:first-of-type': { marginTop: 0 },
                         },
                         '& h5': {
                             fontSize: '1em',
@@ -1353,7 +1372,7 @@ export default function RichTextEditor({
                             marginTop: '1.1em',
                             marginBottom: '0.5em',
                             color: theme.palette.text.primary,
-                            '&:first-child': { marginTop: 0 },
+                            '&:first-of-type': { marginTop: 0 },
                         },
                         '& h6': {
                             fontSize: '0.95em',
@@ -1364,7 +1383,7 @@ export default function RichTextEditor({
                             color: theme.palette.text.secondary,
                             textTransform: 'uppercase',
                             letterSpacing: '0.05em',
-                            '&:first-child': { marginTop: 0 },
+                            '&:first-of-type': { marginTop: 0 },
                         },
 
                         // Paragraphs
@@ -1372,7 +1391,7 @@ export default function RichTextEditor({
                             marginTop: '0.75em',
                             marginBottom: '0.75em',
                             lineHeight: 1.7,
-                            '&:first-child': { marginTop: 0 },
+                            '&:first-of-type': { marginTop: 0 },
                             '&:last-child': { marginBottom: 0 },
                         },
 
@@ -1381,7 +1400,7 @@ export default function RichTextEditor({
                             paddingLeft: '1.8em',
                             marginTop: '0.85em',
                             marginBottom: '0.85em',
-                            '&:first-child': { marginTop: 0 },
+                            '&:first-of-type': { marginTop: 0 },
                             '&:last-child': { marginBottom: 0 },
                         },
                         '& ul': {
@@ -1593,7 +1612,7 @@ export default function RichTextEditor({
                                 marginBottom: '0.5em',
                                 color: theme.palette.text.primary,
                                 letterSpacing: '-0.02em',
-                                '&:first-child': { marginTop: 0 },
+                                '&:first-of-type': { marginTop: 0 },
                             },
                             '& h2': {
                                 fontSize: '1.65em',
@@ -1603,7 +1622,7 @@ export default function RichTextEditor({
                                 marginBottom: '0.5em',
                                 color: theme.palette.text.primary,
                                 letterSpacing: '-0.015em',
-                                '&:first-child': { marginTop: 0 },
+                                '&:first-of-type': { marginTop: 0 },
                             },
                             '& h3': {
                                 fontSize: '1.35em',
@@ -1613,14 +1632,14 @@ export default function RichTextEditor({
                                 marginBottom: '0.5em',
                                 color: theme.palette.text.primary,
                                 letterSpacing: '-0.01em',
-                                '&:first-child': { marginTop: 0 },
+                                '&:first-of-type': { marginTop: 0 },
                             },
                             '& h4, & h5, & h6': {
                                 fontWeight: 600,
                                 color: theme.palette.text.primary,
                                 marginTop: '1.2em',
                                 marginBottom: '0.5em',
-                                '&:first-child': { marginTop: 0 },
+                                '&:first-of-type': { marginTop: 0 },
                             },
 
                             // Paragraphs
@@ -1628,7 +1647,7 @@ export default function RichTextEditor({
                                 marginTop: '0.75em',
                                 marginBottom: '0.75em',
                                 lineHeight: 1.7,
-                                '&:first-child': { marginTop: 0 },
+                                '&:first-of-type': { marginTop: 0 },
                                 '&:last-child': { marginBottom: 0 },
                             },
 

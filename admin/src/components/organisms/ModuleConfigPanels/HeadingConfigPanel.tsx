@@ -9,6 +9,8 @@ interface HeadingConfigPanelProps {
         subheading?: string;
         tag?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'div';
         align?: 'left' | 'center' | 'right';
+        alignTablet?: 'left' | 'center' | 'right';
+        alignMobile?: 'left' | 'center' | 'right';
         headingStyle?: 'plain' | 'bottom-accent' | 'double-line' | 'background-ribbon';
         subheadingFirst?: boolean;
         styles?: {
@@ -119,12 +121,41 @@ const HeadingConfigPanel: React.FC<HeadingConfigPanelProps> = ({ config, onChang
                             </Select>
                         </FormControl>
 
-                        <FormControl fullWidth>
-                            <InputLabel>Alignment</InputLabel>
+                    </Box>
+
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2 }}>
+                        <FormControl fullWidth size="small">
+                            <InputLabel>Align (Desktop)</InputLabel>
                             <Select
                                 value={config.align || 'center'}
-                                label="Alignment"
+                                label="Align (Desktop)"
                                 onChange={(e) => handleChange('align', e.target.value)}
+                            >
+                                <MenuItem value="left">Left</MenuItem>
+                                <MenuItem value="center">Center</MenuItem>
+                                <MenuItem value="right">Right</MenuItem>
+                            </Select>
+                        </FormControl>
+
+                        <FormControl fullWidth size="small">
+                            <InputLabel>Align (Tablet)</InputLabel>
+                            <Select
+                                value={config.alignTablet || config.align || 'center'}
+                                label="Align (Tablet)"
+                                onChange={(e) => handleChange('alignTablet', e.target.value)}
+                            >
+                                <MenuItem value="left">Left</MenuItem>
+                                <MenuItem value="center">Center</MenuItem>
+                                <MenuItem value="right">Right</MenuItem>
+                            </Select>
+                        </FormControl>
+
+                        <FormControl fullWidth size="small">
+                            <InputLabel>Align (Mobile)</InputLabel>
+                            <Select
+                                value={config.alignMobile || config.align || 'center'}
+                                label="Align (Mobile)"
+                                onChange={(e) => handleChange('alignMobile', e.target.value)}
                             >
                                 <MenuItem value="left">Left</MenuItem>
                                 <MenuItem value="center">Center</MenuItem>

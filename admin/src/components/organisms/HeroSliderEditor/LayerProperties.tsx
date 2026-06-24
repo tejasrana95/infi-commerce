@@ -35,15 +35,17 @@ import Link from '@tiptap/extension-link';
 
 // Simple Tiptap Editor Component
 const TiptapEditor = ({ content, onChange }: { content: string; onChange: (html: string) => void }) => {
+    const extensions = React.useMemo(() => [
+        StarterKit,
+        TextAlign.configure({ types: ['heading', 'paragraph'] }),
+        TextStyle,
+        Color,
+        Underline,
+        Link.configure({ openOnClick: false })
+    ], []);
+
     const editor = useEditor({
-        extensions: [
-            StarterKit,
-            TextAlign.configure({ types: ['heading', 'paragraph'] }),
-            TextStyle,
-            Color,
-            Underline,
-            Link.configure({ openOnClick: false })
-        ],
+        extensions,
         content: content,
         onUpdate: ({ editor }) => {
             onChange(editor.getHTML());

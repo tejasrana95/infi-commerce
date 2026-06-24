@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { getComponent } from '@/components/templates/registry';
 import { ModuleProps } from '../..';
+import Heading from '../Heading';
 import api from '@/lib/api';
 import styles from './RecentlyViewed.module.scss';
 
@@ -72,6 +73,7 @@ export const addToRecentlyViewed = (productId: string) => {
 export default function RecentlyViewedModule({
     config,
     currentProductId,
+    sectionType,
 }: RecentlyViewedProps) {
     const {
         title = 'Recently Viewed',
@@ -175,22 +177,26 @@ export default function RecentlyViewedModule({
     const tabletCols = Math.min(columns, 3);
     const mobileCols = columns === 1 ? 1 : Math.min(columns, 2);
 
-    const titleAlignment = titleTypography?.alignment || 'left';
-    const headerStyle: React.CSSProperties = {
-        justifyContent: titleAlignment === 'center' ? 'center' : titleAlignment === 'right' ? 'flex-end' : 'flex-start',
-    };
-    const titleStyle: React.CSSProperties = {
-        fontFamily: titleTypography?.fontFamily || undefined,
-        fontSize: titleTypography?.fontSize ? `${titleTypography.fontSize}px` : undefined,
-        color: titleTypography?.color || undefined,
-        textAlign: titleAlignment,
+    const hasHeading = config.heading || config.title;
+    const headingConfig = {
+        heading: config.heading || config.title,
+        subheading: config.subheading,
+        tag: config.tag || 'h2',
+        align: config.align || config.titleTypography?.alignment || 'left',
+        alignTablet: config.alignTablet,
+        alignMobile: config.alignMobile,
+        headingStyle: config.headingStyle || 'plain',
+        subheadingFirst: config.subheadingFirst,
+        styles: config.styles || {
+            fontFamily: config.titleTypography?.fontFamily,
+            fontSize: config.titleTypography?.fontSize,
+            color: config.titleTypography?.color,
+        }
     };
 
     if (loading) {
-        const header = title && (
-            <div className={styles.header} style={headerStyle}>
-                <h2 className={styles.title} style={titleStyle}>{title}</h2>
-            </div>
+        const header = hasHeading && (
+            <Heading config={headingConfig} sectionType={sectionType} />
         );
 
         if (layout === 'carousel') {
@@ -247,10 +253,8 @@ export default function RecentlyViewedModule({
     if (layout === 'grid') {
         return (
             <div className={styles.container}>
-                {title && (
-                    <div className={styles.header} style={headerStyle}>
-                        <h2 className={styles.title} style={titleStyle}>{title}</h2>
-                    </div>
+                {hasHeading && (
+                    <Heading config={headingConfig} sectionType={sectionType} />
                 )}
                 <div 
                     className={styles.grid}
@@ -276,10 +280,8 @@ export default function RecentlyViewedModule({
     // Carousel layout
     return (
         <div className={styles.container}>
-            {title && (
-                <div className={styles.header} style={headerStyle}>
-                    <h2 className={styles.title} style={titleStyle}>{title}</h2>
-                </div>
+            {hasHeading && (
+                <Heading config={headingConfig} sectionType={sectionType} />
             )}
 
             <div

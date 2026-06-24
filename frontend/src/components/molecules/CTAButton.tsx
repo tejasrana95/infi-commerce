@@ -9,6 +9,8 @@ interface CTAButtonProps {
     variant?: 'contained' | 'outlined' | 'text' | 'ghost' | 'glass' | 'glow' | '3d' | 'underline';
     color?: 'primary' | 'secondary' | 'custom';
     alignment?: 'left' | 'center' | 'right';
+    alignmentTablet?: 'left' | 'center' | 'right';
+    alignmentMobile?: 'left' | 'center' | 'right';
     size?: 'small' | 'medium' | 'large';
     backgroundColor?: string;
     borderColor?: string;
@@ -23,6 +25,8 @@ const CTAButton: React.FC<CTAButtonProps> = ({
     variant = 'contained',
     color = 'primary',
     alignment = 'center',
+    alignmentTablet,
+    alignmentMobile,
     size = 'medium',
     backgroundColor,
     borderColor,
@@ -46,10 +50,15 @@ const CTAButton: React.FC<CTAButtonProps> = ({
         '--cta-text': textColor,
     } as React.CSSProperties;
 
-    const wrapperClasses = `w-full flex ${alignment === 'left' ? 'justify-start' :
-        alignment === 'right' ? 'justify-end' :
-            'justify-center'
-        }`;
+    const mobile = alignmentMobile || alignment;
+    const tablet = alignmentTablet || alignment;
+    const desktop = alignment;
+
+    const justifyMobile = mobile === 'left' ? 'justify-start' : mobile === 'right' ? 'justify-end' : 'justify-center';
+    const justifyTablet = tablet === 'left' ? 'md:justify-start' : tablet === 'right' ? 'md:justify-end' : 'md:justify-center';
+    const justifyDesktop = desktop === 'left' ? 'lg:justify-start' : desktop === 'right' ? 'lg:justify-end' : 'lg:justify-center';
+
+    const wrapperClasses = `w-full flex ${justifyMobile} ${justifyTablet} ${justifyDesktop}`;
 
     const renderContent = () => (
         <>

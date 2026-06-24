@@ -10,6 +10,8 @@ interface HeadingConfig {
     subheading?: string;
     tag?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'div';
     align?: 'left' | 'center' | 'right';
+    alignTablet?: 'left' | 'center' | 'right';
+    alignMobile?: 'left' | 'center' | 'right';
     headingStyle?: 'plain' | 'bottom-accent' | 'double-line' | 'background-ribbon';
     subheadingFirst?: boolean;
     styles?: {
@@ -50,10 +52,15 @@ export default function Heading({ config, sectionType }: ModuleProps) {
         subheading,
         tag = 'h2',
         align = 'center',
+        alignTablet,
+        alignMobile,
         headingStyle = 'plain',
         subheadingFirst = false,
         styles = {}
     } = config as HeadingConfig;
+
+    const id = React.useId().replace(/:/g, '');
+    const headingId = `heading-${id}`;
 
     // Dynamically load fonts used in this component
     const fontsToLoad = [];
@@ -69,7 +76,6 @@ export default function Heading({ config, sectionType }: ModuleProps) {
 
     // Construct container styles (padding, background, border)
     const containerStyle: React.CSSProperties = {
-        textAlign: align,
         backgroundColor: styles.backgroundColor || 'transparent',
         paddingTop: styles.paddingTop ? `${styles.paddingTop}px` : undefined,
         paddingBottom: styles.paddingBottom ? `${styles.paddingBottom}px` : undefined,
@@ -122,7 +128,7 @@ export default function Heading({ config, sectionType }: ModuleProps) {
         switch (headingStyle) {
             case 'bottom-accent':
                 return (
-                    <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center' }}>
+                    <div className="heading-accent-wrapper" style={{ display: 'inline-flex', flexDirection: 'column' }}>
                         <Tag style={baseHeadingStyle}>
                             {heading}
                         </Tag>
@@ -132,7 +138,7 @@ export default function Heading({ config, sectionType }: ModuleProps) {
 
             case 'double-line':
                 return (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: justify, gap: '12px', width: '100%' }}>
+                    <div className="heading-flex-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: '0 1 60px' }}>
                             <span style={{ height: '1px', backgroundColor: decorColor }} />
                             <span style={{ height: '1px', backgroundColor: decorColor }} />
@@ -173,9 +179,56 @@ export default function Heading({ config, sectionType }: ModuleProps) {
         }
     };
 
+    const mobileAlign = alignMobile || align;
+    const tabletAlign = alignTablet || align;
+    const desktopAlign = align;
+
+    const justifyMobile = mobileAlign === 'left' ? 'flex-start' : mobileAlign === 'right' ? 'flex-end' : 'center';
+    const justifyTablet = tabletAlign === 'left' ? 'flex-start' : tabletAlign === 'right' ? 'flex-end' : 'center';
+    const justifyDesktop = desktopAlign === 'left' ? 'flex-start' : desktopAlign === 'right' ? 'flex-end' : 'center';
+
+    const itemsMobile = mobileAlign === 'left' ? 'flex-start' : mobileAlign === 'right' ? 'flex-end' : 'center';
+    const itemsTablet = tabletAlign === 'left' ? 'flex-start' : tabletAlign === 'right' ? 'flex-end' : 'center';
+    const itemsDesktop = desktopAlign === 'left' ? 'flex-start' : desktopAlign === 'right' ? 'flex-end' : 'center';
+
+    const styleContent = `
+        #${headingId} {
+            text-align: ${mobileAlign};
+        }
+        #${headingId} .heading-accent-wrapper {
+            align-items: ${itemsMobile};
+        }
+        #${headingId} .heading-flex-wrapper {
+            justify-content: ${justifyMobile};
+        }
+        @media (min-width: 768px) {
+            #${headingId} {
+                text-align: ${tabletAlign};
+            }
+            #${headingId} .heading-accent-wrapper {
+                align-items: ${itemsTablet};
+            }
+            #${headingId} .heading-flex-wrapper {
+                justify-content: ${justifyTablet};
+            }
+        }
+        @media (min-width: 1024px) {
+            #${headingId} {
+                text-align: ${desktopAlign};
+            }
+            #${headingId} .heading-accent-wrapper {
+                align-items: ${itemsDesktop};
+            }
+            #${headingId} .heading-flex-wrapper {
+                justify-content: ${justifyDesktop};
+            }
+        }
+    `;
+
     return (
         <div className={containerClass}>
-            <div style={containerStyle}>
+            <style dangerouslySetInnerHTML={{ __html: styleContent }} />
+            <div id={headingId} style={containerStyle}>
                 {subheadingFirst ? (
                     <>
                         {subheading && (

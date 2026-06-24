@@ -7,6 +7,8 @@ import RichTextEditor from '@/components/molecules/RichTextEditor';
 export interface TextBlockConfig {
     content: string;
     alignment: 'left' | 'center' | 'right' | 'justify';
+    alignmentTablet?: 'left' | 'center' | 'right' | 'justify';
+    alignmentMobile?: 'left' | 'center' | 'right' | 'justify';
     textColor?: string;
     backgroundColor?: string;
     padding: number;
@@ -60,19 +62,49 @@ export default function TextBlockConfigPanel({ config, onChange }: TextBlockConf
                 showFullscreen
             />
 
-            <TextField
-                select
-                label="Alignment"
-                value={config.alignment}
-                onChange={(e) => handleChange('alignment', e.target.value)}
-                fullWidth
-                size="small"
-            >
-                <MenuItem value="left">Left</MenuItem>
-                <MenuItem value="center">Center</MenuItem>
-                <MenuItem value="right">Right</MenuItem>
-                <MenuItem value="justify">Justify</MenuItem>
-            </TextField>
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2 }}>
+                <TextField
+                    select
+                    label="Align (Desktop)"
+                    value={config.alignment}
+                    onChange={(e) => handleChange('alignment', e.target.value)}
+                    fullWidth
+                    size="small"
+                >
+                    <MenuItem value="left">Left</MenuItem>
+                    <MenuItem value="center">Center</MenuItem>
+                    <MenuItem value="right">Right</MenuItem>
+                    <MenuItem value="justify">Justify</MenuItem>
+                </TextField>
+
+                <TextField
+                    select
+                    label="Align (Tablet)"
+                    value={config.alignmentTablet || config.alignment}
+                    onChange={(e) => handleChange('alignmentTablet', e.target.value)}
+                    fullWidth
+                    size="small"
+                >
+                    <MenuItem value="left">Left</MenuItem>
+                    <MenuItem value="center">Center</MenuItem>
+                    <MenuItem value="right">Right</MenuItem>
+                    <MenuItem value="justify">Justify</MenuItem>
+                </TextField>
+
+                <TextField
+                    select
+                    label="Align (Mobile)"
+                    value={config.alignmentMobile || config.alignment}
+                    onChange={(e) => handleChange('alignmentMobile', e.target.value)}
+                    fullWidth
+                    size="small"
+                >
+                    <MenuItem value="left">Left</MenuItem>
+                    <MenuItem value="center">Center</MenuItem>
+                    <MenuItem value="right">Right</MenuItem>
+                    <MenuItem value="justify">Justify</MenuItem>
+                </TextField>
+            </Box>
 
             <Box sx={{ display: 'flex', gap: 2 }}>
                 <Box flex={1}>

@@ -10,6 +10,8 @@ const CTAButtonModule: React.FC<ModuleProps> = ({ config }) => {
             variant={config.variant}
             color={config.color}
             alignment={config.alignment}
+            alignmentTablet={config.alignmentTablet}
+            alignmentMobile={config.alignmentMobile}
             size={config.size}
             backgroundColor={config.backgroundColor}
             borderColor={config.borderColor}
