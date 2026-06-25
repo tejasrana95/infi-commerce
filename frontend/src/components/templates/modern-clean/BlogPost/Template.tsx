@@ -26,7 +26,13 @@ export default function ModernCleanBlogPostTemplate({
     const renderModule = (module: any) => {
         switch (module.type) {
             case 'blog-content':
-                return renderContent();
+                return (
+                    <>
+                        {renderContent()}
+                        {renderRelatedArticles()}
+                        {renderTags()}
+                    </>
+                );
             case 'author-card':
                 return renderAuthorCard();
             default:
@@ -58,72 +64,80 @@ export default function ModernCleanBlogPostTemplate({
 
     // Content section
     const renderContent = () => {
-        const hasRelatedArticles = relatedPosts && relatedPosts.length > 0;
-
         return (
             <article className={styles.article} key={post._id}>
                 <div
                     className={`${styles.content} rte-description-content`}
                     dangerouslySetInnerHTML={{ __html: post.content }}
                 />
-
-                {/* Related Articles Section (before tags) */}
-                {post.showRelatedArticles && hasRelatedArticles && (
-                    <div className={styles.relatedArticlesSection}>
-                        <h3 className={styles.relatedArticlesTitle}>Related Articles</h3>
-                        <div className={styles.relatedArticlesGrid}>
-                            {relatedPosts.map((related) => (
-                                <Link
-                                    key={related._id}
-                                    href={`/blog/${related.slug}`}
-                                    className={styles.relatedArticleCard}
-                                >
-                                    {related.featuredImage && (
-                                        <div className={styles.relatedArticleImage}>
-                                            <Image
-                                                src={related.featuredImage}
-                                                alt={related.title}
-                                                fill
-                                                className={styles.relatedArticleImg}
-                                            />
-                                        </div>
-                                    )}
-                                    <div className={styles.relatedArticleContent}>
-                                        {related.categoryIds?.[0] && (
-                                            <span className={styles.relatedArticleCategory}>
-                                                {related.categoryIds[0].name}
-                                            </span>
-                                        )}
-                                        <h4 className={styles.relatedArticleTitle}>{related.title}</h4>
-                                        {related.excerpt && (
-                                            <p className={styles.relatedArticleExcerpt}>{related.excerpt}</p>
-                                        )}
-                                        <div className={styles.relatedArticleMeta}>
-                                            {related.readingTime && (
-                                                <span>
-                                                    <FiClock /> {related.readingTime} min read
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {config.showTags && post.tags && post.tags.length > 0 && (
-                    <div className={styles.tagsSection}>
-                        <div className={styles.tagsList}>
-                            {post.tags.map((tag) => (
-                                <Link key={tag} href={`/blog?tag=${tag}`} className={styles.tag}>
-                                    #{tag}
-                                </Link>
-                            ))}
-                        </div>
-                    </div>
-                )}
             </article>
+        );
+    };
+
+    // Related articles section
+    const renderRelatedArticles = () => {
+        const hasRelatedArticles = relatedPosts && relatedPosts.length > 0;
+        if (!post.showRelatedArticles || !hasRelatedArticles) return null;
+
+        return (
+            <div className={styles.relatedArticlesSection}>
+                <h3 className={styles.relatedArticlesTitle}>Related Articles</h3>
+                <div className={styles.relatedArticlesGrid}>
+                    {relatedPosts.map((related) => (
+                        <Link
+                            key={related._id}
+                            href={`/blog/${related.slug}`}
+                            className={styles.relatedArticleCard}
+                        >
+                            {related.featuredImage && (
+                                <div className={styles.relatedArticleImage}>
+                                    <Image
+                                        src={related.featuredImage}
+                                        alt={related.title}
+                                        fill
+                                        className={styles.relatedArticleImg}
+                                    />
+                                </div>
+                            )}
+                            <div className={styles.relatedArticleContent}>
+                                {related.categoryIds?.[0] && (
+                                    <span className={styles.relatedArticleCategory}>
+                                        {related.categoryIds[0].name}
+                                    </span>
+                                )}
+                                <h4 className={styles.relatedArticleTitle}>{related.title}</h4>
+                                {related.excerpt && (
+                                    <p className={styles.relatedArticleExcerpt}>{related.excerpt}</p>
+                                )}
+                                <div className={styles.relatedArticleMeta}>
+                                    {related.readingTime && (
+                                        <span>
+                                            <FiClock /> {related.readingTime} min read
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        </Link>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
+    // Tags section
+    const renderTags = () => {
+        if (!config.showTags || !post.tags || post.tags.length === 0) return null;
+
+        return (
+            <div className={styles.tagsSection}>
+                <div className={styles.tagsList}>
+                    {post.tags.map((tag) => (
+                        <Link key={tag} href={`/blog?tag=${tag}`} className={styles.tag}>
+                            #{tag}
+                        </Link>
+                    ))}
+                </div>
+            </div>
         );
     };
 
@@ -282,22 +296,56 @@ export default function ModernCleanBlogPostTemplate({
 
             {/* Main Content */}
             {sections.length > 0 ? (
-                sections.map((section: any) => renderSection(section))
+                <>
+                    {sections.map((section: any) => renderSection(section))}
+                    {/* Linked Products Section at the end for custom layout page */}
+                    {post.linkedProductsConfig?.enabled && post.linkedProducts && post.linkedProducts.length > 0 && (
+                        <BlogPostLinkedProducts
+                            products={post.linkedProducts}
+                            config={post.linkedProductsConfig}
+                        />
+                    )}
+                </>
             ) : (
-                <div className={styles.contentWrapper}>
-                    <div className={styles.contentContainer}>
-                        {renderContent()}
-                        {renderAuthorCard()}
+                <>
+                    <div className={styles.contentWrapper}>
+                        <div className={styles.contentContainer}>
+                            {renderContent()}
+                        </div>
                     </div>
-                </div>
-            )}
 
-            {/* Linked Products Section */}
-            {post.linkedProductsConfig?.enabled && post.linkedProducts && post.linkedProducts.length > 0 && (
-                <BlogPostLinkedProducts
-                    products={post.linkedProducts}
-                    config={post.linkedProductsConfig}
-                />
+                    {/* Linked Products Section (Full Width) */}
+                    {post.linkedProductsConfig?.enabled && post.linkedProducts && post.linkedProducts.length > 0 && (
+                        <BlogPostLinkedProducts
+                            products={post.linkedProducts}
+                            config={post.linkedProductsConfig}
+                        />
+                    )}
+
+                    {post.showRelatedArticles && relatedPosts && relatedPosts.length > 0 && (
+                        <div className={styles.fullWidthBorderWrapper}>
+                            <div className={styles.contentContainer}>
+                                {renderRelatedArticles()}
+                            </div>
+                        </div>
+                    )}
+
+                    {config.showTags && post.tags && post.tags.length > 0 && (
+                        <div className={styles.fullWidthBorderWrapper}>
+                            <div className={styles.contentContainer}>
+                                {renderTags()}
+                            </div>
+                        </div>
+                    )}
+
+                    {config.showAuthorCard && (
+                        <div className={styles.fullWidthBorderWrapper}>
+                            <div className={styles.contentContainer}>
+                                {renderAuthorCard()}
+                            </div>
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );

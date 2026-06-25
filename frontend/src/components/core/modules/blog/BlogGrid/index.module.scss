@@ -1,7 +1,7 @@
 @use '@/styles/breakpoints' as *;
 
 .blogGrid {
-    padding: 36px 0 56px;
+    padding: 36px 0 0px;
     --panel: var(--card-background, #ffffff);
     --edge: color-mix(in srgb, var(--text-primary, #0f172a) 10%, transparent);
     --ink: var(--text-primary, #0f172a);
@@ -81,41 +81,67 @@
     &.cols4 {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }
+
     &.cols5 {
         grid-template-columns: repeat(5, minmax(0, 1fr));
     }
+
     &.cols6 {
         grid-template-columns: repeat(6, minmax(0, 1fr));
     }
+
     &.cols7 {
         grid-template-columns: repeat(7, minmax(0, 1fr));
     }
+
     &.cols8 {
         grid-template-columns: repeat(8, minmax(0, 1fr));
     }
+
     &.cols9 {
         grid-template-columns: repeat(9, minmax(0, 1fr));
     }
+
     &.cols10 {
         grid-template-columns: repeat(10, minmax(0, 1fr));
     }
+
     &.cols11 {
         grid-template-columns: repeat(11, minmax(0, 1fr));
     }
+
     &.cols12 {
         grid-template-columns: repeat(12, minmax(0, 1fr));
     }
+
     @include large-down {
-        &.cols4, &.cols5, &.cols6, &.cols7, &.cols8, &.cols9, &.cols10, &.cols11, &.cols12 {
+
+        &.cols4,
+        &.cols5,
+        &.cols6,
+        &.cols7,
+        &.cols8,
+        &.cols9,
+        &.cols10,
+        &.cols11,
+        &.cols12 {
             grid-template-columns: repeat(3, minmax(0, 1fr));
         }
-        
+
     }
 
     @include tablet-down {
 
         &.cols3,
-        &.cols4,&.cols5, &.cols6, &.cols7, &.cols8, &.cols9, &.cols10, &.cols11, &.cols12 {
+        &.cols4,
+        &.cols5,
+        &.cols6,
+        &.cols7,
+        &.cols8,
+        &.cols9,
+        &.cols10,
+        &.cols11,
+        &.cols12 {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
     }
@@ -124,7 +150,15 @@
 
         &.cols2,
         &.cols3,
-        &.cols4,&.cols5, &.cols6, &.cols7, &.cols8, &.cols9, &.cols10, &.cols11, &.cols12 {
+        &.cols4,
+        &.cols5,
+        &.cols6,
+        &.cols7,
+        &.cols8,
+        &.cols9,
+        &.cols10,
+        &.cols11,
+        &.cols12 {
             grid-template-columns: 1fr;
         }
     }

@@ -363,6 +363,7 @@
     }
 
     @include mobile {
+
         table th,
         table td {
             white-space: nowrap;
@@ -802,6 +803,17 @@
     }
 }
 
-.carouselArrowLeft {}
+.fullWidthBorderWrapper {
+    width: 100%;
+    border-top: 1px solid var(--border, #e5e5e5);
+    padding: 48px 0;
+    background: transparent;
 
-.carouselArrowRight {}
+    .tagsSection,
+    .relatedArticlesSection,
+    .authorSection {
+        border-top: none;
+        margin-top: 0;
+        padding-top: 0;
+    }
+}
