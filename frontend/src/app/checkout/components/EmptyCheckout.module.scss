@@ -139,7 +139,7 @@
     button {
         border: none;
         border-radius: 10px;
-        background: #1f3f89;
+        background: var(--accent);
         color: #fff;
         font-weight: 600;
         font-size: 0.85rem;
@@ -147,7 +147,7 @@
         cursor: pointer;
 
         &:hover {
-            background: #1a3574;
+            background: var(--primary);
         }
     }
 }

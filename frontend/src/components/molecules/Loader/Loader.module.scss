@@ -2,8 +2,8 @@
 // Beautiful, modern loading animations
 
 .loaderWrapper {
-    --loader-color: var(--primary-color, #6366f1);
-    --loader-secondary: rgba(99, 102, 241, 0.2);
+    --loader-color: var(--primary);
+    --loader-secondary: var(--accent);
 
     display: flex;
     flex-direction: column;
@@ -93,20 +93,20 @@
     border: var(--ring-width) solid transparent;
 
     &:nth-child(1) {
-        border-top-color: var(--loader-color);
+        border-top-color: var(--primary);
         animation: spin 1s cubic-bezier(0.5, 0, 0.5, 1) infinite;
     }
 
     &:nth-child(2) {
         inset: 15%;
-        border-right-color: var(--loader-color);
+        border-right-color: var(--accent);
         opacity: 0.7;
         animation: spin 0.8s cubic-bezier(0.5, 0, 0.5, 1) infinite reverse;
     }
 
     &:nth-child(3) {
         inset: 30%;
-        border-bottom-color: var(--loader-color);
+        border-bottom-color: var(--accent);
         opacity: 0.4;
         animation: spin 0.6s cubic-bezier(0.5, 0, 0.5, 1) infinite;
     }
@@ -154,7 +154,7 @@
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    background: var(--loader-color);
+    background: var(--primary);
     opacity: 0;
     animation: pulse 2s cubic-bezier(0, 0, 0.2, 1) infinite;
 
@@ -176,8 +176,8 @@
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    border: var(--ring-width) solid var(--loader-secondary);
-    border-top-color: var(--loader-color);
+    border: var(--ring-width) solid var(--accent);
+    border-top-color: var(--primary);
     animation: spin 0.8s linear infinite;
 
     // Gradient glow effect
@@ -187,7 +187,7 @@
         inset: calc(var(--ring-width) * -1);
         border-radius: 50%;
         border: var(--ring-width) solid transparent;
-        border-top-color: var(--loader-color);
+        border-top-color: var(--primary);
         filter: blur(4px);
         opacity: 0.5;
     }

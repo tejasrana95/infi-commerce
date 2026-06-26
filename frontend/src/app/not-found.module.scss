@@ -65,7 +65,7 @@
     font-weight: 900;
     line-height: 0.95;
     letter-spacing: -0.03em;
-    color: #264caa;
+    color: var(--primary);
     opacity: 0.94;
 }
 
@@ -90,7 +90,7 @@
 
 .primaryBtn {
     color: #fff;
-    background: linear-gradient(135deg, #2f58c7 0%, #5769dd 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
     box-shadow: 0 12px 24px rgba(54, 87, 190, 0.27);
 
     &:hover {
@@ -152,7 +152,7 @@
     button {
         border: none;
         border-radius: 10px;
-        background: #1e3f8c;
+        background: var(--accent);
         color: #fff;
         font-weight: 600;
         font-size: 0.84rem;
@@ -160,7 +160,7 @@
         cursor: pointer;
 
         &:hover {
-            background: #183675;
+            background: var(--primary);
         }
     }
 }
