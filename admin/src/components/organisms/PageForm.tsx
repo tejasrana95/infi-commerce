@@ -31,6 +31,7 @@ import { FileItem } from '@/types/file';
 // Validation Schema
 const schema = z.object({
     title: z.string().min(1, 'Title is required').max(200),
+    heading: z.string().max(200, 'Max limit is 200').optional(),
     slug: z.string().min(1, 'Slug is required').regex(/^[a-z0-9-]+$/, 'Slug must be lowercase with hyphens only'),
     storeId: z.string().min(1, 'Store is required'),
     content: z.string().optional(),
@@ -59,6 +60,7 @@ interface PageFormProps {
 
 const defaultValues: FormData = {
     title: '',
+    heading: '',
     slug: '',
     storeId: '',
     content: '',
@@ -98,6 +100,7 @@ export default function PageForm({ initialData, onSubmit, isSubmitting = false }
 
             reset({
                 title: initialData.title || '',
+                heading: initialData.heading || '',
                 slug: initialData.slug || '',
                 storeId: storeId,
                 content: initialData.content || '',
@@ -237,6 +240,22 @@ export default function PageForm({ initialData, onSubmit, isSubmitting = false }
                                             required
                                             error={!!errors.title}
                                             helperText={errors.title?.message}
+                                            placeholder="About Us"
+                                        />
+                                    )}
+                                />
+                            </Grid>
+                            <Grid size={{ xs: 12 }}>
+                                <Controller
+                                    name="heading"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            label="Page Heading (H1)"
+                                            fullWidth
+                                            error={!!errors.heading}
+                                            helperText={errors.heading?.message}
                                             placeholder="About Us"
                                         />
                                     )}

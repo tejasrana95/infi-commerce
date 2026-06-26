@@ -256,6 +256,7 @@ export interface Menu {
 export interface Page {
     _id: string;
     title: string;
+    heading?: string;
     slug: string;
     useLayout: boolean;
     layoutId?: string;

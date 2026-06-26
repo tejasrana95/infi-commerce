@@ -18,6 +18,7 @@ function sanitizePublicPage(page: any): any {
         _id: page._id,
         storeId: page.storeId,
         title: page.title,
+        heading: page.heading,
         slug: page.slug,
         useLayout: page.useLayout,
         layoutId: page.layoutId,
@@ -36,6 +37,7 @@ function sanitizePublicPage(page: any): any {
 
 export const createPageValidation = [
     body('title').trim().notEmpty().withMessage('Title is required'),
+    body('heading').trim().optional().isLength({ max: 200 }).withMessage('Heading max limit is 200'),
     body('slug').trim().notEmpty().matches(/^[a-z0-9-]+$/).withMessage('Invalid slug format'),
     body('storeId').isMongoId().withMessage('Valid store ID is required'),
 ];
@@ -69,7 +71,7 @@ export const updatePageValidation = [
  *         description: Page created successfully
  */
 export const createPage = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { storeId, title, slug, useLayout, layoutId, content, featuredImage, seo, status, showInFooter, footerGroup, showInHeader, template, sortOrder } = req.body;
+    const { storeId, title, heading, slug, useLayout, layoutId, content, featuredImage, seo, status, showInFooter, footerGroup, showInHeader, template, sortOrder } = req.body;
 
     const existingPage = await Page.findOne({ storeId, slug });
     if (existingPage) {
@@ -79,6 +81,7 @@ export const createPage = asyncHandler(async (req: AuthRequest, res: Response) =
     const page = await Page.create({
         storeId,
         title,
+        heading,
         slug,
         useLayout: useLayout || false,
         layoutId,

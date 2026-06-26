@@ -19,6 +19,7 @@ interface PageHeroProps {
             title: string;
             slug: string;
             featuredImage?: string;
+            heading?: string;
         };
     };
 }
@@ -64,13 +65,13 @@ export default function PageHero({ config }: PageHeroProps) {
                                 <span>Home</span>
                             </Link>
                             <ChevronRight size={14} className={styles.separatorIcon} />
-                            <span className={styles.breadcrumbCurrent}>{title}</span>
+                            <span className={styles.breadcrumbCurrent}>{pageData?.title || title}</span>
                         </nav>
                     )}
 
                     {showTitle && (
                         <header className={styles.header}>
-                            <h1 className={styles.title}>{title}</h1>
+                            <h1 className={styles.title}>{pageData?.heading || title}</h1>
                         </header>
                     )}
                 </div>

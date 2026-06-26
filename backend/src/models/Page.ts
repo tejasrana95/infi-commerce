@@ -9,7 +9,7 @@ export interface IPage extends Document {
     storeId: mongoose.Types.ObjectId;
     title: string;
     slug: string;
-
+    heading?: string;
     // Content mode
     useLayout: boolean;                 // true = use layoutId, false = use content
     layoutId?: mongoose.Types.ObjectId; // If using layout designer
@@ -56,6 +56,12 @@ const PageSchema = new Schema<IPage>(
         title: {
             type: String,
             required: true,
+            trim: true,
+            maxlength: 200,
+        },
+        heading: {
+            type: String,
+            required: false,
             trim: true,
             maxlength: 200,
         },
