@@ -358,12 +358,7 @@ export const createBlogPostValidation = [
  *         description: Post created successfully
  */
 export const createBlogPost = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const {
-        storeId, title, slug, excerpt, content, featuredImage,
-        categoryIds, tags, author, relatedProducts, layoutId,
-        seo, status, scheduledAt, allowComments, isFeatured, isPinned,
-        showRelatedArticles
-    } = req.body;
+    const { storeId, slug, author } = req.body;
 
     // RBAC Check: Store Admin only for assigned stores
     if (req.user?.role === 'store_admin') {
@@ -396,24 +391,8 @@ export const createBlogPost = asyncHandler(async (req: AuthRequest, res: Respons
     }
 
     const post = await BlogPost.create({
-        storeId,
-        title,
-        slug,
-        excerpt,
-        content,
-        featuredImage,
-        categoryIds: categoryIds || [],
-        tags: tags || [],
+        ...req.body,
         author: postAuthor,
-        relatedProducts: relatedProducts || [],
-        layoutId,
-        seo,
-        status: status || 'draft',
-        scheduledAt,
-        allowComments: allowComments !== undefined ? allowComments : true,
-        isFeatured: isFeatured || false,
-        isPinned: isPinned || false,
-        showRelatedArticles: showRelatedArticles || false,
     });
 
     res.status(201).json({

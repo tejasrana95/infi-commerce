@@ -103,10 +103,10 @@ const defaultValues: FormData = {
     tags: [],
     status: 'draft',
     scheduledAt: '',
-    allowComments: true,
+    allowComments: false,
     isFeatured: false,
     isPinned: false,
-    showRelatedArticles: false,
+    showRelatedArticles: true,
     linkedProductsConfig: {
         enabled: false,
         sourceType: 'products',
@@ -618,202 +618,202 @@ export default function BlogPostForm({ initialData, onSubmit, isSubmitting = fal
                                             Select a store in the Content tab to configure product/category source.
                                         </Alert>
                                     )}
-                                <Grid container spacing={3}>
-                                    {/* Source type toggle */}
-                                    <Grid size={{ xs: 12 }}>
-                                        <Typography variant="subtitle2" gutterBottom>
-                                            Product Source
-                                        </Typography>
-                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                                            Pick products manually or auto-populate from a single category.
-                                        </Typography>
-                                        <Controller
-                                            name="linkedProductsConfig.sourceType"
-                                            control={control}
-                                            render={({ field }) => (
-                                                <ToggleButtonGroup
-                                                    value={field.value}
-                                                    exclusive
-                                                    onChange={(_, val) => { if (val) field.onChange(val); }}
-                                                    size="small"
-                                                >
-                                                    <ToggleButton value="category" disabled={!hasStore}>By Category</ToggleButton>
-                                                    <ToggleButton value="products" disabled={!hasStore}>By Products</ToggleButton>
-                                                </ToggleButtonGroup>
-                                            )}
-                                        />
-                                    </Grid>
-
-                                    {/* ── By Category ── */}
-                                    {linkedSourceType === 'category' && (
-                                        <>
-                                            <Grid size={{ xs: 12 }}>
-                                                <Controller
-                                                    name="linkedProductsConfig.categoryId"
-                                                    control={control}
-                                                    render={({ field: { onChange, value } }) => (
-                                                        <CategoryAutocomplete
-                                                            label="Product Category"
-                                                            storeId={watchedStoreId}
-                                                            value={value || null}
-                                                            onChange={(val) => onChange(val)}
-                                                            multiple={false}
-                                                            disabled={!hasStore}
-                                                        />
-                                                    )}
-                                                />
-                                            </Grid>
-                                            <Grid size={{ xs: 12, sm: 6 }}>
-                                                <Controller
-                                                    name="linkedProductsConfig.limit"
-                                                    control={control}
-                                                    render={({ field }) => (
-                                                        <TextField
-                                                            label="Limit"
-                                                            type="number"
-                                                            fullWidth
-                                                            value={field.value ?? 8}
-                                                            onChange={(e) => field.onChange(parseInt(e.target.value) || 8)}
-                                                            slotProps={{ htmlInput: { min: 1, max: 50 } }}
-                                                            disabled={!hasStore}
-                                                        />
-                                                    )}
-                                                />
-                                            </Grid>
-                                            <Grid size={{ xs: 12, sm: 6 }}>
-                                                <Controller
-                                                    name="linkedProductsConfig.order"
-                                                    control={control}
-                                                    render={({ field }) => (
-                                                        <TextField
-                                                            {...field}
-                                                            select
-                                                            label="Order"
-                                                            fullWidth
-                                                            disabled={!hasStore}
-                                                        >
-                                                            <MenuItem value="latest">Latest</MenuItem>
-                                                            <MenuItem value="random">Random</MenuItem>
-                                                            <MenuItem value="best-selling">Best Selling</MenuItem>
-                                                            <MenuItem value="most-viewed">Most Viewed</MenuItem>
-                                                        </TextField>
-                                                    )}
-                                                />
-                                            </Grid>
-                                        </>
-                                    )}
-
-                                    {/* ── By Products ── */}
-                                    {linkedSourceType === 'products' && (
+                                    <Grid container spacing={3}>
+                                        {/* Source type toggle */}
                                         <Grid size={{ xs: 12 }}>
+                                            <Typography variant="subtitle2" gutterBottom>
+                                                Product Source
+                                            </Typography>
+                                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                                                Pick products manually or auto-populate from a single category.
+                                            </Typography>
                                             <Controller
-                                                name="linkedProductsConfig.productIds"
-                                                control={control}
-                                                render={({ field: { onChange, value } }) => (
-                                                    <ProductAutoComplete
-                                                        storeId={watchedStoreId}
-                                                        multiple
-                                                        label="Search & Add Products"
-                                                        value={value as ProductOption[] || []}
-                                                        onChange={onChange}
-                                                        disabled={!hasStore}
-                                                        helperText={hasStore ? 'Drag selected products below search to set exact order.' : undefined}
-                                                    />
-                                                )}
-                                            />
-                                            {hasStore && (
-                                                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: 'block' }}>
-                                                    {linkedProductsCount} product{linkedProductsCount === 1 ? '' : 's'} selected
-                                                </Typography>
-                                            )}
-                                        </Grid>
-                                    )}
-
-                                    {/* ── Layout Options ── */}
-                                    <Grid size={{ xs: 12 }}>
-                                        <Divider sx={{ mb: 2 }} />
-                                        <Typography variant="subtitle2" gutterBottom>
-                                            Layout
-                                        </Typography>
-                                        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-                                            <Controller
-                                                name="linkedProductsConfig.layout"
+                                                name="linkedProductsConfig.sourceType"
                                                 control={control}
                                                 render={({ field }) => (
                                                     <ToggleButtonGroup
-                                                        value={field.value ?? 'grid'}
+                                                        value={field.value}
                                                         exclusive
                                                         onChange={(_, val) => { if (val) field.onChange(val); }}
                                                         size="small"
                                                     >
-                                                        <ToggleButton value="grid" sx={{ gap: 0.5 }} disabled={!hasStore}>
-                                                            <GridViewIcon fontSize="small" /> Grid
-                                                        </ToggleButton>
-                                                        <ToggleButton value="carousel" sx={{ gap: 0.5 }} disabled={!hasStore}>
-                                                            <ViewCarouselIcon fontSize="small" /> Carousel
-                                                        </ToggleButton>
+                                                        <ToggleButton value="category" disabled={!hasStore}>By Category</ToggleButton>
+                                                        <ToggleButton value="products" disabled={!hasStore}>By Products</ToggleButton>
                                                     </ToggleButtonGroup>
                                                 )}
                                             />
+                                        </Grid>
 
-                                            {linkedLayout === 'grid' && (
+                                        {/* ── By Category ── */}
+                                        {linkedSourceType === 'category' && (
+                                            <>
+                                                <Grid size={{ xs: 12 }}>
+                                                    <Controller
+                                                        name="linkedProductsConfig.categoryId"
+                                                        control={control}
+                                                        render={({ field: { onChange, value } }) => (
+                                                            <CategoryAutocomplete
+                                                                label="Product Category"
+                                                                storeId={watchedStoreId}
+                                                                value={value || null}
+                                                                onChange={(val) => onChange(val)}
+                                                                multiple={false}
+                                                                disabled={!hasStore}
+                                                            />
+                                                        )}
+                                                    />
+                                                </Grid>
+                                                <Grid size={{ xs: 12, sm: 6 }}>
+                                                    <Controller
+                                                        name="linkedProductsConfig.limit"
+                                                        control={control}
+                                                        render={({ field }) => (
+                                                            <TextField
+                                                                label="Limit"
+                                                                type="number"
+                                                                fullWidth
+                                                                value={field.value ?? 8}
+                                                                onChange={(e) => field.onChange(parseInt(e.target.value) || 8)}
+                                                                slotProps={{ htmlInput: { min: 1, max: 50 } }}
+                                                                disabled={!hasStore}
+                                                            />
+                                                        )}
+                                                    />
+                                                </Grid>
+                                                <Grid size={{ xs: 12, sm: 6 }}>
+                                                    <Controller
+                                                        name="linkedProductsConfig.order"
+                                                        control={control}
+                                                        render={({ field }) => (
+                                                            <TextField
+                                                                {...field}
+                                                                select
+                                                                label="Order"
+                                                                fullWidth
+                                                                disabled={!hasStore}
+                                                            >
+                                                                <MenuItem value="latest">Latest</MenuItem>
+                                                                <MenuItem value="random">Random</MenuItem>
+                                                                <MenuItem value="best-selling">Best Selling</MenuItem>
+                                                                <MenuItem value="most-viewed">Most Viewed</MenuItem>
+                                                            </TextField>
+                                                        )}
+                                                    />
+                                                </Grid>
+                                            </>
+                                        )}
+
+                                        {/* ── By Products ── */}
+                                        {linkedSourceType === 'products' && (
+                                            <Grid size={{ xs: 12 }}>
                                                 <Controller
-                                                    name="linkedProductsConfig.columns"
+                                                    name="linkedProductsConfig.productIds"
                                                     control={control}
-                                                    render={({ field }) => (
-                                                        <TextField
-                                                            select
-                                                            label="Products per row"
-                                                            size="small"
-                                                            value={field.value ?? 4}
-                                                            onChange={(e) => field.onChange(parseInt(e.target.value))}
-                                                            sx={{ minWidth: 160 }}
-                                                            helperText={`Mobile: 1 col · Tablet: ${linkedColumns === 1 ? 1 : 2} col`}
+                                                    render={({ field: { onChange, value } }) => (
+                                                        <ProductAutoComplete
+                                                            storeId={watchedStoreId}
+                                                            multiple
+                                                            label="Search & Add Products"
+                                                            value={value as ProductOption[] || []}
+                                                            onChange={onChange}
                                                             disabled={!hasStore}
-                                                        >
-                                                            <MenuItem value={1}>1</MenuItem>
-                                                            <MenuItem value={2}>2</MenuItem>
-                                                            <MenuItem value={3}>3</MenuItem>
-                                                            <MenuItem value={4}>4</MenuItem>
-                                                            <MenuItem value={5}>5</MenuItem>
-                                                        </TextField>
+                                                            helperText={hasStore ? 'Drag selected products below search to set exact order.' : undefined}
+                                                        />
                                                     )}
                                                 />
-                                            )}
-                                            {linkedLayout === 'carousel' && (
-                                                <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
-                                                    Carousel uses horizontal swipe/scroll on all devices.
-                                                </Typography>
-                                            )}
-                                        </Box>
-                                    </Grid>
+                                                {hasStore && (
+                                                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: 'block' }}>
+                                                        {linkedProductsCount} product{linkedProductsCount === 1 ? '' : 's'} selected
+                                                    </Typography>
+                                                )}
+                                            </Grid>
+                                        )}
 
-                                    {/* Optional title */}
-                                    <Grid size={{ xs: 12 }}>
-                                        <Controller
-                                            name="linkedProductsConfig.title"
-                                            control={control}
-                                            render={({ field }) => (
-                                                <TextField
-                                                    {...field}
-                                                    label="Section Title (optional)"
-                                                    fullWidth
-                                                    placeholder="Related Products"
-                                                    slotProps={{
-                                                        input: {
-                                                            startAdornment: (
-                                                                <InputAdornment position="start">
-                                                                    <Typography variant="caption" color="text.secondary">Title:</Typography>
-                                                                </InputAdornment>
-                                                            ),
-                                                        },
-                                                    }}
-                                                    disabled={!hasStore}
+                                        {/* ── Layout Options ── */}
+                                        <Grid size={{ xs: 12 }}>
+                                            <Divider sx={{ mb: 2 }} />
+                                            <Typography variant="subtitle2" gutterBottom>
+                                                Layout
+                                            </Typography>
+                                            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                                                <Controller
+                                                    name="linkedProductsConfig.layout"
+                                                    control={control}
+                                                    render={({ field }) => (
+                                                        <ToggleButtonGroup
+                                                            value={field.value ?? 'grid'}
+                                                            exclusive
+                                                            onChange={(_, val) => { if (val) field.onChange(val); }}
+                                                            size="small"
+                                                        >
+                                                            <ToggleButton value="grid" sx={{ gap: 0.5 }} disabled={!hasStore}>
+                                                                <GridViewIcon fontSize="small" /> Grid
+                                                            </ToggleButton>
+                                                            <ToggleButton value="carousel" sx={{ gap: 0.5 }} disabled={!hasStore}>
+                                                                <ViewCarouselIcon fontSize="small" /> Carousel
+                                                            </ToggleButton>
+                                                        </ToggleButtonGroup>
+                                                    )}
                                                 />
-                                            )}
-                                        />
+
+                                                {linkedLayout === 'grid' && (
+                                                    <Controller
+                                                        name="linkedProductsConfig.columns"
+                                                        control={control}
+                                                        render={({ field }) => (
+                                                            <TextField
+                                                                select
+                                                                label="Products per row"
+                                                                size="small"
+                                                                value={field.value ?? 4}
+                                                                onChange={(e) => field.onChange(parseInt(e.target.value))}
+                                                                sx={{ minWidth: 160 }}
+                                                                helperText={`Mobile: 1 col · Tablet: ${linkedColumns === 1 ? 1 : 2} col`}
+                                                                disabled={!hasStore}
+                                                            >
+                                                                <MenuItem value={1}>1</MenuItem>
+                                                                <MenuItem value={2}>2</MenuItem>
+                                                                <MenuItem value={3}>3</MenuItem>
+                                                                <MenuItem value={4}>4</MenuItem>
+                                                                <MenuItem value={5}>5</MenuItem>
+                                                            </TextField>
+                                                        )}
+                                                    />
+                                                )}
+                                                {linkedLayout === 'carousel' && (
+                                                    <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
+                                                        Carousel uses horizontal swipe/scroll on all devices.
+                                                    </Typography>
+                                                )}
+                                            </Box>
+                                        </Grid>
+
+                                        {/* Optional title */}
+                                        <Grid size={{ xs: 12 }}>
+                                            <Controller
+                                                name="linkedProductsConfig.title"
+                                                control={control}
+                                                render={({ field }) => (
+                                                    <TextField
+                                                        {...field}
+                                                        label="Section Title (optional)"
+                                                        fullWidth
+                                                        placeholder="Related Products"
+                                                        slotProps={{
+                                                            input: {
+                                                                startAdornment: (
+                                                                    <InputAdornment position="start">
+                                                                        <Typography variant="caption" color="text.secondary">Title:</Typography>
+                                                                    </InputAdornment>
+                                                                ),
+                                                            },
+                                                        }}
+                                                        disabled={!hasStore}
+                                                    />
+                                                )}
+                                            />
+                                        </Grid>
                                     </Grid>
-                                </Grid>
                                 </Box>
                             )}
                         </Paper>

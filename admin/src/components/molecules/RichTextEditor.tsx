@@ -564,18 +564,22 @@ const FAQDialog = ({
                         </Box>
                     </Box>
                 ))}
-                <Button onClick={handleAdd} variant="outlined" fullWidth sx={{ mt: 0.5, py: 0.5, fontSize: '0.85rem' }}>
-                    + Add FAQ Item
-                </Button>
             </DialogContent>
-            <DialogActions sx={{ px: 2, py: 1 }}>
-                {showDelete && onDelete && (
-                    <Button onClick={handleDelete} color="error" variant="outlined" size="small" sx={{ mr: 'auto' }}>
-                        Delete FAQs
+            <DialogActions sx={{ px: 2, py: 1, display: 'flex', justifyContent: 'space-between' }}>
+                <Box>
+                    <Button onClick={handleAdd} variant="outlined" size="small" sx={{ mt: 0.5, py: 0.5, fontSize: '0.85rem' }}>
+                        + Add FAQ Item
                     </Button>
-                )}
-                <Button onClick={onClose} size="small">Cancel</Button>
-                <Button onClick={handleSave} variant="contained" color="primary" size="small">Save FAQs</Button>
+                </Box>
+                <Box>
+                    {showDelete && onDelete && (
+                        <Button onClick={handleDelete} color="error" variant="outlined" size="small" sx={{ mr: 'auto' }}>
+                            Delete FAQs
+                        </Button>
+                    )}
+                    <Button onClick={onClose} size="small">Cancel</Button>
+                    <Button onClick={handleSave} variant="contained" color="primary" size="small">Save FAQs</Button>
+                </Box>
             </DialogActions>
         </Dialog>
     );
@@ -1285,10 +1289,10 @@ export default function RichTextEditor({
                 </Box>
             ) : (
                 <Box sx={{
-                    flex: fullscreenMode ? 1 : undefined,
-                    overflow: fullscreenMode ? 'auto' : undefined,
-                    '& .ProseMirror': fullscreenMode ? { minHeight: 'calc(100vh - 120px)' } : {},
-                    maxHeight: '65vh',
+                    flex: 1,
+                    overflow: 'auto',
+                    '& .ProseMirror': { minHeight: 'calc(100vh - 120px)' },
+                    maxHeight: !isFullscreen ? '65vh' : 'none',
                     overflowY: 'auto',
                 }}>
                     <EditorContent editor={editor} />
@@ -1574,7 +1578,7 @@ export default function RichTextEditor({
                     },
                 }}
             >
-                {renderEditorContent()}
+                {!isFullscreen && renderEditorContent()}
             </Box>
             {helperText && (
                 <Typography variant="caption" color={error ? 'error' : 'textSecondary'} sx={{ mt: 0.5, ml: 1.5 }}>
@@ -1753,7 +1757,7 @@ export default function RichTextEditor({
                     }
                 }}
             >
-                {renderEditorContent(true)}
+                {isFullscreen && renderEditorContent(true)}
             </Dialog>
         </Box>
     );
