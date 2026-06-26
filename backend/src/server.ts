@@ -1,5 +1,19 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
+import * as Sentry from '@sentry/node';
+
+if (process.env.SENTRY_DSN) {
+    Sentry.init({
+        dsn: process.env.SENTRY_DSN,
+        environment: process.env.NODE_ENV || 'development',
+        tracesSampleRate: 1.0,
+    });
+}
+
 import express, { Express, Request, Response, RequestHandler } from 'express';
 import { createServer } from 'http';
+
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -130,8 +144,15 @@ app.use('/api', channelMiddleware);
 // Mount API routes
 app.use('/api', apiRoutes);
 // API routes will be added here
+
+// Sentry error handler (must be registered before any other error middleware)
+if (process.env.SENTRY_DSN) {
+    Sentry.setupExpressErrorHandler(app);
+}
+
 // 404 handler
 app.use((req: Request, res: Response) => {
+
     res.status(404).json({
         error: 'Not Found',
         message: `Route ${req.method} ${req.path} not found`,

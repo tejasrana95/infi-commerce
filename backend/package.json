@@ -24,6 +24,7 @@
     "dependencies": {
         "@aws-sdk/client-s3": "^3.967.0",
         "@aws-sdk/client-ses": "^3.958.0",
+        "@sentry/node": "^10.61.0",
         "@types/express-rate-limit": "^6.0.2",
         "@types/pdfkit": "^0.17.4",
         "axios": "^1.15.2",

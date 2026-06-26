@@ -97,5 +97,10 @@ export const config = {
         ttlDays: Math.min(Math.max(parseInt(process.env.CATEGORY_API_CACHE_TTL_DAYS || '7', 10) || 7, 1), 365),
     },
 
-    appName: 'Infi Commerce POS',
+    sentry: {
+        dsn: process.env.SENTRY_DSN || '',
+    },
+
+    appName: 'Infi Commerce API',
 };
+
