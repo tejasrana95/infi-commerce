@@ -64,6 +64,15 @@ const nextConfig: NextConfig & { sentry?: any } = {
         ],
       },
       {
+        source: '/sitemap.xml',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          },
+        ],
+      },
+      {
         source: '/:path*.(woff|woff2|ttf|otf)',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },

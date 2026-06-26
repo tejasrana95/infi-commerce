@@ -3,7 +3,7 @@ import { getServerStore } from '@/lib/api/server-store';
 import { headers } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 3600; // Revalidate every hour
+export const revalidate = 0; // Disable caching to fetch fresh data on every request
 
 interface SitemapEntry {
     url: string;
