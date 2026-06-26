@@ -41,6 +41,8 @@ export const CACHE_TTL = {
     FORMS: 600,
     /** Geo data - 1 hour (country/state data is static) */
     GEO: 3600,
+    /** Product listings and detail - 1 hour */
+    PRODUCTS: 3600,
 } as const;
 
 /**
@@ -137,6 +139,14 @@ export const CacheKeys = {
     geoCountries: () => `geo:countries`,
     /** Geo states for country: geo:states:{countryCode} */
     geoStates: (countryCode: string) => `geo:states:${countryCode}`,
+
+    // ===== Product Keys =====
+    /** Product by ID: product:id:${productId} */
+    productId: (productId: string) => `product:id:${productId}`,
+    /** Product by Slug: product:slug:${storeId}:${slug} */
+    productSlug: (storeId: string, slug: string) => `product:slug:${storeId}:${slug}`,
+    /** Products list: products:list:${storeId}:${channel}:${queryHash} */
+    productsList: (storeId: string, channel: string, queryHash: string) => `products:list:${storeId}:${channel}:${queryHash}`,
 };
 
 /**
@@ -176,4 +186,6 @@ export const InvalidationPatterns = {
     allBanners: (storeId: string) => `banners:${storeId}*`,
     /** All domain checks */
     allDomains: () => `domain:*`,
+    /** All products for a store: products:list:${storeId}* */
+    allProductsList: (storeId: string) => `products:list:${storeId}*`,
 };

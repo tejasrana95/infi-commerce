@@ -4,6 +4,10 @@ import Currency from '../models/Currency';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import { invalidateCurrencyCache } from '../utils/cache-invalidation';
+import redisService from '../services/redis.service';
+import crypto from 'crypto';
+import { CACHE_TTL } from '../utils/cache-keys';
+
 
 // Validation rules
 export const createCurrencyValidation = [
@@ -112,9 +116,31 @@ export const getCurrencies = asyncHandler(async (req: AuthRequest, res: Response
 
     const filter: any = {};
 
+    const bypassCache = req.query.cache === 'false' || req.query.nocache === 'true';
+    const canUseCache = !bypassCache && !req.user;
+    let cacheKey = '';
+
+    if (canUseCache) {
+        const normalizedQuery = Object.keys(req.query)
+            .filter(k => k !== 'cache' && k !== 'nocache')
+            .sort()
+            .map(k => `${k}=${req.query[k]}`)
+            .join('&');
+        const queryHash = crypto.createHash('md5').update(normalizedQuery).digest('hex');
+        cacheKey = `currencies:list:query:${queryHash}`;
+
+        const cached = await redisService.get<any>(cacheKey);
+        if (cached) {
+            res.json(cached);
+            return;
+        }
+    }
+
+
     if (req.query.isActive !== undefined) {
         filter.isActive = req.query.isActive === 'true';
     }
+
 
     if (req.query.search) {
         const searchRegex = { $regex: req.query.search, $options: 'i' };
@@ -133,7 +159,7 @@ export const getCurrencies = asyncHandler(async (req: AuthRequest, res: Response
         Currency.countDocuments(filter)
     ]);
 
-    res.json({
+    const responsePayload = {
         success: true,
         currencies,
         pagination: {
@@ -142,8 +168,15 @@ export const getCurrencies = asyncHandler(async (req: AuthRequest, res: Response
             limit,
             pages: Math.ceil(total / limit)
         }
-    });
+    };
+
+    if (canUseCache && cacheKey) {
+        await redisService.set(cacheKey, responsePayload, CACHE_TTL.CURRENCIES);
+    }
+
+    res.json(responsePayload);
 });
+
 
 /**
  * @swagger

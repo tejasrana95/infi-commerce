@@ -295,6 +295,13 @@ function CategoryPageInner({
         prevSearchParamsRef.current = currentParams;
     }, [searchParams]);
 
+    // Handle React 18 Strict Mode unmount/remount
+    useEffect(() => {
+        return () => {
+            hasInitialFetchRef.current = false;
+        };
+    }, []);
+
     useEffect(() => {
         // Skip if we already have initial products and this is the first render
         if (!hasInitialFetchRef.current) {

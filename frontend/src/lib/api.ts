@@ -429,6 +429,24 @@ export { ApiClient };
 
 import { resolveStoreByDomain } from '@/lib/store-cache';
 
+// Caching helper functions for Server Components/SSR (dynamic loading keeps browser bundle clean)
+async function getCachedData<T>(key: string): Promise<T | null> {
+    if (typeof window !== 'undefined') return null;
+    try {
+        const { serverCacheGet } = await import(/* webpackIgnore: true */ '@/lib/server-cache');
+        return await serverCacheGet<T>(key);
+    } catch { return null; }
+}
+
+async function setCachedData<T>(key: string, data: T, ttl: number): Promise<void> {
+    if (typeof window !== 'undefined') return;
+    try {
+        const { serverCacheSet } = await import(/* webpackIgnore: true */ '@/lib/server-cache');
+        await serverCacheSet(key, data, ttl);
+    } catch { }
+}
+
+
 /**
  * Fetch store by domain with three-layer caching (memory → file → API)
  * Use this function in Server Components for optimal performance
@@ -530,6 +548,10 @@ export async function getStore(domain: string, nocache: boolean = false): Promis
 }
 
 export async function fetchCurrencies(storeId: string): Promise<import('@/types').Currency[]> {
+    const cacheKey = `currencies:${storeId}`;
+    const cached = await getCachedData<import('@/types').Currency[]>(cacheKey);
+    if (cached) return cached;
+
     try {
         const res = await fetch(`${API_BASE_URL}/currencies?storeId=${storeId}&isActive=true`, {
             ...getCacheOptions('currencies'),
@@ -538,12 +560,17 @@ export async function fetchCurrencies(storeId: string): Promise<import('@/types'
 
         if (!res.ok) return [];
         const data = await res.json();
-        return data.currencies || [];
+        const currenciesList = data.currencies || [];
+        if (currenciesList.length > 0) {
+            await setCachedData(cacheKey, currenciesList, getRevalidateTime('currencies') || 3600);
+        }
+        return currenciesList;
     } catch (error) {
         console.error('Error fetching currencies:', error);
         return [];
     }
 }
+
 
 // ============================================
 // Server-Side Blog & Page Fetch Functions (SSR)
@@ -557,6 +584,11 @@ export async function fetchBlogPosts(storeId: string, params?: {
     tag?: string;
     search?: string;
 }) {
+    const paramKey = JSON.stringify(params || {});
+    const cacheKey = `blog:posts:${storeId}:${paramKey}`;
+    const cached = await getCachedData<any>(cacheKey);
+    if (cached) return cached;
+
     try {
         const queryParams = new URLSearchParams();
         queryParams.append('page', (params?.page || 1).toString());
@@ -577,14 +609,21 @@ export async function fetchBlogPosts(storeId: string, params?: {
         });
 
         if (!res.ok) return { data: [], pagination: { page: 1, pages: 1, total: 0, limit: 12 } };
-        return await res.json();
+        const data = await res.json();
+        await setCachedData(cacheKey, data, getRevalidateTime('blogPosts') || 600);
+        return data;
     } catch (error) {
         console.error('Error fetching blog posts:', error);
         return { data: [], pagination: { page: 1, pages: 1, total: 0, limit: 12 } };
     }
 }
 
+
 export async function fetchBlogPostBySlug(storeId: string, slug: string) {
+    const cacheKey = `blog:post:${storeId}:${slug}`;
+    const cached = await getCachedData<any>(cacheKey);
+    if (cached) return cached;
+
     try {
         const res = await fetch(`${API_BASE_URL}/blog/posts/slug/${slug}`, {
             ...getCacheOptions('blogPosts'),
@@ -597,12 +636,17 @@ export async function fetchBlogPostBySlug(storeId: string, slug: string) {
 
         if (!res.ok) return null;
         const data = await res.json();
-        return data.data;
+        const postData = data.data;
+        if (postData) {
+            await setCachedData(cacheKey, postData, getRevalidateTime('blogPosts') || 600);
+        }
+        return postData;
     } catch (error) {
         console.error('Error fetching blog post:', error);
         return null;
     }
 }
+
 
 export async function fetchBlogCategories(storeId: string) {
     try {
@@ -645,6 +689,10 @@ export async function fetchBlogTags(storeId: string, limit: number = 20) {
 }
 
 export async function fetchPageBySlug(storeId: string, slug: string) {
+    const cacheKey = `page:slug:${storeId}:${slug}`;
+    const cached = await getCachedData<any>(cacheKey);
+    if (cached) return cached;
+
     try {
         const res = await fetch(`${API_BASE_URL}/pages/slug/${slug}`, {
             ...getCacheOptions('page'),
@@ -657,7 +705,11 @@ export async function fetchPageBySlug(storeId: string, slug: string) {
 
         if (!res.ok) return null;
         const data = await res.json();
-        return data.data;
+        const pageData = data.data;
+        if (pageData) {
+            await setCachedData(cacheKey, pageData, getRevalidateTime('page') || 3600);
+        }
+        return pageData;
     } catch (error) {
         console.error('Error fetching page:', error);
         return null;
@@ -665,6 +717,10 @@ export async function fetchPageBySlug(storeId: string, slug: string) {
 }
 
 export async function fetchHeroSlider(storeId: string, id: string) {
+    const cacheKey = `heroslider:${storeId}:${id}`;
+    const cached = await getCachedData<any>(cacheKey);
+    if (cached) return cached;
+
     try {
         const res = await fetch(`${API_BASE_URL}/hero-sliders/${id}`, {
             ...getCacheOptions('heroSlider'),
@@ -676,9 +732,14 @@ export async function fetchHeroSlider(storeId: string, id: string) {
         });
 
         if (!res.ok) return null;
-        return await res.json();
+        const data = await res.json();
+        if (data) {
+            await setCachedData(cacheKey, data, getRevalidateTime('heroSlider') || 300);
+        }
+        return data;
     } catch (error) {
         console.error('Error fetching hero slider:', error);
         return null;
     }
 }
+

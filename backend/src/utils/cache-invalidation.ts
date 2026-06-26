@@ -116,6 +116,30 @@ export const invalidateBrandCache = async (storeId: string): Promise<void> => {
 };
 
 /**
+ * Invalidate product cache for a store
+ * @param storeId The store ID
+ * @param productId Optional product ID to clear specific item
+ * @param slug Optional product slug to clear specific item
+ */
+export const invalidateProductCache = async (
+    storeId: string,
+    productId?: string,
+    slug?: string
+): Promise<void> => {
+    const deletes: Promise<any>[] = [
+        redisService.deleteByPattern(InvalidationPatterns.allProductsList(storeId)),
+    ];
+    if (productId) {
+        deletes.push(redisService.delete(CacheKeys.productId(productId)));
+    }
+    if (slug) {
+        deletes.push(redisService.delete(CacheKeys.productSlug(storeId, slug)));
+    }
+    await Promise.all(deletes);
+};
+
+
+/**
  * Invalidate tax rate cache
  * @param taxRateId Optional specific tax rate ID to invalidate
  */
@@ -233,6 +257,7 @@ export const invalidateAllStoreCache = async (storeId: string): Promise<void> =>
         invalidateLayoutCache(storeId),
         invalidateTestimonialCache(storeId),
         invalidateBannerCache(storeId),
+        invalidateProductCache(storeId),
     ]);
 };
 

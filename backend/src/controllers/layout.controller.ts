@@ -4,6 +4,10 @@ import Layout from '../models/Layout';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import { invalidateLayoutCache } from '../utils/cache-invalidation';
+import redisService from '../services/redis.service';
+import crypto from 'crypto';
+import { CACHE_TTL } from '../utils/cache-keys';
+
 
 const PRIVILEGED_LAYOUT_ROLES = new Set(['admin', 'store_admin', 'super_admin']);
 
@@ -154,6 +158,28 @@ export const getLayouts = asyncHandler(async (req: AuthRequest, res: Response) =
         throw new AppError('Store ID is required', 400);
     }
 
+    const bypassCache = req.query.cache === 'false' || req.query.nocache === 'true';
+    const canUseCache = !bypassCache && !req.user;
+    let cacheKey = '';
+
+    if (canUseCache) {
+        const normalizedQuery = Object.keys(req.query)
+            .filter(k => k !== 'cache' && k !== 'nocache')
+            .sort()
+            .map(k => `${k}=${req.query[k]}`)
+            .join('&');
+        const queryHash = crypto.createHash('md5').update(normalizedQuery).digest('hex');
+        cacheKey = `layouts:list:store:${effectiveStoreId || 'all'}:query:${queryHash}`;
+
+        const cached = await redisService.get<any>(cacheKey);
+        if (cached) {
+            res.json(cached);
+            return;
+        }
+    }
+
+
+
     if (req.query.type) {
         filter.type = req.query.type;
     }
@@ -192,7 +218,7 @@ export const getLayouts = asyncHandler(async (req: AuthRequest, res: Response) =
 
     const layoutPayload = isPrivileged ? layouts : layouts.map((item) => sanitizePublicLayout(item.toObject()));
 
-    res.json({
+    const responsePayload = {
         success: true,
         data: layoutPayload,
         pagination: {
@@ -201,8 +227,15 @@ export const getLayouts = asyncHandler(async (req: AuthRequest, res: Response) =
             limit,
             pages: Math.ceil(total / limit)
         }
-    });
+    };
+
+    if (canUseCache && cacheKey) {
+        await redisService.set(cacheKey, responsePayload, CACHE_TTL.LAYOUTS);
+    }
+
+    res.json(responsePayload);
 });
+
 
 /**
  * @swagger

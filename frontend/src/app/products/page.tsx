@@ -131,7 +131,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     };
 
     return (
-        <Suspense fallback={<CategoryPageSkeleton />}>
+        
             <CategoryPageClient
                 category={allProductsCategory}
                 initialProducts={products}
@@ -139,6 +139,6 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                 initialLayout={layout}
                 initialPagination={pagination}
             />
-        </Suspense>
+        
     );
 }

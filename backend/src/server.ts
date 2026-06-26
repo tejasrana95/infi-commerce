@@ -145,6 +145,7 @@ app.use('/api', channelMiddleware);
 app.use('/api', apiRoutes);
 // API routes will be added here
 
+
 // Sentry error handler (must be registered before any other error middleware)
 if (process.env.SENTRY_DSN) {
     Sentry.setupExpressErrorHandler(app);

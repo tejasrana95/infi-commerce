@@ -385,7 +385,7 @@ export default async function UniversalPage({ params, searchParams }: UniversalP
         if (!category) notFound();
 
         return (
-            <Suspense fallback={<CategoryPageSkeleton />}>
+            
                 <CategoryPageClient
                     category={category}
                     initialProducts={products}
@@ -393,7 +393,7 @@ export default async function UniversalPage({ params, searchParams }: UniversalP
                     initialLayout={layout}
                     initialPagination={pagination}
                 />
-            </Suspense>
+            
         );
     }
 

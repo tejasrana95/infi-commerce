@@ -7,6 +7,10 @@ import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import { invalidateBrandCache } from '../utils/cache-invalidation';
 import SlugRegistry from '../models/SlugRegistry';
+import redisService from '../services/redis.service';
+import crypto from 'crypto';
+import { CACHE_TTL } from '../utils/cache-keys';
+
 
 const PRIVILEGED_BRAND_ROLES = new Set(['admin', 'store_admin', 'super_admin']);
 
@@ -154,6 +158,28 @@ export const getBrands = asyncHandler(async (req: AuthRequest, res: Response) =>
         filter.storeId = effectiveStoreId;
     }
 
+    const bypassCache = req.query.cache === 'false' || req.query.nocache === 'true';
+    const canUseCache = !bypassCache && !req.user;
+    let cacheKey = '';
+
+    if (canUseCache) {
+        const normalizedQuery = Object.keys(req.query)
+            .filter(k => k !== 'cache' && k !== 'nocache')
+            .sort()
+            .map(k => `${k}=${req.query[k]}`)
+            .join('&');
+        const queryHash = crypto.createHash('md5').update(normalizedQuery).digest('hex');
+        cacheKey = `brands:list:store:${effectiveStoreId || 'all'}:channel:${req.channel || 'all'}:query:${queryHash}`;
+
+        const cached = await redisService.get<any>(cacheKey);
+        if (cached) {
+            res.json(cached);
+            return;
+        }
+    }
+
+
+
     if (req.query.isActive !== undefined) {
         filter.isActive = req.query.isActive === 'true';
     } else if (!isPrivileged) {
@@ -207,7 +233,7 @@ export const getBrands = asyncHandler(async (req: AuthRequest, res: Response) =>
 
     const brandPayload = isPrivileged ? brands : brands.map((brand) => sanitizePublicBrand(brand.toObject()));
 
-    res.json({
+    const responsePayload = {
         brands: brandPayload,
         pagination: {
             page,
@@ -215,8 +241,15 @@ export const getBrands = asyncHandler(async (req: AuthRequest, res: Response) =>
             total,
             pages: Math.ceil(total / limit)
         }
-    });
+    };
+
+    if (canUseCache && cacheKey) {
+        await redisService.set(cacheKey, responsePayload, CACHE_TTL.BRANDS);
+    }
+
+    res.json(responsePayload);
 });
+
 
 /**
  * @swagger

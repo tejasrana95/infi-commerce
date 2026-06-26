@@ -68,7 +68,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     );
 
     return (
-        <Suspense fallback={<CategoryPageSkeleton />}>
+        
             <SearchPageClient
                 searchQuery={searchQuery}
                 initialProducts={products}
@@ -77,6 +77,6 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 initialPagination={pagination}
                 didYouMean={didYouMean}
             />
-        </Suspense>
+        
     );
 }

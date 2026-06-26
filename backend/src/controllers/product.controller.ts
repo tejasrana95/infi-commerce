@@ -13,6 +13,11 @@ import { addTimezoneAwareDates } from '../utils/date.utils';
 import { escapeRegExp, getSearchSuggestions } from '../utils/search.utils';
 import { updateProductSyncTimestamp } from '../utils/sync-timestamp.utils';
 import SlugRegistry from '../models/SlugRegistry';
+import redisService from '../services/redis.service';
+import { CacheKeys, CACHE_TTL } from '../utils/cache-keys';
+import { invalidateProductCache } from '../utils/cache-invalidation';
+import crypto from 'crypto';
+
 
 
 // ============================================
@@ -374,6 +379,8 @@ export const createProduct = asyncHandler(async (req: AuthRequest, res: Response
     const product = await Product.create(productData);
 
     await updateProductSyncTimestamp(product.storeId.toString());
+    await invalidateProductCache(product.storeId.toString(), product._id.toString(), product.slug);
+
 
     res.status(201).json({
         message: 'Product created successfully',
@@ -513,6 +520,29 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
     const storeIdFromBody = req.body?.storeId as string;
     const effectiveStoreId = storeIdFromHeader || storeIdFromQuery || storeIdFromBody;
 
+    const bypassCache = req.query.cache === 'false' || req.query.nocache === 'true';
+    const canUseCache = !bypassCache && !req.user;
+    let cacheKey = '';
+
+    if (canUseCache) {
+        const normalizedQueryForCache = Object.keys(req.query)
+            .filter((key) => key !== 'cache' && key !== 'nocache')
+            .sort()
+            .map((key) => {
+                const value = req.query[key];
+                if (Array.isArray(value)) return `${key}=${value.join(',')}`;
+                return `${key}=${String(value)}`;
+            })
+            .join('&');
+        const queryHash = crypto.createHash('md5').update(normalizedQueryForCache).digest('hex');
+        cacheKey = CacheKeys.productsList(effectiveStoreId || 'all', req.channel || 'all', queryHash);
+
+        const cachedResponse = await redisService.get<any>(cacheKey);
+        if (cachedResponse) {
+            return res.json(cachedResponse);
+        }
+    }
+
     if (isStoreAdmin) {
         if (assignedStoreIds.length === 0) {
             return res.json({ products: [], total: 0, pages: 0 });
@@ -522,6 +552,7 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         // Filter by store ID from header, query, or body
         filter.storeId = effectiveStoreId;
     }
+
     // Channel filter
     if (req.channel) {
         const channelFilter = {
@@ -1090,7 +1121,7 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         ? productsWithPricing
         : productsWithPricing.map((product: any) => sanitizePublicProduct(product, isListingView ? 'listing' : 'detail'));
 
-    return res.json({
+    const responseData = {
         products: responseProducts,
         pagination: {
             total: totalCount,
@@ -1101,8 +1132,15 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         activeFilters: Object.keys(activeFilters).length > 0 ? activeFilters : undefined,
         sort: sortParam,
         didYouMean: didYouMean || undefined,
-    });
+    };
+
+    if (canUseCache && cacheKey) {
+        await redisService.set(cacheKey, responseData, CACHE_TTL.PRODUCTS);
+    }
+
+    return res.json(responseData);
 });
+
 
 /**
  * @swagger
@@ -1127,6 +1165,20 @@ export const getProductById = asyncHandler(async (req: AuthRequest, res: Respons
     const isAdmin = userRole && (userRole === 'admin' || userRole === 'store_admin' || userRole === 'super_admin');
     const removeProductCost = !isAdmin ? '-costPrice -variants.costPrice' : '';
 
+    const bypassCache = req.query.cache === 'false' || req.query.nocache === 'true';
+    const canUseCache = !bypassCache && !req.user;
+    const cacheKey = CacheKeys.productId(req.params.id);
+
+    if (canUseCache) {
+        const cached = await redisService.get<any>(cacheKey);
+        if (cached) {
+            Product.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } }).exec().catch(() => {});
+            res.json(cached);
+            return;
+        }
+    }
+
+
     const product = await Product.findById(req.params.id)
         .select(`-__v ${removeProductCost}`)
         .populate('storeId', 'name slug domain timezone')
@@ -1141,6 +1193,7 @@ export const getProductById = asyncHandler(async (req: AuthRequest, res: Respons
     if (!product) {
         throw new AppError('Product not found', 404);
     }
+
 
     // Increment view count atomically to prevent version conflicts
     await Product.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } });
@@ -1184,11 +1237,18 @@ export const getProductById = asyncHandler(async (req: AuthRequest, res: Respons
         stripPriceFields(productObj);
     }
 
-    res.json({
+    const responsePayload = {
         product: isAdmin ? productObj : sanitizePublicProduct(productObj, 'detail'),
         activeSales: hidePrice ? undefined : sales,
-    });
+    };
+
+    if (canUseCache) {
+        await redisService.set(cacheKey, responsePayload, CACHE_TTL.PRODUCTS);
+    }
+
+    res.json(responsePayload);
 });
+
 
 /**
  * @swagger
@@ -1219,6 +1279,22 @@ export const getProductBySlug = asyncHandler(async (req: AuthRequest, res: Respo
     const isAdmin = userRole && (userRole === 'admin' || userRole === 'store_admin' || userRole === 'super_admin');
     const removeProductCost = !isAdmin ? '-costPrice -variants.costPrice' : '';
 
+    const bypassCache = req.query.cache === 'false' || req.query.nocache === 'true';
+    const canUseCache = !bypassCache && !req.user;
+    const cacheKey = CacheKeys.productSlug(storeId, slug);
+
+    if (canUseCache) {
+        const cached = await redisService.get<any>(cacheKey);
+        if (cached) {
+            if (cached.product?._id) {
+                Product.findByIdAndUpdate(cached.product._id, { $inc: { views: 1 } }).exec().catch(() => {});
+            }
+            res.json(cached);
+            return;
+        }
+    }
+
+
     const product = await Product.findOne({ storeId, slug, isActive: true })
         .select(`-__v ${removeProductCost}`)
         .populate('storeId', 'name slug domain timezone')
@@ -1233,6 +1309,7 @@ export const getProductBySlug = asyncHandler(async (req: AuthRequest, res: Respo
     if (!product) {
         throw new AppError('Product not found', 404);
     }
+
 
     // Increment view count atomically to prevent version conflicts
     await Product.findByIdAndUpdate(product._id, { $inc: { views: 1 } });
@@ -1272,8 +1349,15 @@ export const getProductBySlug = asyncHandler(async (req: AuthRequest, res: Respo
         stripPriceFields(productObj);
     }
 
-    res.json({ product: isAdmin ? productObj : sanitizePublicProduct(productObj, 'detail') });
+    const responsePayload = { product: isAdmin ? productObj : sanitizePublicProduct(productObj, 'detail') };
+
+    if (canUseCache) {
+        await redisService.set(cacheKey, responsePayload, CACHE_TTL.PRODUCTS);
+    }
+
+    res.json(responsePayload);
 });
+
 
 /**
  * @swagger
@@ -1361,6 +1445,8 @@ export const updateProduct = asyncHandler(async (req: AuthRequest, res: Response
     await product.save();
 
     await updateProductSyncTimestamp(product.storeId.toString());
+    await invalidateProductCache(product.storeId.toString(), product._id.toString(), product.slug);
+
 
     res.json({
         message: 'Product updated successfully',
@@ -1406,6 +1492,8 @@ export const deleteProduct = asyncHandler(async (req: AuthRequest, res: Response
     await SlugRegistry.deleteMany({ entityType: 'product', entityId: product._id });
 
     await updateProductSyncTimestamp(product.storeId.toString());
+    await invalidateProductCache(product.storeId.toString(), product._id.toString(), product.slug);
+
 
     res.json({
         message: 'Product deleted successfully',
@@ -1657,6 +1745,8 @@ export const updateStock = asyncHandler(async (req: AuthRequest, res: Response) 
     await product.save();
 
     await updateProductSyncTimestamp(product.storeId.toString());
+    await invalidateProductCache(product.storeId.toString(), product._id.toString(), product.slug);
+
 
     res.json({
         message: 'Stock updated successfully',
@@ -1910,7 +2000,9 @@ export const bulkAction = asyncHandler(async (req: AuthRequest, res: Response) =
     // Invalidate caches for all affected stores
     for (const storeId of storeIds) {
         await updateProductSyncTimestamp(storeId);
+        await invalidateProductCache(storeId);
     }
+
 
     res.json({
         message: `Bulk ${action} completed successfully`,
@@ -2028,7 +2120,9 @@ export const bulkOperation = asyncHandler(async (req: AuthRequest, res: Response
     // Invalidate caches for all affected stores
     for (const storeId of storeIds) {
         await updateProductSyncTimestamp(storeId);
+        await invalidateProductCache(storeId);
     }
+
 
     res.json({
         message: 'Bulk operation completed successfully',
