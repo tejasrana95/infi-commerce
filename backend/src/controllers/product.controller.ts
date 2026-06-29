@@ -1788,23 +1788,22 @@ export const getSearchFilters = asyncHandler(async (req: AuthRequest, res: Respo
         throw new AppError('storeId is required', 400);
     }
 
-    if (!search) {
-        throw new AppError('search query is required', 400);
-    }
-
     const Attribute = require('../models/Attribute').default;
-    const searchRegex = new RegExp(search as string, 'i');
 
     // Build base match for products matching the search
     const baseMatch: any = {
         storeId: mongoose.Types.ObjectId.createFromHexString(storeId as string),
         isActive: true,
-        $or: [
+    };
+
+    if (search) {
+        const searchRegex = new RegExp(search as string, 'i');
+        baseMatch.$or = [
             { name: searchRegex },
             { sku: searchRegex },
             { 'variants.sku': searchRegex },
-        ],
-    };
+        ];
+    }
 
     // Run aggregation pipelines in parallel
     const [priceRange, brands, tags, ratings, availability] = await Promise.all([

@@ -370,7 +370,7 @@ export async function fetchBlogPostBySlug(storeId: string, slug: string): Promis
             fetchLayout(storeId, 'blog-post', slug),  // Pass slug for slug-specific layout
         ]);
 
-        if (!postsRes.ok) return null;
+        if (!postsRes.ok) return { data: null, layout: null };
         const data = await postsRes.json();
 
         return {
@@ -379,7 +379,7 @@ export async function fetchBlogPostBySlug(storeId: string, slug: string): Promis
         };
     } catch (error) {
         console.error('Error fetching blog post by slug:', error);
-        return null;
+        return { data: null, layout: null };
     }
 }
 

@@ -15,5 +15,19 @@ if (SENTRY_DSN) {
     // This sets the sample rate to be 10%. You may want this to be 100% while
     // in development and sample less in production
     replaysSessionSampleRate: 0.1,
+
+    // Ignore known third-party widget errors and scripts to reduce Sentry noise
+    ignoreErrors: [
+      'Unable to store cookie',
+      // Hydration errors (Next.js / React)
+      /hydration/i,
+      /initial UI does not match/i,
+      /text content does not match/i,
+      /did not match/i,
+      /reactjs\.org\/docs\/error-decoder\.html\?invariant=(418|423|425)/i,
+    ],
+    denyUrls: [
+      /tawk\.to/i,
+    ],
   });
 }
