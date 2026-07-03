@@ -119,16 +119,19 @@ export async function resolveMenuById(
 
     // Layer 2: File cache
     const cache = await loadFileCache();
+    const isStrictCache = process.env.USE_CACHE_JSON === 'true';
+
     if (cache && cache[menuId]) {
         const cfg = cache[menuId];
-        if (isConfigFresh(cfg)) {
+        // If strictly using cache JSON, skip freshness check
+        if (isStrictCache || isConfigFresh(cfg)) {
             setInMemory(menuId, cfg.menuData);
             await scSet(sharedKey, cfg.menuData, SHARED_CACHE_TTL_S);
             return { menu: cfg.menuData, source: 'file', fresh: true };
         }
     }
 
-    // Layer 3: API fallback
+
     const apiMenu = await apiFetcher(menuId);
     if (apiMenu) {
         setInMemory(menuId, apiMenu);
