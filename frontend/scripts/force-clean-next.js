@@ -4,15 +4,8 @@ const { execSync } = require('child_process');
 
 const target = path.resolve(__dirname, '..', '.next');
 
-// Load environment variables from .env files so process.env.USE_CACHE_JSON is available
-const { loadEnvConfig } = require('@next/env');
-loadEnvConfig(process.cwd());
 
 (async () => {
-  if (process.env.USE_CACHE_JSON === 'true' || process.env.USE_CACHE_JSON === true) {
-    console.log('USE_CACHE_JSON is enabled. Skipping removal of .next');
-    return;
-  }
 
   try {
     if (fs.existsSync(target)) {

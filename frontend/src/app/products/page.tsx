@@ -131,14 +131,14 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     };
 
     return (
-        
-            <CategoryPageClient
-                category={allProductsCategory}
-                initialProducts={products}
-                initialFilters={filters}
-                initialLayout={layout}
-                initialPagination={pagination}
-            />
-        
+
+        <CategoryPageClient
+            category={allProductsCategory}
+            initialProducts={products}
+            initialFilters={filters}
+            initialLayout={layout}
+            initialPagination={pagination}
+        />
+
     );
 }

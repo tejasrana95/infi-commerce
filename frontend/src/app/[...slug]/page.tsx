@@ -385,15 +385,15 @@ export default async function UniversalPage({ params, searchParams }: UniversalP
         if (!category) notFound();
 
         return (
-            
-                <CategoryPageClient
-                    category={category}
-                    initialProducts={products}
-                    initialFilters={filters}
-                    initialLayout={layout}
-                    initialPagination={pagination}
-                />
-            
+
+            <CategoryPageClient
+                category={category}
+                initialProducts={products}
+                initialFilters={filters}
+                initialLayout={layout}
+                initialPagination={pagination}
+            />
+
         );
     }
 

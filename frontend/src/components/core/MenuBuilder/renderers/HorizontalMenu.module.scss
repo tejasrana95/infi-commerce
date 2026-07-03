@@ -49,14 +49,31 @@
         opacity: 0.5;
     }
 
-    // ── Hover reveal (regular dropdown & category dropdown) ──
-    &:hover,
+    // ── Dropdown display logic (hover & open class) ──
+    @media (hover: hover) {
+        &:hover {
+            > .dropdown,
+            > .categoryDropdown {
+                opacity: 1;
+                visibility: visible;
+                transform: translateY(0) scale(1);
+                pointer-events: auto;
+            }
+
+            > .trigger .chevron {
+                transform: rotate(180deg);
+                opacity: 1;
+            }
+        }
+    }
+
+    &.isOpen,
     &:focus-within {
         > .dropdown,
         > .categoryDropdown {
             opacity: 1;
             visibility: visible;
-            translate: 0 0;
+            transform: translateY(0) scale(1);
             pointer-events: auto;
         }
 
@@ -71,11 +88,28 @@
 .menuItem.hasMegaMenu {
     position: static;
 
-    &:hover,
+    @media (hover: hover) {
+        &:hover {
+            > .megaDropdown {
+                opacity: 1;
+                visibility: visible;
+                transform: translateY(0);
+                pointer-events: auto;
+            }
+
+            > .trigger .chevron {
+                transform: rotate(180deg);
+                opacity: 1;
+            }
+        }
+    }
+
+    &.isOpen,
     &:focus-within {
         > .megaDropdown {
             opacity: 1;
             visibility: visible;
+            transform: translateY(0);
             pointer-events: auto;
         }
 
@@ -106,9 +140,10 @@
     padding: 0.375rem;
     opacity: 0;
     visibility: hidden;
-    translate: 0 0.375rem;
+    transform: translateY(-0.75rem) scale(0.97);
+    transform-origin: top center;
     pointer-events: none;
-    transition: opacity 0.22s ease, visibility 0.22s ease, translate 0.22s ease;
+    transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     z-index: 100;
 
     // Invisible bridge to prevent hover gap
@@ -150,9 +185,10 @@
     padding: 0.75rem;
     opacity: 0;
     visibility: hidden;
-    translate: 0 0.375rem;
+    transform: translateY(-0.75rem) scale(0.97);
+    transform-origin: top center;
     pointer-events: none;
-    transition: opacity 0.22s ease, visibility 0.22s ease, translate 0.22s ease;
+    transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     z-index: 100;
 
     // Invisible bridge to prevent hover gap
@@ -194,7 +230,8 @@
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: opacity 0.25s ease, visibility 0.25s ease;
+    transform: translateY(-0.75rem);
+    transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     z-index: 1001;
     max-height: 75vh;
     overflow-y: auto;
@@ -252,11 +289,14 @@
 :global(.scrolled),
 :global(.fixedRow) {
     .menuItem.hasMegaMenu {
-        &:hover,
-        &:focus-within {
-            > .megaDropdown {
-                animation: megaSlideDown 0.3s ease forwards;
+        @media (hover: hover) {
+            &:hover > .megaDropdown {
+                animation: megaSlideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
             }
+        }
+        &.isOpen > .megaDropdown,
+        &:focus-within > .megaDropdown {
+            animation: megaSlideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
     }
 }

@@ -292,17 +292,31 @@ export default function HorizontalMenu({
     const searchParams = useSearchParams();
     const searchKey = searchParams.toString();
     const [forceClosed, setForceClosed] = useState(false);
+    const [openItemId, setOpenItemId] = useState<string | null>(null);
     const closeUntilRef = useRef(0);
+    const navRef = useRef<HTMLElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (navRef.current && !navRef.current.contains(e.target as Node)) {
+                setOpenItemId(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const handleMenuNavigate = useCallback((item?: MenuItem) => {
         closeUntilRef.current = Date.now() + 400;
         setForceClosed(true);
+        setOpenItemId(null);
         if (item) onItemClick?.(item);
     }, [onItemClick]);
 
     // Re-enable hover behavior after actual route change
     useEffect(() => {
         setForceClosed(false);
+        setOpenItemId(null);
     }, [pathname, searchKey]);
 
     const renderMegaContent = (item: MenuItem) => {
@@ -362,11 +376,40 @@ export default function HorizontalMenu({
         const cls = [
             styles.menuItem,
             hasMega && styles.hasMegaMenu,
+            openItemId === item.id ? styles.isOpen : ''
         ].filter(Boolean).join(' ');
 
         return (
-            <li key={item.id} className={cls}>
-                <div className={styles.trigger}>
+            <li 
+                key={item.id} 
+                className={cls}
+                onMouseEnter={() => {
+                    if (window.matchMedia('(hover: hover)').matches) {
+                        setOpenItemId(item.id);
+                    }
+                }}
+                onMouseLeave={() => {
+                    if (window.matchMedia('(hover: hover)').matches) {
+                        setOpenItemId(null);
+                    }
+                }}
+            >
+                <div 
+                    className={styles.trigger}
+                    onClick={(e) => {
+                        if (showChevron) {
+                            // If user clicks the trigger, toggle the menu state.
+                            // If they clicked the link itself, it might navigate anyway, but we still toggle state.
+                            if (openItemId === item.id) {
+                                setOpenItemId(null);
+                                // If they just wanted to close it, maybe prevent navigation if it's purely a dropdown trigger?
+                                // Let's not prevent default to keep link functionality if they want it.
+                            } else {
+                                setOpenItemId(item.id);
+                            }
+                        }
+                    }}
+                >
                     <MenuLink
                         item={item}
                         showIcon={settings.showIcons}
@@ -453,6 +496,7 @@ export default function HorizontalMenu({
 
     return (
         <nav
+            ref={navRef}
             className={`${styles.horizontalMenu} ${forceClosed ? styles.forceClosed : ''} ${className}`}
             onMouseLeave={() => {
                 if (Date.now() < closeUntilRef.current) return;

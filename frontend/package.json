@@ -5,7 +5,7 @@
   "scripts": {
     "predev": "node scripts/clean-next.js",
     "dev": "next dev -p 3002",
-    "prebuild": "npx tsx scripts/clean-next.js && npx tsx scripts/generate-menu-config.ts && npx tsx scripts/generate-store-config.ts",
+    "prebuild": "npx tsx scripts/force-clean-next.js && npx tsx scripts/generate-menu-config.ts && npx tsx scripts/generate-store-config.ts",
     "build": "next build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/",
     "start": "set -a; [ -f .env ] && . ./.env; set +a; PORT=${PORT:-6101} node .next/standalone/server.js",
     "lint": "eslint",
