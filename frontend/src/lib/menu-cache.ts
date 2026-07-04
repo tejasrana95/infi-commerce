@@ -57,9 +57,11 @@ async function loadFileCache(): Promise<Record<string, CachedMenuConfig> | null>
             const fs = fsModule.default || fsModule;
             const path = pathModule.default || pathModule;
             const CACHE_FILE_PATH = path.join(process.cwd(), '.next/cache/menu-config.json');
+            console.log('CACHE_FILE_PATH', CACHE_FILE_PATH);
 
             if (fs.existsSync(CACHE_FILE_PATH) && isFileCacheEnabled()) {
                 const content = fs.readFileSync(CACHE_FILE_PATH, 'utf-8');
+                console.log('content', content);
                 fileCache = JSON.parse(content);
             }
         }
