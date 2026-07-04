@@ -38,7 +38,7 @@ export default function ImageWithDimensions({
     sizes,
     width,
     height,
-    fetchPriority,
+    fetchPriority = 'high',
     ...props
 }: ImageWithDimensionsProps) {
     const [error, setError] = useState(false);

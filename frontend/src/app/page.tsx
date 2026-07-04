@@ -114,7 +114,7 @@ export default async function Page() {
           as="image"
           href={lcpImageUrl}
           // @ts-ignore
-          fetchPriority="high"
+          fetchpriority="high"
         />
       )}
 
