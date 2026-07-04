@@ -56,12 +56,14 @@ async function loadFileCache(): Promise<Record<string, CachedMenuConfig> | null>
             const pathModule = await import('path');
             const fs = fsModule.default || fsModule;
             const path = pathModule.default || pathModule;
-            const CACHE_FILE_PATH = path.join(process.cwd(), '.next/cache/menu-config.json');
-            console.log('CACHE_FILE_PATH', CACHE_FILE_PATH);
+            let baseDir = process.cwd();
+            if (baseDir.includes('.next/standalone')) {
+                baseDir = baseDir.replace('/.next/standalone', '');
+            }
+            const CACHE_FILE_PATH = path.join(baseDir, '.next/cache/menu-config.json');
 
             if (fs.existsSync(CACHE_FILE_PATH) && isFileCacheEnabled()) {
                 const content = fs.readFileSync(CACHE_FILE_PATH, 'utf-8');
-                console.log('content', content);
                 fileCache = JSON.parse(content);
             }
         }
