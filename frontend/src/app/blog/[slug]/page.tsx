@@ -151,9 +151,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         }
     }
 
-    // Fetch linked products if configured
+    // Fetch linked products if configured globally and on post
+    const globalShowLinkedProducts = (store?.theme as any)?.blog?.showRelatedProducts ?? true;
     const lpc = post.linkedProductsConfig;
-    if (lpc?.enabled) {
+    if (globalShowLinkedProducts && lpc?.enabled) {
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
             const qp = new URLSearchParams();
@@ -170,6 +171,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 const catId = typeof lpc.categoryId === 'object'
                     ? (lpc.categoryId as any)._id || lpc.categoryId
                     : lpc.categoryId;
+                qp.append('categoryId', catId);
                 qp.append('categoryIds', catId);
                 qp.append('limit', String(lpc.limit ?? 8));
                 if (lpc.order === 'best-selling') qp.append('sort', 'best-selling');

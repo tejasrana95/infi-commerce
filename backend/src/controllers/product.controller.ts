@@ -576,9 +576,19 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
     }
 
     // Category filter - support single or multiple categories (includes subcategories)
-    if (req.query.categoryId) {
-        const categoryIds = (req.query.categoryId as string).split(',').map(id => id.trim());
-        const validCategoryIds = categoryIds.filter(id => id.match(/^[0-9a-fA-F]{24}$/));
+    const categoryQueryParam = (req.query.categoryId || req.query.categoryIds || req.query.category) as string | undefined;
+    if (categoryQueryParam) {
+        const categoryIds = categoryQueryParam.split(',').map(id => id.trim());
+        let validCategoryIds = categoryIds.filter(id => id.match(/^[0-9a-fA-F]{24}$/));
+
+        if (validCategoryIds.length === 0 && categoryIds.length > 0 && !categoryIds.includes('all-products')) {
+            // Support slug lookup if non-ObjectId strings were passed
+            const categoryDocs = await Category.find({
+                ...(effectiveStoreId ? { storeId: effectiveStoreId } : {}),
+                slug: { $in: categoryIds }
+            }).select('_id').lean();
+            validCategoryIds = categoryDocs.map((c: any) => c._id.toString());
+        }
 
         if (validCategoryIds.length > 0) {
             // Check if we should include subcategories (default: true)

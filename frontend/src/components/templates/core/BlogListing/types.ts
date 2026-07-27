@@ -43,6 +43,13 @@ export interface BlogCategory {
 }
 
 export interface BlogListingConfig {
+    showViewCount?: boolean;
+    showReadingTime?: boolean;
+    showFavorite?: boolean;
+    showAuthorName?: boolean;
+    authorAlias?: string;
+    showCategories?: boolean;
+    showTags?: boolean;
     header: {
         showBanner: boolean;
         bannerImage?: string;
@@ -95,6 +102,13 @@ export interface BlogListingTemplateProps {
 }
 
 export const DEFAULT_BLOG_LISTING_CONFIG: BlogListingConfig = {
+    showViewCount: true,
+    showReadingTime: true,
+    showFavorite: true,
+    showAuthorName: true,
+    authorAlias: '',
+    showCategories: true,
+    showTags: true,
     header: {
         showBanner: true,
         title: 'Blog',

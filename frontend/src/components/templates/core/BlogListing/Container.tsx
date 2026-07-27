@@ -49,14 +49,21 @@ export default function BlogListingContainer({
 
     // Get config from theme
     const config: BlogListingConfig = useMemo(() => {
-        const storeConfig = store?.theme?.blog || {};
+        const storeConfig = (store?.theme as any)?.blog || (store?.theme as any)?.blogPost || {};
         return {
+            showViewCount: storeConfig.showViewCount ?? DEFAULT_BLOG_LISTING_CONFIG.showViewCount,
+            showReadingTime: storeConfig.showReadingTime ?? DEFAULT_BLOG_LISTING_CONFIG.showReadingTime,
+            showFavorite: storeConfig.showFavorite ?? storeConfig.showLikeButton ?? DEFAULT_BLOG_LISTING_CONFIG.showFavorite,
+            showAuthorName: storeConfig.showAuthorName ?? DEFAULT_BLOG_LISTING_CONFIG.showAuthorName,
+            authorAlias: storeConfig.authorAlias ?? DEFAULT_BLOG_LISTING_CONFIG.authorAlias,
+            showCategories: storeConfig.showCategories ?? DEFAULT_BLOG_LISTING_CONFIG.showCategories,
+            showTags: storeConfig.showTags ?? DEFAULT_BLOG_LISTING_CONFIG.showTags,
             header: { ...DEFAULT_BLOG_LISTING_CONFIG.header, ...storeConfig.header },
             grid: { ...DEFAULT_BLOG_LISTING_CONFIG.grid, ...storeConfig.grid },
             sidebar: { ...DEFAULT_BLOG_LISTING_CONFIG.sidebar, ...storeConfig.sidebar },
             featured: { ...DEFAULT_BLOG_LISTING_CONFIG.featured, ...storeConfig.featured },
         };
-    }, [store?.theme?.blog]);
+    }, [store?.theme]);
 
     const templateId = store?.theme?.templateId || 'modern-clean';
 

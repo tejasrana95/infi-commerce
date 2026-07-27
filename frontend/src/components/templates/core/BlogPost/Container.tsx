@@ -28,11 +28,18 @@ export default function BlogPostContainer({
 
     // Get config from theme
     const config: BlogPostConfig = useMemo(() => {
-        const storeConfig = (store?.theme as any)?.blogPost || {};
+        const storeConfig = (store?.theme as any)?.blog || (store?.theme as any)?.blogPost || {};
         return {
             showFeaturedImage: storeConfig.showFeaturedImage ?? DEFAULT_BLOG_POST_CONFIG.showFeaturedImage,
-            showAuthorCard: storeConfig.showAuthorCard ?? DEFAULT_BLOG_POST_CONFIG.showAuthorCard,
-            showRelatedPosts: storeConfig.showRelatedPosts ?? DEFAULT_BLOG_POST_CONFIG.showRelatedPosts,
+            showAuthorCard: storeConfig.showAuthorCard ?? storeConfig.showAuthorName ?? DEFAULT_BLOG_POST_CONFIG.showAuthorCard,
+            showAuthorName: storeConfig.showAuthorName ?? DEFAULT_BLOG_POST_CONFIG.showAuthorName,
+            authorAlias: storeConfig.authorAlias ?? DEFAULT_BLOG_POST_CONFIG.authorAlias,
+            showViewCount: storeConfig.showViewCount ?? DEFAULT_BLOG_POST_CONFIG.showViewCount,
+            showReadingTime: storeConfig.showReadingTime ?? DEFAULT_BLOG_POST_CONFIG.showReadingTime,
+            showFavorite: storeConfig.showFavorite ?? storeConfig.showLikeButton ?? DEFAULT_BLOG_POST_CONFIG.showFavorite,
+            showRelatedPosts: storeConfig.showRelatedPosts ?? storeConfig.showRelatedArticles ?? DEFAULT_BLOG_POST_CONFIG.showRelatedPosts,
+            showRelatedArticles: storeConfig.showRelatedArticles ?? storeConfig.showRelatedPosts ?? DEFAULT_BLOG_POST_CONFIG.showRelatedArticles,
+            showRelatedProducts: storeConfig.showRelatedProducts ?? DEFAULT_BLOG_POST_CONFIG.showRelatedProducts,
             relatedPostsCount: storeConfig.relatedPostsCount ?? DEFAULT_BLOG_POST_CONFIG.relatedPostsCount,
             showTableOfContents: storeConfig.showTableOfContents ?? DEFAULT_BLOG_POST_CONFIG.showTableOfContents,
             showShareButtons: storeConfig.showShareButtons ?? DEFAULT_BLOG_POST_CONFIG.showShareButtons,
@@ -41,7 +48,7 @@ export default function BlogPostContainer({
             showComments: storeConfig.showComments ?? DEFAULT_BLOG_POST_CONFIG.showComments,
             sidebar: { ...DEFAULT_BLOG_POST_CONFIG.sidebar, ...storeConfig.sidebar },
         };
-    }, [(store?.theme as any)?.blogPost]);
+    }, [store?.theme]);
 
     const templateId = store?.theme?.templateId || 'modern-clean';
 

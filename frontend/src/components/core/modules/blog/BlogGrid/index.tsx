@@ -8,6 +8,7 @@ import api from '@/lib/api';
 import styles from './index.module.scss';
 import { FiClock, FiEye, FiGrid, FiList, FiMapPin } from 'react-icons/fi';
 
+import { useStore } from '@/providers/StoreProvider';
 import { ModuleProps } from '../..';
 
 interface BlogGridPost {
@@ -40,6 +41,8 @@ function getPriority(post: BlogGridPost): number {
 
 export default function BlogGrid({ config, initialData }: ModuleProps) {
     const searchParams = useSearchParams();
+    const { store } = useStore();
+    const authorAlias = (store?.theme as any)?.blog?.authorAlias?.trim();
 
     const {
         title = 'Latest Posts',
@@ -217,13 +220,13 @@ export default function BlogGrid({ config, initialData }: ModuleProps) {
                                             {post.author.avatar && (
                                                 <ImageWithDimensions
                                                     src={post.author.avatar}
-                                                    alt={post.author.name || 'Author'}
+                                                    alt={authorAlias || post.author.name || 'Author'}
                                                     width={24}
                                                     height={24}
                                                     className={styles.avatar}
                                                 />
                                             )}
-                                            <span>{post.author.name || 'Author'}</span>
+                                            <span>{authorAlias || post.author.name || 'Author'}</span>
                                         </div>
                                     )}
 

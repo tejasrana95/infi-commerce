@@ -160,6 +160,20 @@ export interface FooterConfig {
 
 
 
+export interface BlogConfig {
+    showViewCount?: boolean;
+    showReadingTime?: boolean;
+    showFavorite?: boolean;
+    showAuthorName?: boolean;
+    authorAlias?: string;
+    showShareButtons?: boolean;
+    showRelatedProducts?: boolean;
+    showTags?: boolean;
+    showRelatedArticles?: boolean;
+    showFeaturedImage?: boolean;
+    showCategories?: boolean;
+}
+
 export interface ThemeConfig {
     templateId: string;
     header?: {
@@ -175,6 +189,7 @@ export interface ThemeConfig {
     category?: CategoryConfig;
     product?: ProductPageConfig;
     compare?: CompareConfig;
+    blog?: BlogConfig;
     colors?: {
         primary?: string;
         secondary?: string;

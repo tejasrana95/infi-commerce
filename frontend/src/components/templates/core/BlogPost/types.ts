@@ -73,7 +73,14 @@ export interface RelatedPost {
 export interface BlogPostConfig {
     showFeaturedImage: boolean;
     showAuthorCard: boolean;
+    showAuthorName: boolean;
+    authorAlias?: string;
+    showViewCount: boolean;
+    showReadingTime: boolean;
+    showFavorite: boolean;
     showRelatedPosts: boolean;
+    showRelatedArticles: boolean;
+    showRelatedProducts: boolean;
     relatedPostsCount: number;
     showTableOfContents: boolean;
     showShareButtons: boolean;
@@ -99,7 +106,14 @@ export interface BlogPostTemplateProps {
 export const DEFAULT_BLOG_POST_CONFIG: BlogPostConfig = {
     showFeaturedImage: true,
     showAuthorCard: true,
+    showAuthorName: true,
+    authorAlias: '',
+    showViewCount: true,
+    showReadingTime: true,
+    showFavorite: true,
     showRelatedPosts: true,
+    showRelatedArticles: true,
+    showRelatedProducts: true,
     relatedPostsCount: 3,
     showTableOfContents: true,
     showShareButtons: true,

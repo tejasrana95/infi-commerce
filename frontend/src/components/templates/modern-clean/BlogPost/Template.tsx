@@ -3,14 +3,14 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import ModuleRenderer from '@/components/core/layout/ModuleRenderer';
 import SectionRenderer from '@/components/core/layout/SectionRenderer';
 import { BlogPostTemplateProps } from '@/components/templates/core/BlogPost/types';
 import styles from './BlogPost.module.scss';
-import { FiClock, FiCalendar, FiArrowLeft, FiTwitter, FiFacebook, FiLinkedin, FiLink } from 'react-icons/fi';
+import { FiClock, FiCalendar, FiArrowLeft, FiTwitter, FiFacebook, FiLinkedin, FiLink, FiEye, FiHeart } from 'react-icons/fi';
 import BlogPostLinkedProducts from './BlogPostLinkedProducts';
 
 export default function ModernCleanBlogPostTemplate({
@@ -21,6 +21,22 @@ export default function ModernCleanBlogPostTemplate({
     relatedPosts = [],
 }: BlogPostTemplateProps) {
     const sections = layout?.sections || [];
+    const [likeCount, setLikeCount] = useState(post.likeCount || 0);
+    const [hasLiked, setHasLiked] = useState(false);
+
+    const handleLike = async () => {
+        if (hasLiked) return;
+        setHasLiked(true);
+        setLikeCount((prev) => prev + 1);
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+            await fetch(`${apiUrl}/blog/posts/${post._id}/like`, { method: 'POST' });
+        } catch (err) {
+            console.error('Failed to like blog post:', err);
+        }
+    };
+
+    const authorDisplayName = config.authorAlias?.trim() || post.author?.name || 'Anonymous';
 
     // Custom module rendering function for layout sections
     const renderModule = (module: any) => {
@@ -77,7 +93,7 @@ export default function ModernCleanBlogPostTemplate({
     // Related articles section
     const renderRelatedArticles = () => {
         const hasRelatedArticles = relatedPosts && relatedPosts.length > 0;
-        if (!post.showRelatedArticles || !hasRelatedArticles) return null;
+        if (config.showRelatedArticles === false || !post.showRelatedArticles || !hasRelatedArticles) return null;
 
         return (
             <div className={styles.relatedArticlesSection}>
@@ -110,7 +126,7 @@ export default function ModernCleanBlogPostTemplate({
                                     <p className={styles.relatedArticleExcerpt}>{related.excerpt}</p>
                                 )}
                                 <div className={styles.relatedArticleMeta}>
-                                    {related.readingTime && (
+                                    {config.showReadingTime !== false && related.readingTime && (
                                         <span>
                                             <FiClock /> {related.readingTime} min read
                                         </span>
@@ -126,7 +142,7 @@ export default function ModernCleanBlogPostTemplate({
 
     // Tags section
     const renderTags = () => {
-        if (!config.showTags || !post.tags || post.tags.length === 0) return null;
+        if (config.showTags === false || !post.tags || post.tags.length === 0) return null;
 
         return (
             <div className={styles.tagsSection}>
@@ -143,7 +159,7 @@ export default function ModernCleanBlogPostTemplate({
 
     // Author card section
     const renderAuthorCard = () => {
-        if (!config.showAuthorCard) return null;
+        if (config.showAuthorCard === false || config.showAuthorName === false) return null;
 
         return (
             <div className={styles.authorSection}>
@@ -151,7 +167,7 @@ export default function ModernCleanBlogPostTemplate({
                     {post.author?.avatar && (
                         <Image
                             src={post.author.avatar}
-                            alt={post.author?.name || 'Author'}
+                            alt={authorDisplayName}
                             width={72}
                             height={72}
                             className={styles.authorAvatar}
@@ -159,7 +175,7 @@ export default function ModernCleanBlogPostTemplate({
                     )}
                     <div className={styles.authorInfo}>
                         <span className={styles.writtenBy}>Written by</span>
-                        <h3 className={styles.authorName}>{post.author?.name || 'Anonymous'}</h3>
+                        <h3 className={styles.authorName}>{authorDisplayName}</h3>
                         {post.author?.bio && (
                             <p className={styles.authorBio}>{post.author.bio}</p>
                         )}
@@ -185,7 +201,7 @@ export default function ModernCleanBlogPostTemplate({
             <header className={styles.header}>
                 <div className={styles.headerContainer}>
                     {/* Categories */}
-                    {post.categoryIds && post.categoryIds.length > 0 && (
+                    {config.showCategories !== false && post.categoryIds && post.categoryIds.length > 0 && (
                         <div className={styles.categories}>
                             {post.categoryIds.map((cat) => (
                                 <Link key={cat._id} href={`/blog?category=${cat.slug}`} className={styles.categoryLink}>
@@ -206,17 +222,19 @@ export default function ModernCleanBlogPostTemplate({
                     {/* Meta Info */}
                     <div className={styles.meta}>
                         <div className={styles.authorMeta}>
-                            {post.author?.avatar && (
+                            {config.showAuthorName !== false && post.author?.avatar && (
                                 <Image
                                     src={post.author.avatar}
-                                    alt={post.author?.name || 'Author'}
+                                    alt={authorDisplayName}
                                     width={40}
                                     height={40}
                                     className={styles.metaAvatar}
                                 />
                             )}
                             <div className={styles.metaInfo}>
-                                <span className={styles.metaAuthor}>{post.author?.name || 'Anonymous'}</span>
+                                {config.showAuthorName !== false && (
+                                    <span className={styles.metaAuthor}>{authorDisplayName}</span>
+                                )}
                                 <div className={styles.metaDetails}>
                                     <span>
                                         <FiCalendar />
@@ -226,61 +244,82 @@ export default function ModernCleanBlogPostTemplate({
                                             year: 'numeric',
                                         })}
                                     </span>
-                                    {post.readingTime && (
+                                    {config.showReadingTime !== false && post.readingTime && (
                                         <span>
                                             <FiClock />
                                             {post.readingTime} min read
+                                        </span>
+                                    )}
+                                    {config.showViewCount !== false && post.viewCount !== undefined && post.viewCount !== null && (
+                                        <span>
+                                            <FiEye />
+                                            {post.viewCount} views
                                         </span>
                                     )}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Share Buttons */}
-                        {config.showShareButtons && (
-                            <div className={styles.shareButtons}>
-                                <a
-                                    href={`https://twitter.com/intent/tweet?url=${shareUrl}&text=${shareTitle}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className={styles.shareBtn}
-                                    aria-label="Share on Twitter"
-                                >
-                                    <FiTwitter />
-                                </a>
-                                <a
-                                    href={`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className={styles.shareBtn}
-                                    aria-label="Share on Facebook"
-                                >
-                                    <FiFacebook />
-                                </a>
-                                <a
-                                    href={`https://www.linkedin.com/shareArticle?mini=true&url=${shareUrl}&title=${shareTitle}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className={styles.shareBtn}
-                                    aria-label="Share on LinkedIn"
-                                >
-                                    <FiLinkedin />
-                                </a>
+                        {/* Favorite / Like Button & Share Buttons */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {config.showFavorite !== false && (
                                 <button
-                                    onClick={copyLink}
+                                    onClick={handleLike}
                                     className={styles.shareBtn}
-                                    aria-label="Copy link"
+                                    aria-label="Favorite post"
+                                    title="Favorite post"
+                                    style={{ cursor: hasLiked ? 'default' : 'pointer', gap: '6px' }}
                                 >
-                                    <FiLink />
+                                    <FiHeart style={{ fill: hasLiked ? '#ef4444' : 'none', color: hasLiked ? '#ef4444' : 'currentColor' }} />
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{likeCount}</span>
                                 </button>
-                            </div>
-                        )}
+                            )}
+
+                            {config.showShareButtons !== false && (
+                                <div className={styles.shareButtons}>
+                                    <a
+                                        href={`https://twitter.com/intent/tweet?url=${shareUrl}&text=${shareTitle}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={styles.shareBtn}
+                                        aria-label="Share on Twitter"
+                                    >
+                                        <FiTwitter />
+                                    </a>
+                                    <a
+                                        href={`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={styles.shareBtn}
+                                        aria-label="Share on Facebook"
+                                    >
+                                        <FiFacebook />
+                                    </a>
+                                    <a
+                                        href={`https://www.linkedin.com/shareArticle?mini=true&url=${shareUrl}&title=${shareTitle}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={styles.shareBtn}
+                                        aria-label="Share on LinkedIn"
+                                    >
+                                        <FiLinkedin />
+                                    </a>
+                                    <button
+                                        onClick={copyLink}
+                                        className={styles.shareBtn}
+                                        aria-label="Copy link"
+                                    >
+                                        <FiLink />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </header>
 
             {/* Featured Image */}
-            {config.showFeaturedImage && post.featuredImage && (
+            {config.showFeaturedImage !== false && post.featuredImage && (
                 <div className={styles.featuredImageWrapper}>
                     <div className={styles.featuredImage}>
                         <Image
@@ -299,7 +338,7 @@ export default function ModernCleanBlogPostTemplate({
                 <>
                     {sections.map((section: any) => renderSection(section))}
                     {/* Linked Products Section at the end for custom layout page */}
-                    {post.linkedProductsConfig?.enabled && post.linkedProducts && post.linkedProducts.length > 0 && (
+                    {config.showRelatedProducts !== false && post.linkedProductsConfig?.enabled && post.linkedProducts && post.linkedProducts.length > 0 && (
                         <BlogPostLinkedProducts
                             products={post.linkedProducts}
                             config={post.linkedProductsConfig}
@@ -315,14 +354,14 @@ export default function ModernCleanBlogPostTemplate({
                     </div>
 
                     {/* Linked Products Section (Full Width) */}
-                    {post.linkedProductsConfig?.enabled && post.linkedProducts && post.linkedProducts.length > 0 && (
+                    {config.showRelatedProducts !== false && post.linkedProductsConfig?.enabled && post.linkedProducts && post.linkedProducts.length > 0 && (
                         <BlogPostLinkedProducts
                             products={post.linkedProducts}
                             config={post.linkedProductsConfig}
                         />
                     )}
 
-                    {post.showRelatedArticles && relatedPosts && relatedPosts.length > 0 && (
+                    {config.showRelatedArticles !== false && post.showRelatedArticles && relatedPosts && relatedPosts.length > 0 && (
                         <div className={styles.fullWidthBorderWrapper}>
                             <div className={styles.contentContainer}>
                                 {renderRelatedArticles()}
@@ -330,7 +369,7 @@ export default function ModernCleanBlogPostTemplate({
                         </div>
                     )}
 
-                    {config.showTags && post.tags && post.tags.length > 0 && (
+                    {config.showTags !== false && post.tags && post.tags.length > 0 && (
                         <div className={styles.fullWidthBorderWrapper}>
                             <div className={styles.contentContainer}>
                                 {renderTags()}
@@ -338,7 +377,7 @@ export default function ModernCleanBlogPostTemplate({
                         </div>
                     )}
 
-                    {config.showAuthorCard && (
+                    {config.showAuthorCard !== false && config.showAuthorName !== false && (
                         <div className={styles.fullWidthBorderWrapper}>
                             <div className={styles.contentContainer}>
                                 {renderAuthorCard()}

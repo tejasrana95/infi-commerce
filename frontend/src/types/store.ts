@@ -542,6 +542,17 @@ export const DEFAULT_COMPARE_CONFIG: CompareConfig = {
 
 // Blog configuration type for ThemeConfig
 export interface BlogConfig {
+  showViewCount?: boolean;
+  showReadingTime?: boolean;
+  showFavorite?: boolean;
+  showAuthorName?: boolean;
+  authorAlias?: string;
+  showShareButtons?: boolean;
+  showRelatedProducts?: boolean;
+  showTags?: boolean;
+  showRelatedArticles?: boolean;
+  showFeaturedImage?: boolean;
+  showCategories?: boolean;
   header?: {
     showBanner?: boolean;
     bannerImage?: string;

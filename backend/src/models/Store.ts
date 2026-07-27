@@ -256,6 +256,21 @@ export interface IStore extends Document {
             widgetPosition?: 'bottom' | 'bottom-right' | 'bottom-left';
         };
 
+        // Blog configuration
+        blog?: {
+            showViewCount?: boolean;
+            showReadingTime?: boolean;
+            showFavorite?: boolean;
+            showAuthorName?: boolean;
+            authorAlias?: string;
+            showShareButtons?: boolean;
+            showRelatedProducts?: boolean;
+            showTags?: boolean;
+            showRelatedArticles?: boolean;
+            showFeaturedImage?: boolean;
+            showCategories?: boolean;
+        };
+
         // Scroll to Top Configuration
         scrollToTop?: {
             enabled: boolean;

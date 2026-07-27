@@ -23,6 +23,7 @@ import ProductCardSettings from '@/components/organisms/ProductCardSettings/Prod
 import CategorySettings from '@/components/organisms/CategorySettings/CategorySettings';
 import ProductPageSettings from '@/components/organisms/ProductPageSettings/ProductPageSettings';
 import CompareSettings from '@/components/organisms/CompareSettings/CompareSettings';
+import BlogSettings from '@/components/organisms/BlogSettings/BlogSettings';
 import { ThemeConfig, Store } from '@/types';
 import { useNotification } from '@/contexts/NotificationContext';
 import api from '@/lib/api';
@@ -112,7 +113,7 @@ export default function ThemeSettingsPage() {
         <Box>
             <PageHeader
                 title="Theme Settings"
-                subtitle={`Configure header and footer for ${store?.name || 'store'}`}
+                subtitle={`Configure UI for ${store?.name || 'store'}`}
                 backUrl={`/stores`}
                 action={
                     <Button
@@ -145,6 +146,7 @@ export default function ThemeSettingsPage() {
                     <Tab label="Category" />
                     <Tab label="Product Page" />
                     <Tab label="Compare" />
+                    <Tab label="Blog" />
                     <Tab label="General" />
                     <Tab label="Advanced" />
                 </Tabs>
@@ -205,13 +207,20 @@ export default function ThemeSettingsPage() {
                     )}
 
                     {activeTab === 7 && (
-                        <GeneralThemeSettings
+                        <BlogSettings
                             config={themeConfig}
                             onChange={setThemeConfig}
                         />
                     )}
 
                     {activeTab === 8 && (
+                        <GeneralThemeSettings
+                            config={themeConfig}
+                            onChange={setThemeConfig}
+                        />
+                    )}
+
+                    {activeTab === 9 && (
                         <Box sx={{ p: 3 }}>
                             <Alert severity="warning" sx={{ mb: 2 }}>
                                 Please ensure you only inject scripts from verified authors. Improper scripts may affect site security and performance.

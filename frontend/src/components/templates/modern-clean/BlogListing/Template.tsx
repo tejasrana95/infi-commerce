@@ -350,7 +350,7 @@ export default function ModernCleanBlogListingTemplate({
                             </div>
                         )}
                         <div className={styles.leadContent}>
-                            {leadPost.categoryIds.length > 0 && (
+                            {config.showCategories !== false && leadPost.categoryIds.length > 0 && (
                                 (() => {
                                     const { segments, childmost } = getCategoryBreadcrumb(leadPost.categoryIds[0]);
                                     return (
@@ -370,31 +370,37 @@ export default function ModernCleanBlogListingTemplate({
                                 <p className={styles.leadExcerpt}>{leadPost.excerpt}</p>
                             )}
                             <div className={styles.meta}>
-                                <div className={styles.author}>
-                                    {leadPost.author.avatar && (
-                                        <Image
-                                            src={leadPost.author.avatar}
-                                            alt={leadPost.author.name}
-                                            width={32}
-                                            height={32}
-                                            className={styles.avatar}
-                                        />
-                                    )}
-                                    <span>{leadPost.author.name}</span>
-                                </div>
+                                {config.showAuthorName !== false && (
+                                    <div className={styles.author}>
+                                        {leadPost.author.avatar && (
+                                            <Image
+                                                src={leadPost.author.avatar}
+                                                alt={config.authorAlias?.trim() || leadPost.author.name || 'Anonymous'}
+                                                width={32}
+                                                height={32}
+                                                className={styles.avatar}
+                                            />
+                                        )}
+                                        <span>{config.authorAlias?.trim() || leadPost.author.name || 'Anonymous'}</span>
+                                    </div>
+                                )}
 
                                 <div className={styles.stats}>
-                                    {leadPost.readingTime && (
+                                    {config.showReadingTime !== false && leadPost.readingTime && (
                                         <span className={styles.stat}>
                                             <FiClock /> {leadPost.readingTime} min
                                         </span>
                                     )}
-                                    <span className={styles.stat}>
-                                        <FiEye /> {leadPost.viewCount}
-                                    </span>
-                                    <span className={styles.stat}>
-                                        <FiHeart /> {leadPost.likeCount}
-                                    </span>
+                                    {config.showViewCount !== false && (
+                                        <span className={styles.stat}>
+                                            <FiEye /> {leadPost.viewCount || 0}
+                                        </span>
+                                    )}
+                                    {config.showFavorite !== false && (
+                                        <span className={styles.stat}>
+                                            <FiHeart /> {leadPost.likeCount || 0}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -422,7 +428,7 @@ export default function ModernCleanBlogListingTemplate({
                             )}
 
                             <div className={styles.cardContent}>
-                                {post.categoryIds.length > 0 && (
+                                {config.showCategories !== false && post.categoryIds.length > 0 && (
                                     (() => {
                                         const { segments, childmost } = getCategoryBreadcrumb(post.categoryIds[0]);
                                         return (
@@ -445,31 +451,37 @@ export default function ModernCleanBlogListingTemplate({
                                 )}
 
                                 <div className={styles.meta}>
-                                    <div className={styles.author}>
-                                        {post.author.avatar && (
-                                            <Image
-                                                src={post.author.avatar}
-                                                alt={post.author.name}
-                                                width={32}
-                                                height={32}
-                                                className={styles.avatar}
-                                            />
-                                        )}
-                                        <span>{post.author.name}</span>
-                                    </div>
+                                    {config.showAuthorName !== false && (
+                                        <div className={styles.author}>
+                                            {post.author.avatar && (
+                                                <Image
+                                                    src={post.author.avatar}
+                                                    alt={config.authorAlias?.trim() || post.author.name || 'Anonymous'}
+                                                    width={32}
+                                                    height={32}
+                                                    className={styles.avatar}
+                                                />
+                                            )}
+                                            <span>{config.authorAlias?.trim() || post.author.name || 'Anonymous'}</span>
+                                        </div>
+                                    )}
 
                                     <div className={styles.stats}>
-                                        {post.readingTime && (
+                                        {config.showReadingTime !== false && post.readingTime && (
                                             <span className={styles.stat}>
                                                 <FiClock /> {post.readingTime} min
                                             </span>
                                         )}
-                                        <span className={styles.stat}>
-                                            <FiEye /> {post.viewCount}
-                                        </span>
-                                        <span className={styles.stat}>
-                                            <FiHeart /> {post.likeCount}
-                                        </span>
+                                        {config.showViewCount !== false && (
+                                            <span className={styles.stat}>
+                                                <FiEye /> {post.viewCount || 0}
+                                            </span>
+                                        )}
+                                        {config.showFavorite !== false && (
+                                            <span className={styles.stat}>
+                                                <FiHeart /> {post.likeCount || 0}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </div>
