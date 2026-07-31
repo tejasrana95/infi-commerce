@@ -1770,6 +1770,31 @@ export const updateStock = asyncHandler(async (req: AuthRequest, res: Response) 
 
 /**
  * @swagger
+ * /api/products/filters:
+ *   get:
+ *     summary: Get available product filters
+ *     tags: [Products]
+ *     description: Returns aggregated filter data (categories, brands, price ranges, attributes) for store products
+ *     parameters:
+ *       - in: query
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Filters data retrieved successfully
+ *       400:
+ *         description: Missing storeId parameter
+ * 
  * /api/products/search/filters:
  *   get:
  *     summary: Get available filters for search results

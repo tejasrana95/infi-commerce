@@ -2420,9 +2420,35 @@ export const trackOrder = asyncHandler(
 );
 
 /**
- * @route   GET /api/orders/:id/invoice
- * @desc    Download Order Invoice PDF
- * @access  Private (Owner/Admin)
+ * @swagger
+ * /api/orders/{id}/invoice:
+ *   get:
+ *     summary: Download order invoice PDF
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: guestEmail
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: PDF invoice file stream
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       403:
+ *         description: Not authorized
+ *       404:
+ *         description: Order not found
  */
 export const downloadInvoice = asyncHandler(
   async (req: AuthRequest, res: Response) => {
@@ -2586,9 +2612,39 @@ export const updateTracking = asyncHandler(
 );
 
 /**
- * @route   POST /api/orders/:id/return-request
- * @desc    Request a return for an order
- * @access  Private (Owner only)
+ * @swagger
+ * /api/orders/{id}/return-request:
+ *   post:
+ *     summary: Request a return for an order
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               reason:
+ *                 type: string
+ *               note:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Return request submitted
+ *       400:
+ *         description: Invalid order status for return
+ *       403:
+ *         description: Not authorized
+ *       404:
+ *         description: Order not found
  */
 export const requestReturn = asyncHandler(
   async (req: AuthRequest, res: Response) => {
@@ -2778,9 +2834,39 @@ export const markOrderAsRefunded = asyncHandler(
 );
 
 /**
- * @route   POST /api/orders/:id/refund-request
- * @desc    Request a refund for an order
- * @access  Private (Owner only)
+ * @swagger
+ * /api/orders/{id}/refund-request:
+ *   post:
+ *     summary: Request a refund for an order
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               reason:
+ *                 type: string
+ *               note:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Refund request submitted
+ *       400:
+ *         description: Invalid order status for refund
+ *       403:
+ *         description: Not authorized
+ *       404:
+ *         description: Order not found
  */
 export const requestRefund = asyncHandler(
   async (req: AuthRequest, res: Response) => {

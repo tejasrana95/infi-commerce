@@ -393,8 +393,37 @@ export const deleteBrand = asyncHandler(async (req: AuthRequest, res: Response) 
 });
 
 /**
- * Bulk action on brands (delete, activate, deactivate)
- * POST /api/brands/bulk-action
+ * @swagger
+ * /api/brands/bulk-action:
+ *   post:
+ *     summary: Perform bulk action on brands (delete, activate, deactivate)
+ *     tags: [Brands]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - ids
+ *               - action
+ *             properties:
+ *               ids:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               action:
+ *                 type: string
+ *                 enum: [delete, activate, deactivate]
+ *     responses:
+ *       200:
+ *         description: Bulk action executed successfully
+ *       400:
+ *         description: Invalid request parameters
+ *       403:
+ *         description: Forbidden
  */
 export const bulkAction = asyncHandler(async (req: AuthRequest, res: Response) => {
     if (req.user?.role === 'store_admin') {

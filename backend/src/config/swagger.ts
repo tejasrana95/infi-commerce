@@ -520,6 +520,42 @@ const swaggerDefinition = {
             name: 'Blog',
             description: 'Blog categories and posts management',
         },
+        {
+            name: 'Feeds',
+            description: 'Product catalog feeds (Pinterest, Google, etc.)',
+        },
+        {
+            name: 'Google Merchant',
+            description: 'Google Merchant Center integration and product sync',
+        },
+        {
+            name: 'Hero Banners',
+            description: 'Hero banner content management',
+        },
+        {
+            name: 'Hero Sliders',
+            description: 'Hero slider content management',
+        },
+        {
+            name: 'Banner Sliders',
+            description: 'Banner slider content management',
+        },
+        {
+            name: 'Brand Showcases',
+            description: 'Brand showcase content management',
+        },
+        {
+            name: 'Cleanup',
+            description: 'Scheduled cleanup operations',
+        },
+        {
+            name: 'Content Cards',
+            description: 'Content cards and categories management (CMS)',
+        },
+        {
+            name: 'POS Payment',
+            description: 'POS payment integration and QR code processing',
+        },
     ],
 };
 

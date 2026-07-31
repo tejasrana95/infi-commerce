@@ -853,6 +853,7 @@ export default function LayoutDesigner({
                                         selectedSectionId={selectedSectionId}
                                         selectedModuleId={selectedModuleId}
                                         selectedColumnId={selectedColumnId}
+                                        storeId={typeof layout.storeId === 'string' ? layout.storeId : (layout.storeId as any)?._id}
                                         onSelectSection={(id) => {
                                             if (selectedSectionId === id && !selectedColumnId && !selectedModuleId) {
                                                 setSelectedSectionId(null);

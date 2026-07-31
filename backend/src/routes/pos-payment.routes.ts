@@ -21,7 +21,7 @@ router.use(authenticate);
 
 /**
  * @swagger
- * /api/pos/payment/qr:
+ * /api/pos-payment/qr:
  *   post:
  *     summary: Generate a QR Code for POS Payment
  *     tags: [POS Payment]
@@ -59,7 +59,7 @@ router.post('/qr', generateQR);
 
 /**
  * @swagger
- * /api/pos/payment/qr/{id}/status:
+ * /api/pos-payment/qr/{id}/status:
  *   get:
  *     summary: Check status of a QR Payment
  *     tags: [POS Payment]
@@ -95,7 +95,7 @@ router.get('/qr/:id/status', checkStatus);
 
 /**
  * @swagger
- * /api/pos/payment/qr/{orderId}/verify:
+ * /api/pos-payment/qr/{orderId}/verify:
  *   post:
  *     summary: Manually verify a Custom QR Payment
  *     tags: [POS Payment]
@@ -130,7 +130,7 @@ router.post('/qr/:orderId/verify', verifyManual);
 
 /**
  * @swagger
- * /api/pos/payment/qr/{id}/cancel:
+ * /api/pos-payment/qr/{id}/cancel:
  *   post:
  *     summary: Cancel a QR Code
  *     tags: [POS Payment]

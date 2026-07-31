@@ -58,9 +58,10 @@ interface ModuleCardProps {
     sectionId: string;
     columnId?: string;
     index: number;
+    storeId?: string;
 }
 
-function ModuleCard({ module, isSelected, onSelect, onDelete, onClone, sectionId, columnId, index }: ModuleCardProps) {
+function ModuleCard({ module, isSelected, onSelect, onDelete, onClone, sectionId, columnId, index, storeId }: ModuleCardProps) {
     const definition = getModuleDefinition(module.type);
     const isRemovable = module.isRemovable !== false && definition?.category !== 'placeholder';
     const [hovered, setHovered] = useState(false);
@@ -129,7 +130,7 @@ function ModuleCard({ module, isSelected, onSelect, onDelete, onClone, sectionId
 
             {/* Module preview */}
             <Box flex={1} sx={{ minWidth: 0 }}>
-                <ModuleRenderer module={module} isSelected={isSelected} onClick={onSelect} />
+                <ModuleRenderer module={module} isSelected={isSelected} onClick={onSelect} storeId={storeId} />
             </Box>
 
             {/* Hover actions */}
@@ -211,6 +212,7 @@ interface SectionBlockProps {
     onSelectColumn?: (sectionId: string, columnId: string) => void;
     onInsertBefore: () => void;
     onInsertAfter: () => void;
+    storeId?: string;
 }
 
 function SectionBlock({
@@ -231,6 +233,7 @@ function SectionBlock({
     onSelectColumn,
     onInsertBefore,
     onInsertAfter,
+    storeId,
 }: SectionBlockProps) {
     const [hovered, setHovered] = useState(false);
     const [collapsed, setCollapsed] = useState(false);
@@ -244,9 +247,9 @@ function SectionBlock({
             ref={blockRef}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
-            sx={{ position: 'relative', mb: 0 }}
+            sx={{ position: 'relative', mb: 1 }}
         >
-            {/* ---- Insert button ABOVE (visible on hover near top edge) ---- */}
+            {/* ---- Insert button ABOVE ---- */}
             <Box
                 sx={{
                     display: 'flex',
@@ -290,7 +293,6 @@ function SectionBlock({
             <Paper
                 elevation={0}
                 onClick={(e) => {
-                    // Only select if clicking the card itself, not toolbar buttons
                     if ((e.target as HTMLElement).closest('.section-toolbar')) return;
                     onSelect();
                 }}
@@ -318,7 +320,6 @@ function SectionBlock({
                         borderBottom: collapsed ? 'none' : '1px solid #F3F4F6',
                     }}
                 >
-                    {/* Section name + type */}
                     <Box flex={1} sx={{ minWidth: 0 }}>
                         <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#1F2937' }}>
                             {section.name || 'Untitled Section'}
@@ -328,14 +329,12 @@ function SectionBlock({
                         </Typography>
                     </Box>
 
-                    {/* Visibility badges */}
                     <Box sx={{ display: 'flex', gap: 0.5, px: 0.75, py: 0.5, bgcolor: '#F3F4F6', borderRadius: 0.75, border: '1px solid #E5E7EB' }}>
                         <DesktopWindowsIcon sx={{ fontSize: '0.8rem', color: section.visibility.desktop ? '#3B82F6' : '#D1D5DB' }} />
                         <TabletIcon sx={{ fontSize: '0.8rem', color: section.visibility.tablet ? '#3B82F6' : '#D1D5DB' }} />
                         <PhoneIphoneIcon sx={{ fontSize: '0.8rem', color: section.visibility.mobile ? '#3B82F6' : '#D1D5DB' }} />
                     </Box>
 
-                    {/* ---- Section Toolbar ---- */}
                     <Box className="section-toolbar" sx={{ display: 'flex', gap: 0.25, opacity: (hovered || isSelected) ? 1 : 0, transition: 'opacity 0.15s' }}>
                         <Tooltip title="Move up" arrow>
                             <span>
@@ -411,6 +410,7 @@ function SectionBlock({
                                                         sectionId={section.id}
                                                         columnId={col.id}
                                                         index={idx2}
+                                                        storeId={storeId}
                                                     />
                                                 ))}
                                             </ModuleDropZone>
@@ -431,6 +431,7 @@ function SectionBlock({
                                             onClone={() => onCloneModule(mod.id)}
                                             sectionId={section.id}
                                             index={idx}
+                                            storeId={storeId}
                                         />
                                     ))}
                                 </ModuleDropZone>
@@ -501,6 +502,7 @@ interface SectionListProps {
     onCloneModule: (sectionId: string, moduleId: string) => void;
     onAddSection: () => void;
     onSelectColumn: (sectionId: string, columnId: string) => void;
+    storeId?: string;
 }
 
 export default function SectionList({
@@ -518,10 +520,8 @@ export default function SectionList({
     onCloneModule,
     onAddSection,
     onSelectColumn,
+    storeId,
 }: SectionListProps) {
-    // No SortableContext needed for sections — we use move up/down buttons instead
-    // Modules still use SortableContext for drag-and-drop within sections
-
     if (sections.length === 0) {
         return (
             <Box sx={{ textAlign: 'center', py: 4 }}>
@@ -569,10 +569,10 @@ export default function SectionList({
                     onSelectColumn={onSelectColumn}
                     onInsertBefore={() => onInsertSectionAt(index)}
                     onInsertAfter={() => onInsertSectionAt(index + 1)}
+                    storeId={storeId}
                 />
             ))}
 
-            {/* Bottom "Add Section" button */}
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
                 <Button
                     variant="outlined"

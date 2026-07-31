@@ -31,7 +31,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/content-card/cards/slug/{slug}:
+ * /api/content-cards/cards/slug/{slug}:
  *   get:
  *     summary: Get content card by slug
  *     tags: [ContentCard]
@@ -56,7 +56,7 @@ router.get('/cards/slug/:slug', getContentCardBySlug);
 
 /**
  * @swagger
- * /api/content-card/categories:
+ * /api/content-cards/categories:
  *   get:
  *     summary: Get all content card categories
  *     tags: [ContentCard]
@@ -83,7 +83,7 @@ router.get('/categories', getContentCardCategories);
 
 /**
  * @swagger
- * /api/content-card/cards:
+ * /api/content-cards/cards:
  *   get:
  *     summary: Get all content cards
  *     tags: [ContentCard]
@@ -145,7 +145,7 @@ router.use(authenticate);
 
 /**
  * @swagger
- * /api/content-card/cards:
+ * /api/content-cards/cards:
  *   post:
  *     summary: Create new content card (Admin only)
  *     tags: [ContentCard]
@@ -182,7 +182,7 @@ router.post('/cards', authorize('admin', 'super_admin'), createContentCard);
 
 /**
  * @swagger
- * /api/content-card/cards/{id}:
+ * /api/content-cards/cards/{id}:
  *   get:
  *     summary: Get content card by ID
  *     tags: [ContentCard]
@@ -204,7 +204,7 @@ router.get('/cards/:id', getContentCardById);
 
 /**
  * @swagger
- * /api/content-card/cards/{id}:
+ * /api/content-cards/cards/{id}:
  *   put:
  *     summary: Update content card (Admin only)
  *     tags: [ContentCard]
@@ -231,7 +231,7 @@ router.put('/cards/:id', authorize('admin', 'super_admin'), updateContentCard);
 
 /**
  * @swagger
- * /api/content-card/cards/{id}:
+ * /api/content-cards/cards/{id}:
  *   delete:
  *     summary: Delete content card (Admin only)
  *     tags: [ContentCard]
@@ -253,7 +253,7 @@ router.delete('/cards/:id', authorize('admin', 'super_admin'), deleteContentCard
 
 /**
  * @swagger
- * /api/content-card/cards/{id}/clone:
+ * /api/content-cards/cards/{id}/clone:
  *   post:
  *     summary: Clone content card (Admin only)
  *     tags: [ContentCard]
@@ -277,7 +277,7 @@ router.post('/cards/:id/clone', authorize('admin', 'super_admin'), cloneContentC
 
 /**
  * @swagger
- * /api/content-card/categories:
+ * /api/content-cards/categories:
  *   post:
  *     summary: Create content card category (Admin only)
  *     tags: [ContentCard]
@@ -305,7 +305,7 @@ router.post('/categories', authorize('admin', 'super_admin'), createContentCardC
 
 /**
  * @swagger
- * /api/content-card/categories/{id}:
+ * /api/content-cards/categories/{id}:
  *   get:
  *     summary: Get content card category by ID
  *     tags: [ContentCard]
@@ -327,7 +327,7 @@ router.get('/categories/:id', getContentCardCategoryById);
 
 /**
  * @swagger
- * /api/content-card/categories/{id}:
+ * /api/content-cards/categories/{id}:
  *   put:
  *     summary: Update content card category (Admin only)
  *     tags: [ContentCard]
@@ -354,7 +354,7 @@ router.put('/categories/:id', authorize('admin', 'super_admin'), updateContentCa
 
 /**
  * @swagger
- * /api/content-card/categories/{id}:
+ * /api/content-cards/categories/{id}:
  *   delete:
  *     summary: Delete content card category (Admin only)
  *     tags: [ContentCard]
@@ -378,7 +378,7 @@ router.delete('/categories/:id', authorize('admin', 'super_admin'), deleteConten
 
 /**
  * @swagger
- * /api/content-card/categories/{id}/clone:
+ * /api/content-cards/categories/{id}/clone:
  *   post:
  *     summary: Clone content card category (Admin only)
  *     tags: [ContentCard]
