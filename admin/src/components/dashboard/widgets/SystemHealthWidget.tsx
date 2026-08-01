@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
-    Box, Typography, Paper, Grid, LinearProgress,
-    Chip, Tooltip, CircularProgress, Stack, IconButton
+    Box, Typography, Paper, Grid, Chip, Tooltip,
+    CircularProgress, Stack, IconButton
 } from '@mui/material';
-import MemoryIcon from '@mui/icons-material/Memory';
 import SpeedIcon from '@mui/icons-material/Speed';
+import MemoryIcon from '@mui/icons-material/Memory';
+import StorageIcon from '@mui/icons-material/Storage';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
 import api from '@/lib/api';
@@ -61,14 +62,99 @@ export default function SystemHealthWidget() {
         return `${m}m`;
     };
 
-    const getProgressColor = (percent: number) => {
+    const getProgressColor = (percent: number): 'primary' | 'warning' | 'error' => {
         if (percent > 85) return 'error';
         if (percent > 65) return 'warning';
         return 'primary';
     };
 
+    // Dynamic renderer for active and configured cache engines
+    const renderDynamicCacheEngines = (cache: any) => {
+        if (!cache) return <Chip label="Memory" size="small" variant="outlined" sx={{ fontSize: '0.7rem', height: 20 }} />;
+
+        const items: React.ReactNode[] = [];
+
+        if (cache.memcached?.enabled) {
+            items.push(
+                <Chip
+                    key="memcached"
+                    label={`Memcached: ${cache.memcached.connected ? 'Connected' : 'Disconnected'}`}
+                    size="small"
+                    color={cache.memcached.connected ? 'success' : 'error'}
+                    variant="outlined"
+                    sx={{ fontSize: '0.68rem', height: 20, fontWeight: 600 }}
+                />
+            );
+        }
+
+        if (cache.redis?.enabled) {
+            items.push(
+                <Chip
+                    key="redis"
+                    label={`Redis: ${cache.redis.connected ? 'Connected' : 'Disconnected'}`}
+                    size="small"
+                    color={cache.redis.connected ? 'success' : 'error'}
+                    variant="outlined"
+                    sx={{ fontSize: '0.68rem', height: 20, fontWeight: 600 }}
+                />
+            );
+        }
+
+        // Dynamically inspect any additional cache providers configured in future
+        Object.keys(cache).forEach((key) => {
+            if (!['backend', 'memcached', 'redis', 'memoryFallbackSize', 'memory'].includes(key)) {
+                const engine = cache[key];
+                if (engine && typeof engine === 'object' && engine.enabled) {
+                    items.push(
+                        <Chip
+                            key={key}
+                            label={`${key.toUpperCase()}: ${engine.connected ? 'Connected' : 'Disconnected'}`}
+                            size="small"
+                            color={engine.connected ? 'success' : 'error'}
+                            variant="outlined"
+                            sx={{ fontSize: '0.68rem', height: 20, fontWeight: 600 }}
+                        />
+                    );
+                }
+            }
+        });
+
+        // Always show memory cache fallback items count if present
+        if (cache.memoryFallbackSize !== undefined) {
+            items.push(
+                <Chip
+                    key="memoryFallback"
+                    label={`Memory: ${cache.memoryFallbackSize} items`}
+                    size="small"
+                    color="info"
+                    variant="outlined"
+                    sx={{ fontSize: '0.68rem', height: 20, fontWeight: 600 }}
+                />
+            );
+        }
+
+        if (items.length === 0) {
+            items.push(
+                <Chip
+                    key="default"
+                    label={cache.backend || 'Memory'}
+                    size="small"
+                    variant="outlined"
+                    sx={{ fontSize: '0.68rem', height: 20, fontWeight: 600 }}
+                />
+            );
+        }
+
+        return (
+            <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap mt={0.5}>
+                {items}
+            </Stack>
+        );
+    };
+
     return (
         <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
+            {/* Widget Header */}
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                 <Box display="flex" alignItems="center" gap={1}>
                     <SpeedIcon color="primary" />
@@ -102,51 +188,141 @@ export default function SystemHealthWidget() {
             {loading && !health ? (
                 <Box flex={1} display="flex" justifyContent="center" alignItems="center"><CircularProgress size={30} /></Box>
             ) : (
-                <Grid container spacing={2.5} flex={1}>
-                    {/* CPU Usage */}
-                    <Grid size={{ xs: 12, sm: 6 }}>
-                        <Box p={2} border={1} borderColor="divider" borderRadius={2} bgcolor="background.paper">
-                            <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                                <Box display="flex" alignItems="center" gap={1}>
-                                    <SpeedIcon fontSize="small" color="primary" />
-                                    <Typography variant="body2" fontWeight={600}>CPU Usage</Typography>
+                <Grid container spacing={2} flex={1}>
+                    {/* 1. CPU Usage Circular Bar */}
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                        <Box p={2} border={1} borderColor="divider" borderRadius={2} bgcolor="background.paper" textAlign="center" height="100%">
+                            <Typography variant="body2" fontWeight={600} color="text.secondary" mb={1.5}>
+                                CPU Usage
+                            </Typography>
+
+                            {/* Circle Bar Gauge */}
+                            <Box position="relative" display="inline-flex" mb={1.5}>
+                                <CircularProgress
+                                    variant="determinate"
+                                    value={100}
+                                    size={84}
+                                    thickness={5}
+                                    sx={{ color: 'action.hover' }}
+                                />
+                                <CircularProgress
+                                    variant="determinate"
+                                    value={health?.cpuUsagePercent || 0}
+                                    size={84}
+                                    thickness={5}
+                                    color={getProgressColor(health?.cpuUsagePercent || 0)}
+                                    sx={{ position: 'absolute', left: 0 }}
+                                />
+                                <Box
+                                    top={0}
+                                    left={0}
+                                    bottom={0}
+                                    right={0}
+                                    position="absolute"
+                                    display="flex"
+                                    alignItems="center"
+                                    justifyContent="center"
+                                >
+                                    <Typography variant="subtitle1" fontWeight={700} color={`${getProgressColor(health?.cpuUsagePercent || 0)}.main`}>
+                                        {health?.cpuUsagePercent || 0}%
+                                    </Typography>
                                 </Box>
-                                <Typography variant="subtitle1" fontWeight={700} color={`${getProgressColor(health?.cpuUsagePercent || 0)}.main`}>
-                                    {health?.cpuUsagePercent || 0}%
-                                </Typography>
                             </Box>
-                            <LinearProgress
-                                variant="determinate"
-                                value={health?.cpuUsagePercent || 0}
-                                color={getProgressColor(health?.cpuUsagePercent || 0)}
-                                sx={{ height: 8, borderRadius: 4 }}
-                            />
-                            <Typography variant="caption" color="text.secondary" mt={0.8} display="block">
-                                Cores: {health?.cpuCount || 1} • Load: {health?.loadAverage?.join(', ') || '0'}
+
+                            <Typography variant="caption" color="text.secondary" display="block" noWrap>
+                                Cores: <strong>{health?.cpuCount || 1}</strong> • Load: <strong>{health?.loadAverage?.join(', ') || '0'}</strong>
                             </Typography>
                         </Box>
                     </Grid>
 
-                    {/* Application Heap RAM Usage */}
-                    <Grid size={{ xs: 12, sm: 6 }}>
-                        <Box p={2} border={1} borderColor="divider" borderRadius={2} bgcolor="background.paper">
-                            <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                                <Box display="flex" alignItems="center" gap={1}>
-                                    <MemoryIcon fontSize="small" color="primary" />
-                                    <Typography variant="body2" fontWeight={600}>App Heap RAM</Typography>
+                    {/* 2. Node JS Heap Circular Bar */}
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                        <Box p={2} border={1} borderColor="divider" borderRadius={2} bgcolor="background.paper" textAlign="center" height="100%">
+                            <Typography variant="body2" fontWeight={600} color="text.secondary" mb={1.5}>
+                                Node JS Heap
+                            </Typography>
+
+                            {/* Circle Bar Gauge */}
+                            <Box position="relative" display="inline-flex" mb={1.5}>
+                                <CircularProgress
+                                    variant="determinate"
+                                    value={100}
+                                    size={84}
+                                    thickness={5}
+                                    sx={{ color: 'action.hover' }}
+                                />
+                                <CircularProgress
+                                    variant="determinate"
+                                    value={health?.heapUsagePercent || 0}
+                                    size={84}
+                                    thickness={5}
+                                    color={getProgressColor(health?.heapUsagePercent || 0)}
+                                    sx={{ position: 'absolute', left: 0 }}
+                                />
+                                <Box
+                                    top={0}
+                                    left={0}
+                                    bottom={0}
+                                    right={0}
+                                    position="absolute"
+                                    display="flex"
+                                    alignItems="center"
+                                    justifyContent="center"
+                                >
+                                    <Typography variant="subtitle1" fontWeight={700} color={`${getProgressColor(health?.heapUsagePercent || 0)}.main`}>
+                                        {health?.heapUsagePercent || 0}%
+                                    </Typography>
                                 </Box>
-                                <Typography variant="subtitle1" fontWeight={700} color={`${getProgressColor(health?.heapUsagePercent || 0)}.main`}>
-                                    {health?.heapUsagePercent || 0}%
-                                </Typography>
                             </Box>
-                            <LinearProgress
-                                variant="determinate"
-                                value={health?.heapUsagePercent || 0}
-                                color={getProgressColor(health?.heapUsagePercent || 0)}
-                                sx={{ height: 8, borderRadius: 4 }}
-                            />
-                            <Typography variant="caption" color="text.secondary" mt={0.8} display="block">
-                                Heap: {health?.processHeapUsedMB || 0} MB / {health?.processHeapTotalMB || 0} MB (App RSS: {health?.processRssMB || 0} MB)
+
+                            <Typography variant="caption" color="text.secondary" display="block" noWrap>
+                                {health?.processHeapUsedMB || 0} MB / {health?.processHeapTotalMB || 0} MB (RSS: {health?.processRssMB || 0} MB)
+                            </Typography>
+                        </Box>
+                    </Grid>
+
+                    {/* 3. Actual System RAM Circular Bar */}
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                        <Box p={2} border={1} borderColor="divider" borderRadius={2} bgcolor="background.paper" textAlign="center" height="100%">
+                            <Typography variant="body2" fontWeight={600} color="text.secondary" mb={1.5}>
+                                Actual System RAM
+                            </Typography>
+
+                            {/* Circle Bar Gauge */}
+                            <Box position="relative" display="inline-flex" mb={1.5}>
+                                <CircularProgress
+                                    variant="determinate"
+                                    value={100}
+                                    size={84}
+                                    thickness={5}
+                                    sx={{ color: 'action.hover' }}
+                                />
+                                <CircularProgress
+                                    variant="determinate"
+                                    value={health?.systemMemoryUsagePercent || 0}
+                                    size={84}
+                                    thickness={5}
+                                    color={getProgressColor(health?.systemMemoryUsagePercent || 0)}
+                                    sx={{ position: 'absolute', left: 0 }}
+                                />
+                                <Box
+                                    top={0}
+                                    left={0}
+                                    bottom={0}
+                                    right={0}
+                                    position="absolute"
+                                    display="flex"
+                                    alignItems="center"
+                                    justifyContent="center"
+                                >
+                                    <Typography variant="subtitle1" fontWeight={700} color={`${getProgressColor(health?.systemMemoryUsagePercent || 0)}.main`}>
+                                        {health?.systemMemoryUsagePercent || 0}%
+                                    </Typography>
+                                </Box>
+                            </Box>
+
+                            <Typography variant="caption" color="text.secondary" display="block" noWrap>
+                                {health?.usedMemoryGB || 0} GB / {health?.totalMemoryGB || 0} GB ({health?.freeMemoryGB || 0} GB Free)
                             </Typography>
                         </Box>
                     </Grid>
@@ -154,13 +330,13 @@ export default function SystemHealthWidget() {
                     {/* Health & System Indicators */}
                     <Grid size={{ xs: 12 }}>
                         <Box p={2} border={1} borderColor="divider" borderRadius={2} bgcolor="background.paper">
-                            <Grid container spacing={2}>
+                            <Grid container spacing={2} alignItems="center">
                                 <Grid size={{ xs: 6, sm: 2.4 }}>
                                     <Typography variant="caption" color="text.secondary">API Status & Env</Typography>
                                     <Box display="flex" alignItems="center" gap={0.5} mt={0.5}>
                                         <CheckCircleIcon color="success" fontSize="small" />
                                         <Typography variant="body2" fontWeight={600} textTransform="capitalize">
-                                            {health?.status || 'ok'} ({health?.environment || 'dev'})
+                                            {health?.status || 'ok'} ({health?.environment || 'prod'})
                                         </Typography>
                                     </Box>
                                 </Grid>
@@ -175,11 +351,9 @@ export default function SystemHealthWidget() {
                                     </Box>
                                 </Grid>
 
-                                <Grid size={{ xs: 6, sm: 2.4 }}>
-                                    <Typography variant="caption" color="text.secondary">Cache Engine</Typography>
-                                    <Typography variant="body2" fontWeight={600} mt={0.5} textTransform="capitalize">
-                                        {health?.cache?.backend || 'Memory'} ({health?.cache?.memoryFallbackSize || 0} items)
-                                    </Typography>
+                                <Grid size={{ xs: 12, sm: 2.4 }}>
+                                    <Typography variant="caption" color="text.secondary">Active Cache Engines</Typography>
+                                    {renderDynamicCacheEngines(health?.cache)}
                                 </Grid>
 
                                 <Grid size={{ xs: 6, sm: 2.4 }}>
