@@ -42,7 +42,7 @@ router.use(authenticate);
  *         name: preset
  *         schema:
  *           type: string
- *           enum: [today, yesterday, last_7_days, this_month, last_30_days, last_90_days, custom]
+ *           enum: [today, yesterday, last_7_days, this_month, last_30_days, last_90_days, ytd, all_time, custom]
  *       - in: query
  *         name: startDate
  *         schema:
@@ -79,7 +79,7 @@ router.get('/reports/summary', getReportSummary);
  *         name: preset
  *         schema:
  *           type: string
- *           enum: [today, yesterday, last_7_days, this_month, last_30_days, last_90_days, custom]
+ *           enum: [today, yesterday, last_7_days, this_month, last_30_days, last_90_days, ytd, all_time, custom]
  *       - in: query
  *         name: startDate
  *         schema:
@@ -126,7 +126,7 @@ router.get('/reports/orders', getReportOrders);
  *         name: preset
  *         schema:
  *           type: string
- *           enum: [today, yesterday, last_7_days, this_month, last_30_days, last_90_days, custom]
+ *           enum: [today, yesterday, last_7_days, this_month, last_30_days, last_90_days, ytd, all_time, custom]
  *       - in: query
  *         name: startDate
  *         schema:

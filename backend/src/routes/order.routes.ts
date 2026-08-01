@@ -26,6 +26,9 @@ import {
     processRefund,
     requestRefund,
     updateRefundStatus,
+    deleteOrder,
+    bulkDeleteOrders,
+    bulkUpdateOrderStatus,
 } from '../controllers/order.controller';
 import { authenticate, authorize, optionalAuth } from '../middleware/auth';
 import { validate } from '../middleware/validation';
@@ -160,6 +163,81 @@ router.post(
     validate(adminCreateOrderValidation),
     adminCreateOrder
 );
+
+/**
+ * @swagger
+ * /api/orders/bulk-status:
+ *   post:
+ *     summary: Bulk update order status without triggering notifications
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - orderIds
+ *               - status
+ *             properties:
+ *               orderIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               status:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Orders status updated successfully
+ */
+router.post(
+    '/bulk-status',
+    authenticate,
+    authorize('admin', 'store_admin', 'super_admin'),
+    bulkUpdateOrderStatus
+);
+
+/**
+ * @swagger
+ * /api/orders/bulk-delete:
+ *   post:
+ *     summary: Bulk delete orders and related info (Super Admin only, password required)
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - orderIds
+ *               - password
+ *             properties:
+ *               orderIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Orders deleted successfully
+ *       400:
+ *         description: Invalid password or missing order IDs
+ *       403:
+ *         description: Only Super Admin can delete orders
+ */
+router.post(
+    '/bulk-delete',
+    authenticate,
+    authorize('super_admin'),
+    bulkDeleteOrders
+);
+
 
 /**
  * @swagger
@@ -610,5 +688,47 @@ router.patch(
 );
 
 router.post('/:id/refund-request', authenticate, requestRefund);
+
+/**
+ * @swagger
+ * /api/orders/{id}:
+ *   delete:
+ *     summary: Delete order and all related info (Super Admin only, password required)
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - password
+ *             properties:
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Order deleted successfully
+ *       400:
+ *         description: Password required or invalid password
+ *       403:
+ *         description: Only Super Admin can delete orders
+ *       404:
+ *         description: Order not found
+ */
+router.delete(
+    '/:id',
+    authenticate,
+    authorize('super_admin'),
+    deleteOrder
+);
 
 export default router;

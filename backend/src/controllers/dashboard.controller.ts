@@ -146,21 +146,47 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
             .limit(5)
             .select('name sku salesCount price featuredImage salePrice images');
 
-        // 5. Sales Data (Last 30 days)
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        // 5. Sales Data (Filtered by revenuePeriod)
+        const revenuePeriod = (req.query.revenuePeriod as string) || '30_days';
+        let periodStart: Date | null = new Date();
+        let dateFormat = "%Y-%m-%d";
+
+        if (revenuePeriod === '30_days') {
+            periodStart.setDate(periodStart.getDate() - 30);
+            dateFormat = "%Y-%m-%d";
+        } else if (revenuePeriod === '3_months') {
+            periodStart.setMonth(periodStart.getMonth() - 3);
+            dateFormat = "%Y-%m-%d";
+        } else if (revenuePeriod === '6_months') {
+            periodStart.setMonth(periodStart.getMonth() - 6);
+            dateFormat = "%Y-%m";
+        } else if (revenuePeriod === 'ytd') {
+            const now = new Date();
+            periodStart = new Date(now.getFullYear(), 0, 1);
+            dateFormat = "%Y-%m-%d";
+        } else if (revenuePeriod === 'all_time') {
+            periodStart = null;
+            dateFormat = "%Y-%m";
+        } else {
+            periodStart.setDate(periodStart.getDate() - 30);
+            dateFormat = "%Y-%m-%d";
+        }
+
+        const salesMatch: any = {
+            ...filter,
+            paymentStatus: 'paid'
+        };
+        if (periodStart) {
+            salesMatch.createdAt = { $gte: periodStart };
+        }
 
         const salesData = await Order.aggregate([
             {
-                $match: {
-                    ...filter,
-                    paymentStatus: 'paid',
-                    createdAt: { $gte: thirtyDaysAgo }
-                }
+                $match: salesMatch
             },
             {
                 $group: {
-                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                    _id: { $dateToString: { format: dateFormat, date: "$createdAt" } },
                     revenue: { $sum: "$total" },
                     orders: { $sum: 1 }
                 }

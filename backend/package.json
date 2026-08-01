@@ -53,7 +53,7 @@
         "puppeteer": "^24.34.0",
         "qrcode": "^1.5.4",
         "razorpay": "^2.9.2",
-        "sharp": "^0.34.5",
+        "sharp": "^0.35.3",
         "socket.io": "^4.8.3",
         "stripe": "^14.7.0",
         "swagger-jsdoc": "^6.2.8",
@@ -91,6 +91,8 @@
         "exceljs": {
             "uuid": "^11.1.1"
         },
-        "js-yaml": "^4.1.2"
+        "js-yaml": "^4.1.2",
+        "brace-expansion": "5.0.9",
+        "glob": "10.5.0"
     }
 }

@@ -170,6 +170,8 @@ export type DateRangePreset =
     | 'this_month'
     | 'last_30_days'
     | 'last_90_days'
+    | 'ytd'
+    | 'all_time'
     | 'custom';
 
 export interface DateRange {

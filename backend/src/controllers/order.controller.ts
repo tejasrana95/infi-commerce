@@ -18,8 +18,14 @@ import InventoryService from '../services/inventory.service';
 import { emitOrderEvent } from '../events';
 import posService from '../services/pos.service';
 import { addPricingToProduct } from './product.controller';
+import User from '../models/User';
+import OrderAccounting from '../models/OrderAccounting';
+import ReturnRequest from '../models/ReturnRequest';
+import NotificationQueue from '../models/NotificationQueue';
+import Notification from '../models/Notification';
 import { AccountingService } from '../services/accounting.service';
 import ReturnWindowService from '../services/return-window.service';
+
 
 /**
  * Validation rules
@@ -2996,3 +3002,134 @@ export const updateRefundStatus = asyncHandler(
     });
   },
 );
+
+/**
+ * DELETE /api/orders/:id
+ * Delete single order and all related information (Super Admin only, password required)
+ */
+export const deleteOrder = asyncHandler(
+  async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    const { password } = req.body;
+
+    if (!req.user || req.user.role !== 'super_admin') {
+      throw new AppError('Unauthorized: Only Super Admin can delete orders', 403);
+    }
+
+    if (!password) {
+      throw new AppError('Password is required for delete operation', 400);
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    const isPasswordValid = await user.comparePassword(password);
+    if (!isPasswordValid) {
+      throw new AppError('Invalid password', 400);
+    }
+
+    const order = await Order.findById(id);
+    if (!order) {
+      throw new AppError('Order not found', 404);
+    }
+
+    // Delete related records
+    await OrderAccounting.deleteMany({ orderId: id });
+    await ReturnRequest.deleteMany({ orderId: id });
+    await NotificationQueue.deleteMany({ orderId: id });
+    await Notification.deleteMany({ 'data.orderId': id.toString() });
+
+    // Delete order
+    await Order.deleteOne({ _id: id });
+
+    res.json({
+      success: true,
+      message: 'Order and all related information deleted successfully',
+    });
+  }
+);
+
+/**
+ * POST /api/orders/bulk-delete
+ * Delete multiple orders and all related information (Super Admin only, password required)
+ */
+export const bulkDeleteOrders = asyncHandler(
+  async (req: AuthRequest, res: Response) => {
+    const { orderIds, password } = req.body;
+
+    if (!req.user || req.user.role !== 'super_admin') {
+      throw new AppError('Unauthorized: Only Super Admin can delete orders', 403);
+    }
+
+    if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
+      throw new AppError('Order IDs array is required', 400);
+    }
+
+    if (!password) {
+      throw new AppError('Password is required for bulk delete operation', 400);
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    const isPasswordValid = await user.comparePassword(password);
+    if (!isPasswordValid) {
+      throw new AppError('Invalid password', 400);
+    }
+
+    const mongoOrderIds = orderIds.map((id: string) => new mongoose.Types.ObjectId(id));
+
+    // Delete related records in bulk
+    await OrderAccounting.deleteMany({ orderId: { $in: mongoOrderIds } });
+    await ReturnRequest.deleteMany({ orderId: { $in: mongoOrderIds } });
+    await NotificationQueue.deleteMany({ orderId: { $in: mongoOrderIds } });
+    await Notification.deleteMany({ 'data.orderId': { $in: orderIds } });
+
+    // Delete orders
+    const result = await Order.deleteMany({ _id: { $in: mongoOrderIds } });
+
+    res.json({
+      success: true,
+      message: `${result.deletedCount} order(s) and related information deleted successfully`,
+      deletedCount: result.deletedCount,
+    });
+  }
+);
+
+/**
+ * POST /api/orders/bulk-status
+ * Bulk update order status WITHOUT triggering notifications (AC 3)
+ */
+export const bulkUpdateOrderStatus = asyncHandler(
+  async (req: AuthRequest, res: Response) => {
+    const { orderIds, status } = req.body;
+
+    if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
+      throw new AppError('Order IDs array is required', 400);
+    }
+
+    const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded', 'returned', 'partially_returned'];
+    if (!status || !validStatuses.includes(status)) {
+      throw new AppError('Invalid or missing order status', 400);
+    }
+
+    const mongoOrderIds = orderIds.map((id: string) => new mongoose.Types.ObjectId(id));
+
+    // Update status in bulk (NO notifications triggered)
+    const result = await Order.updateMany(
+      { _id: { $in: mongoOrderIds } },
+      { $set: { status } }
+    );
+
+    res.json({
+      success: true,
+      message: `Status updated to ${status} for ${result.modifiedCount} order(s)`,
+      modifiedCount: result.modifiedCount,
+    });
+  }
+);
+

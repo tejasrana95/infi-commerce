@@ -16,6 +16,10 @@ import {
     TextField,
     IconButton,
     Tooltip,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
 } from '@mui/material';
 import {
     DataGrid,
@@ -51,6 +55,8 @@ const DATE_PRESETS: { label: string; value: DateRangePreset }[] = [
     { label: 'This Month', value: 'this_month' },
     { label: 'Last 30 Days', value: 'last_30_days' },
     { label: 'Last 90 Days', value: 'last_90_days' },
+    { label: 'YTD', value: 'ytd' },
+    { label: 'All Time', value: 'all_time' },
 ];
 
 function AccountingDashboardContent() {
@@ -545,9 +551,10 @@ function AccountingDashboardContent() {
             </Box>
 
             {/* Store Selector & Date Range */}
-            <Paper sx={{ p: 2, mb: 3 }}>
-                <Grid container spacing={2} alignItems="start" flexDirection={{ xs: 'column', sm: 'column', md: 'row' }} >
-                    <Grid size={{ xs: 12, md: 3 }}>
+            <Paper sx={{ p: 2.5, mb: 3, borderRadius: 2 }}>
+                <Grid container spacing={2} alignItems="center">
+                    {/* Store Selector */}
+                    <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
                         <StoreAutocomplete
                             value={selectedStore}
                             minimal
@@ -562,27 +569,65 @@ function AccountingDashboardContent() {
                             }}
                         />
                     </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <ButtonGroup variant="outlined" sx={{ flexWrap: 'wrap' }}>
-                            {DATE_PRESETS.map((preset) => (
-                                <Button
-                                    sx={{ fontSize: 10 }}
-                                    key={preset.value}
-                                    variant={
-                                        datePreset === preset.value &&
-                                            !showCustomDates
-                                            ? 'contained'
-                                            : 'outlined'
+
+                    {/* Date Presets - Select Dropdown for Mobile / Medium Screens */}
+                    <Grid size={{ xs: 12, sm: 6 }} sx={{ display: { xs: 'block', xl: 'none' } }}>
+                        <FormControl size="small" fullWidth>
+                            <InputLabel>Date Range Preset</InputLabel>
+                            <Select
+                                value={showCustomDates ? 'custom' : datePreset}
+                                label="Date Range Preset"
+                                onChange={(e) => {
+                                    const val = e.target.value as DateRangePreset;
+                                    if (val === 'custom') {
+                                        setShowCustomDates(true);
+                                    } else {
+                                        handlePresetChange(val);
                                     }
-                                    onClick={() => handlePresetChange(preset.value)}
-                                >
-                                    {preset.label}
-                                </Button>
-                            ))}
-                        </ButtonGroup>
+                                }}
+                            >
+                                {DATE_PRESETS.map((preset) => (
+                                    <MenuItem key={preset.value} value={preset.value}>
+                                        {preset.label}
+                                    </MenuItem>
+                                ))}
+                                <MenuItem value="custom">Custom Range</MenuItem>
+                            </Select>
+                        </FormControl>
                     </Grid>
-                    <Grid size={{ xs: 12, md: 3 }}>
-                        <Box display="flex" gap={1} alignItems="center">
+
+                    {/* Date Presets - Pill Buttons for Extra Large Desktop Screens */}
+                    <Grid size={{ xl: 6 }} sx={{ display: { xs: 'none', xl: 'block' } }}>
+                        <Box display="flex" flexWrap="wrap" gap={0.75} alignItems="center">
+                            {DATE_PRESETS.map((preset) => {
+                                const isSelected = datePreset === preset.value && !showCustomDates;
+                                return (
+                                    <Button
+                                        key={preset.value}
+                                        size="small"
+                                        variant={isSelected ? 'contained' : 'outlined'}
+                                        onClick={() => handlePresetChange(preset.value)}
+                                        sx={{
+                                            borderRadius: '20px',
+                                            px: 1.75,
+                                            py: 0.5,
+                                            fontSize: '0.75rem',
+                                            fontWeight: 600,
+                                            textTransform: 'none',
+                                            whiteSpace: 'nowrap',
+                                            boxShadow: isSelected ? '0 2px 8px rgba(99, 102, 241, 0.3)' : 'none',
+                                        }}
+                                    >
+                                        {preset.label}
+                                    </Button>
+                                );
+                            })}
+                        </Box>
+                    </Grid>
+
+                    {/* Custom Date Range */}
+                    <Grid size={{ xs: 12, lg: 3, xl: 3 }}>
+                        <Box display="flex" gap={1} alignItems="center" flexWrap="wrap">
                             <TextField
                                 type="date"
                                 size="small"
@@ -590,7 +635,7 @@ function AccountingDashboardContent() {
                                 value={tempStartDate}
                                 onChange={(e) => setTempStartDate(e.target.value)}
                                 InputLabelProps={{ shrink: true }}
-                                sx={{ width: 140 }}
+                                sx={{ flex: 1, minWidth: 120 }}
                             />
                             <TextField
                                 type="date"
@@ -599,7 +644,7 @@ function AccountingDashboardContent() {
                                 value={tempEndDate}
                                 onChange={(e) => setTempEndDate(e.target.value)}
                                 InputLabelProps={{ shrink: true }}
-                                sx={{ width: 140 }}
+                                sx={{ flex: 1, minWidth: 120 }}
                             />
                             <Button
                                 variant={showCustomDates ? 'contained' : 'outlined'}
@@ -608,6 +653,7 @@ function AccountingDashboardContent() {
                                     handleCustomDateApply(tempStartDate, tempEndDate)
                                 }
                                 disabled={!tempStartDate || !tempEndDate}
+                                sx={{ height: 40, px: 2, borderRadius: 1.5 }}
                             >
                                 Apply
                             </Button>

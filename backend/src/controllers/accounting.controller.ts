@@ -397,6 +397,16 @@ function getDateRange(
             return { start: ninetyDaysAgo, end: tomorrow };
         }
 
+        case 'ytd': {
+            const yearStart = new Date(now.getFullYear(), 0, 1);
+            return { start: yearStart, end: tomorrow };
+        }
+
+        case 'all_time': {
+            const beginningOfTime = new Date(0);
+            return { start: beginningOfTime, end: tomorrow };
+        }
+
         case 'custom':
         default:
             // Use provided dates or default to last 30 days

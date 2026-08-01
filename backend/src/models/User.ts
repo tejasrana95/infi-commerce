@@ -23,6 +23,10 @@ export interface IUser extends Document {
     twoFactorEnabled: boolean;
     twoFactorSecret?: string;
     twoFactorBackupCodes?: string[];
+    dashboardPreferences?: {
+        widgetOrder: string[];
+        enabledWidgets: string[];
+    };
     lastLogin?: Date;
     createdAt: Date;
     updatedAt: Date;
@@ -98,6 +102,16 @@ const UserSchema = new Schema<IUser>(
         twoFactorBackupCodes: {
             type: [String],
             default: [],
+        },
+        dashboardPreferences: {
+            widgetOrder: {
+                type: [String],
+                default: [],
+            },
+            enabledWidgets: {
+                type: [String],
+                default: [],
+            },
         },
         lastLogin: {
             type: Date,

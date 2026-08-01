@@ -43,6 +43,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import UndoIcon from '@mui/icons-material/Undo';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { Order, OrderStatus } from '@/types/order';
@@ -50,8 +51,10 @@ import LoadingSpinner from '@/components/atoms/LoadingSpinner';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useAuth } from '@/contexts/AuthContext';
 import OrderAccountingSection from '@/components/organisms/OrderAccountingSection';
 import AdminReturnModal from '@/components/organisms/AdminReturnModal';
+import PasswordConfirmDialog from '@/components/organisms/PasswordConfirmDialog';
 import { formatDateTime } from '@/utils/date';
 
 export default function OrderDetailPage() {
@@ -88,6 +91,31 @@ export default function OrderDetailPage() {
     const [refundAction, setRefundAction] = useState<'approved' | 'rejected' | 'processed'>('approved');
     const [adminNote, setAdminNote] = useState('');
     const [returnModalOpen, setReturnModalOpen] = useState(false);
+    // Delete order state
+    const { user } = useAuth();
+    const isSuperAdmin = user?.role === 'super_admin';
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [deleteLoading, setDeleteLoading] = useState(false);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
+
+    const handleDeleteOrder = async (password: string) => {
+        setDeleteLoading(true);
+        setDeleteError(null);
+        try {
+            const response = await api.delete(`/orders/${id}`, {
+                data: { password }
+            });
+            showNotification(response.data.message || 'Order deleted successfully', 'success');
+            setDeleteModalOpen(false);
+            router.push('/orders');
+        } catch (err: unknown) {
+            const msg = (err as any).response?.data?.message || (err as any).response?.data?.error || getErrorMessage(err) || 'Failed to delete order';
+            setDeleteError(msg);
+        } finally {
+            setDeleteLoading(false);
+        }
+    };
+
 
     // Notification choice state
     const [notifyCustomer, setNotifyCustomer] = useState(true);
@@ -312,6 +340,20 @@ export default function OrderDetailPage() {
                             Return
                         </Button>
                     )}
+                    {isSuperAdmin && (
+                        <Button
+                            variant="contained"
+                            color="error"
+                            startIcon={<DeleteIcon />}
+                            onClick={() => {
+                                setDeleteError(null);
+                                setDeleteModalOpen(true);
+                            }}
+                            disabled={!order || actionLoading}
+                        >
+                            Delete Order
+                        </Button>
+                    )}
                     {order && !['cancelled', 'refunded'].includes(order.status) && (
                         <Button
                             variant="contained"
@@ -495,9 +537,9 @@ export default function OrderDetailPage() {
                                                         <TableBody>
                                                             {returnRecord.items.map((item, itemIdx: number) => {
                                                                 const originalItem = order.items.find((oi) => {
-                                                                    const pid = typeof oi.productId === 'object' ? (oi.productId as any)._id : (oi.productId as string);
-                                                                    const iid = typeof item.productId === 'object' ? (item.productId as any)._id : (item.productId as string);
-                                                                    return pid === iid;
+                                                                    const pid = oi?.productId && typeof oi.productId === 'object' ? (oi.productId as any)._id?.toString() : oi?.productId?.toString();
+                                                                    const iid = item?.productId && typeof item.productId === 'object' ? (item.productId as any)._id?.toString() : item?.productId?.toString();
+                                                                    return pid && iid && pid === iid;
                                                                 });
                                                                 return (
                                                                     <TableRow key={itemIdx}>
@@ -889,6 +931,17 @@ export default function OrderDetailPage() {
             />
 
             {ConfirmStateDialog()}
+
+            {/* Delete Order Password Dialog */}
+            <PasswordConfirmDialog
+                open={deleteModalOpen}
+                title={`Delete Order #${order?.orderNumber || id}`}
+                message={`Are you sure you want to permanently delete Order #${order?.orderNumber || id}? This will also remove all associated order history, accounting records, return requests, and notifications.`}
+                loading={deleteLoading}
+                error={deleteError}
+                onConfirm={handleDeleteOrder}
+                onClose={() => setDeleteModalOpen(false)}
+            />
         </Box>
     );
 
