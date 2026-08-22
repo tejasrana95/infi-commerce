@@ -16,7 +16,8 @@ export default function CheckoutPayment({ config: propsConfig }: CheckoutPayment
         config: globalConfig,
         paymentMethods,
         selectedPayment,
-        handlePaymentSelect
+        handlePaymentSelect,
+        paymentsLoading,
     } = useCheckout();
 
     const config = propsConfig || globalConfig?.payment || {};
@@ -30,7 +31,17 @@ export default function CheckoutPayment({ config: propsConfig }: CheckoutPayment
         <div className={styles.paymentModule}>
             <h2 className={styles.title}>Payment Method</h2>
 
-            {paymentMethods.length === 0 ? (
+            {paymentsLoading ? (
+                <div className={`${styles.methodsContainer} ${layout === 'grid' ? styles.gridLayout : ''}`}>
+                    <div className={styles.skeletonCard}>
+                        <div className={styles.skeletonRadio} />
+                        <div className={styles.skeletonInfo}>
+                            <div className={styles.skeletonTitle} />
+                            <div className={styles.skeletonDesc} />
+                        </div>
+                    </div>
+                </div>
+            ) : paymentMethods.length === 0 ? (
                 <div className={styles.noMethods}>
                     No payment methods available for your region.
                 </div>

@@ -90,6 +90,7 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
     // Payment state
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
     const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
+    const [paymentsLoading, setPaymentsLoading] = useState<boolean>(false);
 
     // Tax state
     const [taxBreakdown, setTaxBreakdown] = useState<TaxBreakdown[]>([]);
@@ -252,6 +253,7 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
         const loadPayments = async () => {
             if (!shippingAddress) return;
             try {
+                setPaymentsLoading(true);
                 const { methods } = await checkoutService.getPaymentMethods(
                     shippingAddress.country,
                     orderSummary.total,
@@ -263,6 +265,8 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
                 }
             } catch (error) {
                 console.error('Failed to load payment methods:', error);
+            } finally {
+                setPaymentsLoading(false);
             }
         };
         if (currentStep >= 3 || checkoutMode === 'one-page') loadPayments();
@@ -460,7 +464,7 @@ export default function CheckoutContent({ config: propsConfig }: CheckoutContent
         config,
         currentStep, checkoutMode, loading, submitting, cartItems, customer, isLoggedIn: !!customer, guestEmail,
         savedAddresses, shippingAddress, billingAddress, selectedAddressId, sameAsShipping,
-        shippingCost, shippingDetails, paymentMethods, selectedPayment, taxBreakdown, couponCode, appliedCoupon,
+        shippingCost, shippingDetails, paymentMethods, selectedPayment, paymentsLoading, taxBreakdown, couponCode, appliedCoupon,
         couponLoading, orderSummary, customerNote, saveAddress, storeConfig, restrictedItems,
         handleNextStep, handlePreviousStep, goToStep, canProceedToStep, handleAddressSelect,
         handleAddressSubmit, handleBillingAddressSelect, handleBillingAddressSubmit,

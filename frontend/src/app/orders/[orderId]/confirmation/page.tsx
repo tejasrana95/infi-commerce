@@ -60,7 +60,7 @@ export default function OrderConfirmationPage() {
     const toast = useToast();
     const { showConfirm } = useDialog();
     const { trackPurchase } = useInterest();
-    const {convertAndFormat} = useCurrency();
+    const { convertAndFormat } = useCurrency();
     const orderId = params.orderId as string;
 
     const [loading, setLoading] = useState(true);

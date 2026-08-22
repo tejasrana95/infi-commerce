@@ -93,6 +93,7 @@ export interface CheckoutContextType {
     storeConfig: any; // Add storeConfig for shipping/modules
     paymentMethods: PaymentMethod[];
     selectedPayment: PaymentMethod | null;
+    paymentsLoading: boolean;
     taxBreakdown: TaxBreakdown[];
     couponCode: string;
     appliedCoupon: AppliedCoupon | null;
