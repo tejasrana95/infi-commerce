@@ -1405,7 +1405,7 @@ export default function ActivityLogsPage() {
             )}
 
             {/* Drawer Footer Button */}
-            <Box p={2.5} borderTop="1px solid #e2e8f0" backgroundColor="#f8fafc">
+            <Box p={2.5} sx={{ borderTop: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
               <Button
                 fullWidth
                 variant="outlined"
