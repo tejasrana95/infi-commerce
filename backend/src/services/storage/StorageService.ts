@@ -22,6 +22,9 @@ export class StorageService {
 
         switch (type.toLowerCase()) {
             case 's3':
+            case 'r2':
+            case 'cloudflare':
+            case 's3-compatible':
                 return new S3StorageProvider();
             case 'local':
             default:

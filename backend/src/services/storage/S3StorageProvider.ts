@@ -5,15 +5,23 @@ export class S3StorageProvider implements IStorageProvider {
     private s3Client: S3Client;
     private bucket: string;
     private region: string;
-    private cloudFrontUrl?: string;
+    private endpoint?: string;
+    private publicUrl?: string;
+    private forcePathStyle: boolean;
 
     constructor() {
         this.region = process.env.AWS_REGION || 'us-east-1';
-        this.bucket = process.env.AWS_BUCKET_NAME || '';
-        this.cloudFrontUrl = process.env.AWS_CLOUDFRONT_URL;
+        this.bucket = process.env.AWS_S3_BUCKET || process.env.AWS_BUCKET_NAME || '';
+        this.endpoint = process.env.S3_ENDPOINT || process.env.AWS_ENDPOINT_URL;
+        this.forcePathStyle = process.env.S3_FORCE_PATH_STYLE === 'true';
+
+        const rawPublicUrl = process.env.S3_PUBLIC_URL || process.env.AWS_CLOUDFRONT_URL;
+        this.publicUrl = rawPublicUrl ? rawPublicUrl.replace(/\/+$/, '') : undefined;
 
         this.s3Client = new S3Client({
             region: this.region,
+            endpoint: this.endpoint || undefined,
+            forcePathStyle: this.forcePathStyle,
             credentials: {
                 accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
                 secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
@@ -66,7 +74,7 @@ export class S3StorageProvider implements IStorageProvider {
 
         const command = new CopyObjectCommand({
             Bucket: this.bucket,
-            CopySource: `${this.bucket}/${sourceKey}`,
+            CopySource: encodeURI(`${this.bucket}/${sourceKey}`),
             Key: destKey,
         });
 
@@ -80,8 +88,16 @@ export class S3StorageProvider implements IStorageProvider {
     async getUrl(relativePath: string): Promise<string> {
         const key = this.sanitizePath(relativePath);
 
-        if (this.cloudFrontUrl) {
-            return `${this.cloudFrontUrl}/${key}`;
+        if (this.publicUrl) {
+            return `${this.publicUrl}/${key}`;
+        }
+
+        if (this.endpoint) {
+            const cleanEndpoint = this.endpoint.replace(/\/+$/, '');
+            if (this.forcePathStyle) {
+                return `${cleanEndpoint}/${this.bucket}/${key}`;
+            }
+            return `${cleanEndpoint}/${key}`;
         }
 
         return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`;
