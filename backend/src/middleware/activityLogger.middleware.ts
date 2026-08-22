@@ -208,8 +208,15 @@ export const activityLoggerMiddleware = (req: Request, res: Response, next: Next
                 }
             }
 
-            // 3. Automatic Audit & Activity Ingestion for State Mutations (excluding Auth & Activity Log routes)
-            if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && res.statusCode < 400 && !isAuthEndpoint && !reqPathLower.includes('/activity-logs')) {
+            // 3. Automatic Audit & Activity Ingestion for State Mutations (excluding Auth, Activity Log, & non-mutating calculation routes)
+            const isNonMutatingRoute =
+                reqPathLower.includes('/calculate-smart') ||
+                reqPathLower.includes('/calculate') ||
+                reqPathLower.includes('/estimate') ||
+                reqPathLower.includes('/health') ||
+                reqPathLower.includes('/metrics');
+
+            if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && res.statusCode < 400 && !isAuthEndpoint && !reqPathLower.includes('/activity-logs') && !isNonMutatingRoute) {
                 let action: 'CREATE' | 'UPDATE' | 'DELETE' | 'PUBLISH' | 'ROLE_CHANGE' | 'PERMISSION_CHANGE' = 'UPDATE';
                 if (req.method === 'POST') action = 'CREATE';
                 else if (req.method === 'DELETE') action = 'DELETE';
