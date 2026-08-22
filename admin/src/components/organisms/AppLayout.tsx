@@ -41,6 +41,7 @@ import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined';
+import DvrIcon from '@mui/icons-material/Dvr';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import FolderIcon from '@mui/icons-material/Folder';
 import LabelImportantIcon from '@mui/icons-material/LabelImportant';
@@ -165,6 +166,8 @@ const navigationItems: NavItem[] = [
       { name: 'Notification Templates', href: '/notification-templates', icon: <DescriptionIcon /> },
       { name: 'Stores', href: '/stores', icon: <StoreIcon /> },
       { name: 'Settings', href: '/settings', icon: <SettingsOutlinedIcon /> },
+      { name: 'Activity Logs', href: '/activity-logs', icon: <DvrIcon /> },
+
     ],
   },
 ];
@@ -522,11 +525,11 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
                   cursor: sidebarCollapsed ? 'pointer' : 'default',
                 }}
               >
-              {branding.logo ? (
-                <Image src={branding.logo} alt="L" width={44} height={44} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-              ) : (
-                branding.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-              )}
+                {branding.logo ? (
+                  <Image src={branding.logo} alt="L" width={44} height={44} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                ) : (
+                  branding.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+                )}
               </Box>
             </Tooltip>
             {!sidebarCollapsed && (

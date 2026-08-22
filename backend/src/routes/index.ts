@@ -239,4 +239,8 @@ router.use('/google-merchant', googleMerchantRoutes);
 import feedRoutes from './feed.routes';
 router.use('/feeds', feedRoutes);
 
+// Mount Activity Intelligence & Audit Log routes
+import activityLogRoutes from './activityLog.routes';
+router.use('/activity-logs', activityLogRoutes);
+
 export default router;

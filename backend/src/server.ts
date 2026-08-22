@@ -21,12 +21,15 @@ import morgan from 'morgan';
 import swaggerUi from 'swagger-ui-express';
 import { config } from './config';
 import { connectDatabase } from './config/database';
+import { connectLogDatabase } from './config/logDatabase';
 import { swaggerSpec } from './config/swagger';
 import apiRoutes from './routes';
 import { registerEventHandlers } from './events/handlers';
 import { channelMiddleware } from './middleware/channel.middleware';
 import { optionalApiKeyAuth } from './middleware/apiKeyAuth';
 import { globalApiLimiter } from './middleware/rateLimit';
+import { requestCorrelation } from './middleware/requestCorrelation';
+import { activityLoggerMiddleware } from './middleware/activityLogger.middleware';
 import { socketService } from './services/socket.service';
 import cacheService from './services/cache.service';
 
@@ -131,7 +134,8 @@ if (config.env !== 'production') {
     });
 }
 
-// Global API key authentication middleware - validates key if provided, allows if not
+// Request correlation & tracking middleware
+app.use('/api', requestCorrelation);
 
 // Apply Global Rate Limiting
 app.use('/api', globalApiLimiter);
@@ -141,10 +145,11 @@ app.use('/api', optionalApiKeyAuth);
 // Global Channel Middleware
 app.use('/api', channelMiddleware);
 
+// Activity & API Logger Interceptor Middleware
+app.use('/api', activityLoggerMiddleware);
+
 // Mount API routes
 app.use('/api', apiRoutes);
-// API routes will be added here
-
 
 // Sentry error handler (must be registered before any other error middleware)
 if (process.env.SENTRY_DSN) {
@@ -182,6 +187,9 @@ const startServer = async () => {
 
         // Connect to database
         await connectDatabase();
+
+        // Connect to dedicated log database
+        await connectLogDatabase();
 
         // Initialize Socket.IO
         socketService.initialize(httpServer);
