@@ -40,6 +40,9 @@ export const revalidationConfig = {
     // Category data (metadata, filters)
     categoryData: parseInt(process.env.NEXT_PUBLIC_REVALIDATE_CATEGORY_DATA || '300', 10),
 
+    // Categories list
+    categories: parseInt(process.env.NEXT_PUBLIC_REVALIDATE_CATEGORIES || '1800', 10),
+
     // Product data (individual product details)
     productData: parseInt(process.env.NEXT_PUBLIC_REVALIDATE_PRODUCT_DATA || '300', 10),
 
@@ -87,6 +90,7 @@ export function getRevalidateTime(type: keyof typeof revalidationConfig): number
             storeDomain: 300,
             layout: 300,
             categoryData: 300,
+            categories: 1800,
             productData: 300,
             productList: 300,
             blogPosts: 600,

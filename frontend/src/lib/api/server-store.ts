@@ -110,6 +110,32 @@ export async function fetchCategoryBySlug(storeId: string, slug: string): Promis
 }
 
 /**
+ * Fetch categories list by IDs or storeId with Next.js caching
+ */
+export async function fetchCategories(
+    storeId: string,
+    categoryIds?: string[]
+): Promise<any[]> {
+    try {
+        const params = new URLSearchParams({ storeId, sort: 'false' });
+        if (categoryIds && categoryIds.length > 0) {
+            params.set('ids', categoryIds.join(','));
+        }
+        const res = await fetch(`${API_BASE}/categories?${params.toString()}`, {
+            ...getCacheOptions('categories'),
+            headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
+        });
+
+        if (!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data?.categories) ? data.categories : [];
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+        return [];
+    }
+}
+
+/**
  * Fetch products for a category (or all products if categoryId is null)
  */
 export async function fetchCategoryProducts(

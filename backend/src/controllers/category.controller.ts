@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { body, param } from 'express-validator';
 import mongoose from 'mongoose';
+import crypto from 'crypto';
 import Category from '../models/Category';
 import Store from '../models/Store';
 import { AuthRequest } from '../middleware/auth';
@@ -276,7 +277,7 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
     // Get store ID from multiple sources (header takes priority for API key requests)
     const effectiveStoreId = (req.headers['x-store-id'] || req.query.storeId || req.body?.storeId) as string | undefined;
 
-    const canUseCategoryListCache = config.categoryCache.enabled && !bypassCache && !req.user;
+    const canUseCategoryListCache = config.categoryCache.enabled && !bypassCache && !isPrivileged;
     const categoryCacheTtlSeconds = config.categoryCache.ttlDays * 24 * 60 * 60;
 
     const normalizedQueryForCache = Object.keys(req.query)
@@ -288,11 +289,18 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
             return `${key}=${String(value)}`;
         })
         .join('&');
-    const categoryListCacheKey = `categories:list:v1:store:${effectiveStoreId || 'all'}:channel:${req.channel || 'all'}:query:${normalizedQueryForCache || 'none'}`;
+
+    let queryKeyPart = normalizedQueryForCache || 'none';
+    if (queryKeyPart.length > 48) {
+        queryKeyPart = crypto.createHash('md5').update(queryKeyPart).digest('hex');
+    }
+    const categoryListCacheKey = `categories:list:v1:store:${effectiveStoreId || 'all'}:channel:${req.channel || 'all'}:q:${queryKeyPart}`;
 
     if (canUseCategoryListCache) {
         const cachedResponse = await redisService.get<any>(categoryListCacheKey);
         if (cachedResponse) {
+            res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400');
+            res.setHeader('Vary', 'Accept-Encoding, x-channel, x-store-id');
             return res.json(cachedResponse);
         }
     }
@@ -418,6 +426,11 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
 
     if (canUseCategoryListCache) {
         await redisService.set(categoryListCacheKey, responsePayload, categoryCacheTtlSeconds);
+    }
+
+    if (!isPrivileged) {
+        res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400');
+        res.setHeader('Vary', 'Accept-Encoding, x-channel, x-store-id');
     }
 
     return res.json(responsePayload);

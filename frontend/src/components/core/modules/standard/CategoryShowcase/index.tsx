@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
+import useSWR from 'swr';
 import Link from 'next/link';
 import { getComponent } from '@/components/templates/registry';
 import { ModuleProps } from '../..';
@@ -51,9 +52,6 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
         labelColor,
     } = config as CategoryShowcaseConfig;
 
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const carouselRef = useRef<HTMLDivElement>(null);
     const { store } = useStore();
 
@@ -63,31 +61,26 @@ export default function CategoryShowcaseModule({ config, sectionType }: ModulePr
     const isFullWidth = sectionType === 'full-width';
     const containerClass = isFullWidth ? styles.fluidContainer : styles.container;
 
-    useEffect(() => {
-        const fetchCategories = async () => {
-            try {
-                setLoading(true);
-                const ids = categoryIds.join(',');
-                const params = new URLSearchParams({ ids });
-                params.set('sort', 'false');
-                if (store?._id) {
-                    params.set('storeId', store._id);
-                }
-                const data = await api.get<{ categories: Category[] }>(`categories?${params.toString()}`);
-                setCategories(Array.isArray(data.categories) ? data.categories : []);
-            } catch (err) {
-                console.error('Error fetching categories:', err);
-                setError(err instanceof Error ? err.message : 'Failed to load categories');
-            } finally {
-                setLoading(false);
-            }
-        };
-        if (categoryIds && categoryIds.length > 0 && store?._id) {
-            fetchCategories();
-        } else {
-            setLoading(false);
+    // Cache key for SWR
+    const categoryIdsKey = categoryIds && categoryIds.length > 0 ? categoryIds.join(',') : '';
+    const swrKey = categoryIdsKey && store?._id
+        ? `categories?ids=${encodeURIComponent(categoryIdsKey)}&sort=false&storeId=${store._id}`
+        : null;
+
+    const { data, error: swrError, isLoading: swrLoading } = useSWR<{ categories: Category[] }>(
+        swrKey,
+        (url: string) => api.get<{ categories: Category[] }>(url),
+        {
+            revalidateOnFocus: false,
+            revalidateIfStale: false,
+            revalidateOnReconnect: false,
+            dedupingInterval: 300000, // 5 minutes cache deduplication
         }
-    }, [categoryIds, store?._id]);
+    );
+
+    const categories = useMemo(() => Array.isArray(data?.categories) ? data.categories : [], [data]);
+    const loading = !swrKey ? false : swrLoading;
+    const error = swrError ? (swrError instanceof Error ? swrError.message : 'Failed to load categories') : null;
 
     const normalizedColumns = Math.min(Math.max(columns, 2), 12);
     const compactRatio = normalizedColumns <= 6 ? 1 : Math.max(0.58, 1 - ((normalizedColumns - 6) * 0.07));

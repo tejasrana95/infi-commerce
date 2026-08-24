@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
     const { pathname, search } = request.nextUrl;
 
     // --- 301 Redirects for Flat URLs ---
@@ -44,7 +44,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
 }
 
-// Run proxy on all routes except static assets and internal requests
+// Run middleware on all routes except static assets and internal requests
 export const config = {
     matcher: [
         /*

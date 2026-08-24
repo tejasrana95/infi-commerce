@@ -18,14 +18,6 @@
  *   REDIS_KEY_PREFIX=infi:fe:
  */
 
-// Ensure this module only runs server-side
-if (typeof window !== 'undefined') {
-    throw new Error('server-cache.ts must only be imported in server-side code.');
-}
-
-import memjs from 'memjs';
-import Redis from 'ioredis';
-
 // ─── Config (read directly from process.env for server-only access) ───────────
 
 const cfg = {
@@ -47,8 +39,7 @@ const cfg = {
 
 // ─── In-Process Memory (L3) ──────────────────────────────────────────────────
 
-interface MemoryEntry { value: string; expiry: number }
-const memoryStore = new Map<string, MemoryEntry>();
+const memoryStore = new Map<string, { value: string; expiry: number }>();
 
 function memGet(key: string): string | null {
     const e = memoryStore.get(key);
@@ -63,21 +54,23 @@ function memSet(key: string, value: string, ttl: number): void {
 
 // ─── Lazy Singletons ──────────────────────────────────────────────────────────
 
-let _memcached: memjs.Client | null = null;
+let _memcached: any = null;
 let _memcachedOk = false;
 
-let _redis: Redis | null = null;
+let _redis: any = null;
 let _redisOk = false;
 
 let _initialized = false;
 
-function initOnce(): void {
+async function initOnce(): Promise<void> {
     if (_initialized) return;
     _initialized = true;
 
     // Memcached
     if (cfg.memcached.enabled) {
         try {
+            const memjsModule = await import(/* webpackIgnore: true */ 'memjs');
+            const memjs = memjsModule.default || memjsModule;
             _memcached = memjs.Client.create(cfg.memcached.servers, {
                 expires: cfg.memcached.lifetime,
                 retries: 2,
@@ -88,27 +81,29 @@ function initOnce(): void {
                 `${cfg.memcached.keyPrefix}__health__`,
                 Buffer.from('1'),
                 { expires: 5 },
-                (err) => {
+                (err: any) => {
                     _memcachedOk = !err;
                     if (!err) console.log('[FE Cache] Memcached connected');
-                    else console.warn('[FE Cache] Memcached unavailable –', err.message);
+                    else console.warn('[FE Cache] Memcached unavailable –', err?.message);
                 }
             );
         } catch (e: any) {
-            console.warn('[FE Cache] Memcached init failed –', e.message);
+            console.warn('[FE Cache] Memcached init failed –', e?.message);
         }
     }
 
     // Redis
     if (cfg.redis.enabled) {
         try {
+            const redisModule = await import(/* webpackIgnore: true */ 'ioredis');
+            const Redis = redisModule.default || redisModule;
             _redis = new Redis({
                 host: cfg.redis.host,
                 port: cfg.redis.port,
                 password: cfg.redis.password,
                 db: cfg.redis.db,
                 keyPrefix: cfg.redis.keyPrefix,
-                retryStrategy: (t) => (t > 3 ? null : Math.min(t * 100, 3000)),
+                retryStrategy: (t: number) => (t > 3 ? null : Math.min(t * 100, 3000)),
                 lazyConnect: true,
                 maxRetriesPerRequest: 3,
                 enableReadyCheck: true,
@@ -118,7 +113,7 @@ function initOnce(): void {
             _redis.on('close', () => { _redisOk = false; });
             _redis.connect().catch(() => { _redisOk = false; });
         } catch (e: any) {
-            console.warn('[FE Cache] Redis init failed –', e.message);
+            console.warn('[FE Cache] Redis init failed –', e?.message);
         }
     }
 }
@@ -126,13 +121,13 @@ function initOnce(): void {
 // ─── Public helpers ───────────────────────────────────────────────────────────
 
 async function getRaw(key: string): Promise<string | null> {
-    initOnce();
+    await initOnce();
 
     // L1: Memcached
     if (cfg.memcached.enabled && _memcachedOk && _memcached) {
         try {
             const val = await new Promise<Buffer | null>((resolve) =>
-                _memcached!.get(`${cfg.memcached.keyPrefix}${key}`, (err, v) => resolve(err ? null : v))
+                _memcached.get(`${cfg.memcached.keyPrefix}${key}`, (err: any, v: Buffer | null) => resolve(err ? null : v))
             );
             if (val !== null) return val.toString('utf8');
         } catch { /* fall through */ }
@@ -163,12 +158,12 @@ async function getRaw(key: string): Promise<string | null> {
 }
 
 async function setRaw(key: string, value: string, ttl: number): Promise<void> {
-    initOnce();
+    await initOnce();
     const writes: Promise<any>[] = [];
 
     if (cfg.memcached.enabled && _memcachedOk && _memcached) {
         writes.push(new Promise<void>((resolve) =>
-            _memcached!.set(
+            _memcached.set(
                 `${cfg.memcached.keyPrefix}${key}`,
                 Buffer.from(value),
                 { expires: ttl },
@@ -192,6 +187,7 @@ async function setRaw(key: string, value: string, ttl: number): Promise<void> {
  * Returns null on miss or deserialization error.
  */
 export async function serverCacheGet<T>(key: string): Promise<T | null> {
+    if (typeof window !== 'undefined') return null;
     const raw = await getRaw(key);
     if (raw === null) return null;
     try { return JSON.parse(raw) as T; } catch { return null; }
@@ -202,6 +198,7 @@ export async function serverCacheGet<T>(key: string): Promise<T | null> {
  * @param ttl Time-to-live in seconds (default: 300 = 5 min)
  */
 export async function serverCacheSet<T>(key: string, value: T, ttl = 300): Promise<void> {
+    if (typeof window !== 'undefined') return;
     await setRaw(key, JSON.stringify(value), ttl);
 }
 
@@ -209,12 +206,13 @@ export async function serverCacheSet<T>(key: string, value: T, ttl = 300): Promi
  * DELETE a key from all cache layers.
  */
 export async function serverCacheDelete(key: string): Promise<void> {
-    initOnce();
+    if (typeof window !== 'undefined') return;
+    await initOnce();
     const deletes: Promise<any>[] = [];
 
     if (cfg.memcached.enabled && _memcachedOk && _memcached) {
         deletes.push(new Promise<void>((resolve) =>
-            _memcached!.delete(`${cfg.memcached.keyPrefix}${key}`, () => resolve())
+            _memcached.delete(`${cfg.memcached.keyPrefix}${key}`, () => resolve())
         ));
     }
 

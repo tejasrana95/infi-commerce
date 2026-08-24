@@ -8,7 +8,7 @@ const apiOrigin = process.env.API_ORIGIN
   || process.env.NEXT_PUBLIC_API_ORIGIN
   || (!isProd ? 'http://localhost:3001' : '');
 
-const nextConfig: NextConfig & { sentry?: any } = {
+const nextConfig: NextConfig = {
   /* config options here */
   output: 'standalone',
   reactStrictMode: true,
@@ -25,7 +25,6 @@ const nextConfig: NextConfig & { sentry?: any } = {
   experimental: {
     optimizeCss: true,
     scrollRestoration: true,
-
     optimizePackageImports: ['lucide-react', 'react-icons', 'framer-motion', 'swiper', 'react-fast-marquee', 'swr', '@stripe/stripe-js', '@stripe/react-stripe-js'],
   },
   // Enable compression for smaller transfer sizes and faster TTFB.
@@ -109,26 +108,6 @@ const nextConfig: NextConfig & { sentry?: any } = {
     // Keep Next.js default chunking strategy for best route-level code splitting.
     return config;
   },
-  sentry: {
-    // For all available options, see:
-    // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
-
-    // Upload a larger set of source maps for prettier stack traces
-    widenClientFileUpload: true,
-
-    // Transpiles SDK to be compatible with older browsers
-    transpileClientSDK: true,
-
-    // Hides source maps from visitors
-    hideSourceMaps: true,
-
-    // Automatically tree-shake Sentry logger statements to reduce bundle size
-    disableLogger: true,
-
-    // Disable Sentry webpack plugin if DSN is not set to avoid build errors
-    disableServerWebpackPlugin: !process.env.NEXT_PUBLIC_SENTRY_DSN,
-    disableClientWebpackPlugin: !process.env.NEXT_PUBLIC_SENTRY_DSN,
-  },
 };
 
 export default withSentryConfig(
@@ -136,14 +115,10 @@ export default withSentryConfig(
     enabled: process.env.ANALYZE === 'true',
   })(nextConfig),
   {
-    // For all available options, see:
-    // https://github.com/getsentry/sentry-webpack-plugin#options
-
     org: process.env.SENTRY_ORG,
     project: process.env.SENTRY_PROJECT,
-
-    // Only print logs for uploading source maps in CI or when debugging
     silent: !process.env.CI,
+    widenClientFileUpload: true,
   }
 );
 
