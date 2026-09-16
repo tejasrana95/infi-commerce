@@ -1,52 +1,36 @@
-import mongoose, { Connection } from 'mongoose';
+import {
+    connectLogsDatabase,
+    isLogsDbConfigured,
+    closeLogsPool,
+    LOG_DB_SCHEMA,
+    type LogsDbStatus,
+} from '../db/postgres/logsClient';
 
-let logDbConnection: Connection | null = null;
+/**
+ * Compatibility facade for the logging data store.
+ *
+ * The logging subsystem moved from a dedicated MongoDB cluster to a dedicated
+ * PostgreSQL server (see scripts/postgres/logs/*.sql). This module keeps the
+ * historical function names so existing call sites - notably
+ * activityLogger.middleware.ts, which gates all logging behind
+ * `isLogDbConfigured()` - did not need to change.
+ *
+ * The previous Mongoose-specific `getLogDbConnection()` is gone along with the
+ * seven Mongoose log models: all log access now goes through
+ * src/repositories/logRepository.ts.
+ */
 
-export const isLogDbConfigured = (): boolean => {
-    return Boolean(process.env.LOG_MONGODB_URI && process.env.LOG_MONGODB_URI.trim() !== '');
-};
+/** True when LOG_DATABASE_URL is present. Gates all log capture. */
+export const isLogDbConfigured = (): boolean => isLogsDbConfigured();
 
-export const connectLogDatabase = async (): Promise<Connection | null> => {
-    if (!isLogDbConfigured()) {
-        console.warn('LOG_MONGODB_URI is not configured. Dedicated Activity & API Logging system is disabled.');
-        return null;
-    }
+/**
+ * Verifies the logs database is reachable. Deliberately non-throwing so a
+ * briefly unavailable logging server cannot prevent the API from booting.
+ */
+export const connectLogDatabase = async (): Promise<LogsDbStatus> =>
+    connectLogsDatabase();
 
-    try {
-        const logUri = process.env.LOG_MONGODB_URI!;
-        
-        logDbConnection = mongoose.createConnection(logUri, {
-            autoIndex: true,
-            maxPoolSize: 20,
-            serverSelectionTimeoutMS: 5000,
-            socketTimeoutMS: 45000,
-        });
+export const disconnectLogDatabase = async (): Promise<void> => closeLogsPool();
 
-        logDbConnection.on('connected', () => {
-            console.log('Successfully connected to dedicated Log MongoDB Cluster');
-        });
-
-        logDbConnection.on('error', (err) => {
-            console.error('Dedicated Log MongoDB Connection Error:', err);
-        });
-
-        logDbConnection.on('disconnected', () => {
-            console.warn('Dedicated Log MongoDB Disconnected');
-        });
-
-        return logDbConnection;
-    } catch (error) {
-        console.error('Failed to initialize dedicated Log MongoDB Connection:', error);
-        return null;
-    }
-};
-
-export const getLogDbConnection = (): Connection => {
-    if (!logDbConnection) {
-        if (!isLogDbConfigured()) {
-            throw new Error('Log database connection requested but LOG_MONGODB_URI is not configured.');
-        }
-        logDbConnection = mongoose.createConnection(process.env.LOG_MONGODB_URI!);
-    }
-    return logDbConnection;
-};
+export { LOG_DB_SCHEMA };
+export type { LogsDbStatus };

@@ -1,12 +1,20 @@
-import getActivityLogModel from '../models/logs/ActivityLog';
-import getAuditLogModel from '../models/logs/AuditLog';
-import getApiLogModel from '../models/logs/ApiLog';
-import getSearchLogModel from '../models/logs/SearchLog';
-import getSecurityLogModel from '../models/logs/SecurityLog';
-import getSystemLogModel from '../models/logs/SystemLog';
-import { isLogDbConfigured } from '../config/logDatabase';
+import { bulkInsertLogs, LogType } from '../repositories/logRepository';
+import { isLogsDbConfigured } from '../db/postgres/logsClient';
 
-export type LogType = 'activity' | 'audit' | 'api' | 'search' | 'security' | 'system';
+/**
+ * Buffered, best-effort log writer.
+ *
+ * Public surface is unchanged from the MongoDB implementation
+ * (enqueueActivity / enqueueAudit / enqueueApi / enqueueSearch / enqueueSecurity
+ * / enqueueSystem), so no caller needed to change. Only the sink moved: each
+ * flush now issues one multi-row INSERT per log type into the partitioned
+ * Postgres tables instead of six `insertMany` calls.
+ *
+ * Logging must never break a request path, so failures are counted and logged
+ * rather than thrown.
+ */
+
+export type { LogType };
 
 export interface QueueItem {
     type: LogType;
@@ -22,6 +30,11 @@ class LogQueueService {
     private timer: NodeJS.Timeout | null = null;
     private isProcessing = false;
 
+    /** Observability counters, surfaced via getQueueStats(). */
+    private droppedCount = 0;
+    private failedFlushCount = 0;
+    private writtenCount = 0;
+
     constructor() {
         this.startWorker();
     }
@@ -29,20 +42,28 @@ class LogQueueService {
     private startWorker(): void {
         if (!this.timer) {
             this.timer = setInterval(() => {
-                this.flush();
+                void this.flush();
             }, this.flushIntervalMs);
+            // Do not keep the event loop alive purely for the log flusher.
+            this.timer.unref?.();
         }
     }
 
     public enqueue(type: LogType, payload: Record<string, any>): void {
-        if (!isLogDbConfigured()) {
+        if (!isLogsDbConfigured()) {
             return;
         }
 
-        // Back-pressure protection
+        // Back-pressure protection: shed the oldest item rather than growing
+        // without bound and exhausting the heap.
         if (this.queue.length >= this.maxQueueSize) {
-            // Drop oldest item to prevent memory exhaustion
             this.queue.shift();
+            this.droppedCount += 1;
+            if (this.droppedCount % 1000 === 1) {
+                console.warn(
+                    `Log queue is saturated (max ${this.maxQueueSize}); dropped ${this.droppedCount} oldest entries.`
+                );
+            }
         }
 
         this.queue.push({
@@ -55,7 +76,7 @@ class LogQueueService {
         });
 
         if (this.queue.length >= this.batchSize) {
-            setImmediate(() => this.flush());
+            setImmediate(() => void this.flush());
         }
     }
 
@@ -90,7 +111,7 @@ class LogQueueService {
         const batch = this.queue.splice(0, this.batchSize);
 
         try {
-            const grouped: Record<LogType, any[]> = {
+            const grouped: Record<LogType, Record<string, any>[]> = {
                 activity: [],
                 audit: [],
                 api: [],
@@ -103,36 +124,28 @@ class LogQueueService {
                 grouped[item.type].push(item.payload);
             }
 
-            const insertPromises: Promise<any>[] = [];
+            const types = Object.keys(grouped) as LogType[];
+            const results = await Promise.allSettled(
+                types.map((type) => bulkInsertLogs(type, grouped[type]))
+            );
 
-            if (grouped.activity.length > 0) {
-                insertPromises.push(getActivityLogModel().insertMany(grouped.activity, { ordered: false }));
+            for (const result of results) {
+                if (result.status === 'fulfilled') {
+                    this.writtenCount += result.value;
+                } else {
+                    this.failedFlushCount += 1;
+                    console.error('LogQueueWorker flush failure:', result.reason);
+                }
             }
-            if (grouped.audit.length > 0) {
-                insertPromises.push(getAuditLogModel().insertMany(grouped.audit, { ordered: false }));
-            }
-            if (grouped.api.length > 0) {
-                insertPromises.push(getApiLogModel().insertMany(grouped.api, { ordered: false }));
-            }
-            if (grouped.search.length > 0) {
-                insertPromises.push(getSearchLogModel().insertMany(grouped.search, { ordered: false }));
-            }
-            if (grouped.security.length > 0) {
-                insertPromises.push(getSecurityLogModel().insertMany(grouped.security, { ordered: false }));
-            }
-            if (grouped.system.length > 0) {
-                insertPromises.push(getSystemLogModel().insertMany(grouped.system, { ordered: false }));
-            }
-
-            await Promise.allSettled(insertPromises);
         } catch (error) {
+            this.failedFlushCount += 1;
             console.error('LogQueueWorker Flush Error:', error);
         } finally {
             this.isProcessing = false;
 
-            // If remaining items exist beyond batchSize, process immediately
+            // If the backlog still exceeds a batch, drain immediately.
             if (this.queue.length >= this.batchSize) {
-                setImmediate(() => this.flush());
+                setImmediate(() => void this.flush());
             }
         }
     }
@@ -151,6 +164,9 @@ class LogQueueService {
         return {
             queueLength: this.queue.length,
             isProcessing: this.isProcessing,
+            writtenCount: this.writtenCount,
+            droppedCount: this.droppedCount,
+            failedFlushCount: this.failedFlushCount,
         };
     }
 }

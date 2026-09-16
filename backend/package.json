@@ -10,8 +10,12 @@
         "lint": "eslint src --ext .ts",
         "seed": "ts-node scripts/seed.ts",
         "seed:geo": "ts-node scripts/seed-geo.ts",
+        "logs:apply-schema": "ts-node --transpile-only scripts/postgres/apply-logs-schema.ts",
+        "logs:ensure-partitions": "ts-node --transpile-only scripts/postgres/ensure-log-partitions.ts",
+        "logs:backfill": "ts-node --transpile-only scripts/postgres/backfill-logs-from-mongo.ts",
         "test": "npm run test:contracts",
-        "test:contracts": "npm run build && node scripts/public-contract-ci-test.js"
+        "test:contracts": "npm run build && node scripts/public-contract-ci-test.js",
+        "logs:smoke-test": "ts-node --transpile-only scripts/postgres/smoke-test-logs.ts"
     },
     "keywords": [
         "ecommerce",
@@ -50,6 +54,7 @@
         "openai": "^6.15.0",
         "otplib": "^12.0.1",
         "pdfkit": "^0.17.2",
+        "pg": "^8.23.0",
         "puppeteer": "^24.34.0",
         "qrcode": "^1.5.4",
         "razorpay": "^2.9.2",
@@ -74,6 +79,7 @@
         "@types/multer": "^1.4.13",
         "@types/node": "^20.10.4",
         "@types/nodemailer": "^7.0.4",
+        "@types/pg": "^8.23.1",
         "@types/puppeteer": "^7.0.4",
         "@types/qrcode": "^1.5.6",
         "@types/swagger-jsdoc": "^6.0.4",

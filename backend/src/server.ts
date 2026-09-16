@@ -21,7 +21,9 @@ import morgan from 'morgan';
 import swaggerUi from 'swagger-ui-express';
 import { config } from './config';
 import { connectDatabase } from './config/database';
-import { connectLogDatabase } from './config/logDatabase';
+import { connectLogDatabase, disconnectLogDatabase } from './config/logDatabase';
+import { logMaintenanceService } from './services/log-maintenance.service';
+import logQueueService from './services/log-queue.service';
 import { swaggerSpec } from './config/swagger';
 import apiRoutes from './routes';
 import { registerEventHandlers } from './events/handlers';
@@ -188,8 +190,16 @@ const startServer = async () => {
         // Connect to database
         await connectDatabase();
 
-        // Connect to dedicated log database
-        await connectLogDatabase();
+        // Connect to the dedicated log database. This is non-throwing: log
+        // capture is best-effort and a briefly unavailable logging server must
+        // not prevent the API from booting.
+        const logsStatus = await connectLogDatabase();
+        if (logsStatus.configured && !logsStatus.connected) {
+            console.warn('Starting without log persistence; connection will be retried on demand.');
+        }
+
+        // Ensure partitions run ahead of the clock and keep rollups fresh.
+        logMaintenanceService.start();
 
         // Initialize Socket.IO
         socketService.initialize(httpServer);
@@ -205,5 +215,36 @@ const startServer = async () => {
 };
 
 startServer();
+
+/**
+ * Graceful shutdown.
+ *
+ * The log queue is flushed before exit so the last fraction of a second of
+ * activity is not lost on every deploy or restart.
+ */
+const shutdown = async (signal: string): Promise<void> => {
+    console.log(`${signal} received. Shutting down...`);
+
+    logMaintenanceService.stop();
+
+    try {
+        await logQueueService.shutdown();
+    } catch (error) {
+        console.error('Failed to flush log queue during shutdown:', error);
+    }
+
+    try {
+        await disconnectLogDatabase();
+    } catch (error) {
+        console.error('Failed to close log database pool:', error);
+    }
+
+    httpServer.close(() => process.exit(0));
+    // Do not wait indefinitely on lingering keep-alive connections.
+    setTimeout(() => process.exit(0), 5000).unref();
+};
+
+process.on('SIGTERM', () => void shutdown('SIGTERM'));
+process.on('SIGINT', () => void shutdown('SIGINT'));
 
 export default app;
