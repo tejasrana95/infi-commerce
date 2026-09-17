@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { fetchLayout, getServerStore } from '@/lib/api/server-store';
 import { headers } from 'next/headers';
+import { getForwardedHeaders } from '@/lib/api/forwarded-headers';
 
 // Product Imports
 import ProductPageClient from '@/components/slug-pages/product/ProductPageClient';
@@ -28,9 +29,13 @@ interface UniversalPageProps {
 async function resolveSlug(storeId: string, slug: string) {
     try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+        const forwardedHeaders = await getForwardedHeaders();
         const response = await fetch(`${apiUrl}/slug/resolve/${storeId}/${slug}`, {
             next: { revalidate: 60 }, // Cache resolution for 1 minute
-            headers: { 'Content-Type': 'application/json' }
+            headers: {
+                'Content-Type': 'application/json',
+                ...forwardedHeaders,
+            }
         });
 
         if (!response.ok) return null;
@@ -53,9 +58,13 @@ import { fetchCategoryPageData, fetchPageBySlug } from '@/lib/api/server-store';
 async function getProduct(storeId: string, slug: string) {
     try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+        const forwardedHeaders = await getForwardedHeaders();
         const response = await fetch(`${apiUrl}/products/slug/${storeId}/${slug}`, {
             next: { revalidate: 120 },
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                ...forwardedHeaders,
+            },
         });
         if (!response.ok) return null;
         const data = await response.json();
@@ -74,9 +83,13 @@ async function getProductLayout(storeId: string, slug: string) {
 async function getProductReviews(productId: string) {
     try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+        const forwardedHeaders = await getForwardedHeaders();
         const response = await fetch(`${apiUrl}/reviews/product/${productId}?limit=10`, {
             next: { revalidate: 60 },
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                ...forwardedHeaders,
+            },
         });
         if (!response.ok) return null;
         const data = await response.json();
@@ -90,12 +103,14 @@ async function getProductReviews(productId: string) {
 async function getProductShippingDetails(storeId: string, productId: string, country = 'US') {
     try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+        const forwardedHeaders = await getForwardedHeaders();
         const response = await fetch(`${apiUrl}/shipping/calculate-smart`, {
             method: 'POST',
             next: { revalidate: 300 },
             headers: {
                 'Content-Type': 'application/json',
                 'x-store-id': storeId,
+                ...forwardedHeaders,
             },
             body: JSON.stringify({
                 storeId,

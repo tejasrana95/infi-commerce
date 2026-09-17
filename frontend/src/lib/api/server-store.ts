@@ -1,10 +1,7 @@
-// Server-side store utilities for SSR pages
-// These functions should only be called from Server Components
-// They use Next.js headers() and fetch with caching
-
 import { headers } from 'next/headers';
 import { Store } from '@/types';
 import { getCacheOptions } from '@/lib/revalidation';
+import { getForwardedHeaders } from '@/lib/api/forwarded-headers';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 const FALLBACK_STORE_ID = process.env.FALLBACK_STORE_ID || '675bd1d5334c9f136d8849b2';
@@ -39,9 +36,14 @@ export async function getServerStore(): Promise<Store | null> {
 
 async function fetchStoreByDomain(domain: string): Promise<Store | null> {
     try {
+        const forwardedHeaders = await getForwardedHeaders();
         const res = await fetch(`${API_BASE}/stores/domain/${encodeURIComponent(domain)}`, {
             ...getCacheOptions('storeDomain'),
-            headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB',
+                ...forwardedHeaders,
+            },
         });
 
         if (!res.ok) return null;
@@ -54,9 +56,14 @@ async function fetchStoreByDomain(domain: string): Promise<Store | null> {
 
 async function fetchStoreById(storeId: string): Promise<Store | null> {
     try {
+        const forwardedHeaders = await getForwardedHeaders();
         const res = await fetch(`${API_BASE}/stores/${storeId}`, {
             ...getCacheOptions('store'),
-            headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB',
+                ...forwardedHeaders,
+            },
         });
 
         if (!res.ok) return null;
@@ -290,10 +297,15 @@ export async function fetchSearchProducts(
     const { limit = 24, sort = 'featured' } = options;
     try {
         const url = `${API_BASE}/products?storeId=${storeId}&limit=${limit}&sort=${sort}&search=${encodeURIComponent(searchQuery)}&view=listing`;
+        const forwardedHeaders = await getForwardedHeaders();
 
         const res = await fetch(url, {
             ...getCacheOptions('search'),
-            headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB',
+                ...forwardedHeaders,
+            },
         });
 
         if (!res.ok) return { products: [], pagination: null };
@@ -315,11 +327,17 @@ export async function fetchSearchProducts(
  */
 export async function fetchSearchFilters(storeId: string, searchQuery: string): Promise<any | null> {
     try {
+        const forwardedHeaders = await getForwardedHeaders();
         const res = await fetch(
             `${API_BASE}/products/search/filters?storeId=${storeId}&search=${encodeURIComponent(searchQuery)}`,
             {
                 ...getCacheOptions('filters'),
-                headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB',
+                    'x-skip-activity-log': 'true',
+                    ...forwardedHeaders,
+                },
             }
         );
 

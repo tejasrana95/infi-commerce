@@ -38,7 +38,7 @@ const router = express.Router();
  *       500:
  *         description: Server error
  */
-router.get('/resolve/:storeId/:slug', slugController.resolveSlug);
+router.get('/resolve/:storeId/:slug(*)', slugController.resolveSlug);
 
 // Check availability (useful for admin UI)
 

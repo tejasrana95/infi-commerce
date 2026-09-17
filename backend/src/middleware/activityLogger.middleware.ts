@@ -1,8 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { logQueueService } from '../services/log-queue.service';
-import { sanitizePayload, parseUserAgent, extractSafeHeaders, getClientIpAddress } from '../utils/logSanitizer';
+import { sanitizePayload, parseUserAgent, extractSafeHeaders } from '../utils/logSanitizer';
+import { getClientIp } from '../utils/request.utils';
 import { config } from '../config';
 import { isLogDbConfigured } from '../config/logDatabase';
+
+// Debounce map to prevent duplicate search activity logging within a short window (2 seconds)
+const recentSearchTracker = new Map<string, number>();
 
 /**
  * Express Middleware to track all API requests and automatically log HTTP & business activity
@@ -18,11 +22,10 @@ export const activityLoggerMiddleware = (req: Request, res: Response, next: Next
     res.on('finish', () => {
         try {
             const responseTimeMs = req.startTime ? Date.now() - req.startTime : 0;
-            const ipAddress = getClientIpAddress(req);
+            const ipAddress = getClientIp(req);
             const userAgentStr = (req.headers['user-agent'] as string) || '';
             const { browser, operatingSystem, deviceType, platform } = parseUserAgent(userAgentStr);
             const reqPathLower = (req.originalUrl || req.path).toLowerCase();
-            const isAuthRoute = reqPathLower.includes('/auth/');
 
             // Determine Channel
             let channel = req.channel || (req.headers['x-channel'] as string)?.toUpperCase();
@@ -64,12 +67,14 @@ export const activityLoggerMiddleware = (req: Request, res: Response, next: Next
                 userType = 'api_key';
                 apiKeyId = apiKey._id?.toString();
                 apiKeyName = apiKey.name;
-            } else if (reqPathLower.includes('/admin')) {
+            } else if (reqPathLower.startsWith('/api/admin')) {
                 userType = 'admin';
-            } else if (reqPathLower.includes('/pos')) {
+            } else if (reqPathLower.startsWith('/api/pos')) {
                 userType = 'pos_user';
-            } else if (reqPathLower.includes('/auth') || reqPathLower.includes('/login')) {
-                userType = reqPathLower.includes('/admin') ? 'admin' : 'customer';
+            } else if (reqPathLower.startsWith('/api/auth/admin')) {
+                userType = 'admin';
+            } else if (reqPathLower.startsWith('/api/auth/customer')) {
+                userType = 'customer';
             } else {
                 userType = 'guest';
             }
@@ -103,7 +108,7 @@ export const activityLoggerMiddleware = (req: Request, res: Response, next: Next
                 responseTimeMs,
                 payloadSizeBytes,
                 ipAddress,
-                forwardedIp: (req.headers['x-forwarded-for'] as string)?.split(',')[0],
+                forwardedIp: (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim(),
                 userAgent: userAgentStr,
                 browser,
                 operatingSystem,
@@ -118,14 +123,26 @@ export const activityLoggerMiddleware = (req: Request, res: Response, next: Next
             });
 
             // 2. Enqueue Authentication & Security Log
-            const isAuthEndpoint = isAuthRoute || reqPathLower.includes('/login') || reqPathLower.includes('/logout');
+            // Strictly check real authentication routes to prevent false flags on random slugs (like /asd/asdas)
+            const isLoginRoute = (
+                (reqPathLower.startsWith('/api/auth/customer/login') ||
+                 reqPathLower.startsWith('/api/auth/admin/login') ||
+                 reqPathLower.includes('/2fa/verify-login') ||
+                 reqPathLower.includes('/social-login')) &&
+                req.method === 'POST'
+            );
+            const isLogoutRoute = (
+                (reqPathLower.startsWith('/api/auth/customer/logout') ||
+                 reqPathLower.startsWith('/api/auth/admin/logout'))
+            );
+            const isAuthEndpoint = isLoginRoute || isLogoutRoute;
 
             if (isAuthEndpoint) {
                 const targetActorType = userType !== 'guest' ? userType : (reqPathLower.includes('/admin') ? 'admin' : 'customer');
 
                 if (res.statusCode < 400) {
                     // Successful Login / Logout / Auth Event
-                    const isLogout = reqPathLower.includes('/logout');
+                    const isLogout = isLogoutRoute;
                     const activityType = isLogout ? 'LOGOUT' : 'LOGIN_SUCCESS';
                     const actionTitle = isLogout ? 'User Logout' : 'User Login';
 
@@ -341,11 +358,12 @@ export const activityLoggerMiddleware = (req: Request, res: Response, next: Next
                     entityId: String(entityId),
                     action,
                     changes: {
-                        before: req.method !== 'POST' ? { status: 'prior_state' } : undefined,
-                        after: sanitizedReqBody && Object.keys(sanitizedReqBody).length > 0 ? sanitizedReqBody : { status: 'updated' },
+                        before: (req as any)._auditBeforeState,
+                        after: sanitizedReqBody,
                     },
-                    reason: `${customActionTitle} via ${req.method} ${req.path}`,
+                    status: 'success',
                     ipAddress,
+                    userAgent: userAgentStr,
                 });
 
                 // Automatic Enqueue to Business Activity Log Queue
@@ -381,53 +399,73 @@ export const activityLoggerMiddleware = (req: Request, res: Response, next: Next
             }
 
             // 4. Automatic Customer Search Query Tracking
+            // Only log search for the primary product search endpoint (skip filters, auxiliary endpoints, or explicit skip header)
+            const skipActivityLog = req.headers['x-skip-activity-log'] === 'true';
+            const isProductSearchRoute = reqPathLower.startsWith('/api/products') && !reqPathLower.includes('/search/filters') && !reqPathLower.includes('/slug/');
             const searchQueryParam = (req.query.search || req.query.q || req.query.keyword || req.query.query || req.body?.search || req.body?.q || req.body?.keyword) as string;
 
-            if (searchQueryParam && typeof searchQueryParam === 'string' && searchQueryParam.trim().length > 0 && res.statusCode < 400) {
+            if (!skipActivityLog && isProductSearchRoute && searchQueryParam && typeof searchQueryParam === 'string' && searchQueryParam.trim().length > 0 && res.statusCode < 400) {
                 const cleanKeyword = searchQueryParam.trim();
+                const normalizedKeyword = cleanKeyword.toLowerCase();
+                const sessionOrIpKey = `${req.headers['x-session-id'] || ipAddress}:${normalizedKeyword}`;
+                const now = Date.now();
+                const lastLoggedTime = recentSearchTracker.get(sessionOrIpKey) || 0;
 
-                // Enqueue Search Analytics Log
-                logQueueService.enqueueSearch({
-                    storeId: req.storeId || req.headers['x-store-id'],
-                    sessionId: req.headers['x-session-id'] as string,
-                    customerId: userId,
-                    userType: userType === 'guest' ? 'guest' : (userType as any),
-                    channel,
-                    keyword: cleanKeyword,
-                    normalizedKeyword: cleanKeyword.toLowerCase(),
-                    resultCount: 1,
-                    isNoResult: false,
-                    ipAddress,
-                });
+                // Debounce duplicate search query within 2 seconds
+                if (now - lastLoggedTime > 2000) {
+                    recentSearchTracker.set(sessionOrIpKey, now);
 
-                // Enqueue Business Activity Log for Search Query
-                logQueueService.enqueueActivity({
-                    requestId: req.requestId || `req_${Date.now()}`,
-                    traceId: req.traceId || `trc_${Date.now()}`,
-                    correlationId: req.correlationId,
-                    sessionId: req.headers['x-session-id'] as string,
-                    storeId: req.storeId || req.headers['x-store-id'],
-                    channel,
-                    actor: {
-                        type: userType,
-                        id: userId,
-                        email: userEmail || attemptedEmail,
-                        name: user?.name || userEmail || attemptedEmail,
-                    },
-                    module: 'Storefront',
-                    activityType: 'CUSTOMER_SEARCH',
-                    action: `Searched for "${cleanKeyword}"`,
-                    status: 'success',
-                    details: {
+                    // Periodically prune stale debounce records
+                    if (recentSearchTracker.size > 2000) {
+                        const cutoff = now - 5000;
+                        for (const [key, timestamp] of recentSearchTracker.entries()) {
+                            if (timestamp < cutoff) recentSearchTracker.delete(key);
+                        }
+                    }
+
+                    // Enqueue Search Analytics Log
+                    logQueueService.enqueueSearch({
+                        storeId: req.storeId || req.headers['x-store-id'],
+                        sessionId: req.headers['x-session-id'] as string,
+                        customerId: userId,
+                        userType: userType === 'guest' ? 'guest' : (userType as any),
+                        channel,
                         keyword: cleanKeyword,
-                        route: req.path,
-                    },
-                    ipAddress,
-                    userAgent: userAgentStr,
-                    browser,
-                    operatingSystem,
-                    deviceType,
-                });
+                        normalizedKeyword,
+                        resultCount: 1,
+                        isNoResult: false,
+                        ipAddress,
+                    });
+
+                    // Enqueue Business Activity Log for Search Query
+                    logQueueService.enqueueActivity({
+                        requestId: req.requestId || `req_${Date.now()}`,
+                        traceId: req.traceId || `trc_${Date.now()}`,
+                        correlationId: req.correlationId,
+                        sessionId: req.headers['x-session-id'] as string,
+                        storeId: req.storeId || req.headers['x-store-id'],
+                        channel,
+                        actor: {
+                            type: userType,
+                            id: userId,
+                            email: userEmail || attemptedEmail,
+                            name: user?.name || userEmail || attemptedEmail,
+                        },
+                        module: 'Storefront',
+                        activityType: 'CUSTOMER_SEARCH',
+                        action: `Searched for "${cleanKeyword}"`,
+                        status: 'success',
+                        details: {
+                            keyword: cleanKeyword,
+                            route: req.path,
+                        },
+                        ipAddress,
+                        userAgent: userAgentStr,
+                        browser,
+                        operatingSystem,
+                        deviceType,
+                    });
+                }
             }
         } catch (error) {
             console.error('Error in activityLoggerMiddleware finish listener:', error);

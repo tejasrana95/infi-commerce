@@ -3,7 +3,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useStore } from '@/providers/StoreProvider';
 import { CategoryFiltersProvider, useCategoryFilters, BrandInfo } from '@/providers/CategoryFiltersContext';
@@ -210,16 +210,26 @@ function SearchPageInner({
         }
     }, [store?._id, currentSearchQuery, pagination.limit, currentSort, filters.appliedFilters]);
 
+    // Track initial mount so we don't duplicate the search request already executed on the server by SSR
+    const isInitialMount = useRef(true);
+
     // Fetch when search query or filters change
     useEffect(() => {
         if (currentSearchQuery) {
+            if (isInitialMount.current) {
+                isInitialMount.current = false;
+                // If initialProducts was supplied by SSR, skip fetching on initial mount
+                if (initialProducts && initialProducts.length > 0) {
+                    return;
+                }
+            }
             const currentPage = parseInt(searchParams.get('page') || '1');
             fetchProducts({ page: currentPage });
         } else {
             setProducts([]);
             setIsLoading(false);
         }
-    }, [fetchProducts, searchParams, currentSearchQuery]);
+    }, [fetchProducts, searchParams, currentSearchQuery, initialProducts]);
 
     // Handler: Page change
     const handlePageChange = useCallback((page: number) => {
