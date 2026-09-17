@@ -39,6 +39,7 @@ import {
     ListItemSecondaryAction,
 } from '@mui/material';
 import { useConfirm } from '@/contexts/ConfirmContext';
+import Link from 'next/link';
 
 const SubmissionDetailDialog = ({ open, onClose, submission, form }: { open: boolean, onClose: () => void, submission: FormSubmission | null, form: any }) => {
     if (!submission || !form) return null;
@@ -366,7 +367,7 @@ export default function FormSubmissionsPage({ params }: { params: Promise<{ id: 
                                                 )}
                                             </Box>
                                         </TableCell>
-                                        <TableCell>{submission.metadata.ip || 'N/A'}</TableCell>
+                                        <TableCell><Link href={`https://whois.infitechnology.com/?ip=${submission.metadata.ip}`} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb' }}>{submission.metadata.ip || 'N/A'}</Link></TableCell>
                                         <TableCell>
                                             <Chip
                                                 label={submission.emailSent ? 'Sent' : 'Pending'}

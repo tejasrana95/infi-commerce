@@ -49,6 +49,7 @@ import {
   Tooltip as RechartsTooltip,
   Legend,
 } from 'recharts';
+import Link from 'next/link';
 
 export default function ActivityLogsPage() {
   const { showNotification } = useNotification();
@@ -1156,7 +1157,7 @@ export default function ActivityLogsPage() {
                         <TableCell>{getStatusChip(row)}</TableCell>
 
                         <TableCell>
-                          <Typography variant="body2" fontFamily="monospace" color="#475569">{row.ipAddress || '-'}</Typography>
+                          <Typography variant="body2" fontFamily="monospace" color="#475569"><Link href={`https://whois.infitechnology.com/?ip=${row.ipAddress}`} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb' }}>{row.ipAddress || '-'}</Link></Typography>
                         </TableCell>
 
                         <TableCell align="right">
@@ -1335,7 +1336,7 @@ export default function ActivityLogsPage() {
                       {selectedLog.ipAddress && (
                         <Stack direction="row" justifyContent="space-between">
                           <Typography variant="body2" color="text.secondary">IP Address</Typography>
-                          <Typography variant="body2" fontFamily="monospace" fontWeight={600}>{selectedLog.ipAddress}</Typography>
+                          <Typography variant="body2" fontFamily="monospace" fontWeight={600}><Link href={`https://whois.infitechnology.com/?ip=${selectedLog.ipAddress}`} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb' }}>{selectedLog.ipAddress}</Link></Typography>
                         </Stack>
                       )}
                       {selectedLog.country && (
