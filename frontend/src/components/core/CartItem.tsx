@@ -32,6 +32,7 @@ export default function CartItem({ item, onUpdateQuantity, onRemove, compact = f
     const toast = useToast();
     const [isUpdating, setIsUpdating] = useState(false);
     const [isRemoving, setIsRemoving] = useState(false);
+    const [pricePulsing, setPricePulsing] = useState(false);
 
     const product = item.productId;
     const productImage = item.image || product.images?.[0] || '/placeholder-product.png';
@@ -57,6 +58,8 @@ export default function CartItem({ item, onUpdateQuantity, onRemove, compact = f
                 toast.error(result.error || 'Failed to update quantity');
             } else {
                 toast.success('Quantity updated');
+                setPricePulsing(true);
+                setTimeout(() => setPricePulsing(false), 500);
             }
         } finally {
             setIsUpdating(false);
@@ -87,117 +90,119 @@ export default function CartItem({ item, onUpdateQuantity, onRemove, compact = f
     return (
         <div className={`${styles.cartItem} ${compact ? styles.compact : ''} ${isRemoving ? styles.removing : ''}`}>
             {/* Product Image */}
-            <Link href={productUrl} className={styles.imageWrapper}>
+            <Link href={productUrl} className={styles.imageWrapper} tabIndex={-1}>
                 <Image
                     src={productImage}
                     alt={item.name}
-                    width={compact ? 60 : 100}
-                    height={compact ? 60 : 100}
+                    width={compact ? 64 : 88}
+                    height={compact ? 64 : 88}
                     className={styles.image}
                 />
             </Link>
 
-            {/* Product Details */}
-            <div className={styles.details}>
-                <div className={styles.nameRow}>
-                    <Link href={productUrl} className={styles.name}>
-                        {item.name}
-                    </Link>
-                    {item.sku && <span className={styles.skuTag}>{item.sku}</span>}
+            {/* Product Details & Content */}
+            <div className={styles.content}>
+                <div className={styles.headerRow}>
+                    <div className={styles.titleArea}>
+                        <Link href={productUrl} className={styles.name} title={item.name}>
+                            {item.name}
+                        </Link>
+                        {item.sku && <span className={styles.skuTag}>SKU: {item.sku}</span>}
+                    </div>
+
+                    {/* Remove Action Button on top-right */}
+                    <button
+                        onClick={handleRemove}
+                        disabled={isRemoving || isUpdating}
+                        className={styles.removeBtn}
+                        aria-label="Remove item"
+                        title="Remove item"
+                    >
+                        {isRemoving ? (
+                            <span className={styles.loaderIcon} />
+                        ) : (
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        )}
+                    </button>
                 </div>
 
-                {/* Variant Attributes */}
-                {item.attributes && Object.keys(item.attributes).length > 0 && (
-                    <div className={styles.attributes}>
-                        {Object.entries(item.attributes).map(([key, value]) => (
+                {/* Variant Attributes & Stock */}
+                {((item.attributes && Object.keys(item.attributes).length > 0) || isOutOfStock || isLowStock) && (
+                    <div className={styles.metaRow}>
+                        {item.attributes && Object.entries(item.attributes).map(([key, value]) => (
                             <span key={key} className={styles.attribute}>
-                                {key}: {value}
+                                <strong className={styles.attrKey}>{key}:</strong> {value}
                             </span>
                         ))}
+
+                        {isOutOfStock && (
+                            <span className={`${styles.stockBadge} ${styles.outOfStock}`}>Out of Stock</span>
+                        )}
+                        {isLowStock && (
+                            <span className={`${styles.stockBadge} ${styles.lowStock}`}>Only {availableStock} left</span>
+                        )}
                     </div>
                 )}
 
-                {/* Stock Status */}
-                {isOutOfStock && (
-                    <div className={styles.stockWarning}>Out of Stock</div>
-                )}
-                {isLowStock && (
-                    <div className={styles.stockWarning}>Only {availableStock} left in stock</div>
-                )}
-            </div>
+                {/* Bottom Row: Quantity on left, Pricing on right */}
+                <div className={styles.footerRow}>
+                    <div className={styles.quantitySection}>
+                        <div className={styles.quantityControls}>
+                            <button
+                                type="button"
+                                onClick={() => handleQuantityChange(item.quantity - 1)}
+                                disabled={isUpdating || isRemoving || item.quantity <= 1}
+                                className={styles.quantityBtn}
+                                aria-label="Decrease quantity"
+                            >
+                                −
+                            </button>
+                            <input
+                                type="number"
+                                value={item.quantity}
+                                onChange={(e) => {
+                                    const val = parseInt(e.target.value);
+                                    if (!isNaN(val)) handleQuantityChange(val);
+                                }}
+                                disabled={isUpdating || isRemoving}
+                                className={styles.quantityInput}
+                                min="1"
+                                max={product.manageStock ? availableStock : undefined}
+                                aria-label="Quantity"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => handleQuantityChange(item.quantity + 1)}
+                                disabled={isUpdating || isRemoving || (product.manageStock && item.quantity >= availableStock)}
+                                className={styles.quantityBtn}
+                                aria-label="Increase quantity"
+                            >
+                                +
+                            </button>
+                        </div>
+                        {isUpdating && <span className={styles.updatingText}>Updating...</span>}
+                    </div>
 
-            {/* Price (Desktop) */}
-            {!compact && (
-                <div className={styles.price}>
-                    <span className={styles.metaLabel}>Price</span>
-                    {formatPriceWithExchange(priceToDisplay)}
+                    <div className={styles.pricingSection}>
+                        <div className={`${styles.totalPrice} ${pricePulsing ? styles.pulse : ''}`}>
+                            {formatPriceWithExchange(itemTotal)}
+                        </div>
+                        {(item.quantity > 1 || !compact) && (
+                            <div className={styles.unitPrice}>
+                                {item.quantity > 1 ? (
+                                    <>
+                                        <span>{formatPriceWithExchange(priceToDisplay)}</span> each
+                                    </>
+                                ) : (
+                                    <span>{formatPriceWithExchange(priceToDisplay)}</span>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </div>
-            )}
-
-            {/* Quantity Controls */}
-            <div className={styles.quantityWrapper}>
-                <span className={styles.metaLabel}>Qty</span>
-                <div className={styles.quantityControls}>
-                    <button
-                        onClick={() => handleQuantityChange(item.quantity - 1)}
-                        disabled={isUpdating || item.quantity <= 1}
-                        className={styles.quantityBtn}
-                        aria-label="Decrease quantity"
-                    >
-                        −
-                    </button>
-                    <input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => {
-                            const val = parseInt(e.target.value);
-                            if (!isNaN(val)) handleQuantityChange(val);
-                        }}
-                        disabled={isUpdating}
-                        className={styles.quantityInput}
-                        min="1"
-                        max={product.manageStock ? availableStock : undefined}
-                    />
-                    <button
-                        onClick={() => handleQuantityChange(item.quantity + 1)}
-                        disabled={isUpdating || (product.manageStock && item.quantity >= availableStock)}
-                        className={styles.quantityBtn}
-                        aria-label="Increase quantity"
-                    >
-                        +
-                    </button>
-                </div>
             </div>
-
-            {/* Total (Desktop) */}
-            {!compact && (
-                <div className={styles.total}>
-                    <span className={styles.metaLabel}>Total</span>
-                    {formatPriceWithExchange(itemTotal)}
-                </div>
-            )}
-
-            {/* Price (Mobile / Compact) */}
-            <div className={styles.priceMobile}>
-                <span>{formatPriceWithExchange(itemTotal)}</span>
-                {item.quantity > 1 && (
-                    <small>{formatPriceWithExchange(priceToDisplay)} each</small>
-                )}
-            </div>
-
-            {/* Remove Button */}
-            <button
-                onClick={handleRemove}
-                disabled={isRemoving}
-                className={styles.removeBtn}
-                aria-label="Remove item"
-            >
-                {isRemoving ? '...' : (
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M18 6L6 18M6 6l12 12" />
-                    </svg>
-                )}
-            </button>
         </div>
     );
 }

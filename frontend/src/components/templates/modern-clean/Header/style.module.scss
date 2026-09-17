@@ -353,6 +353,10 @@ $accent-color: var(--color-accent, #007185);
 .currencyWrapper {
     display: flex;
     align-items: center;
+    position: relative;
+    z-index: 105;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
 
     .currencySelect {
         background: transparent;

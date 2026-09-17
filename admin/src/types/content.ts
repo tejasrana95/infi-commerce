@@ -211,7 +211,11 @@ export interface HeroBanner {
     config?: {
         backgroundGradient?: string;
         padding?: string;
+        paddingTablet?: string;
+        paddingMobile?: string;
         margin?: string;
+        marginTablet?: string;
+        marginMobile?: string;
     };
     createdAt: string;
     updatedAt: string;

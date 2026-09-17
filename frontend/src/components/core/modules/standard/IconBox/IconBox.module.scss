@@ -151,6 +151,8 @@
     position: relative;
     overflow: hidden;
     gap: 20px;
+    width: 100%;
+
     &::before {
         content: '';
         position: absolute;

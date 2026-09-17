@@ -125,7 +125,11 @@ interface HeroBannerData {
     config?: {
         backgroundGradient?: string;
         padding?: string;
+        paddingTablet?: string;
+        paddingMobile?: string;
         margin?: string;
+        marginTablet?: string;
+        marginMobile?: string;
     };
 }
 
@@ -207,8 +211,12 @@ export default function HeroBannerModule({ config, initialData }: HeroBannerProp
     } as React.CSSProperties;
     
     const innerSectionStyles = {
-        padding: bannerConfig?.padding || '80px 0',
-            margin: bannerConfig?.margin || '0',
+        '--container-padding-desktop': bannerConfig?.padding || '80px 0',
+        '--container-padding-tablet': bannerConfig?.paddingTablet || bannerConfig?.padding || '60px 0',
+        '--container-padding-mobile': bannerConfig?.paddingMobile || bannerConfig?.paddingTablet || bannerConfig?.padding || '40px 0',
+        '--container-margin-desktop': bannerConfig?.margin || '0',
+        '--container-margin-tablet': bannerConfig?.marginTablet || bannerConfig?.margin || '0',
+        '--container-margin-mobile': bannerConfig?.marginMobile || bannerConfig?.marginTablet || bannerConfig?.margin || '0',
     } as React.CSSProperties;
 
     return (

@@ -17,8 +17,8 @@
 .container {
   max-width: 1280px;
   width: 100%;
-  margin: 0 auto;
-  padding: 0 24px;
+  margin: var(--container-margin-desktop, 0 auto);
+  padding: var(--container-padding-desktop, 80px 24px);
   display: grid;
   grid-template-columns: 1.2fr 1fr;
   gap: 60px;
@@ -31,13 +31,15 @@
     grid-template-columns: 1fr;
     gap: 40px;
     text-align: center;
+    margin: var(--container-margin-tablet, var(--container-margin-desktop, 0 auto));
+    padding: var(--container-padding-tablet, var(--container-padding-desktop, 60px 20px));
   }
 }
 @media (max-width: 768px) {
-     .container {
-        padding-left: 20px !important;
-        padding-right: 20px !important;
-     }
+  .container {
+    margin: var(--container-margin-mobile, var(--container-margin-tablet, var(--container-margin-desktop, 0 auto)));
+    padding: var(--container-padding-mobile, var(--container-padding-tablet, var(--container-padding-desktop, 40px 16px)));
+  }
 }
 .leftColumn {
   display: flex;

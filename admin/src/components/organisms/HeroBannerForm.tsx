@@ -153,7 +153,11 @@ const schema = z.object({
     config: z.object({
         backgroundGradient: z.string().optional(),
         padding: z.string().optional(),
+        paddingTablet: z.string().optional(),
+        paddingMobile: z.string().optional(),
         margin: z.string().optional(),
+        marginTablet: z.string().optional(),
+        marginMobile: z.string().optional(),
     }).optional(),
 });
 
@@ -201,7 +205,11 @@ const defaultValues: FormData = {
     config: {
         backgroundGradient: 'linear-gradient(135deg, #fefaf4 0%, #f7ebd9 100%)',
         padding: '80px 0',
+        paddingTablet: '60px 0',
+        paddingMobile: '40px 0',
         margin: '0',
+        marginTablet: '0',
+        marginMobile: '0',
     },
 };
 
@@ -296,7 +304,11 @@ export default function HeroBannerForm({ initialData, onSubmit, isSubmitting = f
                 config: {
                     backgroundGradient: initialData.config?.backgroundGradient || 'linear-gradient(135deg, #fefaf4 0%, #f7ebd9 100%)',
                     padding: initialData.config?.padding || '80px 0',
+                    paddingTablet: initialData.config?.paddingTablet || initialData.config?.padding || '60px 0',
+                    paddingMobile: initialData.config?.paddingMobile || initialData.config?.paddingTablet || initialData.config?.padding || '40px 0',
                     margin: initialData.config?.margin || '0',
+                    marginTablet: initialData.config?.marginTablet || initialData.config?.margin || '0',
+                    marginMobile: initialData.config?.marginMobile || initialData.config?.marginTablet || initialData.config?.margin || '0',
                 },
             });
         }
@@ -1303,23 +1315,77 @@ export default function HeroBannerForm({ initialData, onSubmit, isSubmitting = f
                                             )}
                                         />
                                     </Grid>
-                                    <Grid size={{ xs: 12, md: 3 }}>
-                                        <Controller
-                                            name="config.padding"
-                                            control={control}
-                                            render={({ field }) => (
-                                                <TextField {...field} label="Container Padding" fullWidth size="small" placeholder="80px 0" />
-                                            )}
-                                        />
+
+                                    {/* Responsive Container Padding */}
+                                    <Grid size={{ xs: 12, md: 12 }} sx={{ mt: 1 }}>
+                                        <Typography variant="subtitle2" fontWeight={600} sx={{ borderBottom: '1px solid #eaeaea', pb: 0.5, mb: 1.5 }}>
+                                            Container Padding (Responsive)
+                                        </Typography>
+                                        <Grid container spacing={2}>
+                                            <Grid size={{ xs: 12, md: 4 }}>
+                                                <Controller
+                                                    name="config.padding"
+                                                    control={control}
+                                                    render={({ field }) => (
+                                                        <TextField {...field} label="Desktop Padding" fullWidth size="small" placeholder="80px 0" />
+                                                    )}
+                                                />
+                                            </Grid>
+                                            <Grid size={{ xs: 12, md: 4 }}>
+                                                <Controller
+                                                    name="config.paddingTablet"
+                                                    control={control}
+                                                    render={({ field }) => (
+                                                        <TextField {...field} label="Tablet Padding" fullWidth size="small" placeholder="60px 0" />
+                                                    )}
+                                                />
+                                            </Grid>
+                                            <Grid size={{ xs: 12, md: 4 }}>
+                                                <Controller
+                                                    name="config.paddingMobile"
+                                                    control={control}
+                                                    render={({ field }) => (
+                                                        <TextField {...field} label="Mobile Padding" fullWidth size="small" placeholder="40px 0" />
+                                                    )}
+                                                />
+                                            </Grid>
+                                        </Grid>
                                     </Grid>
-                                    <Grid size={{ xs: 12, md: 3 }}>
-                                        <Controller
-                                            name="config.margin"
-                                            control={control}
-                                            render={({ field }) => (
-                                                <TextField {...field} label="Container Margin" fullWidth size="small" placeholder="0" />
-                                            )}
-                                        />
+
+                                    {/* Responsive Container Margin */}
+                                    <Grid size={{ xs: 12, md: 12 }} sx={{ mt: 1 }}>
+                                        <Typography variant="subtitle2" fontWeight={600} sx={{ borderBottom: '1px solid #eaeaea', pb: 0.5, mb: 1.5 }}>
+                                            Container Margin (Responsive)
+                                        </Typography>
+                                        <Grid container spacing={2}>
+                                            <Grid size={{ xs: 12, md: 4 }}>
+                                                <Controller
+                                                    name="config.margin"
+                                                    control={control}
+                                                    render={({ field }) => (
+                                                        <TextField {...field} label="Desktop Margin" fullWidth size="small" placeholder="0" />
+                                                    )}
+                                                />
+                                            </Grid>
+                                            <Grid size={{ xs: 12, md: 4 }}>
+                                                <Controller
+                                                    name="config.marginTablet"
+                                                    control={control}
+                                                    render={({ field }) => (
+                                                        <TextField {...field} label="Tablet Margin" fullWidth size="small" placeholder="0" />
+                                                    )}
+                                                />
+                                            </Grid>
+                                            <Grid size={{ xs: 12, md: 4 }}>
+                                                <Controller
+                                                    name="config.marginMobile"
+                                                    control={control}
+                                                    render={({ field }) => (
+                                                        <TextField {...field} label="Mobile Margin" fullWidth size="small" placeholder="0" />
+                                                    )}
+                                                />
+                                            </Grid>
+                                        </Grid>
                                     </Grid>
                                 </Grid>
                             </Paper>

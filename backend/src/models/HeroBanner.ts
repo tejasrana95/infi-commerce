@@ -119,7 +119,11 @@ export interface IHeroBanner extends Document {
     config?: {
         backgroundGradient?: string;
         padding?: string;
+        paddingTablet?: string;
+        paddingMobile?: string;
         margin?: string;
+        marginTablet?: string;
+        marginMobile?: string;
     };
     createdAt: Date;
     updatedAt: Date;
@@ -273,7 +277,11 @@ const HeroBannerSchema = new Schema<IHeroBanner>(
         config: {
             backgroundGradient: { type: String },
             padding: { type: String },
+            paddingTablet: { type: String },
+            paddingMobile: { type: String },
             margin: { type: String },
+            marginTablet: { type: String },
+            marginMobile: { type: String },
         },
     },
     {

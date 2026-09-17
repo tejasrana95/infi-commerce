@@ -122,12 +122,13 @@ export default function ProductGridModule({ config, initialData }: ModuleProps) 
                         <h2 className={styles.title} style={titleStyle}>{title}</h2>
                     </div>
                 )}
-                <div 
+                <div
                     className={styles.grid}
                     style={{
                         '--columns-desktop': desktopCols,
                         '--columns-tablet': tabletCols,
                         '--columns-mobile': mobileCols,
+                        '--columns-small-mobile': 1,
                     } as React.CSSProperties}
                 >
                     {Array.from({ length: Math.min(limit, desktopCols) }).map((_, i) => (
@@ -160,12 +161,13 @@ export default function ProductGridModule({ config, initialData }: ModuleProps) 
                 </div>
             )}
 
-            <div 
+            <div
                 className={styles.grid}
                 style={{
                     '--columns-desktop': desktopCols,
                     '--columns-tablet': tabletCols,
                     '--columns-mobile': mobileCols,
+                    '--columns-small-mobile': 1,
                 } as React.CSSProperties}
             >
                 {products.map((product) => (

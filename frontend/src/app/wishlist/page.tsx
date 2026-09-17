@@ -11,6 +11,7 @@ import { useCart } from '@/providers/CartProvider';
 import { useToast } from '@/providers/ToastProvider';
 import { useStore } from '@/providers/StoreProvider';
 import { useWishlist } from '@/providers/WishlistProvider';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface WishlistProduct {
     _id: string;
@@ -22,11 +23,38 @@ interface WishlistProduct {
     stockStatus: string;
 }
 
+const formatStockStatus = (status?: string): string => {
+    if (!status) return 'In Stock';
+    const normalized = status.trim().toLowerCase();
+    if (normalized === 'in_stock' || normalized === 'instock') return 'In Stock';
+    if (normalized === 'out_of_stock' || normalized === 'outofstock') return 'Out of Stock';
+    if (normalized === 'low_stock' || normalized === 'lowstock') return 'Low Stock';
+    if (normalized === 'backorder' || normalized === 'back_order') return 'Backorder';
+    if (normalized === 'preorder' || normalized === 'pre_order') return 'Pre-Order';
+    if (normalized === 'made_to_order' || normalized === 'madetoorder') return 'Made to Order';
+
+    // Format any custom snake_case, kebab-case, or space-separated status
+    return status
+        .replace(/[-_]+/g, ' ')
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const getStockStatusClass = (status?: string): string => {
+    if (!status) return styles.in_stock;
+    const normalized = status.trim().toLowerCase();
+    if (normalized === 'out_of_stock' || normalized === 'outofstock') return styles.out_of_stock;
+    if (['low_stock', 'lowstock', 'made_to_order', 'madetoorder', 'backorder', 'back_order', 'preorder', 'pre_order'].includes(normalized)) {
+        return styles.made_to_order;
+    }
+    return styles[normalized] || styles.in_stock;
+};
+
 export default function WishlistPage() {
     const { isAuthenticated } = useAuth();
     const { addToCart } = useCart();
     const { store } = useStore();
     const { removeFromWishlist } = useWishlist();
+    const { formatPriceWithExchange } = useCurrency();
     const { success, error } = useToast();
     const [wishlist, setWishlist] = useState<WishlistProduct[]>([]);
     const [loading, setLoading] = useState(true);
@@ -182,17 +210,15 @@ export default function WishlistPage() {
                                     <div className={styles.priceWrapper}>
                                         {product.salePrice && product.salePrice < product.price ? (
                                             <>
-                                                <span className={styles.salePrice}>${product.salePrice.toFixed(2)}</span>
-                                                <span className={styles.originalPrice}>${product.price.toFixed(2)}</span>
+                                                <span className={styles.salePrice}>{formatPriceWithExchange(product.salePrice)}</span>
+                                                <span className={styles.originalPrice}>{formatPriceWithExchange(product.price)}</span>
                                             </>
                                         ) : (
-                                            <span className={styles.price}>${product.price.toFixed(2)}</span>
+                                            <span className={styles.price}>{formatPriceWithExchange(product.price)}</span>
                                         )}
                                     </div>
-                                    <span className={`${styles.stockStatus} ${styles[product.stockStatus]}`}>
-                                        {product.stockStatus === 'in_stock' ? 'In Stock' :
-                                            product.stockStatus === 'out_of_stock' ? 'Out of Stock' :
-                                                product.stockStatus}
+                                    <span className={`${styles.stockStatus} ${getStockStatusClass(product.stockStatus)}`}>
+                                        {formatStockStatus(product.stockStatus)}
                                     </span>
                                 </div>
                             </Link>

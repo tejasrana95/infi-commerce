@@ -9,17 +9,19 @@ export default function CurrencySelector() {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    // Close dropdown when clicking outside
+    // Close dropdown when clicking outside (support both click and iOS touchstart)
     useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
+        function handleClickOutside(event: MouseEvent | TouchEvent) {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 setIsOpen(false);
             }
         }
 
         document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('touchend', handleClickOutside);
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchend', handleClickOutside);
         };
     }, []);
 
@@ -34,8 +36,12 @@ export default function CurrencySelector() {
     return (
         <div className={styles.container} ref={dropdownRef}>
             <button
+                type="button"
                 className={styles.trigger}
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setIsOpen((prev) => !prev);
+                }}
                 aria-haspopup="listbox"
                 aria-expanded={isOpen}
             >

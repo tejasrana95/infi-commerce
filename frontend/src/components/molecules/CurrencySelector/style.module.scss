@@ -3,25 +3,38 @@
 .container {
     position: relative;
     font-size: 0.875rem;
+    z-index: 105;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .trigger {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 0.1rem;
-    padding: 0;
+    gap: 0.25rem;
+    padding: 0.4rem 0.5rem;
     background: transparent;
     border: 0;
     cursor: pointer;
     color: var(--color-text, inherit);
     transition: all 0.2s;
-    opacity: 0.8;
+    opacity: 0.9;
+    min-height: 44px; /* iOS minimum recommended tap target */
+    min-width: 44px;
+    touch-action: manipulation;
+    -webkit-appearance: none;
+    appearance: none;
+    user-select: none;
+    -webkit-user-select: none;
 
     @include tablet {
         gap: 0.5rem;
+        min-height: auto;
+        min-width: auto;
+        padding: 0.25rem 0.4rem;
     }
 
-    &:hover {
+    &:hover,
+    &:focus-visible {
         opacity: 1;
     }
 }
@@ -72,20 +85,26 @@
     min-width: 140px;
     list-style: none;
     padding: 0.25rem;
-    z-index: 50;
+    z-index: 1000;
     max-height: 300px;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.5rem 0.75rem;
+    padding: 0.65rem 0.75rem;
+    min-height: 40px;
     border-radius: 4px;
     cursor: pointer;
+    touch-action: manipulation;
     transition: background-color 0.2s;
     color: var(--color-text, #1f2937);
+    user-select: none;
+    -webkit-user-select: none;
 
     &:hover {
         color: var(--color-accent, rgba(0, 0, 0, 0.05));
@@ -93,7 +112,6 @@
 
     &.selected {
         color: var(--color-accent, #3b82f6);
-
         font-weight: 500;
     }
 }

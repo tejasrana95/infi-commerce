@@ -66,14 +66,6 @@ export default function CartModule({ config: _config }: ModuleProps) {
                         <span>{cartCount} products</span>
                     </div>
                     <div className={styles.cartItems}>
-                        <div className={styles.cartHeader}>
-                            <div className={styles.headerProduct}>Product</div>
-                            <div className={styles.headerPrice}>Price</div>
-                            <div className={styles.headerQuantity}>Quantity</div>
-                            <div className={styles.headerTotal}>Total</div>
-                            <div className={styles.headerRemove}></div>
-                        </div>
-
                         {items.map((item) => (
                             <CartItem
                                 key={item._id}
