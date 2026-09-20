@@ -1,5 +1,6 @@
 import { randomBytes } from 'crypto';
 import { queryLogs } from '../db/postgres/logsClient';
+import { refreshLogRollups } from '../db/postgres/logsPartitions';
 
 /**
  * Data access for the logs schema.
@@ -826,6 +827,12 @@ export const incrementArchiveDownloadCount = async (id: string): Promise<void> =
  * is the recommended bulk-retention path. This exists for the ad-hoc
  * "purge a custom range" admin action, where the range rarely aligns to
  * partition boundaries.
+ *
+ * The rollup tables are DERIVED from the raw tables, so they are rebuilt for
+ * the same window afterwards. Without this the activity dashboard kept
+ * reporting records that had just been purged — the purge looked like it had
+ * "not cleared everything" because the API/activity charts and tab counters
+ * are served from `*_15m`, not from the raw tables.
  */
 export const deleteLogsInRange = async (
     types: LogType[],
@@ -840,5 +847,13 @@ export const deleteLogsInRange = async (
         );
         deleted += result.rowCount ?? 0;
     }
+
+    if (deleted > 0) {
+        // refresh_rollups() snaps both ends to the 15-minute bucket grid and
+        // recomputes each affected bucket from the surviving rows, so a partial
+        // bucket at the edge of the purge window cannot retain stale counts.
+        await refreshLogRollups(start, end);
+    }
+
     return deleted;
 };

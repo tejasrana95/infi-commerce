@@ -51,6 +51,15 @@ import {
 } from 'recharts';
 import Link from 'next/link';
 
+const DATE_RANGE_LABELS: Record<string, string> = {
+  today: 'Today',
+  yesterday: 'Yesterday',
+  last_7_days: 'Last 7 Days',
+  last_30_days: 'Last 30 Days',
+  last_90_days: 'Last 90 Days',
+  all_time: 'All Time',
+};
+
 export default function ActivityLogsPage() {
   const { showNotification } = useNotification();
 
@@ -73,6 +82,16 @@ export default function ActivityLogsPage() {
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(25);
   const [selectedLogs, setSelectedLogs] = useState<string[]>([]);
+
+  // Exact record counts per tab, for the current filter set. Kept separate from
+  // the analytics metrics (which are a rolling 24h window) so the tab badges
+  // always match the rows the table actually shows.
+  const [tabCounts, setTabCounts] = useState<{ activity: number; audit: number; api: number; security: number }>({
+    activity: 0,
+    audit: 0,
+    api: 0,
+    security: 0,
+  });
 
   // Dynamic Analytics Metrics & Chart Trends State
   const [metrics, setMetrics] = useState<any>({
@@ -130,6 +149,8 @@ export default function ActivityLogsPage() {
 
   // Purge Dialog State
   const [purgeDialogOpen, setPurgeDialogOpen] = useState<boolean>(false);
+  const [purgeConfig, setPurgeConfig] = useState<any>({ rangeType: 'all_time' });
+  const [purgeSubmitting, setPurgeSubmitting] = useState<boolean>(false);
 
   // Fetch Dynamic Stores
   const fetchStores = useCallback(async () => {
@@ -156,17 +177,22 @@ export default function ActivityLogsPage() {
     return rawTime;
   };
 
-  // Fetch Analytics Metrics & Trends with local timezone
+  // Fetch Analytics Metrics & Trends with local timezone.
+  //
+  // The window follows the Date Range selector: the KPIs and charts are read
+  // from the same log database as the table, so they must report the same
+  // period or the numbers look arbitrary (a rolling 24h window shows 0 as soon
+  // as nothing was written today, even when the tables hold thousands of rows).
+  const analyticsRange = filters.dateRange;
   const fetchAnalytics = useCallback(async () => {
     setAnalyticsLoading(true);
     try {
       const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const res = await api.get('/activity-logs/analytics', { params: { timezone: userTz } });
+      const res = await api.get('/activity-logs/analytics', {
+        params: { timezone: userTz, dateRange: analyticsRange },
+      });
       if (res.data?.data?.metrics) {
-        setMetrics({
-          ...metrics,
-          ...res.data.data.metrics,
-        });
+        setMetrics(res.data.data.metrics);
       }
       if (res.data?.data?.dashboards?.trends) {
         setChartTrends(res.data.data.dashboards.trends);
@@ -176,7 +202,7 @@ export default function ActivityLogsPage() {
     } finally {
       setAnalyticsLoading(false);
     }
-  }, []);
+  }, [analyticsRange]);
 
   // Helper to construct visual graph data for each active tab
   const getTabChartData = useCallback(() => {
@@ -278,6 +304,16 @@ export default function ActivityLogsPage() {
     return [];
   }, [activeTab, chartTrends, logs]);
 
+  // Shared query-string built from the filter panel, used by BOTH the listing
+  // and the tab counts so the badge and the table can never diverge.
+  const buildFilterParams = useCallback((extra?: Record<string, any>) => {
+    const params: any = { ...filters, ...(extra || {}) };
+    Object.keys(params).forEach((key) => {
+      if (!params[key]) delete params[key];
+    });
+    return params;
+  }, [filters]);
+
   // Fetch Log Data based on Active Tab & Filters
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -287,18 +323,7 @@ export default function ActivityLogsPage() {
       else if (activeTab === 2) endpoint = '/activity-logs/api';
       else if (activeTab === 3) endpoint = '/activity-logs/security';
 
-      const params: any = {
-        page,
-        limit,
-        ...filters,
-      };
-
-      // Clean empty filters
-      Object.keys(params).forEach((key) => {
-        if (!params[key]) delete params[key];
-      });
-
-      const res = await api.get(endpoint, { params });
+      const res = await api.get(endpoint, { params: buildFilterParams({ page, limit }) });
       setLogs(res.data?.data || []);
       setTotal(res.data?.pagination?.total || 0);
     } catch (err) {
@@ -307,16 +332,43 @@ export default function ActivityLogsPage() {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, page, limit, filters, showNotification]);
+  }, [activeTab, page, limit, buildFilterParams, showNotification]);
+
+  // Exact per-tab counts for the active filters (independent of the current page).
+  const fetchTabCounts = useCallback(async () => {
+    try {
+      const res = await api.get('/activity-logs/counts', { params: buildFilterParams() });
+      const counts = res.data?.data;
+      if (counts) {
+        setTabCounts({
+          activity: counts.activity || 0,
+          audit: counts.audit || 0,
+          api: counts.api || 0,
+          security: counts.security || 0,
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch log counts:', err);
+    }
+  }, [buildFilterParams]);
 
   useEffect(() => {
     fetchStores();
+  }, [fetchStores]);
+
+  useEffect(() => {
     fetchAnalytics();
-  }, [fetchStores, fetchAnalytics]);
+  }, [fetchAnalytics]);
 
   useEffect(() => {
     fetchLogs();
   }, [fetchLogs]);
+
+  // Keep the tab badges in step with the filters, and re-read them after a
+  // purge so the numbers drop immediately instead of showing pre-purge totals.
+  useEffect(() => {
+    fetchTabCounts();
+  }, [fetchTabCounts]);
 
   // Handle Select All Checkbox
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -349,6 +401,14 @@ export default function ActivityLogsPage() {
       const res = await api.post('/activity-logs/archive', archiveConfig);
       showNotification('Archive generated successfully!', 'success');
       setArchiveDialogOpen(false);
+
+      // Archiving with "purge after export" removes rows from the database, so
+      // the badges and the dashboard have to be re-read as well.
+      if (archiveConfig.purgeAfterArchive) {
+        fetchLogs();
+        fetchTabCounts();
+        fetchAnalytics();
+      }
 
       if (res.data?.data?._id) {
         window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/activity-logs/archive/download/${res.data.data._id}`, '_blank');
@@ -512,7 +572,7 @@ export default function ActivityLogsPage() {
               variant="outlined"
               size="small"
               startIcon={<RefreshIcon />}
-              onClick={() => { fetchAnalytics(); fetchLogs(); }}
+              onClick={() => { fetchAnalytics(); fetchLogs(); fetchTabCounts(); }}
               sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 600, borderColor: '#cbd5e1', color: '#334155' }}
             >
               Refresh
@@ -549,10 +609,10 @@ export default function ActivityLogsPage() {
           textColor="primary"
           sx={{ minHeight: 48, px: 1 }}
         >
-          <Tab icon={<ApiIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Activity Stream" sx={{ fontWeight: 700, textTransform: 'none' }} />
-          <Tab icon={<HistoryIcon sx={{ fontSize: 18 }} />} iconPosition="start" label={`Audit Trail (${metrics.auditCount || 0})`} sx={{ fontWeight: 700, textTransform: 'none' }} />
-          <Tab icon={<SpeedDialIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="API Tracking Logs" sx={{ fontWeight: 700, textTransform: 'none' }} />
-          <Tab icon={<SecurityIcon sx={{ fontSize: 18 }} />} iconPosition="start" label={`Security Alerts (${metrics.securityAlertsCount || 0})`} sx={{ fontWeight: 700, textTransform: 'none' }} />
+          <Tab icon={<ApiIcon sx={{ fontSize: 18 }} />} iconPosition="start" label={`Activity Stream (${tabCounts.activity.toLocaleString()})`} sx={{ fontWeight: 700, textTransform: 'none' }} />
+          <Tab icon={<HistoryIcon sx={{ fontSize: 18 }} />} iconPosition="start" label={`Audit Trail (${tabCounts.audit.toLocaleString()})`} sx={{ fontWeight: 700, textTransform: 'none' }} />
+          <Tab icon={<SpeedDialIcon sx={{ fontSize: 18 }} />} iconPosition="start" label={`API Tracking Logs (${tabCounts.api.toLocaleString()})`} sx={{ fontWeight: 700, textTransform: 'none' }} />
+          <Tab icon={<SecurityIcon sx={{ fontSize: 18 }} />} iconPosition="start" label={`Security Alerts (${tabCounts.security.toLocaleString()})`} sx={{ fontWeight: 700, textTransform: 'none' }} />
         </Tabs>
       </Paper>
 
@@ -651,10 +711,10 @@ export default function ActivityLogsPage() {
                 {activeTab === 3 && 'Security Alert Severity Breakdown'}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                Real-time hourly time-series tracking over the last 24 hours
+                Hourly time-series tracking for {DATE_RANGE_LABELS[analyticsRange] || 'the selected range'}
               </Typography>
             </Box>
-            <Chip label="Live 24h Data" size="small" sx={{ backgroundColor: '#f1f5f9', fontWeight: 700, fontSize: '0.75rem' }} />
+            <Chip label={DATE_RANGE_LABELS[analyticsRange] || 'Selected Range'} size="small" sx={{ backgroundColor: '#f1f5f9', fontWeight: 700, fontSize: '0.75rem' }} />
           </Stack>
 
           <Box sx={{ width: '100%', height: 260 }}>
@@ -1024,7 +1084,7 @@ export default function ActivityLogsPage() {
               <Button
                 variant="contained"
                 size="small"
-                onClick={fetchLogs}
+                onClick={() => { fetchLogs(); fetchTabCounts(); }}
                 sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, px: 3, backgroundColor: '#2563eb', boxShadow: 'none' }}
               >
                 Apply Filters
@@ -1489,23 +1549,52 @@ export default function ActivityLogsPage() {
       <Dialog open={purgeDialogOpen} onClose={() => setPurgeDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 800, color: 'error.main' }}>Purge Log Records</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary">
-            Are you sure you want to purge log records? This action cannot be undone.
+          <Typography variant="body2" color="text.secondary" mb={2.5}>
+            Permanently deletes Activity, Audit, API, Security, Search and System logs in the
+            selected range. The activity dashboard totals are recalculated as part of the purge.
+            This action cannot be undone.
           </Typography>
+
+          <FormControl fullWidth size="small">
+            <InputLabel>Date Range</InputLabel>
+            <Select
+              value={purgeConfig.rangeType}
+              label="Date Range"
+              onChange={(e) => setPurgeConfig({ ...purgeConfig, rangeType: e.target.value })}
+            >
+              <MenuItem value="yesterday">Yesterday</MenuItem>
+              <MenuItem value="last_7_days">Last 7 Days</MenuItem>
+              <MenuItem value="last_30_days">Last 30 Days</MenuItem>
+              <MenuItem value="last_90_days">Last 90 Days</MenuItem>
+              <MenuItem value="last_6_months">Last 6 Months</MenuItem>
+              <MenuItem value="last_year">Last Year</MenuItem>
+              <MenuItem value="all_time">All Time (everything)</MenuItem>
+            </Select>
+          </FormControl>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setPurgeDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => setPurgeDialogOpen(false)} disabled={purgeSubmitting}>Cancel</Button>
           <Button
             variant="contained"
             color="error"
+            disabled={purgeSubmitting}
+            startIcon={purgeSubmitting ? <CircularProgress size={18} color="inherit" /> : undefined}
             onClick={async () => {
+              setPurgeSubmitting(true);
               try {
-                await api.post('/activity-logs/purge', { rangeType: 'last_90_days' });
-                showNotification('Logs purged successfully!', 'success');
+                const res = await api.post('/activity-logs/purge', purgeConfig);
+                const purged = res.data?.data?.deletedRecords ?? 0;
+                showNotification(`Purged ${Number(purged).toLocaleString()} log records`, 'success');
                 setPurgeDialogOpen(false);
+                // Refresh rows, badges and the dashboard together so the purge
+                // is reflected everywhere, not just in the visible table.
                 fetchLogs();
-              } catch (err) {
-                showNotification('Purge failed or unauthorized', 'error');
+                fetchTabCounts();
+                fetchAnalytics();
+              } catch (err: any) {
+                showNotification(err.response?.data?.message || 'Purge failed or unauthorized', 'error');
+              } finally {
+                setPurgeSubmitting(false);
               }
             }}
             sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700 }}

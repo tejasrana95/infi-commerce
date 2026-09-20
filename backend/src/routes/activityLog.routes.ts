@@ -5,6 +5,7 @@ import {
     getAuditLogs,
     getApiLogs,
     getSecurityLogs,
+    getLogCounts,
     getActivityAnalytics,
     createLogArchive,
     getArchiveHistory,
@@ -41,6 +42,12 @@ router.get('/api', getApiLogs);
  * @desc    Get security logs
  */
 router.get('/security', getSecurityLogs);
+
+/**
+ * @route   GET /api/activity-logs/counts
+ * @desc    Exact per-tab record counts for the current filter set
+ */
+router.get('/counts', getLogCounts);
 
 /**
  * @route   GET /api/activity-logs/analytics

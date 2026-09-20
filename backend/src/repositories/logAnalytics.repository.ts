@@ -32,7 +32,11 @@ export const resolveTimeZone = (candidate?: string): string => {
 };
 
 export interface AnalyticsWindow {
+    /** Inclusive lower bound of the reporting window. */
     since: Date;
+    /** Exclusive upper bound. Usually "now", but explicit so a closed range
+     *  such as "yesterday" does not silently include today's records. */
+    until: Date;
     timeZone: string;
 }
 
@@ -62,25 +66,25 @@ export interface ActivityAnalytics {
     };
 }
 
-const fetchMetrics = async (since: Date) => {
+const fetchMetrics = async (since: Date, until: Date) => {
     const result = await queryLogs<Row>(
         `SELECT
             (SELECT coalesce(sum(total), 0) FROM logs.activity_metrics_15m
-                WHERE bucket_start >= $1) AS total_activities,
+                WHERE bucket_start >= $1 AND bucket_start < $2) AS total_activities,
             (SELECT coalesce(sum(total), 0) FROM logs.activity_metrics_15m
-                WHERE bucket_start >= $1 AND module IN ('Auth', 'Authentication')) AS auth_events,
+                WHERE bucket_start >= $1 AND bucket_start < $2 AND module IN ('Auth', 'Authentication')) AS auth_events,
             (SELECT coalesce(sum(total), 0) FROM logs.activity_metrics_15m
-                WHERE bucket_start >= $1 AND module = 'Orders') AS orders_count,
+                WHERE bucket_start >= $1 AND bucket_start < $2 AND module = 'Orders') AS orders_count,
             (SELECT coalesce(sum(total), 0) FROM logs.activity_metrics_15m
-                WHERE bucket_start >= $1
+                WHERE bucket_start >= $1 AND bucket_start < $2
                   AND (module IN ('Payment', 'Payments') OR upper(activity_type) LIKE '%PAYMENT%')) AS payments_count,
             (SELECT coalesce(sum(total), 0) FROM logs.activity_metrics_15m
-                WHERE bucket_start >= $1 AND status = 'failed') AS failed_actions,
+                WHERE bucket_start >= $1 AND bucket_start < $2 AND status = 'failed') AS failed_actions,
             (SELECT coalesce(sum(total), 0) FROM logs.security_metrics_15m
-                WHERE bucket_start >= $1) AS security_alerts,
+                WHERE bucket_start >= $1 AND bucket_start < $2) AS security_alerts,
             (SELECT coalesce(sum(total), 0) FROM logs.audit_metrics_15m
-                WHERE bucket_start >= $1) AS audit_count`,
-        [since]
+                WHERE bucket_start >= $1 AND bucket_start < $2) AS audit_count`,
+        [since, until]
     );
 
     const row = result.rows[0] ?? {};
@@ -95,17 +99,17 @@ const fetchMetrics = async (since: Date) => {
     };
 };
 
-const fetchTopApis = async (since: Date): Promise<Row[]> => {
+const fetchTopApis = async (since: Date, until: Date): Promise<Row[]> => {
     const result = await queryLogs<Row>(
         `SELECT route, method,
                 sum(total_calls)::bigint AS count,
                 sum(total_latency_ms)::float / nullif(sum(total_calls), 0) AS avg_duration
          FROM logs.api_metrics_15m
-         WHERE bucket_start >= $1
+         WHERE bucket_start >= $1 AND bucket_start < $2
          GROUP BY route, method
          ORDER BY count DESC
          LIMIT 5`,
-        [since]
+        [since, until]
     );
 
     return result.rows.map((row) => ({
@@ -115,17 +119,17 @@ const fetchTopApis = async (since: Date): Promise<Row[]> => {
     }));
 };
 
-const fetchSlowApis = async (since: Date): Promise<Row[]> => {
+const fetchSlowApis = async (since: Date, until: Date): Promise<Row[]> => {
     const result = await queryLogs<Row>(
         `SELECT route,
                 sum(total_latency_ms)::float / nullif(sum(total_calls), 0) AS avg_duration,
                 max(max_latency_ms) AS max_duration
          FROM logs.api_metrics_15m
-         WHERE bucket_start >= $1
+         WHERE bucket_start >= $1 AND bucket_start < $2
          GROUP BY route
          ORDER BY avg_duration DESC NULLS LAST
          LIMIT 5`,
-        [since]
+        [since, until]
     );
 
     return result.rows.map((row) => ({
@@ -135,46 +139,46 @@ const fetchSlowApis = async (since: Date): Promise<Row[]> => {
     }));
 };
 
-const fetchNoResultSearches = async (since: Date): Promise<Row[]> => {
+const fetchNoResultSearches = async (since: Date, until: Date): Promise<Row[]> => {
     const result = await queryLogs<Row>(
         `SELECT normalized_keyword, sum(no_result_count)::bigint AS count
          FROM logs.search_metrics_15m
-         WHERE bucket_start >= $1 AND no_result_count > 0
+         WHERE bucket_start >= $1 AND bucket_start < $2 AND no_result_count > 0
          GROUP BY normalized_keyword
          ORDER BY count DESC
          LIMIT 5`,
-        [since]
+        [since, until]
     );
 
     return result.rows.map((row) => ({ _id: row.normalized_keyword, count: num(row.count) }));
 };
 
-const fetchTopKeywords = async (since: Date): Promise<Row[]> => {
+const fetchTopKeywords = async (since: Date, until: Date): Promise<Row[]> => {
     const result = await queryLogs<Row>(
         `SELECT normalized_keyword, sum(total_searches)::bigint AS count
          FROM logs.search_metrics_15m
-         WHERE bucket_start >= $1
+         WHERE bucket_start >= $1 AND bucket_start < $2
          GROUP BY normalized_keyword
          ORDER BY count DESC
          LIMIT 5`,
-        [since]
+        [since, until]
     );
 
     return result.rows.map((row) => ({ _id: row.normalized_keyword, count: num(row.count) }));
 };
 
-const fetchActiveActors = async (since: Date, actorTypes: string[]): Promise<Row[]> => {
+const fetchActiveActors = async (since: Date, until: Date, actorTypes: string[]): Promise<Row[]> => {
     const result = await queryLogs<Row>(
         `SELECT actor_key,
                 max(actor_name) AS name,
                 max(actor_email) AS email,
                 sum(total)::bigint AS count
          FROM logs.activity_actor_15m
-         WHERE bucket_start >= $1 AND actor_type = ANY($2::text[])
+         WHERE bucket_start >= $1 AND bucket_start < $2 AND actor_type = ANY($3::text[])
          GROUP BY actor_key
          ORDER BY count DESC
          LIMIT 5`,
-        [since, actorTypes]
+        [since, until, actorTypes]
     );
 
     return result.rows.map((row) => ({
@@ -183,17 +187,17 @@ const fetchActiveActors = async (since: Date, actorTypes: string[]): Promise<Row
     }));
 };
 
-const fetchActivityTrends = async (since: Date, timeZone: string): Promise<Row[]> => {
+const fetchActivityTrends = async (since: Date, until: Date, timeZone: string): Promise<Row[]> => {
     const result = await queryLogs<Row>(
-        `SELECT to_char(date_trunc('hour', bucket_start AT TIME ZONE $2), 'HH24:00') AS hour,
+        `SELECT to_char(date_trunc('hour', bucket_start AT TIME ZONE $3), 'HH24:00') AS hour,
                 sum(total)::bigint AS total,
                 sum(total) FILTER (WHERE status = 'success')::bigint AS success,
                 sum(total) FILTER (WHERE status = 'failed')::bigint AS failed
          FROM logs.activity_metrics_15m
-         WHERE bucket_start >= $1
+         WHERE bucket_start >= $1 AND bucket_start < $2
          GROUP BY 1
          ORDER BY 1`,
-        [since, timeZone]
+        [since, until, timeZone]
     );
 
     return result.rows.map((row) => ({
@@ -204,18 +208,18 @@ const fetchActivityTrends = async (since: Date, timeZone: string): Promise<Row[]
     }));
 };
 
-const fetchAuditTrends = async (since: Date, timeZone: string): Promise<Row[]> => {
+const fetchAuditTrends = async (since: Date, until: Date, timeZone: string): Promise<Row[]> => {
     const result = await queryLogs<Row>(
-        `SELECT to_char(date_trunc('hour', bucket_start AT TIME ZONE $2), 'HH24:00') AS hour,
+        `SELECT to_char(date_trunc('hour', bucket_start AT TIME ZONE $3), 'HH24:00') AS hour,
                 sum(total)::bigint AS total,
                 sum(total) FILTER (WHERE action = 'CREATE')::bigint AS create_count,
                 sum(total) FILTER (WHERE action = 'UPDATE')::bigint AS update_count,
                 sum(total) FILTER (WHERE action = 'DELETE')::bigint AS delete_count
          FROM logs.audit_metrics_15m
-         WHERE bucket_start >= $1
+         WHERE bucket_start >= $1 AND bucket_start < $2
          GROUP BY 1
          ORDER BY 1`,
-        [since, timeZone]
+        [since, until, timeZone]
     );
 
     return result.rows.map((row) => ({
@@ -227,17 +231,17 @@ const fetchAuditTrends = async (since: Date, timeZone: string): Promise<Row[]> =
     }));
 };
 
-const fetchApiLatencyTrends = async (since: Date, timeZone: string): Promise<Row[]> => {
+const fetchApiLatencyTrends = async (since: Date, until: Date, timeZone: string): Promise<Row[]> => {
     const result = await queryLogs<Row>(
-        `SELECT to_char(date_trunc('hour', bucket_start AT TIME ZONE $2), 'HH24:00') AS hour,
+        `SELECT to_char(date_trunc('hour', bucket_start AT TIME ZONE $3), 'HH24:00') AS hour,
                 sum(total_latency_ms)::float / nullif(sum(total_calls), 0) AS avg_latency,
                 sum(total_calls)::bigint AS total_calls,
                 sum(error_calls)::bigint AS error_calls
          FROM logs.api_metrics_15m
-         WHERE bucket_start >= $1
+         WHERE bucket_start >= $1 AND bucket_start < $2
          GROUP BY 1
          ORDER BY 1`,
-        [since, timeZone]
+        [since, until, timeZone]
     );
 
     return result.rows.map((row) => ({
@@ -248,18 +252,18 @@ const fetchApiLatencyTrends = async (since: Date, timeZone: string): Promise<Row
     }));
 };
 
-const fetchSecurityTrends = async (since: Date, timeZone: string): Promise<Row[]> => {
+const fetchSecurityTrends = async (since: Date, until: Date, timeZone: string): Promise<Row[]> => {
     const result = await queryLogs<Row>(
-        `SELECT to_char(date_trunc('hour', bucket_start AT TIME ZONE $2), 'HH24:00') AS hour,
+        `SELECT to_char(date_trunc('hour', bucket_start AT TIME ZONE $3), 'HH24:00') AS hour,
                 sum(total) FILTER (WHERE severity IN ('critical', 'high'))::bigint AS critical,
                 sum(total) FILTER (WHERE severity = 'medium')::bigint AS medium,
                 sum(total) FILTER (WHERE severity = 'low')::bigint AS low,
                 sum(total)::bigint AS total
          FROM logs.security_metrics_15m
-         WHERE bucket_start >= $1
+         WHERE bucket_start >= $1 AND bucket_start < $2
          GROUP BY 1
          ORDER BY 1`,
-        [since, timeZone]
+        [since, until, timeZone]
     );
 
     return result.rows.map((row) => ({
@@ -276,7 +280,7 @@ const fetchSecurityTrends = async (since: Date, timeZone: string): Promise<Row[]
  * this stays fast regardless of how many raw log rows exist.
  */
 export const getActivityAnalytics = async (window: AnalyticsWindow): Promise<ActivityAnalytics> => {
-    const since = window.since;
+    const { since, until } = window;
     // Normalise here as well as at the controller boundary. PostgreSQL raises
     // SQLSTATE 22023 on an unknown zone name, so this function must not depend
     // on every future caller having validated the value first.
@@ -295,17 +299,17 @@ export const getActivityAnalytics = async (window: AnalyticsWindow): Promise<Act
         apiLatencyTrends,
         securityTrends,
     ] = await Promise.all([
-        fetchMetrics(since),
-        fetchTopApis(since),
-        fetchSlowApis(since),
-        fetchNoResultSearches(since),
-        fetchTopKeywords(since),
-        fetchActiveActors(since, ['customer']),
-        fetchActiveActors(since, ['admin', 'super_admin', 'store_admin']),
-        fetchActivityTrends(since, timeZone),
-        fetchAuditTrends(since, timeZone),
-        fetchApiLatencyTrends(since, timeZone),
-        fetchSecurityTrends(since, timeZone),
+        fetchMetrics(since, until),
+        fetchTopApis(since, until),
+        fetchSlowApis(since, until),
+        fetchNoResultSearches(since, until),
+        fetchTopKeywords(since, until),
+        fetchActiveActors(since, until, ['customer']),
+        fetchActiveActors(since, until, ['admin', 'super_admin', 'store_admin']),
+        fetchActivityTrends(since, until, timeZone),
+        fetchAuditTrends(since, until, timeZone),
+        fetchApiLatencyTrends(since, until, timeZone),
+        fetchSecurityTrends(since, until, timeZone),
     ]);
 
     return {

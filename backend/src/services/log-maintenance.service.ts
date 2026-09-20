@@ -5,6 +5,7 @@ import {
     isRetentionEnabled,
     refreshLogRollups,
 } from '../db/postgres/logsPartitions';
+import { markRollupsCovered } from './log-rollup-coverage.service';
 
 /**
  * Background maintenance for the logs database.
@@ -21,7 +22,11 @@ import {
 
 const DEFAULTS = {
     rollupIntervalMs: 5 * 60 * 1000,
-    rollupLookbackHours: 3,
+    // Matches the dashboard's default reporting window. Keeping this at the
+    // window size means the dashboard is served from warm rollups in the common
+    // case, and the on-demand backfill in log-rollup-coverage.service only has
+    // to work when an operator selects a WIDER range.
+    rollupLookbackHours: 24,
     partitionAheadMonths: 3,
 };
 
@@ -97,6 +102,8 @@ class LogMaintenanceService {
             const to = new Date();
             const from = new Date(to.getTime() - lookbackHours * 3600 * 1000);
             await refreshLogRollups(from, to);
+            // Tell the request path this window is already fresh.
+            markRollupsCovered(from, to);
         } catch (error) {
             console.error(
                 'Failed to refresh log rollups:',
