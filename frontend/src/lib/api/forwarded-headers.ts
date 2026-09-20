@@ -10,24 +10,19 @@ export async function getForwardedHeaders(): Promise<Record<string, string>> {
     try {
         const headersList = await headers();
 
-        // 1. IP Addresses (Cloudflare, proxies, standard X-Forwarded-For)
-        const cfConnectingIp = headersList.get('cf-connecting-ip');
-        if (cfConnectingIp) forwardedHeaders['cf-connecting-ip'] = cfConnectingIp;
+        // 1. IP Addresses
+        // NOTE: Never send 'cf-connecting-ip' or 'true-client-ip' in outbound HTTP requests to Cloudflare-proxied
+        // APIs, as Cloudflare blocks them with "Error 1000: DNS points to prohibited IP".
+        // Instead, pass the client IP via standard 'x-forwarded-for', 'x-real-ip', and custom 'x-client-ip'.
+        const clientIp = headersList.get('cf-connecting-ip')
+            || headersList.get('true-client-ip')
+            || headersList.get('x-real-ip')
+            || headersList.get('x-forwarded-for')?.split(',')[0]?.trim();
 
-        const trueClientIp = headersList.get('true-client-ip');
-        if (trueClientIp) forwardedHeaders['true-client-ip'] = trueClientIp;
-
-        const xForwardedFor = headersList.get('x-forwarded-for');
-        const xRealIp = headersList.get('x-real-ip');
-
-        if (xForwardedFor) {
-            forwardedHeaders['x-forwarded-for'] = xForwardedFor;
-        } else if (xRealIp) {
-            forwardedHeaders['x-forwarded-for'] = xRealIp;
-        }
-
-        if (xRealIp) {
-            forwardedHeaders['x-real-ip'] = xRealIp;
+        if (clientIp) {
+            forwardedHeaders['x-client-ip'] = clientIp;
+            forwardedHeaders['x-forwarded-for'] = clientIp;
+            forwardedHeaders['x-real-ip'] = clientIp;
         }
 
         // 2. User Agent

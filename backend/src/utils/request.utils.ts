@@ -5,6 +5,9 @@ import { Request } from 'express';
  * Priority: CF-Connecting-IP (Cloudflare) > True-Client-IP (Enterprise) > X-Forwarded-For > req.ip
  */
 export function getClientIp(req: Request): string {
+    const xClientIp = req.headers['x-client-ip'] as string | undefined;
+    if (xClientIp) return xClientIp.trim();
+
     const cfConnectingIp = req.headers['cf-connecting-ip'] as string | undefined;
     if (cfConnectingIp) return cfConnectingIp.trim();
 
