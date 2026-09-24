@@ -11,6 +11,7 @@ import { generateUniqueFilename } from '../middleware/upload';
 import { getFileCategory } from '../middleware/fileValidation';
 import { getClientIp } from '../utils/request.utils';
 import path from 'path';
+import { verifyTurnstileToken } from '../services/turnstile.service';
 
 // Validation rules
 export const createFormValidation = [
@@ -65,7 +66,7 @@ export const updateFormValidation = [
  *         description: Form created successfully
  */
 export const createForm = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { storeId, name, slug, description, sections, emailSettings, confirmationEmail, status } = req.body;
+    const { storeId, name, slug, description, sections, emailSettings, confirmationEmail, enableTurnstile, status } = req.body;
 
     // Check for duplicate slug
     const existingForm = await Form.findOne({ storeId, slug });
@@ -81,6 +82,7 @@ export const createForm = asyncHandler(async (req: AuthRequest, res: Response) =
         sections: sections || [],
         emailSettings,
         confirmationEmail,
+        enableTurnstile: !!enableTurnstile,
         status: status || 'draft',
         submissionsCount: 0,
     });
@@ -501,7 +503,18 @@ export const getPublicFormById = asyncHandler(async (req: any, res: Response) =>
         throw new AppError('Form not found', 404);
     }
 
-    res.json({ form });
+    const hasSecretKey = !!process.env.TURNSTILE_SECRET_KEY;
+    const turnstileSiteKey = process.env.TURNSTILE_SITE_KEY || process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '';
+    const isTurnstileRequired = !!(form.enableTurnstile && hasSecretKey);
+
+    const formObj = form.toObject();
+    res.json({
+        form: {
+            ...formObj,
+            turnstileRequired: isTurnstileRequired,
+            turnstileSiteKey: isTurnstileRequired ? turnstileSiteKey : undefined,
+        },
+    });
 });
 
 /**
@@ -545,7 +558,18 @@ export const getPublicFormBySlug = asyncHandler(async (req: any, res: Response) 
         throw new AppError('Form not found', 404);
     }
 
-    res.json({ form });
+    const hasSecretKey = !!process.env.TURNSTILE_SECRET_KEY;
+    const turnstileSiteKey = process.env.TURNSTILE_SITE_KEY || process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '';
+    const isTurnstileRequired = !!(form.enableTurnstile && hasSecretKey);
+
+    const formObj = form.toObject();
+    res.json({
+        form: {
+            ...formObj,
+            turnstileRequired: isTurnstileRequired,
+            turnstileSiteKey: isTurnstileRequired ? turnstileSiteKey : undefined,
+        },
+    });
 });
 
 /**
@@ -589,6 +613,26 @@ export const submitForm = asyncHandler(async (req: any, res: Response) => {
 
     if (!form) {
         throw new AppError('Form not found', 404);
+    }
+
+    // Turnstile CAPTCHA Protection check
+    const turnstileSecretKey = process.env.TURNSTILE_SECRET_KEY;
+    if (form.enableTurnstile && turnstileSecretKey) {
+        const turnstileToken = req.body['cf-turnstile-response'] ||
+            req.body.turnstileToken ||
+            req.headers['cf-turnstile-response'] ||
+            req.headers['x-turnstile-token'];
+
+        if (!turnstileToken) {
+            throw new AppError('CAPTCHA verification is required.', 400);
+        }
+
+        const clientIp = getClientIp(req);
+        const verification = await verifyTurnstileToken(turnstileToken, clientIp);
+
+        if (!verification.success) {
+            throw new AppError('CAPTCHA verification failed. Please try again.', 400);
+        }
     }
 
     // Extract form data

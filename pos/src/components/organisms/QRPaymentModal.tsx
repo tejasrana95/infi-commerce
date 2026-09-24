@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+
 import { X, QrCode, CheckCircle, AlertCircle, RefreshCw, Clock } from 'lucide-react';
 import QRCode from "react-qr-code";
 import { useCurrency } from '@/contexts/CurrencyContext';
@@ -236,15 +237,11 @@ export default function QRPaymentModal({
     if (!isOpen) return null;
 
     return (
-        <AnimatePresence>
-            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                <motion.div
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.9, opacity: 0 }}
-                    className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col items-center"
-                    onClick={e => e.stopPropagation()}
-                >
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80">
+            <div
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col items-center"
+                onClick={e => e.stopPropagation()}
+            >
                     {/* Header */}
                     <div className="w-full p-4 border-b flex justify-between items-center bg-slate-50">
                         <h3 className="font-bold text-lg flex items-center gap-2">
@@ -370,9 +367,8 @@ export default function QRPaymentModal({
                             )}
                         </div>
                     </div>
-                </motion.div>
             </div>
-        </AnimatePresence>
+        </div>
     );
 }
 

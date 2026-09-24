@@ -89,6 +89,7 @@ export interface IForm extends Document {
     };
     captureUserAgent?: boolean;
     captureGeoData?: boolean;
+    enableTurnstile?: boolean;
     status: 'draft' | 'published';
     submissionsCount: number;
     createdAt: Date;
@@ -241,6 +242,7 @@ const FormSchema = new Schema<IForm>(
         },
         captureUserAgent: { type: Boolean, default: false },
         captureGeoData: { type: Boolean, default: false },
+        enableTurnstile: { type: Boolean, default: false },
         status: {
             type: String,
             enum: ['draft', 'published'],

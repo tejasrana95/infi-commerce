@@ -197,14 +197,8 @@ export function HeldOrdersList({ isOpen, onClose }: HeldOrdersListProps) {
     if (!isOpen) return null;
 
     return (
-        <AnimatePresence>
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="relative w-full max-w-3xl mx-4 bg-white rounded-lg shadow-xl max-h-[90vh] flex flex-col"
-                >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="relative w-full max-w-3xl mx-4 bg-white rounded-lg shadow-xl max-h-[90vh] flex flex-col">
                     {/* Header */}
                     <div className="flex items-center justify-between p-6 border-b">
                         <div className="flex items-center gap-3">
@@ -385,7 +379,7 @@ export function HeldOrdersList({ isOpen, onClose }: HeldOrdersListProps) {
                             Close
                         </Button>
                     </div>
-                </motion.div>
+            </div>
 
                 {/* Status Dialog */}
                 {dialogMessage && (
@@ -462,7 +456,6 @@ export function HeldOrdersList({ isOpen, onClose }: HeldOrdersListProps) {
                     confirmText="OK"
                     type="danger"
                 />
-            </div>
-        </AnimatePresence>
+        </div>
     );
 }

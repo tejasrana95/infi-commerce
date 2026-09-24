@@ -3,7 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { useCartStore } from '@/store/cartStore';
 import { X, CreditCard, Banknote, QrCode, Printer, CheckCircle, User, Tag, Loader } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+
 import { cn } from '@/lib/utils';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useCurrency } from '@/contexts/CurrencyContext';
@@ -326,10 +326,11 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
         }
     ]);
 
-    if (!isOpen) return null;
+    if (!isOpen && !showQRModal) return null;
     const hideShortcut = isMobile() || isTablet();
+
     return (
-        <AnimatePresence>
+        <>
             {showQRModal && (
                 <QRPaymentModal
                     isOpen={showQRModal}
@@ -341,282 +342,281 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutMo
                     customer={customer || undefined}
                 />
             )}
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm ">
-                <motion.div
-                    initial={{ scale: 0.90, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.95, opacity: 0 }}
-                    className="bg-white rounded-2xl shadow-2xl w-full max-w-lg md:max-w-4xl overflow-y-auto flex flex-col md:flex-row h-[90vh] md:h-[600px]"
-                    onClick={e => e.stopPropagation()}
-                >
-                    {/* Left: Summary */}
-                    <div className="w-full md:w-1/3 bg-slate-50 border-b md:border-b-0 md:border-r p-4 md:p-6 flex flex-col h-auto md:h-full order-2 md:order-1 shrink-0">
-                        <h3 className="font-bold text-xl mb-6 flex items-center gap-2 text-slate-800">
-                            <span className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-sm font-bold">
-                                {items.length}
-                            </span>
-                            Order Summary
-                        </h3>
+            {isOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+                    <div
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg md:max-w-4xl overflow-y-auto flex flex-col md:flex-row h-[90vh] md:h-[600px]"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* Left: Summary */}
+                        <div className="w-full md:w-1/3 bg-slate-50 border-b md:border-b-0 md:border-r p-4 md:p-6 flex flex-col h-auto md:h-full order-2 md:order-1 shrink-0">
+                            <h3 className="font-bold text-xl mb-6 flex items-center gap-2 text-slate-800">
+                                <span className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-sm font-bold">
+                                    {items.length}
+                                </span>
+                                Order Summary
+                            </h3>
 
-                        {/* Customer Info */}
-                        <div className="mb-4 bg-white p-3 rounded-lg border flex items-center gap-3">
-                            <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center">
-                                <User className="w-5 h-5 text-slate-600" />
+                            {/* Customer Info */}
+                            <div className="mb-4 bg-white p-3 rounded-lg border flex items-center gap-3">
+                                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center">
+                                    <User className="w-5 h-5 text-slate-600" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-bold text-slate-900 truncate">{customer ? customer.name : "Walk-in Customer"}</div>
+                                    <div className="text-xs text-slate-600 truncate">{customer?.phone || "No details"}</div>
+                                </div>
                             </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="text-sm font-bold text-slate-900 truncate">{customer ? customer.name : "Walk-in Customer"}</div>
-                                <div className="text-xs text-slate-600 truncate">{customer?.phone || "No details"}</div>
+
+                            <div className="flex-1 overflow-y-auto space-y-4 pr-2 mb-2">
+                                {items.map(item => {
+                                    // Calculate effective price with discount
+                                    let basePrice = item.basePrice;
+                                    if (item.discountAmount) {
+                                        if (item.discountType === 'percentage') {
+                                            basePrice -= (item.basePrice * item.discountAmount) / 100;
+                                        } else {
+                                            basePrice -= item.discountAmount;
+                                        }
+                                    }
+                                    const taxAmount = basePrice * (item.taxRate / 100);
+                                    const itemPrice = basePrice + taxAmount;
+
+                                    const originalTotal = item.price * item.quantity;
+                                    const finalTotal = itemPrice * item.quantity;
+                                    const hasDiscount = item.discountAmount;
+
+                                    return (
+                                        <div key={item.cartId} className="space-y-1">
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-slate-700 truncate pr-2 w-2/3">
+                                                    {item.quantity}x {item.name}
+                                                    {item.variantId && <span className="block text-xs text-slate-500">{item.sku}</span>}
+                                                </span>
+                                                {hasDiscount ? (
+                                                    <div className="flex flex-col items-end gap-0.5">
+                                                        <span className="text-xs line-through text-slate-500">{formatPrice(originalTotal)}</span>
+                                                        <span className="font-bold text-amber-600">{formatPrice(finalTotal)}</span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="font-bold text-slate-900">{formatPrice(finalTotal)}</span>
+                                                )}
+                                            </div>
+                                            {item.discountAmount && (
+                                                <div className="text-xs text-amber-600 ml-auto">
+                                                    Discount: {item.discountType === 'percentage' ? `${item.discountAmount}%` : formatPrice(item.discountAmount)}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="mt-auto space-y-2 pt-6 border-t mb-2">
+                                <div className="flex justify-between text-slate-600">
+                                    <span>Subtotal</span>
+                                    <span>{formatPrice(subtotal)}</span>
+                                </div>
+                                <div className="flex justify-between text-slate-600">
+                                    <span>Tax</span>
+                                    <span>{formatPrice(tax)}</span>
+                                </div>
+                                {appliedCoupon && (
+                                    <div className="flex justify-between text-amber-600 font-semibold">
+                                        <span>Coupon ({appliedCoupon.code})</span>
+                                        <span>-{formatPrice(appliedCoupon.discountAmount)}</span>
+                                    </div>
+                                )}
+                                {isRounded && (
+                                    <div className="flex justify-between text-slate-600 text-sm">
+                                        <span>Rounding</span>
+                                        <span>{formatPrice(payableTotal - baseTotal)}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between text-3xl font-bold text-blue-600 pt-2">
+                                    <span>Total</span>
+                                    <span>{formatPrice(payableTotal)}</span>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto space-y-4 pr-2 mb-2">
-                            {items.map(item => {
-                                // Calculate effective price with discount
-                                let basePrice = item.basePrice;
-                                if (item.discountAmount) {
-                                    if (item.discountType === 'percentage') {
-                                        basePrice -= (item.basePrice * item.discountAmount) / 100;
-                                    } else {
-                                        basePrice -= item.discountAmount;
-                                    }
-                                }
-                                const taxAmount = basePrice * (item.taxRate / 100);
-                                const itemPrice = basePrice + taxAmount;
+                        {/* Right: Payment */}
+                        <div className="w-full md:flex-1 p-4 md:p-8 flex flex-col relative h-auto md:h-full order-1 md:order-2 shrink-0">
+                            <button onClick={onClose} className="absolute top-0 -right-0 p-2 hover:bg-slate-100 rounded-full z-10">
+                                <X className="text-slate-500 hover:text-slate-800" />
+                            </button>
 
-                                const originalTotal = item.price * item.quantity;
-                                const finalTotal = itemPrice * item.quantity;
-                                const hasDiscount = item.discountAmount;
-
-                                return (
-                                    <div key={item.cartId} className="space-y-1">
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-slate-700 truncate pr-2 w-2/3">
-                                                {item.quantity}x {item.name}
-                                                {item.variantId && <span className="block text-xs text-slate-500">{item.sku}</span>}
-                                            </span>
-                                            {hasDiscount ? (
-                                                <div className="flex flex-col items-end gap-0.5">
-                                                    <span className="text-xs line-through text-slate-500">{formatPrice(originalTotal)}</span>
-                                                    <span className="font-bold text-amber-600">{formatPrice(finalTotal)}</span>
+                            {!completed ? (
+                                <>
+                                    {/* Coupon Section */}
+                                    <div className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-xl border border-amber-200">
+                                        {appliedCoupon ? (
+                                            <div className="space-y-3">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+                                                            <Tag className="w-4 h-4 text-amber-600" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-xs text-amber-600 font-semibold">Applied Coupon</p>
+                                                            <p className="text-sm font-bold text-amber-900">{appliedCoupon.code}</p>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={handleRemoveCoupon}
+                                                        className="text-sm text-amber-600 hover:text-amber-700 font-semibold"
+                                                    >
+                                                        Remove
+                                                    </button>
                                                 </div>
-                                            ) : (
-                                                <span className="font-bold text-slate-900">{formatPrice(finalTotal)}</span>
-                                            )}
-                                        </div>
-                                        {item.discountAmount && (
-                                            <div className="text-xs text-amber-600 ml-auto">
-                                                Discount: {item.discountType === 'percentage' ? `${item.discountAmount}%` : formatPrice(item.discountAmount)}
+                                                <div className="bg-white rounded-lg p-2 flex justify-between items-center">
+                                                    <span className="text-xs text-slate-600">{appliedCoupon.description || 'Discount applied'}</span>
+                                                    <span className="text-sm font-bold text-green-600">-{formatPrice(appliedCoupon.discountAmount)}</span>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                <p className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+                                                    <Tag className="w-4 h-4" />
+                                                    Have a coupon code?
+                                                </p>
+                                                <div className="flex gap-2">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Enter coupon code"
+                                                        value={couponCode}
+                                                        onChange={(e) => {
+                                                            setCouponCode(e.target.value.toUpperCase());
+                                                            setCouponError('');
+                                                        }}
+                                                        onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
+                                                        disabled={couponLoading}
+                                                        className="flex-1 px-3 py-2 border border-amber-300 rounded-lg text-sm font-semibold uppercase focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    />
+                                                    <button
+                                                        onClick={handleApplyCoupon}
+                                                        disabled={couponLoading || !couponCode.trim()}
+                                                        className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                                    >
+                                                        {couponLoading ? (
+                                                            <>
+                                                                <Loader className="w-4 h-4 animate-spin" />
+                                                                Verifying...
+                                                            </>
+                                                        ) : (
+                                                            'Apply'
+                                                        )}
+                                                    </button>
+                                                </div>
+                                                {couponError && (
+                                                    <div className="text-xs text-red-600 font-semibold bg-red-50 p-2 rounded border border-red-200">
+                                                        {couponError}
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>
-                                );
-                            })}
-                        </div>
 
-                        <div className="mt-auto space-y-2 pt-6 border-t mb-2">
-                            <div className="flex justify-between text-slate-600">
-                                <span>Subtotal</span>
-                                <span>{formatPrice(subtotal)}</span>
-                            </div>
-                            <div className="flex justify-between text-slate-600">
-                                <span>Tax</span>
-                                <span>{formatPrice(tax)}</span>
-                            </div>
-                            {appliedCoupon && (
-                                <div className="flex justify-between text-amber-600 font-semibold">
-                                    <span>Coupon ({appliedCoupon.code})</span>
-                                    <span>-{formatPrice(appliedCoupon.discountAmount)}</span>
-                                </div>
-                            )}
-                            {isRounded && (
-                                <div className="flex justify-between text-slate-600 text-sm">
-                                    <span>Rounding</span>
-                                    <span>{formatPrice(payableTotal - baseTotal)}</span>
-                                </div>
-                            )}
-                            <div className="flex justify-between text-3xl font-bold text-blue-600 pt-2">
-                                <span>Total</span>
-                                <span>{formatPrice(payableTotal)}</span>
-                            </div>
-                        </div>
-                    </div>
+                                    <h2 className="text-2xl font-bold mb-4 text-slate-900">Select Payment Method</h2>
 
-                    {/* Right: Payment */}
-                    <div className="w-full md:flex-1 p-4 md:p-8 flex flex-col relative h-auto md:h-full order-1 md:order-2 shrink-0">
-                        <button onClick={onClose} className="absolute top-0 -right-0 p-2 hover:bg-slate-100 rounded-full z-10">
-                            <X className="text-slate-500 hover:text-slate-800" />
-                        </button>
+                                    <div className="grid grid-cols-3 gap-4 mb-4">
+                                        {isCashEnabled && (
+                                            <PaymentMethodCard
+                                                icon={<Banknote size={32} />}
+                                                label="Cash"
+                                                selected={paymentMethod === 'cash'}
+                                                onClick={() => setPaymentMethod('cash')}
+                                            />
+                                        )}
+                                        {isCardEnabled && (
+                                            <PaymentMethodCard
+                                                icon={<CreditCard size={32} />}
+                                                label="Card"
+                                                selected={paymentMethod === 'card'}
+                                                onClick={() => setPaymentMethod('card')}
+                                            />
+                                        )}
+                                        {isQrEnabled && (
+                                            <PaymentMethodCard
+                                                icon={<QrCode size={32} />}
+                                                label="QR"
+                                                selected={paymentMethod === 'qr'}
+                                                onClick={() => setPaymentMethod('qr')}
+                                            />
+                                        )}
+                                    </div>
 
-                        {!completed ? (
-                            <>
-                                {/* Coupon Section */}
-                                <div className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-xl border border-amber-200">
-                                    {appliedCoupon ? (
-                                        <div className="space-y-3">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
-                                                        <Tag className="w-4 h-4 text-amber-600" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs text-amber-600 font-semibold">Applied Coupon</p>
-                                                        <p className="text-sm font-bold text-amber-900">{appliedCoupon.code}</p>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    onClick={handleRemoveCoupon}
-                                                    className="text-sm text-amber-600 hover:text-amber-700 font-semibold"
-                                                >
-                                                    Remove
-                                                </button>
-                                            </div>
-                                            <div className="bg-white rounded-lg p-2 flex justify-between items-center">
-                                                <span className="text-xs text-slate-600">{appliedCoupon.description || 'Discount applied'}</span>
-                                                <span className="text-sm font-bold text-green-600">-{formatPrice(appliedCoupon.discountAmount)}</span>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-3">
-                                            <p className="text-sm font-semibold text-slate-800 flex items-center gap-2">
-                                                <Tag className="w-4 h-4" />
-                                                Have a coupon code?
-                                            </p>
-                                            <div className="flex gap-2">
-                                                <input
-                                                    type="text"
-                                                    placeholder="Enter coupon code"
-                                                    value={couponCode}
-                                                    onChange={(e) => {
-                                                        setCouponCode(e.target.value.toUpperCase());
-                                                        setCouponError('');
-                                                    }}
-                                                    onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
-                                                    disabled={couponLoading}
-                                                    className="flex-1 px-3 py-2 border border-amber-300 rounded-lg text-sm font-semibold uppercase focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                />
-                                                <button
-                                                    onClick={handleApplyCoupon}
-                                                    disabled={couponLoading || !couponCode.trim()}
-                                                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                                >
-                                                    {couponLoading ? (
-                                                        <>
-                                                            <Loader className="w-4 h-4 animate-spin" />
-                                                            Verifying...
-                                                        </>
-                                                    ) : (
-                                                        'Apply'
+                                    <div className="flex-1">
+                                        {paymentMethod === 'cash' && (
+                                            <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <label className="block text-sm font-bold text-slate-800">Cash Received</label>
+                                                    {isExactAmountRequired && (
+                                                        <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded font-medium">Exact Amount Required</span>
                                                     )}
-                                                </button>
-                                            </div>
-                                            {couponError && (
-                                                <div className="text-xs text-red-600 font-semibold bg-red-50 p-2 rounded border border-red-200">
-                                                    {couponError}
                                                 </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-
-                                <h2 className="text-2xl font-bold mb-4 text-slate-900">Select Payment Method</h2>
-
-                                <div className="grid grid-cols-3 gap-4 mb-4">
-                                    {isCashEnabled && (
-                                        <PaymentMethodCard
-                                            icon={<Banknote size={32} />}
-                                            label="Cash"
-                                            selected={paymentMethod === 'cash'}
-                                            onClick={() => setPaymentMethod('cash')}
-                                        />
-                                    )}
-                                    {isCardEnabled && (
-                                        <PaymentMethodCard
-                                            icon={<CreditCard size={32} />}
-                                            label="Card"
-                                            selected={paymentMethod === 'card'}
-                                            onClick={() => setPaymentMethod('card')}
-                                        />
-                                    )}
-                                    {isQrEnabled && (
-                                        <PaymentMethodCard
-                                            icon={<QrCode size={32} />}
-                                            label="QR"
-                                            selected={paymentMethod === 'qr'}
-                                            onClick={() => setPaymentMethod('qr')}
-                                        />
-                                    )}
-                                </div>
-
-                                <div className="flex-1">
-                                    {paymentMethod === 'cash' && (
-                                        <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <label className="block text-sm font-bold text-slate-800">Cash Received</label>
-                                                {isExactAmountRequired && (
-                                                    <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded font-medium">Exact Amount Required</span>
+                                                <div className="flex gap-4 items-center">
+                                                    <span className="text-2xl font-bold text-slate-500">{baseCurrency?.symbol || '$'}</span>
+                                                    <input
+                                                        type="number"
+                                                        className="w-full bg-transparent text-4xl font-bold outline-none placeholder:text-slate-300 text-slate-900"
+                                                        placeholder={payableTotal.toFixed(2)}
+                                                        value={cashGiven}
+                                                        onChange={(e) => setCashGiven(e.target.value)}
+                                                        autoFocus
+                                                    />
+                                                </div>
+                                                {change > 0 && (
+                                                    <div className="mt-4 pt-4 border-t flex justify-between items-center text-green-600">
+                                                        <span className="font-bold">Change Due</span>
+                                                        <span className="text-2xl font-bold">{formatPrice(change)}</span>
+                                                    </div>
                                                 )}
                                             </div>
-                                            <div className="flex gap-4 items-center">
-                                                <span className="text-2xl font-bold text-slate-500">{baseCurrency?.symbol || '$'}</span>
-                                                <input
-                                                    type="number"
-                                                    className="w-full bg-transparent text-4xl font-bold outline-none placeholder:text-slate-300 text-slate-900"
-                                                    placeholder={payableTotal.toFixed(2)}
-                                                    value={cashGiven}
-                                                    onChange={(e) => setCashGiven(e.target.value)}
-                                                    autoFocus
-                                                />
-                                            </div>
-                                            {change > 0 && (
-                                                <div className="mt-4 pt-4 border-t flex justify-between items-center text-green-600">
-                                                    <span className="font-bold">Change Due</span>
-                                                    <span className="text-2xl font-bold">{formatPrice(change)}</span>
-                                                </div>
-                                            )}
-                                        </div>
+                                        )}
+                                    </div>
+
+                                    {customerError && (
+                                        <div className="text-red-600 font-semibold mb-2 text-center">{customerError}</div>
                                     )}
-                                </div>
-
-                                {customerError && (
-                                    <div className="text-red-600 font-semibold mb-2 text-center">{customerError}</div>
-                                )}
-                                <button
-                                    onClick={handlePayment}
-                                    disabled={processing || (requireCustomerDetails && !customer) || (paymentMethod === 'cash' && !isValidCashAmount)}
-                                    className="w-full py-5 mt-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xl shadow-lg shadow-blue-900/20 active:translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
-                                >
-                                    {processing ? "Processing..." : `Complete ${(paymentMethod === 'cash' ? 'Cash' : (paymentMethod === 'qr' ? 'QR' : 'Card'))} Payment`}
-                                    {(allowQuickCheckout && !hideShortcut) && <span className="text-xs bg-black/20 px-2 py-1 rounded font-mono font-normal opacity-80 border border-white/10">Ctrl+Enter</span>}
-                                </button>
-                            </>
-                        ) : (
-                            <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6">
-                                <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
-                                    <CheckCircle size={48} />
-                                </div>
-                                <h2 className="text-3xl font-bold text-slate-800">Payment Successful!</h2>
-                                <p className="text-slate-500">Order completed successfully.</p>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-md mt-8">
                                     <button
-                                        onClick={handlePrintAndClose}
-                                        className="py-4 bg-slate-800 text-white rounded-xl font-bold text-lg hover:bg-slate-900 flex items-center justify-center gap-2"
+                                        onClick={handlePayment}
+                                        disabled={processing || (requireCustomerDetails && !customer) || (paymentMethod === 'cash' && !isValidCashAmount)}
+                                        className="w-full py-5 mt-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xl shadow-lg shadow-blue-900/20 active:translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
                                     >
-                                        <Printer size={20} /> Print Receipt <span className="text-sm font-normal opacity-70 ml-1">(Ctrl+P)</span>
+                                        {processing ? "Processing..." : `Complete ${(paymentMethod === 'cash' ? 'Cash' : (paymentMethod === 'qr' ? 'QR' : 'Card'))} Payment`}
+                                        {(allowQuickCheckout && !hideShortcut) && <span className="text-xs bg-black/20 px-2 py-1 rounded font-mono font-normal opacity-80 border border-white/10">Ctrl+Enter</span>}
                                     </button>
-                                    <button
-                                        onClick={handlePrintAndClose}
-                                        className="py-4 bg-white border-2 border-slate-200 text-slate-700 rounded-xl font-bold text-lg hover:bg-slate-50"
-                                    >
-                                        New Sale
-                                    </button>
+                                </>
+                            ) : (
+                                <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6">
+                                    <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
+                                        <CheckCircle size={48} />
+                                    </div>
+                                    <h2 className="text-3xl font-bold text-slate-800">Payment Successful!</h2>
+                                    <p className="text-slate-500">Order completed successfully.</p>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-md mt-8">
+                                        <button
+                                            onClick={handlePrintAndClose}
+                                            className="py-4 bg-slate-800 text-white rounded-xl font-bold text-lg hover:bg-slate-900 flex items-center justify-center gap-2"
+                                        >
+                                            <Printer size={20} /> Print Receipt <span className="text-sm font-normal opacity-70 ml-1">(Ctrl+P)</span>
+                                        </button>
+                                        <button
+                                            onClick={handlePrintAndClose}
+                                            className="py-4 bg-white border-2 border-slate-200 text-slate-700 rounded-xl font-bold text-lg hover:bg-slate-50"
+                                        >
+                                            New Sale
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
-                </motion.div>
-            </div>
-        </AnimatePresence>
+                </div>
+            )}
+        </>
     );
 }
 

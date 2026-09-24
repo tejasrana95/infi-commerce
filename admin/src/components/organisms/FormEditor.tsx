@@ -53,6 +53,9 @@ export default function FormEditor({ form, onSave, onBack, saving = false }: For
             body: '',
             subject: '',
         },
+        captureUserAgent: form?.captureUserAgent || false,
+        captureGeoData: form?.captureGeoData || false,
+        enableTurnstile: form?.enableTurnstile || false,
     });
 
     const [stores, setStores] = useState<Store[]>([]);
@@ -515,6 +518,28 @@ export default function FormEditor({ form, onSave, onBack, saving = false }: For
                                     />
                                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 4 }}>
                                         Detect and include the submitter's country, region, and city in the notification email
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                        </Box>
+
+                        <Box sx={{ mt: 4 }}>
+                            <Typography variant="h6" gutterBottom>
+                                Security & Protection
+                            </Typography>
+                            <Grid container spacing={3}>
+                                <Grid size={{ xs: 12 }}>
+                                    <FormControlLabel
+                                        control={
+                                            <Switch
+                                                checked={formData.enableTurnstile || false}
+                                                onChange={(e) => handleChange('enableTurnstile', e.target.checked)}
+                                            />
+                                        }
+                                        label="Enforce Cloudflare Turnstile CAPTCHA"
+                                    />
+                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 4 }}>
+                                        Require visitors to pass Cloudflare Turnstile CAPTCHA verification before submitting this form. (Active when backend and frontend keys are configured)
                                     </Typography>
                                 </Grid>
                             </Grid>

@@ -38,8 +38,8 @@ const ConfirmDialog = memo(({
   const Icon = config.icon;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-300">
-      <div className={`${config.bgColor} rounded-lg p-6 max-w-md w-full mx-4 animate-in fade-in zoom-in-95 duration-300 border border-gray-200`}>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className={`${config.bgColor} rounded-lg p-6 max-w-md w-full mx-4 shadow-xl border border-gray-200`}>
         <div className="flex items-start gap-4 mb-4">
           <Icon className={`w-6 h-6 ${config.color} flex-shrink-0 mt-0.5`} />
           <div className="flex-1">

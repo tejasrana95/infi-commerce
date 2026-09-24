@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, Calendar, TrendingUp, DollarSign, ShoppingCart, Download } from 'lucide-react';
 import Button from '../atoms/Button';
-import { motion, AnimatePresence } from 'framer-motion';
+
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface ReportingDashboardProps {
@@ -66,15 +66,9 @@ export function ReportingDashboard({ isOpen, onClose }: ReportingDashboardProps)
     if (!isOpen) return null;
 
     return (
-        <AnimatePresence>
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="relative w-full max-w-6xl mx-4 bg-white rounded-lg shadow-xl max-h-[90vh] flex flex-col"
-                >
-                    {/* Header */}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="relative w-full max-w-6xl mx-4 bg-white rounded-lg shadow-xl max-h-[90vh] flex flex-col">
+                {/* Header */}
                     <div className="flex items-center justify-between p-6 border-b">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -226,8 +220,7 @@ export function ReportingDashboard({ isOpen, onClose }: ReportingDashboardProps)
                             Close
                         </Button>
                     </div>
-                </motion.div>
             </div>
-        </AnimatePresence>
+        </div>
     );
 }

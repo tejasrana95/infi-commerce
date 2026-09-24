@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { User, Search, Plus, X, Check, Loader2, AlertCircle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+
 import { Customer } from '@/types';
 import { cn } from '@/lib/utils';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
@@ -256,14 +256,8 @@ export default function CustomerSelectionModal({ isOpen, onClose, onSelect }: Cu
     if (!isOpen) return null;
 
     return (
-        <AnimatePresence>
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                <motion.div
-                    initial={{ scale: 0.95, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.95, opacity: 0 }}
-                    className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]"
-                >
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
                     <div className="p-4 border-b flex items-center justify-between bg-slate-50">
                         <h3 className="font-bold text-lg flex items-center gap-2 text-slate-900">
                             <User className="w-5 h-5 text-slate-600" />
@@ -560,8 +554,7 @@ export default function CustomerSelectionModal({ isOpen, onClose, onSelect }: Cu
                             </form>
                         )}
                     </div>
-                </motion.div>
             </div>
-        </AnimatePresence>
+        </div>
     );
 }

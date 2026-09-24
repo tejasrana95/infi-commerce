@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Product, ProductVariant } from '@/types';
 import { X, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+
 
 interface VariantModalProps {
     product: Product | null;
@@ -44,21 +44,14 @@ export default function VariantModal({ product, isOpen, onClose, onAddToCart }: 
     };
 
     return (
-        <AnimatePresence>
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm "
-                onClick={onClose}
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+            onClick={onClose}
+        >
+            <div
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden"
+                onClick={e => e.stopPropagation()}
             >
-                <motion.div
-                    initial={{ scale: 0.95, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.95, opacity: 0 }}
-                    className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden"
-                    onClick={e => e.stopPropagation()}
-                >
                     {/* Header */}
                     <div className="p-4 border-b flex items-center justify-between">
                         <h3 className="font-bold text-xl text-slate-800">{product.name}</h3>
@@ -191,8 +184,7 @@ export default function VariantModal({ product, isOpen, onClose, onAddToCart }: 
                             )}
                         </button>
                     </div>
-                </motion.div>
-            </motion.div>
-        </AnimatePresence>
+            </div>
+        </div>
     );
 }

@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { X, RotateCcw, Search, AlertCircle, ArrowLeft, AlertTriangle } from 'lucide-react';
 import Button from '../atoms/Button';
 import Input from '../atoms/Input';
-import { motion, AnimatePresence } from 'framer-motion';
+
 import { ReturnItem, RETURN_REASONS } from '@/types/returns';
 import api from '@/services/api';
 import { useCurrency } from '@/contexts/CurrencyContext';
@@ -290,14 +290,8 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
     if (!isOpen) return null;
 
     return (
-        <AnimatePresence>
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="relative w-full md:max-w-4xl max-h-[95dvh] md:max-h-[90vh] h-full md:h-auto bg-white md:rounded-xl shadow-2xl flex flex-col overflow-hidden"
-                >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="relative w-full md:max-w-4xl max-h-[95dvh] md:max-h-[90vh] h-full md:h-auto bg-white md:rounded-xl shadow-2xl flex flex-col overflow-hidden">
                     {/* Header */}
                     <div className="flex items-center justify-between p-4 md:p-6 border-b bg-white z-10 shrink-0">
                         <div className="flex items-center gap-3">
@@ -773,8 +767,7 @@ export function ReturnOrderModal({ isOpen, onClose, initialOrder }: ReturnOrderM
                             </Button>
                         )}
                     </div>
-                </motion.div>
             </div>
-        </AnimatePresence>
+        </div>
     );
 }

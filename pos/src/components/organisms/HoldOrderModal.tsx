@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { X, Package } from 'lucide-react';
 import Button from '../atoms/Button';
 import Input from '../atoms/Input';
-import { motion, AnimatePresence } from 'framer-motion';
+
 import { useHoldStore } from '@/store/holdStore';
 import { useCartStore } from '@/store/cartStore';
 import { useCurrency } from '@/contexts/CurrencyContext';
@@ -55,14 +55,8 @@ export function HoldOrderModal({ isOpen, onClose }: HoldOrderModalProps) {
     if (!isOpen) return null;
 
     return (
-        <AnimatePresence>
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="relative w-full max-w-md mx-4 bg-white rounded-lg shadow-xl"
-                >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="relative w-full max-w-md mx-4 bg-white rounded-lg shadow-xl">
                     {/* Header */}
                     <div className="flex items-center justify-between p-6 border-b">
                         <div className="flex items-center gap-3">
@@ -169,8 +163,7 @@ export function HoldOrderModal({ isOpen, onClose }: HoldOrderModalProps) {
                             </Button>
                         </div>
                     </form>
-                </motion.div>
             </div>
-        </AnimatePresence>
+        </div>
     );
 }

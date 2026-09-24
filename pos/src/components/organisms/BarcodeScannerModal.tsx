@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Camera, AlertCircle, RefreshCw, CheckCircle, Package } from 'lucide-react';
 import { barcodeService } from '@/services/barcode.service';
 import { sounds } from '@/utils/sounds';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Button from '../atoms/Button';
 
 interface ScannedItem {
@@ -149,14 +149,8 @@ export function BarcodeScannerModal({ isOpen, onClose, onScan }: BarcodeScannerM
     if (!isOpen) return null;
 
     return (
-        <AnimatePresence>
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="relative w-full max-w-4xl mx-4 bg-white rounded-lg shadow-2xl overflow-hidden max-h-[95vh] overflow-y-auto"
-                >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+            <div className="relative w-full max-w-4xl mx-4 bg-white rounded-lg shadow-2xl overflow-hidden max-h-[95vh] overflow-y-auto">
                     {/* Header */}
                     <div className="flex items-center justify-between p-4 border-b bg-gray-50">
                         <div className="flex items-center gap-4">
@@ -372,8 +366,7 @@ export function BarcodeScannerModal({ isOpen, onClose, onScan }: BarcodeScannerM
                             </Button>
                         </div>
                     </div>
-                </motion.div>
             </div>
-        </AnimatePresence>
+        </div>
     );
 }

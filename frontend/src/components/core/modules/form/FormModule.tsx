@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { apiClient } from '@/services/api-client';
 import { ModuleProps } from '@/components/core/modules';
 import { useStore } from '@/providers/StoreProvider';
 import styles from './form.module.scss';
 import Honeypot from '@/components/core/common/Honeypot';
+import TurnstileWidget from '@/components/core/common/TurnstileWidget';
 import { track } from '@/lib/ga';
 import { getGeoCookie } from '@/hooks/usePriceVisibility';
 
@@ -39,6 +40,9 @@ interface FormData {
     status: 'draft' | 'published';
     captureUserAgent?: boolean;
     captureGeoData?: boolean;
+    enableTurnstile?: boolean;
+    turnstileRequired?: boolean;
+    turnstileSiteKey?: string;
 }
 
 export default function FormModule({ config, styling }: ModuleProps) {
@@ -50,6 +54,25 @@ export default function FormModule({ config, styling }: ModuleProps) {
     const [submitted, setSubmitted] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<Record<string, File[]>>({});
     const [honeyTrap, setHoneyTrap] = useState('');
+    const [turnstileToken, setTurnstileToken] = useState('');
+
+    const handleTurnstileVerify = useCallback((token: string) => {
+        setTurnstileToken(token);
+        setErrors(prev => {
+            if (!prev.submit) return prev;
+            const next = { ...prev };
+            delete next.submit;
+            return next;
+        });
+    }, []);
+
+    const handleTurnstileExpire = useCallback(() => {
+        setTurnstileToken('');
+    }, []);
+
+    const handleTurnstileError = useCallback(() => {
+        setTurnstileToken('');
+    }, []);
 
     const {
         formId,
@@ -384,6 +407,17 @@ export default function FormModule({ config, styling }: ModuleProps) {
             return;
         }
 
+        const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || form?.turnstileSiteKey || '';
+        const shouldShowTurnstile = !!(form?.enableTurnstile && form?.turnstileRequired !== false && siteKey);
+
+        if (shouldShowTurnstile && !turnstileToken) {
+            setErrors(prev => ({
+                ...prev,
+                submit: 'Please complete the CAPTCHA verification before submitting.',
+            }));
+            return;
+        }
+
         setSubmitting(true);
 
         try {
@@ -410,6 +444,11 @@ export default function FormModule({ config, styling }: ModuleProps) {
 
             // Append honeypot field
             formData.append('_form_trap', honeyTrap);
+
+            // Append Turnstile token if present
+            if (turnstileToken) {
+                formData.append('cf-turnstile-response', turnstileToken);
+            }
 
             // Capture metadata (user agent, geo, IP) based on form config
             if (form.captureUserAgent || form.captureGeoData) {
@@ -806,6 +845,22 @@ export default function FormModule({ config, styling }: ModuleProps) {
                     onChange={setHoneyTrap}
                 />
                 {form.sections.map(renderSection)}
+
+                {(() => {
+                    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || form.turnstileSiteKey || '';
+                    const shouldShowTurnstile = !!(form.enableTurnstile && form.turnstileRequired !== false && siteKey);
+
+                    if (!shouldShowTurnstile) return null;
+
+                    return (
+                        <TurnstileWidget
+                            siteKey={siteKey}
+                            onVerify={handleTurnstileVerify}
+                            onExpire={handleTurnstileExpire}
+                            onError={handleTurnstileError}
+                        />
+                    );
+                })()}
 
                 {errors.submit && (
                     <div className={styles.submitError}>{errors.submit}</div>

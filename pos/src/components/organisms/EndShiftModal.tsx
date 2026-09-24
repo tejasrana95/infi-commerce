@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { X, DollarSign, FileText, Printer, Loader2, Check } from 'lucide-react';
 import Button from '../atoms/Button';
 import Input from '../atoms/Input';
-import { motion, AnimatePresence } from 'framer-motion';
+
 import api from '@/services/api';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -100,14 +100,8 @@ export function EndShiftModal({ isOpen, onClose, session: initialSession, onSucc
     // Show summary if shift ended successfully
     if (shiftSummary) {
         return (
-            <AnimatePresence>
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className="relative w-full max-w-lg mx-4 bg-white rounded-lg shadow-xl"
-                    >
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                <div className="relative w-full max-w-lg mx-4 bg-white rounded-lg shadow-xl">
                         {/* Header */}
                         <div className="flex items-center justify-between p-6 border-b bg-green-50">
                             <div className="flex items-center gap-3">
@@ -181,21 +175,14 @@ export function EndShiftModal({ isOpen, onClose, session: initialSession, onSucc
                                 </Button>
                             </div>
                         </div>
-                    </motion.div>
                 </div>
-            </AnimatePresence>
+            </div>
         );
     }
 
     return (
-        <AnimatePresence>
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="relative w-full max-w-lg mx-4 bg-white rounded-lg shadow-xl"
-                >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="relative w-full max-w-lg mx-4 bg-white rounded-lg shadow-xl">
                     {/* Header */}
                     <div className="flex items-center justify-between p-6 border-b">
                         <div className="flex items-center gap-3">
@@ -305,8 +292,7 @@ export function EndShiftModal({ isOpen, onClose, session: initialSession, onSucc
                             </Button>
                         </div>
                     </form>
-                </motion.div>
             </div>
-        </AnimatePresence>
+        </div>
     );
 }

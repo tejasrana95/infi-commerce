@@ -2,7 +2,7 @@ import { Order } from '@/types';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import StatusBadge from '../atoms/StatusBadge';
 import { X, Calendar, User, CreditCard, Banknote, QrCode, Printer, Package, RotateCcw } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+
 import Image from 'next/image';
 import { formatDateTime } from '@/utils/formatters';
 import { printService } from '@/services/print.service';
@@ -55,18 +55,14 @@ export default function OrderDetailModal({ order, isOpen, onClose, onReturn }: O
     };
 
     return (
-        <AnimatePresence>
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+            onClick={onClose}
+        >
             <div
-                className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-                onClick={onClose}
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[95vh] overflow-y-auto"
+                onClick={e => e.stopPropagation()}
             >
-                <motion.div
-                    initial={{ scale: 0.95, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.95, opacity: 0 }}
-                    className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[95vh] overflow-y-auto"
-                    onClick={e => e.stopPropagation()}
-                >
                     {/* Header */}
                     <div className="bg-slate-50 border-b px-6 py-4 flex items-center justify-between">
                         <div>
@@ -285,8 +281,7 @@ export default function OrderDetailModal({ order, isOpen, onClose, onReturn }: O
                             Print Receipt
                         </button>
                     </div>
-                </motion.div>
             </div>
-        </AnimatePresence>
+        </div>
     );
 }

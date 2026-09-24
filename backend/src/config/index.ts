@@ -104,6 +104,11 @@ export const config = {
         dsn: process.env.SENTRY_DSN || '',
     },
 
+    turnstile: {
+        siteKey: process.env.TURNSTILE_SITE_KEY || process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '',
+        secretKey: process.env.TURNSTILE_SECRET_KEY || '',
+    },
+
     appName: 'Infi Commerce API',
 };
 

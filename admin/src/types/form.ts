@@ -83,6 +83,7 @@ export interface Form {
     };
     captureUserAgent?: boolean;
     captureGeoData?: boolean;
+    enableTurnstile?: boolean;
     status: 'draft' | 'published';
     submissionsCount: number;
     createdAt: string;
