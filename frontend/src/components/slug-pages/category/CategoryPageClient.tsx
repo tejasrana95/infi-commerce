@@ -3,6 +3,7 @@
 
 'use client';
 
+import { memo } from 'react';
 import { getComponent } from '@/components/templates/registry';
 import { useStore } from '@/providers/StoreProvider';
 
@@ -30,14 +31,18 @@ interface CategoryPageClientProps {
     initialFilters?: any;
     initialLayout?: any;
     initialPagination?: any;
+    initialAppliedFilters: any;
+    initialQueryString: string;
 }
 
-export default function CategoryPageClient({
+export function CategoryPageClient({
     category,
     initialProducts = [],
     initialFilters = null,
     initialLayout = null,
     initialPagination = null,
+    initialAppliedFilters,
+    initialQueryString,
 }: CategoryPageClientProps) {
     const { store } = useStore();
     const templateId = store?.theme?.templateId || 'modern-clean';
@@ -52,6 +57,13 @@ export default function CategoryPageClient({
             initialFilters={initialFilters}
             initialLayout={initialLayout}
             initialPagination={initialPagination}
+            initialAppliedFilters={initialAppliedFilters}
+            initialQueryString={initialQueryString}
         />
     );
 }
+
+const MemoizedCategoryPageClient = memo(CategoryPageClient);
+MemoizedCategoryPageClient.displayName = 'CategoryPageClient';
+
+export default MemoizedCategoryPageClient;

@@ -1,13 +1,21 @@
-// CategoryPage Container - Business logic, data fetching, state management
-// Uses CategoryFiltersContext for centralized filter state management
+// CategoryPage Container — SSR-driven product listing.
+//
+// Architecture:
+//   * The server renders the (filtered) product list from the URL query.
+//   * Filter/sort/page changes only mutate the URL — Next re-renders the
+//     Server Component and streams a fresh, correctly-filtered list.
+//   * No duplicated product state: the rendered list is `initialProducts`
+//     (from the server) plus, only for load-more/infinite-scroll, the pages
+//     the user explicitly accumulated on the client.
+//   * Loading is driven by the navigation transition, not hand-rolled state.
 
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useStore } from '@/providers/StoreProvider';
-import { CategoryFiltersProvider, useCategoryFilters, BrandInfo } from '@/providers/CategoryFiltersContext';
+import { useCategoryFilters, BrandInfo, AppliedFilters } from '@/providers/CategoryFiltersContext';
 import api from '@/lib/api';
+import { appliedFiltersToApiQuery } from '@/lib/filters/category-filters';
 import { getComponent } from '@/components/templates/registry';
 import { CategoryConfig, CategoryFiltersConfig, DEFAULT_CATEGORY_CONFIG } from '@/types/store';
 import {
@@ -59,29 +67,52 @@ interface CategoryPageContainerProps {
     initialFilters?: AvailableFilters | null;
     initialLayout?: any;
     initialPagination?: { total: number; pages: number; limit: number; page: number } | null;
+    /** Filters parsed from the URL on the server. */
+    initialAppliedFilters: AppliedFilters;
+    /** Raw server query string (updates on every navigation). */
+    initialQueryString: string;
 }
 
-// Inner component that uses the context
-function CategoryPageInner({
+/** Client-accumulated pages for load-more / infinite-scroll, keyed to the query. */
+interface LoadMoreState {
+    key: string;
+    items: ProductListItem[];
+    page: number;
+    total: number;
+    pages: number;
+}
+
+function CategoryPageContainer({
     category,
     initialProducts = [],
     initialFilters = null,
     initialLayout = null,
     initialPagination = null,
+    initialAppliedFilters,
+    initialQueryString,
 }: CategoryPageContainerProps) {
-    const router = useRouter();
-    const searchParams = useSearchParams();
     const { store, currentCurrency } = useStore();
 
-    // Context for filter management
-    const filters = useCategoryFilters();
+    // URL-driven filter state — applied filters come from the SERVER, so this
+    // component needs no useSearchParams() and stays fully server-rendered.
+    const filters = useCategoryFilters({
+        initialFilters,
+        appliedFilters: initialAppliedFilters,
+        queryString: initialQueryString,
+    });
+    const {
+        appliedFilters,
+        activeFilterCount,
+        navigate,
+        updateBrandLookup,
+    } = filters;
 
     const headerModuleConfig = useMemo(
         () => findModuleConfig(initialLayout, 'category-header'),
         [initialLayout]
     );
 
-    // Get category config from theme and category header module - use deep merge for nested objects
+    // Category config from theme + category header module (deep merge for nested objects)
     const config: CategoryConfig = useMemo(() => {
         const storeConfig: Partial<CategoryConfig> = store?.theme?.category || {};
         return {
@@ -120,250 +151,161 @@ function CategoryPageInner({
     // Extract primitive so memo dependency inference matches the declared deps
     const storeId = store?._id;
 
-    // State
-    // The SSR `initialProducts` are fetched WITHOUT the filter query params
-    // (the server only passes page/sort to fetchCategoryPageData), so they are
-    // always unfiltered. When the URL already carries filters (e.g. after
-    // navigating back from a product), we must ignore them and fetch client-side
-    // so the filtered results are shown instead of the full category listing.
-    const hasActiveUrlFilters = filters.activeFilterCount > 0;
-    const [products, setProducts] = useState<ProductListItem[]>(
-        hasActiveUrlFilters ? [] : initialProducts
-    );
-    const [isLoading, setIsLoading] = useState(
-        hasActiveUrlFilters || initialProducts.length === 0
-    );
     const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [loadMore, setLoadMore] = useState<LoadMoreState | null>(null);
 
-    // Ref to track if we've done initial fetch
-    const hasInitialFetchRef = useRef(false);
-    // Ref to track previous search params for optimistic loading
-    const prevSearchParamsRef = useRef(searchParams.toString());
+    // The query string is the identity of the current server-rendered page.
+    const params = useMemo(() => new URLSearchParams(initialQueryString), [initialQueryString]);
+    const queryKey = initialQueryString;
+    const isLoadMoreCurrent = loadMore !== null && loadMore.key === queryKey;
 
-    // Pagination state
-    const [pagination, setPagination] = useState<PaginationState>({
-        page: parseInt(searchParams.get('page') || '1'),
-        limit: config.grid?.productsPerPage || 24,
-        total: initialPagination?.total || 0,
-        pages: initialPagination?.pages || 0,
-    });
+    // Products = server-rendered page [+ client-accumulated pages for load-more].
+    // When the URL changes, accumulated pages are naturally discarded.
+    const products = useMemo<ProductListItem[]>(
+        () => (isLoadMoreCurrent && loadMore ? [...initialProducts, ...loadMore.items] : initialProducts),
+        [initialProducts, isLoadMoreCurrent, loadMore]
+    );
 
-    // Current sort
-    const currentSort = searchParams.get('sort') || config.sorting?.defaultSort || 'featured';
+    const pageParam = params.get('page');
+    const serverPagination = useMemo<PaginationState>(() => {
+        const page = parseInt(pageParam || '1', 10);
+        return {
+            page: Number.isFinite(page) && page > 0 ? page : 1,
+            limit: initialPagination?.limit || config.grid?.productsPerPage || 24,
+            total: initialPagination?.total || 0,
+            pages: initialPagination?.pages || 0,
+        };
+    }, [pageParam, initialPagination, config.grid?.productsPerPage]);
 
-    // Initialize available filters
-    useEffect(() => {
-        if (initialFilters) {
-            filters.setAvailableFilters(initialFilters);
-        }
-    }, [initialFilters]);
+    const pagination = useMemo<PaginationState>(
+        () => (isLoadMoreCurrent && loadMore
+            ? { ...serverPagination, page: loadMore.page, total: loadMore.total, pages: loadMore.pages }
+            : serverPagination),
+        [isLoadMoreCurrent, loadMore, serverPagination]
+    );
+
+    // Single loading signal: the navigation transition (or a load-more request).
+    const isLoading = filters.isPending || isLoadingMore;
+
+    const currentSort = params.get('sort') || config.sorting?.defaultSort || 'featured';
 
     // Build breadcrumbs
     const breadcrumbs = useMemo<BreadcrumbItem[]>(() => {
-        const crumbs: BreadcrumbItem[] = [
-            { label: 'Home', href: '/' },
-        ];
-
+        const crumbs: BreadcrumbItem[] = [{ label: 'Home', href: '/' }];
         if (category.parentCategory) {
             crumbs.push({
                 label: category.parentCategory.title,
                 href: `/${category.parentCategory.slug}`,
             });
         }
-
         crumbs.push({ label: category.title });
-
         return crumbs;
     }, [category]);
 
-    // Fetch products
-    const fetchProducts = useCallback(async (options: { page?: number; append?: boolean } = {}) => {
-        if (!storeId) return;
+    // Serialised filter params for the client-side "load more" request.
+    const filterQuery = useMemo(() => appliedFiltersToApiQuery(appliedFilters), [appliedFilters]);
 
-        const page = options.page || 1;
-        const append = options.append || false;
+    // Latest-value ref: keeps every handler below referentially stable so the
+    // memoized template re-renders only when the data it renders changes.
+    const latest = {
+        storeId,
+        categoryId: category._id,
+        limit: pagination.limit,
+        sort: currentSort,
+        filterQuery,
+        queryKey,
+        page: pagination.page,
+        pages: pagination.pages,
+        total: pagination.total,
+    };
+    const latestRef = useRef(latest);
+    useEffect(() => {
+        latestRef.current = latest;
+    });
 
-        setIsLoading(true);
+    const inFlightRef = useRef(false);
+
+    // ---------------------------------------------------------
+    // Load more (the only client-side data fetch left)
+    // ---------------------------------------------------------
+    const fetchMore = useCallback(async (nextPage: number) => {
+        // De-dupe concurrent triggers (e.g. an IntersectionObserver that fires
+        // more than once before state settles).
+        if (inFlightRef.current) return;
+
+        const s = latestRef.current;
+        if (!s.storeId) return;
+
+        inFlightRef.current = true;
+        setIsLoadingMore(true);
         try {
-            // Build query params
-            const params = new URLSearchParams();
-            params.set('storeId', storeId);
-            if (category._id && category._id !== 'all-products') {
-                params.set('categoryId', category._id);
+            const params = new URLSearchParams({
+                storeId: s.storeId,
+                page: String(nextPage),
+                limit: String(s.limit),
+                sort: s.sort,
+                view: 'listing',
+            });
+            if (s.categoryId && s.categoryId !== 'all-products') {
+                params.set('categoryId', s.categoryId);
             }
-            params.set('page', page.toString());
-            params.set('limit', pagination.limit.toString());
-            params.set('sort', currentSort);
 
-            // Add filters from context (appliedFilters is derived from URL)
-            const { appliedFilters } = filters;
+            const response = await api.get(`products?${params.toString()}${s.filterQuery ? `&${s.filterQuery}` : ''}`);
+            const incoming: ProductListItem[] = response.products || [];
 
-            if (appliedFilters.price) {
-                const maxStr = appliedFilters.price.max === Infinity ? '' : appliedFilters.price.max.toString();
-                params.set('price', `${appliedFilters.price.min}-${maxStr}`);
-            }
-            if (appliedFilters.brands.length > 0) {
-                params.set('brand', appliedFilters.brands.join(','));
-            }
-            if (appliedFilters.tags.length > 0) {
-                params.set('tags', appliedFilters.tags.join(','));
-            }
-            if (appliedFilters.rating) {
-                params.set('rating', appliedFilters.rating.toString());
-            }
-            if (appliedFilters.stockStatus.length > 0) {
-                params.set('stock', appliedFilters.stockStatus.join(','));
-            }
-            Object.entries(appliedFilters.attributes).forEach(([key, values]) => {
-                if (values.length > 0) {
-                    params.set(key, values.join(','));
-                }
+            setLoadMore((prev) => {
+                const base = prev && prev.key === s.queryKey ? prev.items : [];
+                const existing = new Set(base.map((p) => p._id));
+                return {
+                    key: s.queryKey,
+                    items: [...base, ...incoming.filter((p) => !existing.has(p._id))],
+                    page: nextPage,
+                    total: response.pagination?.total ?? s.total,
+                    pages: response.pagination?.pages ?? s.pages,
+                };
             });
 
-            const response = await api.get(`products?${params.toString()}`);
-
-            if (append) {
-                setProducts(prev => {
-                    const existingIds = new Set(prev.map(p => p._id));
-                    const newProducts = (response.products || []).filter((p: ProductListItem) => !existingIds.has(p._id));
-                    return [...prev, ...newProducts];
-                });
-            } else {
-                setProducts(response.products || []);
-            }
-
-            // Update brand lookup from API response
-            if (response.activeFilters?.brand && Array.isArray(response.activeFilters.brand)) {
+            if (Array.isArray(response.activeFilters?.brand)) {
                 const brands: BrandInfo[] = response.activeFilters.brand
                     .filter((b: any) => typeof b === 'object' && b.id)
-                    .map((b: any) => ({
-                        id: b.id,
-                        name: b.name,
-                        slug: b.slug || b.id,
-                    }));
-                if (brands.length > 0) {
-                    filters.updateBrandLookup(brands);
-                }
+                    .map((b: any) => ({ id: b.id, name: b.name, slug: b.slug || b.id }));
+                if (brands.length > 0) updateBrandLookup(brands);
             }
-
-            setPagination(prev => ({
-                ...prev,
-                page: page,
-                total: response.pagination?.total || 0,
-                pages: response.pagination?.pages || 0,
-            }));
         } catch (error) {
-            console.error('Failed to fetch products:', error);
-            if (!append) setProducts([]);
+            console.error('Failed to load more products:', error);
         } finally {
-            setIsLoading(false);
+            inFlightRef.current = false;
+            setIsLoadingMore(false);
         }
-    }, [storeId, category._id, pagination.limit, currentSort, filters]);
+    }, [updateBrandLookup]);
 
-    // Serialize applied filters for comparison
-    const appliedFiltersKey = useMemo(() => {
-        const { appliedFilters } = filters;
-        return JSON.stringify({
-            price: appliedFilters.price,
-            // Copy before sorting — .sort() mutates in place and would reorder
-            // the memoized appliedFilters arrays.
-            brands: [...appliedFilters.brands].sort(),
-            tags: [...appliedFilters.tags].sort(),
-            rating: appliedFilters.rating,
-            stockStatus: [...appliedFilters.stockStatus].sort(),
-            attributes: Object.keys(appliedFilters.attributes).sort().reduce((acc, key) => {
-                acc[key] = [...appliedFilters.attributes[key]].sort();
-                return acc;
-            }, {} as Record<string, string[]>)
-        });
-    }, [filters.appliedFilters]);
+    const handleLoadMore = useCallback(() => {
+        if (inFlightRef.current) return;
+        const { page, pages } = latestRef.current;
+        const nextPage = page + 1;
+        if (nextPage > pages) return;
+        void fetchMore(nextPage);
+    }, [fetchMore]);
 
-    // Fetch available filters
-    const fetchFilters = useCallback(async () => {
-        if (!storeId || filters.availableFilters) return;
-
-        try {
-            const response = await api.get(`/categories/${category._id}/filters?storeId=${storeId}`);
-            filters.setAvailableFilters(response);
-        } catch (error) {
-            console.error('Failed to fetch filters:', error);
-        }
-    }, [storeId, category._id, filters.availableFilters]);
-
-    // Initial fetch
-    useEffect(() => {
-        fetchFilters();
-    }, [fetchFilters]);
-
-    // Optimistic loading - set loading true immediately when search params change
-    // This provides instant visual feedback before the actual fetch begins
-    useEffect(() => {
-        const currentParams = searchParams.toString();
-        const prevParams = prevSearchParamsRef.current;
-
-        // Check if params actually changed (excluding initial mount)
-        if (hasInitialFetchRef.current && currentParams !== prevParams) {
-            setIsLoading(true);
-        }
-
-        prevSearchParamsRef.current = currentParams;
-    }, [searchParams]);
-
-    // Handle React 18 Strict Mode unmount/remount
-    useEffect(() => {
-        return () => {
-            hasInitialFetchRef.current = false;
-        };
-    }, []);
-
-    useEffect(() => {
-        const currentPage = parseInt(searchParams.get('page') || '1');
-        const initialPage = initialPagination?.page || 1;
-
-        // Skip if we already have initial products and this is the first render
-        if (!hasInitialFetchRef.current) {
-            hasInitialFetchRef.current = true;
-            // Only trust the SSR products when the URL has NO filters (SSR data is
-            // unfiltered) and we're on the initial page. Otherwise fall through and
-            // fetch the filtered products.
-            if (initialProducts.length > 0 && !hasActiveUrlFilters && currentPage === initialPage) {
-                return;
-            }
-        }
-        // Fetch products when filters change (via URL)
-        fetchProducts({ page: currentPage });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [appliedFiltersKey, searchParams]);
-
-    // Handler: Page change
+    // ---------------------------------------------------------
+    // Pagination / sorting → URL only (server does the work)
+    // ---------------------------------------------------------
     const handlePageChange = useCallback((page: number) => {
-        // Set loading immediately for instant feedback
-        setIsLoading(true);
-        const params = new URLSearchParams(searchParams.toString());
-        params.set('page', page.toString());
-        router.push(`?${params.toString()}`, { scroll: false });
+        setLoadMore(null);
+        const params = new URLSearchParams(latestRef.current.queryKey);
+        params.set('page', String(page));
+        navigate(`?${params.toString()}`);
         window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, [router, searchParams]);
+    }, [navigate]);
 
-    // Handler: Load more
-    const handleLoadMore = useCallback(async () => {
-        if (!storeId || isLoading) return;
-
-        const nextPage = pagination.page + 1;
-        if (nextPage > pagination.pages) return;
-
-        await fetchProducts({ page: nextPage, append: true });
-    }, [storeId, isLoading, pagination.page, pagination.pages, fetchProducts]);
-
-    // Handler: Sort change
     const handleSortChange = useCallback((sort: string) => {
-        // Set loading immediately for instant feedback
-        setIsLoading(true);
-        const params = new URLSearchParams(searchParams.toString());
+        setLoadMore(null);
+        const params = new URLSearchParams(latestRef.current.queryKey);
         params.set('sort', sort);
         params.delete('page');
-        router.push(`?${params.toString()}`, { scroll: false });
-    }, [router, searchParams]);
+        navigate(`?${params.toString()}`);
+    }, [navigate]);
 
     // Stable drawer handlers (avoid new function identities on every render)
     const handleOpenFilterDrawer = useCallback(() => setIsFilterDrawerOpen(true), []);
@@ -373,20 +315,15 @@ function CategoryPageInner({
     const sortOptions = useMemo(() => {
         const availableOptions = config.sorting?.availableSortOptions;
         if (availableOptions?.length) {
-            return DEFAULT_SORT_OPTIONS.filter(opt =>
-                availableOptions.includes(opt.value)
-            );
+            return DEFAULT_SORT_OPTIONS.filter((opt) => availableOptions.includes(opt.value));
         }
         return DEFAULT_SORT_OPTIONS;
     }, [config.sorting?.availableSortOptions]);
 
-    // Get the template component
     const CategoryPageTemplate = getComponent<CategoryPageTemplateProps>(
         'CategoryPageTemplate',
         templateId
     );
-
-
 
     return (
         <CategoryPageTemplate
@@ -401,8 +338,8 @@ function CategoryPageInner({
             sortOptions={sortOptions}
             onSortChange={handleSortChange}
             availableFilters={filters.availableFilters}
-            activeFilters={filters.appliedFilters}
-            activeFilterCount={filters.activeFilterCount}
+            activeFilters={appliedFilters}
+            activeFilterCount={activeFilterCount}
             onFilterChange={filters.stageFilterChange}
             onClearFilter={filters.clearFilter}
             onRemoveFilterValue={filters.removeFilterValue}
@@ -427,19 +364,7 @@ function CategoryPageInner({
     );
 }
 
-// Main component that wraps with provider
-export default function CategoryPageContainer(props: CategoryPageContainerProps) {
-    // Get available attribute slugs for URL parsing
-    const attributeSlugs = useMemo(() => {
-        return props.initialFilters?.attributes?.map(a => a.slug) || [];
-    }, [props.initialFilters]);
+const MemoizedCategoryPageContainer = React.memo(CategoryPageContainer);
+MemoizedCategoryPageContainer.displayName = 'CategoryPageContainer';
 
-    return (
-        <CategoryFiltersProvider
-            availableFilterSlugs={attributeSlugs}
-            initialFilters={props.initialFilters}
-        >
-            <CategoryPageInner {...props} />
-        </CategoryFiltersProvider>
-    );
-}
+export default MemoizedCategoryPageContainer;

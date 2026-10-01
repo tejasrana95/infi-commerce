@@ -1,7 +1,9 @@
 import { headers } from 'next/headers';
+import { cache } from 'react';
 import { Store } from '@/types';
 import { getCacheOptions } from '@/lib/revalidation';
 import { getForwardedHeaders } from '@/lib/api/forwarded-headers';
+import { AppliedFilters, appliedFiltersToApiQuery } from '@/lib/filters/category-filters';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 const FALLBACK_STORE_ID = process.env.FALLBACK_STORE_ID || '675bd1d5334c9f136d8849b2';
@@ -16,6 +18,10 @@ import { resolveStoreByDomain } from '@/lib/store-cache';
  * Get store from request headers (for SSR pages)
  * This is the main entry point - always uses cache layer
  */
+// NOTE: intentionally NOT wrapped in React `cache()` — this is also called
+// from Route Handlers / metadata files (sitemap, robots, api routes) where the
+// React cache dispatcher may not be available. The store-cache layer already
+// memoises the expensive lookup.
 export async function getServerStore(): Promise<Store | null> {
     const headersList = await headers();
     const domain = headersList.get('host') || 'localhost:3000';
@@ -100,7 +106,9 @@ export interface CategoryData {
 /**
  * Fetch category by slug
  */
-export async function fetchCategoryBySlug(storeId: string, slug: string): Promise<CategoryData | null> {
+// Memoised per request — both `generateMetadata` and the page resolve the same
+// category, so the second call is free.
+export const fetchCategoryBySlug = cache(async (storeId: string, slug: string): Promise<CategoryData | null> => {
     try {
         const res = await fetch(`${API_BASE}/categories/slug/${storeId}/${slug}`, {
             ...getCacheOptions('categoryData'),
@@ -114,7 +122,7 @@ export async function fetchCategoryBySlug(storeId: string, slug: string): Promis
         console.error('Error fetching category by slug:', error);
         return null;
     }
-}
+});
 
 /**
  * Fetch categories list by IDs or storeId with Next.js caching
@@ -148,13 +156,18 @@ export async function fetchCategories(
 export async function fetchCategoryProducts(
     storeId: string,
     categoryId: string | null,
-    options: { page?: number; limit?: number; sort?: string } = {}
+    options: { page?: number; limit?: number; sort?: string; appliedFilters?: AppliedFilters } = {}
 ): Promise<{ products: any[]; pagination: any }> {
-    const { page = 1, limit = 24, sort = 'featured' } = options;
+    const { page = 1, limit = 24, sort = 'featured', appliedFilters } = options;
     try {
         let url = `${API_BASE}/products?storeId=${storeId}&page=${page}&limit=${limit}&sort=${sort}&view=listing`;
         if (categoryId) {
             url += `&categoryId=${categoryId}`;
+        }
+        // Apply the very same filter params the client writes to the URL.
+        if (appliedFilters) {
+            const filterQuery = appliedFiltersToApiQuery(appliedFilters);
+            if (filterQuery) url += `&${filterQuery}`;
         }
 
         const res = await fetch(url, {
@@ -195,6 +208,27 @@ export async function fetchCategoryFilters(storeId: string, categoryId: string):
     }
 }
 
+/**
+ * Fetch available filters for the virtual "All Products" listing (no category).
+ */
+export async function fetchProductFilters(storeId: string): Promise<any | null> {
+    try {
+        const res = await fetch(
+            `${API_BASE}/products/filters?storeId=${storeId}`,
+            {
+                ...getCacheOptions('filters'),
+                headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
+            }
+        );
+
+        if (!res.ok) return null;
+        return await res.json();
+    } catch (error) {
+        console.error('Error fetching product filters:', error);
+        return null;
+    }
+}
+
 // ============================================
 // Layout Data Fetching
 // ============================================
@@ -231,7 +265,7 @@ export async function fetchLayout(storeId: string, type: string, slug?: string):
 export async function fetchCategoryPageData(
     storeId: string,
     slug: string | null,
-    options: { page?: number; sort?: string } = {}
+    options: { page?: number; sort?: string; appliedFilters?: AppliedFilters } = {}
 ) {
     let category: CategoryData | null = null;
     let categoryId: string | null = null;
@@ -259,18 +293,18 @@ export async function fetchCategoryPageData(
 
     // 2. Fetch layout first to get configuration (like products per page)
     const layout = await fetchLayout(storeId, 'category', slug || undefined);
-    // 3. Determine limit from layout or use default
-    // The layout
-    const limit = storeConfig?.theme?.category?.grid?.productsPerPage || 8; // Default limit
+    // 3. Determine limit from layout or use default (must match the client fallback).
+    const limit = storeConfig?.theme?.category?.grid?.productsPerPage || 24;
 
     // 4. Fetch products and filters in parallel using the correct limit
     const [productData, filters] = await Promise.all([
         fetchCategoryProducts(storeId, categoryId, {
             page: options.page,
             sort: options.sort,
-            limit: limit
+            limit: limit,
+            appliedFilters: options.appliedFilters,
         }),
-        categoryId ? fetchCategoryFilters(storeId, categoryId) : Promise.resolve(null),
+        categoryId ? fetchCategoryFilters(storeId, categoryId) : fetchProductFilters(storeId),
     ]);
 
     return {
@@ -292,11 +326,15 @@ export async function fetchCategoryPageData(
 export async function fetchSearchProducts(
     storeId: string,
     searchQuery: string,
-    options: { limit?: number; sort?: string } = {}
+    options: { limit?: number; sort?: string; appliedFilters?: AppliedFilters } = {}
 ): Promise<{ products: any[]; pagination: any; didYouMean?: string }> {
-    const { limit = 24, sort = 'featured' } = options;
+    const { limit = 24, sort = 'featured', appliedFilters } = options;
     try {
-        const url = `${API_BASE}/products?storeId=${storeId}&limit=${limit}&sort=${sort}&search=${encodeURIComponent(searchQuery)}&view=listing`;
+        let url = `${API_BASE}/products?storeId=${storeId}&limit=${limit}&sort=${sort}&search=${encodeURIComponent(searchQuery)}&view=listing`;
+        if (appliedFilters) {
+            const filterQuery = appliedFiltersToApiQuery(appliedFilters);
+            if (filterQuery) url += `&${filterQuery}`;
+        }
         const forwardedHeaders = await getForwardedHeaders();
 
         const res = await fetch(url, {
@@ -356,7 +394,7 @@ export async function fetchSearchFilters(storeId: string, searchQuery: string): 
 export async function fetchSearchPageData(
     storeId: string,
     searchQuery: string,
-    options: { sort?: string } = {}
+    options: { sort?: string; appliedFilters?: AppliedFilters } = {}
 ) {
     if (!searchQuery || searchQuery.trim() === '') {
         return {
@@ -370,7 +408,7 @@ export async function fetchSearchPageData(
 
     // Fetch products, search-specific filters, and search layout in parallel
     const [searchResult, filters, layout] = await Promise.all([
-        fetchSearchProducts(storeId, searchQuery, { sort: options.sort }),
+        fetchSearchProducts(storeId, searchQuery, { sort: options.sort, appliedFilters: options.appliedFilters }),
         fetchSearchFilters(storeId, searchQuery), // Fetch filters from search results
         fetchLayout(storeId, 'search'), // Use 'search' layout from layout builder
     ]);

@@ -1,23 +1,39 @@
-// CategoryFiltersContext - Centralized filter state management for category pages
-// Provides single source of truth for filter state, URL synchronization, and brand lookup
+// ============================================================
+// useCategoryFilters
+// ------------------------------------------------------------
+// URL-driven filter state for Category / Search product listings.
+//
+// Design contract:
+//   * "Applied" filters are ALWAYS derived from the URL search params.
+//     They are never mirrored into React state, so SSR and CSR render
+//     exactly the same thing (no hydration mismatch, no double fetch).
+//   * The only local state is the *staged* selection (the pending
+//     checkbox state before the user hits "Apply"), which is a UI
+//     affordance and never a source of truth.
+//   * Every mutation goes through `navigate()` so a single transition
+//     flag drives the pending/loading UI.
+//
+// This used to be a React context provider; it is now a plain hook
+// because only the page container ever consumed it.
+// ============================================================
 
 'use client';
 
-import React, { createContext, useContext, useState, useMemo, useCallback, useEffect, ReactNode } from 'react';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import {
+    AppliedFilters,
+    DEFAULT_APPLIED_FILTERS,
+    buildFilterUrl,
+    countActiveFilters,
+} from '@/lib/filters/category-filters';
+
+export type { AppliedFilters };
+export { DEFAULT_APPLIED_FILTERS };
 
 // ============================================
-// Types
+// Types (server-provided filter payloads)
 // ============================================
-
-export interface AppliedFilters {
-    brands: string[];           // Always stored as IDs
-    tags: string[];
-    stockStatus: string[];
-    rating: number | null;
-    price: { min: number; max: number } | null;
-    attributes: Record<string, string[]>;
-}
 
 export interface BrandInfo {
     id: string;
@@ -57,52 +73,35 @@ export interface AvailableFilters {
     attributes: AttributeFilter[];
 }
 
-interface CategoryFiltersContextValue {
-    // Applied filters (synced with URL)
+export interface CategoryFiltersValue {
+    /** Filters currently reflected in the URL. */
     appliedFilters: AppliedFilters;
-
-    // Staged filters (pending changes before "Apply")
+    /** Pending selections, not yet applied to the URL. */
     stagedFilters: Partial<AppliedFilters>;
-
-    // Available filter options
+    /** Server-provided available filter options. */
     availableFilters: AvailableFilters | null;
-    setAvailableFilters: (filters: AvailableFilters | null) => void;
-
-    // Brand lookup for display names
+    /** Brand id -> display info. */
     brandLookup: Record<string, BrandInfo>;
     updateBrandLookup: (brands: BrandInfo[]) => void;
-
-    // Computed values
+    /** True while a URL navigation (transition) is in flight. */
+    isPending: boolean;
     hasUnappliedChanges: boolean;
     activeFilterCount: number;
-
-    // Get merged filters (applied + staged) for display
+    /** Applied + staged (for rendering checkboxes). */
     getDisplayFilters: () => AppliedFilters;
-
-    // Actions
+    /** Single navigation gateway — drives `isPending`. */
+    navigate: (href: string, options?: { scroll?: boolean }) => void;
     stageFilterChange: (filterType: string, value: any) => void;
     applyFilters: () => void;
     clearStagedFilters: () => void;
     clearFilter: (filterType: string) => void;
     removeFilterValue: (filterType: string, valueToRemove: string) => void;
     clearAllFilters: () => void;
-
-    // Utility
     isFilterValueActive: (filterType: string, value: string) => boolean;
     getBrandDisplay: (brandId: string) => string;
 }
 
-const DEFAULT_APPLIED_FILTERS: AppliedFilters = {
-    brands: [],
-    tags: [],
-    stockStatus: [],
-    rating: null,
-    price: null,
-    attributes: {},
-};
-
 // Deep-ish equality for staged vs applied filter values.
-// (JSON.stringify turns Infinity into null, so Infinity vs Infinity still matches.)
 const filterValuesEqual = (a: any, b: any): boolean => {
     if (a === b) return true;
     try {
@@ -112,154 +111,83 @@ const filterValuesEqual = (a: any, b: any): boolean => {
     }
 };
 
-// ============================================
-// Context
-// ============================================
-
-const CategoryFiltersContext = createContext<CategoryFiltersContextValue | null>(null);
-
-// ============================================
-// Provider
-// ============================================
-
-interface CategoryFiltersProviderProps {
-    children: ReactNode;
-    availableFilterSlugs?: string[]; // Attribute slugs to parse from URL
-    initialFilters?: AvailableFilters | null; // Initial filters for SSR
+interface UseCategoryFiltersOptions {
+    /** Server-provided available filters (SSR). */
+    initialFilters?: AvailableFilters | null;
+    /**
+     * Filters already applied — parsed from the URL **on the server** and
+     * passed down as a prop. Using a prop instead of `useSearchParams()` keeps
+     * the whole listing server-rendered (no client-render bailout, no skeleton)
+     * and gives the browser the real LCP content in the first HTML byte.
+     */
+    appliedFilters: AppliedFilters;
+    /** The raw query string from the server. Updates on every navigation. */
+    queryString: string;
 }
 
-export function CategoryFiltersProvider({
-    children,
-    availableFilterSlugs = [],
-    initialFilters = null
-}: CategoryFiltersProviderProps) {
+export function useCategoryFilters({
+    initialFilters = null,
+    appliedFilters,
+    queryString,
+}: UseCategoryFiltersOptions): CategoryFiltersValue {
     const router = useRouter();
     const pathname = usePathname();
-    const searchParams = useSearchParams();
 
-    // State - initialize with initialFilters for SSR
-    const [availableFilters, setAvailableFilters] = useState<AvailableFilters | null>(initialFilters);
-    const [brandLookup, setBrandLookup] = useState<Record<string, BrandInfo>>({});
+    // ---------------------------------------------------------
+    // Derived (never state) — the server owns the URL truth
+    // ---------------------------------------------------------
+    const searchParamsString = queryString;
+    const activeFilterCount = useMemo(() => countActiveFilters(appliedFilters), [appliedFilters]);
+
     const [stagedFilters, setStagedFilters] = useState<Partial<AppliedFilters>>({});
+    const [apiBrandLookup, setApiBrandLookup] = useState<Record<string, BrandInfo>>({});
+    const [isPending, startTransition] = useTransition();
 
-    // Get attribute slugs from available filters
-    const attributeSlugs = useMemo(() => {
-        if (availableFilters?.attributes) {
-            return availableFilters.attributes.map(a => a.slug);
-        }
-        return availableFilterSlugs;
-    }, [availableFilters, availableFilterSlugs]);
-
-    // Parse applied filters FROM URL (URL is source of truth)
-    const appliedFilters = useMemo<AppliedFilters>(() => {
-        const filters: AppliedFilters = { ...DEFAULT_APPLIED_FILTERS, attributes: {} };
-
-        // Price
-        const priceParam = searchParams.get('price');
-        if (priceParam) {
-            const [min, max] = priceParam.split('-').map(v => parseFloat(v));
-            if (!isNaN(min) || !isNaN(max)) {
-                filters.price = { min: min || 0, max: isNaN(max) ? Infinity : max };
-            }
-        }
-
-        // Brands (always as IDs)
-        const brandsParam = searchParams.get('brand');
-        if (brandsParam) {
-            filters.brands = brandsParam.split(',').filter(Boolean);
-        }
-
-        // Tags
-        const tagsParam = searchParams.get('tags');
-        if (tagsParam) {
-            filters.tags = tagsParam.split(',').filter(Boolean);
-        }
-
-        // Rating
-        const ratingParam = searchParams.get('rating');
-        if (ratingParam) {
-            const rating = parseInt(ratingParam);
-            if (!isNaN(rating)) {
-                filters.rating = rating;
-            }
-        }
-
-        // Stock status
-        const stockParam = searchParams.get('stock');
-        if (stockParam) {
-            filters.stockStatus = stockParam.split(',').filter(Boolean);
-        }
-
-        // Attribute filters
-        attributeSlugs.forEach(slug => {
-            const param = searchParams.get(slug);
-            if (param) {
-                filters.attributes[slug] = param.split(',').filter(Boolean);
-            }
-        });
-
-        return filters;
-    }, [searchParams, attributeSlugs]);
-
-    // Update brand lookup when available filters change
-    useEffect(() => {
-        if (availableFilters?.brands) {
-            setBrandLookup(prev => {
-                let changed = false;
-                const updated = { ...prev };
-                availableFilters.brands.forEach(b => {
-                    if (!updated[b.value]) {
-                        updated[b.value] = {
-                            id: b.value,
-                            name: b.label || b.value,
-                            slug: b.value,
-                        };
-                        changed = true;
-                    }
-                });
-                // Bail out when nothing was added to avoid an unnecessary re-render
-                return changed ? updated : prev;
+    // ---------------------------------------------------------
+    // Navigation gateway — one transition covers every mutation
+    // ---------------------------------------------------------
+    const navigate = useCallback(
+        (href: string, options?: { scroll?: boolean }) => {
+            startTransition(() => {
+                router.push(href, { scroll: options?.scroll ?? false });
             });
-        }
-    }, [availableFilters]);
+        },
+        [router],
+    );
 
-    // Update brand lookup from API response
+    // ---------------------------------------------------------
+    // Brand display lookup (derived from server filters + API)
+    // ---------------------------------------------------------
+    const brandLookup = useMemo<Record<string, BrandInfo>>(() => {
+        const map: Record<string, BrandInfo> = {};
+        initialFilters?.brands?.forEach((brand) => {
+            map[brand.value] = {
+                id: brand.value,
+                name: brand.label || brand.value,
+                slug: brand.value,
+            };
+        });
+        return Object.keys(apiBrandLookup).length ? { ...map, ...apiBrandLookup } : map;
+    }, [initialFilters, apiBrandLookup]);
+
     const updateBrandLookup = useCallback((brands: BrandInfo[]) => {
-        setBrandLookup(prev => {
+        setApiBrandLookup((prev) => {
             let changed = false;
             const updated = { ...prev };
-            brands.forEach(b => {
-                const existing = updated[b.id];
-                if (!existing || existing.name !== b.name || existing.slug !== b.slug) {
-                    updated[b.id] = b;
+            brands.forEach((brand) => {
+                const existing = updated[brand.id];
+                if (!existing || existing.name !== brand.name || existing.slug !== brand.slug) {
+                    updated[brand.id] = brand;
                     changed = true;
                 }
             });
-            // Bail out when nothing changed to avoid an unnecessary re-render
+            // Bail out when nothing changed to avoid an unnecessary re-render.
             return changed ? updated : prev;
         });
     }, []);
 
-    // Check if there are unapplied changes
-    const hasUnappliedChanges = useMemo(() => {
-        return Object.keys(stagedFilters).length > 0;
-    }, [stagedFilters]);
+    const hasUnappliedChanges = useMemo(() => Object.keys(stagedFilters).length > 0, [stagedFilters]);
 
-    // Count active filters
-    const activeFilterCount = useMemo(() => {
-        let count = 0;
-        if (appliedFilters.price) count++;
-        count += appliedFilters.brands.length;
-        count += appliedFilters.tags.length;
-        if (appliedFilters.rating) count++;
-        count += appliedFilters.stockStatus.length;
-        Object.values(appliedFilters.attributes).forEach(vals => {
-            count += vals.length;
-        });
-        return count;
-    }, [appliedFilters]);
-
-    // Get merged filters for display (applied + staged)
     const getDisplayFilters = useCallback((): AppliedFilters => {
         return {
             brands: stagedFilters.brands !== undefined ? stagedFilters.brands : appliedFilters.brands,
@@ -281,7 +209,7 @@ export function CategoryFiltersProvider({
     useEffect(() => {
         if (Object.keys(stagedFilters).length === 0) return;
 
-        setStagedFilters(prev => {
+        setStagedFilters((prev) => {
             if (Object.keys(prev).length === 0) return prev;
 
             const next: Partial<AppliedFilters> = { ...prev };
@@ -305,7 +233,7 @@ export function CategoryFiltersProvider({
             if (next.attributes) {
                 const attrs: Record<string, string[]> = { ...next.attributes };
                 let attrChanged = false;
-                Object.keys(attrs).forEach(key => {
+                Object.keys(attrs).forEach((key) => {
                     if (filterValuesEqual(attrs[key], appliedFilters.attributes[key] || [])) {
                         delete attrs[key];
                         attrChanged = true;
@@ -322,143 +250,53 @@ export function CategoryFiltersProvider({
         });
     }, [appliedFilters, stagedFilters]);
 
-    // Build URL from filters
-    const buildFilterUrl = useCallback((filters: AppliedFilters): string => {
-        const params = new URLSearchParams(searchParams.toString());
-
-        // Remove page when filters change
-        params.delete('page');
-
-        // Price
-        if (filters.price && (filters.price.min > 0 || filters.price.max !== Infinity)) {
-            const maxStr = filters.price.max === Infinity ? '' : filters.price.max.toString();
-            params.set('price', `${filters.price.min}-${maxStr}`);
-        } else {
-            params.delete('price');
-        }
-
-        // Brands
-        if (filters.brands.length > 0) {
-            params.set('brand', filters.brands.join(','));
-        } else {
-            params.delete('brand');
-        }
-
-        // Tags
-        if (filters.tags.length > 0) {
-            params.set('tags', filters.tags.join(','));
-        } else {
-            params.delete('tags');
-        }
-
-        // Rating
-        if (filters.rating) {
-            params.set('rating', filters.rating.toString());
-        } else {
-            params.delete('rating');
-        }
-
-        // Stock
-        if (filters.stockStatus.length > 0) {
-            params.set('stock', filters.stockStatus.join(','));
-        } else {
-            params.delete('stock');
-        }
-
-        // Attributes
-        attributeSlugs.forEach(slug => {
-            if (filters.attributes[slug]?.length > 0) {
-                params.set(slug, filters.attributes[slug].join(','));
-            } else {
-                params.delete(slug);
-            }
-        });
-
-        const query = params.toString();
-        return query ? `${pathname}?${query}` : pathname;
-    }, [searchParams, pathname, attributeSlugs]);
-
-    // Stage a filter change (doesn't apply immediately)
+    // ---------------------------------------------------------
+    // Mutations
+    // ---------------------------------------------------------
     const stageFilterChange = useCallback((filterType: string, value: any) => {
-        setStagedFilters(prev => {
+        setStagedFilters((prev) => {
             const updated = { ...prev };
-
             switch (filterType) {
-                case 'price':
-                    updated.price = value;
-                    break;
-                case 'brand':
-                    updated.brands = value || [];
-                    break;
-                case 'tags':
-                    updated.tags = value || [];
-                    break;
-                case 'rating':
-                    updated.rating = value;
-                    break;
-                case 'stock':
-                    updated.stockStatus = value || [];
-                    break;
+                case 'price': updated.price = value; break;
+                case 'brand': updated.brands = value || []; break;
+                case 'tags': updated.tags = value || []; break;
+                case 'rating': updated.rating = value; break;
+                case 'stock': updated.stockStatus = value || []; break;
                 default:
-                    // Attribute filter
                     if (!updated.attributes) updated.attributes = {};
                     updated.attributes[filterType] = value || [];
                     break;
             }
-
             return updated;
         });
     }, []);
 
-    // Apply staged filters to URL
     const applyFilters = useCallback(() => {
-        const mergedFilters = getDisplayFilters();
-        const newUrl = buildFilterUrl(mergedFilters);
-        router.push(newUrl, { scroll: false });
-        // Intentionally do NOT clear stagedFilters here. The reconciliation
-        // effect clears them once the URL (appliedFilters) catches up, which
-        // keeps the UI stable and avoids the checkbox flicker on Apply.
-    }, [getDisplayFilters, buildFilterUrl, router]);
+        // Do NOT clear stagedFilters here — the reconciliation effect clears
+        // them once the URL catches up, which avoids the checkbox flicker.
+        navigate(buildFilterUrl(pathname, getDisplayFilters(), searchParamsString));
+    }, [getDisplayFilters, navigate, pathname, searchParamsString]);
 
-    // Clear staged filters without applying
-    const clearStagedFilters = useCallback(() => {
-        setStagedFilters({});
-    }, []);
+    const clearStagedFilters = useCallback(() => setStagedFilters({}), []);
 
-    // Clear a single filter type (immediate URL update)
     const clearFilter = useCallback((filterType: string) => {
-        const newFilters = { ...appliedFilters };
+        const newFilters: AppliedFilters = { ...appliedFilters, attributes: { ...appliedFilters.attributes } };
 
         switch (filterType) {
-            case 'price':
-                newFilters.price = null;
-                break;
-            case 'brand':
-                newFilters.brands = [];
-                break;
-            case 'tags':
-                newFilters.tags = [];
-                break;
-            case 'rating':
-                newFilters.rating = null;
-                break;
-            case 'stock':
-                newFilters.stockStatus = [];
-                break;
-            default:
-                // Attribute filter
-                delete newFilters.attributes[filterType];
-                break;
+            case 'price': newFilters.price = null; break;
+            case 'brand': newFilters.brands = []; break;
+            case 'tags': newFilters.tags = []; break;
+            case 'rating': newFilters.rating = null; break;
+            case 'stock': newFilters.stockStatus = []; break;
+            default: delete newFilters.attributes[filterType]; break;
         }
 
-        const newUrl = buildFilterUrl(newFilters);
-        router.push(newUrl, { scroll: false });
+        navigate(buildFilterUrl(pathname, newFilters, searchParamsString));
 
         // Reflect the cleared value in staged so the UI updates immediately,
         // instead of deleting the key (which would fall back to the stale
-        // applied value and make the checkbox flicker). The reconciliation
-        // effect removes the entry once the URL updates.
-        setStagedFilters(prev => {
+        // applied value and make the checkbox flicker).
+        setStagedFilters((prev) => {
             const updated: Partial<AppliedFilters> = { ...prev };
             switch (filterType) {
                 case 'price': updated.price = null; break;
@@ -473,28 +311,26 @@ export function CategoryFiltersProvider({
             }
             return updated;
         });
-    }, [appliedFilters, buildFilterUrl, router]);
+    }, [appliedFilters, navigate, pathname, searchParamsString]);
 
-    // Remove a single value from a filter (immediate URL update)
     const removeFilterValue = useCallback((filterType: string, valueToRemove: string) => {
-        const newFilters = { ...appliedFilters };
+        const newFilters: AppliedFilters = { ...appliedFilters, attributes: { ...appliedFilters.attributes } };
 
         switch (filterType) {
             case 'brand':
-                newFilters.brands = appliedFilters.brands.filter(b => b !== valueToRemove);
+                newFilters.brands = appliedFilters.brands.filter((b) => b !== valueToRemove);
                 break;
             case 'tags':
-                newFilters.tags = appliedFilters.tags.filter(t => t !== valueToRemove);
+                newFilters.tags = appliedFilters.tags.filter((t) => t !== valueToRemove);
                 break;
             case 'stock':
-                newFilters.stockStatus = appliedFilters.stockStatus.filter(s => s !== valueToRemove);
+                newFilters.stockStatus = appliedFilters.stockStatus.filter((s) => s !== valueToRemove);
                 break;
             default:
-                // Attribute filter
                 if (appliedFilters.attributes[filterType]) {
                     newFilters.attributes = {
                         ...appliedFilters.attributes,
-                        [filterType]: appliedFilters.attributes[filterType].filter(v => v !== valueToRemove),
+                        [filterType]: appliedFilters.attributes[filterType].filter((v) => v !== valueToRemove),
                     };
                     if (newFilters.attributes[filterType].length === 0) {
                         delete newFilters.attributes[filterType];
@@ -503,78 +339,63 @@ export function CategoryFiltersProvider({
                 break;
         }
 
-        const newUrl = buildFilterUrl(newFilters);
-        router.push(newUrl, { scroll: false });
+        navigate(buildFilterUrl(pathname, newFilters, searchParamsString));
 
-        // Also update staged if present
-        setStagedFilters(prev => {
+        setStagedFilters((prev) => {
             if (Object.keys(prev).length === 0) return prev;
             const updated = { ...prev };
             switch (filterType) {
                 case 'brand':
-                    if (updated.brands) {
-                        updated.brands = updated.brands.filter(b => b !== valueToRemove);
-                    }
+                    if (updated.brands) updated.brands = updated.brands.filter((b) => b !== valueToRemove);
                     break;
                 case 'tags':
-                    if (updated.tags) {
-                        updated.tags = updated.tags.filter(t => t !== valueToRemove);
-                    }
+                    if (updated.tags) updated.tags = updated.tags.filter((t) => t !== valueToRemove);
                     break;
                 case 'stock':
-                    if (updated.stockStatus) {
-                        updated.stockStatus = updated.stockStatus.filter(s => s !== valueToRemove);
-                    }
+                    if (updated.stockStatus) updated.stockStatus = updated.stockStatus.filter((s) => s !== valueToRemove);
                     break;
                 default:
                     if (updated.attributes?.[filterType]) {
-                        updated.attributes[filterType] = updated.attributes[filterType].filter(v => v !== valueToRemove);
+                        updated.attributes[filterType] = updated.attributes[filterType].filter((v) => v !== valueToRemove);
                     }
                     break;
             }
             return updated;
         });
-    }, [appliedFilters, buildFilterUrl, router]);
+    }, [appliedFilters, navigate, pathname, searchParamsString]);
 
-    // Clear all filters
     const clearAllFilters = useCallback(() => {
-        const newFilters: AppliedFilters = { ...DEFAULT_APPLIED_FILTERS, attributes: {} };
-        const newUrl = buildFilterUrl(newFilters);
-        router.push(newUrl, { scroll: false });
+        const cleared: AppliedFilters = { ...DEFAULT_APPLIED_FILTERS, attributes: {} };
+        navigate(buildFilterUrl(pathname, cleared, searchParamsString));
         setStagedFilters({});
-    }, [buildFilterUrl, router]);
+    }, [navigate, pathname, searchParamsString]);
 
-    // Check if a filter value is currently active (considering staged changes)
     const isFilterValueActive = useCallback((filterType: string, value: string): boolean => {
         const displayFilters = getDisplayFilters();
-
         switch (filterType) {
-            case 'brand':
-                return displayFilters.brands.includes(value);
-            case 'tags':
-                return displayFilters.tags.includes(value);
-            case 'stock':
-                return displayFilters.stockStatus.includes(value);
-            default:
-                return displayFilters.attributes[filterType]?.includes(value) || false;
+            case 'brand': return displayFilters.brands.includes(value);
+            case 'tags': return displayFilters.tags.includes(value);
+            case 'stock': return displayFilters.stockStatus.includes(value);
+            default: return displayFilters.attributes[filterType]?.includes(value) || false;
         }
     }, [getDisplayFilters]);
 
-    // Get brand display name
-    const getBrandDisplay = useCallback((brandId: string): string => {
-        return brandLookup[brandId]?.name || brandId;
-    }, [brandLookup]);
+    const getBrandDisplay = useCallback(
+        (brandId: string): string => brandLookup[brandId]?.name || brandId,
+        [brandLookup],
+    );
 
-    const value: CategoryFiltersContextValue = useMemo(() => ({
+    return useMemo<CategoryFiltersValue>(() => ({
         appliedFilters,
         stagedFilters,
-        availableFilters,
-        setAvailableFilters,
+        availableFilters: initialFilters,
         brandLookup,
         updateBrandLookup,
+        isPending,
         hasUnappliedChanges,
         activeFilterCount,
         getDisplayFilters,
+        navigate,
         stageFilterChange,
         applyFilters,
         clearStagedFilters,
@@ -586,11 +407,14 @@ export function CategoryFiltersProvider({
     }), [
         appliedFilters,
         stagedFilters,
-        availableFilters,
+        initialFilters,
         brandLookup,
+        updateBrandLookup,
+        isPending,
         hasUnappliedChanges,
         activeFilterCount,
         getDisplayFilters,
+        navigate,
         stageFilterChange,
         applyFilters,
         clearStagedFilters,
@@ -600,24 +424,6 @@ export function CategoryFiltersProvider({
         isFilterValueActive,
         getBrandDisplay,
     ]);
-
-    return (
-        <CategoryFiltersContext.Provider value={value}>
-            {children}
-        </CategoryFiltersContext.Provider>
-    );
 }
 
-// ============================================
-// Hook
-// ============================================
-
-export function useCategoryFilters(): CategoryFiltersContextValue {
-    const context = useContext(CategoryFiltersContext);
-    if (!context) {
-        throw new Error('useCategoryFilters must be used within a CategoryFiltersProvider');
-    }
-    return context;
-}
-
-export default CategoryFiltersContext;
+export default useCategoryFilters;

@@ -40,7 +40,7 @@ interface CurrencyProviderProps {
     availableCurrencies?: Currency[];
 }
 
-export function CurrencyProvider({
+function CurrencyProviderBase({
     children,
     initialCurrency,
     availableCurrencies
@@ -224,6 +224,10 @@ export function CurrencyProvider({
         </CurrencyContext.Provider>
     );
 }
+
+const MemoizedCurrencyProvider = React.memo(CurrencyProviderBase);
+MemoizedCurrencyProvider.displayName = 'CurrencyProvider';
+export { MemoizedCurrencyProvider as CurrencyProvider };
 
 export function useCurrency(): CurrencyContextType {
     const context = useContext(CurrencyContext);

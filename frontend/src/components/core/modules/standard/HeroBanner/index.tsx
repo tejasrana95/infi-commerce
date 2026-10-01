@@ -336,7 +336,17 @@ export default function HeroBannerModule({ config, initialData }: HeroBannerProp
                                 borderStyle: 'solid',
                             }}
                         >
-                            <img src={image.src} alt={banner.name} className={styles.mainImage} />
+                            {/* LCP element on the homepage — must be eager and
+                                high priority, otherwise it competes with the
+                                ~90 other (lazy) images on the page. */}
+                            <img
+                                src={image.src}
+                                alt={banner.name}
+                                className={styles.mainImage}
+                                loading="eager"
+                                fetchPriority="high"
+                                decoding="async"
+                            />
 
                             {image.highlights && image.highlights.map((highlight, idx) => {
                                 const positionClass = styles[highlight.position || 'top-right'];

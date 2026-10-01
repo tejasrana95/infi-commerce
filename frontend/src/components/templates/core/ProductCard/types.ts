@@ -19,6 +19,8 @@ export interface ProductTemplateProps {
     // Media
     imageUrl?: string;
     imageAlt: string;
+    /** Above-the-fold (LCP) card — eager-load and high fetch priority. */
+    priority?: boolean;
 
     // Rating
     rating?: number;

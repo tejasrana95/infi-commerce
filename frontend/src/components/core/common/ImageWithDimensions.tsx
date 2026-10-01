@@ -38,7 +38,7 @@ export default function ImageWithDimensions({
     sizes,
     width,
     height,
-    fetchPriority = 'high',
+    fetchPriority,
     ...props
 }: ImageWithDimensionsProps) {
     const [error, setError] = useState(false);
@@ -87,8 +87,11 @@ export default function ImageWithDimensions({
                 sizes={sizes || (shouldFill ? '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw' : undefined)}
                 className={`${styles.image} ${!shouldFill && aspectRatio === 'auto' ? styles.responsive : ''}`}
                 onError={() => setError(true)}
+                // Only the above-the-fold (LCP) image should be high priority.
+                // Defaulting everything to "high" actively delays the real LCP
+                // image by making every thumbnail compete with it.
                 // @ts-ignore - fetchPriority is supported in recent Next.js/React versions
-                fetchPriority={fetchPriority}
+                fetchPriority={fetchPriority ?? (priority ? 'high' : 'auto')}
                 {...props}
             />
         </div>

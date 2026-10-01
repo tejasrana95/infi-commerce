@@ -59,7 +59,7 @@ interface StoreProviderProps {
 // Provider Component
 // ============================================
 
-export function StoreProvider({ store, children, currentCurrency, availableCurrencies, menus }: StoreProviderProps) {
+function StoreProvider({ store, children, currentCurrency, availableCurrencies, menus }: StoreProviderProps) {
     const templateId = store?.theme?.templateId || DEFAULT_TEMPLATE_ID;
     const themeConfig = store?.theme || null;
     // Set store ID on API client for X-Store-ID header
@@ -100,7 +100,6 @@ export function StoreProvider({ store, children, currentCurrency, availableCurre
     };
 
     const [activeCurrency, setActiveCurrency] = React.useState(getDefaultCurrency);
-    const [isDetecting, setIsDetecting] = React.useState(false);
 
     // Update active currency when prop changes (hydration/SSR)
     useEffect(() => {
@@ -122,8 +121,6 @@ export function StoreProvider({ store, children, currentCurrency, availableCurre
                 return;
             }
 
-            setIsDetecting(true);
-
             try {
                 const currencyCodes = availableCurrencies
                     .map(c => c.code)
@@ -138,8 +135,6 @@ export function StoreProvider({ store, children, currentCurrency, availableCurre
                 }
             } catch (error) {
                 console.error('Currency auto-detection failed:', error);
-            } finally {
-                setIsDetecting(false);
             }
         };
 
@@ -187,4 +182,8 @@ export function StoreProvider({ store, children, currentCurrency, availableCurre
     );
 }
 
-export default StoreProvider;
+const MemoizedStoreProvider = React.memo(StoreProvider);
+MemoizedStoreProvider.displayName = 'StoreProvider';
+
+export { MemoizedStoreProvider as StoreProvider };
+export default MemoizedStoreProvider;

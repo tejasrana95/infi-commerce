@@ -3,7 +3,7 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { memo, useEffect } from 'react';
 import { getComponent } from '@/components/templates/registry';
 import { useStore } from '@/providers/StoreProvider';
 import { useInterest } from '@/providers/InterestProvider';
@@ -15,15 +15,19 @@ interface SearchPageClientProps {
     initialLayout?: any;
     initialPagination?: any;
     didYouMean?: string;
+    initialAppliedFilters: any;
+    initialQueryString: string;
 }
 
-export default function SearchPageClient({
+export function SearchPageClient({
     searchQuery,
     initialProducts = [],
     initialFilters = null,
     initialLayout = null,
     initialPagination = null,
     didYouMean,
+    initialAppliedFilters,
+    initialQueryString,
 }: SearchPageClientProps) {
     const { store } = useStore();
     const { trackSearch } = useInterest();
@@ -47,7 +51,14 @@ export default function SearchPageClient({
             initialLayout={initialLayout}
             initialPagination={initialPagination}
             didYouMean={didYouMean}
+            initialAppliedFilters={initialAppliedFilters}
+            initialQueryString={initialQueryString}
         />
     );
 }
+
+const MemoizedSearchPageClient = memo(SearchPageClient);
+MemoizedSearchPageClient.displayName = 'SearchPageClient';
+
+export default MemoizedSearchPageClient;
 

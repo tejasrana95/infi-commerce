@@ -16,20 +16,21 @@ import { Maintenance } from "@/components/layout/Maintenance/Maintenance";
 import { fetchCurrencies, getStore } from "@/lib/api";
 import StoreInactive from "@/components/templates/core/StoreInactive";
 import ServerUnavailable from "@/components/layout/ServerUnavailable/ServerUnavailable";
-import ThemeScriptInjector from "@/components/ThemeScriptInjector";
+import dynamic from 'next/dynamic';
 import { getComponent } from "@/components/templates/registry";
 import { Currency, DEFAULT_TEMPLATE_ID } from "@/types";
 import { AnalyticsProvider } from "@/providers/AnalyticsProvider";
 import { InterestProvider } from "@/providers/InterestProvider";
-import AutoAnalytics from "@/components/analytics/AutoAnalytics";
-import NavigationProgress from '@/components/ui/NavigationProgress';
-import ClientOnlyWidgets from "@/components/core/ClientOnlyWidgets";
-import DeferredGlobalWidgets from "@/components/core/DeferredGlobalWidgets";
+
+const ThemeScriptInjector = dynamic(() => import('@/components/ThemeScriptInjector'));
+const AutoAnalytics = dynamic(() => import('@/components/analytics/AutoAnalytics'));
+const NavigationProgress = dynamic(() => import('@/components/ui/NavigationProgress'));
+const ClientOnlyWidgets = dynamic(() => import('@/components/core/ClientOnlyWidgets'));
+const DeferredGlobalWidgets = dynamic(() => import('@/components/core/DeferredGlobalWidgets'));
 import { formatFontFamily } from "@/lib/fonts";
 import { DynamicHeader } from "@/components/layout/DynamicHeader";
 import { DynamicFooter } from "@/components/layout/DynamicFooter";
 import { fetchMenusByIds } from "@/lib/api/server-menu";
-import FontLoader from "@/components/core/FontLoader";
 
 
 // Optimized font loading with display: swap to prevent FOIT
@@ -112,8 +113,9 @@ function generateGoogleFontsUrl(themeConfig: any): string | null {
   const fontFamilies = Array.from(fontsToLoad).map(font => {
     // Replace spaces with + for URL
     const family = font.replace(/\s+/g, '+');
-    // Load standard weights: 300, 400, 500, 600, 700, 800, 900
-    return `family=${family}:wght@300;400;500;600;700;800;900`;
+    // Only the weights actually used by the theme. Loading all 300–900 weights
+    // downloads several extra font files and delays text rendering.
+    return `family=${family}:wght@400;500;600;700`;
   });
 
   return `https://fonts.googleapis.com/css2?${fontFamilies.join('&')}&display=swap`;
@@ -165,6 +167,20 @@ export async function generateMetadata() {
       template: `%s | ${store.name || "Store"}`
     },
     description: store.seo?.metaDescription || store.description || "Your one-stop e-commerce solution",
+    // Sensible defaults for pages that don't define their own social cards.
+    openGraph: {
+      type: "website",
+      siteName: store.name,
+      title: store.seo?.metaTitle || store.name || "Store",
+      description: store.seo?.metaDescription || store.description || undefined,
+      images: store.logo ? [{ url: store.logo }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: store.seo?.metaTitle || store.name || "Store",
+      description: store.seo?.metaDescription || store.description || undefined,
+      images: store.logo ? [store.logo] : undefined,
+    },
     icons: {
       icon: store.favicon || '/favicon.ico',
       shortcut: store.favicon || '/favicon.ico',
@@ -235,8 +251,8 @@ export default async function RootLayout({
   // Handle inactive store globally
   if (store && !store.isActive) {
     return (
-      <html lang="en">
-        <body className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable}`}>
+      <html lang="en" suppressHydrationWarning>
+        <body className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable}`} suppressHydrationWarning>
           <StoreInactive />
         </body>
       </html>
@@ -244,21 +260,23 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         {/* Server-rendered CSS variables - prevents CLS */}
         {themeCSSVariables && (
           <style dangerouslySetInnerHTML={{ __html: themeCSSVariables }} />
         )}
-        {/* Dynamic Google Fonts Loading */}
+        {/* Dynamic Google Fonts.
+            Rendered as a real <link rel="stylesheet"> in the server HTML — NOT
+            injected by a client component. The previous approach (preload +
+            onload swap) could not apply the stylesheet until React hydrated,
+            which delayed text rendering and caused a late FOUT/layout shift.
+            Preconnect warms the connection so CSS + font files arrive ASAP. */}
         {googleFontsUrl && (
           <>
             <link rel="preconnect" href="https://fonts.googleapis.com" />
             <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-            <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-            <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
-            {/* Non-blocking font loading: preload + onload swap via client component */}
-            <FontLoader href={googleFontsUrl} />
+            <link rel="stylesheet" href={googleFontsUrl} />
           </>
         )}
         {/* Infi Commerce Identification for Tools (BuiltWith, etc.) */}
@@ -292,7 +310,7 @@ export default async function RootLayout({
           https://inficommerce.com
         */}
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable}`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable}`} suppressHydrationWarning>
         <NavigationProgress />
         {store && (
           <>

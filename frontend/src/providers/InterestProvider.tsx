@@ -43,7 +43,7 @@ const MAX_SEARCHES = 50;
 
 const InterestContext = createContext<InterestContextValue | null>(null);
 
-export function InterestProvider({ children }: { children: React.ReactNode }) {
+function InterestProvider({ children }: { children: React.ReactNode }) {
     const { store } = useStore();
     const { isAuthenticated } = useAuth();
     const syncedRef = useRef(false);
@@ -216,4 +216,8 @@ export function useInterest() {
     return context;
 }
 
-export default InterestProvider;
+const MemoizedInterestProvider = React.memo(InterestProvider);
+MemoizedInterestProvider.displayName = 'InterestProvider';
+
+export { MemoizedInterestProvider as InterestProvider };
+export default MemoizedInterestProvider;

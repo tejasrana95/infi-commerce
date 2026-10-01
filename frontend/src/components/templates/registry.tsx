@@ -38,19 +38,18 @@ export type ComponentName =
 // Dynamic Import Factories (code-split per template)
 // ============================================
 
-// Core Containers — Used by all templates as the business logic layer.
-// These are statically imported because they are always needed regardless of template.
-import CoreHeaderContainer from './core/Header/Container';
-import CoreFooterContainer from './core/Footer/Container';
-import CoreHomePageContainer from '@/components/core/HomePage';
-import CoreProductCardContainer from './core/ProductCard/Container';
-import CoreCategoryCardContainer from './core/CategoryCard/Container';
-import CoreCategoryPageContainer from './core/CategoryPage/Container';
-import CoreProductPageContainer from './core/ProductPage/Container';
-import CoreSearchPageContainer from './core/SearchPage/Container';
-import CoreBlogListingContainer from './core/BlogListing/Container';
-import CoreBlogPostContainer from './core/BlogPost/Container';
-import CoreStaticPageContainer from './core/StaticPage/Container';
+// Core Containers — Dynamically imported to prevent massive bundle sizes across all routes
+const CoreHeaderContainer = dynamic(() => import('./core/Header/Container'));
+const CoreFooterContainer = dynamic(() => import('./core/Footer/Container'));
+const CoreHomePageContainer = dynamic(() => import('@/components/core/HomePage'));
+const CoreProductCardContainer = dynamic(() => import('./core/ProductCard/Container'));
+const CoreCategoryCardContainer = dynamic(() => import('./core/CategoryCard/Container'));
+const CoreCategoryPageContainer = dynamic(() => import('./core/CategoryPage/Container'));
+const CoreProductPageContainer = dynamic(() => import('./core/ProductPage/Container'));
+const CoreSearchPageContainer = dynamic(() => import('./core/SearchPage/Container'));
+const CoreBlogListingContainer = dynamic(() => import('./core/BlogListing/Container'));
+const CoreBlogPostContainer = dynamic(() => import('./core/BlogPost/Container'));
+const CoreStaticPageContainer = dynamic(() => import('./core/StaticPage/Container'));
 
 // Core Templates (fallback) — dynamically imported
 const CoreHeaderTemplate = dynamic(() => import('./core/Header/Template'));

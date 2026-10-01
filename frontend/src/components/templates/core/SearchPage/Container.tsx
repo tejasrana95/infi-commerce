@@ -1,19 +1,22 @@
-// SearchPage Container - Business logic, data fetching, state management
-// Reuses CategoryFiltersContext and CategoryConfig for identical behavior
+// SearchPage Container — SSR-driven search results.
+//
+// Same architecture as the CategoryPage container:
+//   * the server renders the (filtered) results for the current URL,
+//   * filter/sort/page changes only mutate the URL,
+//   * the only client fetch is "load more".
 
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useStore } from '@/providers/StoreProvider';
-import { CategoryFiltersProvider, useCategoryFilters, BrandInfo } from '@/providers/CategoryFiltersContext';
+import { useCategoryFilters, BrandInfo } from '@/providers/CategoryFiltersContext';
 import api from '@/lib/api';
+import { appliedFiltersToApiQuery } from '@/lib/filters/category-filters';
 import { getComponent } from '@/components/templates/registry';
 import { CategoryConfig, CategoryFiltersConfig, DEFAULT_CATEGORY_CONFIG } from '@/types/store';
 import {
     Category,
     ProductListItem,
-    AvailableFilters,
     BreadcrumbItem,
     PaginationState,
     DEFAULT_SORT_OPTIONS,
@@ -21,23 +24,39 @@ import {
 } from '../CategoryPage/types';
 import { SearchPageContainerProps } from './types';
 
-// Inner component that uses the context
-function SearchPageInner({
+interface LoadMoreState {
+    key: string;
+    items: ProductListItem[];
+    page: number;
+    total: number;
+    pages: number;
+}
+
+function SearchPageContainer({
     searchQuery,
     initialProducts = [],
     initialFilters = null,
     initialLayout = null,
     initialPagination = null,
     didYouMean,
+    initialAppliedFilters,
+    initialQueryString,
 }: SearchPageContainerProps) {
-    const router = useRouter();
-    const searchParams = useSearchParams();
     const { store, currentCurrency } = useStore();
 
-    // Context for filter management
-    const filters = useCategoryFilters();
+    const filters = useCategoryFilters({
+        initialFilters,
+        appliedFilters: initialAppliedFilters,
+        queryString: initialQueryString,
+    });
+    const { appliedFilters, activeFilterCount, navigate, updateBrandLookup } = filters;
 
-    // Get category config from theme (reuse category config for search) - use deep merge for nested objects
+    const params = useMemo(() => new URLSearchParams(initialQueryString), [initialQueryString]);
+
+    // Live search query from the URL (falls back to the SSR value).
+    const currentSearchQuery = params.get('q') || searchQuery;
+
+    // Category config from theme (reuse category config for search)
     const config: CategoryConfig = useMemo(() => {
         const storeConfig: Partial<CategoryConfig> = store?.theme?.category || {};
         return {
@@ -69,27 +88,42 @@ function SearchPageInner({
     const templateId = store?.theme?.templateId || 'modern-clean';
     const currencySymbol = currentCurrency?.symbol || (store?.currency === 'INR' ? '₹' : store?.currency === 'EUR' ? '€' : '$');
     const exchangeRate = currentCurrency?.exchangeRate || 1;
+    const storeId = store?._id;
 
-    // State
-    const [products, setProducts] = useState<ProductListItem[]>(initialProducts);
-    const [isLoading, setIsLoading] = useState(initialProducts.length === 0 && searchQuery.length > 0);
     const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [loadMore, setLoadMore] = useState<LoadMoreState | null>(null);
 
-    // Current search query from URL (for live updates)
-    const currentSearchQuery = searchParams.get('q') || searchQuery;
+    const queryKey = initialQueryString;
+    const isLoadMoreCurrent = loadMore !== null && loadMore.key === queryKey;
 
-    // Pagination state
-    const [pagination, setPagination] = useState<PaginationState>({
-        page: parseInt(searchParams.get('page') || '1'),
-        limit: config.grid?.productsPerPage || 24,
-        total: initialPagination?.total || 0,
-        pages: initialPagination?.pages || 0,
-    });
+    const products = useMemo<ProductListItem[]>(
+        () => (isLoadMoreCurrent && loadMore ? [...initialProducts, ...loadMore.items] : initialProducts),
+        [initialProducts, isLoadMoreCurrent, loadMore]
+    );
 
-    // Current sort
-    const currentSort = searchParams.get('sort') || config.sorting?.defaultSort || 'featured';
+    const pageParam = params.get('page');
+    const serverPagination = useMemo<PaginationState>(() => {
+        const page = parseInt(pageParam || '1', 10);
+        return {
+            page: Number.isFinite(page) && page > 0 ? page : 1,
+            limit: initialPagination?.limit || config.grid?.productsPerPage || 24,
+            total: initialPagination?.total || 0,
+            pages: initialPagination?.pages || 0,
+        };
+    }, [pageParam, initialPagination, config.grid?.productsPerPage]);
 
-    // Create synthetic category for search results
+    const pagination = useMemo<PaginationState>(
+        () => (isLoadMoreCurrent && loadMore
+            ? { ...serverPagination, page: loadMore.page, total: loadMore.total, pages: loadMore.pages }
+            : serverPagination),
+        [isLoadMoreCurrent, loadMore, serverPagination]
+    );
+
+    const isLoading = filters.isPending || isLoadingMore;
+    const currentSort = params.get('sort') || config.sorting?.defaultSort || 'featured';
+
+    // Synthetic category for the search listing
     const searchCategory: Category = useMemo(() => ({
         _id: 'search',
         title: currentSearchQuery ? `Search Results for "${currentSearchQuery}"` : 'Search Results',
@@ -99,176 +133,115 @@ function SearchPageInner({
             : 'Enter a search term to find products',
     }), [currentSearchQuery]);
 
-    // Build breadcrumbs
-    const breadcrumbs = useMemo<BreadcrumbItem[]>(() => {
-        const crumbs: BreadcrumbItem[] = [
-            { label: 'Home', href: '/' },
-            { label: 'Search Results' },
-        ];
-        return crumbs;
-    }, []);
+    const breadcrumbs = useMemo<BreadcrumbItem[]>(() => ([
+        { label: 'Home', href: '/' },
+        { label: 'Search Results' },
+    ]), []);
 
-    // Initialize available filters from SSR or fetch on client if not available
+    // Serialised filter params for the client-side "load more" request.
+    const filterQuery = useMemo(() => appliedFiltersToApiQuery(appliedFilters), [appliedFilters]);
+
+    // Latest-value ref: keeps every handler below referentially stable.
+    const latest = {
+        storeId,
+        search: currentSearchQuery,
+        limit: pagination.limit,
+        sort: currentSort,
+        filterQuery,
+        queryKey,
+        page: pagination.page,
+        pages: pagination.pages,
+        total: pagination.total,
+    };
+    const latestRef = useRef(latest);
     useEffect(() => {
-        if (initialFilters) {
-            filters.setAvailableFilters(initialFilters);
-        } else if (store?._id && currentSearchQuery && !filters.availableFilters) {
-            // Fetch search-specific filters on client side
-            const fetchSearchFilters = async () => {
-                try {
-                    const response = await api.get(`products/search/filters?storeId=${store._id}&search=${encodeURIComponent(currentSearchQuery)}`);
-                    if (response) {
-                        filters.setAvailableFilters(response);
-                    }
-                } catch (error) {
-                    console.error('Failed to fetch search filters:', error);
-                }
-            };
-            fetchSearchFilters();
-        }
-    }, [initialFilters, store?._id, currentSearchQuery]);
+        latestRef.current = latest;
+    });
 
-    // Fetch products
-    const fetchProducts = useCallback(async (options: { page?: number; append?: boolean } = {}) => {
-        if (!store?._id || !currentSearchQuery) return;
+    const inFlightRef = useRef(false);
 
-        const page = options.page || 1;
-        const append = options.append || false;
+    const fetchMore = useCallback(async (nextPage: number) => {
+        if (inFlightRef.current) return;
 
-        setIsLoading(true);
+        const s = latestRef.current;
+        if (!s.storeId || !s.search) return;
+
+        inFlightRef.current = true;
+        setIsLoadingMore(true);
         try {
-            // Build query params
-            const params = new URLSearchParams();
-            params.set('storeId', store._id);
-            params.set('search', currentSearchQuery);
-            params.set('page', page.toString());
-            params.set('limit', pagination.limit.toString());
-            params.set('sort', currentSort);
-
-            // Add filters from context (appliedFilters is derived from URL)
-            const { appliedFilters } = filters;
-
-            if (appliedFilters.price) {
-                const maxStr = appliedFilters.price.max === Infinity ? '' : appliedFilters.price.max.toString();
-                params.set('price', `${appliedFilters.price.min}-${maxStr}`);
-            }
-            if (appliedFilters.brands.length > 0) {
-                params.set('brand', appliedFilters.brands.join(','));
-            }
-            if (appliedFilters.tags.length > 0) {
-                params.set('tags', appliedFilters.tags.join(','));
-            }
-            if (appliedFilters.rating) {
-                params.set('rating', appliedFilters.rating.toString());
-            }
-            if (appliedFilters.stockStatus.length > 0) {
-                params.set('stock', appliedFilters.stockStatus.join(','));
-            }
-            Object.entries(appliedFilters.attributes).forEach(([key, values]) => {
-                if (values.length > 0) {
-                    params.set(key, values.join(','));
-                }
+            const params = new URLSearchParams({
+                storeId: s.storeId,
+                search: s.search,
+                page: String(nextPage),
+                limit: String(s.limit),
+                sort: s.sort,
+                view: 'listing',
             });
 
-            const response = await api.get(`products?${params.toString()}`);
+            const response = await api.get(`products?${params.toString()}${s.filterQuery ? `&${s.filterQuery}` : ''}`);
+            const incoming: ProductListItem[] = response.products || [];
 
-            if (append) {
-                setProducts(prev => {
-                    const existingIds = new Set(prev.map(p => p._id));
-                    const newProducts = (response.products || []).filter((p: ProductListItem) => !existingIds.has(p._id));
-                    return [...prev, ...newProducts];
-                });
-            } else {
-                setProducts(response.products || []);
-            }
+            setLoadMore((prev) => {
+                const base = prev && prev.key === s.queryKey ? prev.items : [];
+                const existing = new Set(base.map((p) => p._id));
+                return {
+                    key: s.queryKey,
+                    items: [...base, ...incoming.filter((p) => !existing.has(p._id))],
+                    page: nextPage,
+                    total: response.pagination?.total ?? s.total,
+                    pages: response.pagination?.pages ?? s.pages,
+                };
+            });
 
-            // Update brand lookup from API response
-            if (response.activeFilters?.brand && Array.isArray(response.activeFilters.brand)) {
+            if (Array.isArray(response.activeFilters?.brand)) {
                 const brands: BrandInfo[] = response.activeFilters.brand
                     .filter((b: any) => typeof b === 'object' && b.id)
-                    .map((b: any) => ({
-                        id: b.id,
-                        name: b.name,
-                        slug: b.slug || b.id,
-                    }));
-                if (brands.length > 0) {
-                    filters.updateBrandLookup(brands);
-                }
+                    .map((b: any) => ({ id: b.id, name: b.name, slug: b.slug || b.id }));
+                if (brands.length > 0) updateBrandLookup(brands);
             }
-
-            setPagination(prev => ({
-                ...prev,
-                page: page,
-                total: response.pagination?.total || 0,
-                pages: response.pagination?.pages || 0,
-            }));
         } catch (error) {
-            console.error('Failed to fetch products:', error);
-            if (!append) setProducts([]);
+            console.error('Failed to load more search results:', error);
         } finally {
-            setIsLoading(false);
+            inFlightRef.current = false;
+            setIsLoadingMore(false);
         }
-    }, [store?._id, currentSearchQuery, pagination.limit, currentSort, filters.appliedFilters]);
+    }, [updateBrandLookup]);
 
-    // Track initial mount so we don't duplicate the search request already executed on the server by SSR
-    const isInitialMount = useRef(true);
+    const handleLoadMore = useCallback(() => {
+        if (inFlightRef.current) return;
+        const { page, pages } = latestRef.current;
+        const nextPage = page + 1;
+        if (nextPage > pages) return;
+        void fetchMore(nextPage);
+    }, [fetchMore]);
 
-    // Fetch when search query or filters change
-    useEffect(() => {
-        if (currentSearchQuery) {
-            if (isInitialMount.current) {
-                isInitialMount.current = false;
-                // If initialProducts was supplied by SSR, skip fetching on initial mount
-                if (initialProducts && initialProducts.length > 0) {
-                    return;
-                }
-            }
-            const currentPage = parseInt(searchParams.get('page') || '1');
-            fetchProducts({ page: currentPage });
-        } else {
-            setProducts([]);
-            setIsLoading(false);
-        }
-    }, [fetchProducts, searchParams, currentSearchQuery, initialProducts]);
-
-    // Handler: Page change
     const handlePageChange = useCallback((page: number) => {
-        const params = new URLSearchParams(searchParams.toString());
-        params.set('page', page.toString());
-        router.push(`?${params.toString()}`, { scroll: false });
+        setLoadMore(null);
+        const params = new URLSearchParams(latestRef.current.queryKey);
+        params.set('page', String(page));
+        navigate(`?${params.toString()}`);
         window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, [router, searchParams]);
+    }, [navigate]);
 
-    // Handler: Load more
-    const handleLoadMore = useCallback(async () => {
-        if (!store?._id || isLoading) return;
-
-        const nextPage = pagination.page + 1;
-        if (nextPage > pagination.pages) return;
-
-        await fetchProducts({ page: nextPage, append: true });
-    }, [store?._id, isLoading, pagination.page, pagination.pages, fetchProducts]);
-
-    // Handler: Sort change
     const handleSortChange = useCallback((sort: string) => {
-        const params = new URLSearchParams(searchParams.toString());
+        setLoadMore(null);
+        const params = new URLSearchParams(latestRef.current.queryKey);
         params.set('sort', sort);
         params.delete('page');
-        router.push(`?${params.toString()}`, { scroll: false });
-    }, [router, searchParams]);
+        navigate(`?${params.toString()}`);
+    }, [navigate]);
 
-    // Get sort options (filtered based on config)
+    const handleOpenFilterDrawer = useCallback(() => setIsFilterDrawerOpen(true), []);
+    const handleCloseFilterDrawer = useCallback(() => setIsFilterDrawerOpen(false), []);
+
     const sortOptions = useMemo(() => {
         const availableOptions = config.sorting?.availableSortOptions;
         if (availableOptions?.length) {
-            return DEFAULT_SORT_OPTIONS.filter(opt =>
-                availableOptions.includes(opt.value)
-            );
+            return DEFAULT_SORT_OPTIONS.filter((opt) => availableOptions.includes(opt.value));
         }
         return DEFAULT_SORT_OPTIONS;
     }, [config.sorting?.availableSortOptions]);
 
-    // Get the template component (reuse CategoryPageTemplate)
     const CategoryPageTemplate = getComponent<CategoryPageTemplateProps>(
         'CategoryPageTemplate',
         templateId
@@ -287,15 +260,15 @@ function SearchPageInner({
             sortOptions={sortOptions}
             onSortChange={handleSortChange}
             availableFilters={filters.availableFilters}
-            activeFilters={filters.appliedFilters}
-            activeFilterCount={filters.activeFilterCount}
+            activeFilters={appliedFilters}
+            activeFilterCount={activeFilterCount}
             onFilterChange={filters.stageFilterChange}
             onClearFilter={filters.clearFilter}
             onRemoveFilterValue={filters.removeFilterValue}
             onClearAllFilters={filters.clearAllFilters}
             isFilterDrawerOpen={isFilterDrawerOpen}
-            onOpenFilterDrawer={() => setIsFilterDrawerOpen(true)}
-            onCloseFilterDrawer={() => setIsFilterDrawerOpen(false)}
+            onOpenFilterDrawer={handleOpenFilterDrawer}
+            onCloseFilterDrawer={handleCloseFilterDrawer}
             config={config}
             currencySymbol={currencySymbol}
             exchangeRate={exchangeRate}
@@ -314,16 +287,7 @@ function SearchPageInner({
     );
 }
 
-// Main component that wraps with provider
-export default function SearchPageContainer(props: SearchPageContainerProps) {
-    // Get available attribute slugs for URL parsing
-    const attributeSlugs = useMemo(() => {
-        return props.initialFilters?.attributes?.map((a: any) => a.slug) || [];
-    }, [props.initialFilters]);
+const MemoizedSearchPageContainer = React.memo(SearchPageContainer);
+MemoizedSearchPageContainer.displayName = 'SearchPageContainer';
 
-    return (
-        <CategoryFiltersProvider availableFilterSlugs={attributeSlugs}>
-            <SearchPageInner {...props} />
-        </CategoryFiltersProvider>
-    );
-}
+export default MemoizedSearchPageContainer;

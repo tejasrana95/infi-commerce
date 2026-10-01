@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useStore } from './StoreProvider';
+import { runAfterLoadAndIdle } from '@/lib/defer';
 import { initGA, pageview, isGAReady } from '@/lib/ga';
 
 // ============================================
@@ -53,21 +54,33 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
     const isEnabled = gaConfig?.enabled ?? false;
     const trackingId = gaConfig?.trackingId || null;
 
-    // Initialize GA when config is available
+    // Initialize GA only after the page has fully loaded and the browser is
+    // idle. The gtag.js download + execution is pure main-thread cost and was
+    // a direct TBT/LCP contributor when it ran during hydration.
     useEffect(() => {
-        if (isEnabled && trackingId) {
+        if (!isEnabled || !trackingId) return;
+
+        let cancelled = false;
+        const cancel = runAfterLoadAndIdle(() => {
+            if (cancelled) return;
             initGA(trackingId);
             setIsReady(true);
-        }
+        });
+
+        return () => {
+            cancelled = true;
+            cancel();
+        };
     }, [isEnabled, trackingId]);
 
     // Track page views on route changes
+    const searchParamsString = searchParams.toString();
     useEffect(() => {
         if (isReady && isGAReady()) {
-            const url = pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : '');
+            const url = pathname + (searchParamsString ? `?${searchParamsString}` : '');
             pageview(url);
         }
-    }, [pathname, searchParams, isReady]);
+    }, [pathname, searchParamsString, isReady]);
 
     const value: AnalyticsContextType = {
         isEnabled,
@@ -82,4 +95,7 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
     );
 }
 
-export default AnalyticsProvider;
+const MemoizedAnalyticsProvider = React.memo(AnalyticsProvider);
+MemoizedAnalyticsProvider.displayName = 'AnalyticsProvider';
+
+export default MemoizedAnalyticsProvider;

@@ -40,6 +40,7 @@ export default function ModernCleanProductCardTemplate({
     discountPercent,
     imageUrl,
     imageAlt,
+    priority = false,
     productUrl,
     rating,
     reviewCount,
@@ -335,6 +336,7 @@ export default function ModernCleanProductCardTemplate({
                             alt={imageAlt || name}
                             aspectRatio={imageAspectRatio.replace(':', 'x') as any}
                             fill
+                            priority={priority}
                             className={styles.image}
                             sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                         />

@@ -21,6 +21,8 @@ interface ProductCardContainerProps {
     currency: import('@/types').Currency | string;
     templateId?: string;
     cardConfig?: Partial<ProductCardConfig>;
+    /** Above-the-fold (LCP) card — forwarded to the image. */
+    priority?: boolean;
 }
 
 // Check if product is currently on sale (within date range)
@@ -129,11 +131,12 @@ function processProductData(product: Product, currency: import('@/types').Curren
 }
 
 // The Container component
-export default function ProductCardContainer({
+function ProductCardContainer({
     product,
     currency: initialCurrency = 'USD',
     templateId = 'modern-clean',
     cardConfig,
+    priority = false,
 }: ProductCardContainerProps) {
     const router = useRouter();
     const { store, currentCurrency } = useStore();
@@ -183,7 +186,7 @@ export default function ProductCardContainer({
     };
 
     // Process the product data
-    const templateProps = processProductData(product, activeCurrency);
+    const templateProps = { ...processProductData(product, activeCurrency), priority };
 
     // Handle compare toggle
     const handleCompareToggle = () => {
@@ -221,7 +224,7 @@ export default function ProductCardContainer({
         } finally {
             setIsAddingToCart(false);
         }
-    }, [product, store?._id, addToCart, router]);
+    }, [product, store, addToCart, router]);
 
     // Handle buy now
     const handleBuyNow = useCallback(async () => {
@@ -250,7 +253,7 @@ export default function ProductCardContainer({
         } finally {
             setIsAddingToCart(false);
         }
-    }, [product, store?._id, addToCart, router]);
+    }, [product, store, addToCart, router]);
 
     // Get the template-specific presenter component
     const ProductCardTemplate = getComponent('ProductCardTemplate', templateId);
@@ -282,3 +285,8 @@ export default function ProductCardContainer({
         </>
     );
 }
+
+const MemoizedProductCardContainer = React.memo(ProductCardContainer);
+MemoizedProductCardContainer.displayName = 'ProductCardContainer';
+
+export default MemoizedProductCardContainer;

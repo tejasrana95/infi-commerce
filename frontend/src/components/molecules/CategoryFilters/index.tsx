@@ -37,7 +37,7 @@ export interface CategoryFiltersProps {
     children?: React.ReactNode;
 }
 
-export default function CategoryFilters({
+function CategoryFilters({
     availableFilters,
     activeFilters,
     activeFilterCount,
@@ -866,3 +866,8 @@ export default function CategoryFilters({
         </div>
     );
 }
+
+const MemoizedCategoryFilters = React.memo(CategoryFilters);
+MemoizedCategoryFilters.displayName = 'CategoryFilters';
+
+export default MemoizedCategoryFilters;

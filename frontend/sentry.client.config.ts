@@ -6,15 +6,17 @@ if (SENTRY_DSN) {
   Sentry.init({
     dsn: SENTRY_DSN,
     // Adjust this value in production, or use imports for finer control
-    tracesSampleRate: 1.0,
+    // 1.0 traces every navigation/request — far too expensive on the client.
+    tracesSampleRate: 0.1,
 
     // Setting this option to true will print useful information to the console during SDK initialization.
     debug: false,
 
-    replaysOnErrorSampleRate: 1.0,
-    // This sets the sample rate to be 10%. You may want this to be 100% while
-    // in development and sample less in production
-    replaysSessionSampleRate: 0.1,
+    // Session Replay disabled. These MUST stay the literal 0: Sentry's build
+    // plugin only tree-shakes the Replay SDK (~1MB+ of client JS) when it can
+    // statically read both as 0. Enabling it trades a lot of LCP/TBT for video.
+    replaysSessionSampleRate: 0,
+    replaysOnErrorSampleRate: 0,
 
     // Ignore known third-party widget errors and scripts to reduce Sentry noise
     ignoreErrors: [

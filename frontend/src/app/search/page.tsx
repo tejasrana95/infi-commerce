@@ -1,16 +1,13 @@
 // Search Results Page - Server Component with full SSR support
 // Fetches all data server-side for SEO and passes to client component
 
-import { Suspense } from 'react';
+import { parseAppliedFilters, searchParamsFromRecord } from '@/lib/filters/category-filters';
 import { Metadata } from 'next';
-
-
 import SearchPageClient from './SearchPageClient';
 import {
     getServerStore,
     fetchSearchPageData,
 } from '@/lib/api/server-store';
-import CategoryPageSkeleton from '@/components/slug-pages/category/CategoryPageSkeleton';
 
 interface SearchPageProps {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -60,23 +57,25 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         ? resolvedSearchParams.sort
         : store?.theme?.category?.sorting?.defaultSort || 'featured';
 
-    // Fetch all search data server-side
+    // Fetch all search data server-side (already filtered for the current URL)
+    const searchParamsObj = searchParamsFromRecord(resolvedSearchParams);
+    const appliedFilters = parseAppliedFilters(searchParamsObj);
     const { products, filters, layout, pagination, didYouMean } = await fetchSearchPageData(
         store._id,
         searchQuery,
-        { sort }
+        { sort, appliedFilters }
     );
 
     return (
-        
-            <SearchPageClient
-                searchQuery={searchQuery}
-                initialProducts={products}
-                initialFilters={filters}
-                initialLayout={layout}
-                initialPagination={pagination}
-                didYouMean={didYouMean}
-            />
-        
+        <SearchPageClient
+            searchQuery={searchQuery}
+            initialProducts={products}
+            initialFilters={filters}
+            initialLayout={layout}
+            initialPagination={pagination}
+            didYouMean={didYouMean}
+            initialAppliedFilters={appliedFilters}
+            initialQueryString={searchParamsObj.toString()}
+        />
     );
 }

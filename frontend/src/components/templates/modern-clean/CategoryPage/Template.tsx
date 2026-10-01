@@ -8,7 +8,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import ModuleRenderer from '@/components/core/layout/ModuleRenderer';
 import SectionRenderer from '@/components/core/layout/SectionRenderer';
-import { CategoryPageTemplateProps } from '@/components/templates/core/CategoryPage/types';
+import { CategoryPageTemplateProps, ProductListItem } from '@/components/templates/core/CategoryPage/types';
+import { CategoryConfig } from '@/types/store';
 import { getComponent } from '@/components/templates/registry';
 import { formatStockStatus } from '@/lib/constants';
 import { formatPrice } from '@/lib/currency';
@@ -19,7 +20,106 @@ import { useStore } from '@/providers/StoreProvider';
 
 // (Layout helper functions removed - rendering now uses section-based iteration)
 
-export default function ModernCleanCategoryPageTemplate({
+// ============================================================
+// Product grid — memoised so the (potentially large) card list does
+// NOT re-render when unrelated template state changes, e.g. opening the
+// mobile filter drawer, changing the sort dropdown, or toggling the
+// description. It only re-renders when its own props change.
+// ============================================================
+interface ProductGridProps {
+    products: ProductListItem[];
+    isLoading: boolean;
+    cardStyle: string;
+    gridColumns: { desktop: number; tablet: number; mobile: number };
+    emptyMessage?: string;
+    showClearFilters?: boolean;
+    activeFilterCount: number;
+    onClearAllFilters: () => void;
+    ProductCard: React.ComponentType<any>;
+}
+
+/** How many cards above the fold should load eagerly (LCP). */
+const ABOVE_THE_FOLD_CARDS = 4;
+
+const ProductGrid = React.memo(function ProductGrid({
+    products,
+    isLoading,
+    cardStyle,
+    gridColumns,
+    emptyMessage,
+    showClearFilters,
+    activeFilterCount,
+    onClearAllFilters,
+    ProductCard,
+}: ProductGridProps) {
+    // Stable identity so memoized cards don't see new props on every render.
+    const cardConfig = useMemo(() => ({ cardStyle }), [cardStyle]);
+
+    return (
+        <div className={styles.productGridWrapper}>
+            {products.length !== 0 && (
+                <div
+                    className={styles.productGrid}
+                    style={{
+                        '--cols-desktop': gridColumns.desktop,
+                        '--cols-tablet': gridColumns.tablet,
+                        '--cols-mobile': gridColumns.mobile,
+                    } as React.CSSProperties}
+                >
+                    {products.map((product, index) => (
+                        <div
+                            key={product._id}
+                            className={styles.productItem}
+                            style={{ '--index': index } as React.CSSProperties}
+                        >
+                            <ProductCard
+                                product={product}
+                                cardConfig={cardConfig}
+                                priority={index < ABOVE_THE_FOLD_CARDS}
+                            />
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Loading overlay - shows over products during filter/sort/page changes */}
+            {isLoading && products.length > 0 && (
+                <div className={styles.loadingOverlay}>
+                    <div className={styles.loadingContent}>
+                        <div className={styles.spinner} />
+                        <span>Loading products...</span>
+                    </div>
+                </div>
+            )}
+
+            {/* Loading state for initial load (no products yet) */}
+            {isLoading && products.length === 0 && (
+                <div className={styles.loading}>
+                    <div className={styles.spinner} />
+                    <span>Loading products...</span>
+                </div>
+            )}
+
+            {/* Empty state */}
+            {!isLoading && products.length === 0 && (
+                <div className={styles.emptyState}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                    </svg>
+                    <h3>{emptyMessage || 'No products found'}</h3>
+                    <p>Try adjusting your filters or search criteria</p>
+                    {activeFilterCount > 0 && showClearFilters && (
+                        <button onClick={onClearAllFilters} className={styles.clearFiltersBtn}>
+                            Clear All Filters
+                        </button>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+});
+
+function ModernCleanCategoryPageTemplateBase({
     category,
     breadcrumbs,
     products,
@@ -257,7 +357,10 @@ export default function ModernCleanCategoryPageTemplate({
     );
 
     // Calculate grid columns based on config
-    const gridColumns = config.grid?.productsPerRow || { desktop: 4, tablet: 3, mobile: 2 };
+    const gridColumns = useMemo<{ desktop: number; tablet: number; mobile: number }>(
+        () => config.grid?.productsPerRow || { desktop: 4, tablet: 3, mobile: 2 },
+        [config.grid?.productsPerRow]
+    );
 
     // Check if filters are enabled at all (regardless of position)
     // Check if filters are enabled at all (regardless of position)
@@ -388,67 +491,18 @@ export default function ModernCleanCategoryPageTemplate({
                             )}
                         </div>
 
-                        {/* Product grid with loading overlay */}
-                        <div className={styles.productGridWrapper}>
-                            {products.length !== 0 && (
-                                <div
-                                    className={styles.productGrid}
-                                    style={{
-                                        '--cols-desktop': gridColumns.desktop,
-                                        '--cols-tablet': gridColumns.tablet,
-                                        '--cols-mobile': gridColumns.mobile,
-                                    } as React.CSSProperties}
-                                >
-                                    {products.map((product, index) => (
-                                        <div
-                                            key={product._id}
-                                            className={styles.productItem}
-                                            style={{ '--index': index } as React.CSSProperties}
-                                        >
-                                            <ProductCard
-                                                product={product}
-                                                cardConfig={{
-                                                    cardStyle: config.grid?.cardStyle || 'default'
-                                                }}
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                            {/* Loading overlay - shows over products during filter/sort/page changes */}
-                            {isLoading && products.length > 0 && (
-                                <div className={styles.loadingOverlay}>
-                                    <div className={styles.loadingContent}>
-                                        <div className={styles.spinner} />
-                                        <span>Loading products...</span>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Loading state for initial load (no products yet) */}
-                            {isLoading && products.length === 0 && (
-                                <div className={styles.loading}>
-                                    <div className={styles.spinner} />
-                                    <span>Loading products...</span>
-                                </div>
-                            )}
-
-                            {/* Empty state */}
-                            {!isLoading && products.length === 0 && (
-                                <div className={styles.emptyState}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                                    </svg>
-                                    <h3>{config.emptyState?.message || 'No products found'}</h3>
-                                    <p>Try adjusting your filters or search criteria</p>
-                                    {activeFilterCount > 0 && config.emptyState?.showClearFilters && (
-                                        <button onClick={onClearAllFilters} className={styles.clearFiltersBtn}>
-                                            Clear All Filters
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                        {/* Product grid (memoised) */}
+                        <ProductGrid
+                            products={products}
+                            isLoading={isLoading}
+                            cardStyle={config.grid?.cardStyle || 'default'}
+                            gridColumns={gridColumns}
+                            emptyMessage={config.emptyState?.message}
+                            showClearFilters={config.emptyState?.showClearFilters}
+                            activeFilterCount={activeFilterCount}
+                            onClearAllFilters={onClearAllFilters}
+                            ProductCard={ProductCard}
+                        />
 
 
                     </React.Fragment>
@@ -787,3 +841,8 @@ export default function ModernCleanCategoryPageTemplate({
         </div>
     );
 }
+
+const ModernCleanCategoryPageTemplate = React.memo(ModernCleanCategoryPageTemplateBase);
+ModernCleanCategoryPageTemplate.displayName = 'ModernCleanCategoryPageTemplate';
+
+export default ModernCleanCategoryPageTemplate;

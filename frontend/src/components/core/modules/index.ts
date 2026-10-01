@@ -1,69 +1,71 @@
+import dynamic from 'next/dynamic';
+
 /**
  * Module Registry
  * Maps module types to their React components
  * Add new modules here as they are created
  */
 
-import BannerModule from './standard/Banner';
-import BannerSliderModule from './standard/BannerSlider';
-import TestimonialsModule from './standard/Testimonials';
-import BrandLogosModule from './standard/BrandLogos';
-import ProductCarouselModule from './standard/ProductCarousel';
-import ProductGridModule from './standard/ProductGrid';
-import CategoryShowcaseModule from './standard/CategoryShowcase';
-import HeadingModule from './standard/Heading';
-import TextBlockModule from './standard/TextBlock';
-import IconBoxModule from './standard/IconBox';
-import IconGroupModule from './standard/IconGroup';
-import AccordionModule from './standard/Accordion';
-import PricingTableModule from './standard/PricingTable';
-import ImageModule from './standard/Image';
-import ImageGalleryModule from './standard/ImageGallery';
-import VideoModule from './standard/Video';
-import DividerModule from './standard/Divider';
-import SpacerModule from './standard/Spacer';
-import HtmlModule from './standard/Html';
-import RelatedProductsModule from './standard/RelatedProducts';
-import RecentlyViewedModule from './standard/RecentlyViewed';
-import PersonalizedProductsModule from './standard/PersonalizedProducts';
-import CTAButtonModule from './standard/CTAButton';
-import StripBannerModule from './standard/StripBanner';
-import CardGroupModule from './standard/CardGroup';
-import PageContentModule from './standard/PageContent';
-import PageHeroModule from './standard/PageHero';
-import NumberBoxModule from './standard/NumberBox';
-import FlipBoxModule from './standard/FlipBox';
-import ProgressBarModule from './standard/ProgressBar';
-import MarqueeModule from './standard/Marquee';
-import IconModule from './standard/Icon';
-import TableModule from './standard/Table';
-import ContentCardGridModule from './standard/ContentCardGrid';
-import HeroSliderModule from './standard/HeroSlider';
-import HeroBannerModule from './standard/HeroBanner';
-import IconListModule from './standard/IconList';
-import SectionLayoutModule from './standard/SectionLayout';
-import CheckoutContentModule from './checkout/CheckoutContent';
-import CartModule from './cart/CartModule';
-import FormModule from './form/FormModule';
+const BannerModule = dynamic(() => import('./standard/Banner'));
+const BannerSliderModule = dynamic(() => import('./standard/BannerSlider'));
+const TestimonialsModule = dynamic(() => import('./standard/Testimonials'));
+const BrandLogosModule = dynamic(() => import('./standard/BrandLogos'));
+const ProductCarouselModule = dynamic(() => import('./standard/ProductCarousel'));
+const ProductGridModule = dynamic(() => import('./standard/ProductGrid'));
+const CategoryShowcaseModule = dynamic(() => import('./standard/CategoryShowcase'));
+const HeadingModule = dynamic(() => import('./standard/Heading'));
+const TextBlockModule = dynamic(() => import('./standard/TextBlock'));
+const IconBoxModule = dynamic(() => import('./standard/IconBox'));
+const IconGroupModule = dynamic(() => import('./standard/IconGroup'));
+const AccordionModule = dynamic(() => import('./standard/Accordion'));
+const PricingTableModule = dynamic(() => import('./standard/PricingTable'));
+const ImageModule = dynamic(() => import('./standard/Image'));
+const ImageGalleryModule = dynamic(() => import('./standard/ImageGallery'));
+const VideoModule = dynamic(() => import('./standard/Video'));
+const DividerModule = dynamic(() => import('./standard/Divider'));
+const SpacerModule = dynamic(() => import('./standard/Spacer'));
+const HtmlModule = dynamic(() => import('./standard/Html'));
+const RelatedProductsModule = dynamic(() => import('./standard/RelatedProducts'));
+const RecentlyViewedModule = dynamic(() => import('./standard/RecentlyViewed'));
+const PersonalizedProductsModule = dynamic(() => import('./standard/PersonalizedProducts'));
+const CTAButtonModule = dynamic(() => import('./standard/CTAButton'));
+const StripBannerModule = dynamic(() => import('./standard/StripBanner'));
+const CardGroupModule = dynamic(() => import('./standard/CardGroup'));
+const PageContentModule = dynamic(() => import('./standard/PageContent'));
+const PageHeroModule = dynamic(() => import('./standard/PageHero'));
+const NumberBoxModule = dynamic(() => import('./standard/NumberBox'));
+const FlipBoxModule = dynamic(() => import('./standard/FlipBox'));
+const ProgressBarModule = dynamic(() => import('./standard/ProgressBar'));
+const MarqueeModule = dynamic(() => import('./standard/Marquee'));
+const IconModule = dynamic(() => import('./standard/Icon'));
+const TableModule = dynamic(() => import('./standard/Table'));
+const ContentCardGridModule = dynamic(() => import('./standard/ContentCardGrid'));
+const HeroSliderModule = dynamic(() => import('./standard/HeroSlider'));
+const HeroBannerModule = dynamic(() => import('./standard/HeroBanner'));
+const IconListModule = dynamic(() => import('./standard/IconList'));
+const SectionLayoutModule = dynamic(() => import('./standard/SectionLayout'));
+const CheckoutContentModule = dynamic(() => import('./checkout/CheckoutContent'));
+const CartModule = dynamic(() => import('./cart/CartModule'));
+const FormModule = dynamic(() => import('./form/FormModule'));
 // Account Modules
-import AccountSidebarModule from './account/AccountSidebar';
-import AccountDashboardModule from './account/AccountDashboard';
-import AccountOrdersModule from './account/AccountOrders';
-import AccountProfileModule from './account/AccountProfile';
-import AccountAddressesModule from './account/AccountAddresses';
-import AccountReturnsModule from './account/AccountReturns';
-import AccountReturnDetailsModule from './account/AccountReturnDetails';
+const AccountSidebarModule = dynamic(() => import('./account/AccountSidebar'));
+const AccountDashboardModule = dynamic(() => import('./account/AccountDashboard'));
+const AccountOrdersModule = dynamic(() => import('./account/AccountOrders'));
+const AccountProfileModule = dynamic(() => import('./account/AccountProfile'));
+const AccountAddressesModule = dynamic(() => import('./account/AccountAddresses'));
+const AccountReturnsModule = dynamic(() => import('./account/AccountReturns'));
+const AccountReturnDetailsModule = dynamic(() => import('./account/AccountReturnDetails'));
 
 // Blog Modules
-import BlogHeroModule from './blog/BlogHero';
-import BlogGridModule from './blog/BlogGrid';
-import RelatedBlogsModule from './blog/RelatedBlogs';
-import BlogCategoriesSidebarModule from './blog/BlogCategoriesSidebar';
-import RecentPostsModule from './blog/RecentPosts';
-import PopularPostsModule from './blog/PopularPosts';
-import NewsletterSignupModule from './blog/NewsletterSignup';
-import TagsCloudModule from './blog/TagsCloud';
-import AuthorCardModule from './blog/AuthorCard';
+const BlogHeroModule = dynamic(() => import('./blog/BlogHero'));
+const BlogGridModule = dynamic(() => import('./blog/BlogGrid'));
+const RelatedBlogsModule = dynamic(() => import('./blog/RelatedBlogs'));
+const BlogCategoriesSidebarModule = dynamic(() => import('./blog/BlogCategoriesSidebar'));
+const RecentPostsModule = dynamic(() => import('./blog/RecentPosts'));
+const PopularPostsModule = dynamic(() => import('./blog/PopularPosts'));
+const NewsletterSignupModule = dynamic(() => import('./blog/NewsletterSignup'));
+const TagsCloudModule = dynamic(() => import('./blog/TagsCloud'));
+const AuthorCardModule = dynamic(() => import('./blog/AuthorCard'));
 
 export interface ModuleProps {
     config: Record<string, any>;
@@ -97,7 +99,7 @@ export interface ModuleProps {
     priority?: boolean;
 }
 
-type ModuleComponent = React.ComponentType<ModuleProps>;
+type ModuleComponent = React.ComponentType<any>;
 
 export const moduleRegistry: Record<string, ModuleComponent> = {
     // Core/Standard Modules

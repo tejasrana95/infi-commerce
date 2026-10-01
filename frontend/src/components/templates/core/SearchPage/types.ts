@@ -3,6 +3,7 @@
 export * from '../CategoryPage/types';
 
 import { CategoryPageTemplateProps } from '../CategoryPage/types';
+import { AppliedFilters } from '@/lib/filters/category-filters';
 
 // Search page container props
 export interface SearchPageContainerProps {
@@ -12,6 +13,10 @@ export interface SearchPageContainerProps {
     initialLayout?: any;
     initialPagination?: any;
     didYouMean?: string;
+    /** Filters parsed from the URL on the server. */
+    initialAppliedFilters: AppliedFilters;
+    /** Raw server query string (updates on every navigation). */
+    initialQueryString: string;
 }
 
 // Search page template props - extends category template with search query

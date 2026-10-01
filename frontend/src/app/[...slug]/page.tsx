@@ -1,8 +1,9 @@
 import { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
-import { fetchLayout, getServerStore } from '@/lib/api/server-store';
+import { fetchCategoryBySlug, fetchLayout, getServerStore } from '@/lib/api/server-store';
 import { headers } from 'next/headers';
 import { getForwardedHeaders } from '@/lib/api/forwarded-headers';
+import { hasActiveFilters, parseAppliedFilters, searchParamsFromRecord } from '@/lib/filters/category-filters';
 
 // Product Imports
 import ProductPageClient from '@/components/slug-pages/product/ProductPageClient';
@@ -10,12 +11,10 @@ import ProductSeoShell from '@/components/seo/ProductSeoShell';
 
 // Category Imports
 import CategoryPageClient from '@/components/slug-pages/category/CategoryPageClient';
-import CategoryPageSkeleton from '@/components/slug-pages/category/CategoryPageSkeleton';
 
 // Page Imports
 import StaticPageContainer from '@/components/templates/core/StaticPage/Container';
 import StaticPageSeoShell from '@/components/seo/StaticPageSeoShell';
-import { Suspense } from 'react';
 
 // Revalidation
 // export const revalidate = 900; // 15 minutes default
@@ -134,7 +133,7 @@ async function getProductShippingDetails(storeId: string, productId: string, cou
     }
 }
 
-export async function generateMetadata({ params }: UniversalPageProps): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: UniversalPageProps): Promise<Metadata> {
     const { slug: slugParts } = await params;
     const slug = slugParts.join('/'); // Reconstruct slug from parts
     const store = await getServerStore();
@@ -179,16 +178,22 @@ export async function generateMetadata({ params }: UniversalPageProps): Promise<
             robots: { index: product.isActive, follow: product.isActive },
         };
     } else if (resolved.entityType === 'category') {
-        const category = await fetchCategoryPageData(store._id, slug, {}); // Just need basic category info for metadata, or fetchCategoryBySlug if exported
-        // fetchCategoryPageData returns { category, ... }
-        const catData = category.category;
+        // Only the category record is needed for metadata. Do NOT call
+        // `fetchCategoryPageData` here — that re-fetched products + filters +
+        // layout and doubled the work of every category request.
+        const catData = await fetchCategoryBySlug(store._id, slug);
         if (!catData) return { title: 'Category Not Found' };
+
+        const resolvedSp = await searchParams;
+        const filtered = hasActiveFilters(searchParamsFromRecord(resolvedSp));
 
         return {
             title: catData.seo?.metaTitle || `${catData.title} | ${store.name}`,
             description: catData.seo?.metaDescription || catData.description || `Browse ${catData.title} products`,
             keywords: catData.seo?.metaKeywords?.join(', '),
             alternates: { canonical: `https://${domain}/${slug}` },
+            // Filtered permutations are duplicate content — keep them out of the index.
+            robots: filtered ? { index: false, follow: true } : { index: true, follow: true },
             openGraph: {
                 title: catData.seo?.metaTitle || catData.title,
                 description: catData.seo?.metaDescription || catData.description,
@@ -391,24 +396,29 @@ export default async function UniversalPage({ params, searchParams }: UniversalP
             ? resolvedSearchParams.sort
             : store?.theme?.category?.sorting?.defaultSort || 'featured';
 
+        const categoryParams = searchParamsFromRecord(
+            resolvedSearchParams as Record<string, string | string[] | undefined>
+        );
+        const appliedFilters = parseAppliedFilters(categoryParams);
+
         const { category, products, filters, layout, pagination } = await fetchCategoryPageData(
             store._id,
             slug, // Slug is now passed directly (flat)
-            { page, sort }
+            { page, sort, appliedFilters }
         );
 
         if (!category) notFound();
 
         return (
-
             <CategoryPageClient
                 category={category}
                 initialProducts={products}
                 initialFilters={filters}
                 initialLayout={layout}
                 initialPagination={pagination}
+                initialAppliedFilters={appliedFilters}
+                initialQueryString={categoryParams.toString()}
             />
-
         );
     }
 

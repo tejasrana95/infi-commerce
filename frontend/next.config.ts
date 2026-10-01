@@ -10,7 +10,6 @@ const apiOrigin = process.env.API_ORIGIN
 
 const nextConfig: NextConfig = {
   /* config options here */
-  output: 'standalone',
   reactStrictMode: true,
   reactCompiler: true,
   poweredByHeader: false,
