@@ -611,9 +611,23 @@
     display: flex;
     gap: 0.5rem;
     margin-top: 0.5rem;
+    animation: actionsIn 0.25s ease;
 
     button {
         flex: 1;
+        min-width: 0;
+    }
+}
+
+@keyframes actionsIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
@@ -627,11 +641,16 @@
     font-weight: 600;
     color: #fff;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
 
-    &:hover {
+    &:not(:disabled):hover {
         background: var(--accent-color-dark);
         transform: translateY(-1px);
+    }
+
+    &:disabled {
+        opacity: 0.45;
+        cursor: default;
     }
 }
 
@@ -644,12 +663,25 @@
     font-weight: 500;
     color: var(--category-text-secondary);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+    animation: resetIn 0.25s ease;
 
     &:hover {
         border-color: #ef4444;
         color: #ef4444;
         background: rgba(239, 68, 68, 0.05);
+    }
+}
+
+@keyframes resetIn {
+    from {
+        opacity: 0;
+        transform: translateX(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
     }
 }
 

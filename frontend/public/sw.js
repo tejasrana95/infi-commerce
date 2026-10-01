@@ -1,8 +1,8 @@
 // Service Worker for PWA
-// Version: 1.0.0
+// Version: 1.1.0
 
-const CACHE_NAME = 'infi-commerce-v1';
-const RUNTIME_CACHE = 'infi-commerce-runtime';
+const CACHE_NAME = 'infi-commerce-v2';
+const RUNTIME_CACHE = 'infi-commerce-runtime-v2';
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [
@@ -71,6 +71,12 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    // Never intercept requests in local development. Dev chunk URLs stay stable
+    // while their contents change, so caching them serves a stale bundle.
+    if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+        return;
+    }
+
     // API requests - Network first, cache fallback
     if (url.pathname.startsWith('/api/')) {
         event.respondWith(
@@ -96,30 +102,27 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Static assets - Cache first, network fallback
+    // Static assets - Network first, cache fallback (never serve a stale bundle)
     if (
         url.pathname.startsWith('/_next/static/') ||
         url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf|eot)$/)
     ) {
         event.respondWith(
-            caches.match(request)
-                .then((cachedResponse) => {
-                    if (cachedResponse) {
-                        return cachedResponse;
+            fetch(request)
+                .then((response) => {
+                    // Cache the fresh resource
+                    if (response.ok) {
+                        const responseClone = response.clone();
+                        caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(request, responseClone);
+                        });
                     }
-
-                    return fetch(request).then((response) => {
-                        // Cache the new resource
-                        if (response.ok) {
-                            const responseClone = response.clone();
-                            caches.open(CACHE_NAME).then((cache) => {
-                                cache.put(request, responseClone);
-                            });
-                        }
-                        return response;
-                    }).catch(() => {
-                        // Return offline response or generic error for static assets
-                        return new Response('Network error occurred', {
+                    return response;
+                })
+                .catch(() => {
+                    // Offline: fall back to cache, else generic error
+                    return caches.match(request).then((cachedResponse) => {
+                        return cachedResponse || new Response('Network error occurred', {
                             status: 408,
                             statusText: 'Network error occurred',
                         });

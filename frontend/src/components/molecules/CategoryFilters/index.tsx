@@ -197,8 +197,12 @@ export default function CategoryFilters({
 
                             return (hasChanges || isApplied) ? (
                                 <div className={styles.filterActions}>
-                                    {hasChanges && onApplyFilters && (
-                                        <button className={styles.filterApplyBtn} onClick={onApplyFilters}>
+                                    {onApplyFilters && (
+                                        <button
+                                            className={styles.filterApplyBtn}
+                                            onClick={onApplyFilters}
+                                            disabled={!hasChanges}
+                                        >
                                             Apply
                                         </button>
                                     )}
@@ -399,8 +403,12 @@ export default function CategoryFilters({
                                 const hasChanges = stagedPrice !== undefined &&
                                     JSON.stringify(stagedPrice) !== JSON.stringify(activePrice);
 
-                                return hasChanges && onApplyFilters ? (
-                                    <button className={styles.filterApplyBtn} onClick={onApplyFilters}>
+                                return onApplyFilters ? (
+                                    <button
+                                        className={styles.filterApplyBtn}
+                                        onClick={onApplyFilters}
+                                        disabled={!hasChanges}
+                                    >
                                         Apply
                                     </button>
                                 ) : null;
@@ -452,9 +460,9 @@ export default function CategoryFilters({
                                 <input
                                     type="radio"
                                     name="rating"
-                                    checked={(stagedFilters?.rating || activeFilters.rating) === rating}
+                                    checked={(stagedFilters?.rating !== undefined ? stagedFilters.rating : activeFilters.rating) === rating}
                                     onChange={() => {
-                                        const currentRating = stagedFilters?.rating ?? activeFilters.rating;
+                                        const currentRating = stagedFilters?.rating !== undefined ? stagedFilters.rating : activeFilters.rating;
                                         onFilterChange('rating', currentRating === rating ? null : rating);
                                     }}
                                 />
@@ -481,8 +489,12 @@ export default function CategoryFilters({
 
                             return (hasChanges || isApplied) ? (
                                 <div className={styles.filterActions}>
-                                    {hasChanges && onApplyFilters && (
-                                        <button className={styles.filterApplyBtn} onClick={onApplyFilters}>
+                                    {onApplyFilters && (
+                                        <button
+                                            className={styles.filterApplyBtn}
+                                            onClick={onApplyFilters}
+                                            disabled={!hasChanges}
+                                        >
                                             Apply
                                         </button>
                                     )}
@@ -580,8 +592,12 @@ export default function CategoryFilters({
 
                             return (hasChanges || isApplied) ? (
                                 <div className={styles.filterActions}>
-                                    {hasChanges && onApplyFilters && (
-                                        <button className={styles.filterApplyBtn} onClick={onApplyFilters}>
+                                    {onApplyFilters && (
+                                        <button
+                                            className={styles.filterApplyBtn}
+                                            onClick={onApplyFilters}
+                                            disabled={!hasChanges}
+                                        >
                                             Apply
                                         </button>
                                     )}

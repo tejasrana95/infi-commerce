@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, useMemo } from 'react';
 import ConfirmationDialog, { DialogType, ConfirmationDialogProps } from '@/components/molecules/ConfirmationDialog';
 
 interface DialogOptions {
@@ -86,8 +86,10 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
         });
     }, []);
 
+    const value = useMemo(() => ({ showConfirm, showAlert }), [showConfirm, showAlert]);
+
     return (
-        <DialogContext.Provider value={{ showConfirm, showAlert }}>
+        <DialogContext.Provider value={value}>
             {children}
             {dialogState && <ConfirmationDialog {...dialogState} />}
         </DialogContext.Provider>

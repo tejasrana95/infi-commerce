@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useCallback } from 'react';
 import { Store, StoreContextType, ThemeConfig, DEFAULT_TEMPLATE_ID } from '@/types';
 import api from '@/lib/api';
 import { detectCurrency, hasManualCurrencySelection } from '@/lib/geolocation';
@@ -147,7 +147,7 @@ export function StoreProvider({ store, children, currentCurrency, availableCurre
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [availableCurrencies]); // Only run once on mount when currencies are available
 
-    const setCurrency = (code: string) => {
+    const setCurrency = useCallback((code: string) => {
         // Update local state immediately for dynamic UI
         const newCurrency = availableCurrencies?.find(c => c.code === code);
         if (newCurrency) {
@@ -161,9 +161,9 @@ export function StoreProvider({ store, children, currentCurrency, availableCurre
         document.cookie = 'currency_auto_detected=; path=/; max-age=0';
 
         // No reload needed - context will propagate changes
-    };
+    }, [availableCurrencies]);
 
-    const contextValue: StoreContextType = {
+    const contextValue: StoreContextType = useMemo(() => ({
         store,
         templateId,
         themeConfig,
@@ -173,7 +173,7 @@ export function StoreProvider({ store, children, currentCurrency, availableCurre
         availableCurrencies,
         setCurrency,
         menus, // Add menus to context
-    };
+    }), [store, templateId, themeConfig, activeCurrency, availableCurrencies, setCurrency, menus]);
 
     return (
         <CurrencyProvider 

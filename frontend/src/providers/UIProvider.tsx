@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 
 type AuthView = 'login' | 'register';
 
@@ -28,27 +28,29 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [authView, setAuthViewState] = useState<AuthView>('login');
 
-    const openAuthModal = (view: AuthView = 'login') => {
+    const openAuthModal = useCallback((view: AuthView = 'login') => {
         setAuthViewState(view);
         setIsAuthModalOpen(true);
-    };
+    }, []);
 
-    const closeAuthModal = () => {
+    const closeAuthModal = useCallback(() => {
         setIsAuthModalOpen(false);
-    };
+    }, []);
 
-    const setAuthView = (view: AuthView) => {
+    const setAuthView = useCallback((view: AuthView) => {
         setAuthViewState(view);
-    };
+    }, []);
+
+    const value = useMemo(() => ({
+        isAuthModalOpen,
+        authView,
+        openAuthModal,
+        closeAuthModal,
+        setAuthView,
+    }), [isAuthModalOpen, authView, openAuthModal, closeAuthModal, setAuthView]);
 
     return (
-        <UIContext.Provider value={{
-            isAuthModalOpen,
-            authView,
-            openAuthModal,
-            closeAuthModal,
-            setAuthView
-        }}>
+        <UIContext.Provider value={value}>
             {children}
         </UIContext.Provider>
     );

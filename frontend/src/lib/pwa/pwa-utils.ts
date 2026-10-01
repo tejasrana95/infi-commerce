@@ -4,6 +4,15 @@ import { Store } from '@/types/store';
  * Register service worker for PWA functionality
  */
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
+    // Never register in development. Dev chunk URLs stay stable while their
+    // contents change, so a cache-first service worker serves a stale bundle and
+    // makes local code changes appear not to apply. Also clean up any SW left
+    // over from a previous session.
+    if (process.env.NODE_ENV !== 'production') {
+        await unregisterServiceWorker().catch(() => false);
+        return null;
+    }
+
     if ('serviceWorker' in navigator) {
         try {
             const registration = await navigator.serviceWorker.register('/sw.js', {

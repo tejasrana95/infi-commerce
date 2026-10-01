@@ -101,6 +101,17 @@ const DEFAULT_APPLIED_FILTERS: AppliedFilters = {
     attributes: {},
 };
 
+// Deep-ish equality for staged vs applied filter values.
+// (JSON.stringify turns Infinity into null, so Infinity vs Infinity still matches.)
+const filterValuesEqual = (a: any, b: any): boolean => {
+    if (a === b) return true;
+    try {
+        return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+    } catch {
+        return false;
+    }
+};
+
 // ============================================
 // Context
 // ============================================
@@ -194,6 +205,7 @@ export function CategoryFiltersProvider({
     useEffect(() => {
         if (availableFilters?.brands) {
             setBrandLookup(prev => {
+                let changed = false;
                 const updated = { ...prev };
                 availableFilters.brands.forEach(b => {
                     if (!updated[b.value]) {
@@ -202,9 +214,11 @@ export function CategoryFiltersProvider({
                             name: b.label || b.value,
                             slug: b.value,
                         };
+                        changed = true;
                     }
                 });
-                return updated;
+                // Bail out when nothing was added to avoid an unnecessary re-render
+                return changed ? updated : prev;
             });
         }
     }, [availableFilters]);
@@ -212,11 +226,17 @@ export function CategoryFiltersProvider({
     // Update brand lookup from API response
     const updateBrandLookup = useCallback((brands: BrandInfo[]) => {
         setBrandLookup(prev => {
+            let changed = false;
             const updated = { ...prev };
             brands.forEach(b => {
-                updated[b.id] = b;
+                const existing = updated[b.id];
+                if (!existing || existing.name !== b.name || existing.slug !== b.slug) {
+                    updated[b.id] = b;
+                    changed = true;
+                }
             });
-            return updated;
+            // Bail out when nothing changed to avoid an unnecessary re-render
+            return changed ? updated : prev;
         });
     }, []);
 
@@ -252,6 +272,54 @@ export function CategoryFiltersProvider({
                 ...(stagedFilters.attributes || {}),
             },
         };
+    }, [appliedFilters, stagedFilters]);
+
+    // Reconcile staged filters once the URL (appliedFilters) reflects them.
+    // stagedFilters must NOT be cleared synchronously on Apply/Clear, otherwise
+    // there is a frame where neither source holds the new value and the checkbox
+    // visibly unchecks then re-checks while the navigation is still pending.
+    useEffect(() => {
+        if (Object.keys(stagedFilters).length === 0) return;
+
+        setStagedFilters(prev => {
+            if (Object.keys(prev).length === 0) return prev;
+
+            const next: Partial<AppliedFilters> = { ...prev };
+            let changed = false;
+
+            if (next.brands !== undefined && filterValuesEqual(next.brands, appliedFilters.brands)) {
+                delete next.brands; changed = true;
+            }
+            if (next.tags !== undefined && filterValuesEqual(next.tags, appliedFilters.tags)) {
+                delete next.tags; changed = true;
+            }
+            if (next.stockStatus !== undefined && filterValuesEqual(next.stockStatus, appliedFilters.stockStatus)) {
+                delete next.stockStatus; changed = true;
+            }
+            if (next.rating !== undefined && next.rating === appliedFilters.rating) {
+                delete next.rating; changed = true;
+            }
+            if (next.price !== undefined && filterValuesEqual(next.price, appliedFilters.price)) {
+                delete next.price; changed = true;
+            }
+            if (next.attributes) {
+                const attrs: Record<string, string[]> = { ...next.attributes };
+                let attrChanged = false;
+                Object.keys(attrs).forEach(key => {
+                    if (filterValuesEqual(attrs[key], appliedFilters.attributes[key] || [])) {
+                        delete attrs[key];
+                        attrChanged = true;
+                    }
+                });
+                if (attrChanged) {
+                    if (Object.keys(attrs).length === 0) delete next.attributes;
+                    else next.attributes = attrs;
+                    changed = true;
+                }
+            }
+
+            return changed ? next : prev;
+        });
     }, [appliedFilters, stagedFilters]);
 
     // Build URL from filters
@@ -347,7 +415,9 @@ export function CategoryFiltersProvider({
         const mergedFilters = getDisplayFilters();
         const newUrl = buildFilterUrl(mergedFilters);
         router.push(newUrl, { scroll: false });
-        setStagedFilters({});
+        // Intentionally do NOT clear stagedFilters here. The reconciliation
+        // effect clears them once the URL (appliedFilters) catches up, which
+        // keeps the UI stable and avoids the checkbox flicker on Apply.
     }, [getDisplayFilters, buildFilterUrl, router]);
 
     // Clear staged filters without applying
@@ -384,17 +454,21 @@ export function CategoryFiltersProvider({
         const newUrl = buildFilterUrl(newFilters);
         router.push(newUrl, { scroll: false });
 
-        // Also clear from staged
+        // Reflect the cleared value in staged so the UI updates immediately,
+        // instead of deleting the key (which would fall back to the stale
+        // applied value and make the checkbox flicker). The reconciliation
+        // effect removes the entry once the URL updates.
         setStagedFilters(prev => {
-            const updated = { ...prev };
+            const updated: Partial<AppliedFilters> = { ...prev };
             switch (filterType) {
-                case 'price': delete updated.price; break;
-                case 'brand': delete updated.brands; break;
-                case 'tags': delete updated.tags; break;
-                case 'rating': delete updated.rating; break;
-                case 'stock': delete updated.stockStatus; break;
+                case 'price': updated.price = null; break;
+                case 'brand': updated.brands = []; break;
+                case 'tags': updated.tags = []; break;
+                case 'rating': updated.rating = null; break;
+                case 'stock': updated.stockStatus = []; break;
                 default:
-                    if (updated.attributes) delete updated.attributes[filterType];
+                    if (!updated.attributes) updated.attributes = {};
+                    updated.attributes[filterType] = [];
                     break;
             }
             return updated;
@@ -491,7 +565,7 @@ export function CategoryFiltersProvider({
         return brandLookup[brandId]?.name || brandId;
     }, [brandLookup]);
 
-    const value: CategoryFiltersContextValue = {
+    const value: CategoryFiltersContextValue = useMemo(() => ({
         appliedFilters,
         stagedFilters,
         availableFilters,
@@ -509,7 +583,23 @@ export function CategoryFiltersProvider({
         clearAllFilters,
         isFilterValueActive,
         getBrandDisplay,
-    };
+    }), [
+        appliedFilters,
+        stagedFilters,
+        availableFilters,
+        brandLookup,
+        hasUnappliedChanges,
+        activeFilterCount,
+        getDisplayFilters,
+        stageFilterChange,
+        applyFilters,
+        clearStagedFilters,
+        clearFilter,
+        removeFilterValue,
+        clearAllFilters,
+        isFilterValueActive,
+        getBrandDisplay,
+    ]);
 
     return (
         <CategoryFiltersContext.Provider value={value}>

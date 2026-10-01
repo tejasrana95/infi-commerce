@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 
@@ -152,21 +152,21 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
     // ============================================
     // Computed Values
     // ============================================
-    const fullName = customer
+    const fullName = useMemo(() => customer
         ? `${customer.firstName || ''} ${customer.lastName || ''}`.trim()
-        : '';
+        : '', [customer]);
 
-    const initials = customer
+    const initials = useMemo(() => customer
         ? `${customer.firstName?.[0] || ''}${customer.lastName?.[0] || ''}`.toUpperCase()
-        : '';
+        : '', [customer]);
 
-    const defaultShippingAddress = customer?.addresses?.find(
+    const defaultShippingAddress = useMemo(() => customer?.addresses?.find(
         addr => addr.type === 'shipping' && addr.isDefault
-    ) || customer?.addresses?.find(addr => addr.type === 'shipping') || null;
+    ) || customer?.addresses?.find(addr => addr.type === 'shipping') || null, [customer]);
 
-    const defaultBillingAddress = customer?.addresses?.find(
+    const defaultBillingAddress = useMemo(() => customer?.addresses?.find(
         addr => addr.type === 'billing' && addr.isDefault
-    ) || customer?.addresses?.find(addr => addr.type === 'billing') || null;
+    ) || customer?.addresses?.find(addr => addr.type === 'billing') || null, [customer]);
 
     // ============================================
     // Auth Check on Mount
@@ -489,28 +489,49 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
     // ============================================
     // Render
     // ============================================
+    const contextValue = useMemo(() => ({
+        customer,
+        token,
+        isAuthenticated: !!customer,
+        isLoading,
+        fullName,
+        initials,
+        defaultShippingAddress,
+        defaultBillingAddress,
+        login,
+        register,
+        logout,
+        updateCustomer,
+        updatePreferences,
+        addAddress,
+        updateAddress,
+        removeAddress,
+        setDefaultAddress,
+        refreshCustomer,
+        verify2FA,
+    }), [
+        customer,
+        token,
+        isLoading,
+        fullName,
+        initials,
+        defaultShippingAddress,
+        defaultBillingAddress,
+        login,
+        register,
+        logout,
+        updateCustomer,
+        updatePreferences,
+        addAddress,
+        updateAddress,
+        removeAddress,
+        setDefaultAddress,
+        refreshCustomer,
+        verify2FA,
+    ]);
+
     return (
-        <CustomerContext.Provider value={{
-            customer,
-            token,
-            isAuthenticated: !!customer,
-            isLoading,
-            fullName,
-            initials,
-            defaultShippingAddress,
-            defaultBillingAddress,
-            login,
-            register,
-            logout,
-            updateCustomer,
-            updatePreferences,
-            addAddress,
-            updateAddress,
-            removeAddress,
-            setDefaultAddress,
-            refreshCustomer,
-            verify2FA,
-        }}>
+        <CustomerContext.Provider value={contextValue}>
             {children}
         </CustomerContext.Provider>
     );
