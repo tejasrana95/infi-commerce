@@ -1,6 +1,7 @@
 // Core ProductCard Template - Default/Fallback presentation
 // Pure UI component - receives processed data, renders UI
 
+import Link from 'next/link';
 import { ProductTemplateProps } from './types';
 
 export default function CoreProductCardTemplate({
@@ -48,11 +49,11 @@ export default function CoreProductCardTemplate({
             {/* Content */}
             <div className="p-4">
                 {/* Title */}
-                <a href={productUrl}>
+                <Link href={productUrl}>
                     <h3 className="font-medium text-gray-900 hover:text-blue-600 line-clamp-2 mb-2">
                         {name}
                     </h3>
-                </a>
+                </Link>
 
                 {/* Rating */}
                 {showRating && rating !== undefined && (

@@ -3,6 +3,7 @@
 import React, { useState, useSyncExternalStore } from 'react';
 import styles from './CookieBanner.module.scss';
 import DynamicIcon from '../common/DynamicIcon';
+import Link from 'next/link';
 
 interface CookieConsentSettings {
     enabled: boolean;
@@ -52,10 +53,10 @@ export default function CookieBanner({ settings }: CookieBannerProps) {
         // Set cookie consent in localStorage for 1 year
         const expiryDate = new Date();
         expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-        
+
         localStorage.setItem('cookieConsent', 'accepted');
         localStorage.setItem('cookieConsentDate', expiryDate.toISOString());
-        
+
         setDismissed(true);
 
         // Trigger any analytics or cookie loading scripts here
@@ -100,12 +101,12 @@ export default function CookieBanner({ settings }: CookieBannerProps) {
                         {renderIcon(settings.icon)}
                     </div>
                 )}
-                
+
                 <div className={styles.textContent}>
                     {settings.title && (
                         <h3 className={styles.title}>{settings.title}</h3>
                     )}
-                    
+
                     {settings.description && (
                         <div
                             className={styles.description}
@@ -125,9 +126,9 @@ export default function CookieBanner({ settings }: CookieBannerProps) {
                 </button>
 
                 {settings.ctaLink && (
-                    <a href={settings.ctaLink} className={styles.linkButton} target="_blank" rel="noopener noreferrer">
+                    <Link href={settings.ctaLink} className={styles.linkButton} target="_blank" rel="noopener noreferrer">
                         Learn More
-                    </a>
+                    </Link>
                 )}
 
                 <button

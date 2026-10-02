@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Product } from '@/types';
 import { AlertCircle } from 'lucide-react';
 import { useCurrency } from '@/contexts/CurrencyContext';
@@ -12,6 +12,7 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, onClick }: ProductCardProps) {
     const { formatPrice } = useCurrency();
+    const [isImageLoading, setIsImageLoading] = useState(true);
     
     // Use pricing object for tax-inclusive display (consistent with frontend)
     const pricing = product.pricing;
@@ -31,17 +32,44 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
             className="bg-white rounded-2xl p-3 shadow-sm border border-slate-100 cursor-pointer hover:shadow-lg hover:border-blue-200 transition-all group active:scale-[0.98] flex flex-col h-full"
         >
             {/* Image */}
-            <div className="aspect-square bg-gray-100 rounded-xl mb-3 overflow-hidden relative">
+            <div className="aspect-square bg-slate-50 rounded-xl mb-3 overflow-hidden relative">
+                {isImageLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center z-10 bg-slate-50">
+                        {/* Inline styles for custom shimmer keyframe */}
+                        <style>{`
+                            @keyframes shimmer-sweep {
+                                0% { background-position: 200% 0; }
+                                100% { background-position: -200% 0; }
+                            }
+                        `}</style>
+                        {/* Shimmer sweep */}
+                        <div 
+                            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/80 to-transparent" 
+                            style={{ 
+                                backgroundSize: '200% 100%',
+                                animation: 'shimmer-sweep 2s infinite ease-in-out'
+                            }} 
+                        />
+                        {/* E-commerce Icon */}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-200">
+                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                            <line x1="3" y1="6" x2="21" y2="6"/>
+                            <path d="M16 10a4 4 0 0 1-8 0"/>
+                        </svg>
+                    </div>
+                )}
                 <Image
-                    src={product.image}
+                    src={product.image || '/placeholder.png'}
                     alt={product.name}
                     width={300}
                     height={300}
                     loading="lazy"
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    onLoad={() => setIsImageLoading(false)}
+                    onError={() => setIsImageLoading(false)}
+                    className={`w-full h-full object-cover group-hover:scale-110 transition-all duration-500 ${isImageLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}
                 />
                 {product.stock <= 5 && (
-                    <div className="absolute top-2 right-2">
+                    <div className="absolute top-2 right-2 z-20">
                         <Badge variant="danger" className="flex items-center gap-1 shadow-sm">
                             <AlertCircle className="w-3 h-3" /> Low Stock
                         </Badge>

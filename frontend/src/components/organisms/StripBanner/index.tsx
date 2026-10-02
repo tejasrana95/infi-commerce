@@ -77,9 +77,9 @@ const StripBanner: React.FC<StripBannerProps> = ({
                 {ctaText}
             </Link>
         ) : (
-            <a href={ctaLink} className={btnClass} target="_blank" rel="noopener noreferrer" style={btnStyle}>
+            <Link href={ctaLink} className={btnClass} target="_blank" rel="noopener noreferrer" style={btnStyle}>
                 {ctaText}
-            </a>
+            </Link>
         );
     };
 

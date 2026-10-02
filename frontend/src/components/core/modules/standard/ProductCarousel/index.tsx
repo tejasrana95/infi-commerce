@@ -6,6 +6,7 @@ import { ModuleProps } from '../..';
 import api from '@/lib/api';
 import styles from './ProductCarousel.module.scss';
 import { Box } from 'lucide-react';
+import Link from 'next/link';
 
 interface ProductCarouselConfig {
     source: 'best-sellers' | 'new-arrivals' | 'custom' | 'category' | 'random';
@@ -169,8 +170,8 @@ export default function ProductCarouselModule({ config, initialData }: ModulePro
                 <div className={styles.carouselViewport}>
                     <div className={styles.carouselTrack}>
                         {Array.from({ length: visibleCount }).map((_, i) => (
-                            <div 
-                                key={i} 
+                            <div
+                                key={i}
                                 className={styles.carouselSlide}
                                 style={{ width: `${100 / visibleCount}%` }}
                             >
@@ -207,12 +208,12 @@ export default function ProductCarouselModule({ config, initialData }: ModulePro
                 <div className={styles.header} style={headerStyle}>
                     <h2 className={styles.title} style={titleStyle}>{title}</h2>
                     {viewAllLink && (
-                        <a href={viewAllLink} className={styles.viewAllLink}>
+                        <Link href={viewAllLink} className={styles.viewAllLink}>
                             View All
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
-                        </a>
+                        </Link>
                     )}
                 </div>
             )}
@@ -229,8 +230,8 @@ export default function ProductCarouselModule({ config, initialData }: ModulePro
                         style={{ transform: `translateX(-${translateX}%)` }}
                     >
                         {products.map((product) => (
-                            <div 
-                                key={product._id} 
+                            <div
+                                key={product._id}
                                 className={styles.carouselSlide}
                                 style={{ width: `${slideWidth}%` }}
                             >

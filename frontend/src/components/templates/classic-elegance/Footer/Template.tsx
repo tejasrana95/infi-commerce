@@ -2,6 +2,7 @@
 // Traditional layout with orange accents
 
 import { FooterTemplateProps } from '@/components/templates/core/Footer/types';
+import Link from 'next/link';
 
 export default function ClassicEleganceFooterTemplate({
     storeName,
@@ -46,9 +47,9 @@ export default function ClassicEleganceFooterTemplate({
                         <ul className="space-y-2 text-sm">
                             {columns[0]?.links.slice(0, 6).map((link, index) => (
                                 <li key={index}>
-                                    <a href={link.url} className="hover:text-amber-500 transition-colors flex items-center gap-2">
-                                        <span className="text-amber-500">›</span> {link.label}
-                                    </a>
+                                    <Link href={link.url} className="hover:text-amber-500 transition-colors flex items-center gap-2">
+                                        <span className="text-amber-500">&rsaquo;</span> {link.label}
+                                    </Link>
                                 </li>
                             ))}
                         </ul>
@@ -60,11 +61,11 @@ export default function ClassicEleganceFooterTemplate({
                             Customer Service
                         </h3>
                         <ul className="space-y-2 text-sm">
-                            <li><a href="/faq" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-amber-500">›</span> FAQ</a></li>
-                            <li><a href="/shipping" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-amber-500">›</span> Shipping Policy</a></li>
-                            <li><a href="/returns" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-amber-500">›</span> Return Policy</a></li>
-                            <li><a href="/privacy" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-amber-500">›</span> Privacy Policy</a></li>
-                            <li><a href="/terms" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-amber-500">›</span> Terms & Conditions</a></li>
+                            <li><Link href="/faq" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-amber-500">&rsaquo;</span> FAQ</Link></li>
+                            <li><Link href="/shipping" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-amber-500">&rsaquo;</span> Shipping Policy</Link></li>
+                            <li><Link href="/returns" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-amber-500">&rsaquo;</span> Return Policy</Link></li>
+                            <li><Link href="/privacy" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-amber-500">&rsaquo;</span> Privacy Policy</Link></li>
+                            <li><Link href="/terms" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-amber-500">&rsaquo;</span> Terms & Conditions</Link></li>
                         </ul>
                     </div>
 

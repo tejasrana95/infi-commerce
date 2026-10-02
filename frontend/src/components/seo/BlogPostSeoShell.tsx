@@ -1,6 +1,8 @@
 // Server Component - Renders SEO-critical HTML for blog post page
 // This content appears in "View Page Source" and is indexable by search engines
 
+import Link from "next/link";
+
 interface BlogPostSeoShellProps {
     post: any;
     storeName?: string;
@@ -23,8 +25,8 @@ export default function BlogPostSeoShell({ post, storeName }: BlogPostSeoShellPr
             {/* Breadcrumb Navigation */}
             <nav aria-label="Breadcrumb">
                 <ol>
-                    <li><a href="/">Home</a></li>
-                    <li><a href="/blog">Blog</a></li>
+                    <li><Link href="/">Home</Link></li>
+                    <li><Link href="/blog">Blog</Link></li>
                     <li aria-current="page">{post.title}</li>
                 </ol>
             </nav>

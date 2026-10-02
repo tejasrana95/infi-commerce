@@ -1,6 +1,8 @@
 // Server Component - Renders SEO-critical HTML for blog listing page
 // This content appears in "View Page Source" and is indexable by search engines
 
+import Link from "next/link";
+
 interface BlogListSeoShellProps {
     posts: any[];
     storeName?: string;
@@ -27,7 +29,7 @@ export default function BlogListSeoShell({
             {/* Breadcrumb Navigation */}
             <nav aria-label="Breadcrumb">
                 <ol>
-                    <li><a href="/">Home</a></li>
+                    <li><Link href="/">Home</Link></li>
                     <li aria-current="page">Blog</li>
                 </ol>
             </nav>
@@ -46,9 +48,9 @@ export default function BlogListSeoShell({
                 {posts.slice(0, 10).map((post) => (
                     <li key={post._id} itemProp="blogPost" itemScope itemType="https://schema.org/BlogPosting">
                         <h2 itemProp="headline">
-                            <a href={`/blog/${post.slug}`} itemProp="url">
+                            <Link href={`/blog/${post.slug}`} itemProp="url">
                                 {post.title}
-                            </a>
+                            </Link>
                         </h2>
 
                         {post.featuredImage && (

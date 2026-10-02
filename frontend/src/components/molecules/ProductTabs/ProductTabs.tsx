@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, ReactNode } from 'react';
 import styles from './ProductTabs.module.scss';
+import Link from 'next/link';
 
 interface Tab {
     id: string;
@@ -27,8 +28,8 @@ export default function ProductTabs({
     const [activeTab, setActiveTab] = useState(0);
     const [expandedAccordions, setExpandedAccordions] = useState<Set<number>>(new Set([0]));
 
-    // Filter tabs that should be shown
-    const visibleTabs = tabs.filter(tab => tab.show !== false);
+    // Filter tabs that should be shown - Memoized to prevent infinite loops
+    const visibleTabs = React.useMemo(() => tabs.filter(tab => tab.show !== false), [tabs]);
 
     useEffect(() => {
         if (typeof window === 'undefined' || visibleTabs.length === 0) return;
@@ -42,6 +43,7 @@ export default function ProductTabs({
                     setActiveTab(index);
                 } else if (layout === 'accordion') {
                     setExpandedAccordions(prev => {
+                        if (prev.has(index)) return prev; // Avoid new Set creation if already expanded
                         const next = new Set(prev);
                         next.add(index);
                         return next;
@@ -173,9 +175,9 @@ export default function ProductTabs({
             {visibleTabs.map((tab) => (
                 <section key={tab.id} id={tab.id} className={styles.section}>
                     <h2 className={styles.sectionTitle}>
-                        <a href={`#${tab.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                        <Link href={`#${tab.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
                             {tab.label}
-                        </a>
+                        </Link>
                     </h2>
                     <div className={styles.sectionContent}>
                         {tab.content}

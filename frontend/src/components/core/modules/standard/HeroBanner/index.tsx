@@ -5,6 +5,7 @@ import { ModuleProps } from '../..';
 import api from '@/lib/api';
 import DynamicIcon from '../../../common/DynamicIcon';
 import styles from './HeroBanner.module.css';
+import Link from 'next/link';
 
 interface HeroBannerData {
     _id: string;
@@ -209,7 +210,7 @@ export default function HeroBannerModule({ config, initialData }: HeroBannerProp
     const containerStyles = {
         background: bannerConfig?.backgroundGradient || 'linear-gradient(135deg, #fefaf4 0%, #f7ebd9 100%)',
     } as React.CSSProperties;
-    
+
     const innerSectionStyles = {
         '--container-padding-desktop': bannerConfig?.padding || '80px 0',
         '--container-padding-tablet': bannerConfig?.paddingTablet || bannerConfig?.padding || '60px 0',
@@ -265,7 +266,7 @@ export default function HeroBannerModule({ config, initialData }: HeroBannerProp
                     {ctas.length > 0 && (
                         <div className={styles.ctaContainer}>
                             {ctas.map((cta, idx) => (
-                                <a
+                                <Link
                                     key={idx}
                                     href={cta.link}
                                     target={cta.target || '_self'}
@@ -282,7 +283,7 @@ export default function HeroBannerModule({ config, initialData }: HeroBannerProp
                                     }}
                                 >
                                     {cta.label}
-                                </a>
+                                </Link>
                             ))}
                         </div>
                     )}

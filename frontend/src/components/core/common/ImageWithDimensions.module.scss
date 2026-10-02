@@ -56,3 +56,26 @@
 .aspectAuto {
     aspect-ratio: auto;
 }
+.skeleton {
+    position: absolute;
+    inset: 0;
+    background-color: #f8f9fa;
+    /* Soft dotted pattern + subtle sweep + shopping bag icon in center */
+    background-image: 
+        linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.8) 50%, transparent 100%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='none' stroke='%23d1d5db' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z'/%3E%3Cline x1='3' y1='6' x2='21' y2='6'/%3E%3Cpath d='M16 10a4 4 0 0 1-8 0'/%3E%3C/svg%3E");
+    background-size: 200% 100%, 48px 48px;
+    background-position: 200% 0, center center;
+    background-repeat: no-repeat, no-repeat;
+    animation: skeleton-ecommerce-sweep 2s infinite ease-in-out;
+    z-index: 1;
+}
+
+@keyframes skeleton-ecommerce-sweep {
+    0% {
+        background-position: 200% 0, center center;
+    }
+    100% {
+        background-position: -200% 0, center center;
+    }
+}

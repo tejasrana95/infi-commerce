@@ -183,7 +183,7 @@ export default function OrderDetailsTemplate({ order, loading, onRefresh }: Orde
     };
 
     const canRequestReturn = () => {
-        if(!returnSettings?.enabled) return false;
+        if (!returnSettings?.enabled) return false;
         if (order.isPOSOrder) return false;
         if (order.status !== 'delivered') return false;
         if (order.returnStatus && !['none', 'rejected'].includes(order.returnStatus)) return false;
@@ -458,9 +458,9 @@ export default function OrderDetailsTemplate({ order, loading, onRefresh }: Orde
                                         <span className={styles.trackingLabel}>Tracking Number:</span>
                                         <span className={styles.trackingValue}>{order.trackingNumber}</span>
                                     </div>
-                                    <a href={order.trackingUrl} target="_blank" rel="noopener noreferrer" className={styles.trackButton}>
+                                    <Link href={order.trackingUrl || '#'} target="_blank" rel="noopener noreferrer" className={styles.trackButton}>
                                         <MapPin size={18} /> Track Shipment
-                                    </a>
+                                    </Link>
                                 </div>
                             </div>
                         )}
@@ -477,9 +477,9 @@ export default function OrderDetailsTemplate({ order, loading, onRefresh }: Orde
                                 </button>
 
                                 {hasTracking() && order.status !== 'delivered' && (
-                                    <a href={order.trackingUrl} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.primary}`}>
+                                    <Link href={order.trackingUrl || '#'} target="_blank" rel="noopener noreferrer" className={`${styles.actionBtn} ${styles.primary}`}>
                                         <MapPin size={18} /> Track Order
-                                    </a>
+                                    </Link>
                                 )}
 
                                 {canRequestReturn() && (

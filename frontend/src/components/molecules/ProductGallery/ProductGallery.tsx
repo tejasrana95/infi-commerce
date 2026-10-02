@@ -170,17 +170,17 @@ export default function ProductGallery({
                         onClick={() => navigateCarousel('next')}
                         aria-label="Next image"
                     >
-                        ›
+                        &rsaquo;
                     </button>
                     <div className={styles.carouselDots}>
-                            {images.map((_, index) => (
-                                <button
-                                    key={index}
-                                    className={`${styles.dot} ${index === mainImageIndex ? styles.active : ''}`}
-                                    onClick={() => { setMainImageLoading(true); setMainImageIndex(index); }}
-                                    aria-label={`Go to image ${index + 1}`}
-                                />
-                            ))}
+                        {images.map((_, index) => (
+                            <button
+                                key={index}
+                                className={`${styles.dot} ${index === mainImageIndex ? styles.active : ''}`}
+                                onClick={() => { setMainImageLoading(true); setMainImageIndex(index); }}
+                                aria-label={`Go to image ${index + 1}`}
+                            />
+                        ))}
                     </div>
                     {hasDiscount && discountPercent > 0 && (
                         <span className={styles.saleBadge}>-{discountPercent}%</span>
@@ -232,7 +232,7 @@ export default function ProductGallery({
                     className={`${styles.lightboxNav} ${styles.next}`}
                     onClick={(e) => { e.stopPropagation(); navigateLightbox('next'); }}
                 >
-                    ›
+                    &rsaquo;
                 </button>
                 <div className={styles.lightboxThumbnails}>
                     {images.map((image, index) => (

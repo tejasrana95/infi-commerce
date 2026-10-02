@@ -1,6 +1,7 @@
 // Core Footer Template - Default/Fallback presentation
 // Pure UI component - receives processed data, renders UI
 
+import Link from 'next/link';
 import { FooterTemplateProps } from './types';
 
 export default function CoreFooterTemplate({
@@ -40,9 +41,9 @@ export default function CoreFooterTemplate({
                             <ul className="space-y-2 text-sm">
                                 {column.links.map((link, linkIndex) => (
                                     <li key={linkIndex}>
-                                        <a href={link.url} className="hover:underline">
+                                        <Link href={link.url} className="hover:underline">
                                             {link.label}
-                                        </a>
+                                        </Link>
                                     </li>
                                 ))}
                             </ul>
@@ -67,9 +68,9 @@ export default function CoreFooterTemplate({
                     <p>{copyrightText}</p>
                     <div className="flex gap-4 mt-2 md:mt-0">
                         {socialLinks.map((social, index) => (
-                            <a key={index} href={social.url} className="hover:text-gray-900 capitalize">
+                            <Link key={index} href={social.url} className="hover:text-gray-900 capitalize">
                                 {social.platform}
-                            </a>
+                            </Link>
                         ))}
                     </div>
                 </div>

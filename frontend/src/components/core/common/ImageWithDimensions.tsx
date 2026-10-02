@@ -42,6 +42,7 @@ export default function ImageWithDimensions({
     ...props
 }: ImageWithDimensionsProps) {
     const [error, setError] = useState(false);
+    const [isLoaded, setIsLoaded] = useState(false);
     const cleanedSrc = cleanImageUrl(src);
 
     // Determine if we should use fill
@@ -77,6 +78,7 @@ export default function ImageWithDimensions({
 
     return (
         <div className={`${containerClasses}`}>
+            {!isLoaded && <div className={styles.skeleton} />}
             <Image
                 src={cleanedSrc}
                 alt={alt || ''}
@@ -86,6 +88,8 @@ export default function ImageWithDimensions({
                 priority={priority}
                 sizes={sizes || (shouldFill ? '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw' : undefined)}
                 className={`${styles.image} ${!shouldFill && aspectRatio === 'auto' ? styles.responsive : ''}`}
+                style={{ opacity: isLoaded ? 1 : 0 }}
+                onLoad={() => setIsLoaded(true)}
                 onError={() => setError(true)}
                 // Only the above-the-fold (LCP) image should be high priority.
                 // Defaulting everything to "high" actively delays the real LCP

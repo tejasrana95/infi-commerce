@@ -274,6 +274,24 @@ function CategoryPageContainer({
             }
         } catch (error) {
             console.error('Failed to load more products:', error);
+            // On error, stop observing by setting the total pages to the current page
+            setLoadMore((prev) => {
+                if (prev) {
+                    return {
+                        ...prev,
+                        pages: prev.page // This prevents nextPage > pages from passing next time
+                    };
+                }
+                // If it failed on the very first load more, initialize it with current state but pages = page
+                const s = latestRef.current;
+                return {
+                    key: s.queryKey,
+                    items: [], // no accumulated items yet
+                    page: s.page,
+                    total: s.total,
+                    pages: s.page, // stop observing
+                };
+            });
         } finally {
             inFlightRef.current = false;
             setIsLoadingMore(false);

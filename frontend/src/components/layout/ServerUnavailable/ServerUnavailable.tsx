@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import React from 'react';
 
 export default function ServerUnavailable() {
@@ -26,7 +27,7 @@ export default function ServerUnavailable() {
 
             </div>
             <div className="mt-8 text-xs text-gray-400">
-                &copy; {new Date().getFullYear()} Powered by <a href="https://www.infitechnology.com" target="_blank" rel="noopener noreferrer">Infi Commerce by Infi Technology</a>
+                &copy; {new Date().getFullYear()} Powered by <Link href="https://www.infitechnology.com" target="_blank" rel="noopener noreferrer">Infi Commerce by Infi Technology</Link>
             </div>
         </div>
     );

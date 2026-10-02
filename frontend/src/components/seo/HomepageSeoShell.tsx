@@ -2,6 +2,7 @@
 // This content appears in "View Page Source" and is indexable by search engines
 
 import { Store } from '@/types';
+import Link from 'next/link';
 
 interface HomepageSeoShellProps {
     store: Store;
@@ -60,9 +61,9 @@ export default function HomepageSeoShell({
                     <ul>
                         {featuredProducts.slice(0, 6).map((product) => (
                             <li key={product._id} itemScope itemType="https://schema.org/Product">
-                                <a href={`/${product.slug}`} itemProp="url">
+                                <Link href={`/${product.slug}`} itemProp="url">
                                     <span itemProp="name">{product.name}</span>
-                                </a>
+                                </Link>
                                 {product.images?.[0] && (
                                     <img
                                         src={product.images[0]}
@@ -91,9 +92,9 @@ export default function HomepageSeoShell({
                     <ul>
                         {categories.slice(0, 10).map((category) => (
                             <li key={category._id}>
-                                <a href={`/${category.slug}`}>
+                                <Link href={`/${category.slug}`}>
                                     {category.title}
-                                </a>
+                                </Link>
                             </li>
                         ))}
                     </ul>
