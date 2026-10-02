@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import SlugRegistry from '../models/SlugRegistry';
 import Redirection from '../models/Redirection';
 import { isReservedSlug, generateAlternativeSlug } from '../constants/reservedSlugs';
+import cacheService from './cache.service';
 
 /**
  * Result of slug availability check
@@ -138,6 +139,9 @@ class SlugService {
         if (existingEntry) {
             // Update if slug OR storeId changed
             if (existingEntry.slug !== slug || existingEntry.storeId.toString() !== storeId.toString()) {
+                const oldCacheKey = `slug:${existingEntry.storeId}:${existingEntry.slug.toLowerCase()}`;
+                await cacheService.delete(oldCacheKey);
+
                 existingEntry.slug = slug;
                 existingEntry.storeId = storeId as any;
                 await existingEntry.save();
@@ -151,6 +155,9 @@ class SlugService {
                 entityId
             });
         }
+        
+        // Invalidate the new slug cache just in case it was cached as a 404
+        await cacheService.delete(`slug:${storeId}:${slug.toLowerCase()}`);
     }
 
     /**
@@ -164,11 +171,15 @@ class SlugService {
         entityType: 'product' | 'category' | 'page' | 'brand',
         entityId: mongoose.Types.ObjectId | string
     ): Promise<void> {
-        await SlugRegistry.findOneAndDelete({
+        const deleted = await SlugRegistry.findOneAndDelete({
             storeId,
             entityType,
             entityId
         });
+
+        if (deleted) {
+            await cacheService.delete(`slug:${storeId}:${deleted.slug.toLowerCase()}`);
+        }
     }
 
     /**
@@ -178,6 +189,17 @@ class SlugService {
      * @param slug Slug to resolve
      */
     async resolveSlug(storeId: string, slug: string) {
+        const cacheKey = `slug:${storeId}:${slug.toLowerCase()}`;
+
+        // 1. Check cache first
+        const cached = await cacheService.get<any>(cacheKey);
+        if (cached) {
+            if (cached.type === '404') {
+                return null; // Return null if it's a cached 404
+            }
+            return cached;
+        }
+
         // Normalize for redirections: ensure it starts with / and remove trailing slash
         let redirectionSlug = slug.startsWith('/') ? slug : `/${slug}`;
         redirectionSlug = redirectionSlug.endsWith('/') && redirectionSlug.length > 1
@@ -192,10 +214,13 @@ class SlugService {
         });
 
         if (redirection) {
-            return {
+            const result = {
                 type: 'redirect' as const,
                 destination_url: redirection.destination_url
             };
+            // Cache for 30 days
+            await cacheService.set(cacheKey, result, 30 * 24 * 60 * 60);
+            return result;
         }
 
         // Normalize for slug registry: remove leading slash if present, remove trailing slash
@@ -208,14 +233,19 @@ class SlugService {
         const registryEntry = await SlugRegistry.findOne({ storeId, slug: registrySlug.toLowerCase() });
 
         if (registryEntry) {
-            return {
+            const result = {
                 type: 'registry' as const,
                 entityType: registryEntry.entityType,
                 entityId: registryEntry.entityId,
                 slug: registryEntry.slug
             };
+            // Cache for 30 days
+            await cacheService.set(cacheKey, result, 30 * 24 * 60 * 60);
+            return result;
         }
 
+        // Not found, cache 404 for 1 hour to prevent DB hammering
+        await cacheService.set(cacheKey, { type: '404' }, 60 * 60);
         return null;
     }
 }

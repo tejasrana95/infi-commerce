@@ -25,21 +25,46 @@ interface UniversalPageProps {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
+import { serverCacheGet, serverCacheSet } from '@/lib/server-cache';
+
 async function resolveSlug(storeId: string, slug: string) {
+    const cacheKey = `slug:${storeId}:${slug.toLowerCase()}`;
+
+    // 1. Check frontend Redis/Memcached/Memory cache first
+    const cached = await serverCacheGet<any>(cacheKey);
+    if (cached) {
+        if (cached.type === '404') return null;
+        return cached;
+    }
+
     try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
         const forwardedHeaders = await getForwardedHeaders();
         const response = await fetch(`${apiUrl}/slug/resolve/${storeId}/${slug}`, {
-            next: { revalidate: 60 }, // Cache resolution for 1 minute
+            next: { revalidate: 60 }, // Keep short fetch cache as fallback
             headers: {
                 'Content-Type': 'application/json',
                 ...forwardedHeaders,
             }
         });
 
-        if (!response.ok) return null;
+        if (!response.ok) {
+            // Cache 404s for 1 hour to prevent API hammering
+            await serverCacheSet(cacheKey, { type: '404' }, 60 * 60);
+            return null;
+        }
+        
         const data = await response.json();
-        return data.data; // { entityType, entityId, slug } or { type: 'redirect', destination_url }
+        const result = data.data;
+        
+        if (result) {
+            // Cache valid route resolutions for 30 days
+            await serverCacheSet(cacheKey, result, 30 * 24 * 60 * 60);
+            return result;
+        } else {
+            await serverCacheSet(cacheKey, { type: '404' }, 60 * 60);
+            return null;
+        }
     } catch (error) {
         console.error('Failed to resolve slug:', error);
         return null;
