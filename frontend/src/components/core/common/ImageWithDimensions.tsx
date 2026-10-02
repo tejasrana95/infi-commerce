@@ -45,15 +45,18 @@ export default function ImageWithDimensions({
     const [isLoaded, setIsLoaded] = useState(false);
     const cleanedSrc = cleanImageUrl(src);
 
+    React.useEffect(() => {
+        setError(false);
+        setIsLoaded(false);
+    }, [cleanedSrc]);
+
     // Determine if we should use fill
-    // If explicitFill is provided, use it.
-    // Otherwise, if width/height are provided, don't use fill.
-    // Otherwise, if aspectRatio is set, use fill.
     const shouldFill = explicitFill !== undefined
         ? explicitFill
         : (width || height)
             ? false
             : aspectRatio !== 'auto';
+            
     const containerClasses = [
         styles.imageContainer,
         styles[`aspect${aspectRatio}`],
@@ -88,13 +91,13 @@ export default function ImageWithDimensions({
                 priority={priority}
                 sizes={sizes || (shouldFill ? '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw' : undefined)}
                 className={`${styles.image} ${!shouldFill && aspectRatio === 'auto' ? styles.responsive : ''}`}
-                style={{ opacity: isLoaded ? 1 : 0 }}
-                onLoad={() => setIsLoaded(true)}
-                onError={() => setError(true)}
-                // Only the above-the-fold (LCP) image should be high priority.
-                // Defaulting everything to "high" actively delays the real LCP
-                // image by making every thumbnail compete with it.
-                // @ts-ignore - fetchPriority is supported in recent Next.js/React versions
+                onLoad={(e) => {
+                    setIsLoaded(true);
+                    if (props.onLoad) props.onLoad(e);
+                }}
+                onError={() => {
+                    setError(true);
+                }}
                 fetchPriority={fetchPriority ?? (priority ? 'high' : 'auto')}
                 {...props}
             />

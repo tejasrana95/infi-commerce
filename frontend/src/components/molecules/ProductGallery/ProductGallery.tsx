@@ -152,7 +152,7 @@ export default function ProductGallery({
                                     priority
                                     className={styles.productImage}
                                     sizes="(max-width: 768px) 100vw, 50vw"
-                                    onLoadingComplete={() => setMainImageLoading(false)}
+                                    onLoad={() => setMainImageLoading(false)}
                                 />
                                 {mainImageLoading && (
                                     <div className={styles.overlay} aria-hidden>
