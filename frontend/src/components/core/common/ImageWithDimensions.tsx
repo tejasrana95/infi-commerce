@@ -79,6 +79,11 @@ export default function ImageWithDimensions({
         );
     }
 
+    // Globally bypass Next.js optimization for WebP and AVIF formats.
+    // (Next.js next.config.ts doesn't support conditional optimization per-extension natively)
+    const isAlreadyOptimized = typeof cleanedSrc === 'string' && 
+        (cleanedSrc.endsWith('.webp') || cleanedSrc.endsWith('.avif'));
+
     return (
         <div className={`${containerClasses}`}>
             {!isLoaded && <div className={styles.skeleton} />}
@@ -99,6 +104,7 @@ export default function ImageWithDimensions({
                     setError(true);
                 }}
                 fetchPriority={fetchPriority ?? (priority ? 'high' : 'auto')}
+                unoptimized={isAlreadyOptimized || props.unoptimized}
                 {...props}
             />
         </div>

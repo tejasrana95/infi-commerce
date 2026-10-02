@@ -14,7 +14,7 @@ $error-color: #ef4444;
     display: flex;
     gap: 16px;
     height: fit-content;
-    z-index: 100;
+    z-index: 10;
 
     @include desktop {
         position: sticky;
