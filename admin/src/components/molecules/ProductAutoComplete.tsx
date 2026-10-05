@@ -33,8 +33,8 @@ export interface ProductOption {
 }
 
 interface ProductAutoCompleteProps {
-    storeId: string;
-    value?: ProductOption | ProductOption[] | null;
+    storeId?: string;
+    value?: ProductOption | ProductOption[] | string | string[] | null;
     onChange: (value: any) => void;
     label?: string;
     error?: boolean;

@@ -147,7 +147,7 @@ const LinkListConfigPanel: React.FC<LinkListConfigPanelProps> = ({ config, onCha
                                         value={item.targetId}
                                         onChange={(val, option: any) => {
                                             handleItemChange(index, {
-                                                targetId: val,
+                                                targetId: val || undefined,
                                                 targetSlug: option?.slug || '',
                                                 label: item.label === 'New Link' && option ? option.title : item.label
                                             });
@@ -159,11 +159,11 @@ const LinkListConfigPanel: React.FC<LinkListConfigPanelProps> = ({ config, onCha
                                         storeId={storeId}
                                         multiple={false}
                                         value={item.targetId}
-                                        onChange={(val, option: any) => {
+                                        onChange={(val: any) => {
                                             handleItemChange(index, {
-                                                targetId: val,
-                                                targetSlug: option?.slug || '',
-                                                label: item.label === 'New Link' && option ? option.name : item.label
+                                                targetId: val?._id || undefined,
+                                                targetSlug: val?.slug || '',
+                                                label: item.label === 'New Link' && val ? val.name : item.label
                                             });
                                         }}
                                     />
@@ -175,7 +175,7 @@ const LinkListConfigPanel: React.FC<LinkListConfigPanelProps> = ({ config, onCha
                                         value={item.targetId}
                                         onChange={(val, option: any) => {
                                             handleItemChange(index, {
-                                                targetId: val,
+                                                targetId: val || undefined,
                                                 targetSlug: option?.slug || '',
                                                 label: item.label === 'New Link' && option ? (option.title || option.name) : item.label
                                             });
