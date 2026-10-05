@@ -69,7 +69,7 @@ export default function ImportSection() {
     const [categories, setCategories] = useState<Array<{ _id: string; title: string; storeId: string }>>([]);
     const [blogs, setBlogs] = useState<Array<{ _id: string; title: string }>>([]);
     const [blogIds, setBlogIds] = useState<string[]>([]);
-    const [layouts, setLayouts] = useState<Array<{ _id: string; title: string }>>([]);
+    const [layouts, setLayouts] = useState<Array<{ _id: string; title: string; name?: string }>>([]);
     const [layoutIds, setLayoutIds] = useState<string[]>([]);
     const [loadingData, setLoadingData] = useState(false);
     const [loadingCategories, setLoadingCategories] = useState(false);
