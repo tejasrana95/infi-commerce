@@ -38,6 +38,8 @@ import VerifiedIcon from '@mui/icons-material/Verified';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import DescriptionIcon from '@mui/icons-material/Description';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import ArticleIcon from '@mui/icons-material/Article';
+import ViewQuiltIcon from '@mui/icons-material/ViewQuilt';
 import api from '@/lib/api';
 
 const ENTITIES = [
@@ -47,7 +49,9 @@ const ENTITIES = [
     { value: 'categories', label: 'Categories', icon: FolderIcon, color: '#8b5cf6', description: 'Import categories' },
     { value: 'brands', label: 'Brands', icon: LoyaltyIcon, color: '#ec4899', description: 'Import brand data' },
     { value: 'coupons', label: 'Coupons', icon: ConfirmationNumberIcon, color: '#14b8a6', description: 'Import coupon codes' },
-    { value: 'reviews', label: 'Reviews', icon: StarIcon, color: '#f97316', description: 'Import product reviews' }
+    { value: 'reviews', label: 'Reviews', icon: StarIcon, color: '#f97316', description: 'Import product reviews' },
+    { value: 'blogs', label: 'Blogs', icon: ArticleIcon, color: '#3b82f6', description: 'Import blog posts' },
+    { value: 'layouts', label: 'Layouts', icon: ViewQuiltIcon, color: '#0ea5e9', description: 'Import page layouts' }
 ];
 
 export default function ImportSection() {
@@ -63,8 +67,14 @@ export default function ImportSection() {
 
     const [stores, setStores] = useState<Array<{ _id: string; name: string }>>([]);
     const [categories, setCategories] = useState<Array<{ _id: string; title: string; storeId: string }>>([]);
+    const [blogs, setBlogs] = useState<Array<{ _id: string; title: string }>>([]);
+    const [blogIds, setBlogIds] = useState<string[]>([]);
+    const [layouts, setLayouts] = useState<Array<{ _id: string; title: string }>>([]);
+    const [layoutIds, setLayoutIds] = useState<string[]>([]);
     const [loadingData, setLoadingData] = useState(false);
     const [loadingCategories, setLoadingCategories] = useState(false);
+    const [loadingBlogs, setLoadingBlogs] = useState(false);
+    const [loadingLayouts, setLoadingLayouts] = useState(false);
 
     const selectedEntityData = ENTITIES.find(e => e.value === selectedEntity);
 
@@ -105,6 +115,60 @@ export default function ImportSection() {
         };
         fetchCategories();
     }, [storeId]);
+
+    useEffect(() => {
+        const fetchBlogs = async () => {
+            if (selectedEntity !== 'blogs') return;
+            setLoadingBlogs(true);
+            try {
+                const params = new URLSearchParams();
+                if (storeId) params.append('storeId', storeId);
+                params.append('limit', '1000');
+
+                const response = await api.get(`/blog/posts?${params.toString()}`);
+                let fetchedBlogs = [];
+                if (Array.isArray(response.data.posts)) fetchedBlogs = response.data.posts;
+                else if (Array.isArray(response.data.data)) fetchedBlogs = response.data.data;
+                else if (Array.isArray(response.data)) fetchedBlogs = response.data;
+                
+                setBlogs(fetchedBlogs);
+                setBlogIds(prev => prev.filter(id => fetchedBlogs.some((b: any) => b._id === id)));
+            } catch (error) {
+                console.error('Failed to fetch blogs:', error);
+                setBlogs([]);
+            } finally {
+                setLoadingBlogs(false);
+            }
+        };
+        fetchBlogs();
+    }, [storeId, selectedEntity]);
+
+    useEffect(() => {
+        const fetchLayouts = async () => {
+            if (selectedEntity !== 'layouts') return;
+            setLoadingLayouts(true);
+            try {
+                const params = new URLSearchParams();
+                if (storeId) params.append('storeId', storeId);
+                params.append('limit', '1000');
+
+                const response = await api.get(`/layouts?${params.toString()}`);
+                let fetchedLayouts = [];
+                if (Array.isArray(response.data.layouts)) fetchedLayouts = response.data.layouts;
+                else if (Array.isArray(response.data.data)) fetchedLayouts = response.data.data;
+                else if (Array.isArray(response.data)) fetchedLayouts = response.data;
+                
+                setLayouts(fetchedLayouts);
+                setLayoutIds(prev => prev.filter(id => fetchedLayouts.some((l: any) => l._id === id)));
+            } catch (error) {
+                console.error('Failed to fetch layouts:', error);
+                setLayouts([]);
+            } finally {
+                setLoadingLayouts(false);
+            }
+        };
+        fetchLayouts();
+    }, [storeId, selectedEntity]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -179,6 +243,12 @@ export default function ImportSection() {
             if (storeId) formData.append('storeId', storeId);
             if (selectedEntity === 'products' && categoryIds.length > 0) {
                 formData.append('categoryId', categoryIds[0]);
+            }
+            if (selectedEntity === 'blogs' && blogIds.length > 0) {
+                blogIds.forEach(id => formData.append('blogIds[]', id));
+            }
+            if (selectedEntity === 'layouts' && layoutIds.length > 0) {
+                layoutIds.forEach(id => formData.append('layoutIds[]', id));
             }
 
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/backup/import/${selectedEntity}`, {
@@ -562,6 +632,92 @@ export default function ImportSection() {
                                 value.map((option, index) => (
                                     <Chip
                                         label={option.title}
+                                        {...getTagProps({ index })}
+                                        size="small"
+                                        key={option._id}
+                                    />
+                                ))
+                            }
+                        />
+                    )}
+
+                    {selectedEntity === 'blogs' && (
+                        <Autocomplete
+                            multiple
+                            size="small"
+                            options={blogs}
+                            loading={loadingBlogs}
+                            getOptionLabel={(option) => option.title}
+                            value={blogs.filter(blog => blogIds.includes(blog._id))}
+                            onChange={(_, newValue) => {
+                                setBlogIds(newValue.map(blog => blog._id));
+                            }}
+                            disabled={loadingData || loadingBlogs}
+                            sx={{ minWidth: 250, maxWidth: 400 }}
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    label="Assign to Blogs"
+                                    placeholder={storeId ? "Search & select blogs" : "Select a store first"}
+                                    sx={{ bgcolor: 'background.paper' }}
+                                    InputProps={{
+                                        ...params.InputProps,
+                                        endAdornment: (
+                                            <>
+                                                {loadingBlogs ? <CircularProgress color="inherit" size={20} /> : null}
+                                                {params.InputProps.endAdornment}
+                                            </>
+                                        ),
+                                    }}
+                                />
+                            )}
+                            renderTags={(value, getTagProps) =>
+                                value.map((option, index) => (
+                                    <Chip
+                                        label={option.title}
+                                        {...getTagProps({ index })}
+                                        size="small"
+                                        key={option._id}
+                                    />
+                                ))
+                            }
+                        />
+                    )}
+
+                    {selectedEntity === 'layouts' && (
+                        <Autocomplete
+                            multiple
+                            size="small"
+                            options={layouts}
+                            loading={loadingLayouts}
+                            getOptionLabel={(option) => option.name || option.title || 'Untitled'}
+                            value={layouts.filter(layout => layoutIds.includes(layout._id))}
+                            onChange={(_, newValue) => {
+                                setLayoutIds(newValue.map(layout => layout._id));
+                            }}
+                            disabled={loadingData || loadingLayouts}
+                            sx={{ minWidth: 250, maxWidth: 400 }}
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    label="Filter by Layouts"
+                                    placeholder={storeId ? "Search & select layouts" : "Select a store first"}
+                                    sx={{ bgcolor: 'background.paper' }}
+                                    InputProps={{
+                                        ...params.InputProps,
+                                        endAdornment: (
+                                            <>
+                                                {loadingLayouts ? <CircularProgress color="inherit" size={20} /> : null}
+                                                {params.InputProps.endAdornment}
+                                            </>
+                                        ),
+                                    }}
+                                />
+                            )}
+                            renderTags={(value, getTagProps) =>
+                                value.map((option, index) => (
+                                    <Chip
+                                        label={option.name || option.title || 'Untitled'}
                                         {...getTagProps({ index })}
                                         size="small"
                                         key={option._id}

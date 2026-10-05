@@ -59,7 +59,7 @@ export default function ComparePageContainer() {
         } finally {
             setIsLoading(false);
         }
-    }, [items, store?._id]);
+    }, [items, store]);
 
     // Fetch data when items change
     useEffect(() => {

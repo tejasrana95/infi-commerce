@@ -43,6 +43,7 @@ const ContentCardGridModule = dynamic(() => import('./standard/ContentCardGrid')
 const HeroSliderModule = dynamic(() => import('./standard/HeroSlider'));
 const HeroBannerModule = dynamic(() => import('./standard/HeroBanner'));
 const IconListModule = dynamic(() => import('./standard/IconList'));
+const LinkListModule = dynamic(() => import('./standard/LinkList'));
 const SectionLayoutModule = dynamic(() => import('./standard/SectionLayout'));
 const CheckoutContentModule = dynamic(() => import('./checkout/CheckoutContent'));
 const CartModule = dynamic(() => import('./cart/CartModule'));
@@ -154,6 +155,7 @@ export const moduleRegistry: Record<string, ModuleComponent> = {
     'hero-slider': HeroSliderModule,
     'hero-banner': HeroBannerModule,
     'icon-list': IconListModule,
+    'link-list': LinkListModule,
     'section-layout': SectionLayoutModule,
     // Checkout module
     'checkout-content': CheckoutContentModule,

@@ -6,11 +6,15 @@ import Category from '../models/Category';
 import Brand from '../models/Brand';
 import Coupon from '../models/Coupon';
 import Review from '../models/Review';
+import BlogPost from '../models/BlogPost';
+import Layout from '../models/Layout';
 import { objectToExcelRow, createWorksheet, generateExportFilename } from '../utils/excel-formatter';
 
 export interface ExportFilters {
     storeId?: string;
     categoryId?: string;
+    blogIds?: string[];
+    layoutIds?: string[];
 }
 
 class BackupService {
@@ -456,6 +460,67 @@ class BackupService {
         workbook.created = new Date();
 
         createWorksheet(workbook, 'Reviews', excelData);
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        return buffer as any;
+    }
+
+    /**
+     * Export blogs to Excel
+     */
+    async exportBlogs(filters: ExportFilters = {}): Promise<Buffer> {
+        const query: any = {};
+
+        if (filters.storeId) {
+            query.storeId = filters.storeId;
+        }
+
+        if (filters.blogIds && filters.blogIds.length > 0) {
+            query._id = { $in: filters.blogIds };
+        }
+
+        const blogs = await BlogPost.find(query)
+            .populate('storeId', 'name')
+            .populate('categoryIds', 'name')
+            .lean();
+
+        const excelData = blogs.map(blog => objectToExcelRow(blog));
+
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = 'InfiCommerce Admin';
+        workbook.created = new Date();
+
+        createWorksheet(workbook, 'Blogs', excelData);
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        return buffer as any;
+    }
+
+    /**
+     * Export layouts to Excel
+     */
+    async exportLayouts(filters: ExportFilters = {}): Promise<Buffer> {
+        const query: any = {};
+
+        if (filters.storeId) {
+            query.storeId = filters.storeId;
+        }
+
+        if (filters.layoutIds && filters.layoutIds.length > 0) {
+            query._id = { $in: filters.layoutIds };
+        }
+
+        const layouts = await Layout.find(query)
+            .populate('storeId', 'name')
+            .lean();
+
+        const excelData = layouts.map(layout => objectToExcelRow(layout));
+
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = 'InfiCommerce Admin';
+        workbook.created = new Date();
+
+        createWorksheet(workbook, 'Layouts', excelData);
 
         const buffer = await workbook.xlsx.writeBuffer();
         return buffer as any;

@@ -26,7 +26,8 @@ export type ModuleType =
     | 'table'
     | 'content-card-grid'
     | 'section-layout'
-    | 'icon-list';
+    | 'icon-list'
+    | 'link-list';
 
 export type SectionType = 'full-width' | 'container' | 'split-2' | 'split-3' | 'split-4' | 'custom';
 

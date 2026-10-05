@@ -16,7 +16,7 @@ import { useStore } from '@/providers/StoreProvider';
 import { useCategoryFilters, BrandInfo, AppliedFilters } from '@/providers/CategoryFiltersContext';
 import api from '@/lib/api';
 import { appliedFiltersToApiQuery } from '@/lib/filters/category-filters';
-import { getComponent } from '@/components/templates/registry';
+
 import { CategoryConfig, CategoryFiltersConfig, DEFAULT_CATEGORY_CONFIG } from '@/types/store';
 import {
     Category,
@@ -71,6 +71,8 @@ interface CategoryPageContainerProps {
     initialAppliedFilters: AppliedFilters;
     /** Raw server query string (updates on every navigation). */
     initialQueryString: string;
+    /** Template component to render */
+    Template: React.ComponentType<any>;
 }
 
 /** Client-accumulated pages for load-more / infinite-scroll, keyed to the query. */
@@ -90,6 +92,7 @@ function CategoryPageContainer({
     initialPagination = null,
     initialAppliedFilters,
     initialQueryString,
+    Template,
 }: CategoryPageContainerProps) {
     const { store, currentCurrency } = useStore();
 
@@ -338,13 +341,10 @@ function CategoryPageContainer({
         return DEFAULT_SORT_OPTIONS;
     }, [config.sorting?.availableSortOptions]);
 
-    const CategoryPageTemplate = getComponent<CategoryPageTemplateProps>(
-        'CategoryPageTemplate',
-        templateId
-    );
+
 
     return (
-        <CategoryPageTemplate
+        <Template
             category={category}
             breadcrumbs={breadcrumbs}
             products={products}

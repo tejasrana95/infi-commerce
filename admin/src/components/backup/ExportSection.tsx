@@ -34,6 +34,8 @@ import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import DatasetIcon from '@mui/icons-material/Dataset';
+import ArticleIcon from '@mui/icons-material/Article';
+import ViewQuiltIcon from '@mui/icons-material/ViewQuilt';
 import api from '@/lib/api';
 
 interface ExportSectionProps { }
@@ -45,7 +47,9 @@ const ENTITIES = [
     { value: 'categories', label: 'Categories', icon: FolderIcon, color: '#8b5cf6', description: 'Export category tree' },
     { value: 'brands', label: 'Brands', icon: LoyaltyIcon, color: '#ec4899', description: 'Export brand data' },
     { value: 'coupons', label: 'Coupons', icon: ConfirmationNumberIcon, color: '#14b8a6', description: 'Export coupon codes' },
-    { value: 'reviews', label: 'Reviews', icon: StarIcon, color: '#f97316', description: 'Export product reviews' }
+    { value: 'reviews', label: 'Reviews', icon: StarIcon, color: '#f97316', description: 'Export product reviews' },
+    { value: 'blogs', label: 'Blogs', icon: ArticleIcon, color: '#3b82f6', description: 'Export blog posts' },
+    { value: 'layouts', label: 'Layouts', icon: ViewQuiltIcon, color: '#0ea5e9', description: 'Export page layouts' }
 ];
 
 export default function ExportSection({ }: ExportSectionProps) {
@@ -58,8 +62,14 @@ export default function ExportSection({ }: ExportSectionProps) {
 
     const [stores, setStores] = useState<Array<{ _id: string; name: string }>>([]);
     const [categories, setCategories] = useState<Array<{ _id: string; title: string; storeId: string }>>([]);
+    const [blogs, setBlogs] = useState<Array<{ _id: string; title: string }>>([]);
+    const [blogIds, setBlogIds] = useState<string[]>([]);
+    const [layouts, setLayouts] = useState<Array<{ _id: string; title: string }>>([]);
+    const [layoutIds, setLayoutIds] = useState<string[]>([]);
     const [loadingData, setLoadingData] = useState(false);
     const [loadingCategories, setLoadingCategories] = useState(false);
+    const [loadingBlogs, setLoadingBlogs] = useState(false);
+    const [loadingLayouts, setLoadingLayouts] = useState(false);
 
     const selectedEntityData = ENTITIES.find(e => e.value === selectedEntity);
 
@@ -101,6 +111,60 @@ export default function ExportSection({ }: ExportSectionProps) {
         fetchCategories();
     }, [storeId]);
 
+    useEffect(() => {
+        const fetchBlogs = async () => {
+            if (selectedEntity !== 'blogs') return;
+            setLoadingBlogs(true);
+            try {
+                const params = new URLSearchParams();
+                if (storeId) params.append('storeId', storeId);
+                params.append('limit', '1000');
+
+                const response = await api.get(`/blog/posts?${params.toString()}`);
+                let fetchedBlogs = [];
+                if (Array.isArray(response.data.posts)) fetchedBlogs = response.data.posts;
+                else if (Array.isArray(response.data.data)) fetchedBlogs = response.data.data;
+                else if (Array.isArray(response.data)) fetchedBlogs = response.data;
+                
+                setBlogs(fetchedBlogs);
+                setBlogIds(prev => prev.filter(id => fetchedBlogs.some((b: any) => b._id === id)));
+            } catch (error) {
+                console.error('Failed to fetch blogs:', error);
+                setBlogs([]);
+            } finally {
+                setLoadingBlogs(false);
+            }
+        };
+        fetchBlogs();
+    }, [storeId, selectedEntity]);
+
+    useEffect(() => {
+        const fetchLayouts = async () => {
+            if (selectedEntity !== 'layouts') return;
+            setLoadingLayouts(true);
+            try {
+                const params = new URLSearchParams();
+                if (storeId) params.append('storeId', storeId);
+                params.append('limit', '1000');
+
+                const response = await api.get(`/layouts?${params.toString()}`);
+                let fetchedLayouts = [];
+                if (Array.isArray(response.data.layouts)) fetchedLayouts = response.data.layouts;
+                else if (Array.isArray(response.data.data)) fetchedLayouts = response.data.data;
+                else if (Array.isArray(response.data)) fetchedLayouts = response.data;
+                
+                setLayouts(fetchedLayouts);
+                setLayoutIds(prev => prev.filter(id => fetchedLayouts.some((l: any) => l._id === id)));
+            } catch (error) {
+                console.error('Failed to fetch layouts:', error);
+                setLayouts([]);
+            } finally {
+                setLoadingLayouts(false);
+            }
+        };
+        fetchLayouts();
+    }, [storeId, selectedEntity]);
+
     const handleExport = async () => {
         setLoading(true);
         setMessage(null);
@@ -110,6 +174,12 @@ export default function ExportSection({ }: ExportSectionProps) {
             if (storeId) filters.storeId = storeId;
             if (selectedEntity === 'products' && categoryIds.length > 0) {
                 filters.categoryId = categoryIds[0];
+            }
+            if (selectedEntity === 'blogs' && blogIds.length > 0) {
+                filters.blogIds = blogIds;
+            }
+            if (selectedEntity === 'layouts' && layoutIds.length > 0) {
+                filters.layoutIds = layoutIds;
             }
 
             const token = localStorage.getItem('accesstoken');
@@ -400,6 +470,92 @@ export default function ExportSection({ }: ExportSectionProps) {
                             }
                         />
                     )}
+
+                    {selectedEntity === 'blogs' && (
+                        <Autocomplete
+                            multiple
+                            size="small"
+                            options={blogs}
+                            loading={loadingBlogs}
+                            getOptionLabel={(option) => option.title}
+                            value={blogs.filter(blog => blogIds.includes(blog._id))}
+                            onChange={(_, newValue) => {
+                                setBlogIds(newValue.map(blog => blog._id));
+                            }}
+                            disabled={loadingData || loadingBlogs}
+                            sx={{ minWidth: 250, maxWidth: 400 }}
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    label="Filter by Blogs"
+                                    placeholder={storeId ? "Search & select blogs" : "Select a store first"}
+                                    sx={{ bgcolor: 'background.paper' }}
+                                    InputProps={{
+                                        ...params.InputProps,
+                                        endAdornment: (
+                                            <>
+                                                {loadingBlogs ? <CircularProgress color="inherit" size={20} /> : null}
+                                                {params.InputProps.endAdornment}
+                                            </>
+                                        ),
+                                    }}
+                                />
+                            )}
+                            renderTags={(value, getTagProps) =>
+                                value.map((option, index) => (
+                                    <Chip
+                                        label={option.title}
+                                        {...getTagProps({ index })}
+                                        size="small"
+                                        key={option._id}
+                                    />
+                                ))
+                            }
+                        />
+                    )}
+
+                    {selectedEntity === 'layouts' && (
+                        <Autocomplete
+                            multiple
+                            size="small"
+                            options={layouts}
+                            loading={loadingLayouts}
+                            getOptionLabel={(option) => option.name || option.title || 'Untitled'}
+                            value={layouts.filter(layout => layoutIds.includes(layout._id))}
+                            onChange={(_, newValue) => {
+                                setLayoutIds(newValue.map(layout => layout._id));
+                            }}
+                            disabled={loadingData || loadingLayouts}
+                            sx={{ minWidth: 250, maxWidth: 400 }}
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    label="Filter by Layouts"
+                                    placeholder={storeId ? "Search & select layouts" : "Select a store first"}
+                                    sx={{ bgcolor: 'background.paper' }}
+                                    InputProps={{
+                                        ...params.InputProps,
+                                        endAdornment: (
+                                            <>
+                                                {loadingLayouts ? <CircularProgress color="inherit" size={20} /> : null}
+                                                {params.InputProps.endAdornment}
+                                            </>
+                                        ),
+                                    }}
+                                />
+                            )}
+                            renderTags={(value, getTagProps) =>
+                                value.map((option, index) => (
+                                    <Chip
+                                        label={option.name || option.title || 'Untitled'}
+                                        {...getTagProps({ index })}
+                                        size="small"
+                                        key={option._id}
+                                    />
+                                ))
+                            }
+                        />
+                    )}
                 </Box>
             </Paper>
 
@@ -442,7 +598,9 @@ export default function ExportSection({ }: ExportSectionProps) {
                             {storeId && stores.find(s => s._id === storeId) &&
                                 ` from ${stores.find(s => s._id === storeId)?.name}`
                             }
-                            {categoryIds.length > 0 && ` (${categoryIds.length} categories selected)`}
+                            {selectedEntity === 'products' && categoryIds.length > 0 && ` (${categoryIds.length} categories selected)`}
+                            {selectedEntity === 'blogs' && blogIds.length > 0 && ` (${blogIds.length} blogs selected)`}
+                            {selectedEntity === 'layouts' && layoutIds.length > 0 && ` (${layoutIds.length} layouts selected)`}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
                             File will be downloaded in .xlsx format

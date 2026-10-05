@@ -428,6 +428,14 @@
     &.sticky {
         position: sticky;
         top: 70px;
+        // Cap the pinned panel to the viewport and scroll it internally.
+        // Without this the (potentially very tall) filter list overflows below
+        // the fold, so its top and bottom can never be seen at the same time
+        // while the panel is stuck.
+        max-height: calc(100vh - 90px);
+        max-height: calc(100dvh - 90px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
     }
 }
 

@@ -59,6 +59,7 @@ export function CategoryPageClient({
             initialPagination={initialPagination}
             initialAppliedFilters={initialAppliedFilters}
             initialQueryString={initialQueryString}
+            Template={getComponent('CategoryPageTemplate', templateId)}
         />
     );
 }

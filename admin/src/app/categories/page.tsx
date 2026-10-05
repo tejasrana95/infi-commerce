@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Box, Tooltip, IconButton, Typography, useTheme, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
-import { DataGrid, GridColDef, GridRenderCellParams, GridRowSelectionModel } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridRenderCellParams, GridRowSelectionModel, GridSortModel } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -22,6 +22,8 @@ import CategoryAutocomplete from '@/components/molecules/CategoryAutocomplete';
 
 export default function CategoriesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
   const theme = useTheme();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,17 +42,22 @@ export default function CategoriesPage() {
   const [assignParentOpen, setAssignParentOpen] = useState(false);
   const [assignParentValue, setAssignParentValue] = useState<string | null>(null);
 
-  // Filter states
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [filterStore, setFilterStore] = useState<string>('');
-  const [filterParent, setFilterParent] = useState<string>('');
-  const [filterStatus, setFilterStatus] = useState<string>('');
+  // Filter states from URL
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
+  const [filterStore, setFilterStore] = useState<string>(searchParams.get('storeId') || '');
+  const [filterParent, setFilterParent] = useState<string>(searchParams.get('parentCategory') || '');
+  const [filterStatus, setFilterStatus] = useState<string>(searchParams.get('status') || '');
 
-  // Pagination state
+  // Pagination & Sorting state from URL
   const [paginationModel, setPaginationModel] = useState({
-    page: 0,
-    pageSize: 50,
+    page: Math.max(0, parseInt(searchParams.get('page') || '1', 10) - 1),
+    pageSize: parseInt(searchParams.get('limit') || '50', 10),
+  });
+  const [sortModel, setSortModel] = useState<GridSortModel>(() => {
+    const field = searchParams.get('sortBy');
+    const sort = searchParams.get('sortOrder') as 'asc' | 'desc';
+    return field && sort ? [{ field, sort }] : [];
   });
   const [totalRows, setTotalRows] = useState(0);
 
@@ -62,9 +69,39 @@ export default function CategoriesPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Update URL when filters/pagination/sorting change
+  const updateUrlParams = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', String(paginationModel.page + 1));
+    params.set('limit', String(paginationModel.pageSize));
+
+    if (sortModel.length > 0) {
+      params.set('sortBy', sortModel[0].field);
+      params.set('sortOrder', sortModel[0].sort || 'asc');
+    } else {
+      params.delete('sortBy');
+      params.delete('sortOrder');
+    }
+
+    if (debouncedSearch) params.set('search', debouncedSearch);
+    else params.delete('search');
+
+    if (filterStore) params.set('storeId', filterStore);
+    else params.delete('storeId');
+
+    if (filterParent) params.set('parentCategory', filterParent);
+    else params.delete('parentCategory');
+
+    if (filterStatus) params.set('status', filterStatus);
+    else params.delete('status');
+
+    router.replace(`${pathname}?${params.toString()}`);
+  }, [paginationModel, sortModel, debouncedSearch, filterStore, filterParent, filterStatus, pathname, router, searchParams]);
+
   useEffect(() => {
+    updateUrlParams();
     fetchCategories();
-  }, [paginationModel, debouncedSearch, filterStore, filterParent, filterStatus]);
+  }, [paginationModel, sortModel, debouncedSearch, filterStore, filterParent, filterStatus]);
 
   const fetchCategories = async () => {
     setLoading(true);
@@ -72,6 +109,10 @@ export default function CategoriesPage() {
       const params = new URLSearchParams();
       params.append('page', String(paginationModel.page + 1));
       params.append('limit', String(paginationModel.pageSize));
+      if (sortModel.length > 0) {
+        params.append('sortBy', sortModel[0].field);
+        params.append('sortOrder', sortModel[0].sort || 'asc');
+      }
       if (debouncedSearch) params.append('search', debouncedSearch);
       if (filterStore) params.append('storeId', filterStore);
       if (filterParent) params.append('parentCategory', filterParent);
@@ -124,10 +165,6 @@ export default function CategoriesPage() {
     }
   };
 
-  const handleEdit = (id: string) => {
-    router.push(`/categories/${id}/edit`);
-  };
-
   const handleCreate = () => {
     router.push('/categories/new');
   };
@@ -162,7 +199,16 @@ export default function CategoriesPage() {
       minWidth: 200,
       renderCell: (params: GridRenderCellParams) => (
         <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
-          <Typography variant="body2" fontWeight={600}>{params.row.title}</Typography>
+          <Typography
+            component={Link}
+            href={`/categories/${params.row._id}/edit`}
+            target="_blank"
+            variant="body2"
+            fontWeight={600}
+            sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, textDecoration: 'none', color: 'inherit' }}
+          >
+            {params.row.title}
+          </Typography>
           <Typography variant="caption" color="text.secondary">{params.row.slug}</Typography>
         </Box>
       ),
@@ -327,6 +373,8 @@ export default function CategoriesPage() {
           rowCount={totalRows}
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
+          sortModel={sortModel}
+          onSortModelChange={setSortModel}
           checkboxSelection
           rowSelectionModel={selectionModel}
           onRowSelectionModelChange={setSelectionModel}

@@ -844,6 +844,18 @@ export const AVAILABLE_MODULES: ModuleDefinition[] = [
         },
     },
     {
+        type: 'link-list',
+        label: 'Link List',
+        icon: 'Link',
+        category: 'standard',
+        description: 'A list or grid of quick links',
+        defaultConfig: {
+            title: '',
+            style: 'vertical',
+            items: [],
+        },
+    },
+    {
         type: 'heading',
         label: 'Heading',
         icon: 'Title',

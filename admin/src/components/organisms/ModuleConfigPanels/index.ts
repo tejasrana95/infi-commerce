@@ -78,3 +78,4 @@ export type { SectionLayoutConfig } from './SectionLayoutConfigPanel';
 // Shared styling panel
 export { default as ModuleStylingTab } from '../LayoutDesigner/ModuleStylingTab';
 
+export { default as LinkListConfigPanel } from './LinkListConfigPanel';

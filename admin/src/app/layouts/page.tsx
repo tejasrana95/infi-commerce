@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { Box, Tooltip, IconButton, Typography, useTheme, Chip } from '@mui/material';
-import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridRenderCellParams, GridSortModel } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
@@ -19,26 +20,33 @@ import { createDataGridStyles } from '@/utils/styles';
 
 export default function LayoutsPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
     const theme = useTheme();
     const [layouts, setLayouts] = useState<Layout[]>([]);
     const [loading, setLoading] = useState(true);
-    const [filterStore, setFilterStore] = useState<string>('');
     const { showNotification } = useNotification();
     const { confirm } = useConfirm();
     const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
 
-    // Filter states
-    const [searchQuery, setSearchQuery] = useState('');
-    const [filterType, setFilterType] = useState<string>('');
-    const [filterStatus, setFilterStatus] = useState<string>('');
+    // Filter states from URL
+    const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+    const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
+    const [filterStore, setFilterStore] = useState<string>(searchParams.get('storeId') || '');
+    const [filterType, setFilterType] = useState<string>(searchParams.get('type') || '');
+    const [filterStatus, setFilterStatus] = useState<string>(searchParams.get('status') || '');
 
-    /* Pagination & Search State */
+    /* Pagination & Sorting State from URL */
     const [paginationModel, setPaginationModel] = useState({
-        page: 0,
-        pageSize: 10,
+        page: Math.max(0, parseInt(searchParams.get('page') || '1', 10) - 1),
+        pageSize: parseInt(searchParams.get('limit') || '10', 10),
+    });
+    const [sortModel, setSortModel] = useState<GridSortModel>(() => {
+        const field = searchParams.get('sortBy');
+        const sort = searchParams.get('sortOrder') as 'asc' | 'desc';
+        return field && sort ? [{ field, sort }] : [];
     });
     const [totalRows, setTotalRows] = useState(0);
-    const [debouncedSearch, setDebouncedSearch] = useState('');
 
     /* Debounce Search */
     useEffect(() => {
@@ -48,9 +56,39 @@ export default function LayoutsPage() {
         return () => clearTimeout(handler);
     }, [searchQuery]);
 
+    // Update URL when filters/pagination/sorting change
+    const updateUrlParams = useCallback(() => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('page', String(paginationModel.page + 1));
+        params.set('limit', String(paginationModel.pageSize));
+        
+        if (sortModel.length > 0) {
+            params.set('sortBy', sortModel[0].field);
+            params.set('sortOrder', sortModel[0].sort || 'asc');
+        } else {
+            params.delete('sortBy');
+            params.delete('sortOrder');
+        }
+
+        if (debouncedSearch) params.set('search', debouncedSearch);
+        else params.delete('search');
+
+        if (filterStore) params.set('storeId', filterStore);
+        else params.delete('storeId');
+
+        if (filterType) params.set('type', filterType);
+        else params.delete('type');
+
+        if (filterStatus) params.set('status', filterStatus);
+        else params.delete('status');
+
+        router.replace(`${pathname}?${params.toString()}`);
+    }, [paginationModel, sortModel, debouncedSearch, filterStore, filterType, filterStatus, pathname, router, searchParams]);
+
     useEffect(() => {
+        updateUrlParams();
         fetchLayouts();
-    }, [paginationModel, debouncedSearch, filterType, filterStatus, filterStore]);
+    }, [paginationModel, sortModel, debouncedSearch, filterType, filterStatus, filterStore]);
 
     const fetchLayouts = async () => {
         try {
@@ -62,6 +100,10 @@ export default function LayoutsPage() {
                 storeId: filterStore,
             });
 
+            if (sortModel.length > 0) {
+                params.append('sortBy', sortModel[0].field);
+                params.append('sortOrder', sortModel[0].sort || 'asc');
+            }
             if (filterType) params.append('type', filterType);
             if (filterStatus) params.append('status', filterStatus);
 
@@ -104,10 +146,6 @@ export default function LayoutsPage() {
         }
     };
 
-    const handleEdit = (id: string) => {
-        router.push(`/layouts/${id}`);
-    };
-
     const handleCreate = () => {
         router.push('/layouts/new');
     };
@@ -132,7 +170,13 @@ export default function LayoutsPage() {
             minWidth: 180,
             renderCell: (params: GridRenderCellParams) => (
                 <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
-                    <Typography variant="body2" fontWeight={600} sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }} onClick={() => handleEdit(params.row._id)}>
+                    <Typography 
+                        component={Link} 
+                        href={`/layouts/${params.row._id}`} 
+                        variant="body2" 
+                        fontWeight={600} 
+                        sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, textDecoration: 'none', color: 'inherit' }}
+                    >
                         {params.row.name}
                     </Typography>
                     {params.row.description && (
@@ -253,7 +297,7 @@ export default function LayoutsPage() {
             renderCell: (params: GridRenderCellParams) => (
                 <Box display="flex" flexDirection="row" justifyContent="start" alignItems="center" height="100%">
                     <Tooltip title="Edit">
-                        <IconButton onClick={() => handleEdit(params.row._id)} size="small" color="primary">
+                        <IconButton component={Link} href={`/layouts/${params.row._id}`} size="small" color="primary">
                             <EditIcon fontSize="small" />
                         </IconButton>
                     </Tooltip>
@@ -352,6 +396,8 @@ export default function LayoutsPage() {
                     rowCount={totalRows}
                     paginationModel={paginationModel}
                     onPaginationModelChange={setPaginationModel}
+                    sortModel={sortModel}
+                    onSortModelChange={setSortModel}
                     loading={loading}
                     disableRowSelectionOnClick
                     sx={dataGridStyles}

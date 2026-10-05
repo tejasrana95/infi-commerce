@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { Box, Tooltip, IconButton, Typography, useTheme, Chip, Avatar } from '@mui/material';
-import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridRenderCellParams, GridSortModel } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DescriptionIcon from '@mui/icons-material/Description';
@@ -18,6 +19,8 @@ import { useDebounce } from '@/hooks/useDebounce';
 
 export default function PagesPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
     const theme = useTheme();
     const [pages, setPages] = useState<Page[]>([]);
     const [loading, setLoading] = useState(true);
@@ -25,18 +28,53 @@ export default function PagesPage() {
     const { confirm } = useConfirm();
     const dataGridStyles = useMemo(() => createDataGridStyles(theme), [theme]);
 
-    // Pagination & Filter states
-    const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 20 });
+    // Pagination & Filter states from URL
+    const [paginationModel, setPaginationModel] = useState({
+        page: Math.max(0, parseInt(searchParams.get('page') || '1', 10) - 1),
+        pageSize: parseInt(searchParams.get('limit') || '20', 10)
+    });
+    const [sortModel, setSortModel] = useState<GridSortModel>(() => {
+        const field = searchParams.get('sortBy');
+        const sort = searchParams.get('sortOrder') as 'asc' | 'desc';
+        return field && sort ? [{ field, sort }] : [];
+    });
     const [totalRows, setTotalRows] = useState(0);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [filterStore, setFilterStore] = useState<string>('');
-    const [filterStatus, setFilterStatus] = useState<string>('');
+    const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+    const [filterStore, setFilterStore] = useState<string>(searchParams.get('storeId') || '');
+    const [filterStatus, setFilterStatus] = useState<string>(searchParams.get('status') || '');
 
     const debouncedSearch = useDebounce(searchQuery, 500);
 
+    // Update URL when filters/pagination change
+    const updateUrlParams = useCallback(() => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('page', String(paginationModel.page + 1));
+        params.set('limit', String(paginationModel.pageSize));
+
+        if (sortModel.length > 0) {
+            params.set('sortBy', sortModel[0].field);
+            params.set('sortOrder', sortModel[0].sort || 'asc');
+        } else {
+            params.delete('sortBy');
+            params.delete('sortOrder');
+        }
+
+        if (debouncedSearch) params.set('search', debouncedSearch);
+        else params.delete('search');
+
+        if (filterStore) params.set('storeId', filterStore);
+        else params.delete('storeId');
+
+        if (filterStatus) params.set('status', filterStatus);
+        else params.delete('status');
+
+        router.replace(`${pathname}?${params.toString()}`);
+    }, [paginationModel, sortModel, debouncedSearch, filterStore, filterStatus, pathname, router, searchParams]);
+
     useEffect(() => {
+        updateUrlParams();
         fetchPages();
-    }, [paginationModel, debouncedSearch, filterStore, filterStatus]);
+    }, [paginationModel, sortModel, debouncedSearch, filterStore, filterStatus]);
 
     const fetchPages = async () => {
         try {
@@ -48,6 +86,10 @@ export default function PagesPage() {
                 storeId: filterStore,
                 status: filterStatus,
             };
+            if (sortModel.length > 0) {
+                params.sortBy = sortModel[0].field;
+                params.sortOrder = sortModel[0].sort;
+            }
 
             const response = await api.get('/pages', { params });
             setPages(response.data.pages || []);
@@ -73,9 +115,6 @@ export default function PagesPage() {
         }
     };
 
-    const handleEdit = (id: string) => {
-        router.push(`/pages/${id}`);
-    };
 
     const handleCreate = () => {
         router.push('/pages/new');
@@ -120,10 +159,12 @@ export default function PagesPage() {
             renderCell: (params: GridRenderCellParams) => (
                 <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
                     <Typography
+                        component={Link}
+                        href={`/pages/${params.row._id}`}
+                        target="_blank"
                         variant="body2"
                         fontWeight={600}
-                        sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }}
-                        onClick={() => handleEdit(params.row._id)}
+                        sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, textDecoration: 'none', color: 'inherit' }}
                     >
                         {params.row.title}
                     </Typography>
@@ -241,7 +282,7 @@ export default function PagesPage() {
             renderCell: (params: GridRenderCellParams) => (
                 <Box display="flex" alignItems="center" height="100%">
                     <Tooltip title="Edit">
-                        <IconButton onClick={() => handleEdit(params.row._id)} size="small" color="primary">
+                        <IconButton component={Link} href={`/pages/${params.row._id}`} size="small" color="primary">
                             <EditIcon fontSize="small" />
                         </IconButton>
                     </Tooltip>
@@ -324,6 +365,8 @@ export default function PagesPage() {
                     rowCount={totalRows}
                     paginationModel={paginationModel}
                     onPaginationModelChange={setPaginationModel}
+                    sortModel={sortModel}
+                    onSortModelChange={setSortModel}
                     pageSizeOptions={[10, 25, 50]}
                     disableRowSelectionOnClick
                     sx={dataGridStyles}

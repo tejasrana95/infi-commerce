@@ -61,6 +61,7 @@ import {
     PageHeroConfigPanel,
     CheckoutContentConfigPanel,
     SectionLayoutConfigPanel,
+    LinkListConfigPanel,
 } from './index';
 import FormModuleEditor from '../LayoutDesigner/ModuleEditors/FormModuleEditor';
 
@@ -119,6 +120,7 @@ export const configPanelRegistry: Record<string, ConfigPanelComponent> = {
     'checkout-content': CheckoutContentConfigPanel,
     'section-layout': SectionLayoutConfigPanel,
     'form': FormModuleEditor as ConfigPanelComponent,
+    'link-list': LinkListConfigPanel,
 };
 
 /**

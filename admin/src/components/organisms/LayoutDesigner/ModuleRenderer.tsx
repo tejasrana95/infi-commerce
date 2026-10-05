@@ -1019,6 +1019,41 @@ export default function ModuleRenderer({ module, isSelected, onClick, storeId }:
                 );
             }
 
+            case 'link-list': {
+                const links = Array.isArray(cfg.items) ? cfg.items.slice(0, 4) : [];
+                const style = cfg.style || 'vertical';
+                
+                return (
+                    <Box sx={{ p: 1.5, bgcolor: '#FAFAFA', borderRadius: 1.5, border: '1px solid #E5E7EB' }}>
+                        {cfg.title && (
+                            <Typography variant="caption" sx={{ fontWeight: 700, color: '#374151', fontSize: '0.75rem', display: 'block', mb: 1 }}>
+                                {cfg.title}
+                            </Typography>
+                        )}
+                        <Box sx={{
+                            display: 'flex',
+                            flexDirection: style === 'vertical' || style === 'minimalist' ? 'column' : 'row',
+                            flexWrap: style === 'horizontal' || style === 'grid' ? 'wrap' : 'nowrap',
+                            gap: 1
+                        }}>
+                            {links.length > 0 ? links.map((link, i) => (
+                                <Paper key={i} elevation={0} sx={{
+                                    p: 0.5, px: 1,
+                                    bgcolor: style === 'minimalist' ? 'transparent' : '#FFFFFF',
+                                    border: style === 'minimalist' ? 'none' : '1px solid #E5E7EB',
+                                    borderRadius: style === 'horizontal' ? 4 : 1,
+                                    fontSize: '0.65rem'
+                                }}>
+                                    {link.label || 'Link'}
+                                </Paper>
+                            )) : (
+                                <Typography variant="caption" color="text.secondary">No links added</Typography>
+                            )}
+                        </Box>
+                    </Box>
+                );
+            }
+
             case 'accordion': {
                 return (
                     <Box sx={{ p: 1.5, bgcolor: '#FAFAFA', borderRadius: 1.5, border: '1px solid #E5E7EB' }}>

@@ -377,10 +377,15 @@ function ModernCleanCategoryPageTemplateBase({
     React.useEffect(() => {
         if (descriptionRef.current && config.header?.descriptionStyle === 'collapsed') {
             // Compare scrollHeight with clientHeight to detect overflow
-            const hasOverflow = descriptionRef.current.scrollHeight > descriptionRef.current.clientHeight;
-            setNeedsToggle(hasOverflow);
+            const el = descriptionRef.current;
+            const hasOverflow = el.scrollHeight > el.clientHeight;
+            
+            // Only set to true if it has overflow to prevent infinite layout loop
+            if (hasOverflow && !needsToggle) {
+                setNeedsToggle(true);
+            }
         }
-    }, [category.description, config.header?.descriptionStyle, isDescriptionExpanded]);
+    }, [category.description, config.header?.descriptionStyle, isDescriptionExpanded, needsToggle]);
 
     // Render description based on position
     const renderDescription = () => {

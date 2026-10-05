@@ -248,6 +248,72 @@ router.post('/export/coupons', backupController.exportCoupons);
  */
 router.post('/export/reviews', backupController.exportReviews);
 
+/**
+ * @swagger
+ * /api/backup/export/blogs:
+ *   post:
+ *     summary: Export blogs to Excel
+ *     tags: [Backup]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - storeId
+ *             properties:
+ *               storeId:
+ *                 type: string
+ *               blogIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Excel file download
+ *         content:
+ *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+ *             schema:
+ *               type: string
+ *             format: binary
+ *       500:
+ *         description: Server error
+ */
+router.post('/export/blogs', backupController.exportBlogs);
+
+/**
+ * @swagger
+ * /api/backup/export/layouts:
+ *   post:
+ *     summary: Export layouts to Excel
+ *     tags: [Backup]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - storeId
+ *             properties:
+ *               storeId:
+ *                 type: string
+ *               layoutIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Excel file download
+ *         content:
+ *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+ *             schema:
+ *               type: string
+ *             format: binary
+ *       500:
+ *         description: Server error
+ */
+router.post('/export/layouts', backupController.exportLayouts);
+
 // ===== IMPORT ROUTES =====
 
 /**
@@ -462,6 +528,74 @@ router.post('/import/coupons', upload('file'), backupController.importCoupons);
  */
 router.post('/import/reviews', upload('file'), backupController.importReviews);
 
+/**
+ * @swagger
+ * /api/backup/import/blogs:
+ *   post:
+ *     summary: Import blogs from Excel
+ *     tags: [Backup]
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - file
+ *               - storeId
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *               storeId:
+ *                 type: string
+ *               blogIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Import status
+ *       400:
+ *         description: File missing or invalid
+ *       500:
+ *         description: Server error
+ */
+router.post('/import/blogs', upload('file'), backupController.importBlogs);
+
+/**
+ * @swagger
+ * /api/backup/import/layouts:
+ *   post:
+ *     summary: Import layouts from Excel
+ *     tags: [Backup]
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - file
+ *               - storeId
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *               storeId:
+ *                 type: string
+ *               layoutIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Import status
+ *       400:
+ *         description: File missing or invalid
+ *       500:
+ *         description: Server error
+ */
+router.post('/import/layouts', upload('file'), backupController.importLayouts);
+
 // ===== VALIDATION ROUTE =====
 
 /**
@@ -476,7 +610,7 @@ router.post('/import/reviews', upload('file'), backupController.importReviews);
  *         required: true
  *         schema:
  *           type: string
- *           enum: [products, orders, customers, categories, brands, coupons, reviews]
+ *           enum: [products, orders, customers, categories, brands, coupons, reviews, blogs, layouts]
  *     requestBody:
  *       content:
  *         multipart/form-data:

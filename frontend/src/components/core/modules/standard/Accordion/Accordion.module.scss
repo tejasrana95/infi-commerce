@@ -44,7 +44,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1.25rem;
+    padding: 1rem;
     text-align: left;
     transition: background-color 0.2s;
     cursor: pointer;
@@ -73,7 +73,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #d112ad; // Vibrant pink based on image
+    color: var(--color-primary);
 }
 
 .image {
@@ -93,7 +93,7 @@
     margin-left: 1.5rem;
     flex-shrink: 0;
     transition: transform 0.3s ease;
-    color: #d112ad;
+    color: var(--color-primary);
 
     &.isOpen {
         transform: rotate(180deg);
@@ -109,4 +109,5 @@
     padding: 0 1.25rem 1.25rem 1.25rem;
     color: #4b5563;
     line-height: 1.6;
+    margin-top: 1rem;
 }

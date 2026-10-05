@@ -8,7 +8,9 @@ import Category from '../models/Category';
 import Brand from '../models/Brand';
 import Coupon from '../models/Coupon';
 import Review from '../models/Review';
+import BlogPost from '../models/BlogPost';
 import Store from '../models/Store';
+import Layout from '../models/Layout';
 import Attribute from '../models/Attribute';
 import ProductOption from '../models/ProductOption';
 import {
@@ -25,6 +27,8 @@ import slugService from '../services/slug.service';
 export interface ImportFilters {
     storeId?: string;
     categoryId?: string;
+    blogIds?: string[];
+    layoutIds?: string[];
 }
 
 export interface ImportResult {
@@ -1728,6 +1732,29 @@ class RestoreService {
         );
     }
 
+    async importBlogs(buffer: Buffer, filters: ImportFilters = {}): Promise<ImportResult> {
+        return this.genericImport(
+            buffer,
+            BlogPost,
+            ['storeId', 'title', 'slug', 'content'],
+            { storeId: Store },
+            filters
+        );
+    }
+
+    /**
+     * Import layouts from Excel
+     */
+    async importLayouts(buffer: Buffer, filters: ImportFilters = {}): Promise<ImportResult> {
+        return this.genericImport(
+            buffer,
+            Layout,
+            ['storeId', 'name', 'type'],
+            { storeId: Store },
+            filters
+        );
+    }
+
     /**
      * Generic import function for simpler entities
      */
@@ -1821,14 +1848,27 @@ class RestoreService {
                 'Category': ['isVisible'],
                 'Brand': ['isActive'],
                 'Coupon': ['isActive'],
-                'Review': ['isGuestReview', 'guestEmailVerified', 'isApproved', 'isVerifiedPurchase']
+                'Review': ['isGuestReview', 'guestEmailVerified', 'isApproved', 'isVerifiedPurchase'],
+                'Layout': ['isDefault', 'isTemplate'],
+                'BlogPost': ['linkedProductsConfig.enabled', 'allowComments', 'isFeatured', 'isPinned', 'showRelatedArticles']
             };
 
             const modelName = Model.modelName;
             const booleanFields = booleanFieldsMap[modelName] || [];
 
             booleanFields.forEach(field => {
-                if (sanitized[field] !== undefined) {
+                if (field.includes('.')) {
+                    const parts = field.split('.');
+                    let current = sanitized;
+                    for (let i = 0; i < parts.length - 1; i++) {
+                        if (current[parts[i]]) current = current[parts[i]];
+                        else return;
+                    }
+                    const last = parts[parts.length - 1];
+                    if (current[last] !== undefined) {
+                        current[last] = parseBoolean(current[last]);
+                    }
+                } else if (sanitized[field] !== undefined) {
                     sanitized[field] = parseBoolean(sanitized[field]);
                 }
             });
@@ -1839,7 +1879,7 @@ class RestoreService {
             }
 
             // Handle array fields
-            const arrayFields = ['categoryIds', 'images', 'votedBy'];
+            const arrayFields = ['categoryIds', 'images', 'votedBy', 'sections'];
             arrayFields.forEach(field => {
                 if (sanitized[field] && typeof sanitized[field] === 'string') {
                     try {
@@ -1852,13 +1892,16 @@ class RestoreService {
             });
 
             // Handle nested objects
-            if (sanitized.adminReply && typeof sanitized.adminReply === 'string') {
-                try {
-                    sanitized.adminReply = JSON.parse(sanitized.adminReply);
-                } catch (e) {
-                    delete sanitized.adminReply;
+            const objectFields = ['adminReply', 'settings', 'seo'];
+            objectFields.forEach(field => {
+                if (sanitized[field] && typeof sanitized[field] === 'string') {
+                    try {
+                        sanitized[field] = JSON.parse(sanitized[field]);
+                    } catch (e) {
+                        delete sanitized[field];
+                    }
                 }
-            }
+            });
 
             try {
                 if (modelName === 'Review' && sanitized.productId) {
@@ -1960,6 +2003,10 @@ class RestoreService {
                 return this.validateGeneric(buffer, ['code', 'storeId', 'discountType', 'discountValue', 'startDate', 'endDate'], { storeId: Store });
             case 'reviews':
                 return this.validateGeneric(buffer, ['storeId', 'productId', 'rating', 'title', 'content'], { storeId: Store });
+            case 'blogs':
+                return this.validateGeneric(buffer, ['storeId', 'title', 'slug', 'content'], { storeId: Store });
+            case 'layouts':
+                return this.validateGeneric(buffer, ['storeId', 'name', 'type'], { storeId: Store });
             default:
                 throw new Error(`Unknown entity type: ${entity} `);
         }

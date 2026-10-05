@@ -132,6 +132,42 @@ export const exportReviews = async (req: AuthRequest, res: Response): Promise<vo
 };
 
 /**
+ * Export blogs to Excel
+ */
+export const exportBlogs = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const { storeId, blogIds } = req.body;
+
+        const buffer = await backupService.exportBlogs({ storeId, blogIds });
+        const filename = backupService.getExportFilename('blogs');
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.send(buffer);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+/**
+ * Export layouts to Excel
+ */
+export const exportLayouts = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const { storeId, layoutIds } = req.body;
+
+        const buffer = await backupService.exportLayouts({ storeId, layoutIds });
+        const filename = backupService.getExportFilename('layouts');
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.send(buffer);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+/**
  * Import products from Excel
  */
 export const importProducts = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -257,6 +293,44 @@ export const importReviews = async (req: AuthRequest, res: Response): Promise<vo
 
         const { storeId } = req.body;
         const result = await restoreService.importReviews(req.file.buffer, { storeId });
+
+        res.json(result);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+/**
+ * Import blogs from Excel
+ */
+export const importBlogs = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        if (!req.file) {
+            res.status(400).json({ error: 'No file uploaded' });
+            return;
+        }
+
+        const { storeId, blogIds } = req.body;
+        const result = await restoreService.importBlogs(req.file.buffer, { storeId, blogIds });
+
+        res.json(result);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+/**
+ * Import layouts from Excel
+ */
+export const importLayouts = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        if (!req.file) {
+            res.status(400).json({ error: 'No file uploaded' });
+            return;
+        }
+
+        const { storeId, layoutIds } = req.body;
+        const result = await restoreService.importLayouts(req.file.buffer, { storeId, layoutIds });
 
         res.json(result);
     } catch (error: any) {

@@ -577,7 +577,7 @@ export default function ProductPageContainer({
             const msg = typeof e === 'string' ? e : JSON.stringify(e);
             setShippingEstimate({ loading: false, error: (msg as string) || 'Failed to calculate shipping' });
         }
-    }, [store?._id, product._id, selectedVariant?._id, quantity, currency]);
+    }, [store, product._id, selectedVariant, quantity, currency]);
 
     const userDefaultCountry = defaultShippingAddress?.country;
 
