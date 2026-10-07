@@ -28,6 +28,7 @@ export default function ModernCleanBlogListingTemplate({
     tags,
     isLoading,
     pagination,
+    totalPosts,
     currentPage,
     selectedCategory,
     selectedTag,
@@ -43,6 +44,18 @@ export default function ModernCleanBlogListingTemplate({
     onClearFilters,
 }: BlogListingTemplateProps) {
     const [searchInput, setSearchInput] = useState(searchQuery || '');
+
+    // All posts count across categories (unaffected by currently selected category)
+    const allPostsCount = useMemo(() => {
+        if (typeof totalPosts === 'number' && totalPosts >= 0) {
+            return totalPosts;
+        }
+        // Fallback when viewing a category filter without totalPosts: sum of category counts, or pagination.total
+        if (selectedCategory && categories.length > 0) {
+            return categories.reduce((sum, cat) => sum + (cat.postCount || 0), 0);
+        }
+        return pagination.total;
+    }, [totalPosts, selectedCategory, categories, pagination.total]);
 
     // Build a lookup map for categories by _id and slug for hierarchy resolution
     const categoryLookup = useMemo(() => {
@@ -202,7 +215,7 @@ export default function ModernCleanBlogListingTemplate({
                                 onClick={() => onCategoryFilter('')}
                             >
                                 <span>All Posts</span>
-                                <span className={styles.count}>{pagination.total}</span>
+                                <span className={styles.count}>{allPostsCount}</span>
                             </button>
                         </li>
                         {categories.map((category) => (

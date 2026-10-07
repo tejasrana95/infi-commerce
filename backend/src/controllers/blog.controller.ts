@@ -147,22 +147,28 @@ export const getBlogCategories = asyncHandler(async (req: AuthRequest, res: Resp
         {
             $lookup: {
                 from: 'blogposts',
-                localField: '_id',
-                foreignField: 'categoryIds',
+                let: { catId: '$_id' },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: { $in: ['$$catId', '$categoryIds'] },
+                            status: 'published',
+                            ...(req.query.postSearch ? {
+                                $or: [
+                                    { title: { $regex: req.query.postSearch as string, $options: 'i' } },
+                                    { excerpt: { $regex: req.query.postSearch as string, $options: 'i' } },
+                                    { content: { $regex: req.query.postSearch as string, $options: 'i' } },
+                                ]
+                            } : {})
+                        }
+                    }
+                ],
                 as: 'posts'
             }
         },
         {
             $addFields: {
-                postCount: {
-                    $size: {
-                        $filter: {
-                            input: '$posts',
-                            as: 'post',
-                            cond: { $eq: ['$$post.status', 'published'] }
-                        }
-                    }
-                },
+                postCount: { $size: '$posts' },
                 storeId: {
                     _id: '$storeData._id',
                     name: '$storeData.name',
@@ -174,18 +180,34 @@ export const getBlogCategories = asyncHandler(async (req: AuthRequest, res: Resp
         { $sort: { sortOrder: 1, name: 1 } }
     ];
 
-    const [result] = await BlogCategory.aggregate([
-        { $match: filter },
-        {
-            $facet: {
-                data: [
-                    ...aggregationPipeline.slice(1), // Apply lookup/sort etc
-                    { $skip: skip },
-                    { $limit: limit }
-                ],
-                total: [{ $count: 'count' }]
+    // Compute total published posts across all categories for this store (filtered by postSearch if provided)
+    const postTotalFilter: any = { status: 'published' };
+    if (filter.storeId) {
+        postTotalFilter.storeId = filter.storeId;
+    }
+    if (req.query.postSearch) {
+        postTotalFilter.$or = [
+            { title: { $regex: req.query.postSearch as string, $options: 'i' } },
+            { excerpt: { $regex: req.query.postSearch as string, $options: 'i' } },
+            { content: { $regex: req.query.postSearch as string, $options: 'i' } },
+        ];
+    }
+
+    const [[result], totalPosts] = await Promise.all([
+        BlogCategory.aggregate([
+            { $match: filter },
+            {
+                $facet: {
+                    data: [
+                        ...aggregationPipeline.slice(1), // Apply lookup/sort etc
+                        { $skip: skip },
+                        { $limit: limit }
+                    ],
+                    total: [{ $count: 'count' }]
+                }
             }
-        }
+        ]),
+        BlogPost.countDocuments(postTotalFilter)
     ]);
 
     const categories = result.data;
@@ -195,6 +217,7 @@ export const getBlogCategories = asyncHandler(async (req: AuthRequest, res: Resp
         success: true,
         categories: categories, // Returning as 'categories' to match other endpoints, or 'data' for compat
         data: categories, // Keep 'data' for backward compatibility
+        totalPosts,
         pagination: {
             total,
             page,
@@ -583,7 +606,7 @@ export const getBlogPostBySlug = asyncHandler(async (req: AuthRequest, res: Resp
  *         description: Tags retrieved successfully
  */
 export const getPopularTags = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { limit = 20 } = req.query;
+    const { limit = 20, search } = req.query;
 
     const filter: any = { status: 'published' };
 
@@ -592,6 +615,14 @@ export const getPopularTags = asyncHandler(async (req: AuthRequest, res: Respons
 
     if (storeId) {
         filter.storeId = storeId;
+    }
+
+    if (search) {
+        filter.$or = [
+            { title: { $regex: search as string, $options: 'i' } },
+            { excerpt: { $regex: search as string, $options: 'i' } },
+            { content: { $regex: search as string, $options: 'i' } },
+        ];
     }
 
     const posts = await BlogPost.find(filter).select('tags');

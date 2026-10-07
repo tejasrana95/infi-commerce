@@ -483,16 +483,22 @@ export async function fetchBlogPageData(
         if (search) postsUrl += `&search=${encodeURIComponent(search)}`;
 
         // Fetch posts, categories, tags, and layout in parallel
+        let categoriesUrl = `${API_BASE}/blog/categories?storeId=${storeId}`;
+        if (search) categoriesUrl += `&postSearch=${encodeURIComponent(search)}`;
+
+        let tagsUrl = `${API_BASE}/blog/tags?storeId=${storeId}`;
+        if (search) tagsUrl += `&search=${encodeURIComponent(search)}`;
+
         const [postsRes, categoriesRes, tagsRes, layout] = await Promise.all([
             fetch(postsUrl, {
                 ...getCacheOptions('blogPosts'),
                 headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
             }),
-            fetch(`${API_BASE}/blog/categories?storeId=${storeId}`, {
+            fetch(categoriesUrl, {
                 ...getCacheOptions('blogMeta'),
                 headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
             }),
-            fetch(`${API_BASE}/blog/tags?storeId=${storeId}`, {
+            fetch(tagsUrl, {
                 ...getCacheOptions('blogMeta'),
                 headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
             }),
@@ -507,7 +513,8 @@ export async function fetchBlogPageData(
         return {
             posts: postsData.data || [],
             pagination: postsData.pagination || { page: 1, limit: 12, total: 0, pages: 0 },
-            categories: categoriesData.data || categoriesData || [],
+            totalPosts: typeof categoriesData.totalPosts === 'number' ? categoriesData.totalPosts : (postsData.pagination?.total || 0),
+            categories: categoriesData.categories || categoriesData.data || [],
             tags: tagsData.data || tagsData || [],
             layout,
         };

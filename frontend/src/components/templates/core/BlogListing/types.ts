@@ -85,6 +85,7 @@ export interface BlogListingTemplateProps {
     tags: string[];
     isLoading: boolean;
     pagination: BlogPaginationState;
+    totalPosts?: number;
     currentPage: number;
     selectedCategory?: string;
     selectedTag?: string;

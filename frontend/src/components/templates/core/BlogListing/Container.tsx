@@ -21,6 +21,7 @@ interface BlogListingContainerProps {
     initialCategories: BlogCategory[];
     initialTags: string[];
     initialPagination: BlogPaginationState;
+    initialTotalPosts?: number;
     initialLayout?: any;
     page?: number;
     category?: string;
@@ -33,6 +34,7 @@ export default function BlogListingContainer({
     initialCategories = [],
     initialTags = [],
     initialPagination = { page: 1, limit: 12, total: 0, pages: 0 },
+    initialTotalPosts,
     initialLayout = null,
     page = 1,
     category,
@@ -121,6 +123,7 @@ export default function BlogListingContainer({
             tags={initialTags}
             isLoading={isLoading}
             pagination={initialPagination}
+            totalPosts={initialTotalPosts}
             currentPage={page}
             selectedCategory={category}
             selectedTag={tag}

@@ -50,7 +50,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
     }
 
     // Fetch all blog data including layout using SSR helper
-    const { posts, categories, tags, pagination, layout } = await fetchBlogPageData(
+    const { posts, categories, tags, pagination, totalPosts, layout } = await fetchBlogPageData(
         store._id,
         { page, limit: 12, category, tag, search }
     );
@@ -71,6 +71,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
                 initialCategories={categories}
                 initialTags={tags}
                 initialPagination={pagination}
+                initialTotalPosts={totalPosts}
                 initialLayout={layout}
                 page={page}
                 category={category}
