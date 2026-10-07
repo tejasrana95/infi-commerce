@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { notFound, redirect } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { fetchCategoryBySlug, fetchLayout, getServerStore } from '@/lib/api/server-store';
 import { headers } from 'next/headers';
 import { getForwardedHeaders } from '@/lib/api/forwarded-headers';
@@ -268,9 +268,9 @@ export default async function UniversalPage({ params, searchParams }: UniversalP
     // Check if this is a redirection before rendering entities
     if (resolved.type === 'redirect') {
         const destination = resolved.destination_url;
-        // Use 307 (Temporary Redirect) to preserve method and body
-        redirect(destination);
-        return; // TypeScript safety, though redirect() never returns
+        // Use 308 (Permanent Redirect) for SEO link equity and GSC validation
+        permanentRedirect(destination);
+        return; // TypeScript safety, though permanentRedirect() never returns
     }
 
     // --- PRODUCT ---

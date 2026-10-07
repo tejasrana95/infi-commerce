@@ -90,6 +90,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 1.0,
     });
 
+    // Products Catalog Landing Page
+    entries.push({
+        url: `${baseUrl}/products`,
+        lastModified: new Date(),
+        changeFrequency: 'daily',
+        priority: 0.9,
+    });
+
+    // Blog Landing Page
+    entries.push({
+        url: `${baseUrl}/blog`,
+        lastModified: new Date(),
+        changeFrequency: 'daily',
+        priority: 0.8,
+    });
+
     if (store?._id) {
         // Products
         const products = await fetchProducts(store._id);

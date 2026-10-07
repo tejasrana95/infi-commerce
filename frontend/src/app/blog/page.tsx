@@ -12,13 +12,30 @@ interface BlogPageProps {
     }>;
 }
 
-export async function generateMetadata(): Promise<Metadata> {
+import { headers } from 'next/headers';
+
+export async function generateMetadata({ searchParams }: BlogPageProps): Promise<Metadata> {
+    const params = await searchParams;
+    const store = await getServerStore();
+    const headersList = await headers();
+    const requestHost = headersList.get('host');
+    const domain = requestHost || ((store?.domains && store.domains.length > 0) ? store.domains[0] : 'localhost:3002');
+    const canonical = `https://${domain}/blog`;
+
+    // If search filter is active, don't index internal search query results
+    const hasSearch = Boolean(params.search?.trim());
+
     return {
         title: 'Blog | Latest Articles & Insights',
         description: 'Discover our latest blog posts, articles, and insights on various topics.',
+        alternates: {
+            canonical,
+        },
+        robots: hasSearch ? { index: false, follow: true } : { index: true, follow: true },
         openGraph: {
             title: 'Blog | Latest Articles & Insights',
             description: 'Discover our latest blog posts, articles, and insights on various topics.',
+            url: canonical,
             type: 'website',
         },
     };

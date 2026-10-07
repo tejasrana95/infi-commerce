@@ -5,6 +5,7 @@
 // behave identically and the SSR payload always matches the URL.
 
 import { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { getServerStore, fetchCategoryPageData } from '@/lib/api/server-store';
 import CategoryPageClient from '@/components/slug-pages/category/CategoryPageClient';
 import {
@@ -23,6 +24,9 @@ interface ProductsPageProps {
 
 export async function generateMetadata({ searchParams }: ProductsPageProps): Promise<Metadata> {
     const store = await getServerStore();
+    const headersList = await headers();
+    const requestHost = headersList.get('host');
+    const domain = requestHost || ((store?.domains && store.domains.length > 0) ? store.domains[0] : 'localhost:3002');
     const resolvedSearchParams = await searchParams;
     const params = searchParamsFromRecord(resolvedSearchParams);
     const filtered = hasActiveFilters(params);
@@ -30,7 +34,7 @@ export async function generateMetadata({ searchParams }: ProductsPageProps): Pro
     return {
         title: `All Products | ${store?.name || 'Store'}`,
         description: 'Browse our complete collection of products',
-        alternates: { canonical: '/products' },
+        alternates: { canonical: `https://${domain}/products` },
         // Filtered permutations are thin/duplicate content — don't index them.
         robots: filtered ? { index: false, follow: true } : { index: true, follow: true },
     };

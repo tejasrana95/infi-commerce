@@ -27,6 +27,9 @@ export async function generateMetadata() {
     title: store.seo?.metaTitle || store.name,
     description: store.seo?.metaDescription || store.description,
     keywords: store.seo?.metaKeywords,
+    alternates: {
+      canonical: `https://${domain}`,
+    },
     openGraph: {
       title: store.seo?.ogTitle || store.seo?.metaTitle || store.name,
       description: store.seo?.ogDescription || store.seo?.metaDescription || store.description,
