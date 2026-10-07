@@ -13,7 +13,6 @@ import { CacheKeys, CACHE_TTL } from '../utils/cache-keys';
 import {
     invalidateBlogCache,
     invalidateBlogCategoriesCache,
-    invalidateBlogPostsCache,
 } from '../utils/cache-invalidation';
 
 
@@ -286,7 +285,8 @@ export const getBlogCategoryById = asyncHandler(async (req: AuthRequest, res: Re
 
     const cached = await redisService.get<any>(cacheKey);
     if (cached) {
-        return res.json(cached);
+        res.json(cached);
+        return;
     }
 
     const category = await BlogCategory.findById(id).populate('storeId', 'name slug');
@@ -639,7 +639,8 @@ export const getBlogPostById = asyncHandler(async (req: AuthRequest, res: Respon
 
     const cached = await redisService.get<any>(cacheKey);
     if (cached) {
-        return res.json(cached);
+        res.json(cached);
+        return;
     }
 
     const post = await BlogPost.findById(id)
@@ -685,7 +686,8 @@ export const getBlogPostBySlug = asyncHandler(async (req: AuthRequest, res: Resp
     const cacheKey = CacheKeys.blogPostSlug((storeId || 'all').toString(), slug);
     const cached = await redisService.get<any>(cacheKey);
     if (cached) {
-        return res.json(cached);
+        res.json(cached);
+        return;
     }
 
     const post = await BlogPost.findOne(filter)
@@ -740,7 +742,8 @@ export const getPopularTags = asyncHandler(async (req: AuthRequest, res: Respons
 
         const cached = await redisService.get<any>(cacheKey);
         if (cached) {
-            return res.json(cached);
+            res.json(cached);
+            return;
         }
     }
 
