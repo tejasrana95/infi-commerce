@@ -242,6 +242,57 @@ export const invalidateBannerCache = async (storeId: string): Promise<void> => {
 };
 
 /**
+ * Invalidate blog categories cache for a store
+ * @param storeId The store ID
+ */
+export const invalidateBlogCategoriesCache = async (storeId: string): Promise<void> => {
+    await redisService.deleteByPattern(InvalidationPatterns.allBlogCategories(storeId));
+};
+
+/**
+ * Invalidate blog posts cache for a store
+ * @param storeId The store ID
+ * @param slug Optional blog post slug to also invalidate individual post cache
+ * @param postId Optional blog post ID
+ */
+export const invalidateBlogPostsCache = async (
+    storeId: string,
+    slug?: string,
+    postId?: string
+): Promise<void> => {
+    const promises: Promise<any>[] = [
+        redisService.deleteByPattern(InvalidationPatterns.allBlogPosts(storeId)),
+        redisService.deleteByPattern(InvalidationPatterns.allBlogTags(storeId)),
+    ];
+
+    if (slug) {
+        promises.push(redisService.delete(CacheKeys.blogPostSlug(storeId, slug)));
+    }
+    if (postId) {
+        promises.push(redisService.delete(CacheKeys.blogPostById(postId)));
+    }
+
+    await Promise.all(promises);
+};
+
+/**
+ * Invalidate all blog cache (categories, posts, tags) for a store
+ * @param storeId The store ID
+ * @param slug Optional blog post slug
+ * @param postId Optional blog post ID
+ */
+export const invalidateBlogCache = async (
+    storeId: string,
+    slug?: string,
+    postId?: string
+): Promise<void> => {
+    await Promise.all([
+        invalidateBlogCategoriesCache(storeId),
+        invalidateBlogPostsCache(storeId, slug, postId),
+    ]);
+};
+
+/**
  * Invalidate all cache for a store (nuclear option)
  * Use sparingly - prefer specific invalidation functions
  * @param storeId The store ID
@@ -250,6 +301,7 @@ export const invalidateAllStoreCache = async (storeId: string): Promise<void> =>
     await Promise.all([
         invalidateStoreCache(storeId),
         invalidateCategoryCache(storeId),
+        invalidateBlogCache(storeId),
         invalidateMenuCache(storeId),
         invalidateBrandCache(storeId),
         invalidateShippingCache(storeId),

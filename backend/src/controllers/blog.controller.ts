@@ -6,7 +6,15 @@ import User from '../models/User';
 import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import mongoose from 'mongoose';
+import crypto from 'crypto';
 import { triggerRevalidation } from '../utils/revalidation';
+import redisService from '../services/redis.service';
+import { CacheKeys, CACHE_TTL } from '../utils/cache-keys';
+import {
+    invalidateBlogCache,
+    invalidateBlogCategoriesCache,
+    invalidateBlogPostsCache,
+} from '../utils/cache-invalidation';
 
 
 // --- Blog Categories ---
@@ -74,6 +82,8 @@ export const createBlogCategory = asyncHandler(async (req: AuthRequest, res: Res
         sortOrder: sortOrder || 0,
     });
 
+    await invalidateBlogCategoriesCache(storeId.toString());
+
     res.status(201).json({
         message: 'Blog category created successfully',
         category,
@@ -113,6 +123,26 @@ export const getBlogCategories = asyncHandler(async (req: AuthRequest, res: Resp
         const storeId = req.headers['x-store-id'] || req.query.storeId;
         if (storeId) {
             filter.storeId = new mongoose.Types.ObjectId(storeId as string);
+        }
+    }
+
+    const bypassCache = req.query.cache === 'false' || req.query.nocache === 'true';
+    const canUseCache = !bypassCache && !req.user;
+    let cacheKey = '';
+
+    if (canUseCache) {
+        const rawStoreId = (req.headers['x-store-id'] || req.query.storeId || 'all') as string;
+        const normalizedQuery = Object.keys(req.query)
+            .filter((k) => k !== 'cache' && k !== 'nocache')
+            .sort()
+            .map((k) => `${k}=${String(req.query[k])}`)
+            .join('&');
+        const queryHash = crypto.createHash('md5').update(normalizedQuery).digest('hex');
+        cacheKey = CacheKeys.blogCategories(rawStoreId, queryHash);
+
+        const cached = await redisService.get<any>(cacheKey);
+        if (cached) {
+            return res.json(cached);
         }
     }
 
@@ -213,7 +243,7 @@ export const getBlogCategories = asyncHandler(async (req: AuthRequest, res: Resp
     const categories = result.data;
     const total = result.total[0]?.count || 0;
 
-    return res.json({
+    const responsePayload = {
         success: true,
         categories: categories, // Returning as 'categories' to match other endpoints, or 'data' for compat
         data: categories, // Keep 'data' for backward compatibility
@@ -224,7 +254,13 @@ export const getBlogCategories = asyncHandler(async (req: AuthRequest, res: Resp
             limit,
             pages: Math.ceil(total / limit)
         }
-    });
+    };
+
+    if (canUseCache && cacheKey) {
+        await redisService.set(cacheKey, responsePayload, CACHE_TTL.BLOG_CATEGORIES);
+    }
+
+    return res.json(responsePayload);
 });
 
 /**
@@ -245,11 +281,23 @@ export const getBlogCategories = asyncHandler(async (req: AuthRequest, res: Resp
  *         description: Category not found
  */
 export const getBlogCategoryById = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const category = await BlogCategory.findById(req.params.id).populate('storeId', 'name slug')
+    const { id } = req.params;
+    const cacheKey = CacheKeys.blogCategoryById(id);
+
+    const cached = await redisService.get<any>(cacheKey);
+    if (cached) {
+        return res.json(cached);
+    }
+
+    const category = await BlogCategory.findById(id).populate('storeId', 'name slug');
     if (!category) {
         throw new AppError('Category not found', 404);
     }
-    res.json({ category });
+
+    const payload = { category };
+    await redisService.set(cacheKey, payload, CACHE_TTL.BLOG_CATEGORIES);
+
+    res.json(payload);
 });
 
 /**
@@ -301,6 +349,11 @@ export const updateBlogCategory = asyncHandler(async (req: AuthRequest, res: Res
     Object.assign(category, updates);
     await category.save();
 
+    await Promise.all([
+        invalidateBlogCategoriesCache(category.storeId.toString()),
+        redisService.delete(CacheKeys.blogCategoryById(id)),
+    ]);
+
     res.json({
         message: 'Category updated successfully',
         category,
@@ -348,6 +401,12 @@ export const deleteBlogCategory = asyncHandler(async (req: AuthRequest, res: Res
     }
 
     await category.deleteOne();
+
+    await Promise.all([
+        invalidateBlogCategoriesCache(category.storeId.toString()),
+        redisService.delete(CacheKeys.blogCategoryById(category._id.toString())),
+    ]);
+
     res.json({ message: 'Category deleted successfully' });
 });
 
@@ -418,6 +477,8 @@ export const createBlogPost = asyncHandler(async (req: AuthRequest, res: Respons
         author: postAuthor,
     });
 
+    await invalidateBlogCache(storeId.toString(), post.slug, post._id.toString());
+
     res.status(201).json({
         message: 'Blog post created successfully',
         post,
@@ -461,6 +522,26 @@ export const getBlogPosts = asyncHandler(async (req: AuthRequest, res: Response)
         if (storeId) {
             filter.storeId = new mongoose.Types.ObjectId(storeId as string);
             storeIdToUse = storeId;
+        }
+    }
+
+    const bypassCache = req.query.cache === 'false' || req.query.nocache === 'true';
+    const canUseCache = !bypassCache && !req.user;
+    let cacheKey = '';
+
+    if (canUseCache) {
+        const rawStoreId = (req.headers['x-store-id'] || req.query.storeId || 'all') as string;
+        const normalizedQuery = Object.keys(req.query)
+            .filter((k) => k !== 'cache' && k !== 'nocache')
+            .sort()
+            .map((k) => `${k}=${String(req.query[k])}`)
+            .join('&');
+        const queryHash = crypto.createHash('md5').update(normalizedQuery).digest('hex');
+        cacheKey = CacheKeys.blogPostsList(rawStoreId, queryHash);
+
+        const cached = await redisService.get<any>(cacheKey);
+        if (cached) {
+            return res.json(cached);
         }
     }
 
@@ -520,7 +601,7 @@ export const getBlogPosts = asyncHandler(async (req: AuthRequest, res: Response)
 
     const total = await BlogPost.countDocuments(filter);
 
-    return res.json({
+    const responsePayload = {
         data: posts,
         pagination: {
             total,
@@ -528,7 +609,13 @@ export const getBlogPosts = asyncHandler(async (req: AuthRequest, res: Response)
             pages: Math.ceil(total / Number(limit)),
             limit: Number(limit),
         }
-    });
+    };
+
+    if (canUseCache && cacheKey) {
+        await redisService.set(cacheKey, responsePayload, CACHE_TTL.BLOG_POSTS);
+    }
+
+    return res.json(responsePayload);
 });
 
 /**
@@ -547,7 +634,15 @@ export const getBlogPosts = asyncHandler(async (req: AuthRequest, res: Response)
  *         description: Post retrieved successfully
  */
 export const getBlogPostById = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const post = await BlogPost.findById(req.params.id)
+    const { id } = req.params;
+    const cacheKey = CacheKeys.blogPostById(id);
+
+    const cached = await redisService.get<any>(cacheKey);
+    if (cached) {
+        return res.json(cached);
+    }
+
+    const post = await BlogPost.findById(id)
         .populate('categoryIds')
         .populate('author.userId', 'username email');
 
@@ -555,7 +650,10 @@ export const getBlogPostById = asyncHandler(async (req: AuthRequest, res: Respon
         throw new AppError('Post not found', 404);
     }
 
-    res.json({ post });
+    const payload = { post };
+    await redisService.set(cacheKey, payload, CACHE_TTL.BLOG_POST_DETAIL);
+
+    res.json(payload);
 });
 
 /**
@@ -584,6 +682,12 @@ export const getBlogPostBySlug = asyncHandler(async (req: AuthRequest, res: Resp
         filter.storeId = storeId;
     }
 
+    const cacheKey = CacheKeys.blogPostSlug((storeId || 'all').toString(), slug);
+    const cached = await redisService.get<any>(cacheKey);
+    if (cached) {
+        return res.json(cached);
+    }
+
     const post = await BlogPost.findOne(filter)
         .populate('categoryIds', 'name slug path parentId level')
         .populate('author.userId', 'firstName lastName');
@@ -592,7 +696,10 @@ export const getBlogPostBySlug = asyncHandler(async (req: AuthRequest, res: Resp
         throw new AppError('Post not found', 404);
     }
 
-    res.json({ data: post });
+    const payload = { data: post };
+    await redisService.set(cacheKey, payload, CACHE_TTL.BLOG_POST_DETAIL);
+
+    res.json(payload);
 });
 
 /**
@@ -617,6 +724,26 @@ export const getPopularTags = asyncHandler(async (req: AuthRequest, res: Respons
         filter.storeId = storeId;
     }
 
+    const bypassCache = req.query.cache === 'false' || req.query.nocache === 'true';
+    const canUseCache = !bypassCache && !req.user;
+    let cacheKey = '';
+
+    if (canUseCache) {
+        const rawStoreId = (storeId || 'all').toString();
+        const normalizedQuery = Object.keys(req.query)
+            .filter((k) => k !== 'cache' && k !== 'nocache')
+            .sort()
+            .map((k) => `${k}=${String(req.query[k])}`)
+            .join('&');
+        const queryHash = crypto.createHash('md5').update(normalizedQuery).digest('hex');
+        cacheKey = CacheKeys.blogTags(rawStoreId, queryHash);
+
+        const cached = await redisService.get<any>(cacheKey);
+        if (cached) {
+            return res.json(cached);
+        }
+    }
+
     if (search) {
         filter.$or = [
             { title: { $regex: search as string, $options: 'i' } },
@@ -639,7 +766,13 @@ export const getPopularTags = asyncHandler(async (req: AuthRequest, res: Respons
         .slice(0, Number(limit))
         .map(([tag]) => tag);
 
-    res.json({ data: sortedTags });
+    const payload = { data: sortedTags };
+
+    if (canUseCache && cacheKey) {
+        await redisService.set(cacheKey, payload, CACHE_TTL.BLOG_CATEGORIES);
+    }
+
+    res.json(payload);
 });
 
 /**
@@ -667,6 +800,12 @@ export const trackBlogView = asyncHandler(async (req: AuthRequest, res: Response
     if (!post) {
         throw new AppError('Post not found', 404);
     }
+
+    // Invalidate cached post detail
+    await Promise.all([
+        redisService.delete(CacheKeys.blogPostById(req.params.id)),
+        redisService.delete(CacheKeys.blogPostSlug(post.storeId.toString(), post.slug)),
+    ]);
 
     res.json({ success: true });
 });
@@ -696,6 +835,12 @@ export const likeBlogPost = asyncHandler(async (req: AuthRequest, res: Response)
     if (!post) {
         throw new AppError('Post not found', 404);
     }
+
+    // Invalidate cached post detail
+    await Promise.all([
+        redisService.delete(CacheKeys.blogPostById(req.params.id)),
+        redisService.delete(CacheKeys.blogPostSlug(post.storeId.toString(), post.slug)),
+    ]);
 
     res.json({ success: true, likeCount: post.likeCount });
 });
@@ -734,6 +879,7 @@ export const updateBlogPost = asyncHandler(async (req: AuthRequest, res: Respons
         }
     }
 
+    const oldSlug = post.slug;
     if (updates.slug && updates.slug !== post.slug) {
         const existing = await BlogPost.findOne({
             storeId: post.storeId,
@@ -748,6 +894,12 @@ export const updateBlogPost = asyncHandler(async (req: AuthRequest, res: Respons
     delete updates.storeId;
     Object.assign(post, updates);
     await post.save();
+
+    // Invalidate blog caches (categories, posts listing, tag counts, individual post by id & slugs)
+    await invalidateBlogCache(post.storeId.toString(), post.slug, post._id.toString());
+    if (oldSlug && oldSlug !== post.slug) {
+        await redisService.delete(CacheKeys.blogPostSlug(post.storeId.toString(), oldSlug));
+    }
 
     // Trigger frontend cache revalidation
     triggerRevalidation(post.storeId.toString(), 'blog', post.slug).catch(err => {
@@ -788,13 +940,16 @@ export const deleteBlogPost = asyncHandler(async (req: AuthRequest, res: Respons
         throw new AppError('Post not found', 404);
     }
 
-    // Update category counts
+    // Update category counts in database
     if (post.categoryIds && post.categoryIds.length > 0) {
         for (const catId of post.categoryIds) {
             const count = await BlogPost.countDocuments({ categoryIds: catId, status: 'published' });
             await BlogCategory.updateOne({ _id: catId }, { postCount: count });
         }
     }
+
+    // Invalidate blog caches (categories, posts, tags, single post)
+    await invalidateBlogCache(post.storeId.toString(), post.slug, post._id.toString());
 
     res.json({ message: 'Post deleted successfully' });
 });
