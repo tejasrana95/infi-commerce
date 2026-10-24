@@ -805,7 +805,8 @@ export const getCategoryFilters = asyncHandler(async (req: AuthRequest, res: Res
     const filtersCacheKey = `categories:filters:${storeId}:${id}:${channel}`;
     const cachedFilters = await redisService.get<any>(filtersCacheKey);
     if (cachedFilters) {
-        return res.json(cachedFilters);
+        res.json(cachedFilters);
+        return;
     }
 
     let categoryIds: string[] | null = null;
