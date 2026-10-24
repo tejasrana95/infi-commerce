@@ -49,8 +49,12 @@ async function resolveSlug(storeId: string, slug: string) {
         });
 
         if (!response.ok) {
-            // Cache 404s for 1 hour to prevent API hammering
-            await serverCacheSet(cacheKey, { type: '404' }, 60 * 60);
+            // Only cache genuine 404s — transient errors (429 rate-limit, 5xx)
+            // must NOT poison the slug cache for an hour, as the next request
+            // would serve a false 404 to the visitor on the same worker process.
+            if (response.status === 404) {
+                await serverCacheSet(cacheKey, { type: '404' }, 60 * 60);
+            }
             return null;
         }
         

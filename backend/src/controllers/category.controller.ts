@@ -800,6 +800,14 @@ export const getCategoryFilters = asyncHandler(async (req: AuthRequest, res: Res
         throw new AppError('storeId is required', 400);
     }
 
+    // Cache key: category filters are expensive aggregations; cache for 15 minutes.
+    const channel = req.channel || 'all';
+    const filtersCacheKey = `categories:filters:${storeId}:${id}:${channel}`;
+    const cachedFilters = await redisService.get<any>(filtersCacheKey);
+    if (cachedFilters) {
+        return res.json(cachedFilters);
+    }
+
     let categoryIds: string[] | null = null;
     let category = null;
 
@@ -1018,7 +1026,7 @@ export const getCategoryFilters = asyncHandler(async (req: AuthRequest, res: Res
         };
     }).filter((attr: any) => attr.values.length > 0); // Only return attributes with values in this category
 
-    res.json({
+    const filtersPayload = {
         priceRange: priceRange[0] || { minPrice: 0, maxPrice: 0 },
         brands,
         tags,
@@ -1029,7 +1037,13 @@ export const getCategoryFilters = asyncHandler(async (req: AuthRequest, res: Res
         availability,
         subcategories,
         attributes,
-    });
+    };
+
+    // Cache for 15 minutes — short enough to reflect new products/attributes
+    // but long enough to eliminate duplicate heavy aggregations under SSR load.
+    await redisService.set(filtersCacheKey, filtersPayload, 15 * 60);
+
+    res.json(filtersPayload);
 });
 
 /**

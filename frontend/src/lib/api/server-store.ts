@@ -110,9 +110,14 @@ export interface CategoryData {
 // category, so the second call is free.
 export const fetchCategoryBySlug = cache(async (storeId: string, slug: string): Promise<CategoryData | null> => {
     try {
+        const forwardedHeaders = await getForwardedHeaders();
         const res = await fetch(`${API_BASE}/categories/slug/${storeId}/${slug}`, {
             ...getCacheOptions('categoryData'),
-            headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB',
+                ...forwardedHeaders,
+            },
         });
 
         if (!res.ok) return null;
@@ -170,9 +175,14 @@ export async function fetchCategoryProducts(
             if (filterQuery) url += `&${filterQuery}`;
         }
 
+        const forwardedHeaders = await getForwardedHeaders();
         const res = await fetch(url, {
             ...getCacheOptions('productList'),
-            headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB',
+                ...forwardedHeaders,
+            },
         });
 
         if (!res.ok) return { products: [], pagination: null };
@@ -192,11 +202,16 @@ export async function fetchCategoryProducts(
  */
 export async function fetchCategoryFilters(storeId: string, categoryId: string): Promise<any | null> {
     try {
+        const forwardedHeaders = await getForwardedHeaders();
         const res = await fetch(
             `${API_BASE}/categories/${categoryId}/filters?storeId=${storeId}`,
             {
                 ...getCacheOptions('filters'),
-                headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB',
+                    ...forwardedHeaders,
+                },
             }
         );
 
@@ -213,11 +228,16 @@ export async function fetchCategoryFilters(storeId: string, categoryId: string):
  */
 export async function fetchProductFilters(storeId: string): Promise<any | null> {
     try {
+        const forwardedHeaders = await getForwardedHeaders();
         const res = await fetch(
             `${API_BASE}/products/filters?storeId=${storeId}`,
             {
                 ...getCacheOptions('filters'),
-                headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB',
+                    ...forwardedHeaders,
+                },
             }
         );
 
@@ -244,9 +264,14 @@ export async function fetchLayout(storeId: string, type: string, slug?: string):
             url += `&slug=${encodeURIComponent(slug)}`;
         }
 
+        const forwardedHeaders = await getForwardedHeaders();
         const res = await fetch(url, {
             ...getCacheOptions('layout'),
-            headers: { 'Content-Type': 'application/json', 'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB' },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-channel': process.env.NEXT_PUBLIC_CHANNEL_CODE || 'WEB',
+                ...forwardedHeaders,
+            },
         });
 
         if (!res.ok) return null;

@@ -60,6 +60,8 @@ export const invalidateCategoryCache = async (storeId: string): Promise<void> =>
         redisService.deleteByPattern(InvalidationPatterns.allCategories(storeId)),
         redisService.deleteByPattern(InvalidationPatterns.allCategoryLists()),
         redisService.delete(CacheKeys.categoryTree(storeId)),
+        // Also clear category filters cache — category tree changes affect subcategory filters
+        redisService.deleteByPattern(`categories:filters:${storeId}:*`),
     ]);
 };
 
@@ -128,6 +130,8 @@ export const invalidateProductCache = async (
 ): Promise<void> => {
     const deletes: Promise<any>[] = [
         redisService.deleteByPattern(InvalidationPatterns.allProductsList(storeId)),
+        // Category filters include product counts/brands/attributes — invalidate when products change
+        redisService.deleteByPattern(`categories:filters:${storeId}:*`),
     ];
     if (productId) {
         deletes.push(redisService.delete(CacheKeys.productId(productId)));

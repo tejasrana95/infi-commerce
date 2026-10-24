@@ -1144,7 +1144,9 @@ export const getProducts = asyncHandler(async (req: AuthRequest, res: Response) 
         didYouMean: didYouMean || undefined,
     };
 
-    if (canUseCache && cacheKey) {
+    // Never cache an empty product list: a transient failure (slow aggregation,
+    // momentary DB error) returning [] would poison Redis for the full TTL.
+    if (canUseCache && cacheKey && responseData.products.length > 0) {
         await redisService.set(cacheKey, responseData, CACHE_TTL.PRODUCTS);
     }
 

@@ -362,9 +362,12 @@ function ModernCleanCategoryPageTemplateBase({
         [config.grid?.productsPerRow]
     );
 
-    // Check if filters are enabled at all (regardless of position)
-    // Check if filters are enabled at all (regardless of position)
-    const hasFilters = config.filters?.enabled && (availableFilters != null || isLoading);
+    // Show sidebar whenever filters are enabled in the store config — even if
+    // the SSR filter fetch failed (availableFilters === null).  Tying sidebar
+    // visibility to filter data causes it to disappear intermittently on prod
+    // when the category-filters aggregation is slow or rate-limited.
+    // CategoryFilters already handles null availableFilters gracefully.
+    const hasFilters = config.filters?.enabled === true;
 
     // State for collapsible description
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(
