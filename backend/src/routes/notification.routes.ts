@@ -27,12 +27,10 @@ import {
 } from '../controllers/notification.controller';
 import { authenticate, authorize } from '../middleware/auth';
 import { validate } from '../middleware/validation';
-import { localIpOnly } from '../middleware/localIpAuth';
-
 const router = Router();
 
-// Cron endpoint (local IP restricted) - must be before authenticate
-router.get('/processQueue', localIpOnly, processQueueAutomated);
+// Cron endpoint - must be before authenticate
+router.get('/processQueue', processQueueAutomated);
 
 // All other routes require authentication
 router.use(authenticate);
