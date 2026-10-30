@@ -1,155 +1,103 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React from 'react';
+import * as LucideIcons from 'lucide-react';
 import dynamic from 'next/dynamic';
 
-import IconSkeleton from './icons/IconSkeleton';
-
-// ---------------------------------------------------------------------------
-// Prefix-based icon sets (loaded lazily, one chunk each).
-// ---------------------------------------------------------------------------
 const FaIconSet = dynamic(() => import('./icons/FaIcon'), { ssr: false });
-const MdIconSet = dynamic(() => import('./icons/MdIcon'), { ssr: false });
-const BiIconSet = dynamic(() => import('./icons/BiIcon'), { ssr: false });
-const IoIconSet = dynamic(() => import('./icons/IoIcon'), { ssr: false });
-const AiIconSet = dynamic(() => import('./icons/AiIcon'), { ssr: false });
-const BsIconSet = dynamic(() => import('./icons/BsIcon'), { ssr: false });
-const HiIconSet = dynamic(() => import('./icons/HiIcon'), { ssr: false });
-const RiIconSet = dynamic(() => import('./icons/RiIcon'), { ssr: false });
-
-// ---------------------------------------------------------------------------
-// Lucide icon map — LAZY, and this matters a lot.
-//
-// `lucide-react/dynamicIconImports` is a static map of EVERY lucide icon
-// (~3,200 inline SVG paths ≈ 2 MB). Importing it at module scope put all of
-// that on the critical path of every page that renders a <DynamicIcon>.
-//
-// We now fetch it only after mount, so it lands in its own async chunk and is
-// never part of the initial/shared bundle.
-// ---------------------------------------------------------------------------
-type LucideIconModule = { default: React.ComponentType<any> };
-type LucideIconMap = Record<string, () => Promise<LucideIconModule>>;
-
-let lucideIconMapPromise: Promise<LucideIconMap> | null = null;
-
-function loadLucideIconMap(): Promise<LucideIconMap> {
-    if (!lucideIconMapPromise) {
-        lucideIconMapPromise = import('lucide-react/dynamicIconImports').then(
-            (mod: any) => (mod.default ?? mod) as LucideIconMap
-        );
-    }
-    return lucideIconMapPromise;
-}
 
 interface DynamicIconProps {
     name: string;
     className?: string;
     size?: number;
+    color?: string;
 }
 
 const ICON_ALIASES: Record<string, string> = {
+    // Material Design aliases
     MdClose: 'X',
     MdCheck: 'Check',
     MdOutlineCookie: 'Cookie',
     MdOutlineSwapHoriz: 'ArrowRightLeft',
     MdOutlineKeyboardReturn: 'Undo2',
-    FaStar: 'Star',
-    FaArrowRight: 'ArrowRight',
-    FaArrowLeft: 'ArrowLeft',
-    FaChevronLeft: 'ChevronLeft',
-    FaChevronRight: 'ChevronRight',
-    FaFacebook: 'Facebook',
-    FaFacebookF: 'Facebook',
-    FaTwitter: 'Twitter',
-    FaInstagram: 'Instagram',
-    FaLinkedin: 'Linkedin',
-    FaLinkedinIn: 'Linkedin',
-    FaYoutube: 'Youtube',
-    FaPhone: 'Phone',
-    FaPhoneAlt: 'Phone',
+    MdOutlineAddShoppingCart: 'ShoppingCart',
+    MdShoppingCartCheckout: 'ShoppingBag',
+    MdPhotoSizeSelectSmall: 'Maximize',
+
+    // BoxIcons aliases
+    BiCheckShield: 'ShieldCheck',
+    BiSupport: 'Headset',
+
+    // FontAwesome aliases
+    FaShippingFast: 'Truck',
+    FaTools: 'Wrench',
+    FaHeadset: 'Headset',
+    FaRegStar: 'Star',
+    FaRegHeart: 'Heart',
     FaEnvelope: 'Mail',
     FaMapMarkerAlt: 'MapPin',
-    FaSearch: 'Search',
-    FaShoppingCart: 'ShoppingCart',
-    FaUser: 'User',
+    FaShieldAlt: 'Shield',
+    FaPhoneAlt: 'Phone',
 };
 
-/** `LucideGithub` -> `Github`, `ArrowDown01Icon` -> `ArrowDown01` */
-function normalizeIconName(name: string): string {
-    let normalized = name.startsWith('Lucide') ? name.slice('Lucide'.length) : name;
-    if (normalized.endsWith('Icon') && normalized.length > 4) {
-        normalized = normalized.slice(0, -4);
+/** Normalize icon name to PascalCase for Lucide matching */
+function normalizeIconName(raw: string): string {
+    let name = raw.trim();
+    if (name.startsWith('Lucide')) {
+        name = name.slice(6);
     }
-    return normalized;
+    if (name.endsWith('Icon') && name.length > 4) {
+        name = name.slice(0, -4);
+    }
+    return name;
 }
 
-/** PascalCase -> kebab-case: `AlertCircle` -> `alert-circle`, `ArrowDown01` -> `arrow-down-01` */
-function toKebabCase(name: string): string {
-    return name
-        .replace(/([a-z])([A-Z0-9])/g, '$1-$2')
-        .replace(/([0-9])([a-zA-Z])/g, '$1-$2')
-        .toLowerCase();
-}
-
-export default function DynamicIcon({ name, className, size = 24 }: DynamicIconProps) {
-    const [iconMap, setIconMap] = useState<LucideIconMap | null>(null);
-
-    useEffect(() => {
-        let alive = true;
-        loadLucideIconMap()
-            .then((map) => {
-                if (alive) setIconMap(map);
-            })
-            .catch(() => {
-                /* fall back to the prefixed sets */
-            });
-        return () => {
-            alive = false;
-        };
-    }, []);
-
-    const aliasedName = name ? ICON_ALIASES[name] || name : '';
-    const normalizedName = useMemo(() => (aliasedName ? normalizeIconName(aliasedName) : ''), [aliasedName]);
-    const lucideName = useMemo(() => (normalizedName ? toKebabCase(normalizedName) : ''), [normalizedName]);
-
-    // Resolve the concrete lucide component once per icon, not per render.
-    const LucideIcon = useMemo(() => {
-        const importer = iconMap?.[lucideName];
-        if (!importer) return null;
-        return dynamic(importer, {
-            ssr: false,
-            loading: () => <IconSkeleton size={size} />,
-        });
-    }, [iconMap, lucideName, size]);
-
-    const wrap = (node: React.ReactNode) => (
-        <span
-            className={`inline-flex items-center justify-center empty:animate-pulse empty:bg-current empty:opacity-10 empty:rounded-md ${className || ''}`}
-            style={{ width: size, height: size, minWidth: size, minHeight: size }}
-        >
-            {node}
-        </span>
-    );
-
+export default function DynamicIcon({ name, className, size = 24, color }: DynamicIconProps) {
     if (!name) return null;
 
-    // 1. Prefixed icon sets (unambiguous, so resolve them immediately).
-    if (normalizedName.startsWith('Md')) return wrap(<MdIconSet name={name} className={className} size={size} />);
-    if (normalizedName.startsWith('Bi')) return wrap(<BiIconSet name={name} className={className} size={size} />);
-    if (normalizedName.startsWith('Io')) return wrap(<IoIconSet name={name} className={className} size={size} />);
-    if (normalizedName.startsWith('Ai')) return wrap(<AiIconSet name={name} className={className} size={size} />);
-    if (normalizedName.startsWith('Bs')) return wrap(<BsIconSet name={name} className={className} size={size} />);
-    if (normalizedName.startsWith('Hi')) return wrap(<HiIconSet name={name} className={className} size={size} />);
-    if (normalizedName.startsWith('Ri')) return wrap(<RiIconSet name={name} className={className} size={size} />);
-    if (normalizedName.startsWith('Fa')) return wrap(<FaIconSet name={name} className={className} size={size} />);
+    // 1. Check direct aliases first
+    const aliased = ICON_ALIASES[name] || name;
+    const normalized = normalizeIconName(aliased);
 
-    // 2. Lucide (once the name map has arrived).
-    if (LucideIcon) return wrap(<LucideIcon className={className} size={size} />);
+    // 2. Try Lucide icon directly with exact name (e.g. "Truck", "Star", "PackageCheck")
+    const LucideDirect = (LucideIcons as any)[normalized];
+    if (LucideDirect) {
+        const Component = LucideDirect;
+        return (
+            <span
+                className={`inline-flex items-center justify-center ${className || ''}`}
+                style={{ width: size, height: size, minWidth: size, minHeight: size }}
+            >
+                <Component size={size} color={color} />
+            </span>
+        );
+    }
 
-    // 3. Still waiting for the map — show a sized placeholder instead of
-    //    eagerly pulling in a whole FontAwesome set.
-    if (!iconMap) return wrap(<IconSkeleton size={size} />);
+    // 3. If prefixed with "Fa", strip "Fa" and check if Lucide has it (e.g. "FaTruck" -> "Truck", "FaHeart" -> "Heart")
+    if (normalized.startsWith('Fa') && normalized.length > 2) {
+        const strippedFa = normalized.slice(2);
+        const LucideStripped = (LucideIcons as any)[strippedFa];
+        if (LucideStripped) {
+            const Component = LucideStripped;
+            return (
+                <span
+                    className={`inline-flex items-center justify-center ${className || ''}`}
+                    style={{ width: size, height: size, minWidth: size, minHeight: size }}
+                >
+                    <Component size={size} color={color} />
+                </span>
+            );
+        }
+    }
 
-    // 4. Legacy fallback: assume FontAwesome.
-    return wrap(<FaIconSet name={`Fa${name}`} className={className} size={size} />);
+    // 4. Last-resort fallback: Use curated tree-shaked FontAwesome set (e.g. WhatsApp, Telegram, PayPal, etc.)
+    const faName = normalized.startsWith('Fa') ? normalized : `Fa${normalized}`;
+    return (
+        <span
+            className={`inline-flex items-center justify-center ${className || ''}`}
+            style={{ width: size, height: size, minWidth: size, minHeight: size }}
+        >
+            <FaIconSet name={faName} className={className} size={size} style={{ color }} />
+        </span>
+    );
 }

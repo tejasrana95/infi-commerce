@@ -45,6 +45,7 @@ import DvrIcon from '@mui/icons-material/Dvr';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import FolderIcon from '@mui/icons-material/Folder';
 import LabelImportantIcon from '@mui/icons-material/LabelImportant';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -166,6 +167,7 @@ const navigationItems: NavItem[] = [
       { name: 'Notification Templates', href: '/notification-templates', icon: <DescriptionIcon /> },
       { name: 'Stores', href: '/stores', icon: <StoreIcon /> },
       { name: 'Settings', href: '/settings', icon: <SettingsOutlinedIcon /> },
+      { name: 'Config Status', href: '/settings/status', icon: <CheckCircleOutlineIcon /> },
       { name: 'Activity Logs', href: '/activity-logs', icon: <DvrIcon /> },
 
     ],

@@ -25,6 +25,7 @@ import CookieIcon from '@mui/icons-material/Cookie';
 import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
 import FindReplaceIcon from '@mui/icons-material/FindReplace';
 import PinterestIcon from '@mui/icons-material/Pinterest';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PageHeader from '@/components/molecules/PageHeader';
 
 interface SettingCard {
@@ -58,6 +59,16 @@ export default function SettingsPage() {
     }
 
     const settingsCards: SettingCard[] = [
+        {
+            title: 'Configuration Status',
+            description: 'Monitor integration health, active payment gateways, AI & Telegram setup, and sanitized credentials per store.',
+            icon: <CheckCircleIcon sx={{ fontSize: 32 }} />,
+            link: '/settings/status',
+            badge: 'Audit & Health',
+            badgeColor: 'info',
+            color: '#0284c7',
+            enabled: true
+        },
         {
             title: 'General Settings',
             description: 'Configure global admin branding, company information, and system-wide parameters.',

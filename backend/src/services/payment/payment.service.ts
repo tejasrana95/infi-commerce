@@ -2,7 +2,7 @@ import PaymentGatewayConfig from '../../models/PaymentGatewayConfig';
 import GeoGroup from '../../models/GeoGroup';
 import { PaymentGatewayFactory } from './payment-gateway.factory';
 import { IPaymentGateway } from './payment-gateway.interface';
-import { decrypt } from '../../utils/encryption.utils';
+import { decryptCredentials } from '../../utils/encryption.utils';
 
 /**
  * Payment Service
@@ -129,10 +129,8 @@ export class PaymentService {
             throw new Error(`Payment gateway ${params.gatewayType} not configured for this store`);
         }
 
-        // Decrypt credentials before usage
-        const decryptedCredentials = typeof config.credentials === 'string'
-            ? decrypt(config.credentials)
-            : config.credentials;
+        // Decrypt credentials before usage (handles both legacy and field-level)
+        const decryptedCredentials = decryptCredentials(config.credentials);
 
         // Guard against mode/credential mismatch that causes "always test" behavior.
         if (config.gatewayType === 'razorpay' && config.isTestMode === false) {
@@ -169,10 +167,8 @@ export class PaymentService {
             throw new Error(`Payment gateway ${params.gatewayType} not configured`);
         }
 
-        // Decrypt credentials before returning
-        const decryptedCredentials = typeof config.credentials === 'string'
-            ? decrypt(config.credentials)
-            : config.credentials;
+        // Decrypt credentials before returning (handles both legacy and field-level)
+        const decryptedCredentials = decryptCredentials(config.credentials);
 
         // Return config with decrypted credentials
         return {

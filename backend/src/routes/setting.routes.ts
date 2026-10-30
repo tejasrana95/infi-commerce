@@ -8,10 +8,26 @@ import {
     updatePosPwaSettings,
     getSearchReplaceTables,
     runSearchReplace,
+    getStoreConfigStatus,
 } from '../controllers/setting.controller';
 import { authenticate, authorize } from '../middleware/auth';
 
 const router = Router();
+
+// Store configuration status (read-only, sanitized, non-public)
+router.get(
+    '/config-status',
+    authenticate,
+    authorize('admin', 'store_admin', 'super_admin'),
+    getStoreConfigStatus
+);
+
+router.get(
+    '/config-status/:storeId',
+    authenticate,
+    authorize('admin', 'store_admin', 'super_admin'),
+    getStoreConfigStatus
+);
 
 // Publicly accessible for login page and initial load
 router.get('/admin-branding', getAdminBranding);

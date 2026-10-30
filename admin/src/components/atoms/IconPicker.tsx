@@ -48,20 +48,11 @@ export default function IconPicker({
         if (allIcons.length === 0) {
             setLoading(true);
             try {
-                // Dynamically import libraries only to get keys
-                // These will be in their own chunks
-                const [fa, md, bi, io, lucide] = await Promise.all([
-                    import('react-icons/fa'),
-                    import('react-icons/md'),
-                    import('react-icons/bi'),
-                    import('react-icons/io5'),
+                // Dynamically import Fa curated set and Lucide library to get keys
+                const [{ FA_ICONS }, lucide] = await Promise.all([
+                    import('./icons/FaIcon'),
                     import('lucide-react')
                 ]);
-
-                const faKeys = Object.keys(fa).filter(key => key !== 'default');
-                const mdKeys = Object.keys(md).filter(key => key !== 'default');
-                const biKeys = Object.keys(bi).filter(key => key !== 'default');
-                const ioKeys = Object.keys(io).filter(key => key !== 'default');
 
                 const lucideKeys = Object.keys(lucide).filter(key =>
                     key !== 'default' &&
@@ -69,7 +60,10 @@ export default function IconPicker({
                     /^[A-Z]/.test(key)
                 );
 
-                setAllIcons([...faKeys, ...mdKeys, ...biKeys, ...ioKeys, ...lucideKeys]);
+                const faKeys = Object.keys(FA_ICONS);
+
+                // Prioritize Lucide icons first, followed by curated FontAwesome icons
+                setAllIcons([...lucideKeys, ...faKeys]);
             } catch (error) {
                 console.error('Failed to load icons:', error);
             } finally {

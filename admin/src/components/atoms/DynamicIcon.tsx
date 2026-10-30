@@ -1,14 +1,10 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React from 'react';
+import * as LucideIcons from 'lucide-react';
 import dynamic from 'next/dynamic';
-import dynamicIconImports from 'lucide-react/dynamicIconImports';
 
-// Dynamically load icon set wrappers to split them into separate chunks
 const FaIconSet = dynamic(() => import('./icons/FaIcon'), { ssr: false });
-const MdIconSet = dynamic(() => import('./icons/MdIcon'), { ssr: false });
-const BiIconSet = dynamic(() => import('./icons/BiIcon'), { ssr: false });
-const IoIconSet = dynamic(() => import('./icons/IoIcon'), { ssr: false });
 
 interface DynamicIconProps {
     name: string;
@@ -17,60 +13,91 @@ interface DynamicIconProps {
     color?: string;
 }
 
+const ICON_ALIASES: Record<string, string> = {
+    // Material Design aliases
+    MdClose: 'X',
+    MdCheck: 'Check',
+    MdOutlineCookie: 'Cookie',
+    MdOutlineSwapHoriz: 'ArrowRightLeft',
+    MdOutlineKeyboardReturn: 'Undo2',
+    MdOutlineAddShoppingCart: 'ShoppingCart',
+    MdShoppingCartCheckout: 'ShoppingBag',
+    MdPhotoSizeSelectSmall: 'Maximize',
+
+    // BoxIcons aliases
+    BiCheckShield: 'ShieldCheck',
+    BiSupport: 'Headset',
+
+    // FontAwesome aliases
+    FaShippingFast: 'Truck',
+    FaTools: 'Wrench',
+    FaHeadset: 'Headset',
+    FaRegStar: 'Star',
+    FaRegHeart: 'Heart',
+    FaEnvelope: 'Mail',
+    FaMapMarkerAlt: 'MapPin',
+    FaShieldAlt: 'Shield',
+    FaPhoneAlt: 'Phone',
+};
+
+/** Normalize icon name to PascalCase for Lucide matching */
+function normalizeIconName(raw: string): string {
+    let name = raw.trim();
+    if (name.startsWith('Lucide')) {
+        name = name.slice(6);
+    }
+    if (name.endsWith('Icon') && name.length > 4) {
+        name = name.slice(0, -4);
+    }
+    return name;
+}
+
 export default function DynamicIcon({ name, className, size = 24, color }: DynamicIconProps) {
     if (!name) return null;
 
-    // Normalize name: Some icons might come as LucideGithub or just Github
-    // Also remove 'Icon' suffix if it exists (e.g., ArrowDown01Icon -> ArrowDown01)
-    let normalizedName = name;
-    if (name.startsWith('Lucide')) {
-        normalizedName = name.replace('Lucide', '');
+    // 1. Check direct aliases first
+    const aliased = ICON_ALIASES[name] || name;
+    const normalized = normalizeIconName(aliased);
+
+    // 2. Try Lucide icon directly with exact name (e.g. "Truck", "Star", "PackageCheck")
+    const LucideDirect = (LucideIcons as any)[normalized];
+    if (LucideDirect) {
+        const Component = LucideDirect;
+        return (
+            <span
+                className={`inline-flex items-center justify-center ${className || ''}`}
+                style={{ width: size, height: size, minWidth: size, minHeight: size }}
+            >
+                <Component size={size} color={color} />
+            </span>
+        );
     }
-    if (normalizedName.endsWith('Icon') && Object.keys(dynamicIconImports).includes(normalizedName.toLowerCase() as any) === false) {
-        // Only strip 'Icon' if the version WITH 'Icon' isn't actually a valid key
-        // Most Lucide icons don't end in 'Icon', but some might? (unlikely in standard lib)
-        const stripped = normalizedName.slice(0, -4);
-        if (stripped.length > 0) {
-            normalizedName = stripped;
+
+    // 3. If prefixed with "Fa", strip "Fa" and check if Lucide has it (e.g. "FaTruck" -> "Truck", "FaHeart" -> "Heart")
+    if (normalized.startsWith('Fa') && normalized.length > 2) {
+        const strippedFa = normalized.slice(2);
+        const LucideStripped = (LucideIcons as any)[strippedFa];
+        if (LucideStripped) {
+            const Component = LucideStripped;
+            return (
+                <span
+                    className={`inline-flex items-center justify-center ${className || ''}`}
+                    style={{ width: size, height: size, minWidth: size, minHeight: size }}
+                >
+                    <Component size={size} color={color} />
+                </span>
+            );
         }
     }
 
-    // 1. Handle Lucide Icons (Granular dynamic loading)
-    // Convert PascalCase to kebab-case (e.g., AlertCircle -> alert-circle, ArrowDown01 -> arrow-down-01)
-    const lucideName = normalizedName
-        .replace(/([a-z])([A-Z0-9])/g, '$1-$2')
-        .replace(/([0-9])([a-zA-Z])/g, '$1-$2')
-        .toLowerCase() as keyof typeof dynamicIconImports;
-
-    if (dynamicIconImports[lucideName]) {
-        const LucideIcon = dynamic(dynamicIconImports[lucideName], {
-            loading: () => <div style={{ width: size, height: size }} />,
-            ssr: false
-        });
-        return <LucideIcon className={className} size={size} color={color} />;
-    }
-
-    // 2. Handle Material Design (Md)
-    if (name.startsWith('Md')) {
-        return <MdIconSet name={name} className={className} size={size} style={{ color }} />;
-    }
-
-    // 3. Handle Bootstrap/BoxIcons (Bi)
-    if (name.startsWith('Bi')) {
-        return <BiIconSet name={name} className={className} size={size} style={{ color }} />;
-    }
-
-    // 4. Handle Ionicons (Io)
-    if (name.startsWith('Io')) {
-        return <IoIconSet name={name} className={className} size={size} style={{ color }} />;
-    }
-
-    // 5. Handle FontAwesome (Fa)
-    if (name.startsWith('Fa')) {
-        return <FaIconSet name={name} className={className} size={size} style={{ color }} />;
-    }
-
-    // Fallback: Try Fa if no prefix ( legacy behavior )
-    const faName = name.startsWith('Fa') ? name : `Fa${name}`;
-    return <FaIconSet name={faName} className={className} size={size} style={{ color }} />;
+    // 4. Fallback to curated FontAwesome (Fa)
+    const faName = normalized.startsWith('Fa') ? normalized : `Fa${normalized}`;
+    return (
+        <span
+            className={`inline-flex items-center justify-center ${className || ''}`}
+            style={{ width: size, height: size, minWidth: size, minHeight: size }}
+        >
+            <FaIconSet name={faName} className={className} size={size} style={{ color }} />
+        </span>
+    );
 }

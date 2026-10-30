@@ -5,7 +5,7 @@ import { AuthRequest } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/validation';
 import { PaymentService } from '../services/payment/payment.service';
 import { PaymentGatewayFactory } from '../services/payment/payment-gateway.factory';
-import { decrypt, encrypt } from '../utils/encryption.utils';
+import { decryptCredentials, encryptCredentials } from '../utils/encryption.utils';
 
 /**
  * Validation rules
@@ -20,13 +20,6 @@ export const createGatewayConfigValidation = [
 export const updateGatewayConfigValidation = [
     param('id').isMongoId().withMessage('Valid gateway config ID is required'),
 ];
-
-/**
- * Simple encryption for credentials (use proper encryption in production)
- */
-const encryptCredentials = (credentials: any): string => {
-    return encrypt(credentials);
-};
 
 /**
  * @route   POST /api/payment-gateways
@@ -201,18 +194,12 @@ export const updateGatewayConfig = asyncHandler(async (req: AuthRequest, res: Re
 
     // Handle credentials merge
     if (updateData.credentials && Object.keys(updateData.credentials).length > 0) {
-        let existingCredentials: any = {};
-        if (typeof config.credentials === 'string') {
-            const decrypted = decrypt(config.credentials);
-            existingCredentials = (decrypted && typeof decrypted === 'object') ? decrypted : {};
-        } else if (config.credentials && typeof config.credentials === 'object') {
-            existingCredentials = config.credentials;
-        }
+        const existingCredentials = decryptCredentials(config.credentials);
 
         // Merge with existing credentials to prevent data loss on partial updates
         const mergedCredentials = {
             ...existingCredentials,
-            ...updateData.credentials
+            ...updateData.credentials,
         };
         updateData.credentials = encryptCredentials(mergedCredentials);
     } else {

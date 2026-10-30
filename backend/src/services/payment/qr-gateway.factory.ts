@@ -3,7 +3,7 @@ import { PayPalService } from './paypal.service';
 import { StripeService } from './stripe.service';
 import PaymentGatewayConfig from '../../models/PaymentGatewayConfig';
 import { IPosQRService } from './pos-payment.interface';
-import { decrypt } from '../../utils/encryption.utils';
+import { decryptCredentials } from '../../utils/encryption.utils';
 
 export class QRGatewayFactory {
 
@@ -28,9 +28,7 @@ export class QRGatewayFactory {
             throw new Error('Gateway provider type is required');
         }
 
-        const credentials = typeof config.credentials === 'string'
-            ? decrypt(config.credentials)
-            : config.credentials;
+        const credentials = decryptCredentials(config.credentials);
 
         const isTestMode = config.isTestMode || false;
 
